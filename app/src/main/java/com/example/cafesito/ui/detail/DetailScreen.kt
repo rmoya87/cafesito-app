@@ -34,11 +34,11 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
+import com.example.cafesito.ui.components.SensoryRadarChart
 import com.example.cafesito.domain.Review
 import com.example.cafesito.domain.User
 import com.example.cafesito.domain.currentUser
 import com.example.cafesito.domain.sampleReviews
-import com.example.cafesito.ui.components.SensoryRadarChart
 import kotlin.math.ceil
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,7 +91,8 @@ private fun DetailContent(
             existingReview = userReview,
             onDismissRequest = { showAddReviewDialog = false },
             onSaveReview = { rating, comment ->
-                val newReview = Review(currentUser, rating, comment)
+                // FIXED: Passing coffeeId to Review
+                val newReview = Review(currentUser, coffeeDetails.coffee.id, rating, comment)
                 val currentReviews = sampleReviews.value.toMutableList()
                 val index = currentReviews.indexOfFirst { it.user.id == currentUser.id }
                 if (index != -1) {
@@ -133,12 +134,25 @@ private fun DetailContent(
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         ScoreView(score = "${String.format("%.2f", coffeeDetails.coffee.officialScore)}/100", label = "SCA")
                         Spacer(modifier = Modifier.weight(1f))
-                        ScoreView(score = "${String.format("%.1f", averageReviewRating)}/5", label = "Reseñas ($reviewCount)")
+                        // CHANGED: "Reseñas" -> "Opiniones"
+                        ScoreView(score = "${String.format("%.1f", averageReviewRating)}/5", label = "Opiniones ($reviewCount)")
                         Spacer(modifier = Modifier.weight(1f))
-                        Button(onClick = onFavoriteClick, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
-                            Icon(if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, contentDescription = "Añadir")
-                            Spacer(Modifier.size(4.dp))
-                            Text("Añadir")
+                        
+                        Button(
+                            onClick = onFavoriteClick, 
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, 
+                                contentDescription = null,
+                                tint = if (isFavorite) Color.Red else Color.White
+                            )
+                            Spacer(Modifier.size(8.dp))
+                            Text(if (isFavorite) "Favorito" else "Añadir")
                         }
                     }
                     
@@ -204,12 +218,14 @@ private fun ReviewsSection(reviews: List<Review>, userReview: Review?, onAddRevi
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("${reviews.size} Reseñas", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            // CHANGED: "Reseñas" -> "Opiniones"
+            Text("${reviews.size} Opiniones", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onAddReviewClick) {
-                Icon(Icons.Default.Edit, contentDescription = if (userReview != null) "Editar mi reseña" else "Añadir reseña")
+                // CHANGED: "reseña" -> "opinión"
+                Icon(Icons.Default.Edit, contentDescription = if (userReview != null) "Editar mi opinión" else "Añadir opinión")
                 Spacer(Modifier.size(4.dp))
-                Text(if (userReview != null) "Editar mi reseña" else "Añadir reseña")
+                Text(if (userReview != null) "Editar mi opinión" else "Añadir opinión")
             }
         }
 
@@ -231,7 +247,8 @@ private fun ReviewsSection(reviews: List<Review>, userReview: Review?, onAddRevi
                 }
             }
         } else {
-            Text("Todavía no hay reseñas. ¡Sé el primero!")
+            // CHANGED: "reseñas" -> "opiniones"
+            Text("Todavía no hay opiniones. ¡Sé el primero!")
         }
     }
 }
@@ -266,7 +283,8 @@ fun AddReviewDialog(existingReview: Review?, onDismissRequest: () -> Unit, onSav
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text(if (existingReview != null) "Editar reseña" else "Añadir reseña") },
+        // CHANGED: "reseña" -> "opinión"
+        title = { Text(if (existingReview != null) "Editar opinión" else "Añadir opinión") },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

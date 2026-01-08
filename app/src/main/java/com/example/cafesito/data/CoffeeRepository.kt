@@ -20,15 +20,16 @@ class CoffeeRepository @Inject constructor(
 
     fun getCoffeeById(id: Int): Flow<CoffeeWithDetails?> = coffeeDao.getCoffeeById(id)
 
-    suspend fun toggleFavorite(coffeeId: Int, isFavorite: Boolean) {
-        if (isFavorite) {
-            coffeeDao.addFavorite(LocalFavorite(coffeeId, System.currentTimeMillis()))
-        } else {
+    suspend fun toggleFavorite(coffeeId: Int, isCurrentlyFavorite: Boolean) {
+        if (isCurrentlyFavorite) {
+            // Si ya es favorito, lo quitamos
             coffeeDao.removeFavorite(coffeeId)
+        } else {
+            // Si no es favorito, lo añadimos
+            coffeeDao.addFavorite(LocalFavorite(coffeeId, System.currentTimeMillis()))
         }
     }
     
-    // For manual seeding or data management
     suspend fun insertCoffee(coffee: Coffee) = coffeeDao.insertCoffee(coffee)
     suspend fun insertOrigin(origin: Origin) = originDao.insertOrigin(origin)
     suspend fun insertScoreSource(source: ScoreSource) = scoreSourceDao.insertScoreSource(source)
