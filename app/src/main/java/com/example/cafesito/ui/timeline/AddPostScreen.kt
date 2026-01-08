@@ -9,10 +9,7 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun AddPostScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Añadir nueva publicación")
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Pantalla para añadir publicaciones (Placeholder)")
     }
 }

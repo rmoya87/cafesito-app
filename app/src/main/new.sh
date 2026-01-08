@@ -1,3 +1,0 @@
-sh
-    git add .
-    ds

@@ -70,5 +70,5 @@ data class SensoryProfile(
 )
 data class LocalFavorite(
     @PrimaryKey val coffeeId: Int,
-    val savedAt: Long = System.currentTimeMillis()
+    val savedAt: Long
 )

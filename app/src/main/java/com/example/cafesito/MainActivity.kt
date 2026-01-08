@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -25,13 +24,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.cafesito.domain.currentUser
 import com.example.cafesito.ui.detail.DetailScreen
-import com.example.cafesito.ui.favorites.FavoritesScreen
+import com.example.cafesito.ui.profile.FollowersScreen
+import com.example.cafesito.ui.profile.FollowingScreen
 import com.example.cafesito.ui.profile.ProfileScreen
 import com.example.cafesito.ui.search.SearchScreen
 import com.example.cafesito.ui.timeline.AddPostScreen
 import com.example.cafesito.ui.timeline.TimelineScreen
-import com.example.cafesito.ui.timeline.currentUser
 import com.example.cafesito.ui.theme.CafesitoTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -53,7 +53,6 @@ fun AppNavigation() {
     val navItems = mapOf(
         "timeline" to "Inicio",
         "search" to "Buscar",
-        "favorites" to "Favoritos",
         "profile" to "Perfil"
     )
 
@@ -62,7 +61,7 @@ fun AppNavigation() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
 
-            if (currentDestination?.route in navItems.keys) {
+            if (currentDestination?.route?.split("/")?.first() in navItems.keys) {
                 NavigationBar {
                     navItems.forEach { (screen, label) ->
                         val route = if (screen == "profile") "profile/${currentUser.id}" else screen
@@ -71,7 +70,6 @@ fun AppNavigation() {
                                 when (screen) {
                                     "timeline" -> Icon(Icons.Filled.Home, contentDescription = label)
                                     "search" -> Icon(Icons.Filled.Search, contentDescription = label)
-                                    "favorites" -> Icon(Icons.Filled.Favorite, contentDescription = label)
                                     "profile" -> Icon(Icons.Filled.Person, contentDescription = label)
                                 }
                             },
@@ -107,17 +105,17 @@ fun AppNavigation() {
                     onProfileClick = { userId -> navController.navigate("profile/$userId") }
                 )
             }
-            composable("favorites") {
-                FavoritesScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onCoffeeClick = { coffeeId -> navController.navigate("detail/$coffeeId") }
-                )
-            }
             composable(
                 route = "profile/{userId}",
                 arguments = listOf(navArgument("userId") { type = NavType.IntType })
             ) {
-                ProfileScreen()
+                ProfileScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onUserClick = { userId -> navController.navigate("profile/$userId") },
+                    onCoffeeClick = { coffeeId -> navController.navigate("detail/$coffeeId") },
+                    onFollowersClick = { userId -> navController.navigate("profile/$userId/followers") },
+                    onFollowingClick = { userId -> navController.navigate("profile/$userId/following") }
+                )
             }
             composable(
                 route = "detail/{coffeeId}",
@@ -127,6 +125,18 @@ fun AppNavigation() {
             }
             composable("addPost") {
                 AddPostScreen()
+            }
+            composable(
+                route = "profile/{userId}/followers",
+                arguments = listOf(navArgument("userId") { type = NavType.IntType })
+            ) {
+                FollowersScreen(onBackClick = { navController.popBackStack() })
+            }
+            composable(
+                route = "profile/{userId}/following",
+                arguments = listOf(navArgument("userId") { type = NavType.IntType })
+            ) {
+                FollowingScreen(onBackClick = { navController.popBackStack() })
             }
         }
     }

@@ -22,7 +22,7 @@ class CoffeeRepository @Inject constructor(
 
     suspend fun toggleFavorite(coffeeId: Int, isFavorite: Boolean) {
         if (isFavorite) {
-            coffeeDao.addFavorite(LocalFavorite(coffeeId))
+            coffeeDao.addFavorite(LocalFavorite(coffeeId, System.currentTimeMillis()))
         } else {
             coffeeDao.removeFavorite(coffeeId)
         }

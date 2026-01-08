@@ -154,8 +154,8 @@ private fun CoffeeListItem(coffeeDetails: CoffeeWithDetails, onCoffeeClick: (Int
             .fillMaxWidth()
             .clickable { onCoffeeClick(coffee.id) },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column {
             AsyncImage(

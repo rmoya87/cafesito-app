@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [Coffee::class, Origin::class, ScoreSource::class, SensoryProfile::class, LocalFavorite::class],
-    version = 2,
+    version = 3, // Keep version incremented
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -32,21 +32,13 @@ class DetailViewModel @Inject constructor(
             initialValue = DetailUiState.Loading
         )
 
-    // Check favorite status separated or combined?
-    // Repository.favorites is a list. Let's make a separate flow or combine it.
-    // Simplifying: DetailUiState could hold isFavorite.
-    // For V1, let's query DB for favorite status via separate flow if needed or just cache it.
-    // BUT: getCoffeeById returns CoffeeWithDetails which doesn't have "isFavorite" boolean (LocalFavorite is separate).
-    // Let's add specific check. 
-    // Actually, simple solution: Load all favorites and check if ID is in it.
-    
     val isFavorite: StateFlow<Boolean> = repository.favorites
         .map { list -> list.any { it.coffeeId == coffeeId } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun toggleFavorite(currentStatus: Boolean) {
         viewModelScope.launch {
-            repository.toggleFavorite(coffeeId, currentStatus)
+            repository.toggleFavorite(coffeeId, !currentStatus)
         }
     }
 }

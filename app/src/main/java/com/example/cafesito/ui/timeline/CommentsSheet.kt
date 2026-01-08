@@ -38,6 +38,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.cafesito.domain.Comment
+import com.example.cafesito.domain.Post
+import com.example.cafesito.domain.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,7 +109,7 @@ private fun CommentItem(comment: Comment) {
     Row(modifier = Modifier.fillMaxWidth()) {
         AsyncImage(
             model = comment.user.avatarUrl,
-            contentDescription = "Avatar de ${comment.user.name}",
+            contentDescription = "Avatar de ${comment.user.fullName}",
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
@@ -114,7 +117,7 @@ private fun CommentItem(comment: Comment) {
         )
         Spacer(modifier = Modifier.size(12.dp))
         Column {
-            Text(comment.user.name, fontWeight = FontWeight.Bold)
+            Text(comment.user.fullName, fontWeight = FontWeight.Bold)
             Text(comment.text)
         }
     }
