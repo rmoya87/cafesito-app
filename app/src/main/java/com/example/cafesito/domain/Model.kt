@@ -4,11 +4,12 @@ package com.example.cafesito.domain
 
 data class User(
     val id: Int,
-    val username: String, // Added
-    val fullName: String, // Renamed from 'name'
+    val username: String,
+    val fullName: String,
     val avatarUrl: String,
     val email: String, 
-    val bio: String?
+    val bio: String?,
+    val favoriteCoffeeIds: List<Int> = emptyList()
 )
 
 data class Post(
@@ -23,4 +24,9 @@ data class Post(
 
 data class Comment(val user: User, val text: String)
 
-data class Review(val user: User, val rating: Float, val comment: String)
+data class Review(
+    val user: User, 
+    val coffeeId: Int, // Added reference to coffee
+    val rating: Float, 
+    val comment: String
+)

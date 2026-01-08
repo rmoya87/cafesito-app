@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.CoffeeRepository
 import com.example.cafesito.data.CoffeeWithDetails
-import com.example.cafesito.data.LocalFavorite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +37,8 @@ class DetailViewModel @Inject constructor(
 
     fun toggleFavorite(currentStatus: Boolean) {
         viewModelScope.launch {
-            repository.toggleFavorite(coffeeId, !currentStatus)
+            // If currentStatus is true, we want to remove it. Repository handle the logic.
+            repository.toggleFavorite(coffeeId, currentStatus)
         }
     }
 }

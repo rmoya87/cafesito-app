@@ -1,23 +1,24 @@
 package com.example.cafesito.ui.profile
 
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +36,8 @@ import com.example.cafesito.domain.Post
 import com.example.cafesito.domain.User
 import com.example.cafesito.ui.components.CoffeeCard
 import com.example.cafesito.ui.components.PostCard
+import com.example.cafesito.ui.timeline.CommentsSheet
+import com.example.cafesito.ui.detail.RatingBar
 
 @Composable
 fun ProfileScreen(
@@ -84,7 +87,7 @@ private fun ProfileContent(
     viewModel: ProfileViewModel
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Publicaciones", "Favoritos")
+    val tabs = listOf("Publicaciones", "Favoritos", "Opiniones")
 
     var bio by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -106,49 +109,108 @@ private fun ProfileContent(
             onDismiss = { viewModel.onDismissImagePicker() },
             onGalleryClick = {
                 singlePhotoPickerLauncher.launch(
-                    PickVisualMedia.Request(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                 )
             },
-            onCameraClick = { /* TODO: Implement camera functionality */ }
+            onCameraClick = { /* TODO */ }
+        )
+    }
+
+    if (state.activeCommentPost != null) {
+        CommentsSheet(
+            post = state.activeCommentPost,
+            onDismiss = { viewModel.onDismissComments() },
+            onAddComment = { text -> viewModel.onAddComment(state.activeCommentPost, text) }
+        )
+    }
+
+    if (state.postToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDeleteDialog() },
+            title = { Text("¿Borrar publicación?") },
+            text = { Text("Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmDeletePost() }) { 
+                    Text("Borrar", color = Color.Red) 
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissDeleteDialog() }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (state.postToEdit != null) {
+        var editedComment by remember { mutableStateOf(state.postToEdit.comment) }
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissEditPost() },
+            title = { Text("Editar publicación") },
+            text = {
+                OutlinedTextField(
+                    value = editedComment,
+                    onValueChange = { editedComment = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.savePostEdit(state.postToEdit, editedComment) }) { 
+                    Text("Guardar") 
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissEditPost() }) { Text("Cancelar") }
+            }
         )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            // Header
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(state.user.username, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    if (!state.isCurrentUser && !state.isEditing) {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        }
+                    } else if (state.isCurrentUser && !state.isEditing) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+
+                    Text(
+                        text = state.user.username,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+
                     if (state.isCurrentUser) {
                         if (state.isEditing) {
                             Row {
                                 IconButton(onClick = { viewModel.onSaveProfile(avatarUrl, bio, email) }) {
-                                    Icon(Icons.Default.Save, contentDescription = "Guardar perfil", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.Save, contentDescription = "Guardar", tint = MaterialTheme.colorScheme.primary)
                                 }
                                 IconButton(onClick = { viewModel.toggleEditMode() }) {
-                                    Icon(Icons.Default.Cancel, contentDescription = "Cancelar edición")
+                                    Icon(Icons.Default.Cancel, contentDescription = "Cancelar")
                                 }
                             }
                         } else {
                             IconButton(onClick = { viewModel.toggleEditMode() }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Editar perfil")
+                                Icon(Icons.Default.Edit, contentDescription = "Editar")
                             }
                         }
                     }
                 }
             }
 
-            // User Info
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.clickable(enabled = state.isEditing) { viewModel.onShowImagePicker() }) {
                             AsyncImage(
                                 model = avatarUrl,
-                                contentDescription = "Avatar de ${state.user.fullName}",
+                                contentDescription = "Avatar",
                                 modifier = Modifier.size(80.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentScale = ContentScale.Crop
                             )
@@ -196,7 +258,7 @@ private fun ProfileContent(
                     Spacer(Modifier.height(16.dp))
 
                     if (!state.isCurrentUser) {
-                        Button(onClick = { /* TODO: Follow logic */ }, modifier = Modifier.fillMaxWidth()) {
+                        Button(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) {
                             Text("Seguir")
                         }
                         Spacer(Modifier.height(16.dp))
@@ -218,39 +280,167 @@ private fun ProfileContent(
 
             when (selectedTab) {
                 0 -> items(state.posts) { post ->
-                    PostCard(
-                        post = post,
-                        onUserClick = { onUserClick(post.user.id) },
-                        onCommentClick = { /* TODO */ },
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                    Box {
+                        PostCard(
+                            post = post,
+                            onUserClick = { onUserClick(post.user.id) },
+                            onCommentClick = { viewModel.onCommentClick(post) },
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            showHeader = false
+                        )
+                        if (state.isCurrentUser) {
+                            Row(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                                IconButton(onClick = { viewModel.requestEditPost(post) }) {
+                                    Icon(Icons.Default.Edit, "Editar post", tint = Color.Gray)
+                                }
+                                IconButton(onClick = { viewModel.requestDeletePost(post) }) {
+                                    Icon(Icons.Default.Delete, "Eliminar post", tint = Color.Red)
+                                }
+                            }
+                        }
+                    }
                 }
-                1 -> item {
+                1 -> {
                     if (state.favoriteCoffees.isEmpty()) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(32.dp).fillMaxWidth()) {
-                            Text("Todavía no hay cafés favoritos.")
+                        item {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(32.dp).fillMaxWidth()) {
+                                Text("Todavía no hay cafés favoritos.")
+                            }
                         }
                     } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.heightIn(max = 1000.dp) // Adjust height as needed
-                        ) {
-                            items(state.favoriteCoffees) { coffee ->
-                                CoffeeCard(coffee, onClick = { onCoffeeClick(coffee.coffee.id) })
+                        items(state.favoriteCoffees) { coffeeDetails ->
+                            val isMyFavorite = state.myFavoriteIds.contains(coffeeDetails.coffee.id)
+                            CoffeeFavoriteItem(
+                                coffeeDetails = coffeeDetails,
+                                isFavorite = isMyFavorite,
+                                onFavoriteClick = { viewModel.onToggleFavorite(coffeeDetails.coffee.id, isMyFavorite) },
+                                onClick = { onCoffeeClick(coffeeDetails.coffee.id) }
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                thickness = 0.5.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                        }
+                    }
+                }
+                2 -> {
+                    if (state.userReviews.isEmpty()) {
+                        item {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(32.dp).fillMaxWidth()) {
+                                Text("Todavía no hay opiniones.")
                             }
+                        }
+                    } else {
+                        items(state.userReviews) { info ->
+                            UserReviewCard(info, onClick = { onCoffeeClick(info.coffeeDetails.coffee.id) })
                         }
                     }
                 }
             }
         }
+    }
+}
 
-        if (!state.isEditing) {
-            IconButton(onClick = onBackClick, modifier = Modifier.padding(8.dp).align(Alignment.TopStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+@Composable
+fun UserReviewCard(info: com.example.cafesito.ui.profile.UserReviewInfo, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(
+                    model = info.coffeeDetails.coffee.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = info.coffeeDetails.coffee.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = info.coffeeDetails.coffee.brandRoaster,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                // Highlighted Score
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = String.format("%.1f", info.review.rating),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    RatingBar(rating = info.review.rating, isInteractive = false, starSize = 12.dp)
+                }
             }
+            
+            Spacer(Modifier.height(12.dp))
+            
+            // Full opinion text with larger typography
+            Text(
+                text = info.review.comment,
+                style = MaterialTheme.typography.bodyLarge,
+                lineHeight = 22.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun CoffeeFavoriteItem(
+    coffeeDetails: CoffeeWithDetails,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = coffeeDetails.coffee.imageUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(8.dp))
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = coffeeDetails.coffee.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "${coffeeDetails.coffee.brandRoaster} • ${coffeeDetails.origin?.countryName ?: "N/A"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = onFavoriteClick) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = "Favorito",
+                tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

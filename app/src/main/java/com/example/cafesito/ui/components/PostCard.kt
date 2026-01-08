@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,7 +43,8 @@ fun PostCard(
     post: Post,
     onUserClick: () -> Unit,
     onCommentClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showHeader: Boolean = true
 ) {
     var isLiked by remember { mutableStateOf(false) }
     var likeCount by remember { mutableStateOf(post.initialLikes) }
@@ -54,24 +56,22 @@ fun PostCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onUserClick)
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AsyncImage(
-                    model = post.user.avatarUrl,
-                    contentDescription = "Avatar de ${post.user.fullName}",
-                    modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
-                )
-                Column(modifier = Modifier.padding(start = 12.dp)) {
-                    Text(post.user.fullName, fontWeight = FontWeight.Bold)
-                    Text(
-                        SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(post.timestamp),
-                        style = MaterialTheme.typography.labelSmall
+            if (showHeader) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onUserClick)
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = post.user.avatarUrl,
+                        contentDescription = "Avatar",
+                        modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                     )
+                    Column(modifier = Modifier.padding(start = 12.dp)) {
+                        Text(post.user.fullName, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
@@ -82,20 +82,22 @@ fun PostCard(
                 modifier = Modifier.fillMaxWidth().height(300.dp)
             )
 
+            // Actions and Comment
             Column(modifier = Modifier.padding(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Comments
                     Row(
                         modifier = Modifier.clickable(onClick = onCommentClick),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ChatBubbleOutline,
-                            contentDescription = "Comentarios"
-                        )
+                        Icon(imageVector = Icons.Outlined.ChatBubbleOutline, contentDescription = "Comentarios")
                         Spacer(modifier = Modifier.size(4.dp))
                         Text(text = "${post.comments.size}", fontWeight = FontWeight.Bold)
                     }
+                    
                     Spacer(modifier = Modifier.size(16.dp))
+                    
+                    // Likes
                     IconButton(onClick = {
                         isLiked = !isLiked
                         likeCount = if (isLiked) likeCount + 1 else likeCount - 1
@@ -107,6 +109,16 @@ fun PostCard(
                         )
                     }
                     Text(text = "$likeCount", fontWeight = FontWeight.Bold)
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Adjusted date typography: smaller and lighter
+                    Text(
+                        text = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(post.timestamp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(post.comment)

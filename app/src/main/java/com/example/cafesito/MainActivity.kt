@@ -61,10 +61,17 @@ fun AppNavigation() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
 
+            // Show bar if the root of the route is in our navItems
             if (currentDestination?.route?.split("/")?.first() in navItems.keys) {
                 NavigationBar {
                     navItems.forEach { (screen, label) ->
                         val route = if (screen == "profile") "profile/${currentUser.id}" else screen
+                        val isSelected = if (screen == "profile") {
+                            currentDestination?.route == "profile/${currentUser.id}"
+                        } else {
+                            currentDestination?.hierarchy?.any { it.route?.startsWith(screen) == true } == true
+                        }
+
                         NavigationBarItem(
                             icon = {
                                 when (screen) {
@@ -74,10 +81,12 @@ fun AppNavigation() {
                                 }
                             },
                             label = { Text(label) },
-                            selected = currentDestination?.hierarchy?.any { it.route?.startsWith(screen) == true } == true,
+                            selected = isSelected,
                             onClick = {
                                 navController.navigate(route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -110,7 +119,7 @@ fun AppNavigation() {
                 arguments = listOf(navArgument("userId") { type = NavType.IntType })
             ) {
                 ProfileScreen(
-                    onBackClick = { navController.popBackStack() },
+                    onBackClick = { navController.popBackStack() }, // FIXED: Use popBackStack
                     onUserClick = { userId -> navController.navigate("profile/$userId") },
                     onCoffeeClick = { coffeeId -> navController.navigate("detail/$coffeeId") },
                     onFollowersClick = { userId -> navController.navigate("profile/$userId/followers") },
@@ -121,7 +130,7 @@ fun AppNavigation() {
                 route = "detail/{coffeeId}",
                 arguments = listOf(navArgument("coffeeId") { type = NavType.IntType })
             ) {
-                DetailScreen(onBackClick = { navController.popBackStack() })
+                DetailScreen(onBackClick = { navController.popBackStack() }) // FIXED: Use popBackStack
             }
             composable("addPost") {
                 AddPostScreen()
