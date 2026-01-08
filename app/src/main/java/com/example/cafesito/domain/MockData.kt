@@ -32,7 +32,13 @@ val sampleReviews = mutableStateOf(List(40) { i ->
     val user = allUsers[i % allUsers.size]
     // Distribute reviews across 5 mock coffee IDs
     val coffeeId = (i % 5) + 1 
-    Review(user, coffeeId, (3.0f + (i % 20) / 10f), "Este café tiene un cuerpo excelente y un aroma persistente. Muy recomendado.")
+    Review(
+        user = user, 
+        coffeeId = coffeeId, 
+        rating = (3.0f + (i % 20) / 10f), 
+        comment = "Este café tiene un cuerpo excelente y un aroma persistente. Muy recomendado.",
+        timestamp = System.currentTimeMillis() - (i * 7200000L) // every 2 hours
+    )
 })
 
 // --- Mock Post Data ---
@@ -44,7 +50,7 @@ val samplePosts = mutableListOf(
         user = user,
         imageUrl = "https://picsum.photos/seed/${i+30}/800/600",
         comment = "Disfrutando de un café increíble. #${i+1}",
-        timestamp = System.currentTimeMillis() - (i * 3600000L), // i hours ago
+        timestamp = System.currentTimeMillis() - (i * 3600000L + 1800000L), // offset from reviews
         initialLikes = (10..100).random(),
         comments = emptyList()
     )

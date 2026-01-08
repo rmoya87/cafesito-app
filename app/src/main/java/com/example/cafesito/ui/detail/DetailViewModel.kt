@@ -21,7 +21,7 @@ class DetailViewModel @Inject constructor(
 
     private val coffeeId: Int = checkNotNull(savedStateHandle["coffeeId"])
 
-    val uiState: StateFlow<DetailUiState> = repository.getCoffeeById(coffeeId)
+    val uiState: StateFlow<DetailUiState> = repository.getCoffeeWithDetailsById(coffeeId)
         .map { coffee ->
             if (coffee != null) DetailUiState.Success(coffee) else DetailUiState.Error
         }
@@ -37,7 +37,6 @@ class DetailViewModel @Inject constructor(
 
     fun toggleFavorite(currentStatus: Boolean) {
         viewModelScope.launch {
-            // If currentStatus is true, we want to remove it. Repository handle the logic.
             repository.toggleFavorite(coffeeId, currentStatus)
         }
     }

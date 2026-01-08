@@ -61,16 +61,22 @@ fun AppNavigation() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
 
-            // Show bar if the root of the route is in our navItems
-            if (currentDestination?.route?.split("/")?.first() in navItems.keys) {
+            // Detectamos si debemos mostrar la barra basándonos en la raíz de la ruta
+            val currentRoute = currentDestination?.route
+            val shouldShowBottomBar = currentRoute?.let { route ->
+                val rootSegment = route.split("/").firstOrNull()
+                rootSegment in navItems.keys
+            } ?: false
+
+            if (shouldShowBottomBar) {
                 NavigationBar {
                     navItems.forEach { (screen, label) ->
                         val route = if (screen == "profile") "profile/${currentUser.id}" else screen
-                        val isSelected = if (screen == "profile") {
-                            currentDestination?.route == "profile/${currentUser.id}"
-                        } else {
-                            currentDestination?.hierarchy?.any { it.route?.startsWith(screen) == true } == true
-                        }
+                        
+                        // Lógica de selección mejorada: comprueba si la raíz de la ruta coincide con el tab
+                        val isSelected = currentDestination?.hierarchy?.any { 
+                            it.route?.split("/")?.firstOrNull() == screen 
+                        } == true
 
                         NavigationBarItem(
                             icon = {
@@ -105,6 +111,7 @@ fun AppNavigation() {
             composable("timeline") {
                 TimelineScreen(
                     onUserClick = { userId -> navController.navigate("profile/$userId") },
+                    onCoffeeClick = { coffeeId -> navController.navigate("detail/$coffeeId") },
                     onAddPostClick = { navController.navigate("addPost") }
                 )
             }
@@ -119,7 +126,7 @@ fun AppNavigation() {
                 arguments = listOf(navArgument("userId") { type = NavType.IntType })
             ) {
                 ProfileScreen(
-                    onBackClick = { navController.popBackStack() }, // FIXED: Use popBackStack
+                    onBackClick = { navController.popBackStack() },
                     onUserClick = { userId -> navController.navigate("profile/$userId") },
                     onCoffeeClick = { coffeeId -> navController.navigate("detail/$coffeeId") },
                     onFollowersClick = { userId -> navController.navigate("profile/$userId/followers") },
@@ -130,7 +137,7 @@ fun AppNavigation() {
                 route = "detail/{coffeeId}",
                 arguments = listOf(navArgument("coffeeId") { type = NavType.IntType })
             ) {
-                DetailScreen(onBackClick = { navController.popBackStack() }) // FIXED: Use popBackStack
+                DetailScreen(onBackClick = { navController.popBackStack() })
             }
             composable("addPost") {
                 AddPostScreen()
@@ -138,14 +145,24 @@ fun AppNavigation() {
             composable(
                 route = "profile/{userId}/followers",
                 arguments = listOf(navArgument("userId") { type = NavType.IntType })
-            ) {
-                FollowersScreen(onBackClick = { navController.popBackStack() })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                FollowersScreen(
+                    userId = userId,
+                    onBackClick = { navController.popBackStack() },
+                    onUserClick = { id -> navController.navigate("profile/$id") }
+                )
             }
             composable(
                 route = "profile/{userId}/following",
                 arguments = listOf(navArgument("userId") { type = NavType.IntType })
-            ) {
-                FollowingScreen(onBackClick = { navController.popBackStack() })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                FollowingScreen(
+                    userId = userId,
+                    onBackClick = { navController.popBackStack() },
+                    onUserClick = { id -> navController.navigate("profile/$id") }
+                )
             }
         }
     }

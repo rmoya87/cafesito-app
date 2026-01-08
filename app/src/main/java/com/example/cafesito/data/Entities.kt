@@ -1,8 +1,10 @@
 package com.example.cafesito.data
 
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 @Entity(tableName = "origins")
 data class Origin(
@@ -71,4 +73,51 @@ data class SensoryProfile(
 data class LocalFavorite(
     @PrimaryKey val coffeeId: Int,
     val savedAt: Long
+)
+
+@Entity(tableName = "users_db")
+data class UserEntity(
+    @PrimaryKey val id: Int,
+    val username: String,
+    val fullName: String,
+    val avatarUrl: String,
+    val email: String,
+    val bio: String?
+)
+
+@Entity(
+    tableName = "follows",
+    primaryKeys = ["followerId", "followedId"],
+    foreignKeys = [
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followerId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followedId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [
+        androidx.room.Index(value = ["followerId"]),
+        androidx.room.Index(value = ["followedId"])
+    ]
+)
+data class FollowEntity(
+    val followerId: Int,
+    val followedId: Int,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+data class CoffeeWithDetails(
+    @Embedded val coffee: Coffee,
+    @Relation(
+        parentColumn = "originId",
+        entityColumn = "id"
+    )
+    val origin: Origin?,
+    @Relation(
+        parentColumn = "scoreSourceId",
+        entityColumn = "id"
+    )
+    val scoreSource: ScoreSource?,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "coffeeId"
+    )
+    val sensoryProfile: SensoryProfile?
 )

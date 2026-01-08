@@ -1,9 +1,7 @@
 package com.example.cafesito.ui.detail
 
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,8 +14,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarHalf
+import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +25,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -34,11 +32,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
-import com.example.cafesito.ui.components.SensoryRadarChart
 import com.example.cafesito.domain.Review
-import com.example.cafesito.domain.User
 import com.example.cafesito.domain.currentUser
 import com.example.cafesito.domain.sampleReviews
+import com.example.cafesito.ui.components.SensoryRadarChart
+import java.text.SimpleDateFormat
+import java.util.Locale
 import kotlin.math.ceil
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,7 +90,6 @@ private fun DetailContent(
             existingReview = userReview,
             onDismissRequest = { showAddReviewDialog = false },
             onSaveReview = { rating, comment ->
-                // FIXED: Passing coffeeId to Review
                 val newReview = Review(currentUser, coffeeDetails.coffee.id, rating, comment)
                 val currentReviews = sampleReviews.value.toMutableList()
                 val index = currentReviews.indexOfFirst { it.user.id == currentUser.id }
@@ -134,7 +132,6 @@ private fun DetailContent(
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         ScoreView(score = "${String.format("%.2f", coffeeDetails.coffee.officialScore)}/100", label = "SCA")
                         Spacer(modifier = Modifier.weight(1f))
-                        // CHANGED: "Reseñas" -> "Opiniones"
                         ScoreView(score = "${String.format("%.1f", averageReviewRating)}/5", label = "Opiniones ($reviewCount)")
                         Spacer(modifier = Modifier.weight(1f))
                         
@@ -172,12 +169,16 @@ private fun DetailContent(
                     
                     Spacer(Modifier.height(24.dp))
                     
-                    coffeeDetails.sensoryProfile?.let {
+                    coffeeDetails.sensoryProfile?.let { profile ->
                         Text("Perfil Sensorial", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(8.dp))
                         SensoryRadarChart(
                             data = mapOf(
-                                "Aroma" to it.aroma, "Sabor" to it.flavor, "Cuerpo" to it.body, "Acidez" to it.acidity, "Postgusto" to it.aftertaste
+                                "Aroma" to profile.aroma, 
+                                "Sabor" to profile.flavor, 
+                                "Cuerpo" to profile.body, 
+                                "Acidez" to profile.acidity, 
+                                "Postgusto" to profile.aftertaste
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -203,6 +204,14 @@ private fun DetailContent(
 }
 
 @Composable
+fun StatChip(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
 private fun ReviewsSection(reviews: List<Review>, userReview: Review?, onAddReviewClick: () -> Unit) {
     var currentPage by remember { mutableStateOf(0) }
     val itemsPerPage = 10
@@ -218,11 +227,9 @@ private fun ReviewsSection(reviews: List<Review>, userReview: Review?, onAddRevi
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            // CHANGED: "Reseñas" -> "Opiniones"
             Text("${reviews.size} Opiniones", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onAddReviewClick) {
-                // CHANGED: "reseña" -> "opinión"
                 Icon(Icons.Default.Edit, contentDescription = if (userReview != null) "Editar mi opinión" else "Añadir opinión")
                 Spacer(Modifier.size(4.dp))
                 Text(if (userReview != null) "Editar mi opinión" else "Añadir opinión")
@@ -247,7 +254,6 @@ private fun ReviewsSection(reviews: List<Review>, userReview: Review?, onAddRevi
                 }
             }
         } else {
-            // CHANGED: "reseñas" -> "opiniones"
             Text("Todavía no hay opiniones. ¡Sé el primero!")
         }
     }
@@ -274,16 +280,22 @@ private fun ReviewItem(review: Review, onProfileClick: () -> Unit) {
     }
 }
 
+@Composable
+fun ScoreView(score: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = score, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddReviewDialog(existingReview: Review?, onDismissRequest: () -> Unit, onSaveReview: (Float, String) -> Unit) {
     var rating by remember { mutableStateOf(existingReview?.rating ?: 0f) }
     var comment by remember { mutableStateOf(existingReview?.comment ?: "") }
-    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        // CHANGED: "reseña" -> "opinión"
         title = { Text(if (existingReview != null) "Editar opinión" else "Añadir opinión") },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -299,21 +311,12 @@ fun AddReviewDialog(existingReview: Review?, onDismissRequest: () -> Unit, onSav
                     value = comment,
                     onValueChange = { comment = it },
                     label = { Text("Comentario") },
-                    shape = CircleShape,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    if (rating > 0f && comment.isNotBlank()) {
-                        onSaveReview(rating, comment)
-                    } else {
-                        Toast.makeText(context, "La puntuación y el comentario son obligatorios", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            ) {
+            Button(onClick = { onSaveReview(rating, comment) }) {
                 Text("Guardar")
             }
         },
@@ -326,34 +329,29 @@ fun AddReviewDialog(existingReview: Review?, onDismissRequest: () -> Unit, onSav
 }
 
 @Composable
-fun RatingBar(rating: Float, isInteractive: Boolean, starCount: Int = 5, starSize: Dp = 32.dp, onRatingChanged: ((Float) -> Unit)? = null) {
+fun RatingBar(
+    rating: Float,
+    isInteractive: Boolean = true,
+    onRatingChanged: (Float) -> Unit = {},
+    starSize: Dp = 24.dp
+) {
     Row {
-        for (i in 1..starCount) {
-            val isSelected = i <= rating
-            val icon = if (isSelected) Icons.Filled.Star else Icons.Outlined.Star
-            val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-            val modifier = if (isInteractive && onRatingChanged != null) Modifier.clickable { onRatingChanged(i.toFloat()) } else Modifier
-            Icon(icon, contentDescription = null, tint = tint, modifier = modifier.size(starSize))
-        }
-    }
-}
-
-@Composable
-private fun ScoreView(score: String, label: String, onClick: (() -> Unit)? = null) {
-    val modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
-        Text(text = score, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun StatChip(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(4.dp))
-        Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.padding(horizontal = 8.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))) {
-            Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+        for (i in 1..5) {
+            val starIcon = when {
+                i <= rating -> Icons.Default.Star
+                i - 0.5f <= rating -> Icons.Default.StarHalf
+                else -> Icons.Default.StarOutline
+            }
+            Icon(
+                imageVector = starIcon,
+                contentDescription = null,
+                tint = if (i <= rating + 0.5f) Color(0xFFFFD700) else Color.Gray,
+                modifier = Modifier
+                    .size(starSize)
+                    .clickable(enabled = isInteractive) {
+                        onRatingChanged(i.toFloat())
+                    }
+            )
         }
     }
 }

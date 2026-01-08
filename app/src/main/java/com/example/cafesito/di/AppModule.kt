@@ -6,6 +6,7 @@ import com.example.cafesito.data.AppDatabase
 import com.example.cafesito.data.CoffeeDao
 import com.example.cafesito.data.OriginDao
 import com.example.cafesito.data.ScoreSourceDao
+import com.example.cafesito.data.UserDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,5 +43,10 @@ object AppModule {
     @Provides
     fun provideScoreSourceDao(db: AppDatabase): ScoreSourceDao {
         return db.scoreSourceDao()
+    }
+
+    @Provides
+    fun provideUserDao(db: AppDatabase): UserDao {
+        return db.userDao()
     }
 }

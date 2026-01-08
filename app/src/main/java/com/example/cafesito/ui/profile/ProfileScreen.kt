@@ -3,6 +3,7 @@ package com.example.cafesito.ui.profile
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
@@ -38,6 +40,10 @@ import com.example.cafesito.ui.components.CoffeeCard
 import com.example.cafesito.ui.components.PostCard
 import com.example.cafesito.ui.timeline.CommentsSheet
 import com.example.cafesito.ui.detail.RatingBar
+import com.example.cafesito.ui.theme.CoffeeBrown
+import com.example.cafesito.ui.theme.LightGrayBackground
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun ProfileScreen(
@@ -52,12 +58,12 @@ fun ProfileScreen(
 
     when (val state = uiState) {
         is ProfileUiState.Loading -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.White), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         }
         is ProfileUiState.Error -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.White), contentAlignment = Alignment.Center) {
                 Text(state.message)
             }
         }
@@ -163,11 +169,11 @@ private fun ProfileContent(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(LightGrayBackground)) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                    modifier = Modifier.fillMaxWidth().background(Color.White).padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (!state.isCurrentUser && !state.isEditing) {
@@ -205,7 +211,7 @@ private fun ProfileContent(
             }
 
             item {
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Column(modifier = Modifier.background(Color.White).padding(horizontal = 16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.clickable(enabled = state.isEditing) { viewModel.onShowImagePicker() }) {
                             AsyncImage(
@@ -220,16 +226,44 @@ private fun ProfileContent(
                         }
                         
                         Spacer(Modifier.width(24.dp))
-                        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceAround) {
-                            UserInfoStat("Publicaciones", state.posts.size.toString())
-                            UserInfoStat("Seguidores", state.followers.toString(), onClick = onFollowersClick)
-                            UserInfoStat("Seguidos", state.following.toString(), onClick = onFollowingClick)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                                UserInfoStat("Seguidores", state.followers.toString(), onClick = onFollowersClick)
+                                UserInfoStat("Seguidos", state.following.toString(), onClick = onFollowingClick)
+                            }
+                            
+                            if (!state.isCurrentUser) {
+                                Spacer(Modifier.height(8.dp))
+                                if (state.isFollowing) {
+                                    Button(
+                                        onClick = { viewModel.toggleFollow() },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(24.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = CoffeeBrown,
+                                            contentColor = Color.White
+                                        )
+                                    ) {
+                                        Text("Siguiendo", fontWeight = FontWeight.Bold)
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = { viewModel.toggleFollow() },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(24.dp),
+                                        border = BorderStroke(1.dp, CoffeeBrown),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = CoffeeBrown,
+                                            containerColor = Color.White
+                                        )
+                                    ) {
+                                        Text("Seguir", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
                         }
                     }
                     Spacer(Modifier.height(16.dp))
-
-                    Text(state.user.fullName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                    Spacer(Modifier.height(4.dp))
 
                     if (state.isEditing) {
                         OutlinedTextField(
@@ -256,18 +290,15 @@ private fun ProfileContent(
                     }
                     
                     Spacer(Modifier.height(16.dp))
-
-                    if (!state.isCurrentUser) {
-                        Button(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Seguir")
-                        }
-                        Spacer(Modifier.height(16.dp))
-                    }
                 }
             }
 
             stickyHeader {
-                TabRow(selectedTabIndex = selectedTab, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.White,
+                    contentColor = CoffeeBrown
+                ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTab == index,
@@ -280,21 +311,40 @@ private fun ProfileContent(
 
             when (selectedTab) {
                 0 -> items(state.posts) { post ->
-                    Box {
+                    Box(modifier = Modifier.padding(vertical = 4.dp)) {
                         PostCard(
                             post = post,
                             onUserClick = { onUserClick(post.user.id) },
                             onCommentClick = { viewModel.onCommentClick(post) },
-                            modifier = Modifier.padding(vertical = 8.dp),
+                            modifier = Modifier.background(Color.White),
                             showHeader = false
                         )
                         if (state.isCurrentUser) {
-                            Row(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-                                IconButton(onClick = { viewModel.requestEditPost(post) }) {
-                                    Icon(Icons.Default.Edit, "Editar post", tint = Color.Gray)
+                            var showMenu by remember { mutableStateOf(false) }
+                            Box(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                                IconButton(onClick = { showMenu = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray)
                                 }
-                                IconButton(onClick = { viewModel.requestDeletePost(post) }) {
-                                    Icon(Icons.Default.Delete, "Eliminar post", tint = Color.Red)
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Editar") },
+                                        onClick = {
+                                            showMenu = false
+                                            viewModel.requestEditPost(post)
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Borrar", color = Color.Red) },
+                                        onClick = {
+                                            showMenu = false
+                                            viewModel.requestDeletePost(post)
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red) }
+                                    )
                                 }
                             }
                         }
@@ -303,31 +353,33 @@ private fun ProfileContent(
                 1 -> {
                     if (state.favoriteCoffees.isEmpty()) {
                         item {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(32.dp).fillMaxWidth()) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth().padding(32.dp)) {
                                 Text("Todavía no hay cafés favoritos.")
                             }
                         }
                     } else {
                         items(state.favoriteCoffees) { coffeeDetails ->
                             val isMyFavorite = state.myFavoriteIds.contains(coffeeDetails.coffee.id)
-                            CoffeeFavoriteItem(
-                                coffeeDetails = coffeeDetails,
-                                isFavorite = isMyFavorite,
-                                onFavoriteClick = { viewModel.onToggleFavorite(coffeeDetails.coffee.id, isMyFavorite) },
-                                onClick = { onCoffeeClick(coffeeDetails.coffee.id) }
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = CardDefaults.cardElevation(0.dp)
+                            ) {
+                                CoffeeFavoriteItem(
+                                    coffeeDetails = coffeeDetails,
+                                    isFavorite = isMyFavorite,
+                                    onFavoriteClick = { viewModel.onToggleFavorite(coffeeDetails.coffee.id, isMyFavorite) },
+                                    onClick = { onCoffeeClick(coffeeDetails.coffee.id) }
+                                )
+                            }
                         }
                     }
                 }
                 2 -> {
                     if (state.userReviews.isEmpty()) {
                         item {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(32.dp).fillMaxWidth()) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth().padding(32.dp)) {
                                 Text("Todavía no hay opiniones.")
                             }
                         }
@@ -349,53 +401,83 @@ fun UserReviewCard(info: com.example.cafesito.ui.profile.UserReviewInfo, onClick
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(
-                    model = info.coffeeDetails.coffee.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
+        Column {
+            // Header con fondo marrón suave y sin negrita
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CoffeeBrown.copy(alpha = 0.1f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "El usuario ${info.review.user.username} ha opinado",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Normal
                 )
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = info.coffeeDetails.coffee.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                Text(
+                    text = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(info.review.timestamp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
+
+            // Línea divisora
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = info.coffeeDetails.coffee.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
                     )
-                    Text(
-                        text = info.coffeeDetails.coffee.brandRoaster,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = info.coffeeDetails.coffee.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = info.coffeeDetails.coffee.brandRoaster,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    // Highlighted Score
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = String.format("%.1f", info.review.rating),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        RatingBar(rating = info.review.rating, isInteractive = false, starSize = 12.dp)
+                    }
                 }
                 
-                // Highlighted Score
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = String.format("%.1f", info.review.rating),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    RatingBar(rating = info.review.rating, isInteractive = false, starSize = 12.dp)
-                }
+                Spacer(Modifier.height(12.dp))
+                
+                // Full opinion text with larger typography
+                Text(
+                    text = info.review.comment,
+                    style = MaterialTheme.typography.bodyLarge,
+                    lineHeight = 22.sp
+                )
             }
-            
-            Spacer(Modifier.height(12.dp))
-            
-            // Full opinion text with larger typography
-            Text(
-                text = info.review.comment,
-                style = MaterialTheme.typography.bodyLarge,
-                lineHeight = 22.sp
-            )
         }
     }
 }

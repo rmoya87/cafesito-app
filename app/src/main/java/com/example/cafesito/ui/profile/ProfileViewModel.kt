@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.CoffeeRepository
 import com.example.cafesito.data.CoffeeWithDetails
+import com.example.cafesito.data.UserRepository
 import com.example.cafesito.domain.Comment
 import com.example.cafesito.domain.Post
 import com.example.cafesito.domain.Review
@@ -28,6 +29,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val coffeeRepository: CoffeeRepository,
+    private val userRepository: UserRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -44,7 +46,7 @@ class ProfileViewModel @Inject constructor(
     private data class SubState(
         val isEditing: Boolean, 
         val emailError: String?, 
-        val showImagePicker: Boolean,
+        val showImageSourceDialog: Boolean,
         val activeCommentPost: Post?,
         val postToDelete: Post?,
         val postToEdit: Post?,
@@ -59,8 +61,12 @@ class ProfileViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<ProfileUiState> = combine(
-        _userFlow, coffeeRepository.allCoffees, coffeeRepository.favorites, _uiSubState
-    ) { user, allCoffees, localFavorites, subState ->
+        _userFlow, 
+        coffeeRepository.allCoffees, 
+        coffeeRepository.favorites, 
+        userRepository.followingMap,
+        _uiSubState
+    ) { user, allCoffees, localFavorites, followingMap, subState ->
         if (user == null) {
             ProfileUiState.Error("Usuario no encontrado")
         } else {
@@ -86,18 +92,24 @@ class ProfileViewModel @Inject constructor(
                 }
             }
 
+            // Calculamos seguidores reales según el mapa (quiénes siguen a este userId)
+            val followersCount = followingMap.values.count { it.contains(userId) }
+            val followingCount = followingMap[userId]?.size ?: 0
+            val isFollowing = followingMap[currentUser.id]?.contains(userId) ?: false
+
             ProfileUiState.Success(
                 user = user,
                 isCurrentUser = isMe,
-                followers = 250,
-                following = 120,
+                isFollowing = isFollowing,
+                followers = followersCount,
+                following = followingCount,
                 posts = userPosts,
                 favoriteCoffees = favoriteCoffees,
                 userReviews = userReviews,
                 myFavoriteIds = myFavoriteIds,
                 isEditing = subState.isEditing,
                 emailError = subState.emailError,
-                showImageSourceDialog = subState.showImagePicker,
+                showImageSourceDialog = subState.showImageSourceDialog,
                 activeCommentPost = subState.activeCommentPost,
                 postToDelete = subState.postToDelete,
                 postToEdit = subState.postToEdit
@@ -182,6 +194,13 @@ class ProfileViewModel @Inject constructor(
             _refreshTrigger.value++
         }
     }
+
+    fun toggleFollow() {
+        viewModelScope.launch {
+            userRepository.toggleFollow(currentUser.id, userId)
+            _refreshTrigger.value++
+        }
+    }
 }
 
 data class UserReviewInfo(val coffeeDetails: CoffeeWithDetails, val review: Review)
@@ -192,6 +211,7 @@ sealed interface ProfileUiState {
     data class Success(
         val user: User,
         val isCurrentUser: Boolean,
+        val isFollowing: Boolean,
         val followers: Int,
         val following: Int,
         val posts: List<Post>,

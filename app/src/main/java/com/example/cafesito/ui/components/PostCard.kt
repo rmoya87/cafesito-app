@@ -71,6 +71,12 @@ fun PostCard(
                     )
                     Column(modifier = Modifier.padding(start = 12.dp)) {
                         Text(post.user.fullName, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(post.timestamp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }
@@ -109,16 +115,6 @@ fun PostCard(
                         )
                     }
                     Text(text = "$likeCount", fontWeight = FontWeight.Bold)
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Adjusted date typography: smaller and lighter
-                    Text(
-                        text = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(post.timestamp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Normal,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(post.comment)
