@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Coffee
 import androidx.compose.material3.*
@@ -18,21 +19,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.example.cafesito.domain.Post
+import coil.compose.SubcomposeAsyncImage
+import com.example.cafesito.data.PostWithDetails
 import com.example.cafesito.ui.detail.formatRelativeTime
-import java.util.Locale
 
 @Composable
 fun PostCard(
-    post: Post,
+    details: PostWithDetails, 
     onUserClick: () -> Unit,
     onCommentClick: () -> Unit,
+    onLikeClick: () -> Unit,
+    isLiked: Boolean,
     modifier: Modifier = Modifier,
     showHeader: Boolean = true
 ) {
-    var isLiked by remember { mutableStateOf(false) }
-    var likeCount by remember { mutableStateOf(post.initialLikes) }
+    val post = details.post
+    val author = details.author
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -49,34 +51,42 @@ fun PostCard(
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AsyncImage(
-                        model = post.user.avatarUrl,
+                    SubcomposeAsyncImage(
+                        model = author.avatarUrl,
+                        loading = { Box(Modifier.fillMaxSize().background(Color.LightGray)) },
+                        error = { Icon(Icons.Default.BrokenImage, contentDescription = null, tint = Color.Gray) },
                         contentDescription = "Avatar",
-                        modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
+                        modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentScale = ContentScale.Crop
                     )
                     Column(modifier = Modifier.padding(start = 12.dp)) {
-                        Text(post.user.fullName, fontWeight = FontWeight.Bold)
+                        Text(author.fullName, fontWeight = FontWeight.Bold)
                         Text(
                             text = formatRelativeTime(post.timestamp),
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Normal,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 }
             }
 
-            // AJUSTE: Imagen a ancho completo sin recortes ni fondos laterales (espacios negros)
-            AsyncImage(
+            SubcomposeAsyncImage(
                 model = post.imageUrl,
+                loading = { 
+                    Box(modifier = Modifier.fillMaxWidth().height(250.dp).background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    }
+                },
+                error = { 
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp).background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.BrokenImage, contentDescription = "Error de carga", tint = Color.LightGray)
+                    }
+                },
                 contentDescription = null,
-                contentScale = ContentScale.FillWidth, // Llena el ancho respetando el aspecto
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight() // Altura dinámica según la foto
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth().wrapContentHeight()
             )
 
-            // Actions and Comment
             Column(modifier = Modifier.padding(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Row(
@@ -85,22 +95,19 @@ fun PostCard(
                     ) {
                         Icon(imageVector = Icons.Outlined.ChatBubbleOutline, contentDescription = "Comentarios")
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text(text = "${post.comments.size}", fontWeight = FontWeight.Bold)
+                        Text(text = "${details.comments.size}", fontWeight = FontWeight.Bold)
                     }
                     
                     Spacer(modifier = Modifier.size(16.dp))
                     
-                    IconButton(onClick = {
-                        isLiked = !isLiked
-                        likeCount = if (isLiked) likeCount + 1 else likeCount - 1
-                    }) {
+                    IconButton(onClick = onLikeClick) {
                         Icon(
                             imageVector = if (isLiked) Icons.Filled.Coffee else Icons.Outlined.Coffee,
-                            contentDescription = "Dar café",
+                            contentDescription = "Me gusta",
                             tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    Text(text = "$likeCount", fontWeight = FontWeight.Bold)
+                    Text(text = "${details.likes.size}", fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(post.comment)

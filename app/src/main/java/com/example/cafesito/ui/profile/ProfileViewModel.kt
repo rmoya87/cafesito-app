@@ -1,213 +1,138 @@
 package com.example.cafesito.ui.profile
 
 import android.net.Uri
-import android.util.Patterns
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.cafesito.data.CoffeeRepository
-import com.example.cafesito.data.CoffeeWithDetails
-import com.example.cafesito.data.ReviewEntity
-import com.example.cafesito.data.UserRepository
-import com.example.cafesito.domain.Comment
-import com.example.cafesito.domain.Post
-import com.example.cafesito.domain.User
-import com.example.cafesito.domain.allUsers
-import com.example.cafesito.domain.currentUser
-import com.example.cafesito.domain.samplePosts
+import com.example.cafesito.data.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val coffeeRepository: CoffeeRepository,
+    savedStateHandle: SavedStateHandle,
     private val userRepository: UserRepository,
-    savedStateHandle: SavedStateHandle
+    private val coffeeRepository: CoffeeRepository,
+    private val socialRepository: SocialRepository
 ) : ViewModel() {
 
-    private val userId: Int = checkNotNull(savedStateHandle["userId"])
-    private val _userFlow = MutableStateFlow(allUsers.find { it.id == userId })
+    // Si el userId es 0, significa que queremos cargar el perfil del usuario logueado actualmente
+    private val requestedUserId: Int = savedStateHandle["userId"] ?: 0
     private val _isEditing = MutableStateFlow(false)
     private val _emailError = MutableStateFlow<String?>(null)
-    private val _showImagePicker = MutableStateFlow(false)
-    private val _activeCommentPost = MutableStateFlow<Post?>(null)
-    private val _postToDelete = MutableStateFlow<Post?>(null)
-    private val _postToEdit = MutableStateFlow<Post?>(null)
-    private val _refreshTrigger = MutableStateFlow(0)
-
-    private data class SubState(
-        val isEditing: Boolean, 
-        val emailError: String?, 
-        val showImageSourceDialog: Boolean,
-        val activeCommentPost: Post?,
-        val postToDelete: Post?,
-        val postToEdit: Post?,
-        val refresh: Int
-    )
-    
-    private val _uiSubState = combine(
-        _isEditing, _emailError, _showImagePicker, _activeCommentPost, _postToDelete, _postToEdit, _refreshTrigger
-    ) { params ->
-        SubState(
-            isEditing = params[0] as Boolean, 
-            emailError = params[1] as String?, 
-            showImageSourceDialog = params[2] as Boolean, 
-            activeCommentPost = params[3] as Post?, 
-            postToDelete = params[4] as Post?, 
-            postToEdit = params[5] as Post?, 
-            refresh = params[6] as Int
-        )
-    }
-
-    private val _socialData = combine(
-        userRepository.followingMap,
-        coffeeRepository.allReviews
-    ) { follows, reviews -> follows to reviews }
 
     val uiState: StateFlow<ProfileUiState> = combine(
-        _userFlow, 
-        _socialData,
-        coffeeRepository.allCoffees, 
-        coffeeRepository.favorites, 
-        _uiSubState
-    ) { user, social, allCoffees, localFavorites, subState ->
-        val (followingMap, reviews) = social
+        userRepository.getActiveUserFlow(), // Quién soy yo
+        socialRepository.getAllPostsWithDetails(),
+        coffeeRepository.allCoffees,
+        coffeeRepository.allReviews,
+        userRepository.followingMap,
+        coffeeRepository.favorites, // Mis favoritos reales de Room
+        _isEditing,
+        _emailError
+    ) { args: Array<Any?> ->
+        val activeUser = args[0] as? UserEntity
+        val allPosts = args[1] as List<PostWithDetails>
+        val allCoffees = args[2] as List<CoffeeWithDetails>
+        val allReviews = args[3] as List<ReviewEntity>
+        val followingMap = args[4] as Map<Int, Set<Int>>
+        val myFavorites = args[5] as List<LocalFavorite>
+        val isEditing = args[6] as Boolean
+        val emailError = args[7] as? String
+
+        // Determinamos qué perfil mostrar
+        val targetUserId = if (requestedUserId == 0) activeUser?.id ?: 0 else requestedUserId
+        val targetUser = if (targetUserId == activeUser?.id) activeUser 
+                         else userRepository.getUserById(targetUserId)
+
+        if (targetUser == null) return@combine ProfileUiState.Error("Usuario no encontrado")
+
+        val userPosts = allPosts.filter { it.post.userId == targetUserId }
         
-        if (user == null) {
-            ProfileUiState.Error("Usuario no encontrado")
-        } else {
-            val isMe = (userId == currentUser.id)
-            val userPosts = samplePosts.filter { it.user.id == userId }
-            
-            val favoriteCoffees = allCoffees.filter { details ->
-                if (isMe) {
-                    localFavorites.any { it.coffeeId == details.coffee.id }
-                } else {
-                    user.favoriteCoffeeIds.contains(details.coffee.id)
-                }
+        // Obtenemos detalles de cafés favoritos reales para este perfil
+        val favoriteCoffees = if (targetUserId == activeUser?.id) {
+            val favIds = myFavorites.map { it.coffeeId }.toSet()
+            allCoffees.filter { favIds.contains(it.coffee.id) }
+        } else emptyList()
+
+        val userReviews = allReviews.filter { it.userId == targetUserId }.mapNotNull { review ->
+            allCoffees.find { it.coffee.id == review.coffeeId }?.let { coffee ->
+                UserReviewInfo(coffee, review, targetUser.fullName)
             }
-            
-            val myFavoriteIds = localFavorites.map { it.coffeeId }.toSet()
-
-            // Map user's reviews with author name
-            val userReviews = reviews.filter { it.userId == userId }.mapNotNull { review ->
-                allCoffees.find { it.coffee.id == review.coffeeId }?.let { coffeeDetails ->
-                    UserReviewInfo(
-                        coffeeDetails = coffeeDetails, 
-                        review = review,
-                        authorName = user.fullName // En el perfil ya tenemos el nombre
-                    )
-                }
-            }
-
-            val followersCount = followingMap.values.count { it.contains(userId) }
-            val followingCount = followingMap[userId]?.size ?: 0
-            val isFollowing = followingMap[currentUser.id]?.contains(userId) ?: false
-
-            ProfileUiState.Success(
-                user = user,
-                isCurrentUser = isMe,
-                isFollowing = isFollowing,
-                followers = followersCount,
-                following = followingCount,
-                posts = userPosts,
-                favoriteCoffees = favoriteCoffees,
-                userReviews = userReviews,
-                myFavoriteIds = myFavoriteIds,
-                isEditing = subState.isEditing,
-                emailError = subState.emailError,
-                showImageSourceDialog = subState.showImageSourceDialog,
-                activeCommentPost = subState.activeCommentPost,
-                postToDelete = subState.postToDelete,
-                postToEdit = subState.postToEdit
-            )
         }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ProfileUiState.Loading
-    )
+
+        ProfileUiState.Success(
+            user = targetUser,
+            posts = userPosts,
+            favoriteCoffees = favoriteCoffees,
+            userReviews = userReviews,
+            followers = followingMap.values.count { it.contains(targetUserId) },
+            following = followingMap[targetUserId]?.size ?: 0,
+            isFollowing = activeUser?.let { followingMap[it.id]?.contains(targetUserId) } ?: false,
+            isCurrentUser = targetUserId == activeUser?.id,
+            isEditing = isEditing,
+            emailError = emailError,
+            myFavoriteIds = myFavorites.map { it.coffeeId }.toSet()
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfileUiState.Loading)
 
     fun toggleEditMode() {
         _isEditing.value = !_isEditing.value
-        _emailError.value = null
     }
 
-    fun onSaveProfile(newAvatarUrl: String, newBio: String, newEmail: String) {
-        if (!Patterns.EMAIL_ADDRESS.matcher(newEmail).matches()) {
-            _emailError.value = "El formato del email no es válido"
-            return
-        }
-        _emailError.value = null
-        val updatedUser = _userFlow.value?.copy(avatarUrl = newAvatarUrl, bio = newBio, email = newEmail)
-        _userFlow.value = updatedUser
-        val userIndex = allUsers.indexOfFirst { it.id == userId }
-        if (userIndex != -1 && updatedUser != null) {
-            allUsers[userIndex] = updatedUser
-        }
-        _refreshTrigger.value++
-        toggleEditMode()
-    }
-
-    fun onAvatarChange(uri: Uri?) {
-        uri?.let { _userFlow.value = _userFlow.value?.copy(avatarUrl = it.toString()) }
-    }
-
-    fun onAddComment(post: Post, text: String) {
-        val postIndex = samplePosts.indexOfFirst { it.id == post.id }
-        if (postIndex != -1) {
-            val updatedComments = post.comments.toMutableList().apply { add(Comment(currentUser, text)) }
-            samplePosts[postIndex] = post.copy(comments = updatedComments)
-            _refreshTrigger.value++
-        }
-    }
-
-    fun onToggleFavorite(coffeeId: String, isCurrentlyFavorite: Boolean) {
+    fun onSaveProfile(avatarUrl: String, bio: String, email: String) {
         viewModelScope.launch {
-            coffeeRepository.toggleFavorite(coffeeId, isCurrentlyFavorite)
-            _refreshTrigger.value++
+            val activeUser = userRepository.getActiveUser() ?: return@launch
+            val updatedUser = activeUser.copy(
+                avatarUrl = avatarUrl,
+                bio = bio,
+                email = email
+            )
+            userRepository.upsertUser(updatedUser)
+            _isEditing.value = false
         }
     }
 
     fun toggleFollow() {
         viewModelScope.launch {
-            userRepository.toggleFollow(currentUser.id, userId)
-            _refreshTrigger.value++
+            val me = userRepository.getActiveUser() ?: return@launch
+            userRepository.toggleFollow(me.id, targetId = requestedUserId)
         }
+    }
+
+    fun onToggleFavorite(coffeeId: String, isFavorite: Boolean) {
+        viewModelScope.launch {
+            coffeeRepository.toggleFavorite(coffeeId, isFavorite)
+        }
+    }
+
+    fun onAvatarChange(uri: Uri?) {
+        // En una implementación real, aquí subiríamos la imagen a un servidor
     }
 }
 
 data class UserReviewInfo(
     val coffeeDetails: CoffeeWithDetails, 
-    val review: ReviewEntity,
-    val authorName: String? = null
+    val review: ReviewEntity, 
+    val authorName: String?
 )
 
 sealed interface ProfileUiState {
     data object Loading : ProfileUiState
     data class Error(val message: String) : ProfileUiState
     data class Success(
-        val user: User,
-        val isCurrentUser: Boolean,
-        val isFollowing: Boolean,
-        val followers: Int,
-        val following: Int,
-        val posts: List<Post>,
+        val user: UserEntity,
+        val posts: List<PostWithDetails>,
         val favoriteCoffees: List<CoffeeWithDetails>,
         val userReviews: List<UserReviewInfo>,
-        val myFavoriteIds: Set<String>,
+        val followers: Int,
+        val following: Int,
+        val isFollowing: Boolean,
+        val isCurrentUser: Boolean,
         val isEditing: Boolean,
         val emailError: String?,
-        val showImageSourceDialog: Boolean,
-        val activeCommentPost: Post?,
-        val postToDelete: Post?,
-        val postToEdit: Post?
+        val myFavoriteIds: Set<String>
     ) : ProfileUiState
 }

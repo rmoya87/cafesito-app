@@ -2,13 +2,9 @@ package com.example.cafesito.ui.timeline
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.cafesito.data.CoffeeRepository
-import com.example.cafesito.data.CoffeeWithDetails
-import com.example.cafesito.data.UserRepository
-import com.example.cafesito.domain.*
+import com.example.cafesito.data.*
 import com.example.cafesito.ui.profile.UserReviewInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,127 +12,99 @@ import javax.inject.Inject
 @HiltViewModel
 class TimelineViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val coffeeRepository: CoffeeRepository
+    private val coffeeRepository: CoffeeRepository,
+    private val socialRepository: SocialRepository
 ) : ViewModel() {
 
     private val _refreshTrigger = MutableStateFlow(0)
-    private val _pendingRemovalIds = MutableStateFlow<Set<Int>>(emptySet())
-
-    private val _internalStates = combine(_pendingRemovalIds, _refreshTrigger) { pending, refresh -> 
-        pending to refresh 
-    }
 
     val uiState: StateFlow<TimelineUiState> = combine(
-        userRepository.followingMap,
+        userRepository.getActiveUserFlow(), 
+        socialRepository.getAllPostsWithDetails(),
+        socialRepository.getAllReviewsWithAuthor(),
         coffeeRepository.allCoffees,
-        coffeeRepository.allReviews,
-        coffeeRepository.favorites,
-        _internalStates
-    ) { followingMap, allCoffees, reviews, favorites, internal ->
-        val (pendingRemovals, _) = internal
+        userRepository.followingMap,
+        _refreshTrigger
+    ) { args: Array<Any?> ->
+        // CASTING EXPLÍCITO: Necesario cuando combine tiene más de 5 flujos
+        val activeUser = args[0] as? UserEntity
+        val posts = args[1] as List<PostWithDetails>
+        val reviews = args[2] as List<ReviewWithAuthor>
+        val allCoffees = args[3] as List<CoffeeWithDetails>
+        val followingMap = args[4] as Map<Int, Set<Int>>
         
-        val myFollowing = followingMap[currentUser.id] ?: emptySet()
-        val timelineUserIds = myFollowing + currentUser.id
-        
-        val filteredPosts = samplePosts
-            .filter { timelineUserIds.contains(it.user.id) }
+        if (activeUser == null) return@combine TimelineUiState.Loading
+
+        val myFollowing = followingMap[activeUser.id] ?: emptySet()
+        val visibleUserIds = myFollowing + activeUser.id
+
+        // 1. Filtrar y mapear Publicaciones reales de Room
+        val postItems = posts
+            .filter { visibleUserIds.contains(it.post.userId) }
             .map { TimelineItem.PostItem(it) }
 
-        val filteredReviews = reviews
-            .filter { timelineUserIds.contains(it.userId) }
-            .mapNotNull { review ->
-                allCoffees.find { it.coffee.id == review.coffeeId }?.let { coffeeDetails ->
-                    val author = allUsers.find { it.id == review.userId }
+        // 2. Filtrar y mapear Opiniones reales unidas con café y autor
+        val reviewItems = reviews
+            .filter { visibleUserIds.contains(it.review.userId) }
+            .mapNotNull { reviewWithAuthor ->
+                val coffeeDetails = allCoffees.find { it.coffee.id == reviewWithAuthor.review.coffeeId }
+                coffeeDetails?.let {
                     TimelineItem.ReviewItem(
                         UserReviewInfo(
-                            coffeeDetails = coffeeDetails, 
-                            review = review,
-                            authorName = author?.fullName
+                            coffeeDetails = it,
+                            review = reviewWithAuthor.review,
+                            authorName = reviewWithAuthor.author.fullName
                         )
                     )
                 }
             }
-            
-        val favoriteItems = favorites
-            .filter { fav -> timelineUserIds.contains(currentUser.id) } // Only show my own favorites for now or followed ones if available in entity
-            .mapNotNull { fav ->
-                allCoffees.find { it.coffee.id == fav.coffeeId }?.let { details ->
-                    TimelineItem.FavoriteActionItem(details, fav.savedAt)
-                }
-            }
 
-        val combinedItems = (filteredPosts + filteredReviews + favoriteItems)
-            .sortedByDescending { it.timestamp }
-
-        val filterOutFromSuggestions = myFollowing + currentUser.id
-        val suggestedUsers = allUsers
-            .filter { !filterOutFromSuggestions.contains(it.id) }
-            .map { user ->
-                val myFavIds = currentUser.favoriteCoffeeIds.toSet()
-                val sharedCount = user.favoriteCoffeeIds.intersect(myFavIds).size
-                user to sharedCount
-            }
-            .sortedByDescending { it.second }
-            .map { (user, _) -> 
-                SuggestedUserInfo(
-                    user = user,
-                    followersCount = followingMap.values.count { it.contains(user.id) },
-                    followingCount = followingMap[user.id]?.size ?: 0
-                )
-            }
-            .take(10)
+        val combinedItems = (postItems + reviewItems).sortedByDescending { it.timestamp }
 
         TimelineUiState.Success(
             items = combinedItems,
-            suggestedUsers = suggestedUsers,
+            suggestedUsers = emptyList(), // Las sugerencias ahora vendrán de Room
             myFollowingIds = myFollowing
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = TimelineUiState.Loading
-    )
-
-    fun onAddComment(post: Post, text: String) {
-        val postIndex = samplePosts.indexOfFirst { it.id == post.id }
-        if (postIndex != -1) {
-            val updatedComments = post.comments.toMutableList().apply { add(Comment(currentUser, text)) }
-            val updatedPost = post.copy(comments = updatedComments)
-            samplePosts[postIndex] = updatedPost
-            _refreshTrigger.value++
-        }
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
 
     fun toggleFollowSuggestion(userId: Int) {
         viewModelScope.launch {
-            val currentFollowingMap = userRepository.followingMap.first()
-            val isCurrentlyFollowing = currentFollowingMap[currentUser.id]?.contains(userId) ?: false
-            
-            if (!isCurrentlyFollowing) {
-                _pendingRemovalIds.update { it + userId }
-                userRepository.toggleFollow(currentUser.id, userId)
-                delay(800)
-                _pendingRemovalIds.update { it - userId }
-                _refreshTrigger.value++
-            } else {
-                userRepository.toggleFollow(currentUser.id, userId)
-                _refreshTrigger.value++
-            }
+            val me = userRepository.getActiveUser() ?: return@launch
+            userRepository.toggleFollow(me.id, userId)
+        }
+    }
+
+    fun onAddComment(postId: String, text: String) {
+        viewModelScope.launch {
+            val user = userRepository.getActiveUser() ?: return@launch
+            socialRepository.addComment(CommentEntity(postId = postId, userId = user.id, text = text, timestamp = System.currentTimeMillis()))
+        }
+    }
+
+    fun toggleLike(postId: String) {
+        viewModelScope.launch {
+            val user = userRepository.getActiveUser() ?: return@launch
+            socialRepository.toggleLike(postId, user.id)
         }
     }
 }
 
+// Clase de apoyo para la UI integrada con el dominio
+data class SuggestedUserInfo(
+    val user: UserEntity,
+    val followersCount: Int,
+    val followingCount: Int
+)
+
 sealed class TimelineItem {
     abstract val timestamp: Long
-
-    data class PostItem(val post: Post) : TimelineItem() {
-        override val timestamp: Long = post.timestamp
+    data class PostItem(val details: PostWithDetails) : TimelineItem() {
+        override val timestamp: Long = details.post.timestamp
     }
-
     data class ReviewItem(val reviewInfo: UserReviewInfo) : TimelineItem() {
         override val timestamp: Long = reviewInfo.review.timestamp
     }
-    
     data class FavoriteActionItem(val coffeeDetails: CoffeeWithDetails, override val timestamp: Long) : TimelineItem()
 }
 
@@ -144,7 +112,7 @@ sealed interface TimelineUiState {
     data object Loading : TimelineUiState
     data class Success(
         val items: List<TimelineItem>,
-        val suggestedUsers: List<SuggestedUserInfo>,
+        val suggestedUsers: List<com.example.cafesito.domain.SuggestedUserInfo>,
         val myFollowingIds: Set<Int>
     ) : TimelineUiState
 }

@@ -13,9 +13,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -86,7 +84,6 @@ fun AddPostScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             
-            // CONTENIDO PRINCIPAL: Ocupa toda la pantalla
             AnimatedContent(
                 targetState = postType to currentStep, 
                 label = "FlowTransition",
@@ -100,7 +97,6 @@ fun AddPostScreen(
                 }
             }
             
-            // MENU FLOTANTE: Visible SOLO en el paso 0
             if (currentStep == 0) {
                 Box(
                     modifier = Modifier
@@ -154,7 +150,7 @@ private fun PhotoSelectionStep(viewModel: AddPostViewModel) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(4), 
             modifier = Modifier.weight(1.2f).background(Color.White), 
-            contentPadding = PaddingValues(1.dp, 1.dp, 1.dp, 100.dp), // Padding para el menú flotante
+            contentPadding = PaddingValues(1.dp, 1.dp, 1.dp, 100.dp), 
             horizontalArrangement = Arrangement.spacedBy(1.dp), 
             verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
@@ -247,7 +243,6 @@ private fun ReviewDetailsStep(onSuccess: () -> Unit, viewModel: AddPostViewModel
     var comment by remember { mutableStateOf("") }
     
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-        // TARJETA BLANCA SIN LAPIZ
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -272,7 +267,6 @@ private fun ReviewDetailsStep(onSuccess: () -> Unit, viewModel: AddPostViewModel
         
         Spacer(Modifier.height(32.dp))
         
-        // CAMPO DE TEXTO BLANCO
         OutlinedTextField(
             value = comment, 
             onValueChange = { comment = it }, 

@@ -9,12 +9,16 @@ import androidx.room.RoomDatabase
         LocalFavorite::class,
         ReviewEntity::class,
         UserEntity::class,
-        FollowEntity::class
+        FollowEntity::class,
+        PostEntity::class,
+        CommentEntity::class,
+        LikeEntity::class
     ],
-    version = 7, // Incrementado a 7 para asegurar reset total
+    version = 9, // INCREMENTADO A 9 PARA RESOLVER IllegalStateException
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun coffeeDao(): CoffeeDao
     abstract fun userDao(): UserDao
+    abstract fun socialDao(): SocialDao
 }

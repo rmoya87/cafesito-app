@@ -68,11 +68,23 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUsers(users: List<UserEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertUser(user: UserEntity)
+
+    @Query("UPDATE users_db SET googleId = NULL WHERE id = :userId")
+    suspend fun clearGoogleId(userId: Int)
+
     @Query("SELECT COUNT(*) FROM users_db")
     suspend fun getUserCount(): Int
 
     @Query("SELECT * FROM users_db WHERE id = :userId")
     suspend fun getUserById(userId: Int): UserEntity?
+
+    @Query("SELECT * FROM users_db WHERE googleId IS NOT NULL LIMIT 1")
+    suspend fun getActiveUserSync(): UserEntity?
+
+    @Query("SELECT * FROM users_db WHERE googleId IS NOT NULL LIMIT 1")
+    fun getActiveUserFlow(): Flow<UserEntity?>
 
     @Query("SELECT * FROM follows")
     fun getAllFollows(): Flow<List<FollowEntity>>
@@ -85,4 +97,36 @@ interface UserDao {
 
     @Delete
     suspend fun deleteFollow(follow: FollowEntity)
+}
+
+@Dao
+interface SocialDao {
+    @Transaction
+    @Query("SELECT * FROM posts_db ORDER BY timestamp DESC")
+    fun getAllPostsWithDetails(): Flow<List<PostWithDetails>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPost(post: PostEntity)
+
+    @Delete
+    suspend fun deletePost(post: PostEntity)
+
+    @Transaction
+    @Query("SELECT * FROM reviews_db ORDER BY timestamp DESC")
+    fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>>
+
+    @Query("SELECT * FROM comments_db WHERE postId = :postId ORDER BY timestamp ASC")
+    fun getCommentsForPost(postId: String): Flow<List<CommentEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertComment(comment: CommentEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertLike(like: LikeEntity)
+
+    @Delete
+    suspend fun deleteLike(like: LikeEntity)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM likes_db WHERE postId = :postId AND userId = :userId)")
+    fun isPostLikedByUser(postId: String, userId: Int): Flow<Boolean>
 }

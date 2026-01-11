@@ -57,7 +57,8 @@ data class LocalFavorite(
         ForeignKey(entity = Coffee::class, parentColumns = ["id"], childColumns = ["coffeeId"], onDelete = ForeignKey.CASCADE)
     ],
     indices = [
-        Index(value = ["coffeeId", "userId"], unique = true)
+        Index(value = ["coffeeId", "userId"], unique = true),
+        Index(value = ["userId"])
     ]
 )
 data class ReviewEntity(
@@ -66,17 +67,64 @@ data class ReviewEntity(
     val userId: Int,
     val rating: Float,
     val comment: String,
+    val imageUrl: String? = null,
     val timestamp: Long
 )
 
 @Entity(tableName = "users_db")
 data class UserEntity(
     @PrimaryKey val id: Int,
+    val googleId: String? = null,
     val username: String,
     val fullName: String,
     val avatarUrl: String,
     val email: String,
     val bio: String?
+)
+
+@Entity(
+    tableName = "posts_db",
+    foreignKeys = [
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["userId"])]
+)
+data class PostEntity(
+    @PrimaryKey val id: String,
+    val userId: Int,
+    val imageUrl: String,
+    val comment: String,
+    val timestamp: Long
+)
+
+@Entity(
+    tableName = "comments_db",
+    foreignKeys = [
+        ForeignKey(entity = PostEntity::class, parentColumns = ["id"], childColumns = ["postId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["postId"]), Index(value = ["userId"])]
+)
+data class CommentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val postId: String,
+    val userId: Int,
+    val text: String,
+    val timestamp: Long
+)
+
+@Entity(
+    tableName = "likes_db",
+    primaryKeys = ["postId", "userId"],
+    foreignKeys = [
+        ForeignKey(entity = PostEntity::class, parentColumns = ["id"], childColumns = ["postId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["userId"])]
+)
+data class LikeEntity(
+    val postId: String,
+    val userId: Int
 )
 
 @Entity(
@@ -86,15 +134,42 @@ data class UserEntity(
         ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followerId"], onDelete = ForeignKey.CASCADE),
         ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followedId"], onDelete = ForeignKey.CASCADE)
     ],
-    indices = [
-        Index(value = ["followerId"]),
-        Index(value = ["followedId"])
-    ]
+    indices = [Index(value = ["followerId"]), Index(value = ["followedId"])]
 )
 data class FollowEntity(
     val followerId: Int,
     val followedId: Int,
     val createdAt: Long = System.currentTimeMillis()
+)
+
+// --- CLASES DE RELACIÓN PARA EL TIMELINE REAL ---
+
+data class PostWithDetails(
+    @Embedded val post: PostEntity,
+    @Relation(
+        parentColumn = "userId",
+        entityColumn = "id"
+    )
+    val author: UserEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "postId"
+    )
+    val likes: List<LikeEntity> = emptyList(),
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "postId"
+    )
+    val comments: List<CommentEntity> = emptyList()
+)
+
+data class ReviewWithAuthor(
+    @Embedded val review: ReviewEntity,
+    @Relation(
+        parentColumn = "userId",
+        entityColumn = "id"
+    )
+    val author: UserEntity
 )
 
 data class CoffeeWithDetails(
@@ -111,20 +186,11 @@ data class CoffeeWithDetails(
     val reviews: List<ReviewEntity> = emptyList()
 ) {
     val isFavorite: Boolean get() = favorite != null
-    
-    // REGLA: Si no hay opiniones en la app, la nota es 0.0. No se usa la nota oficial SCA.
-    val averageRating: Float get() = if (reviews.isEmpty()) {
-        0.0f
-    } else {
-        reviews.map { it.rating }.average().toFloat()
-    }
+    val averageRating: Float get() = if (reviews.isEmpty()) 0.0f else reviews.map { it.rating }.average().toFloat()
 
-    @Ignore
-    val origin: com.example.cafesito.data.Origin? = null 
-    @Ignore
-    val sensoryProfile: com.example.cafesito.data.SensoryProfile? = null
+    @Ignore val origin: Origin? = null 
+    @Ignore val sensoryProfile: SensoryProfile? = null
 }
 
 data class Origin(val countryName: String, val continent: String)
 data class SensoryProfile(val coffeeId: String, val aroma: Float, val flavor: Float, val body: Float, val acidity: Float, val aftertaste: Float)
-data class ScoreSource(val name: String, val url: String)

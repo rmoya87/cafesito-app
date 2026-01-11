@@ -1,20 +1,20 @@
 package com.example.cafesito
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -24,7 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.cafesito.domain.currentUser
+import com.example.cafesito.ui.access.*
 import com.example.cafesito.ui.detail.DetailScreen
 import com.example.cafesito.ui.profile.FollowersScreen
 import com.example.cafesito.ui.profile.FollowingScreen
@@ -37,60 +37,64 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    private val sessionViewModel: SessionViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             CafesitoTheme {
-                AppNavigation()
+                val sessionState by sessionViewModel.sessionState.collectAsState()
+                
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    if (sessionState is SessionState.Loading) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    } else {
+                        val startRoute = when (sessionState) {
+                            is SessionState.Authenticated -> "timeline"
+                            is SessionState.Registered -> "completeProfile"
+                            else -> "onboarding"
+                        }
+                        AppNavigation(startRoute = startRoute, onProfileFinished = { sessionViewModel.refreshSession() })
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
     val navController = rememberNavController()
-    val navItems = mapOf(
-        "timeline" to "Inicio",
-        "search" to "Explorar",
-        "profile" to "Perfil"
-    )
+    val mainScreens = listOf("timeline", "search", "profile")
 
     Scaffold(
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
+            val currentRoute = currentDestination?.route?.split("?")?.firstOrNull()?.split("/")?.firstOrNull()
 
-            val currentRoute = currentDestination?.route
-            val shouldShowBottomBar = currentRoute?.let { route ->
-                val rootSegment = route.split("/").firstOrNull()
-                rootSegment in navItems.keys
-            } ?: false
-
-            if (shouldShowBottomBar) {
+            if (currentRoute in mainScreens) {
                 NavigationBar {
-                    navItems.forEach { (screen, label) ->
-                        val route = if (screen == "profile") "profile/${currentUser.id}" else screen
-                        
-                        val isSelected = currentDestination?.hierarchy?.any { 
-                            it.route?.split("/")?.firstOrNull() == screen 
-                        } == true
+                    val navItems = listOf(
+                        Triple("timeline", "Inicio", Icons.Filled.Home),
+                        Triple("search", "Explorar", Icons.Filled.Coffee),
+                        Triple("profile", "Perfil", Icons.Filled.Person)
+                    )
+
+                    navItems.forEach { (route, label, icon) ->
+                        val fullRoute = if (route == "profile") "profile/0" else route // El VM cargará el activo si es 0
+                        val isSelected = currentDestination?.hierarchy?.any { it.route?.startsWith(route) == true } == true
 
                         NavigationBarItem(
-                            icon = {
-                                when (screen) {
-                                    "timeline" -> Icon(Icons.Filled.Home, contentDescription = label)
-                                    "search" -> Icon(Icons.Filled.Coffee, contentDescription = label)
-                                    "profile" -> Icon(Icons.Filled.Person, contentDescription = label)
-                                }
-                            },
+                            icon = { Icon(icon, contentDescription = label) },
                             label = { Text(label) },
                             selected = isSelected,
                             onClick = {
-                                navController.navigate(route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
+                                navController.navigate(fullRoute) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -103,66 +107,67 @@ fun AppNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "timeline",
+            startDestination = startRoute,
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable("onboarding") {
+                OnboardingScreen(onFinished = { 
+                    navController.navigate("login") { popUpTo("onboarding") { inclusive = true } }
+                })
+            }
+            
+            composable("login") {
+                LoginScreen(onLoginSuccess = { googleId, email, name, photo ->
+                    val encodedEmail = Uri.encode(email)
+                    val encodedName = Uri.encode(name)
+                    val encodedPhoto = Uri.encode(photo)
+                    navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                })
+            }
+
+            composable(
+                route = "completeProfile?googleId={googleId}&email={email}&name={name}&photoUrl={photoUrl}",
+                arguments = listOf(
+                    navArgument("googleId") { defaultValue = "" },
+                    navArgument("email") { defaultValue = "" },
+                    navArgument("name") { defaultValue = "" },
+                    navArgument("photoUrl") { defaultValue = "" }
+                )
+            ) { backStackEntry ->
+                CompleteProfileScreen(
+                    googleId = backStackEntry.arguments?.getString("googleId") ?: "",
+                    userEmail = backStackEntry.arguments?.getString("email") ?: "",
+                    initialName = backStackEntry.arguments?.getString("name") ?: "",
+                    initialPhoto = backStackEntry.arguments?.getString("photoUrl") ?: "",
+                    onSuccess = {
+                        onProfileFinished()
+                        navController.navigate("timeline") { popUpTo("completeProfile") { inclusive = true } }
+                    }
+                )
+            }
+
             composable("timeline") {
                 TimelineScreen(
-                    onUserClick = { userId -> navController.navigate("profile/$userId") },
-                    onCoffeeClick = { coffeeId -> navController.navigate("detail/$coffeeId") },
+                    onUserClick = { id -> navController.navigate("profile/$id") },
+                    onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onAddPostClick = { navController.navigate("addPost") }
                 )
             }
-            composable("search") {
-                SearchScreen(
-                    onCoffeeClick = { coffeeId -> navController.navigate("detail/$coffeeId") },
-                    onProfileClick = { userId -> navController.navigate("profile/$userId") }
-                )
-            }
+            
+            composable("search") { SearchScreen(onCoffeeClick = { id -> navController.navigate("detail/$id") }, onProfileClick = { id -> navController.navigate("profile/$id") }) }
+            
             composable(
                 route = "profile/{userId}",
                 arguments = listOf(navArgument("userId") { type = NavType.IntType })
-            ) {
-                ProfileScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onUserClick = { userId -> navController.navigate("profile/$userId") },
-                    onCoffeeClick = { coffeeId -> navController.navigate("detail/$coffeeId") },
-                    onFollowersClick = { userId -> navController.navigate("profile/$userId/followers") },
-                    onFollowingClick = { userId -> navController.navigate("profile/$userId/following") }
-                )
-            }
-            composable(
-                route = "detail/{coffeeId}",
-                arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
-            ) {
-                DetailScreen(onBackClick = { navController.popBackStack() })
-            }
-            composable("addPost") {
-                // CORRECCIÓN: Vinculamos el popBackStack al callback de la pantalla
-                AddPostScreen(onBackClick = { navController.popBackStack() })
-            }
-            composable(
-                route = "profile/{userId}/followers",
-                arguments = listOf(navArgument("userId") { type = NavType.IntType })
             ) { backStackEntry ->
                 val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                FollowersScreen(
-                    userId = userId,
-                    onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> navController.navigate("profile/$id") }
-                )
+                ProfileScreen(onBackClick = { navController.popBackStack() }, onUserClick = { id -> navController.navigate("profile/$id") }, onCoffeeClick = { id -> navController.navigate("detail/$id") }, onFollowersClick = { id -> navController.navigate("profile/$id/followers") }, onFollowingClick = { id -> navController.navigate("profile/$id/following") }) 
             }
-            composable(
-                route = "profile/{userId}/following",
-                arguments = listOf(navArgument("userId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                FollowingScreen(
-                    userId = userId,
-                    onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> navController.navigate("profile/$id") }
-                )
-            }
+            
+            composable(route = "detail/{coffeeId}", arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })) { DetailScreen(onBackClick = { navController.popBackStack() }) }
+            composable("addPost") { AddPostScreen(onBackClick = { navController.popBackStack() }) }
         }
     }
 }

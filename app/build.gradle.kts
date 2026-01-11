@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.example.cafesito"
-    compileSdk = 34 // Manually setting stable SDK to avoid preview issues
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.cafesito"
@@ -45,7 +45,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation("androidx.activity:activity-ktx:1.9.0") // DIRECT DEPENDENCY ADDED
+    implementation("androidx.activity:activity-ktx:1.9.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -53,6 +53,11 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended) 
     
+    // Google Auth & Credentials
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+
     // Navigation
     implementation(libs.androidx.navigation.compose)
 

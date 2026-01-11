@@ -50,11 +50,11 @@ class AddPostViewModel @Inject constructor(
         if (query.isEmpty()) {
             // Simulamos historial: los 10 primeros de la lista (ordenados por nombre en el DAO)
             // En una app real usaríamos una tabla 'recent_visits' con timestamp
-            all.take(10) 
+            all.take(10)
         } else {
-            all.filter { 
-                it.coffee.nombre.contains(query, ignoreCase = true) || 
-                it.coffee.marca.contains(query, ignoreCase = true) 
+            all.filter {
+                it.coffee.nombre.contains(query, ignoreCase = true) ||
+                it.coffee.marca.contains(query, ignoreCase = true)
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -69,9 +69,9 @@ class AddPostViewModel @Inject constructor(
     }
 
     fun onSearchQueryChanged(query: String) { _searchQuery.value = query }
-    
-    fun selectCoffee(coffee: CoffeeWithDetails?) { 
-        _selectedCoffee.value = coffee 
+
+    fun selectCoffee(coffee: CoffeeWithDetails?) {
+        _selectedCoffee.value = coffee
         if (coffee != null) _currentStep.value = 1
     }
 

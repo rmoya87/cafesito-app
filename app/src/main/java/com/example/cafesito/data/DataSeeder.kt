@@ -1,104 +1,42 @@
 package com.example.cafesito.data
 
-import android.content.Context
-import android.util.Log
-import com.example.cafesito.domain.allUsers
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.launch
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DataSeeder @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val repository: CoffeeRepository,
-    private val userDao: UserDao
+    private val coffeeDao: CoffeeDao,
+    private val userDao: UserDao,
+    private val socialDao: SocialDao
 ) {
-    fun seedIfEmpty() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                if (userDao.getUserCount() == 0) {
-                    val userEntities = allUsers.map { domainUser ->
-                        UserEntity(
-                            id = domainUser.id,
-                            username = domainUser.username,
-                            fullName = domainUser.fullName,
-                            avatarUrl = domainUser.avatarUrl,
-                            email = domainUser.email,
-                            bio = domainUser.bio
-                        )
-                    }
-                    userDao.insertUsers(userEntities)
-                    userDao.insertFollow(FollowEntity(1, 2))
-                    userDao.insertFollow(FollowEntity(1, 3))
-                    userDao.insertFollow(FollowEntity(1, 4))
-                }
+    suspend fun seedIfNeeded() {
+        if (coffeeDao.getCoffeeById("KOFIO-12453") != null) return
 
-                val existingCoffees = repository.allCoffees.firstOrNull()
-                if (existingCoffees.isNullOrEmpty()) {
-                    val inputStream = context.assets.open("cafes.csv")
-                    val reader = BufferedReader(InputStreamReader(inputStream))
-                    reader.readLine() 
+        // 1. Seed Cafés
+        val sampleCoffees = listOf(
+            Coffee(id = "KOFIO-12453", especialidad = "Especialidad", marca = "Nomad Coffee", paisOrigen = "Colombia", variedadTipo = "Arábica", nombre = "Zarza Aji", descripcion = "Un café excepcional con notas cítricas.", fuentePuntuacion = "SCA", puntuacionOficial = 88.5, notasCata = "Cítrico, Chocolate", formato = "Grano", cafeina = "Media", tueste = "Medio", proceso = "Lavado", ratioRecomendado = "1:15", moliendaRecomendada = "Fina", aroma = 9f, sabor = 9f, retrogusto = 8f, acidez = 9f, cuerpo = 8f, uniformidad = 10f, dulzura = 9f, puntuacionTotal = 88.5, codigoBarras = "123456", imageUrl = "https://picsum.photos/seed/coffee1/800/600", productUrl = ""),
+            Coffee(id = "KOFIO-13187", especialidad = "Especialidad", marca = "Hola Coffee", paisOrigen = "Etiopía", variedadTipo = "Geisha", nombre = "Yirgacheffe", descripcion = "Notas florales y jazmín.", fuentePuntuacion = "SCA", puntuacionOficial = 91.0, notasCata = "Floral, Té Verde", formato = "Grano", cafeina = "Baja", tueste = "Ligero", proceso = "Natural", ratioRecomendado = "1:16", moliendaRecomendada = "Media", aroma = 10f, sabor = 9f, retrogusto = 9f, acidez = 10f, cuerpo = 7f, uniformidad = 10f, dulzura = 10f, puntuacionTotal = 91.0, codigoBarras = "789012", imageUrl = "https://picsum.photos/seed/coffee2/800/600", productUrl = "")
+        )
+        sampleCoffees.forEach { coffeeDao.insertCoffee(it) }
 
-                    var line = reader.readLine()
-                    while (line != null) {
-                        val tokens = line.split(";")
-                        if (tokens.size >= 27) {
-                            try {
-                                // NORMALIZACIÓN DE BRASIL (Brazil, Brazi, Brasil -> Brasil)
-                                val rawCountry = tokens[3].trim()
-                                val normalizedCountry = if (
-                                    rawCountry.contains("brazi", ignoreCase = true) || 
-                                    rawCountry.equals("brasil", ignoreCase = true)
-                                ) "Brasil" else rawCountry
+        // 2. Seed Usuarios (Baristas sugeridos)
+        val baristas = listOf(
+            UserEntity(101, null, "barista_master", "Juan Pérez", "https://i.pravatar.cc/150?u=101", "juan@cafesito.com", "Amante del espresso perfecto."),
+            UserEntity(102, null, "coffeelover_99", "Marta García", "https://i.pravatar.cc/150?u=102", "marta@cafesito.com", "Catadora certificada SCA.")
+        )
+        userDao.insertUsers(baristas)
 
-                                repository.insertCoffee(
-                                    Coffee(
-                                        id = tokens[0],
-                                        especialidad = tokens[1],
-                                        marca = tokens[2],
-                                        paisOrigen = normalizedCountry,
-                                        variedadTipo = tokens[4],
-                                        nombre = tokens[5],
-                                        descripcion = tokens[6],
-                                        fuentePuntuacion = tokens[7],
-                                        puntuacionOficial = tokens[8].toDoubleOrNull() ?: 0.0,
-                                        notasCata = tokens[9],
-                                        formato = tokens[10],
-                                        cafeina = tokens[11],
-                                        tueste = tokens[12],
-                                        proceso = tokens[13],
-                                        ratioRecomendado = tokens[14],
-                                        moliendaRecomendada = tokens[15],
-                                        aroma = tokens[16].toFloatOrNull() ?: 0f,
-                                        sabor = tokens[17].toFloatOrNull() ?: 0f,
-                                        retrogusto = tokens[18].toFloatOrNull() ?: 0f,
-                                        acidez = tokens[19].toFloatOrNull() ?: 0f,
-                                        cuerpo = tokens[20].toFloatOrNull() ?: 0f,
-                                        uniformidad = tokens[21].toFloatOrNull() ?: 0f,
-                                        dulzura = tokens[22].toFloatOrNull() ?: 0f,
-                                        puntuacionTotal = tokens[23].toDoubleOrNull() ?: 0.0,
-                                        codigoBarras = tokens[24],
-                                        imageUrl = tokens[25],
-                                        productUrl = tokens[26]
-                                    )
-                                )
-                            } catch (e: Exception) {
-                                Log.e("DataSeeder", "Error en línea CSV")
-                            }
-                        }
-                        line = reader.readLine()
-                    }
-                    reader.close()
-                }
-            } catch (e: Exception) {
-                Log.e("DataSeeder", "Error crítico", e)
-            }
-        }
+        // 3. Seed Posts iniciales
+        val initialPosts = listOf(
+            PostEntity("p1", 101, "https://picsum.photos/seed/post1/800/1000", "¡Empezando el día con un V60 de Colombia!", System.currentTimeMillis() - 3600000),
+            PostEntity("p2", 102, "https://picsum.photos/seed/post2/800/800", "Increíble tueste natural el de este mes.", System.currentTimeMillis() - 7200000)
+        )
+        initialPosts.forEach { socialDao.insertPost(it) }
+        
+        // 4. Seed Reviews iniciales
+        val initialReviews = listOf(
+            ReviewEntity(coffeeId = "KOFIO-12453", userId = 101, rating = 4.5f, comment = "Balance perfecto entre acidez y dulzor.", timestamp = System.currentTimeMillis())
+        )
+        initialReviews.forEach { coffeeDao.upsertReview(it) }
     }
 }

@@ -16,13 +16,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.cafesito.domain.Post
 import com.example.cafesito.ui.components.PostCard
 import com.example.cafesito.ui.components.UserReviewCard
 import com.example.cafesito.ui.components.UserSuggestionCarousel
 import com.example.cafesito.ui.theme.LightGrayBackground
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineScreen(
     onUserClick: (Int) -> Unit,
@@ -92,16 +91,19 @@ fun TimelineScreen(
 
                         when (item) {
                             is TimelineItem.PostItem -> {
+                                val details = item.details
                                 PostCard(
-                                    post = item.post,
-                                    onUserClick = { onUserClick(item.post.user.id) },
-                                    onCommentClick = { showCommentSheetId = item.post.id }
+                                    details = details,
+                                    isLiked = false, // TODO: Cargar estado real de likes de Room
+                                    onUserClick = { onUserClick(details.author.id) },
+                                    onCommentClick = { showCommentSheetId = details.post.id },
+                                    onLikeClick = { viewModel.toggleLike(details.post.id) }
                                 )
                             }
                             is TimelineItem.ReviewItem -> {
                                 UserReviewCard(
                                     info = item.reviewInfo,
-                                    showHeader = true, // Muestra franja con fecha humana en Inicio
+                                    showHeader = true,
                                     onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
                                 )
                             }
@@ -117,17 +119,11 @@ fun TimelineScreen(
                 }
 
                 showCommentSheetId?.let { id ->
-                    val postForSheet = state.items
-                        .filterIsInstance<TimelineItem.PostItem>()
-                        .find { it.post.id == id }?.post
-
-                    if (postForSheet != null) {
-                        CommentsSheet(
-                            post = postForSheet,
-                            onDismiss = { showCommentSheetId = null },
-                            onAddComment = { text -> viewModel.onAddComment(postForSheet, text) }
-                        )
-                    }
+                    CommentsSheet(
+                        postId = id,
+                        onDismiss = { showCommentSheetId = null },
+                        onAddComment = { text -> viewModel.onAddComment(id, text) }
+                    )
                 }
             }
         }

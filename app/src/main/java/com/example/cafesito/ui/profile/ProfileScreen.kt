@@ -28,11 +28,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
-import com.example.cafesito.domain.Post
-import com.example.cafesito.domain.User
 import com.example.cafesito.domain.currentUser
 import com.example.cafesito.ui.components.PostCard
-import com.example.cafesito.ui.components.UserReviewCard // Importamos el componente compartido
+import com.example.cafesito.ui.components.UserReviewCard
+import com.example.cafesito.ui.detail.RatingBar
 import com.example.cafesito.ui.theme.CoffeeBrown
 import java.util.Locale
 
@@ -151,16 +150,15 @@ fun ProfileScreen(
                 }
 
                 when (selectedTab) {
-                    0 -> items(state.posts) { post ->
-                        Box(modifier = Modifier.padding(vertical = 4.dp)) {
-                            PostCard(
-                                post = post,
-                                onUserClick = { onUserClick(post.user.id) },
-                                onCommentClick = { /* Handled in VM */ }, 
-                                modifier = Modifier.background(Color.White),
-                                showHeader = false
-                            )
-                        }
+                    0 -> items(state.posts) { details ->
+                        PostCard(
+                            details = details,
+                            onUserClick = { onUserClick(details.author.id) },
+                            onCommentClick = { /* Handled in VM */ },
+                            onLikeClick = { /* TODO: Like action */ },
+                            isLiked = false,
+                            showHeader = false
+                        )
                     }
                     1 -> items(state.favoriteCoffees) { coffeeDetails ->
                         val isMyFavorite = state.myFavoriteIds.contains(coffeeDetails.coffee.id)
@@ -178,10 +176,9 @@ fun ProfileScreen(
                         }
                     }
                     2 -> items(state.userReviews) { info ->
-                        // USO CORRECTO DEL COMPONENTE SIN CABECERA PARA EL PERFIL
                         UserReviewCard(
                             info = info, 
-                            showHeader = false, // ELIMINA LA FRANJA DE "OPINIÓN PUBLICADA"
+                            showHeader = false,
                             onClick = { onCoffeeClick(info.coffeeDetails.coffee.id) }
                         )
                     }
@@ -201,7 +198,11 @@ fun CoffeeFavoriteItem(coffeeDetails: CoffeeWithDetails, isFavorite: Boolean, on
             Text(text = "${coffeeDetails.coffee.marca} • ${coffeeDetails.coffee.paisOrigen}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         IconButton(onClick = onFavoriteClick) {
-            Icon(imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, contentDescription = "Favorito", tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(
+                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, 
+                contentDescription = "Favorito", 
+                tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
