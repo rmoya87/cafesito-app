@@ -6,19 +6,15 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [
         Coffee::class, 
-        Origin::class, 
-        ScoreSource::class, 
-        SensoryProfile::class, 
         LocalFavorite::class,
+        ReviewEntity::class,
         UserEntity::class,
         FollowEntity::class
     ],
-    version = 4, // Incremented version for user and follow entities
+    version = 7, // Incrementado a 7 para asegurar reset total
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun coffeeDao(): CoffeeDao
-    abstract fun originDao(): OriginDao
-    abstract fun scoreSourceDao(): ScoreSourceDao
     abstract fun userDao(): UserDao
 }

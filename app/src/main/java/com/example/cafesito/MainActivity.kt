@@ -5,9 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -33,6 +33,7 @@ import com.example.cafesito.ui.search.SearchScreen
 import com.example.cafesito.ui.timeline.AddPostScreen
 import com.example.cafesito.ui.timeline.TimelineScreen
 import com.example.cafesito.ui.theme.CafesitoTheme
+import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -52,7 +53,7 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val navItems = mapOf(
         "timeline" to "Inicio",
-        "search" to "Buscar",
+        "search" to "Explorar", // CAMBIO: Buscar -> Explorar
         "profile" to "Perfil"
     )
 
@@ -61,7 +62,6 @@ fun AppNavigation() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
 
-            // Detectamos si debemos mostrar la barra basándonos en la raíz de la ruta
             val currentRoute = currentDestination?.route
             val shouldShowBottomBar = currentRoute?.let { route ->
                 val rootSegment = route.split("/").firstOrNull()
@@ -73,7 +73,6 @@ fun AppNavigation() {
                     navItems.forEach { (screen, label) ->
                         val route = if (screen == "profile") "profile/${currentUser.id}" else screen
                         
-                        // Lógica de selección mejorada: comprueba si la raíz de la ruta coincide con el tab
                         val isSelected = currentDestination?.hierarchy?.any { 
                             it.route?.split("/")?.firstOrNull() == screen 
                         } == true
@@ -82,7 +81,7 @@ fun AppNavigation() {
                             icon = {
                                 when (screen) {
                                     "timeline" -> Icon(Icons.Filled.Home, contentDescription = label)
-                                    "search" -> Icon(Icons.Filled.Search, contentDescription = label)
+                                    "search" -> Icon(Icons.Filled.Coffee, contentDescription = label) // CAMBIO: Lupa -> Taza
                                     "profile" -> Icon(Icons.Filled.Person, contentDescription = label)
                                 }
                             },
@@ -135,7 +134,7 @@ fun AppNavigation() {
             }
             composable(
                 route = "detail/{coffeeId}",
-                arguments = listOf(navArgument("coffeeId") { type = NavType.IntType })
+                arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
             ) {
                 DetailScreen(onBackClick = { navController.popBackStack() })
             }

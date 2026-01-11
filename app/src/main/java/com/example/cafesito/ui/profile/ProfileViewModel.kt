@@ -7,15 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.CoffeeRepository
 import com.example.cafesito.data.CoffeeWithDetails
+import com.example.cafesito.data.ReviewEntity
 import com.example.cafesito.data.UserRepository
 import com.example.cafesito.domain.Comment
 import com.example.cafesito.domain.Post
-import com.example.cafesito.domain.Review
 import com.example.cafesito.domain.User
 import com.example.cafesito.domain.allUsers
 import com.example.cafesito.domain.currentUser
 import com.example.cafesito.domain.samplePosts
-import com.example.cafesito.domain.sampleReviews
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,43 +55,58 @@ class ProfileViewModel @Inject constructor(
     private val _uiSubState = combine(
         _isEditing, _emailError, _showImagePicker, _activeCommentPost, _postToDelete, _postToEdit, _refreshTrigger
     ) { params ->
-        SubState(params[0] as Boolean, params[1] as String?, params[2] as Boolean, 
-                 params[3] as Post?, params[4] as Post?, params[5] as Post?, params[6] as Int)
+        SubState(
+            isEditing = params[0] as Boolean, 
+            emailError = params[1] as String?, 
+            showImageSourceDialog = params[2] as Boolean, 
+            activeCommentPost = params[3] as Post?, 
+            postToDelete = params[4] as Post?, 
+            postToEdit = params[5] as Post?, 
+            refresh = params[6] as Int
+        )
     }
+
+    private val _socialData = combine(
+        userRepository.followingMap,
+        coffeeRepository.allReviews
+    ) { follows, reviews -> follows to reviews }
 
     val uiState: StateFlow<ProfileUiState> = combine(
         _userFlow, 
+        _socialData,
         coffeeRepository.allCoffees, 
         coffeeRepository.favorites, 
-        userRepository.followingMap,
         _uiSubState
-    ) { user, allCoffees, localFavorites, followingMap, subState ->
+    ) { user, social, allCoffees, localFavorites, subState ->
+        val (followingMap, reviews) = social
+        
         if (user == null) {
             ProfileUiState.Error("Usuario no encontrado")
         } else {
             val isMe = (userId == currentUser.id)
             val userPosts = samplePosts.filter { it.user.id == userId }
             
-            val favoriteCoffees = if (isMe) {
-                allCoffees.filter { details -> 
+            val favoriteCoffees = allCoffees.filter { details ->
+                if (isMe) {
                     localFavorites.any { it.coffeeId == details.coffee.id }
-                }
-            } else {
-                allCoffees.filter { details ->
+                } else {
                     user.favoriteCoffeeIds.contains(details.coffee.id)
                 }
             }
             
             val myFavoriteIds = localFavorites.map { it.coffeeId }.toSet()
 
-            // JOIN LOGIC: Map user's reviews to coffee info
-            val userReviews = sampleReviews.value.filter { it.user.id == userId }.mapNotNull { review ->
+            // Map user's reviews with author name
+            val userReviews = reviews.filter { it.userId == userId }.mapNotNull { review ->
                 allCoffees.find { it.coffee.id == review.coffeeId }?.let { coffeeDetails ->
-                    UserReviewInfo(coffeeDetails, review)
+                    UserReviewInfo(
+                        coffeeDetails = coffeeDetails, 
+                        review = review,
+                        authorName = user.fullName // En el perfil ya tenemos el nombre
+                    )
                 }
             }
 
-            // Calculamos seguidores reales según el mapa (quiénes siguen a este userId)
             val followersCount = followingMap.values.count { it.contains(userId) }
             val followingCount = followingMap[userId]?.size ?: 0
             val isFollowing = followingMap[currentUser.id]?.contains(userId) ?: false
@@ -137,58 +151,25 @@ class ProfileViewModel @Inject constructor(
         val userIndex = allUsers.indexOfFirst { it.id == userId }
         if (userIndex != -1 && updatedUser != null) {
             allUsers[userIndex] = updatedUser
-            val updatedPosts = samplePosts.map {
-                if (it.user.id == userId) it.copy(user = updatedUser) else it
-            }
-            samplePosts.clear()
-            samplePosts.addAll(updatedPosts)
         }
         _refreshTrigger.value++
         toggleEditMode()
     }
 
-    fun onShowImagePicker() = run { _showImagePicker.value = true }
-    fun onDismissImagePicker() = run { _showImagePicker.value = false }
     fun onAvatarChange(uri: Uri?) {
         uri?.let { _userFlow.value = _userFlow.value?.copy(avatarUrl = it.toString()) }
-        onDismissImagePicker()
     }
 
-    fun onCommentClick(post: Post) { _activeCommentPost.value = post }
-    fun onDismissComments() { _activeCommentPost.value = null }
     fun onAddComment(post: Post, text: String) {
         val postIndex = samplePosts.indexOfFirst { it.id == post.id }
         if (postIndex != -1) {
             val updatedComments = post.comments.toMutableList().apply { add(Comment(currentUser, text)) }
-            val updatedPost = post.copy(comments = updatedComments)
-            samplePosts[postIndex] = updatedPost
-            _activeCommentPost.value = updatedPost
+            samplePosts[postIndex] = post.copy(comments = updatedComments)
             _refreshTrigger.value++
         }
     }
 
-    fun requestDeletePost(post: Post) { _postToDelete.value = post }
-    fun dismissDeleteDialog() { _postToDelete.value = null }
-    fun confirmDeletePost() {
-        _postToDelete.value?.let { post ->
-            samplePosts.removeIf { it.id == post.id }
-            _refreshTrigger.value++
-        }
-        dismissDeleteDialog()
-    }
-
-    fun requestEditPost(post: Post) { _postToEdit.value = post }
-    fun dismissEditPost() { _postToEdit.value = null }
-    fun savePostEdit(post: Post, newComment: String) {
-        val index = samplePosts.indexOfFirst { it.id == post.id }
-        if (index != -1) {
-            samplePosts[index] = post.copy(comment = newComment)
-            _refreshTrigger.value++
-        }
-        dismissEditPost()
-    }
-
-    fun onToggleFavorite(coffeeId: Int, isCurrentlyFavorite: Boolean) {
+    fun onToggleFavorite(coffeeId: String, isCurrentlyFavorite: Boolean) {
         viewModelScope.launch {
             coffeeRepository.toggleFavorite(coffeeId, isCurrentlyFavorite)
             _refreshTrigger.value++
@@ -203,7 +184,11 @@ class ProfileViewModel @Inject constructor(
     }
 }
 
-data class UserReviewInfo(val coffeeDetails: CoffeeWithDetails, val review: Review)
+data class UserReviewInfo(
+    val coffeeDetails: CoffeeWithDetails, 
+    val review: ReviewEntity,
+    val authorName: String? = null
+)
 
 sealed interface ProfileUiState {
     data object Loading : ProfileUiState
@@ -217,7 +202,7 @@ sealed interface ProfileUiState {
         val posts: List<Post>,
         val favoriteCoffees: List<CoffeeWithDetails>,
         val userReviews: List<UserReviewInfo>,
-        val myFavoriteIds: Set<Int>,
+        val myFavoriteIds: Set<String>,
         val isEditing: Boolean,
         val emailError: String?,
         val showImageSourceDialog: Boolean,

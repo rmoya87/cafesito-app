@@ -10,7 +10,7 @@ val currentUser = User(
     avatarUrl = "https://rmoya.dev/assets/images/profile.jpg", 
     email = "ricardo.moya@example.com", 
     bio = "Desarrollador Android y creador de contenido.",
-    favoriteCoffeeIds = listOf(1, 2, 3)
+    favoriteCoffeeIds = listOf("KOFIO-12453", "KOFIO-13187")
 )
 
 val allUsers = mutableListOf(currentUser).apply {
@@ -22,7 +22,7 @@ val allUsers = mutableListOf(currentUser).apply {
             avatarUrl = "https://i.pravatar.cc/150?u=usuario${i+1}@cafesito.com", 
             email = "usuario${i+1}@example.com", 
             bio = "A GDE from Spain",
-            favoriteCoffeeIds = if (i % 2 == 0) listOf(1, 4) else emptyList()
+            favoriteCoffeeIds = if (i % 2 == 0) listOf("KOFIO-12453") else emptyList()
         )
     })
 }
@@ -30,14 +30,12 @@ val allUsers = mutableListOf(currentUser).apply {
 // --- Global Review Data ---
 val sampleReviews = mutableStateOf(List(40) { i ->
     val user = allUsers[i % allUsers.size]
-    // Distribute reviews across 5 mock coffee IDs
-    val coffeeId = (i % 5) + 1 
     Review(
         user = user, 
-        coffeeId = coffeeId, 
+        coffeeId = "KOFIO-12453", 
         rating = (3.0f + (i % 20) / 10f), 
         comment = "Este café tiene un cuerpo excelente y un aroma persistente. Muy recomendado.",
-        timestamp = System.currentTimeMillis() - (i * 7200000L) // every 2 hours
+        timestamp = System.currentTimeMillis() - (i * 7200000L)
     )
 })
 
@@ -50,7 +48,7 @@ val samplePosts = mutableListOf(
         user = user,
         imageUrl = "https://picsum.photos/seed/${i+30}/800/600",
         comment = "Disfrutando de un café increíble. #${i+1}",
-        timestamp = System.currentTimeMillis() - (i * 3600000L + 1800000L), // offset from reviews
+        timestamp = System.currentTimeMillis() - (i * 3600000L + 1800000L),
         initialLikes = (10..100).random(),
         comments = emptyList()
     )

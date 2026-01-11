@@ -1,6 +1,5 @@
 package com.example.cafesito.ui.timeline
 
-import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.CoffeeRepository
@@ -23,44 +22,59 @@ class TimelineViewModel @Inject constructor(
     private val _refreshTrigger = MutableStateFlow(0)
     private val _pendingRemovalIds = MutableStateFlow<Set<Int>>(emptySet())
 
+    private val _internalStates = combine(_pendingRemovalIds, _refreshTrigger) { pending, refresh -> 
+        pending to refresh 
+    }
+
     val uiState: StateFlow<TimelineUiState> = combine(
         userRepository.followingMap,
         coffeeRepository.allCoffees,
-        snapshotFlow { sampleReviews.value },
-        _pendingRemovalIds,
-        _refreshTrigger
-    ) { followingMap, allCoffees, reviews, pendingRemovals, _ ->
+        coffeeRepository.allReviews,
+        coffeeRepository.favorites,
+        _internalStates
+    ) { followingMap, allCoffees, reviews, favorites, internal ->
+        val (pendingRemovals, _) = internal
+        
         val myFollowing = followingMap[currentUser.id] ?: emptySet()
+        val timelineUserIds = myFollowing + currentUser.id
         
-        // Para el carrusel, no filtramos todavía a los que acabamos de seguir (pendingRemovals)
-        val filterOutFromSuggestions = myFollowing - pendingRemovals
-        
-        // Filtrar publicaciones de personas que sigo
-        val filteredPosts = samplePosts.filter { myFollowing.contains(it.user.id) }
+        val filteredPosts = samplePosts
+            .filter { timelineUserIds.contains(it.user.id) }
             .map { TimelineItem.PostItem(it) }
 
-        // Filtrar opiniones de personas que sigo y mapear a info de café
-        val filteredReviews = reviews.filter { myFollowing.contains(it.user.id) }
+        val filteredReviews = reviews
+            .filter { timelineUserIds.contains(it.userId) }
             .mapNotNull { review ->
                 allCoffees.find { it.coffee.id == review.coffeeId }?.let { coffeeDetails ->
-                    TimelineItem.ReviewItem(UserReviewInfo(coffeeDetails, review))
+                    val author = allUsers.find { it.id == review.userId }
+                    TimelineItem.ReviewItem(
+                        UserReviewInfo(
+                            coffeeDetails = coffeeDetails, 
+                            review = review,
+                            authorName = author?.fullName
+                        )
+                    )
+                }
+            }
+            
+        val favoriteItems = favorites
+            .filter { fav -> timelineUserIds.contains(currentUser.id) } // Only show my own favorites for now or followed ones if available in entity
+            .mapNotNull { fav ->
+                allCoffees.find { it.coffee.id == fav.coffeeId }?.let { details ->
+                    TimelineItem.FavoriteActionItem(details, fav.savedAt)
                 }
             }
 
-        // Mezclar y ordenar por fecha descendente
-        val combinedItems = (filteredPosts + filteredReviews).sortedByDescending { it.timestamp }
+        val combinedItems = (filteredPosts + filteredReviews + favoriteItems)
+            .sortedByDescending { it.timestamp }
 
-        // Lógica de Sugerencias Proactiva con Stats
-        val myFavs = currentUser.favoriteCoffeeIds.toSet()
+        val filterOutFromSuggestions = myFollowing + currentUser.id
         val suggestedUsers = allUsers
-            .filter { it.id != currentUser.id && !filterOutFromSuggestions.contains(it.id) }
+            .filter { !filterOutFromSuggestions.contains(it.id) }
             .map { user ->
-                val sharedCoffees = user.favoriteCoffeeIds.intersect(myFavs).size
-                val mutuals = followingMap.filter { (followerId, followedSet) ->
-                    myFollowing.contains(followerId) && followedSet.contains(user.id)
-                }.size
-                val score = (sharedCoffees * 2) + (mutuals * 3)
-                user to score
+                val myFavIds = currentUser.favoriteCoffeeIds.toSet()
+                val sharedCount = user.favoriteCoffeeIds.intersect(myFavIds).size
+                user to sharedCount
             }
             .sortedByDescending { it.second }
             .map { (user, _) -> 
@@ -101,7 +115,7 @@ class TimelineViewModel @Inject constructor(
             if (!isCurrentlyFollowing) {
                 _pendingRemovalIds.update { it + userId }
                 userRepository.toggleFollow(currentUser.id, userId)
-                delay(1000)
+                delay(800)
                 _pendingRemovalIds.update { it - userId }
                 _refreshTrigger.value++
             } else {
@@ -122,6 +136,8 @@ sealed class TimelineItem {
     data class ReviewItem(val reviewInfo: UserReviewInfo) : TimelineItem() {
         override val timestamp: Long = reviewInfo.review.timestamp
     }
+    
+    data class FavoriteActionItem(val coffeeDetails: CoffeeWithDetails, override val timestamp: Long) : TimelineItem()
 }
 
 sealed interface TimelineUiState {

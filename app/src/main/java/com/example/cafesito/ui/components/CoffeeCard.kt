@@ -26,7 +26,7 @@ import com.example.cafesito.data.CoffeeWithDetails
 import kotlin.math.roundToInt
 
 @Composable
-fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (Int) -> Unit) {
+fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
     val coffee = coffeeDetails.coffee
     Card(
         modifier = Modifier
@@ -53,14 +53,14 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (Int) -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(coffee.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(coffee.nombre, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(
-                        text = coffee.brandRoaster,
+                        text = coffee.marca,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = coffeeDetails.origin?.countryName ?: "Origen Desconocido",
+                        text = coffee.paisOrigen,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -72,7 +72,7 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (Int) -> Unit) {
                         style = MaterialTheme.typography.labelMedium
                     )
                     Text(
-                        text = "${coffee.officialScore.roundToInt()}",
+                        text = "${coffee.puntuacionOficial.roundToInt()}",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary

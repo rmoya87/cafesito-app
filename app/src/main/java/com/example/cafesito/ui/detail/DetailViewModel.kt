@@ -5,11 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.CoffeeRepository
 import com.example.cafesito.data.CoffeeWithDetails
+import com.example.cafesito.data.ReviewEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,11 +17,15 @@ class DetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val coffeeId: Int = checkNotNull(savedStateHandle["coffeeId"])
+    private val coffeeId: String = checkNotNull(savedStateHandle["coffeeId"])
+    private val currentUserId = 1 // rmoya (Simulado)
 
     val uiState: StateFlow<DetailUiState> = repository.getCoffeeWithDetailsById(coffeeId)
         .map { coffee ->
-            if (coffee != null) DetailUiState.Success(coffee) else DetailUiState.Error
+            if (coffee != null) {
+                val myReview = coffee.reviews.find { it.userId == currentUserId }
+                DetailUiState.Success(coffee, myReview)
+            } else DetailUiState.Error
         }
         .stateIn(
             scope = viewModelScope,
@@ -40,10 +42,23 @@ class DetailViewModel @Inject constructor(
             repository.toggleFavorite(coffeeId, currentStatus)
         }
     }
+
+    fun submitReview(rating: Float, comment: String) {
+        viewModelScope.launch {
+            val review = ReviewEntity(
+                coffeeId = coffeeId,
+                userId = currentUserId,
+                rating = rating,
+                comment = comment,
+                timestamp = System.currentTimeMillis()
+            )
+            repository.upsertReview(review)
+        }
+    }
 }
 
 sealed interface DetailUiState {
     data object Loading : DetailUiState
     data object Error : DetailUiState
-    data class Success(val coffee: CoffeeWithDetails) : DetailUiState
+    data class Success(val coffee: CoffeeWithDetails, val userReview: ReviewEntity?) : DetailUiState
 }

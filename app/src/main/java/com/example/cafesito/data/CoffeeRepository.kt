@@ -1,30 +1,33 @@
 package com.example.cafesito.data
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CoffeeRepository @Inject constructor(
-    private val coffeeDao: CoffeeDao,
-    private val originDao: OriginDao,
-    private val scoreSourceDao: ScoreSourceDao
+    private val coffeeDao: CoffeeDao
 ) {
     val allCoffees: Flow<List<CoffeeWithDetails>> = coffeeDao.getAllCoffeesWithDetails()
-    val origins: Flow<List<Origin>> = originDao.getAllOrigins()
     val favorites: Flow<List<LocalFavorite>> = coffeeDao.getLocalFavorites()
+    val allReviews: Flow<List<ReviewEntity>> = coffeeDao.getAllReviews()
 
-    suspend fun getCoffeeById(id: Int): Coffee? = coffeeDao.getCoffeeById(id)
+    suspend fun getCoffeeById(id: String): Coffee? = coffeeDao.getCoffeeById(id)
     
-    fun getCoffeeWithDetailsById(id: Int): Flow<CoffeeWithDetails?> = coffeeDao.getCoffeeWithDetailsById(id)
+    fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = coffeeDao.getCoffeeWithDetailsById(id)
 
-    fun getFilteredCoffees(query: String?, minScore: Float, originId: Int?): Flow<List<CoffeeWithDetails>> = 
-        coffeeDao.getFilteredCoffees(query, minScore, originId)
+    fun getFilteredCoffees(
+        query: String?, 
+        origin: String?,
+        roast: String?,
+        specialty: String?,
+        variety: String?,
+        format: String?,
+        grind: String?
+    ): Flow<List<CoffeeWithDetails>> = 
+        coffeeDao.getFilteredCoffees(query, origin, roast, specialty, variety, format, grind)
 
-    fun getSensoryProfile(coffeeId: Int): Flow<SensoryProfile?> = coffeeDao.getSensoryProfile(coffeeId)
-
-    suspend fun toggleFavorite(coffeeId: Int, isFavorite: Boolean) {
+    suspend fun toggleFavorite(coffeeId: String, isFavorite: Boolean) {
         if (isFavorite) {
             coffeeDao.deleteFavorite(LocalFavorite(coffeeId, 0))
         } else {
@@ -32,8 +35,9 @@ class CoffeeRepository @Inject constructor(
         }
     }
 
-    suspend fun insertOrigin(origin: Origin): Long = originDao.insertOrigins(listOf(origin)).firstOrNull() ?: -1L
-    suspend fun insertScoreSource(source: ScoreSource): Long = scoreSourceDao.insertSources(listOf(source)).firstOrNull() ?: -1L
-    suspend fun insertCoffee(coffee: Coffee): Long = coffeeDao.insertCoffee(coffee)
-    suspend fun insertSensoryProfile(profile: SensoryProfile) = coffeeDao.insertSensoryProfile(profile)
+    suspend fun upsertReview(review: ReviewEntity) = coffeeDao.upsertReview(review)
+
+    suspend fun insertCoffee(coffee: Coffee) = coffeeDao.insertCoffee(coffee)
+    
+    suspend fun deleteAllCoffees() = coffeeDao.deleteAllCoffees()
 }

@@ -5,15 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.CoffeeRepository
 import com.example.cafesito.data.CoffeeWithDetails
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,23 +20,33 @@ class HomeViewModel @Inject constructor(
     private val _minScore = MutableStateFlow(0f)
     val minScore = _minScore.asStateFlow()
 
-    private val _selectedOriginId = MutableStateFlow<Int?>(null)
-    val selectedOriginId = _selectedOriginId.asStateFlow()
+    private val _selectedOrigin = MutableStateFlow<String?>(null)
+    val selectedOrigin = _selectedOrigin.asStateFlow()
 
-    // Available filters
-    val origins = repository.origins.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val origins: StateFlow<List<String>> = repository.allCoffees
+        .map { list -> list.map { it.coffee.paisOrigen }.distinct().sorted() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val filters = combine(_searchQuery, _minScore, _selectedOriginId) { query, score, originId ->
-        Triple(query, score, originId)
+    private val filters = combine(_searchQuery, _minScore, _selectedOrigin) { query, score, origin ->
+        Triple(query, score, origin)
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<HomeUiState> = filters.flatMapLatest { (query, score, originId) ->
-        repository.getFilteredCoffees(query, score, originId)
-            .map<List<CoffeeWithDetails>, HomeUiState> { coffees -> 
-                HomeUiState.Success(coffees) 
-            }
-            .catch { emit(HomeUiState.Error(it.message ?: "An unknown error occurred")) }
+    val uiState: StateFlow<HomeUiState> = filters.flatMapLatest { (query, score, origin) ->
+        repository.getFilteredCoffees(
+            query = query,
+            origin = origin,
+            roast = null,
+            specialty = null,
+            variety = null,
+            format = null,
+            grind = null
+        ).map<List<CoffeeWithDetails>, HomeUiState> { coffees -> 
+            val filtered = if (score > 0) {
+                coffees.filter { it.averageRating >= score }
+            } else coffees
+            HomeUiState.Success(filtered)
+        }.catch { emit(HomeUiState.Error(it.message ?: "An unknown error occurred")) }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -55,14 +57,14 @@ class HomeViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
-    fun applyFilters(minScore: Float, originId: Int?) {
+    fun applyFilters(minScore: Float, origin: String?) {
         _minScore.value = minScore
-        _selectedOriginId.value = originId
+        _selectedOrigin.value = origin
     }
 
-    fun toggleFavorite(coffeeId: Int, currentStatus: Boolean) {
+    fun toggleFavorite(coffeeId: String, currentStatus: Boolean) {
         viewModelScope.launch {
-            repository.toggleFavorite(coffeeId, !currentStatus) // Simplified logic
+            repository.toggleFavorite(coffeeId, currentStatus)
         }
     }
 }

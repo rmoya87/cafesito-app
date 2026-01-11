@@ -22,146 +22,83 @@ class DataSeeder @Inject constructor(
     fun seedIfEmpty() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // 1. Seed Usuarios y Seguimientos
                 if (userDao.getUserCount() == 0) {
-                    userDao.insertUsers(allUsers.map { it.toEntity() })
+                    val userEntities = allUsers.map { domainUser ->
+                        UserEntity(
+                            id = domainUser.id,
+                            username = domainUser.username,
+                            fullName = domainUser.fullName,
+                            avatarUrl = domainUser.avatarUrl,
+                            email = domainUser.email,
+                            bio = domainUser.bio
+                        )
+                    }
+                    userDao.insertUsers(userEntities)
                     userDao.insertFollow(FollowEntity(1, 2))
                     userDao.insertFollow(FollowEntity(1, 3))
                     userDao.insertFollow(FollowEntity(1, 4))
-                    userDao.insertFollow(FollowEntity(1, 5))
-                    Log.d("DataSeeder", "Usuarios inicializados.")
                 }
 
-                // 2. Verificar si ya hay cafés para evitar re-importar todo
                 val existingCoffees = repository.allCoffees.firstOrNull()
-                if (!existingCoffees.isNullOrEmpty()) {
-                    Log.d("DataSeeder", "Base de datos de cafés ya poblada.")
-                    return@launch
-                }
+                if (existingCoffees.isNullOrEmpty()) {
+                    val inputStream = context.assets.open("cafes.csv")
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+                    reader.readLine() 
 
-                val scaSourceId = repository.insertScoreSource(ScoreSource(name = "SCA", url = "https://sca.coffee")).toInt()
-                val originMap = mutableMapOf<String, Int>()
-                val seenCoffees = mutableSetOf<String>()
+                    var line = reader.readLine()
+                    while (line != null) {
+                        val tokens = line.split(";")
+                        if (tokens.size >= 27) {
+                            try {
+                                // NORMALIZACIÓN DE BRASIL (Brazil, Brazi, Brasil -> Brasil)
+                                val rawCountry = tokens[3].trim()
+                                val normalizedCountry = if (
+                                    rawCountry.contains("brazi", ignoreCase = true) || 
+                                    rawCountry.equals("brasil", ignoreCase = true)
+                                ) "Brasil" else rawCountry
 
-                val csvFiles = listOf(
-                    "merged_data_cleaned.csv",
-                    "robusta_data_cleaned.csv",
-                    "arabica_data_cleaned.csv",
-                    "df_arabica_clean.csv"
-                )
-
-                csvFiles.forEach { fileName ->
-                    try {
-                        importCsvFile(fileName, scaSourceId, originMap, seenCoffees)
-                    } catch (e: Exception) {
-                        Log.e("DataSeeder", "Error importando $fileName", e)
+                                repository.insertCoffee(
+                                    Coffee(
+                                        id = tokens[0],
+                                        especialidad = tokens[1],
+                                        marca = tokens[2],
+                                        paisOrigen = normalizedCountry,
+                                        variedadTipo = tokens[4],
+                                        nombre = tokens[5],
+                                        descripcion = tokens[6],
+                                        fuentePuntuacion = tokens[7],
+                                        puntuacionOficial = tokens[8].toDoubleOrNull() ?: 0.0,
+                                        notasCata = tokens[9],
+                                        formato = tokens[10],
+                                        cafeina = tokens[11],
+                                        tueste = tokens[12],
+                                        proceso = tokens[13],
+                                        ratioRecomendado = tokens[14],
+                                        moliendaRecomendada = tokens[15],
+                                        aroma = tokens[16].toFloatOrNull() ?: 0f,
+                                        sabor = tokens[17].toFloatOrNull() ?: 0f,
+                                        retrogusto = tokens[18].toFloatOrNull() ?: 0f,
+                                        acidez = tokens[19].toFloatOrNull() ?: 0f,
+                                        cuerpo = tokens[20].toFloatOrNull() ?: 0f,
+                                        uniformidad = tokens[21].toFloatOrNull() ?: 0f,
+                                        dulzura = tokens[22].toFloatOrNull() ?: 0f,
+                                        puntuacionTotal = tokens[23].toDoubleOrNull() ?: 0.0,
+                                        codigoBarras = tokens[24],
+                                        imageUrl = tokens[25],
+                                        productUrl = tokens[26]
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                Log.e("DataSeeder", "Error en línea CSV")
+                            }
+                        }
+                        line = reader.readLine()
                     }
+                    reader.close()
                 }
-
-                Log.d("DataSeeder", "Importación masiva completada con éxito.")
             } catch (e: Exception) {
-                Log.e("DataSeeder", "Error crítico en seeder", e)
+                Log.e("DataSeeder", "Error crítico", e)
             }
         }
-    }
-
-    private suspend fun importCsvFile(
-        fileName: String,
-        scaSourceId: Int,
-        originMap: MutableMap<String, Int>,
-        seenCoffees: MutableSet<String>
-    ) {
-        val inputStream = context.assets.open(fileName)
-        val reader = BufferedReader(InputStreamReader(inputStream))
-        val headerLine = reader.readLine() ?: return
-        val headers = parseCsvLine(headerLine)
-
-        // Mapeo dinámico de índices basado en nombres de columnas
-        val idxCountry = headers.indexOfFirst { it.contains("Country", true) }
-        val idxFarm = headers.indexOfFirst { it.contains("Farm.Name", true) || it.contains("Farm Name", true) }
-        val idxOwner = headers.indexOfFirst { it.contains("Owner", true) || it.contains("Company", true) }
-        val idxProcess = headers.indexOfFirst { it.contains("Processing", true) }
-        val idxAroma = headers.indexOfFirst { it.contains("Aroma", true) }
-        val idxFlavor = headers.indexOfFirst { it.contains("Flavor", true) }
-        val idxAftertaste = headers.indexOfFirst { it.contains("Aftertaste", true) }
-        val idxAcidity = headers.indexOfFirst { it.contains("Acid", true) }
-        val idxBody = headers.indexOfFirst { it.contains("Body", true) || it.contains("Mouthfeel", true) }
-        val idxBalance = headers.indexOfFirst { it.contains("Balance", true) }
-        val idxUniformity = headers.indexOfFirst { it.contains("Uniformity", true) || it.contains("Uniform", true) }
-        val idxCleanCup = headers.indexOfFirst { it.contains("Clean", true) }
-        val idxSweetness = headers.indexOfFirst { it.contains("Sweet", true) }
-        val idxScore = headers.indexOfFirst { it.contains("Total.Cup.Points", true) || it.contains("Total Cup Points", true) }
-        val idxVariety = headers.indexOfFirst { it.contains("Variety", true) }
-        val idxRegion = headers.indexOfFirst { it.contains("Region", true) }
-
-        var line = reader.readLine()
-        while (line != null) {
-            val tokens = parseCsvLine(line!!)
-            if (tokens.size >= headers.size) {
-                val farmName = tokens.getOrNull(idxFarm)?.ifBlank { null } ?: tokens.getOrNull(idxOwner)?.ifBlank { "Specialty Coffee" } ?: "Unknown Farm"
-                val owner = tokens.getOrNull(idxOwner) ?: "Independent"
-                val uniqueKey = "$farmName|$owner".lowercase()
-
-                // Evitar duplicados exactos entre archivos
-                if (!seenCoffees.contains(uniqueKey)) {
-                    seenCoffees.add(uniqueKey)
-
-                    val country = tokens.getOrNull(idxCountry)?.ifBlank { "Global" } ?: "Global"
-                    val originId = originMap.getOrPut(country) {
-                        repository.insertOrigin(Origin(countryName = country, continent = "Global")).toInt()
-                    }
-
-                    val coffeeId = repository.insertCoffee(
-                        Coffee(
-                            name = farmName,
-                            brandRoaster = owner,
-                            originId = originId,
-                            process = tokens.getOrNull(idxProcess) ?: "Washed",
-                            roastLevel = "Medium",
-                            description = "Variety: ${tokens.getOrNull(idxVariety) ?: "Unknown"}, Region: ${tokens.getOrNull(idxRegion) ?: "Unknown"}",
-                            imageUrl = "https://picsum.photos/seed/${uniqueKey.hashCode()}/400/300",
-                            officialScore = tokens.getOrNull(idxScore)?.toDoubleOrNull() ?: 0.0,
-                            scoreSourceId = scaSourceId
-                        )
-                    ).toInt()
-
-                    repository.insertSensoryProfile(
-                        SensoryProfile(
-                            coffeeId = coffeeId,
-                            aroma = tokens.getOrNull(idxAroma)?.toFloatOrNull() ?: 0f,
-                            flavor = tokens.getOrNull(idxFlavor)?.toFloatOrNull() ?: 0f,
-                            aftertaste = tokens.getOrNull(idxAftertaste)?.toFloatOrNull() ?: 0f,
-                            acidity = tokens.getOrNull(idxAcidity)?.toFloatOrNull() ?: 0f,
-                            body = tokens.getOrNull(idxBody)?.toFloatOrNull() ?: 0f,
-                            balance = tokens.getOrNull(idxBalance)?.toFloatOrNull() ?: 0f,
-                            freshness = tokens.getOrNull(idxUniformity)?.toFloatOrNull() ?: 0f,
-                            clarity = tokens.getOrNull(idxCleanCup)?.toFloatOrNull() ?: 0f,
-                            sweetness = tokens.getOrNull(idxSweetness)?.toFloatOrNull() ?: 0f
-                        )
-                    )
-                }
-            }
-            line = reader.readLine()
-        }
-        reader.close()
-    }
-
-    private fun parseCsvLine(line: String): List<String> {
-        val result = mutableListOf<String>()
-        var curVal = StringBuilder()
-        var inQuotes = false
-        for (ch in line.toCharArray()) {
-            if (inQuotes) {
-                if (ch == '\"') inQuotes = false else curVal.append(ch)
-            } else {
-                if (ch == '\"') inQuotes = true
-                else if (ch == ',') {
-                    result.add(curVal.toString().trim())
-                    curVal = StringBuilder()
-                } else curVal.append(ch)
-            }
-        }
-        result.add(curVal.toString().trim())
-        return result
     }
 }

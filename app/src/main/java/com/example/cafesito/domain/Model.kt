@@ -1,8 +1,5 @@
 package com.example.cafesito.domain
 
-import androidx.room.Embedded
-import androidx.room.Relation
-
 // --- Data Models ---
 
 data class User(
@@ -12,7 +9,7 @@ data class User(
     val avatarUrl: String,
     val email: String, 
     val bio: String?,
-    val favoriteCoffeeIds: List<Int> = emptyList()
+    val favoriteCoffeeIds: List<String> = emptyList() // Changed to String
 )
 
 data class Post(
@@ -29,7 +26,7 @@ data class Comment(val user: User, val text: String)
 
 data class Review(
     val user: User, 
-    val coffeeId: Int,
+    val coffeeId: String, // Changed to String
     val rating: Float, 
     val comment: String,
     val timestamp: Long = System.currentTimeMillis()

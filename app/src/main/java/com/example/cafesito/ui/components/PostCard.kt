@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.cafesito.domain.Post
-import java.text.SimpleDateFormat
+import com.example.cafesito.ui.detail.formatRelativeTime
 import java.util.Locale
 
 @Composable
@@ -52,7 +52,7 @@ fun PostCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(0.dp),
-        elevation = CardDefaults.cardElevation(0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
@@ -72,7 +72,7 @@ fun PostCard(
                     Column(modifier = Modifier.padding(start = 12.dp)) {
                         Text(post.user.fullName, fontWeight = FontWeight.Bold)
                         Text(
-                            text = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(post.timestamp),
+                            text = formatRelativeTime(post.timestamp), // Cambio a fecha relativa
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Normal,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)

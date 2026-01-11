@@ -3,76 +3,70 @@ package com.example.cafesito.data
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 
-@Entity(tableName = "origins")
-data class Origin(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val countryName: String,
-    val region: String? = null,
-    val continent: String // Enum as String
-)
-
-@Entity(tableName = "score_sources")
-data class ScoreSource(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val name: String,
-    val url: String // Link to methodology
-)
-
-@Entity(
-    tableName = "coffees",
-    foreignKeys = [
-        ForeignKey(entity = Origin::class, parentColumns = ["id"], childColumns = ["originId"]),
-        ForeignKey(entity = ScoreSource::class, parentColumns = ["id"], childColumns = ["scoreSourceId"])
-    ],
-    indices = [
-        androidx.room.Index(value = ["originId"]),
-        androidx.room.Index(value = ["scoreSourceId"])
-    ]
-)
+@Entity(tableName = "coffees")
 data class Coffee(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val name: String,
-    val brandRoaster: String,
-    val originId: Int,
-    val process: String, // Enum as String: Washed, Natural, Honey...
-    val roastLevel: String, // Enum as String: Light, Medium, Dark
-    val description: String,
-    val imageUrl: String,
-    val officialScore: Double,
-    val scoreSourceId: Int
-)
-
-@Entity(
-    tableName = "sensory_profiles",
-    foreignKeys = [
-        ForeignKey(entity = Coffee::class, parentColumns = ["id"], childColumns = ["coffeeId"], onDelete = ForeignKey.CASCADE)
-    ]
-)
-data class SensoryProfile(
-    @PrimaryKey val coffeeId: Int, // 1:1 relationship, so PK is same as FK
+    @PrimaryKey val id: String,
+    val especialidad: String,
+    val marca: String,
+    val paisOrigen: String,
+    val variedadTipo: String,
+    val nombre: String,
+    val descripcion: String,
+    val fuentePuntuacion: String,
+    val puntuacionOficial: Double,
+    val notasCata: String,
+    val formato: String,
+    val cafeina: String,
+    val tueste: String,
+    val proceso: String,
+    val ratioRecomendado: String,
+    val moliendaRecomendada: String,
     val aroma: Float,
-    val flavor: Float,
-    val body: Float,
-    val acidity: Float,
-    val aftertaste: Float,
-    val balance: Float,
-    val sweetness: Float,
-    val clarity: Float,
-    val freshness: Float
+    val sabor: Float,
+    val retrogusto: Float,
+    val acidez: Float,
+    val cuerpo: Float,
+    val uniformidad: Float,
+    val dulzura: Float,
+    val puntuacionTotal: Double,
+    val codigoBarras: String,
+    val imageUrl: String,
+    val productUrl: String
 )
 
 @Entity(
     tableName = "local_favorites",
     foreignKeys = [
         ForeignKey(entity = Coffee::class, parentColumns = ["id"], childColumns = ["coffeeId"], onDelete = ForeignKey.CASCADE)
-    ]
+    ],
+    indices = [Index(value = ["coffeeId"])]
 )
 data class LocalFavorite(
-    @PrimaryKey val coffeeId: Int,
+    @PrimaryKey val coffeeId: String,
     val savedAt: Long
+)
+
+@Entity(
+    tableName = "reviews_db",
+    foreignKeys = [
+        ForeignKey(entity = Coffee::class, parentColumns = ["id"], childColumns = ["coffeeId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [
+        Index(value = ["coffeeId", "userId"], unique = true)
+    ]
+)
+data class ReviewEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val coffeeId: String,
+    val userId: Int,
+    val rating: Float,
+    val comment: String,
+    val timestamp: Long
 )
 
 @Entity(tableName = "users_db")
@@ -93,8 +87,8 @@ data class UserEntity(
         ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followedId"], onDelete = ForeignKey.CASCADE)
     ],
     indices = [
-        androidx.room.Index(value = ["followerId"]),
-        androidx.room.Index(value = ["followedId"])
+        Index(value = ["followerId"]),
+        Index(value = ["followedId"])
     ]
 )
 data class FollowEntity(
@@ -106,18 +100,31 @@ data class FollowEntity(
 data class CoffeeWithDetails(
     @Embedded val coffee: Coffee,
     @Relation(
-        parentColumn = "originId",
-        entityColumn = "id"
+        parentColumn = "id",
+        entityColumn = "coffeeId"
     )
-    val origin: Origin?,
-    @Relation(
-        parentColumn = "scoreSourceId",
-        entityColumn = "id"
-    )
-    val scoreSource: ScoreSource?,
+    val favorite: LocalFavorite? = null,
     @Relation(
         parentColumn = "id",
         entityColumn = "coffeeId"
     )
-    val sensoryProfile: SensoryProfile?
-)
+    val reviews: List<ReviewEntity> = emptyList()
+) {
+    val isFavorite: Boolean get() = favorite != null
+    
+    // REGLA: Si no hay opiniones en la app, la nota es 0.0. No se usa la nota oficial SCA.
+    val averageRating: Float get() = if (reviews.isEmpty()) {
+        0.0f
+    } else {
+        reviews.map { it.rating }.average().toFloat()
+    }
+
+    @Ignore
+    val origin: com.example.cafesito.data.Origin? = null 
+    @Ignore
+    val sensoryProfile: com.example.cafesito.data.SensoryProfile? = null
+}
+
+data class Origin(val countryName: String, val continent: String)
+data class SensoryProfile(val coffeeId: String, val aroma: Float, val flavor: Float, val body: Float, val acidity: Float, val aftertaste: Float)
+data class ScoreSource(val name: String, val url: String)

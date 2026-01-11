@@ -6,27 +6,37 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CoffeeDao {
     @Transaction
-    @Query("SELECT * FROM coffees")
+    @Query("SELECT * FROM coffees ORDER BY nombre ASC")
     fun getAllCoffeesWithDetails(): Flow<List<CoffeeWithDetails>>
 
     @Transaction
     @Query("SELECT * FROM coffees WHERE id = :id")
-    fun getCoffeeWithDetailsById(id: Int): Flow<CoffeeWithDetails?>
+    fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?>
 
     @Transaction
     @Query("""
         SELECT * FROM coffees 
-        WHERE (:query IS NULL OR name LIKE '%' || :query || '%' OR brandRoaster LIKE '%' || :query || '%')
-        AND officialScore >= :minScore
-        AND (:originId IS NULL OR originId = :originId)
+        WHERE (:query IS NULL OR nombre LIKE '%' || :query || '%' OR marca LIKE '%' || :query || '%')
+        AND (:origin IS NULL OR paisOrigen = :origin)
+        AND (:roast IS NULL OR tueste = :roast)
+        AND (:specialty IS NULL OR especialidad = :specialty)
+        AND (:variety IS NULL OR variedadTipo LIKE '%' || :variety || '%')
+        AND (:format IS NULL OR formato = :format)
+        AND (:grind IS NULL OR moliendaRecomendada LIKE '%' || :grind || '%')
+        ORDER BY nombre ASC
     """)
-    fun getFilteredCoffees(query: String?, minScore: Float, originId: Int?): Flow<List<CoffeeWithDetails>>
+    fun getFilteredCoffees(
+        query: String?, 
+        origin: String?,
+        roast: String?,
+        specialty: String?,
+        variety: String?,
+        format: String?,
+        grind: String?
+    ): Flow<List<CoffeeWithDetails>>
 
     @Query("SELECT * FROM coffees WHERE id = :id")
-    suspend fun getCoffeeById(id: Int): Coffee?
-
-    @Query("SELECT * FROM sensory_profiles WHERE coffeeId = :coffeeId")
-    fun getSensoryProfile(coffeeId: Int): Flow<SensoryProfile?>
+    suspend fun getCoffeeById(id: String): Coffee?
 
     @Query("SELECT * FROM local_favorites")
     fun getLocalFavorites(): Flow<List<LocalFavorite>>
@@ -37,29 +47,17 @@ interface CoffeeDao {
     @Delete
     suspend fun deleteFavorite(favorite: LocalFavorite)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCoffee(coffee: Coffee): Long
+    @Query("SELECT * FROM reviews_db ORDER BY timestamp DESC")
+    fun getAllReviews(): Flow<List<ReviewEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSensoryProfile(profile: SensoryProfile)
-}
-
-@Dao
-interface OriginDao {
-    @Query("SELECT * FROM origins")
-    fun getAllOrigins(): Flow<List<Origin>>
+    suspend fun upsertReview(review: ReviewEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrigins(origins: List<Origin>): List<Long>
-}
+    suspend fun insertCoffee(coffee: Coffee)
 
-@Dao
-interface ScoreSourceDao {
-    @Query("SELECT * FROM score_sources")
-    fun getAllSources(): Flow<List<ScoreSource>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSources(sources: List<ScoreSource>): List<Long>
+    @Query("DELETE FROM coffees")
+    suspend fun deleteAllCoffees()
 }
 
 @Dao

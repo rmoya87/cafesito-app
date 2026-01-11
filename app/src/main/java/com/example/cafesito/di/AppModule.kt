@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import com.example.cafesito.data.AppDatabase
 import com.example.cafesito.data.CoffeeDao
-import com.example.cafesito.data.OriginDao
-import com.example.cafesito.data.ScoreSourceDao
 import com.example.cafesito.data.UserDao
 import dagger.Module
 import dagger.Provides
@@ -33,16 +31,6 @@ object AppModule {
     @Provides
     fun provideCoffeeDao(db: AppDatabase): CoffeeDao {
         return db.coffeeDao()
-    }
-
-    @Provides
-    fun provideOriginDao(db: AppDatabase): OriginDao {
-        return db.originDao()
-    }
-
-    @Provides
-    fun provideScoreSourceDao(db: AppDatabase): ScoreSourceDao {
-        return db.scoreSourceDao()
     }
 
     @Provides

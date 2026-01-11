@@ -5,15 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.CoffeeRepository
 import com.example.cafesito.data.CoffeeWithDetails
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,47 +17,100 @@ class SearchViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    private val _minScore = MutableStateFlow(0f)
-    val minScore = _minScore.asStateFlow()
+    // Filtros seleccionados
+    private val _selectedOrigin = MutableStateFlow<String?>(null)
+    val selectedOrigin = _selectedOrigin.asStateFlow()
 
-    private val _selectedOriginId = MutableStateFlow<Int?>(null)
-    val selectedOriginId = _selectedOriginId.asStateFlow()
+    private val _selectedRoast = MutableStateFlow<String?>(null)
+    val selectedRoast = _selectedRoast.asStateFlow()
 
-    // Available filters
-    val origins = repository.origins.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _selectedSpecialty = MutableStateFlow<String?>(null)
+    val selectedSpecialty = _selectedSpecialty.asStateFlow()
 
-    private val filters = combine(_searchQuery, _minScore, _selectedOriginId) { query, score, originId ->
-        Triple(query, score, originId)
-    }
+    private val _selectedVariety = MutableStateFlow<String?>(null)
+    val selectedVariety = _selectedVariety.asStateFlow()
+
+    private val _selectedFormat = MutableStateFlow<String?>(null)
+    val selectedFormat = _selectedFormat.asStateFlow()
+
+    private val _selectedGrind = MutableStateFlow<String?>(null)
+    val selectedGrind = _selectedGrind.asStateFlow()
+
+    private val _minRating = MutableStateFlow(0f)
+    val minRating = _minRating.asStateFlow()
+
+    // Opciones atomizadas y limpias de nulos/vacíos
+    val filterOptions: StateFlow<FilterOptions> = repository.allCoffees.map { list ->
+        fun String.toAtomizedList() = this.split(",").map { it.trim() }.filter { it.isNotBlank() }
+
+        FilterOptions(
+            origins = list.flatMap { it.coffee.paisOrigen.toAtomizedList() }.distinct().sorted(),
+            roasts = list.flatMap { it.coffee.tueste.toAtomizedList() }.distinct().sorted(),
+            specialties = list.flatMap { it.coffee.especialidad.toAtomizedList() }.distinct().sorted(),
+            varieties = list.flatMap { it.coffee.variedadTipo.toAtomizedList() }.distinct().sorted(),
+            formats = list.flatMap { it.coffee.formato.toAtomizedList() }.distinct().sorted(),
+            grinds = list.flatMap { it.coffee.moliendaRecomendada.toAtomizedList() }.distinct().sorted()
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FilterOptions())
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<SearchUiState> = filters.flatMapLatest { (query, score, originId) ->
-        repository.getFilteredCoffees(query, score, originId)
+    val uiState: StateFlow<SearchUiState> = combine(
+        _searchQuery, _selectedOrigin, _selectedRoast, 
+        _selectedSpecialty, _selectedVariety, _selectedFormat, _selectedGrind, _minRating
+    ) { params -> params }.flatMapLatest { params ->
+        val query = params[0] as String
+        val origin = params[1] as String?
+        val roast = params[2] as String?
+        val specialty = params[3] as String?
+        val variety = params[4] as String?
+        val format = params[5] as String?
+        val grind = params[6] as String?
+        val rating = params[7] as Float
+
+        repository.getFilteredCoffees(query, origin, roast, specialty, variety, format, grind)
             .map<List<CoffeeWithDetails>, SearchUiState> { coffees -> 
-                SearchUiState.Success(coffees) 
+                val filtered = if (rating > 0) {
+                    coffees.filter { it.averageRating >= rating }
+                } else coffees
+                SearchUiState.Success(filtered)
             }
-            .catch { emit(SearchUiState.Error(it.message ?: "An unknown error occurred")) }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = SearchUiState.Loading
-    )
+    }.catch { 
+        emit(SearchUiState.Error(it.message ?: "Error desconocido")) 
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SearchUiState.Loading)
 
-    fun onSearchQueryChanged(query: String) {
-        _searchQuery.value = query
+    fun onSearchQueryChanged(query: String) { _searchQuery.value = query }
+    
+    fun setOrigin(value: String?) { _selectedOrigin.value = value }
+    fun setRoast(value: String?) { _selectedRoast.value = value }
+    fun setSpecialty(value: String?) { _selectedSpecialty.value = value }
+    fun setVariety(value: String?) { _selectedVariety.value = value }
+    fun setFormat(value: String?) { _selectedFormat.value = value }
+    fun setGrind(value: String?) { _selectedGrind.value = value }
+    fun setMinRating(value: Float) { _minRating.value = value }
+
+    fun clearFilters() {
+        _selectedOrigin.value = null
+        _selectedRoast.value = null
+        _selectedSpecialty.value = null
+        _selectedVariety.value = null
+        _selectedFormat.value = null
+        _selectedGrind.value = null
+        _minRating.value = 0f
     }
 
-    fun applyFilters(minScore: Float, originId: Int?) {
-        _minScore.value = minScore
-        _selectedOriginId.value = originId
-    }
-
-    fun toggleFavorite(coffeeId: Int, currentStatus: Boolean) {
-        viewModelScope.launch {
-            repository.toggleFavorite(coffeeId, !currentStatus) // Simplified logic
-        }
+    fun toggleFavorite(coffeeId: String, isFavorite: Boolean) {
+        viewModelScope.launch { repository.toggleFavorite(coffeeId, isFavorite) }
     }
 }
+
+data class FilterOptions(
+    val origins: List<String> = emptyList(),
+    val roasts: List<String> = emptyList(),
+    val specialties: List<String> = emptyList(),
+    val varieties: List<String> = emptyList(),
+    val formats: List<String> = emptyList(),
+    val grinds: List<String> = emptyList()
+)
 
 sealed interface SearchUiState {
     data object Loading : SearchUiState
