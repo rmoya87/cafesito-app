@@ -33,7 +33,6 @@ import com.example.cafesito.ui.search.SearchScreen
 import com.example.cafesito.ui.timeline.AddPostScreen
 import com.example.cafesito.ui.timeline.TimelineScreen
 import com.example.cafesito.ui.theme.CafesitoTheme
-import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -53,7 +52,7 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val navItems = mapOf(
         "timeline" to "Inicio",
-        "search" to "Explorar", // CAMBIO: Buscar -> Explorar
+        "search" to "Explorar",
         "profile" to "Perfil"
     )
 
@@ -81,7 +80,7 @@ fun AppNavigation() {
                             icon = {
                                 when (screen) {
                                     "timeline" -> Icon(Icons.Filled.Home, contentDescription = label)
-                                    "search" -> Icon(Icons.Filled.Coffee, contentDescription = label) // CAMBIO: Lupa -> Taza
+                                    "search" -> Icon(Icons.Filled.Coffee, contentDescription = label)
                                     "profile" -> Icon(Icons.Filled.Person, contentDescription = label)
                                 }
                             },
@@ -139,7 +138,8 @@ fun AppNavigation() {
                 DetailScreen(onBackClick = { navController.popBackStack() })
             }
             composable("addPost") {
-                AddPostScreen()
+                // CORRECCIÓN: Vinculamos el popBackStack al callback de la pantalla
+                AddPostScreen(onBackClick = { navController.popBackStack() })
             }
             composable(
                 route = "profile/{userId}/followers",
