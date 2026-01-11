@@ -8,10 +8,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +30,10 @@ import com.example.cafesito.ui.timeline.AddPostScreen
 import com.example.cafesito.ui.timeline.TimelineScreen
 import com.example.cafesito.ui.theme.CafesitoTheme
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -85,7 +85,8 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     )
 
                     navItems.forEach { (route, label, icon) ->
-                        val fullRoute = if (route == "profile") "profile/0" else route // El VM cargará el activo si es 0
+                        // IMPORTANTE: Navegamos a profile/0 para que el ViewModel detecte que es "MI PERFIL" real
+                        val fullRoute = if (route == "profile") "profile/0" else route
                         val isSelected = currentDestination?.hierarchy?.any { it.route?.startsWith(route) == true } == true
 
                         NavigationBarItem(
@@ -163,7 +164,13 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 arguments = listOf(navArgument("userId") { type = NavType.IntType })
             ) { backStackEntry ->
                 val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                ProfileScreen(onBackClick = { navController.popBackStack() }, onUserClick = { id -> navController.navigate("profile/$id") }, onCoffeeClick = { id -> navController.navigate("detail/$id") }, onFollowersClick = { id -> navController.navigate("profile/$id/followers") }, onFollowingClick = { id -> navController.navigate("profile/$id/following") }) 
+                ProfileScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onUserClick = { id -> navController.navigate("profile/$id") },
+                    onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                    onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
+                    onFollowingClick = { id -> navController.navigate("profile/$id/following") }
+                )
             }
             
             composable(route = "detail/{coffeeId}", arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })) { DetailScreen(onBackClick = { navController.popBackStack() }) }

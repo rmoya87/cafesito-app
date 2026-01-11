@@ -3,6 +3,8 @@ package com.example.cafesito.ui.timeline
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.*
+import com.example.cafesito.domain.SuggestedUserInfo // MODELO UNIFICADO
+import com.example.cafesito.domain.User
 import com.example.cafesito.ui.profile.UserReviewInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -18,32 +20,34 @@ class TimelineViewModel @Inject constructor(
 
     private val _refreshTrigger = MutableStateFlow(0)
 
+    @Suppress("UNCHECKED_CAST")
     val uiState: StateFlow<TimelineUiState> = combine(
         userRepository.getActiveUserFlow(), 
         socialRepository.getAllPostsWithDetails(),
         socialRepository.getAllReviewsWithAuthor(),
         coffeeRepository.allCoffees,
         userRepository.followingMap,
+        userRepository.getAllUsersFlow(),
         _refreshTrigger
     ) { args: Array<Any?> ->
-        // CASTING EXPLÍCITO: Necesario cuando combine tiene más de 5 flujos
         val activeUser = args[0] as? UserEntity
         val posts = args[1] as List<PostWithDetails>
         val reviews = args[2] as List<ReviewWithAuthor>
         val allCoffees = args[3] as List<CoffeeWithDetails>
         val followingMap = args[4] as Map<Int, Set<Int>>
+        val allUsers = args[5] as List<UserEntity>
         
         if (activeUser == null) return@combine TimelineUiState.Loading
 
         val myFollowing = followingMap[activeUser.id] ?: emptySet()
         val visibleUserIds = myFollowing + activeUser.id
 
-        // 1. Filtrar y mapear Publicaciones reales de Room
+        // 1. Mapeo de Posts reales
         val postItems = posts
             .filter { visibleUserIds.contains(it.post.userId) }
             .map { TimelineItem.PostItem(it) }
 
-        // 2. Filtrar y mapear Opiniones reales unidas con café y autor
+        // 2. Mapeo de Opiniones reales
         val reviewItems = reviews
             .filter { visibleUserIds.contains(it.review.userId) }
             .mapNotNull { reviewWithAuthor ->
@@ -61,9 +65,28 @@ class TimelineViewModel @Inject constructor(
 
         val combinedItems = (postItems + reviewItems).sortedByDescending { it.timestamp }
 
+        // 3. Sugerencias de usuarios REALES (mapeadas a modelo Domain)
+        val suggestedUsers = allUsers
+            .filter { it.id != activeUser.id && !myFollowing.contains(it.id) }
+            .map { entity ->
+                SuggestedUserInfo(
+                    user = User(
+                        id = entity.id,
+                        username = entity.username,
+                        fullName = entity.fullName,
+                        avatarUrl = entity.avatarUrl,
+                        email = entity.email,
+                        bio = entity.bio
+                    ),
+                    followersCount = followingMap.values.count { it.contains(entity.id) },
+                    followingCount = followingMap[entity.id]?.size ?: 0
+                )
+            }
+            .take(10)
+
         TimelineUiState.Success(
             items = combinedItems,
-            suggestedUsers = emptyList(), // Las sugerencias ahora vendrán de Room
+            suggestedUsers = suggestedUsers,
             myFollowingIds = myFollowing
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
@@ -90,13 +113,6 @@ class TimelineViewModel @Inject constructor(
     }
 }
 
-// Clase de apoyo para la UI integrada con el dominio
-data class SuggestedUserInfo(
-    val user: UserEntity,
-    val followersCount: Int,
-    val followingCount: Int
-)
-
 sealed class TimelineItem {
     abstract val timestamp: Long
     data class PostItem(val details: PostWithDetails) : TimelineItem() {
@@ -112,7 +128,7 @@ sealed interface TimelineUiState {
     data object Loading : TimelineUiState
     data class Success(
         val items: List<TimelineItem>,
-        val suggestedUsers: List<com.example.cafesito.domain.SuggestedUserInfo>,
+        val suggestedUsers: List<SuggestedUserInfo>,
         val myFollowingIds: Set<Int>
     ) : TimelineUiState
 }

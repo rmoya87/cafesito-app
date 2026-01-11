@@ -15,13 +15,15 @@ class UserRepository @Inject constructor(
             .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
     }
 
+    // Flujo de todos los usuarios de la app
+    fun getAllUsersFlow(): Flow<List<UserEntity>> = userDao.getAllUsers()
+
     fun getActiveUserFlow(): Flow<UserEntity?> = userDao.getActiveUserFlow()
 
     suspend fun getActiveUser(): UserEntity? = userDao.getActiveUserSync()
 
     suspend fun getUserById(userId: Int): UserEntity? = userDao.getUserById(userId)
 
-    // FIX: Exponemos el método de guardado
     suspend fun upsertUser(user: UserEntity) = userDao.upsertUser(user)
 
     suspend fun isFollowing(followerId: Int, targetId: Int): Boolean {
