@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.cafesito.ui.theme.CoffeeBrown
 import kotlinx.coroutines.launch
 
@@ -60,7 +61,20 @@ fun OnboardingScreen(
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Ponemos el contenido primero
+            // TEXTO OMITIR - Arriba a la Derecha con prioridad táctica (zIndex)
+            if (pagerState.currentPage < onboardingPages.size - 1) {
+                TextButton(
+                    onClick = onFinished,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .statusBarsPadding()
+                        .zIndex(1f) 
+                ) {
+                    Text("Omitir", color = Color.Gray, fontSize = 16.sp)
+                }
+            }
+
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -74,6 +88,7 @@ fun OnboardingScreen(
                     OnboardingPageContent(onboardingPages[page])
                 }
 
+                // CONTROLES INFERIORES - Posicionados más abajo
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -81,6 +96,7 @@ fun OnboardingScreen(
                         .padding(bottom = 64.dp), 
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Page Indicator
                     Row(
                         modifier = Modifier
                             .height(40.dp)
@@ -125,19 +141,6 @@ fun OnboardingScreen(
                             color = Color.White
                         )
                     }
-                }
-            }
-
-            // BOTÓN OMITIR AL FINAL DEL BOX PARA QUE ESTÉ POR ENCIMA (Z-INDEX)
-            if (pagerState.currentPage < onboardingPages.size - 1) {
-                TextButton(
-                    onClick = onFinished,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .statusBarsPadding()
-                ) {
-                    Text("Omitir", color = Color.Gray, fontSize = 16.sp)
                 }
             }
         }

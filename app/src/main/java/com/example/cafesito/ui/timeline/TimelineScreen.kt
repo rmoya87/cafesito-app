@@ -122,7 +122,8 @@ fun TimelineScreen(
                     CommentsSheet(
                         postId = id,
                         onDismiss = { showCommentSheetId = null },
-                        onAddComment = { text -> viewModel.onAddComment(id, text) }
+                        onAddComment = { text -> viewModel.onAddComment(id, text) },
+                        onNavigateToProfile = onUserClick // Mapeamos a onUserClick para navegar al perfil
                     )
                 }
             }

@@ -35,9 +35,11 @@ fun CompleteProfileScreen(
     onSuccess: () -> Unit,
     viewModel: CompleteProfileViewModel = hiltViewModel()
 ) {
-    var username by remember { mutableStateOf(initialName) }
+    var username by remember { mutableStateOf(initialName.replace(" ", "").lowercase()) }
     var bio by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(if (initialPhoto.isNotEmpty()) Uri.parse(initialPhoto) else null) }
+    
+    val usernameError by viewModel.usernameError.collectAsState()
     
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { imageUri = it }
 
@@ -56,8 +58,6 @@ fun CompleteProfileScreen(
             fontWeight = FontWeight.Bold, 
             color = CoffeeBrown
         )
-
-        // Se ha eliminado el texto secundario por petición del usuario
 
         Spacer(modifier = Modifier.height(40.dp))
 
@@ -104,14 +104,25 @@ fun CompleteProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Nombre de usuario
+        // Nombre de usuario (REGLA: Sin espacios y Único)
         OutlinedTextField(
             value = username,
-            onValueChange = { username = it },
+            onValueChange = { 
+                username = it.replace(" ", "").lowercase()
+                viewModel.clearError() 
+            },
             label = { Text("Nombre de usuario") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            singleLine = true
+            singleLine = true,
+            isError = usernameError != null,
+            supportingText = {
+                if (usernameError != null) {
+                    Text(text = usernameError!!, color = MaterialTheme.colorScheme.error)
+                } else {
+                    Text("Sin espacios y todo en minúsculas")
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -141,7 +152,7 @@ fun CompleteProfileScreen(
             modifier = Modifier.fillMaxWidth().height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
             shape = RoundedCornerShape(16.dp),
-            enabled = username.isNotBlank()
+            enabled = username.isNotBlank() && usernameError == null
         ) {
             Text("Finalizar Perfil", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }

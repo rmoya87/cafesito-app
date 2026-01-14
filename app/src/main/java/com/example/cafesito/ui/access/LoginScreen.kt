@@ -82,10 +82,10 @@ fun LoginScreen(
                         } catch (e: GetCredentialCancellationException) {
                             Log.d("LoginScreen", "Selector cerrado")
                         } catch (e: NoCredentialException) {
-                            Toast.makeText(context, "No hay cuentas de Google disponibles", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "No hay cuentas de Google configuradas en este dispositivo", Toast.LENGTH_LONG).show()
                         } catch (e: Exception) {
-                            Log.e("LoginScreen", "Error Google Auth: ${e.message}", e)
-                            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            Log.e("LoginScreen", "Error: ${e.message}", e)
+                            Toast.makeText(context, "Error de Google: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                         } finally {
                             isLoading = false
                         }

@@ -1,38 +1,92 @@
 package com.example.cafesito.data
 
+import android.content.Context
+import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DataSeeder @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val coffeeDao: CoffeeDao,
-    private val userDao: UserDao,
-    private val socialDao: SocialDao
+    private val supabaseDataSource: SupabaseDataSource
 ) {
     suspend fun seedIfNeeded() {
-        // 1. Seed Cafés si no existen
-        if (coffeeDao.getCoffeeById("KOFIO-12453") == null) {
-            val sampleCoffees = listOf(
-                Coffee(id = "KOFIO-12453", especialidad = "Especialidad", marca = "Nomad Coffee", paisOrigen = "Colombia", variedadTipo = "Arábica", nombre = "Zarza Aji", descripcion = "Un café excepcional.", fuentePuntuacion = "SCA", puntuacionOficial = 88.5, notasCata = "Cítrico", formato = "Grano", cafeina = "Media", tueste = "Medio", proceso = "Lavado", ratioRecomendado = "1:15", moliendaRecomendada = "Fina", aroma = 9f, sabor = 9f, retrogusto = 8f, acidez = 9f, cuerpo = 8f, uniformidad = 10f, dulzura = 9f, puntuacionTotal = 88.5, codigoBarras = "123456", imageUrl = "https://picsum.photos/seed/coffee1/800/600", productUrl = ""),
-                Coffee(id = "KOFIO-13187", especialidad = "Especialidad", marca = "Hola Coffee", paisOrigen = "Etiopía", variedadTipo = "Geisha", nombre = "Yirgacheffe", descripcion = "Notas florales.", fuentePuntuacion = "SCA", puntuacionOficial = 91.0, notasCata = "Floral", formato = "Grano", cafeina = "Baja", tueste = "Ligero", proceso = "Natural", ratioRecomendado = "1:16", moliendaRecomendada = "Media", aroma = 10f, sabor = 9f, retrogusto = 9f, acidez = 10f, cuerpo = 7f, uniformidad = 10f, dulzura = 10f, puntuacionTotal = 91.0, codigoBarras = "789012", imageUrl = "https://picsum.photos/seed/coffee2/800/600", productUrl = "")
-            )
-            sampleCoffees.forEach { coffeeDao.insertCoffee(it) }
-        }
-
-        // 2. Seed Usuarios si no existen
-        if (userDao.getUserCount() < 2) {
-            val baristas = listOf(
-                UserEntity(101, null, "barista_master", "Juan Pérez", "https://i.pravatar.cc/150?u=101", "juan@cafesito.com", "Barista Pro"),
-                UserEntity(102, null, "coffeelover_99", "Marta García", "https://i.pravatar.cc/150?u=102", "marta@cafesito.com", "SCA Taster")
-            )
-            userDao.insertUsers(baristas)
+        try {
+            // Verificamos si Supabase tiene cafés
+            val remoteCoffees = supabaseDataSource.getAllCoffees()
             
-            // Posts iniciales para estos baristas
-            val initialPosts = listOf(
-                PostEntity("p1", 101, "https://picsum.photos/seed/post1/800/1000", "¡V60 de Colombia!", System.currentTimeMillis() - 3600000),
-                PostEntity("p2", 102, "https://picsum.photos/seed/post2/800/800", "Tueste natural increíble.", System.currentTimeMillis() - 7200000)
-            )
-            initialPosts.forEach { socialDao.insertPost(it) }
+            if (remoteCoffees.isEmpty()) {
+                Log.d("DataSeeder", "Supabase está vacío. Iniciando migración de cafés...")
+                migrateCsvToSupabase()
+            } else {
+                Log.d("DataSeeder", "Supabase ya tiene cafés. Sincronización delegada al SyncManager.")
+            }
+        } catch (e: Exception) {
+            Log.e("DataSeeder", "Error durante el seeding", e)
+        }
+    }
+
+    private suspend fun migrateCsvToSupabase() {
+        val coffeesToUpload = mutableListOf<Coffee>()
+        try {
+            val inputStream = context.assets.open("cafes.csv")
+            val reader = BufferedReader(InputStreamReader(inputStream))
+            reader.readLine() // Omitir cabecera
+            
+            val csvRegex = ";(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".toRegex()
+
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                if (line.isNullOrBlank()) continue
+                val tokens = line!!.split(csvRegex).map { it.trim().removeSurrounding("\"") }
+                if (tokens.size < 26) continue
+
+                coffeesToUpload.add(
+                    Coffee(
+                        id = tokens[0],
+                        especialidad = tokens[1],
+                        marca = tokens[2],
+                        paisOrigen = tokens[3],
+                        variedadTipo = tokens[4],
+                        nombre = tokens[5],
+                        descripcion = tokens[6],
+                        fuentePuntuacion = tokens[7],
+                        puntuacionOficial = tokens[8].toDoubleOrNull() ?: 0.0,
+                        notasCata = tokens[9],
+                        formato = tokens[10],
+                        cafeina = tokens[11],
+                        tueste = tokens[12],
+                        proceso = tokens[13],
+                        ratioRecomendado = tokens[14],
+                        moliendaRecomendada = tokens[15],
+                        aroma = tokens[16].toFloatOrNull() ?: 0f,
+                        sabor = tokens[17].toFloatOrNull() ?: 0f,
+                        retrogusto = tokens[18].toFloatOrNull() ?: 0f,
+                        acidez = tokens[19].toFloatOrNull() ?: 0f,
+                        cuerpo = tokens[20].toFloatOrNull() ?: 0f,
+                        uniformidad = tokens[21].toFloatOrNull() ?: 0f,
+                        dulzura = tokens[22].toFloatOrNull() ?: 0f,
+                        puntuacionTotal = tokens[23].toDoubleOrNull() ?: 0.0,
+                        codigoBarras = tokens[24],
+                        imageUrl = tokens[25],
+                        productUrl = if (tokens.size > 26) tokens[26] else ""
+                    )
+                )
+            }
+            reader.close()
+
+            // Subir a Supabase
+            if (coffeesToUpload.isNotEmpty()) {
+                supabaseDataSource.upsertCoffees(coffeesToUpload)
+                Log.d("DataSeeder", "Se han subido ${coffeesToUpload.size} cafés a Supabase.")
+            }
+
+        } catch (e: Exception) {
+            Log.e("DataSeeder", "Error procesando el CSV para migración", e)
         }
     }
 }

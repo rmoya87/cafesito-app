@@ -13,13 +13,14 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
-import com.example.cafesito.ui.detail.SemicircleRatingBar
+import com.example.cafesito.ui.components.SemicircleRatingBar // FIX: Import corregido
 import com.example.cafesito.ui.theme.CoffeeBrown
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,8 +43,10 @@ fun AddPostScreen(
     onBackClick: () -> Unit = {},
     viewModel: AddPostViewModel = hiltViewModel()
 ) {
-    val currentStep by viewModel.currentStep.collectAsState()
-    val postType by viewModel.postType.collectAsState()
+    val currentStep: Int by viewModel.currentStep.collectAsState()
+    val postType: PostType by viewModel.postType.collectAsState()
+    val imageSource by viewModel.imageSource.collectAsState()
+    val selectedCoffee by viewModel.selectedCoffee.collectAsState()
 
     Scaffold(
         topBar = {
@@ -61,11 +64,11 @@ fun AddPostScreen(
                     }
                 },
                 actions = {
-                    val canGoNext = when (postType) {
-                        PostType.PUBLICATION -> viewModel.imageSource.collectAsState().value != null
-                        PostType.OPINION -> viewModel.selectedCoffee.collectAsState().value != null
+                    val canNext = when (postType) {
+                        PostType.PUBLICATION -> imageSource != null
+                        PostType.OPINION -> selectedCoffee != null
                     }
-                    if (currentStep == 0 && canGoNext) {
+                    if (currentStep == 0 && canNext) {
                         Surface(
                             onClick = { viewModel.goToStep(1) },
                             color = Color.White,
@@ -84,25 +87,24 @@ fun AddPostScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             
+            // CONTENIDO PRINCIPAL
             AnimatedContent(
-                targetState = postType to currentStep, 
+                targetState = currentStep, 
                 label = "FlowTransition",
                 modifier = Modifier.fillMaxSize()
-            ) { (type, step) ->
+            ) { step ->
                 when {
-                    type == PostType.PUBLICATION && step == 0 -> PhotoSelectionStep(viewModel)
-                    type == PostType.PUBLICATION && step == 1 -> PostDetailsStep(onSuccess = onBackClick, viewModel = viewModel)
-                    type == PostType.OPINION && step == 0 -> CoffeeSelectionStep(viewModel)
-                    type == PostType.OPINION && step == 1 -> ReviewDetailsStep(onSuccess = onBackClick, viewModel = viewModel)
+                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStep(viewModel)
+                    postType == PostType.PUBLICATION && step == 1 -> PostDetailsStep(onSuccess = onBackClick, viewModel = viewModel)
+                    postType == PostType.OPINION && step == 0 -> CoffeeSelectionStep(viewModel)
+                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStep(onSuccess = onBackClick, viewModel = viewModel)
                 }
             }
             
+            // MENU FLOTANTE
             if (currentStep == 0) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 32.dp), 
+                    modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(bottom = 32.dp), 
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
@@ -187,10 +189,10 @@ private fun PostDetailsStep(onSuccess: () -> Unit, viewModel: AddPostViewModel) 
             modifier = Modifier.fillMaxWidth().weight(1f), 
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White,
+                focusedBorderColor = CoffeeBrown,
                 unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                focusedBorderColor = CoffeeBrown
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
             )
         )
         Spacer(Modifier.height(20.dp))
@@ -214,10 +216,10 @@ private fun CoffeeSelectionStep(viewModel: AddPostViewModel) {
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
+                focusedBorderColor = CoffeeBrown,
                 unfocusedBorderColor = Color.LightGray,
-                focusedBorderColor = CoffeeBrown
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
             )
         )
         Spacer(Modifier.height(16.dp))
@@ -239,10 +241,15 @@ private fun CoffeeSelectionStep(viewModel: AddPostViewModel) {
 @Composable
 private fun ReviewDetailsStep(onSuccess: () -> Unit, viewModel: AddPostViewModel) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
+    val imageSource by viewModel.imageSource.collectAsState()
+    
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
     var rating by remember { mutableStateOf(0f) }
     var comment by remember { mutableStateOf("") }
     
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
+        Spacer(Modifier.height(16.dp))
+        
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -259,30 +266,47 @@ private fun ReviewDetailsStep(onSuccess: () -> Unit, viewModel: AddPostViewModel
             }
         }
         
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(24.dp))
+        
+        Box(
+            modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF8F8F8)).clickable { cameraLauncher.launch(null) },
+            contentAlignment = Alignment.Center
+        ) {
+            if (imageSource != null && !imageSource.toString().contains("picsum")) {
+                AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.AddAPhoto, null, Modifier.size(32.dp), tint = Color.Gray)
+                    Text("Añadir foto del café", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(24.dp))
         Text("Puntuación", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
+        SemicircleRatingBar(rating = rating, onRatingChanged = { newRating -> rating = newRating })
+        
         Spacer(Modifier.height(16.dp))
-        
-        SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
-        
-        Spacer(Modifier.height(32.dp))
         
         OutlinedTextField(
             value = comment, 
             onValueChange = { comment = it }, 
-            label = { Text("Tu opinión es importante...") }, 
-            modifier = Modifier.fillMaxWidth().weight(1f), 
+            label = { Text("¿Qué te ha parecido?") }, 
+            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), 
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White,
+                focusedBorderColor = CoffeeBrown,
                 unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                focusedBorderColor = CoffeeBrown
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
             )
         )
-        Spacer(Modifier.height(20.dp))
+        
+        Spacer(Modifier.height(32.dp))
+        
         Button(onClick = { viewModel.submitReview(rating, comment, onSuccess) }, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = rating > 0 && comment.isNotBlank(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)) {
             Text("Enviar opinión", fontWeight = FontWeight.Bold, color = Color.White)
         }
+        Spacer(Modifier.height(100.dp))
     }
 }

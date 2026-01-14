@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.cafesito.data.SyncManager
 import com.example.cafesito.ui.access.*
 import com.example.cafesito.ui.detail.DetailScreen
 import com.example.cafesito.ui.profile.FollowersScreen
@@ -34,11 +35,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
     private val sessionViewModel: SessionViewModel by viewModels()
+
+    @Inject
+    lateinit var syncManager: SyncManager // INYECTADO
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +51,13 @@ class MainActivity : ComponentActivity() {
             CafesitoTheme {
                 val sessionState by sessionViewModel.sessionState.collectAsState()
                 
+                // SINCRONIZACIÓN INICIAL: Se dispara una vez al detectar sesión activa
+                LaunchedEffect(sessionState) {
+                    if (sessionState is SessionState.Authenticated) {
+                        syncManager.syncAll()
+                    }
+                }
+
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     if (sessionState is SessionState.Loading) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -57,7 +69,12 @@ class MainActivity : ComponentActivity() {
                             is SessionState.Registered -> "completeProfile"
                             else -> "onboarding"
                         }
-                        AppNavigation(startRoute = startRoute, onProfileFinished = { sessionViewModel.refreshSession() })
+                        AppNavigation(
+                            startRoute = startRoute, 
+                            onProfileFinished = { 
+                                sessionViewModel.refreshSession()
+                            }
+                        )
                     }
                 }
             }
@@ -85,7 +102,6 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     )
 
                     navItems.forEach { (route, label, icon) ->
-                        // IMPORTANTE: Navegamos a profile/0 para que el ViewModel detecte que es "MI PERFIL" real
                         val fullRoute = if (route == "profile") "profile/0" else route
                         val isSelected = currentDestination?.hierarchy?.any { it.route?.startsWith(route) == true } == true
 
@@ -170,6 +186,30 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
                     onFollowingClick = { id -> navController.navigate("profile/$id/following") }
+                )
+            }
+
+            composable(
+                route = "profile/{userId}/followers",
+                arguments = listOf(navArgument("userId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                FollowersScreen(
+                    userId = userId,
+                    onBackClick = { navController.popBackStack() },
+                    onUserClick = { id -> navController.navigate("profile/$id") }
+                )
+            }
+
+            composable(
+                route = "profile/{userId}/following",
+                arguments = listOf(navArgument("userId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                FollowingScreen(
+                    userId = userId,
+                    onBackClick = { navController.popBackStack() },
+                    onUserClick = { id -> navController.navigate("profile/$id") }
                 )
             }
             

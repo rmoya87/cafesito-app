@@ -38,6 +38,9 @@ interface CoffeeDao {
     @Query("SELECT * FROM coffees WHERE id = :id")
     suspend fun getCoffeeById(id: String): Coffee?
 
+    @Query("SELECT COUNT(*) FROM coffees")
+    suspend fun getCoffeeCount(): Int
+
     @Query("SELECT * FROM local_favorites")
     fun getLocalFavorites(): Flow<List<LocalFavorite>>
 
@@ -80,6 +83,9 @@ interface UserDao {
     @Query("SELECT * FROM users_db WHERE id = :userId")
     suspend fun getUserById(userId: Int): UserEntity?
 
+    @Query("SELECT * FROM users_db WHERE username = :username LIMIT 1")
+    suspend fun getUserByUsername(username: String): UserEntity?
+
     @Query("SELECT * FROM users_db WHERE googleId IS NOT NULL LIMIT 1")
     suspend fun getActiveUserSync(): UserEntity?
 
@@ -115,8 +121,9 @@ interface SocialDao {
     @Query("SELECT * FROM reviews_db ORDER BY timestamp DESC")
     fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>>
 
+    @Transaction
     @Query("SELECT * FROM comments_db WHERE postId = :postId ORDER BY timestamp ASC")
-    fun getCommentsForPost(postId: String): Flow<List<CommentEntity>>
+    fun getCommentsWithAuthorForPost(postId: String): Flow<List<CommentWithAuthor>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertComment(comment: CommentEntity)
@@ -129,4 +136,13 @@ interface SocialDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM likes_db WHERE postId = :postId AND userId = :userId)")
     fun isPostLikedByUser(postId: String, userId: Int): Flow<Boolean>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNotification(notification: NotificationEntity)
+
+    @Query("SELECT * FROM notifications_db WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>>
+
+    @Query("UPDATE notifications_db SET isRead = 1 WHERE userId = :userId")
+    suspend fun markAllAsRead(userId: Int)
 }

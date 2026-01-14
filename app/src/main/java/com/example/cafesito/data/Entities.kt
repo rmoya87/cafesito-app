@@ -7,7 +7,9 @@ import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
+import kotlinx.serialization.Serializable
 
+@Serializable
 @Entity(tableName = "coffees")
 data class Coffee(
     @PrimaryKey val id: String,
@@ -39,6 +41,7 @@ data class Coffee(
     val productUrl: String
 )
 
+@Serializable
 @Entity(
     tableName = "local_favorites",
     foreignKeys = [
@@ -51,6 +54,7 @@ data class LocalFavorite(
     val savedAt: Long
 )
 
+@Serializable
 @Entity(
     tableName = "reviews_db",
     foreignKeys = [
@@ -71,6 +75,7 @@ data class ReviewEntity(
     val timestamp: Long
 )
 
+@Serializable
 @Entity(tableName = "users_db")
 data class UserEntity(
     @PrimaryKey val id: Int,
@@ -82,6 +87,7 @@ data class UserEntity(
     val bio: String?
 )
 
+@Serializable
 @Entity(
     tableName = "posts_db",
     foreignKeys = [
@@ -97,6 +103,7 @@ data class PostEntity(
     val timestamp: Long
 )
 
+@Serializable
 @Entity(
     tableName = "comments_db",
     foreignKeys = [
@@ -113,6 +120,7 @@ data class CommentEntity(
     val timestamp: Long
 )
 
+@Serializable
 @Entity(
     tableName = "likes_db",
     primaryKeys = ["postId", "userId"],
@@ -127,6 +135,7 @@ data class LikeEntity(
     val userId: Int
 )
 
+@Serializable
 @Entity(
     tableName = "follows",
     primaryKeys = ["followerId", "followedId"],
@@ -134,7 +143,10 @@ data class LikeEntity(
         ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followerId"], onDelete = ForeignKey.CASCADE),
         ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followedId"], onDelete = ForeignKey.CASCADE)
     ],
-    indices = [Index(value = ["followerId"]), Index(value = ["followedId"])]
+    indices = [
+        Index(value = ["followerId"]),
+        Index(value = ["followedId"])
+    ]
 )
 data class FollowEntity(
     val followerId: Int,
@@ -142,55 +154,65 @@ data class FollowEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
-// --- CLASES DE RELACIÓN PARA EL TIMELINE REAL ---
+@Serializable
+@Entity(
+    tableName = "notifications_db",
+    foreignKeys = [
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["userId"])]
+)
+data class NotificationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userId: Int,
+    val type: String, // "LIKE", "COMMENT", "FOLLOW"
+    val fromUsername: String,
+    val message: String,
+    val timestamp: Long,
+    val isRead: Boolean = false,
+    val relatedId: String? = null // postId o id de seguimiento relacionado
+)
+
+// Nota: Las clases "WithDetails" no necesitan @Serializable si solo se usan localmente
+// pero las entidades base SI deben serlo para interactuar con las tablas.
 
 data class PostWithDetails(
     @Embedded val post: PostEntity,
-    @Relation(
-        parentColumn = "userId",
-        entityColumn = "id"
-    )
+    @Relation(parentColumn = "userId", entityColumn = "id")
     val author: UserEntity,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "postId"
-    )
+    @Relation(parentColumn = "id", entityColumn = "postId")
     val likes: List<LikeEntity> = emptyList(),
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "postId"
-    )
+    @Relation(parentColumn = "id", entityColumn = "postId")
     val comments: List<CommentEntity> = emptyList()
 )
 
 data class ReviewWithAuthor(
     @Embedded val review: ReviewEntity,
-    @Relation(
-        parentColumn = "userId",
-        entityColumn = "id"
-    )
+    @Relation(parentColumn = "userId", entityColumn = "id")
+    val author: UserEntity
+)
+
+data class CommentWithAuthor(
+    @Embedded val comment: CommentEntity,
+    @Relation(parentColumn = "userId", entityColumn = "id")
     val author: UserEntity
 )
 
 data class CoffeeWithDetails(
     @Embedded val coffee: Coffee,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "coffeeId"
-    )
+    @Relation(parentColumn = "id", entityColumn = "coffeeId")
     val favorite: LocalFavorite? = null,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "coffeeId"
-    )
+    @Relation(parentColumn = "id", entityColumn = "coffeeId")
     val reviews: List<ReviewEntity> = emptyList()
 ) {
     val isFavorite: Boolean get() = favorite != null
     val averageRating: Float get() = if (reviews.isEmpty()) 0.0f else reviews.map { it.rating }.average().toFloat()
-
     @Ignore val origin: Origin? = null 
     @Ignore val sensoryProfile: SensoryProfile? = null
 }
 
+@Serializable
 data class Origin(val countryName: String, val continent: String)
+
+@Serializable
 data class SensoryProfile(val coffeeId: String, val aroma: Float, val flavor: Float, val body: Float, val acidity: Float, val aftertaste: Float)

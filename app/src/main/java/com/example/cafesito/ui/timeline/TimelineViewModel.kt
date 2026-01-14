@@ -3,7 +3,7 @@ package com.example.cafesito.ui.timeline
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.*
-import com.example.cafesito.domain.SuggestedUserInfo // MODELO UNIFICADO
+import com.example.cafesito.domain.SuggestedUserInfo
 import com.example.cafesito.domain.User
 import com.example.cafesito.ui.profile.UserReviewInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,12 +42,10 @@ class TimelineViewModel @Inject constructor(
         val myFollowing = followingMap[activeUser.id] ?: emptySet()
         val visibleUserIds = myFollowing + activeUser.id
 
-        // 1. Mapeo de Posts reales
         val postItems = posts
             .filter { visibleUserIds.contains(it.post.userId) }
             .map { TimelineItem.PostItem(it) }
 
-        // 2. Mapeo de Opiniones reales
         val reviewItems = reviews
             .filter { visibleUserIds.contains(it.review.userId) }
             .mapNotNull { reviewWithAuthor ->
@@ -57,7 +55,8 @@ class TimelineViewModel @Inject constructor(
                         UserReviewInfo(
                             coffeeDetails = it,
                             review = reviewWithAuthor.review,
-                            authorName = reviewWithAuthor.author.fullName
+                            authorName = reviewWithAuthor.author.fullName,
+                            authorAvatarUrl = reviewWithAuthor.author.avatarUrl // FIX: Pasamos el avatar real
                         )
                     )
                 }
@@ -65,7 +64,6 @@ class TimelineViewModel @Inject constructor(
 
         val combinedItems = (postItems + reviewItems).sortedByDescending { it.timestamp }
 
-        // 3. Sugerencias de usuarios REALES (mapeadas a modelo Domain)
         val suggestedUsers = allUsers
             .filter { it.id != activeUser.id && !myFollowing.contains(it.id) }
             .map { entity ->

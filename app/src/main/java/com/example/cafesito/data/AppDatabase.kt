@@ -12,9 +12,10 @@ import androidx.room.RoomDatabase
         FollowEntity::class,
         PostEntity::class,
         CommentEntity::class,
-        LikeEntity::class
+        LikeEntity::class,
+        NotificationEntity::class
     ],
-    version = 9, // INCREMENTADO A 9 PARA RESOLVER IllegalStateException
+    version = 12, // INCREMENTADO DE 11 A 12
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
