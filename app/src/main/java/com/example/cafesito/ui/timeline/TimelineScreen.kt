@@ -30,6 +30,7 @@ import com.example.cafesito.ui.components.PostCard
 import com.example.cafesito.ui.components.RatingBar
 import com.example.cafesito.ui.components.UserReviewCard
 import com.example.cafesito.ui.components.UserSuggestionCarousel
+import com.example.cafesito.ui.components.RecommendationCarousel
 import com.example.cafesito.ui.theme.CoffeeBrown
 import com.example.cafesito.ui.theme.LightGrayBackground
 
@@ -65,9 +66,19 @@ fun TimelineScreen(
             is TimelineUiState.Success -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().background(LightGrayBackground).padding(padding),
-                    contentPadding = PaddingValues(vertical = 16.dp)
+                    contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     item { Text("Inicio", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(16.dp)) }
+
+                    // SECCIÓN DE RECOMENDACIONES SENSORIALES
+                    if (state.recommendations.isNotEmpty()) {
+                        item {
+                            RecommendationCarousel(
+                                recommendations = state.recommendations,
+                                onCoffeeClick = onCoffeeClick
+                            )
+                        }
+                    }
 
                     if (state.suggestedUsers.isNotEmpty()) {
                         item {

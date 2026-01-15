@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.*
 import com.example.cafesito.domain.SuggestedUserInfo
 import com.example.cafesito.domain.User
+import com.example.cafesito.ui.profile.UserReviewInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -29,14 +30,7 @@ class TimelineViewModel @Inject constructor(
             if (_isRefreshing.value) return@launch
             _isRefreshing.value = true
             try {
-                // 1. PRIMERO USUARIOS Y SEGUIDORES (Padres de los posts)
                 userRepository.syncUsers()
-                userRepository.syncFollows()
-                
-                // 2. SEGUNDO CAFÉS (Padres de las reseñas)
-                coffeeRepository.syncCoffees()
-                
-                // 3. ÚLTIMO CONTENIDO SOCIAL (Posts, Likes, Comentarios)
                 socialRepository.syncSocialData()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -53,7 +47,8 @@ class TimelineViewModel @Inject constructor(
         socialRepository.getAllReviewsWithAuthor(),
         coffeeRepository.allCoffees,
         userRepository.followingMap,
-        userRepository.getAllUsersFlow()
+        userRepository.getAllUsersFlow(),
+        coffeeRepository.getRecommendations()
     ) { args: Array<Any?> ->
         val activeUser = args[0] as? UserEntity
         val posts = args[1] as? List<PostWithDetails> ?: emptyList()
@@ -61,6 +56,7 @@ class TimelineViewModel @Inject constructor(
         val allCoffees = args[3] as? List<CoffeeWithDetails> ?: emptyList()
         val followingMap = args[4] as? Map<Int, Set<Int>> ?: emptyMap()
         val allUsers = args[5] as? List<UserEntity> ?: emptyList()
+        val recommendations = args[6] as? List<CoffeeWithDetails> ?: emptyList()
         
         if (activeUser == null) return@combine TimelineUiState.Loading
 
@@ -111,7 +107,8 @@ class TimelineViewModel @Inject constructor(
             items = combinedItems,
             suggestedUsers = suggestedUsers,
             myFollowingIds = myFollowing,
-            activeUser = activeUser
+            activeUser = activeUser,
+            recommendations = recommendations
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
 
@@ -183,6 +180,7 @@ sealed interface TimelineUiState {
         val items: List<TimelineItem>,
         val suggestedUsers: List<SuggestedUserInfo>,
         val myFollowingIds: Set<Int>,
-        val activeUser: UserEntity
+        val activeUser: UserEntity,
+        val recommendations: List<CoffeeWithDetails> = emptyList()
     ) : TimelineUiState
 }

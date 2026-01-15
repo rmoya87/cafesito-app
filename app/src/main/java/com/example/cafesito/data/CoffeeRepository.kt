@@ -77,7 +77,6 @@ class CoffeeRepository @Inject constructor(
         format: String?,
         grind: String?
     ): Flow<List<CoffeeWithDetails>> = flow {
-        // En remoto aplicamos filtros básicos por ahora para simplificar el cambio radical
         try {
             val remoteCoffees = supabaseDataSource.getAllCoffees().filter { coffee ->
                 val matchQuery = query == null || coffee.nombre.contains(query, true) || coffee.marca.contains(query, true)
@@ -132,8 +131,55 @@ class CoffeeRepository @Inject constructor(
             Log.e("COFFEE_REPO", "Error delete review in Supabase")
         }
     }
-    
-    suspend fun syncCoffees() {
-        // Obsoleto pero mantenemos por compatibilidad de llamadas existentes
+
+    fun getRecommendations(): Flow<List<CoffeeWithDetails>> = flow {
+        try {
+            val remoteCoffees = supabaseDataSource.getAllCoffees()
+            val remoteFavorites = supabaseDataSource.getAllFavorites()
+            val remoteReviews = supabaseDataSource.getAllReviews()
+            val currentUser = userRepository.getActiveUser() ?: return@flow emit(emptyList())
+
+            val favIds = remoteFavorites.filter { it.userId == currentUser.id }.map { it.coffeeId }.toSet()
+            val myFavs = remoteCoffees.filter { favIds.contains(it.id) }
+
+            if (myFavs.isEmpty()) {
+                emit(emptyList())
+                return@flow
+            }
+
+            val avgAroma = myFavs.map { it.aroma }.average()
+            val avgSabor = myFavs.map { it.sabor }.average()
+            val avgAcidez = myFavs.map { it.acidez }.average()
+            val avgCuerpo = myFavs.map { it.cuerpo }.average()
+            val avgDulzura = myFavs.map { it.dulzura }.average()
+
+            val recommendations = remoteCoffees
+                .filter { !favIds.contains(it.id) }
+                .map { coffee ->
+                    val distance = kotlin.math.sqrt(
+                        Math.pow((coffee.aroma - avgAroma), 2.0) +
+                        Math.pow((coffee.sabor - avgSabor), 2.0) +
+                        Math.pow((coffee.acidez - avgAcidez), 2.0) +
+                        Math.pow((coffee.cuerpo - avgCuerpo), 2.0) +
+                        Math.pow((coffee.dulzura - avgDulzura), 2.0)
+                    )
+                    coffee to distance
+                }
+                .sortedBy { it.second }
+                .take(5)
+                .map { (coffee, _) ->
+                    CoffeeWithDetails(
+                        coffee = coffee,
+                        favorite = null,
+                        reviews = remoteReviews.filter { it.coffeeId == coffee.id }
+                    )
+                }
+
+            emit(recommendations)
+        } catch (e: Exception) {
+            emit(emptyList())
+        }
     }
+    
+    suspend fun syncCoffees() {}
 }
