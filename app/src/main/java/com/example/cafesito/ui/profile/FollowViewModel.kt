@@ -19,9 +19,12 @@ class FollowViewModel @Inject constructor(
 
     val fullFollowingMap = userRepository.followingMap
     
+    // Exponemos el usuario activo para la UI
+    val activeUser = userRepository.getActiveUserFlow()
+    
     // Obtenemos dinámicamente el ID del usuario activo
     val myFollowingIds = combine(
-        userRepository.getActiveUserFlow(),
+        activeUser,
         userRepository.followingMap
     ) { activeUser, map ->
         activeUser?.let { map[it.id] } ?: emptySet()
@@ -56,7 +59,7 @@ class FollowViewModel @Inject constructor(
         dbUsers.filter { followingIds.contains(it.id) }.map { userEntity ->
             SuggestedUserInfo(
                 user = User(
-                    id = userEntity.id,
+                    id = entityIdToUserId(userEntity.id), // Just map the id directly if they match
                     username = userEntity.username,
                     fullName = userEntity.fullName,
                     avatarUrl = userEntity.avatarUrl,
@@ -68,6 +71,8 @@ class FollowViewModel @Inject constructor(
             )
         }
     }
+    
+    private fun entityIdToUserId(id: Int) = id // Assuming they are the same for now
 
     fun toggleFollow(targetId: Int) {
         viewModelScope.launch {

@@ -1,77 +1,175 @@
 package com.example.cafesito.data
 
+import android.util.Log
 import com.example.cafesito.domain.User
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.gotrue.providers.Google
+import io.github.jan.supabase.gotrue.providers.builtin.IDToken
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class UserRepository @Inject constructor(
     private val userDao: UserDao,
-    private val supabaseDataSource: SupabaseDataSource
+    private val supabaseDataSource: SupabaseDataSource,
+    private val supabaseClient: SupabaseClient
 ) {
-    val followingMap: Flow<Map<Int, Set<Int>>> = userDao.getAllFollows().map { follows ->
-        follows.groupBy { it.followerId }
-            .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
+    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val followingMap: Flow<Map<Int, Set<Int>>> = _refreshTrigger.flatMapLatest {
+        flow {
+            try {
+                val follows = supabaseDataSource.getAllFollows()
+                val map = follows.groupBy { it.followerId }
+                    .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
+                emit(map)
+            } catch (e: Exception) {
+                emit(emptyMap())
+            }
+        }
     }
 
-    fun getAllUsersFlow(): Flow<List<UserEntity>> = userDao.getAllUsers()
-    fun getActiveUserFlow(): Flow<UserEntity?> = userDao.getActiveUserFlow()
-    suspend fun getActiveUser(): UserEntity? = userDao.getActiveUserSync()
-
-    suspend fun getUserById(userId: Int): UserEntity? {
-        val local = userDao.getUserById(userId)
-        if (local != null) return local
-        return supabaseDataSource.getUserById(userId)?.also { userDao.upsertUser(it) }
+    fun triggerRefresh() {
+        _refreshTrigger.tryEmit(Unit)
     }
 
-    suspend fun getUserByUsername(username: String): UserEntity? = supabaseDataSource.getUserByUsername(username)
+    suspend fun signInWithSupabase(token: String): String? {
+        return try {
+            supabaseClient.auth.signInWith(IDToken) {
+                idToken = token
+                provider = Google
+            }
+            supabaseClient.auth.currentUserOrNull()?.id
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun logout() {
+        try {
+            supabaseClient.auth.signOut()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            userDao.deleteAllUsers()
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun getAllUsersFlow(): Flow<List<UserEntity>> = _refreshTrigger.flatMapLatest {
+        flow {
+            try {
+                emit(supabaseDataSource.getAllUsers())
+            } catch (e: Exception) {
+                emit(emptyList())
+            }
+        }
+    }
+
+    suspend fun getAllUsersList(): List<UserEntity> = try {
+        supabaseDataSource.getAllUsers()
+    } catch (e: Exception) {
+        emptyList()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun getActiveUserFlow(): Flow<UserEntity?> {
+        return combine(supabaseClient.auth.sessionStatus, _refreshTrigger) { _, _ -> }
+            .flatMapLatest {
+                val uid = supabaseClient.auth.currentUserOrNull()?.id
+                if (uid != null) {
+                    flow { emit(supabaseDataSource.getUserByGoogleId(uid)) }
+                } else {
+                    flowOf(null)
+                }
+            }
+    }
+
+    suspend fun getActiveUser(): UserEntity? {
+        val currentUid = supabaseClient.auth.currentUserOrNull()?.id ?: return null
+        return try {
+            supabaseDataSource.getUserByGoogleId(currentUid)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun getUserById(userId: Int): UserEntity? = try {
+        supabaseDataSource.getUserById(userId)
+    } catch (e: Exception) {
+        null
+    }
+
+    suspend fun getUserByGoogleId(googleId: String): UserEntity? = try {
+        supabaseDataSource.getUserByGoogleId(googleId)
+    } catch (e: Exception) {
+        null
+    }
+
+    suspend fun getUserByUsername(username: String): UserEntity? = try {
+        supabaseDataSource.getUserByUsername(username)
+    } catch (e: Exception) {
+        null
+    }
 
     suspend fun upsertUser(user: UserEntity) {
-        supabaseDataSource.upsertUser(user)
+        try {
+            supabaseDataSource.upsertUser(user)
+            triggerRefresh()
+        } catch (e: Exception) {
+            Log.e("USER_REPO", "Error upserting user: ${e.message}")
+        }
+    }
+
+    suspend fun upsertLocalOnly(user: UserEntity) {
         userDao.upsertUser(user)
     }
 
     suspend fun isFollowing(followerId: Int, targetId: Int): Boolean {
-        val follows = userDao.getAllFollowsList()
-        return follows.any { it.followerId == followerId && it.followedId == targetId }
+        return try {
+            val follows = supabaseDataSource.getAllFollows()
+            follows.any { it.followerId == followerId && it.followedId == targetId }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     suspend fun toggleFollow(followerId: Int, targetId: Int) {
-        val currentlyFollowing = isFollowing(followerId, targetId)
-        val currentUser = getActiveUser() ?: return
-
-        if (currentlyFollowing) {
-            supabaseDataSource.deleteFollow(followerId, targetId)
-            userDao.deleteFollow(FollowEntity(followerId, targetId))
-        } else {
-            val follow = FollowEntity(followerId, targetId)
-            supabaseDataSource.insertFollow(follow)
-            userDao.insertFollow(follow)
-
-            // NOTIFICACIÓN: Alguien te sigue
-            val notification = NotificationEntity(
-                userId = targetId,
-                type = "FOLLOW",
-                fromUsername = currentUser.username,
-                message = "ha empezado a seguirte.",
-                timestamp = System.currentTimeMillis(),
-                relatedId = currentUser.id.toString()
-            )
-            supabaseDataSource.insertNotification(notification)
+        try {
+            val currentlyFollowing = isFollowing(followerId, targetId)
+            if (currentlyFollowing) {
+                supabaseDataSource.deleteFollow(followerId, targetId)
+            } else {
+                supabaseDataSource.insertFollow(FollowEntity(followerId, targetId))
+                getActiveUser()?.let { me ->
+                    try {
+                        supabaseDataSource.insertNotification(NotificationEntity(
+                            userId = targetId,
+                            type = "FOLLOW",
+                            fromUsername = me.username,
+                            message = "ha empezado a seguirte.",
+                            timestamp = System.currentTimeMillis(),
+                            relatedId = me.id.toString()
+                        ))
+                    } catch (e: Exception) { }
+                }
+            }
+            triggerRefresh()
+        } catch (e: Exception) {
+            Log.e("USER_REPO", "Error en toggleFollow: ${e.message}")
         }
     }
-    
+
     suspend fun syncUsers() {
-        val remoteUsers = supabaseDataSource.getAllUsers()
-        userDao.insertUsers(remoteUsers)
+        triggerRefresh()
     }
 
     suspend fun syncFollows() {
-        val remoteFollows = supabaseDataSource.getAllFollows()
-        remoteFollows.forEach { userDao.insertFollow(it) }
+        triggerRefresh()
     }
 }
-
-fun UserEntity.toDomain() = User(id = id, username = username, fullName = fullName, avatarUrl = avatarUrl, email = email, bio = bio)

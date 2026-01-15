@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,8 +45,12 @@ fun CommentsSheet(
     var text by remember { mutableStateOf("") }
     val comments by viewModel.comments.collectAsState()
     val suggestions by viewModel.mentionSuggestions.collectAsState()
+    val activeUser by viewModel.activeUser.collectAsState()
     val scope = rememberCoroutineScope()
     
+    // Estado para edición
+    var editingCommentId by remember { mutableStateOf<Int?>(null) }
+
     // Forzamos que se abra completamente para que el input sea siempre visible
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -60,7 +66,7 @@ fun CommentsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.85f) // Ocupa la mayor parte de la pantalla
+                .fillMaxHeight(0.85f)
         ) {
             Text(
                 text = "Comentarios", 
@@ -69,7 +75,6 @@ fun CommentsSheet(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
             
-            // Área de lista con peso para empujar el input al fondo
             Box(modifier = Modifier.weight(1f)) {
                 if (comments.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -83,7 +88,13 @@ fun CommentsSheet(
                         items(comments) { item ->
                             CommentRow(
                                 commentWithAuthor = item,
+                                isOwnComment = item.author.id == activeUser?.id,
                                 onNavigateToProfile = onNavigateToProfile,
+                                onDeleteClick = { viewModel.deleteComment(item.comment.id) },
+                                onEditClick = {
+                                    editingCommentId = item.comment.id
+                                    text = item.comment.text
+                                },
                                 onMentionClick = { username ->
                                     scope.launch {
                                         viewModel.getUserIdByUsername(username)?.let { id ->
@@ -114,40 +125,62 @@ fun CommentsSheet(
                 }
             }
 
-            // INPUT FIJO (Fuera del scroll)
+            // INPUT FIJO
             Surface(
                 tonalElevation = 8.dp,
                 shadowElevation = 12.dp,
                 color = MaterialTheme.colorScheme.surface
             ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .fillMaxWidth()
-                        .navigationBarsPadding(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { 
-                            text = it
-                            viewModel.onTextChanged(it)
-                        },
-                        placeholder = { Text("Añade un comentario...") },
-                        modifier = Modifier.weight(1f),
-                        shape = CircleShape,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CoffeeBrown)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(
-                        onClick = { 
-                            onAddComment(text)
-                            text = "" 
-                        }, 
-                        enabled = text.isNotBlank(),
-                        colors = IconButtonDefaults.iconButtonColors(contentColor = CoffeeBrown)
+                Column {
+                    if (editingCommentId != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().background(CoffeeBrown.copy(alpha = 0.1f)).padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Editando comentario", style = MaterialTheme.typography.labelSmall, color = CoffeeBrown)
+                            IconButton(onClick = { 
+                                editingCommentId = null
+                                text = ""
+                            }, modifier = Modifier.size(16.dp)) {
+                                Icon(Icons.Default.Close, null, tint = CoffeeBrown)
+                            }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .fillMaxWidth()
+                            .navigationBarsPadding(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = { 
+                                text = it
+                                viewModel.onTextChanged(it)
+                            },
+                            placeholder = { Text("Añade un comentario...") },
+                            modifier = Modifier.weight(1f),
+                            shape = CircleShape,
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CoffeeBrown)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { 
+                                if (editingCommentId != null) {
+                                    viewModel.updateComment(editingCommentId!!, text)
+                                    editingCommentId = null
+                                } else {
+                                    onAddComment(text)
+                                }
+                                text = "" 
+                            }, 
+                            enabled = text.isNotBlank(),
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = CoffeeBrown)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
+                        }
                     }
                 }
             }
@@ -158,11 +191,15 @@ fun CommentsSheet(
 @Composable
 private fun CommentRow(
     commentWithAuthor: CommentWithAuthor,
+    isOwnComment: Boolean,
     onNavigateToProfile: (Int) -> Unit,
+    onDeleteClick: () -> Unit,
+    onEditClick: () -> Unit,
     onMentionClick: (String) -> Unit
 ) {
     val author = commentWithAuthor.author
     val comment = commentWithAuthor.comment
+    var showMenu by remember { mutableStateOf(false) }
 
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         AsyncImage(
@@ -175,7 +212,7 @@ private fun CommentRow(
                 .clickable { onNavigateToProfile(author.id) }
         )
         Spacer(Modifier.width(12.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = author.username, 
                 fontWeight = FontWeight.Bold, 
@@ -195,31 +232,51 @@ private fun CommentRow(
                 }
             )
         }
+
+        if (isOwnComment) {
+            Box {
+                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Editar") },
+                        onClick = { 
+                            showMenu = false
+                            onEditClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Borrar", color = Color.Red) },
+                        onClick = { 
+                            showMenu = false
+                            onDeleteClick()
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 
 private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
     return buildAnnotatedString {
-        // Regex para detectar menciones de forma limpia
         val regex = Regex("@(\\w+)")
         var lastIndex = 0
         
         regex.findAll(text).forEach { matchResult ->
-            // Texto antes de la mención
             append(text.substring(lastIndex, matchResult.range.first))
-            
             val username = matchResult.groupValues[1]
-            
             pushStringAnnotation(tag = "MENTION", annotation = username)
             withStyle(style = SpanStyle(color = CoffeeBrown, fontWeight = FontWeight.Bold)) {
                 append(matchResult.value)
             }
             pop()
-            
             lastIndex = matchResult.range.last + 1
         }
-        
-        // Texto restante después de la última mención
         if (lastIndex < text.length) {
             append(text.substring(lastIndex))
         }

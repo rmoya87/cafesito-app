@@ -28,6 +28,9 @@ class CommentsViewModel @Inject constructor(
         .flatMapLatest { socialRepository.getCommentsForPost(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val activeUser = userRepository.getActiveUserFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     @OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val mentionSuggestions: StateFlow<List<UserEntity>> = _mentionQuery
         .debounce(200)
@@ -64,8 +67,19 @@ class CommentsViewModel @Inject constructor(
         }
     }
 
+    fun deleteComment(commentId: Int) {
+        viewModelScope.launch {
+            socialRepository.deleteComment(commentId)
+        }
+    }
+
+    fun updateComment(commentId: Int, newText: String) {
+        viewModelScope.launch {
+            socialRepository.updateComment(commentId, newText)
+        }
+    }
+
     suspend fun getUserIdByUsername(username: String): Int? {
-        // Limpiamos el username por si acaso llega con @ o caracteres extra
         val cleanName = username.removePrefix("@").filter { it.isLetterOrDigit() || it == '_' }
         return userRepository.getUserByUsername(cleanName)?.id
     }

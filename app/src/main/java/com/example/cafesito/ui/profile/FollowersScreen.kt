@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,8 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.domain.User
-import com.example.cafesito.domain.allUsers
-import com.example.cafesito.domain.currentUser
 import com.example.cafesito.ui.theme.CoffeeBrown
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,8 +36,10 @@ fun FollowersScreen(
 ) {
     val uiState by viewModel.followersState(userId).collectAsState(initial = emptyList())
     val myFollowingIds by viewModel.myFollowingIds.collectAsState(initial = emptySet())
+    val activeUser by viewModel.activeUser.collectAsState(initial = null)
     
     var searchQuery by remember { mutableStateOf("") }
+    var isSearchMode by remember { mutableStateOf(false) }
 
     val filteredFollowers = uiState.filter {
         it.user.username.contains(searchQuery, ignoreCase = true) || 
@@ -48,37 +49,58 @@ fun FollowersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Seguidores") },
+                title = {
+                    if (isSearchMode) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Buscar seguidores...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
+                    } else {
+                        Text("Seguidores")
+                    }
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = {
+                        if (isSearchMode) {
+                            isSearchMode = false
+                            searchQuery = ""
+                        } else {
+                            onBackClick()
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                },
+                actions = {
+                    if (isSearchMode) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar")
+                        }
+                    } else {
+                        IconButton(onClick = { isSearchMode = true }) {
+                            Icon(Icons.Default.Search, contentDescription = "Buscar")
+                        }
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(Color.White)
         ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Buscar seguidores...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = CoffeeBrown,
-                    unfocusedBorderColor = Color.LightGray
-                )
-            )
-
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 if (filteredFollowers.isEmpty()) {
                     item {
@@ -93,6 +115,7 @@ fun FollowersScreen(
                             followersCount = info.followersCount,
                             followingCount = info.followingCount,
                             isFollowing = myFollowingIds.contains(info.user.id),
+                            isMe = activeUser?.id == info.user.id,
                             onFollowClick = { viewModel.toggleFollow(info.user.id) },
                             onClick = { onUserClick(info.user.id) }
                         )
@@ -114,6 +137,7 @@ fun FollowItem(
     followersCount: Int,
     followingCount: Int,
     isFollowing: Boolean,
+    isMe: Boolean,
     onFollowClick: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -148,7 +172,7 @@ fun FollowItem(
         
         Spacer(modifier = Modifier.width(8.dp))
         
-        if (user.id != currentUser.id) {
+        if (!isMe) {
             if (isFollowing) {
                 Button(
                     onClick = onFollowClick,
@@ -157,9 +181,10 @@ fun FollowItem(
                         containerColor = CoffeeBrown,
                         contentColor = Color.White
                     ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
                 ) {
-                    Text("Siguiendo", style = MaterialTheme.typography.labelLarge)
+                    Text("Siguiendo", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             } else {
                 OutlinedButton(
@@ -170,9 +195,10 @@ fun FollowItem(
                         containerColor = Color.White,
                         contentColor = CoffeeBrown
                     ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
                 ) {
-                    Text("Seguir", style = MaterialTheme.typography.labelLarge)
+                    Text("Seguir", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             }
         }

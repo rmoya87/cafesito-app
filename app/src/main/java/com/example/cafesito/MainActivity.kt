@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
     private val sessionViewModel: SessionViewModel by viewModels()
 
     @Inject
-    lateinit var syncManager: SyncManager // INYECTADO
+    lateinit var syncManager: SyncManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +51,6 @@ class MainActivity : ComponentActivity() {
             CafesitoTheme {
                 val sessionState by sessionViewModel.sessionState.collectAsState()
                 
-                // SINCRONIZACIÓN INICIAL: Se dispara una vez al detectar sesión activa
                 LaunchedEffect(sessionState) {
                     if (sessionState is SessionState.Authenticated) {
                         syncManager.syncAll()
@@ -85,15 +84,27 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
     val navController = rememberNavController()
-    val mainScreens = listOf("timeline", "search", "profile")
+    val mainScreens = listOf("timeline", "search", "profile", "detail")
 
     Scaffold(
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
-            val currentRoute = currentDestination?.route?.split("?")?.firstOrNull()?.split("/")?.firstOrNull()
+            val currentRoute = currentDestination?.route ?: ""
 
-            if (currentRoute in mainScreens) {
+            // Identificar si es una pantalla de seguidores o seguidos
+            val isFollowersOrFollowing = currentRoute.contains("/followers") || currentRoute.contains("/following")
+            
+            // Identificar si es el perfil de otro usuario (userId != 0)
+            val userId = navBackStackEntry?.arguments?.getInt("userId") ?: 0
+            val isOtherUserProfile = currentRoute.startsWith("profile/") && userId != 0
+
+            // Mostramos la barra solo si es una pantalla principal AND NO es perfil ajeno AND NO es seguidores/seguidos
+            val shouldShowBottomBar = mainScreens.any { currentRoute.startsWith(it) } && 
+                                     !isOtherUserProfile && 
+                                     !isFollowersOrFollowing
+
+            if (shouldShowBottomBar) {
                 NavigationBar {
                     val navItems = listOf(
                         Triple("timeline", "Inicio", Icons.Filled.Home),
@@ -102,18 +113,27 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     )
 
                     navItems.forEach { (route, label, icon) ->
-                        val fullRoute = if (route == "profile") "profile/0" else route
-                        val isSelected = currentDestination?.hierarchy?.any { it.route?.startsWith(route) == true } == true
+                        val isSelected = currentDestination?.hierarchy?.any { 
+                            it.route?.startsWith(route) == true 
+                        } == true
 
                         NavigationBarItem(
                             icon = { Icon(icon, contentDescription = label) },
                             label = { Text(label) },
                             selected = isSelected,
                             onClick = {
-                                navController.navigate(fullRoute) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                if (route == "profile") {
+                                    navController.navigate("profile/0") {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                } else {
+                                    navController.navigate(route) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             }
                         )
@@ -134,12 +154,19 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             }
             
             composable("login") {
-                LoginScreen(onLoginSuccess = { googleId, email, name, photo ->
-                    val encodedEmail = Uri.encode(email)
-                    val encodedName = Uri.encode(name)
-                    val encodedPhoto = Uri.encode(photo)
-                    navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
-                        popUpTo("login") { inclusive = true }
+                LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
+                    if (isNewUser) {
+                        val encodedEmail = Uri.encode(email)
+                        val encodedName = Uri.encode(name)
+                        val encodedPhoto = Uri.encode(photo)
+                        navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    } else {
+                        onProfileFinished()
+                        navController.navigate("timeline") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
                 })
             }

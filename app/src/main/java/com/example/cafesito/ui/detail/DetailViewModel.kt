@@ -1,11 +1,13 @@
 package com.example.cafesito.ui.detail
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.*
-import com.example.cafesito.ui.profile.UserReviewInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -15,7 +17,8 @@ class DetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val coffeeId: String = checkNotNull(savedStateHandle["coffeeId"])
@@ -55,14 +58,31 @@ class DetailViewModel @Inject constructor(
         }
     }
 
-    fun submitReview(rating: Float, comment: String) {
+    fun submitReview(rating: Float, comment: String, imageUri: Uri? = null) {
         viewModelScope.launch {
             val user = userRepository.getActiveUser() ?: return@launch
+            
+            var uploadedImageUrl: String? = null
+            
+            // 1. Si hay una imagen nueva, la subimos a Supabase Storage
+            imageUri?.let { uri ->
+                try {
+                    val bytes = context.contentResolver.openInputStream(uri)?.readBytes()
+                    if (bytes != null) {
+                        val fileName = "review_${user.id}_${System.currentTimeMillis()}.jpg"
+                        uploadedImageUrl = socialRepository.uploadImage("reviews", fileName, bytes)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
             val review = ReviewEntity(
                 coffeeId = coffeeId,
                 userId = user.id,
                 rating = rating,
                 comment = comment,
+                imageUrl = uploadedImageUrl ?: (uiState.value as? DetailUiState.Success)?.userReview?.imageUrl,
                 timestamp = System.currentTimeMillis()
             )
             coffeeRepository.upsertReview(review)

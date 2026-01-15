@@ -20,6 +20,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.NoCredentialException
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.cafesito.ui.theme.CoffeeBrown
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -27,12 +28,13 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (googleId: String, email: String, name: String, photoUrl: String) -> Unit
+    onLoginSuccess: (googleId: String, email: String, name: String, photoUrl: String, isNewUser: Boolean) -> Unit,
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val credentialManager = CredentialManager.create(context)
     val scope = rememberCoroutineScope()
-    var isLoading by remember { mutableStateOf(false) }
+    val isLoading by viewModel.isLoading.collectAsState()
 
     val webClientId = "789398399906-468mj79uf2t4e485n7ilufv4eiouk3sm.apps.googleusercontent.com"
 
@@ -57,7 +59,6 @@ fun LoginScreen(
         } else {
             OutlinedButton(
                 onClick = {
-                    isLoading = true
                     scope.launch {
                         try {
                             val googleIdOption = GetGoogleIdOption.Builder()
@@ -73,11 +74,20 @@ fun LoginScreen(
                             val result = credentialManager.getCredential(context = context, request = request)
                             val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
                             
-                            onLoginSuccess(
-                                googleIdTokenCredential.id, 
-                                googleIdTokenCredential.id,
-                                googleIdTokenCredential.displayName ?: "",
-                                googleIdTokenCredential.profilePictureUri?.toString() ?: ""
+                            viewModel.handleGoogleIdToken(
+                                idToken = googleIdTokenCredential.idToken,
+                                onSuccess = { supabaseUuid, isNewUser ->
+                                    onLoginSuccess(
+                                        supabaseUuid, 
+                                        googleIdTokenCredential.id, // email
+                                        googleIdTokenCredential.displayName ?: "",
+                                        googleIdTokenCredential.profilePictureUri?.toString() ?: "",
+                                        isNewUser
+                                    )
+                                },
+                                onError = { error ->
+                                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                }
                             )
                         } catch (e: GetCredentialCancellationException) {
                             Log.d("LoginScreen", "Selector cerrado")
@@ -86,8 +96,6 @@ fun LoginScreen(
                         } catch (e: Exception) {
                             Log.e("LoginScreen", "Error: ${e.message}", e)
                             Toast.makeText(context, "Error de Google: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                        } finally {
-                            isLoading = false
                         }
                     }
                 },

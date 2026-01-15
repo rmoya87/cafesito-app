@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Coffee
 import androidx.compose.material3.*
@@ -19,9 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import com.example.cafesito.data.PostWithDetails
 import com.example.cafesito.ui.detail.formatRelativeTime
+import com.example.cafesito.ui.theme.CoffeeBrown
 
 @Composable
 fun PostCard(
@@ -31,41 +34,76 @@ fun PostCard(
     onLikeClick: () -> Unit,
     isLiked: Boolean,
     modifier: Modifier = Modifier,
-    showHeader: Boolean = true
+    showHeader: Boolean = true,
+    isOwnPost: Boolean = false,
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
 ) {
     val post = details.post
     val author = details.author
+    var showMenu by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(0.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column {
             if (showHeader) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onUserClick)
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SubcomposeAsyncImage(
-                        model = author.avatarUrl,
-                        loading = { Box(Modifier.fillMaxSize().background(Color.LightGray)) },
-                        error = { Icon(Icons.Default.BrokenImage, contentDescription = null, tint = Color.Gray) },
-                        contentDescription = "Avatar",
-                        modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentScale = ContentScale.Crop
-                    )
-                    Column(modifier = Modifier.padding(start = 12.dp)) {
-                        Text(author.fullName, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = formatRelativeTime(post.timestamp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    Row(
+                        modifier = Modifier.weight(1f).clickable(onClick = onUserClick),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SubcomposeAsyncImage(
+                            model = author.avatarUrl,
+                            loading = { Box(Modifier.fillMaxSize().background(Color.LightGray)) },
+                            error = { Icon(Icons.Default.BrokenImage, contentDescription = null, tint = Color.Gray) },
+                            contentDescription = "Avatar",
+                            modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentScale = ContentScale.Crop
                         )
+                        Column(modifier = Modifier.padding(start = 12.dp)) {
+                            Text(author.fullName, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = formatRelativeTime(post.timestamp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    if (isOwnPost) {
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Opciones")
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Editar") },
+                                    onClick = { 
+                                        showMenu = false
+                                        onEditClick()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Borrar", color = Color.Red) },
+                                    onClick = { 
+                                        showMenu = false
+                                        onDeleteClick()
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -93,21 +131,57 @@ fun PostCard(
                         modifier = Modifier.clickable(onClick = onCommentClick),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Outlined.ChatBubbleOutline, contentDescription = "Comentarios")
+                        Icon(imageVector = Icons.Outlined.ChatBubbleOutline, contentDescription = "Comentarios", modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text(text = "${details.comments.size}", fontWeight = FontWeight.Bold)
+                        Text(text = "${details.comments.size}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                     
                     Spacer(modifier = Modifier.size(16.dp))
                     
-                    IconButton(onClick = onLikeClick) {
-                        Icon(
-                            imageVector = if (isLiked) Icons.Filled.Coffee else Icons.Outlined.Coffee,
-                            contentDescription = "Me gusta",
-                            tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onLikeClick, modifier = Modifier.size(40.dp)) {
+                            Icon(
+                                imageVector = if (isLiked) Icons.Filled.Coffee else Icons.Outlined.Coffee,
+                                contentDescription = "Me gusta",
+                                tint = if (isLiked) CoffeeBrown else Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Text(text = "${details.likes.size}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
-                    Text(text = "${details.likes.size}", fontWeight = FontWeight.Bold)
+
+                    if (!showHeader && isOwnPost) {
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = formatRelativeTime(post.timestamp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                        Box {
+                            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(18.dp))
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Editar") },
+                                    onClick = { 
+                                        showMenu = false
+                                        onEditClick()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Borrar", color = Color.Red) },
+                                    onClick = { 
+                                        showMenu = false
+                                        onDeleteClick()
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(post.comment)

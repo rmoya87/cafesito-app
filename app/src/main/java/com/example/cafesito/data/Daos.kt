@@ -56,8 +56,14 @@ interface CoffeeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertReview(review: ReviewEntity)
 
+    @Query("DELETE FROM reviews_db WHERE coffeeId = :coffeeId AND userId = :userId")
+    suspend fun deleteReviewByUser(coffeeId: String, userId: Int)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCoffee(coffee: Coffee)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCoffees(coffees: List<Coffee>)
 
     @Query("DELETE FROM coffees")
     suspend fun deleteAllCoffees()
@@ -83,14 +89,14 @@ interface UserDao {
     @Query("SELECT * FROM users_db WHERE id = :userId")
     suspend fun getUserById(userId: Int): UserEntity?
 
+    @Query("SELECT * FROM users_db WHERE googleId = :googleId LIMIT 1")
+    suspend fun getUserByGoogleId(googleId: String): UserEntity?
+
+    @Query("SELECT * FROM users_db WHERE googleId = :googleId LIMIT 1")
+    fun getUserByGoogleIdFlow(googleId: String): Flow<UserEntity?>
+
     @Query("SELECT * FROM users_db WHERE username = :username LIMIT 1")
     suspend fun getUserByUsername(username: String): UserEntity?
-
-    @Query("SELECT * FROM users_db WHERE googleId IS NOT NULL LIMIT 1")
-    suspend fun getActiveUserSync(): UserEntity?
-
-    @Query("SELECT * FROM users_db WHERE googleId IS NOT NULL LIMIT 1")
-    fun getActiveUserFlow(): Flow<UserEntity?>
 
     @Query("SELECT * FROM follows")
     fun getAllFollows(): Flow<List<FollowEntity>>
@@ -103,6 +109,9 @@ interface UserDao {
 
     @Delete
     suspend fun deleteFollow(follow: FollowEntity)
+
+    @Query("DELETE FROM users_db")
+    suspend fun deleteAllUsers()
 }
 
 @Dao
@@ -111,8 +120,15 @@ interface SocialDao {
     @Query("SELECT * FROM posts_db ORDER BY timestamp DESC")
     fun getAllPostsWithDetails(): Flow<List<PostWithDetails>>
 
+    @Transaction
+    @Query("SELECT * FROM posts_db WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getPostsByUserIdWithDetails(userId: Int): Flow<List<PostWithDetails>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPost(post: PostEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPosts(posts: List<PostEntity>)
 
     @Delete
     suspend fun deletePost(post: PostEntity)
@@ -122,14 +138,27 @@ interface SocialDao {
     fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>>
 
     @Transaction
+    @Query("SELECT * FROM reviews_db WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getReviewsByUserIdWithAuthor(userId: Int): Flow<List<ReviewWithAuthor>>
+
+    @Transaction
     @Query("SELECT * FROM comments_db WHERE postId = :postId ORDER BY timestamp ASC")
     fun getCommentsWithAuthorForPost(postId: String): Flow<List<CommentWithAuthor>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertComment(comment: CommentEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertComments(comments: List<CommentEntity>)
+
+    @Query("DELETE FROM comments_db WHERE id = :commentId")
+    suspend fun deleteComment(commentId: Int)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertLike(like: LikeEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertLikes(likes: List<LikeEntity>)
 
     @Delete
     suspend fun deleteLike(like: LikeEntity)

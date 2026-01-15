@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.*
 import com.example.cafesito.domain.SuggestedUserInfo
 import com.example.cafesito.domain.User
-import com.example.cafesito.ui.profile.UserReviewInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -18,7 +17,34 @@ class TimelineViewModel @Inject constructor(
     private val socialRepository: SocialRepository
 ) : ViewModel() {
 
-    private val _refreshTrigger = MutableStateFlow(0)
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
+    init {
+        refreshData()
+    }
+
+    fun refreshData() {
+        viewModelScope.launch {
+            if (_isRefreshing.value) return@launch
+            _isRefreshing.value = true
+            try {
+                // 1. PRIMERO USUARIOS Y SEGUIDORES (Padres de los posts)
+                userRepository.syncUsers()
+                userRepository.syncFollows()
+                
+                // 2. SEGUNDO CAFÉS (Padres de las reseñas)
+                coffeeRepository.syncCoffees()
+                
+                // 3. ÚLTIMO CONTENIDO SOCIAL (Posts, Likes, Comentarios)
+                socialRepository.syncSocialData()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
 
     @Suppress("UNCHECKED_CAST")
     val uiState: StateFlow<TimelineUiState> = combine(
@@ -27,15 +53,14 @@ class TimelineViewModel @Inject constructor(
         socialRepository.getAllReviewsWithAuthor(),
         coffeeRepository.allCoffees,
         userRepository.followingMap,
-        userRepository.getAllUsersFlow(),
-        _refreshTrigger
+        userRepository.getAllUsersFlow()
     ) { args: Array<Any?> ->
         val activeUser = args[0] as? UserEntity
-        val posts = args[1] as List<PostWithDetails>
-        val reviews = args[2] as List<ReviewWithAuthor>
-        val allCoffees = args[3] as List<CoffeeWithDetails>
-        val followingMap = args[4] as Map<Int, Set<Int>>
-        val allUsers = args[5] as List<UserEntity>
+        val posts = args[1] as? List<PostWithDetails> ?: emptyList()
+        val reviews = args[2] as? List<ReviewWithAuthor> ?: emptyList()
+        val allCoffees = args[3] as? List<CoffeeWithDetails> ?: emptyList()
+        val followingMap = args[4] as? Map<Int, Set<Int>> ?: emptyMap()
+        val allUsers = args[5] as? List<UserEntity> ?: emptyList()
         
         if (activeUser == null) return@combine TimelineUiState.Loading
 
@@ -56,7 +81,7 @@ class TimelineViewModel @Inject constructor(
                             coffeeDetails = it,
                             review = reviewWithAuthor.review,
                             authorName = reviewWithAuthor.author.fullName,
-                            authorAvatarUrl = reviewWithAuthor.author.avatarUrl // FIX: Pasamos el avatar real
+                            authorAvatarUrl = reviewWithAuthor.author.avatarUrl
                         )
                     )
                 }
@@ -85,7 +110,8 @@ class TimelineViewModel @Inject constructor(
         TimelineUiState.Success(
             items = combinedItems,
             suggestedUsers = suggestedUsers,
-            myFollowingIds = myFollowing
+            myFollowingIds = myFollowing,
+            activeUser = activeUser
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
 
@@ -109,6 +135,35 @@ class TimelineViewModel @Inject constructor(
             socialRepository.toggleLike(postId, user.id)
         }
     }
+
+    fun deletePost(postId: String) {
+        viewModelScope.launch { socialRepository.deletePost(postId) }
+    }
+
+    fun updatePost(postId: String, newText: String, newImageUrl: String) {
+        viewModelScope.launch { socialRepository.updatePost(postId, newText, newImageUrl) }
+    }
+
+    fun deleteReview(coffeeId: String) {
+        viewModelScope.launch {
+            val user = userRepository.getActiveUser() ?: return@launch
+            coffeeRepository.deleteReview(coffeeId, user.id)
+        }
+    }
+
+    fun updateReview(coffeeId: String, rating: Float, comment: String, imageUrl: String?) {
+        viewModelScope.launch {
+            val user = userRepository.getActiveUser() ?: return@launch
+            coffeeRepository.upsertReview(ReviewEntity(
+                coffeeId = coffeeId,
+                userId = user.id,
+                rating = rating,
+                comment = comment,
+                imageUrl = imageUrl,
+                timestamp = System.currentTimeMillis()
+            ))
+        }
+    }
 }
 
 sealed class TimelineItem {
@@ -127,6 +182,7 @@ sealed interface TimelineUiState {
     data class Success(
         val items: List<TimelineItem>,
         val suggestedUsers: List<SuggestedUserInfo>,
-        val myFollowingIds: Set<Int>
+        val myFollowingIds: Set<Int>,
+        val activeUser: UserEntity
     ) : TimelineUiState
 }

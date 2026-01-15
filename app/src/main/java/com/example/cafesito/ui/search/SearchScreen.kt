@@ -1,5 +1,6 @@
 package com.example.cafesito.ui.search
 
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -7,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,7 +27,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,16 +49,25 @@ fun SearchScreen(
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val options by viewModel.filterOptions.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val syncError by viewModel.syncError.collectAsState()
     
-    val selectedOrigin by viewModel.selectedOrigin.collectAsState()
-    val selectedRoast by viewModel.selectedRoast.collectAsState()
-    val selectedSpecialty by viewModel.selectedSpecialty.collectAsState()
-    val selectedVariety by viewModel.selectedVariety.collectAsState()
-    val selectedFormat by viewModel.selectedFormat.collectAsState()
-    val minRating by viewModel.minRating.collectAsState()
+    val selectedOrigin: String? by viewModel.selectedOrigin.collectAsState(initial = null)
+    val selectedRoast: String? by viewModel.selectedRoast.collectAsState(initial = null)
+    val selectedSpecialty: String? by viewModel.selectedSpecialty.collectAsState(initial = null)
+    val selectedVariety: String? by viewModel.selectedVariety.collectAsState(initial = null)
+    val selectedFormat: String? by viewModel.selectedFormat.collectAsState(initial = null)
+    val minRating: Float by viewModel.minRating.collectAsState(initial = 0f)
 
     var isSearchActive by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    val context = LocalContext.current
+
+    LaunchedEffect(syncError) {
+        syncError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -83,30 +96,43 @@ fun SearchScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Main Results List
+            
             when (val state = uiState) {
-                is SearchUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                is SearchUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = CoffeeBrown) }
                 is SearchUiState.Error -> ErrorMessage(state.message, modifier = Modifier.align(Alignment.Center))
                 is SearchUiState.Success -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        items(state.coffees, key = { it.coffee.id }) { coffeeDetails ->
-                            CoffeeListItem(
-                                coffeeDetails = coffeeDetails,
-                                onCoffeeClick = onCoffeeClick,
-                                onFavoriteClick = { 
-                                    viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) 
+                    if (state.coffees.isEmpty() && !isRefreshing) {
+                        EmptySearchResults(modifier = Modifier.align(Alignment.Center))
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
+                                LaunchedEffect(index) {
+                                    viewModel.onItemDisplayed(index)
                                 }
-                            )
+                                CoffeeListItem(
+                                    coffeeDetails = coffeeDetails,
+                                    onCoffeeClick = onCoffeeClick,
+                                    onFavoriteClick = { 
+                                        viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) 
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // FULL SCREEN SEARCH OVERLAY
+            if (isRefreshing) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                    color = CoffeeBrown
+                )
+            }
+
             AnimatedVisibility(
                 visible = isSearchActive,
                 enter = fadeIn() + expandVertically(),
@@ -118,7 +144,6 @@ fun SearchScreen(
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.fillMaxSize()) {
-                            // Top Search Bar
                             Row(
                                 modifier = Modifier
                                     .statusBarsPadding()
@@ -155,7 +180,6 @@ fun SearchScreen(
                             }
                             HorizontalDivider(thickness = 0.5.dp)
 
-                            // Scrollable Filters Area
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
@@ -189,7 +213,6 @@ fun SearchScreen(
                             }
                         }
 
-                        // FLOATING ACTION BAR
                         Surface(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -349,7 +372,7 @@ private fun CoffeeListItem(
             }
             Column(modifier = Modifier.padding(20.dp)) {
                 FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("País" to coffee.paisOrigen, "Esp." to coffee.especialidad, "Var." to coffee.variedadTipo).forEach { (label, value) ->
+                    listOf("País" to (coffee.paisOrigen ?: "N/A"), "Esp." to coffee.especialidad, "Var." to (coffee.variedadTipo ?: "N/A")).forEach { (label, value) ->
                         value.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach { subItem ->
                             TagChip(label = label, value = subItem)
                         }
@@ -375,12 +398,12 @@ private fun EmptySearchResults(modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Default.SearchOff, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("No encontramos ese café", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("Prueba con otros términos u orígenes", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("No hay cafés disponibles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("Revisa tu conexión o intenta más tarde", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun ErrorMessage(message: String, modifier: Modifier = Modifier) {
-    Text(text = message, color = MaterialTheme.colorScheme.error, modifier = modifier.padding(32.dp))
+    Text(text = message, color = MaterialTheme.colorScheme.error, modifier = modifier.padding(32.dp), textAlign = TextAlign.Center)
 }

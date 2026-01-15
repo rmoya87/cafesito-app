@@ -15,7 +15,7 @@ import androidx.room.RoomDatabase
         LikeEntity::class,
         NotificationEntity::class
     ],
-    version = 12, // INCREMENTADO DE 11 A 12
+    version = 19, // INCREMENTADO A 19 PARA SOPORTAR USER_ID EN FAVORITOS
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

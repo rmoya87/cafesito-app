@@ -1,5 +1,6 @@
 package com.example.cafesito.ui.search
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.CoffeeRepository
@@ -14,10 +15,39 @@ class SearchViewModel @Inject constructor(
     private val repository: CoffeeRepository
 ) : ViewModel() {
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
+    private val _syncError = MutableStateFlow<String?>(null)
+    val syncError = _syncError.asStateFlow()
+
+    // Control de paginación
+    private val _displayLimit = MutableStateFlow(10)
+    private val PAGE_SIZE = 10
+    private val LOAD_THRESHOLD = 2 // Cargar cuando falten 2 para el final (el 8vo de 10)
+
+    init {
+        refreshData()
+    }
+
+    fun refreshData() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            _syncError.value = null
+            try {
+                repository.syncCoffees()
+            } catch (e: Exception) {
+                Log.e("SEARCH_VM", "Error sincronizando: ${e.message}")
+                _syncError.value = "Error de red: ${e.localizedMessage}"
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    // Filtros seleccionados
     private val _selectedOrigin = MutableStateFlow<String?>(null)
     val selectedOrigin = _selectedOrigin.asStateFlow()
 
@@ -39,10 +69,8 @@ class SearchViewModel @Inject constructor(
     private val _minRating = MutableStateFlow(0f)
     val minRating = _minRating.asStateFlow()
 
-    // Opciones atomizadas y limpias de nulos/vacíos
     val filterOptions: StateFlow<FilterOptions> = repository.allCoffees.map { list ->
-        fun String.toAtomizedList() = this.split(",").map { it.trim() }.filter { it.isNotBlank() }
-
+        fun String?.toAtomizedList(): List<String> = this?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
         FilterOptions(
             origins = list.flatMap { it.coffee.paisOrigen.toAtomizedList() }.distinct().sorted(),
             roasts = list.flatMap { it.coffee.tueste.toAtomizedList() }.distinct().sorted(),
@@ -56,37 +84,60 @@ class SearchViewModel @Inject constructor(
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<SearchUiState> = combine(
         _searchQuery, _selectedOrigin, _selectedRoast, 
-        _selectedSpecialty, _selectedVariety, _selectedFormat, _selectedGrind, _minRating
-    ) { params -> params }.flatMapLatest { params ->
-        val query = params[0] as String
-        val origin = params[1] as String?
-        val roast = params[2] as String?
-        val specialty = params[3] as String?
-        val variety = params[4] as String?
-        val format = params[5] as String?
-        val grind = params[6] as String?
-        val rating = params[7] as Float
-
-        repository.getFilteredCoffees(query, origin, roast, specialty, variety, format, grind)
+        _selectedSpecialty, _selectedVariety, _selectedFormat, _selectedGrind, _minRating,
+        _displayLimit
+    ) { args: Array<Any?> ->
+        FilterParams(
+            query = args[0] as String,
+            origin = args[1] as? String,
+            roast = args[2] as? String,
+            specialty = args[3] as? String,
+            variety = args[4] as? String,
+            format = args[5] as? String,
+            grind = args[6] as? String,
+            rating = args[7] as Float,
+            limit = args[8] as Int
+        )
+    }.flatMapLatest { p ->
+        repository.getFilteredCoffees(p.query, p.origin, p.roast, p.specialty, p.variety, p.format, p.grind)
             .map<List<CoffeeWithDetails>, SearchUiState> { coffees -> 
-                val filtered = if (rating > 0) {
-                    coffees.filter { it.averageRating >= rating }
-                } else coffees
-                SearchUiState.Success(filtered)
+                val baseFiltered = if (p.rating > 0) coffees.filter { it.averageRating >= p.rating } else coffees
+                
+                // Si NO hay búsqueda ni filtros, aplicamos el límite de paginación
+                val isSearching = p.query.isNotBlank() || p.origin != null || p.roast != null || 
+                                 p.specialty != null || p.variety != null || p.format != null || 
+                                 p.grind != null || p.rating > 0f
+
+                val finalItems = if (isSearching) {
+                    baseFiltered // Búsqueda total
+                } else {
+                    baseFiltered.take(p.limit) // Exploración paginada
+                }
+                
+                SearchUiState.Success(finalItems, isPaginated = !isSearching)
             }
-    }.catch { 
-        emit(SearchUiState.Error(it.message ?: "Error desconocido")) 
+    }.catch { e ->
+        emit(SearchUiState.Error(e.message ?: "Error desconocido")) 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SearchUiState.Loading)
 
-    fun onSearchQueryChanged(query: String) { _searchQuery.value = query }
-    
-    fun setOrigin(value: String?) { _selectedOrigin.value = value }
-    fun setRoast(value: String?) { _selectedRoast.value = value }
-    fun setSpecialty(value: String?) { _selectedSpecialty.value = value }
-    fun setVariety(value: String?) { _selectedVariety.value = value }
-    fun setFormat(value: String?) { _selectedFormat.value = value }
-    fun setGrind(value: String?) { _selectedGrind.value = value }
-    fun setMinRating(value: Float) { _minRating.value = value }
+    fun onItemDisplayed(index: Int) {
+        val currentItems = (uiState.value as? SearchUiState.Success)?.coffees?.size ?: 0
+        val isPaginated = (uiState.value as? SearchUiState.Success)?.isPaginated ?: false
+        
+        // Si estamos en modo paginado y llegamos al umbral (ej: el 8 de 10)
+        if (isPaginated && index >= currentItems - LOAD_THRESHOLD) {
+            _displayLimit.value += PAGE_SIZE
+        }
+    }
+
+    fun onSearchQueryChanged(q: String) { _searchQuery.value = q }
+    fun setOrigin(v: String?) { _selectedOrigin.value = v }
+    fun setRoast(v: String?) { _selectedRoast.value = v }
+    fun setSpecialty(v: String?) { _selectedSpecialty.value = v }
+    fun setVariety(v: String?) { _selectedVariety.value = v }
+    fun setFormat(v: String?) { _selectedFormat.value = v }
+    fun setGrind(v: String?) { _selectedGrind.value = v }
+    fun setMinRating(v: Float) { _minRating.value = v }
 
     fun clearFilters() {
         _selectedOrigin.value = null
@@ -96,12 +147,19 @@ class SearchViewModel @Inject constructor(
         _selectedFormat.value = null
         _selectedGrind.value = null
         _minRating.value = 0f
+        _displayLimit.value = 10 // Resetear paginación al limpiar
     }
 
-    fun toggleFavorite(coffeeId: String, isFavorite: Boolean) {
-        viewModelScope.launch { repository.toggleFavorite(coffeeId, isFavorite) }
+    fun toggleFavorite(id: String, isFav: Boolean) {
+        viewModelScope.launch { repository.toggleFavorite(id, !isFav) }
     }
 }
+
+private data class FilterParams(
+    val query: String, val origin: String?, val roast: String?, 
+    val specialty: String?, val variety: String?, val format: String?, 
+    val grind: String?, val rating: Float, val limit: Int
+)
 
 data class FilterOptions(
     val origins: List<String> = emptyList(),
@@ -114,6 +172,6 @@ data class FilterOptions(
 
 sealed interface SearchUiState {
     data object Loading : SearchUiState
-    data class Success(val coffees: List<CoffeeWithDetails>) : SearchUiState
+    data class Success(val coffees: List<CoffeeWithDetails>, val isPaginated: Boolean) : SearchUiState
     data class Error(val message: String) : SearchUiState
 }

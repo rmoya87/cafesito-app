@@ -60,7 +60,7 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = coffee.paisOrigen,
+                        text = coffee.paisOrigen ?: "",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -72,7 +72,7 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
                         style = MaterialTheme.typography.labelMedium
                     )
                     Text(
-                        text = "${coffee.puntuacionOficial.roundToInt()}",
+                        text = "${(coffee.puntuacionOficial ?: 0.0).roundToInt()}",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary

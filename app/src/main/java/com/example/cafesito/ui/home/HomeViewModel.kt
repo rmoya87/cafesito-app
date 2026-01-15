@@ -24,7 +24,7 @@ class HomeViewModel @Inject constructor(
     val selectedOrigin = _selectedOrigin.asStateFlow()
 
     val origins: StateFlow<List<String>> = repository.allCoffees
-        .map { list -> list.map { it.coffee.paisOrigen }.distinct().sorted() }
+        .map { list -> list.map { it.coffee.paisOrigen }.filterNotNull().distinct().sorted() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val filters = combine(_searchQuery, _minScore, _selectedOrigin) { query, score, origin ->
