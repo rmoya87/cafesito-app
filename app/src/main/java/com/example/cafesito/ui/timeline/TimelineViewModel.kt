@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.*
 import com.example.cafesito.domain.SuggestedUserInfo
 import com.example.cafesito.domain.User
-import com.example.cafesito.ui.profile.UserReviewInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

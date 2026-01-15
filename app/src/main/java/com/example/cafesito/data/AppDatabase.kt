@@ -13,13 +13,16 @@ import androidx.room.RoomDatabase
         PostEntity::class,
         CommentEntity::class,
         LikeEntity::class,
-        NotificationEntity::class
+        NotificationEntity::class,
+        DiaryEntryEntity::class,
+        PantryItemEntity::class
     ],
-    version = 19, // INCREMENTADO A 19 PARA SOPORTAR USER_ID EN FAVORITOS
+    version = 20, 
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun coffeeDao(): CoffeeDao
     abstract fun userDao(): UserDao
     abstract fun socialDao(): SocialDao
+    abstract fun diaryDao(): DiaryDao
 }

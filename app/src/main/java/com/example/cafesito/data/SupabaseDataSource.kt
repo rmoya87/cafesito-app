@@ -86,6 +86,16 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
+    // --- DIARIO ---
+    suspend fun getDiaryEntries(userId: Int): List<DiaryEntryEntity> = client.postgrest["diary_entries"].select { filter { eq("user_id", userId) }; order("timestamp", Order.DESCENDING) }.decodeList<DiaryEntryEntity>()
+    suspend fun insertDiaryEntry(entry: DiaryEntryEntity) = client.postgrest["diary_entries"].insert(entry)
+    suspend fun deleteDiaryEntry(entryId: Int) { client.postgrest["diary_entries"].delete { filter { eq("id", entryId) } } }
+
+    // --- DESPENSA ---
+    suspend fun getPantryItems(userId: Int): List<PantryItemEntity> = client.postgrest["pantry_items"].select { filter { eq("user_id", userId) } }.decodeList<PantryItemEntity>()
+    suspend fun upsertPantryItem(item: PantryItemEntity) = client.postgrest["pantry_items"].upsert(item)
+    suspend fun deletePantryItem(coffeeId: String, userId: Int) { client.postgrest["pantry_items"].delete { filter { eq("coffee_id", coffeeId); eq("user_id", userId) } } }
+
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
         client.postgrest["notifications_db"].insert(notification)

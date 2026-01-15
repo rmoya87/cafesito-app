@@ -75,7 +75,47 @@ data class ReviewEntity(
     val rating: Float,
     val comment: String,
     @SerialName("image_url") val imageUrl: String? = null,
-    val timestamp: Long
+    val timestamp: Long,
+    val method: String? = null,
+    val ratio: String? = null,
+    @SerialName("water_temp") val waterTemp: Int? = null,
+    @SerialName("extraction_time") val extractionTime: String? = null,
+    @SerialName("grind_size") val grindSize: String? = null
+)
+
+@Serializable
+@Entity(
+    tableName = "diary_entries",
+    foreignKeys = [
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["userId"])]
+)
+data class DiaryEntryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("coffee_id") val coffeeId: String? = null, // Puede ser nulo si solo es agua o café genérico
+    @SerialName("coffee_name") val coffeeName: String,
+    @SerialName("caffeine_mg") val caffeineAmount: Int,
+    val timestamp: Long = System.currentTimeMillis(),
+    val type: String = "CUP" // CUP, WATER
+)
+
+@Serializable
+@Entity(
+    tableName = "pantry_items",
+    primaryKeys = ["coffeeId", "userId"],
+    foreignKeys = [
+        ForeignKey(entity = Coffee::class, parentColumns = ["id"], childColumns = ["coffeeId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["userId"])]
+)
+data class PantryItemEntity(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("grams_remaining") val gramsRemaining: Int,
+    @SerialName("total_grams") val totalGrams: Int,
+    @SerialName("last_updated") val lastUpdated: Long = System.currentTimeMillis()
 )
 
 @Serializable
@@ -214,4 +254,10 @@ data class UserReviewInfo(
     val review: ReviewEntity, 
     val authorName: String?, 
     val authorAvatarUrl: String?
+)
+
+data class PantryItemWithDetails(
+    @Embedded val pantryItem: PantryItemEntity,
+    @Relation(parentColumn = "coffeeId", entityColumn = "id")
+    val coffee: Coffee
 )

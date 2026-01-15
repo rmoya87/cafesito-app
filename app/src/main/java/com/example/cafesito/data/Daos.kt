@@ -38,8 +38,8 @@ interface CoffeeDao {
     @Query("SELECT * FROM coffees WHERE id = :id")
     suspend fun getCoffeeById(id: String): Coffee?
 
-    @Query("SELECT COUNT(*) FROM coffees")
-    suspend fun getCoffeeCount(): Int
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCoffees(coffees: List<Coffee>)
 
     @Query("SELECT * FROM local_favorites")
     fun getLocalFavorites(): Flow<List<LocalFavorite>>
@@ -58,15 +58,6 @@ interface CoffeeDao {
 
     @Query("DELETE FROM reviews_db WHERE coffeeId = :coffeeId AND userId = :userId")
     suspend fun deleteReviewByUser(coffeeId: String, userId: Int)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCoffee(coffee: Coffee)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCoffees(coffees: List<Coffee>)
-
-    @Query("DELETE FROM coffees")
-    suspend fun deleteAllCoffees()
 }
 
 @Dao
@@ -79,12 +70,6 @@ interface UserDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertUser(user: UserEntity)
-
-    @Query("UPDATE users_db SET googleId = NULL WHERE id = :userId")
-    suspend fun clearGoogleId(userId: Int)
-
-    @Query("SELECT COUNT(*) FROM users_db")
-    suspend fun getUserCount(): Int
 
     @Query("SELECT * FROM users_db WHERE id = :userId")
     suspend fun getUserById(userId: Int): UserEntity?
@@ -100,9 +85,6 @@ interface UserDao {
 
     @Query("SELECT * FROM follows")
     fun getAllFollows(): Flow<List<FollowEntity>>
-
-    @Query("SELECT * FROM follows")
-    suspend fun getAllFollowsList(): List<FollowEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFollow(follow: FollowEntity)
@@ -174,4 +156,26 @@ interface SocialDao {
 
     @Query("UPDATE notifications_db SET isRead = 1 WHERE userId = :userId")
     suspend fun markAllAsRead(userId: Int)
+}
+
+@Dao
+interface DiaryDao {
+    @Query("SELECT * FROM diary_entries WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getDiaryEntries(userId: Int): Flow<List<DiaryEntryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDiaryEntry(entry: DiaryEntryEntity)
+
+    @Delete
+    suspend fun deleteDiaryEntry(entry: DiaryEntryEntity)
+
+    @Transaction
+    @Query("SELECT * FROM pantry_items WHERE userId = :userId")
+    fun getPantryItemsWithDetails(userId: Int): Flow<List<PantryItemWithDetails>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPantryItem(item: PantryItemEntity)
+
+    @Delete
+    suspend fun deletePantryItem(item: PantryItemEntity)
 }

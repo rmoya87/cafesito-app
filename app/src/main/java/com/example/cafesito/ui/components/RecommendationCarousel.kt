@@ -32,7 +32,7 @@ fun RecommendationCarousel(
             text = "Recomendados para tu paladar",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 16.dp, bottom = 12.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
         )
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),

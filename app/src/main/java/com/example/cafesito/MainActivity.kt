@@ -23,6 +23,7 @@ import androidx.navigation.navArgument
 import com.example.cafesito.data.SyncManager
 import com.example.cafesito.ui.access.*
 import com.example.cafesito.ui.detail.DetailScreen
+import com.example.cafesito.ui.diary.DiaryScreen
 import com.example.cafesito.ui.profile.FollowersScreen
 import com.example.cafesito.ui.profile.FollowingScreen
 import com.example.cafesito.ui.profile.ProfileScreen
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Book
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -84,7 +86,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
     val navController = rememberNavController()
-    val mainScreens = listOf("timeline", "search", "profile", "detail")
+    // Rutas base que muestran la barra inferior
+    val mainScreens = listOf("timeline", "search", "diary", "profile")
 
     Scaffold(
         bottomBar = {
@@ -92,14 +95,14 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             val currentDestination = navBackStackEntry?.destination
             val currentRoute = currentDestination?.route ?: ""
 
-            // Identificar si es una pantalla de seguidores o seguidos
+            // No mostrar si es pantalla de seguidores/seguidos
             val isFollowersOrFollowing = currentRoute.contains("/followers") || currentRoute.contains("/following")
             
-            // Identificar si es el perfil de otro usuario (userId != 0)
+            // Si el userId es distinto de 0 y es ruta profile, es perfil ajeno (ocultar)
             val userId = navBackStackEntry?.arguments?.getInt("userId") ?: 0
             val isOtherUserProfile = currentRoute.startsWith("profile/") && userId != 0
 
-            // Mostramos la barra solo si es una pantalla principal AND NO es perfil ajeno AND NO es seguidores/seguidos
+            // Determinar visibilidad: debe ser una mainScreen Y NO ser perfil ajeno Y NO ser sub-pantalla de seguidores
             val shouldShowBottomBar = mainScreens.any { currentRoute.startsWith(it) } && 
                                      !isOtherUserProfile && 
                                      !isFollowersOrFollowing
@@ -109,13 +112,13 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     val navItems = listOf(
                         Triple("timeline", "Inicio", Icons.Filled.Home),
                         Triple("search", "Explorar", Icons.Filled.Coffee),
+                        Triple("diary", "Diario", Icons.Filled.Book),
                         Triple("profile", "Perfil", Icons.Filled.Person)
                     )
 
                     navItems.forEach { (route, label, icon) ->
-                        val isSelected = currentDestination?.hierarchy?.any { 
-                            it.route?.startsWith(route) == true 
-                        } == true
+                        // Lógica de selección robusta
+                        val isSelected = currentRoute.startsWith(route)
 
                         NavigationBarItem(
                             icon = { Icon(icon, contentDescription = label) },
@@ -202,6 +205,12 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             
             composable("search") { SearchScreen(onCoffeeClick = { id -> navController.navigate("detail/$id") }, onProfileClick = { id -> navController.navigate("profile/$id") }) }
             
+            composable("diary") {
+                DiaryScreen(
+                    onCoffeeClick = { id -> navController.navigate("detail/$id") }
+                )
+            }
+
             composable(
                 route = "profile/{userId}",
                 arguments = listOf(navArgument("userId") { type = NavType.IntType })

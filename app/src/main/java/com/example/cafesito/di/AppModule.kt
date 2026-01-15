@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.cafesito.data.AppDatabase
 import com.example.cafesito.data.CoffeeDao
+import com.example.cafesito.data.DiaryDao
 import com.example.cafesito.data.SocialDao
 import com.example.cafesito.data.UserDao
 import dagger.Module
@@ -42,5 +43,10 @@ object AppModule {
     @Provides
     fun provideSocialDao(db: AppDatabase): SocialDao {
         return db.socialDao()
+    }
+
+    @Provides
+    fun provideDiaryDao(db: AppDatabase): DiaryDao {
+        return db.diaryDao()
     }
 }

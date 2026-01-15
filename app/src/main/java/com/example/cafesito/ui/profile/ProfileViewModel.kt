@@ -59,11 +59,11 @@ class ProfileViewModel @Inject constructor(
         }.distinctUntilChanged()
     }
 
-    // Flujo de posts filtrado por la BASE DE DATOS
+    // Flujo de posts filtrado DIRECTAMENTE DESDE EL REPOSITORIO (SUPABASE)
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val userPostsFlow = targetUserFlow.flatMapLatest { user ->
         if (user != null) {
-            // Escuchamos los posts de la DB local que son sincronizados desde Supabase
-            socialDao.getPostsByUserIdWithDetails(user.id)
+            socialRepository.getPostsByUserId(user.id)
         } else flowOf(emptyList())
     }
 
@@ -102,7 +102,7 @@ class ProfileViewModel @Inject constructor(
         ProfileUiState.Success(
             user = displayUser,
             posts = userPosts, 
-            favoriteCoffees = if (targetUser.id == activeUser?.id) {
+            favoriteCoffees = if (targetUser.id == (activeUser?.id ?: -1)) {
                 val favIds = myFavorites.map { it.coffeeId }.toSet()
                 allCoffees.filter { favIds.contains(it.coffee.id) }
             } else emptyList(),
@@ -114,7 +114,7 @@ class ProfileViewModel @Inject constructor(
             followers = followingMap.values.count { it.contains(targetUser.id) },
             following = followingMap[targetUser.id]?.size ?: 0,
             isFollowing = activeUser?.let { followingMap[it.id]?.contains(targetUser.id) } ?: false,
-            isCurrentUser = targetUser.id == activeUser?.id,
+            isCurrentUser = targetUser.id == (activeUser?.id ?: -1),
             isEditing = isEditing,
             errorMessage = generalError,
             usernameError = usernameError,
@@ -132,10 +132,9 @@ class ProfileViewModel @Inject constructor(
     fun refreshData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Sincronizamos usuarios primero para tener las referencias
-                userRepository.syncUsers()
-                // Forzamos la sincronización de posts desde Supabase a Room
-                socialRepository.syncSocialData()
+                // Sincronizamos a través de los refrescos de los repositorios
+                userRepository.triggerRefresh()
+                socialRepository.triggerRefresh()
                 
                 if (requestedUserId != 0) {
                     userRepository.getUserById(requestedUserId)
@@ -171,7 +170,8 @@ class ProfileViewModel @Inject constructor(
     fun toggleFollow() {
         viewModelScope.launch(Dispatchers.IO) {
             val me = userRepository.getActiveUser() ?: return@launch
-            userRepository.toggleFollow(me.id, targetId = requestedUserId)
+            val targetId = if (requestedUserId == 0) me.id else requestedUserId
+            userRepository.toggleFollow(me.id, targetId = targetId)
         }
     }
 
