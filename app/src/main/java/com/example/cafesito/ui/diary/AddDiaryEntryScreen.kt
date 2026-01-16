@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,6 +31,7 @@ import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
 import com.example.cafesito.data.PantryItemWithDetails
 import com.example.cafesito.ui.theme.CoffeeBrown
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +44,9 @@ fun AddDiaryEntryScreen(
     val allCoffees by viewModel.availableCoffees.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     
+    // Estado para el slider de agua
+    var waterAmountMl by remember { mutableFloatStateOf(250f) }
+
     val filteredCoffees = allCoffees.filter { 
         it.coffee.nombre.contains(searchQuery, ignoreCase = true) || 
         it.coffee.marca.contains(searchQuery, ignoreCase = true)
@@ -66,100 +71,139 @@ fun AddDiaryEntryScreen(
         },
         containerColor = Color.White
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            if (initialType == "WATER") {
-                item {
-                    Text("Hidratación", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(16.dp))
-                    WaterRegistrationCard(onAdd = { 
-                        viewModel.addWaterConsumption()
-                        onBackClick()
-                    })
-                }
-            } else {
-                // SECCIÓN DESPENSA (Solo si elegimos Café)
-                if (pantryItems.isNotEmpty()) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                if (initialType == "WATER") {
                     item {
-                        Text("De tu despensa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(12.dp))
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(pantryItems) { item ->
-                                PantrySuggestionCard(item) {
-                                    viewModel.addCoffeeConsumption(item.coffee.id, item.coffee.nombre, 80)
-                                    onBackClick()
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(Modifier.height(40.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(150.dp)
+                                    .background(Color(0xFFE3F2FD), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.WaterDrop,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2196F3),
+                                    modifier = Modifier.size(80.dp)
+                                )
+                            }
+                            Spacer(Modifier.height(32.dp))
+                            Text(
+                                text = "${waterAmountMl.roundToInt()} ml",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF1976D2)
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Slider(
+                                value = waterAmountMl,
+                                onValueChange = { waterAmountMl = it },
+                                valueRange = 0f..2000f,
+                                steps = 19, // Pasos de 100ml
+                                modifier = Modifier.padding(horizontal = 24.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color(0xFF2196F3),
+                                    activeTrackColor = Color(0xFF2196F3)
+                                )
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("0 ml", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                Text("2000 ml", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                            }
+                        }
+                    }
+                } else {
+                    // SECCIÓN DESPENSA (Solo si elegimos Café)
+                    if (pantryItems.isNotEmpty()) {
+                        item {
+                            Text("De tu despensa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(12.dp))
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                items(pantryItems) { item ->
+                                    PantrySuggestionCard(item) {
+                                        viewModel.addCoffeeConsumption(item.coffee.id, item.coffee.nombre, 80)
+                                        onBackClick()
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                // BUSCADOR VISUAL DE OTROS CAFÉS
-                item {
-                    Text("Explorar cafés", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Busca una marca o nombre...") },
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CoffeeBrown)
-                    )
-                }
+                    // BUSCADOR VISUAL DE OTROS CAFÉS
+                    item {
+                        Text("Explorar cafés", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Busca una marca o nombre...") },
+                            leadingIcon = { Icon(Icons.Default.Search, null) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CoffeeBrown)
+                        )
+                    }
 
-                items(filteredCoffees.chunked(2)) { pair ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        pair.forEach { coffee ->
-                            CoffeeGridItem(coffee, Modifier.weight(1f)) {
-                                viewModel.addCoffeeConsumption(coffee.coffee.id, coffee.coffee.nombre, 80)
-                                onBackClick()
+                    items(filteredCoffees.chunked(2)) { pair ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            pair.forEach { coffee ->
+                                CoffeeGridItem(coffee, Modifier.weight(1f)) {
+                                    viewModel.addCoffeeConsumption(coffee.coffee.id, coffee.coffee.nombre, 80)
+                                    onBackClick()
+                                }
                             }
+                            if (pair.size == 1) Spacer(Modifier.weight(1f))
                         }
-                        if (pair.size == 1) Spacer(Modifier.weight(1f))
                     }
-                }
 
-                item {
-                    Button(
-                        onClick = { /* Lógica para añadir manual */ },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.EditNote, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Añadir café personalizado")
+                    item {
+                        Button(
+                            onClick = { /* Lógica para añadir manual */ },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.EditNote, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Añadir café personalizado")
+                        }
                     }
                 }
+                item { Spacer(Modifier.height(100.dp)) }
             }
-        }
-    }
-}
 
-@Composable
-fun WaterRegistrationCard(onAdd: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().height(160.dp).clickable(onClick = onAdd),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(0.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxSize().background(
-            Brush.verticalGradient(listOf(Color(0xFF2196F3), Color(0xFF64B5F6)))
-        )) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(Icons.Default.WaterDrop, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
-                Spacer(Modifier.height(12.dp))
-                Text("Registrar Vaso de Agua", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("250 ml", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+            // BOTÓN DE REGISTRAR FIJO ABAJO
+            if (initialType == "WATER") {
+                Button(
+                    onClick = { 
+                        // En una app real, aquí pasaríamos la cantidad al viewModel
+                        // Por simplicidad ahora usamos el método existente que registra 250ml
+                        viewModel.addWaterConsumption() 
+                        onBackClick()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                ) {
+                    Text("Registrar", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
             }
         }
     }
