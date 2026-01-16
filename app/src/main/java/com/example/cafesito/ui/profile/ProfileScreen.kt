@@ -74,7 +74,8 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color(0xFFF8F8F8)
     ) { padding ->
         when (val state = uiState) {
             is ProfileUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
@@ -90,23 +91,28 @@ fun ProfileScreen(
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                     LazyColumn(
                         state = scrollState,
-                        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F8F8))
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         item {
                             Column(modifier = Modifier.fillMaxWidth().background(Color.White).padding(16.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     if (!state.isCurrentUser) {
-                                        IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Añadir") }
+                                        IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.Black) }
                                         Spacer(Modifier.width(8.dp))
                                     }
-                                    Text(text = state.user.username, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = state.user.username, 
+                                        style = MaterialTheme.typography.titleLarge, 
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black // NOMBRE EN NEGRO
+                                    )
                                     Spacer(Modifier.weight(1f))
                                     if (state.isCurrentUser) {
                                         TextButton(onClick = { 
                                             if (state.isEditing) viewModel.onSaveProfile(username, fullName, bio, email)
                                             else viewModel.toggleEditMode()
                                         }) {
-                                            Text(if (state.isEditing) "Guardar" else "Editar Perfil")
+                                            Text(if (state.isEditing) "Guardar" else "Editar Perfil", color = CoffeeBrown)
                                         }
                                     } else {
                                         Button(
@@ -174,9 +180,9 @@ fun ProfileScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 } else {
-                                    Text(text = state.user.fullName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Text(text = state.user.fullName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black)
                                     if (bio.isNotBlank()) {
-                                        Text(bio, style = MaterialTheme.typography.bodyMedium)
+                                        Text(bio, style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
                                     }
                                 }
                                 Spacer(Modifier.height(16.dp))
@@ -294,7 +300,7 @@ fun CoffeeFavoriteItem(coffeeDetails: CoffeeWithDetails, isFavorite: Boolean, on
             AsyncImage(model = coffeeDetails.coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black)
                 Text(text = "${coffeeDetails.coffee.marca}", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
             }
             IconButton(onClick = onFavoriteClick) { Icon(Icons.Default.Favorite, "Favorito", tint = Color.Red) }
@@ -306,7 +312,7 @@ fun CoffeeFavoriteItem(coffeeDetails: CoffeeWithDetails, isFavorite: Boolean, on
 private fun UserInfoStat(label: String, value: String, onClick: (() -> Unit)? = null) {
     val modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
-        Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Black)
         Text(text = label, style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontSize = 12.sp)
     }
 }

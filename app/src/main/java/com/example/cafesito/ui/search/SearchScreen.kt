@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -40,6 +39,7 @@ import com.example.cafesito.ui.theme.CoffeeBrown
 import java.util.Locale
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     onCoffeeClick: (String) -> Unit,
@@ -70,28 +70,27 @@ fun SearchScreen(
     }
 
     Scaffold(
+        containerColor = Color(0xFFF8F8F8),
         topBar = {
             if (!isSearchActive) {
-                Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                TopAppBar(
+                    title = {
                         Text(
                             text = "Explorar",
                             style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
+                            color = Color.Black
                         )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFFF8F8F8),
+                        scrolledContainerColor = Color(0xFFF8F8F8)
+                    ),
+                    actions = {
                         IconButton(onClick = { isSearchActive = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar")
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Black)
                         }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
-                }
+                )
             }
         }
     ) { padding ->
@@ -106,20 +105,22 @@ fun SearchScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(20.dp),
+                            contentPadding = PaddingValues(top = 16.dp, bottom = 20.dp),
                             verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
                             itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
                                 LaunchedEffect(index) {
                                     viewModel.onItemDisplayed(index)
                                 }
-                                CoffeeListItem(
-                                    coffeeDetails = coffeeDetails,
-                                    onCoffeeClick = onCoffeeClick,
-                                    onFavoriteClick = { 
-                                        viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) 
-                                    }
-                                )
+                                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                    CoffeeListItem(
+                                        coffeeDetails = coffeeDetails,
+                                        onCoffeeClick = onCoffeeClick,
+                                        onFavoriteClick = { 
+                                            viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) 
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -321,8 +322,9 @@ private fun CoffeeListItem(
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onCoffeeClick(coffee.id) },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().height(320.dp)) {
@@ -385,7 +387,7 @@ private fun CoffeeListItem(
 
 @Composable
 private fun TagChip(label: String, value: String) {
-    Surface(color = Color.White, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.6f))) {
+    Surface(color = Color.White, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
         Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
             Text(text = "$label: ", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
             Text(text = value, style = MaterialTheme.typography.labelMedium, color = Color.DarkGray, fontWeight = FontWeight.Bold)

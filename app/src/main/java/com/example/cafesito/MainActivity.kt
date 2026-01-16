@@ -12,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -24,6 +26,7 @@ import com.example.cafesito.data.SyncManager
 import com.example.cafesito.ui.access.*
 import com.example.cafesito.ui.detail.DetailScreen
 import com.example.cafesito.ui.diary.DiaryScreen
+import com.example.cafesito.ui.diary.AddDiaryEntryScreen
 import com.example.cafesito.ui.profile.FollowersScreen
 import com.example.cafesito.ui.profile.FollowingScreen
 import com.example.cafesito.ui.profile.ProfileScreen
@@ -59,7 +62,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF8F8F8)) {
                     if (sessionState is SessionState.Loading) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
@@ -86,7 +89,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
     val navController = rememberNavController()
-    // Rutas base que muestran la barra inferior
     val mainScreens = listOf("timeline", "search", "diary", "profile")
 
     Scaffold(
@@ -95,20 +97,19 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             val currentDestination = navBackStackEntry?.destination
             val currentRoute = currentDestination?.route ?: ""
 
-            // No mostrar si es pantalla de seguidores/seguidos
             val isFollowersOrFollowing = currentRoute.contains("/followers") || currentRoute.contains("/following")
-            
-            // Si el userId es distinto de 0 y es ruta profile, es perfil ajeno (ocultar)
             val userId = navBackStackEntry?.arguments?.getInt("userId") ?: 0
             val isOtherUserProfile = currentRoute.startsWith("profile/") && userId != 0
 
-            // Determinar visibilidad: debe ser una mainScreen Y NO ser perfil ajeno Y NO ser sub-pantalla de seguidores
             val shouldShowBottomBar = mainScreens.any { currentRoute.startsWith(it) } && 
                                      !isOtherUserProfile && 
                                      !isFollowersOrFollowing
 
             if (shouldShowBottomBar) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = Color(0xFFF8F8F8),
+                    tonalElevation = 0.dp
+                ) {
                     val navItems = listOf(
                         Triple("timeline", "Inicio", Icons.Filled.Home),
                         Triple("search", "Explorar", Icons.Filled.Coffee),
@@ -117,13 +118,19 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     )
 
                     navItems.forEach { (route, label, icon) ->
-                        // Lógica de selección robusta
                         val isSelected = currentRoute.startsWith(route)
 
                         NavigationBarItem(
                             icon = { Icon(icon, contentDescription = label) },
                             label = { Text(label) },
                             selected = isSelected,
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Color.Transparent,
+                                selectedIconColor = com.example.cafesito.ui.theme.CoffeeBrown,
+                                unselectedIconColor = Color.Black,
+                                selectedTextColor = com.example.cafesito.ui.theme.CoffeeBrown,
+                                unselectedTextColor = Color.Black
+                            ),
                             onClick = {
                                 if (route == "profile") {
                                     navController.navigate("profile/0") {
@@ -143,7 +150,8 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     }
                 }
             }
-        }
+        },
+        containerColor = Color(0xFFF8F8F8)
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -207,7 +215,20 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             
             composable("diary") {
                 DiaryScreen(
-                    onCoffeeClick = { id -> navController.navigate("detail/$id") }
+                    onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                    onAddWaterClick = { navController.navigate("addDiaryEntry?type=WATER") },
+                    onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE") }
+                )
+            }
+
+            composable(
+                route = "addDiaryEntry?type={type}",
+                arguments = listOf(navArgument("type") { defaultValue = "" })
+            ) { backStackEntry ->
+                val type = backStackEntry.arguments?.getString("type") ?: ""
+                AddDiaryEntryScreen(
+                    initialType = type,
+                    onBackClick = { navController.popBackStack() }
                 )
             }
 

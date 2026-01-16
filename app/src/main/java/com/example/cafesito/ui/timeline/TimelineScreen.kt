@@ -55,6 +55,7 @@ fun TimelineScreen(
     }
 
     Scaffold(
+        containerColor = Color(0xFFF8F8F8),
         floatingActionButton = {
             FloatingActionButton(onClick = onAddPostClick, containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White) {
                 Icon(Icons.Default.Add, contentDescription = "Añadir")
@@ -65,10 +66,17 @@ fun TimelineScreen(
             is TimelineUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             is TimelineUiState.Success -> {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().background(LightGrayBackground).padding(padding),
+                    modifier = Modifier.fillMaxSize().padding(padding),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    item { Text("Inicio", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(16.dp)) }
+                    item { 
+                        Text(
+                            text = "Inicio", 
+                            style = MaterialTheme.typography.headlineMedium, 
+                            color = Color.Black, // CAMBIADO A NEGRO
+                            modifier = Modifier.padding(16.dp)
+                        ) 
+                    }
 
                     // SECCIÓN DE RECOMENDACIONES SENSORIALES
                     if (state.recommendations.isNotEmpty()) {
