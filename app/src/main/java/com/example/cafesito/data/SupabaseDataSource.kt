@@ -47,6 +47,10 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getAllCoffees(): List<Coffee> = client.postgrest["coffees"].select { order("nombre", Order.ASCENDING) }.decodeList<Coffee>()
     suspend fun upsertCoffees(coffees: List<Coffee>) { client.postgrest["coffees"].upsert(coffees) }
 
+    // --- CAFÉS PERSONALIZADOS ---
+    suspend fun getCustomCoffees(userId: Int): List<CustomCoffeeEntity> = client.postgrest["custom_coffees"].select { filter { eq("user_id", userId) } }.decodeList<CustomCoffeeEntity>()
+    suspend fun insertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].insert(coffee)
+
     // --- PUBLICACIONES ---
     suspend fun getAllPosts(): List<PostEntity> = client.postgrest["posts_db"].select { order("timestamp", Order.DESCENDING) }.decodeList<PostEntity>()
     suspend fun insertPost(post: PostEntity) = client.postgrest["posts_db"].insert(post)
@@ -88,8 +92,20 @@ class SupabaseDataSource @Inject constructor(
 
     // --- DIARIO ---
     suspend fun getDiaryEntries(userId: Int): List<DiaryEntryEntity> = client.postgrest["diary_entries"].select { filter { eq("user_id", userId) }; order("timestamp", Order.DESCENDING) }.decodeList<DiaryEntryEntity>()
-    suspend fun insertDiaryEntry(entry: DiaryEntryEntity) = client.postgrest["diary_entries"].insert(entry)
-    suspend fun deleteDiaryEntry(entryId: Int) { client.postgrest["diary_entries"].delete { filter { eq("id", entryId) } } }
+    suspend fun insertDiaryEntry(entry: DiaryEntryEntity) {
+        // Al insertar en Supabase omitimos el id para que lo genere la DB
+        val entryData = mapOf(
+            "user_id" to entry.userId,
+            "coffee_id" to entry.coffeeId,
+            "coffee_name" to entry.coffeeName,
+            "caffeine_mg" to entry.caffeineAmount,
+            "amount_ml" to entry.amountMl,
+            "timestamp" to entry.timestamp,
+            "type" to entry.type
+        )
+        client.postgrest["diary_entries"].insert(entryData)
+    }
+    suspend fun deleteDiaryEntry(entryId: Long) { client.postgrest["diary_entries"].delete { filter { eq("id", entryId) } } }
 
     // --- DESPENSA ---
     suspend fun getPantryItems(userId: Int): List<PantryItemEntity> = client.postgrest["pantry_items"].select { filter { eq("user_id", userId) } }.decodeList<PantryItemEntity>()

@@ -42,13 +42,11 @@ fun DiaryScreen(
     onAddCoffeeClick: () -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
-    val entries by viewModel.diaryEntries.collectAsState()
-    val pantryItems by viewModel.pantryItems.collectAsState()
-    val availableCoffees by viewModel.availableCoffees.collectAsState()
-    val analytics by viewModel.analytics.collectAsState()
-    val selectedPeriod by viewModel.selectedPeriod.collectAsState()
+    val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
+    val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
+    val analytics by viewModel.analytics.collectAsState(initial = null)
+    val selectedPeriod by viewModel.selectedPeriod.collectAsState(initial = DiaryPeriod.HOY)
     
-    var showAddPantryDialog by remember { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -110,55 +108,48 @@ fun DiaryScreen(
             contentPadding = PaddingValues(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // ESTADÍSTICAS
             item {
                 analytics?.let { CaffeineAnalyticsCard(it) }
             }
 
-            // ACCIONES DE REGISTRO (DOS BOTONES VISUALES)
             item {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    RegistrationQuickCard(
+                    RegistrationCard(
                         title = "+ Agua",
-                        subtitle = "Hidratación",
-                        icon = Icons.Default.WaterDrop,
-                        backgroundColor = Color(0xFFE3F2FD),
+                        color = Color(0xFFE3F2FD),
                         contentColor = Color(0xFF2196F3),
-                        modifier = Modifier.weight(1f),
-                        onClick = onAddWaterClick
+                        icon = Icons.Default.WaterDrop,
+                        onClick = onAddWaterClick,
+                        modifier = Modifier.weight(1f)
                     )
-                    RegistrationQuickCard(
+                    RegistrationCard(
                         title = "+ Café",
-                        subtitle = "Energía",
-                        icon = Icons.Default.Coffee,
-                        backgroundColor = CoffeeBrown.copy(alpha = 0.1f),
+                        color = CoffeeBrown.copy(alpha = 0.1f),
                         contentColor = CoffeeBrown,
-                        modifier = Modifier.weight(1f),
-                        onClick = onAddCoffeeClick
+                        icon = Icons.Default.Coffee,
+                        onClick = onAddCoffeeClick,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            // ACTIVIDAD
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Actividad", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black)
-                }
+                Text(
+                    text = "Actividad", 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold, 
+                    color = Color.Black,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
             }
 
             if (entries.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                        Text("No hay registros", color = Color.Gray, fontSize = 14.sp)
+                        Text("No hay registros hoy", color = Color.Gray, fontSize = 14.sp)
                     }
                 }
             } else {
@@ -172,12 +163,11 @@ fun DiaryScreen(
                 }
             }
 
-            // DESPENSA
             item {
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     PantrySection(
                         items = pantryItems,
-                        onAddClick = { showAddPantryDialog = true },
+                        onAddClick = { onAddCoffeeClick() },
                         onItemClick = onCoffeeClick,
                         onRemoveItem = { viewModel.removeFromPantry(it) }
                     )
@@ -186,54 +176,32 @@ fun DiaryScreen(
             
             item { Spacer(Modifier.height(80.dp)) }
         }
-
-        if (showAddPantryDialog) {
-            AddPantryDialog(
-                availableCoffees = availableCoffees,
-                onDismiss = { showAddPantryDialog = false },
-                onConfirm = { coffeeId, grams ->
-                    viewModel.addToPantry(coffeeId, grams)
-                    showAddPantryDialog = false
-                }
-            )
-        }
     }
 }
 
 @Composable
-fun RegistrationQuickCard(
+fun RegistrationCard(
     title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    backgroundColor: Color,
+    color: Color,
     contentColor: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(85.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = backgroundColor,
-        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.1f))
+        modifier = modifier.height(80.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = color
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(Color.White.copy(alpha = 0.7f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(24.dp))
-            }
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(title, fontWeight = FontWeight.ExtraBold, color = contentColor, fontSize = 16.sp)
-                Text(subtitle, color = contentColor.copy(alpha = 0.7f), fontSize = 11.sp)
-            }
+            Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(title, color = contentColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }
@@ -271,6 +239,32 @@ fun SwipeableDiaryItem(
 }
 
 @Composable
+fun DiaryEntryItem(entry: DiaryEntryEntity) {
+    val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(44.dp).background(if (entry.type == "WATER") Color(0xFFE3F2FD) else CoffeeBrown.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, contentDescription = null, tint = if (entry.type == "WATER") Color(0xFF2196F3) else CoffeeBrown, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(entry.coffeeName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
+                Text("$dateStr • ${if (entry.type == "WATER") "${entry.amountMl}ml" else "${entry.caffeineAmount}mg"}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            }
+        }
+    }
+}
+
+@Composable
 fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
     val totalLabel = when(analytics.period) {
         DiaryPeriod.HOY -> "Hoy"
@@ -298,8 +292,7 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                         )
                     }
                     
-                    val isIncrease = analytics.comparisonPercentage > 0
-                    val compColor = if (isIncrease) Color(0xFFE57373) else Color(0xFF81C784)
+                    val compColor = if (analytics.comparisonPercentage > 0) Color(0xFFE57373) else Color(0xFF81C784)
                     Surface(
                         color = compColor.copy(alpha = 0.1f),
                         shape = RoundedCornerShape(8.dp)
@@ -309,14 +302,14 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(
-                                imageVector = if (isIncrease) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                imageVector = if (analytics.comparisonPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
                                 contentDescription = null,
                                 tint = compColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                text = "${if (isIncrease) "+" else ""}${analytics.comparisonPercentage}%",
+                                text = "${if (analytics.comparisonPercentage > 0) "+" else ""}${analytics.comparisonPercentage}%",
                                 color = compColor,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
@@ -422,13 +415,13 @@ fun PantrySection(
         }
         
         if (items.isEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
                 Text("Registra tu café para controlar el stock.", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         } else {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(items) { item ->
-                    PantryCard(item, onClick = { onItemClick(item.coffee.id) }, onRemove = { onRemoveItem(item.coffee.id) })
+                    PantryCard(item, onClick = { onItemClick(item.pantryItem.coffeeId) }, onRemove = { onRemoveItem(item.pantryItem.coffeeId) })
                 }
             }
         }
@@ -446,7 +439,8 @@ fun PantryCard(item: PantryItemWithDetails, onClick: () -> Unit, onRemove: () ->
     Card(
         modifier = Modifier.width(150.dp).clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(1.dp)
+        elevation = CardDefaults.cardElevation(1.dp),
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -461,55 +455,4 @@ fun PantryCard(item: PantryItemWithDetails, onClick: () -> Unit, onRemove: () ->
             LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape), color = color, trackColor = Color(0xFFF0F0F0))
         }
     }
-}
-
-@Composable
-fun DiaryEntryItem(entry: com.example.cafesito.data.DiaryEntryEntity) {
-    val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(0.dp)
-    ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(44.dp).background(if (entry.type == "WATER") Color(0xFFE3F2FD) else CoffeeBrown.copy(alpha = 0.1f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, contentDescription = null, tint = if (entry.type == "WATER") Color(0xFF2196F3) else CoffeeBrown, modifier = Modifier.size(22.dp))
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(entry.coffeeName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
-                Text("$time • ${if (entry.caffeineAmount > 0) "${entry.caffeineAmount}mg" else "Hidratación"}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            }
-        }
-    }
-}
-
-@Composable
-fun AddPantryDialog(availableCoffees: List<CoffeeWithDetails>, onDismiss: () -> Unit, onConfirm: (String, Int) -> Unit) {
-    var selectedId by remember { mutableStateOf<String?>(null) }
-    var grams by remember { mutableStateOf("250") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Añadir a mi Despensa", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                LazyColumn(Modifier.height(250.dp).background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))) {
-                    items(availableCoffees) { item ->
-                        Row(Modifier.fillMaxWidth().clickable { selectedId = item.coffee.id }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = selectedId == item.coffee.id, onClick = { selectedId = item.coffee.id })
-                            Spacer(Modifier.width(8.dp))
-                            Text(item.coffee.nombre, fontSize = 14.sp)
-                        }
-                    }
-                }
-                OutlinedTextField(value = grams, onValueChange = { grams = it }, label = { Text("Cantidad (gramos)") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number), shape = RoundedCornerShape(12.dp))
-            }
-        },
-        confirmButton = { Button(onClick = { selectedId?.let { onConfirm(it, grams.toIntOrNull() ?: 250) } }, enabled = selectedId != null && grams.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)) { Text("Añadir") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
 }

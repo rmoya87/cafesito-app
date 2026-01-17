@@ -43,45 +43,33 @@ data class Coffee(
 )
 
 @Serializable
-@Entity(
-    tableName = "local_favorites",
-    primaryKeys = ["coffeeId", "userId"],
-    foreignKeys = [
-        ForeignKey(entity = Coffee::class, parentColumns = ["id"], childColumns = ["coffeeId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [Index(value = ["coffeeId"]), Index(value = ["userId"])]
-)
-data class LocalFavorite(
-    @SerialName("coffee_id") val coffeeId: String,
+@Entity(tableName = "custom_coffees")
+data class CustomCoffeeEntity(
+    @PrimaryKey val id: String,
     @SerialName("user_id") val userId: Int,
-    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
-)
-
-@Serializable
-@Entity(
-    tableName = "reviews_db",
-    foreignKeys = [
-        ForeignKey(entity = Coffee::class, parentColumns = ["id"], childColumns = ["coffeeId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [
-        Index(value = ["coffeeId", "userId"], unique = true),
-        Index(value = ["userId"])
-    ]
-)
-data class ReviewEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @SerialName("coffee_id") val coffeeId: String,
-    @SerialName("user_id") val userId: Int,
-    val rating: Float,
-    val comment: String,
-    @SerialName("image_url") val imageUrl: String? = null,
-    val timestamp: Long,
-    val method: String? = null,
-    val ratio: String? = null,
-    @SerialName("water_temp") val waterTemp: Int? = null,
-    @SerialName("extraction_time") val extractionTime: String? = null,
-    @SerialName("grind_size") val grindSize: String? = null
-)
+    val name: String,
+    val brand: String,
+    val specialty: String,
+    val roast: String? = null,
+    val variety: String? = null,
+    val country: String,
+    @SerialName("has_caffeine") val hasCaffeine: Boolean,
+    val format: String,
+    @SerialName("image_url") val imageUrl: String
+) {
+    fun toCoffee(): Coffee = Coffee(
+        id = id,
+        nombre = name,
+        marca = brand,
+        especialidad = specialty,
+        tueste = roast ?: "",
+        variedadTipo = variety,
+        paisOrigen = country,
+        cafeina = if (hasCaffeine) "Sí" else "No",
+        formato = format,
+        imageUrl = imageUrl
+    )
+}
 
 @Serializable
 @Entity(
@@ -92,24 +80,18 @@ data class ReviewEntity(
     indices = [Index(value = ["userId"])]
 )
 data class DiaryEntryEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @SerialName("user_id") val userId: Int,
-    @SerialName("coffee_id") val coffeeId: String? = null, // Puede ser nulo si solo es agua o café genérico
+    @SerialName("coffee_id") val coffeeId: String? = null,
     @SerialName("coffee_name") val coffeeName: String,
     @SerialName("caffeine_mg") val caffeineAmount: Int,
+    @SerialName("amount_ml") val amountMl: Int = 250,
     val timestamp: Long = System.currentTimeMillis(),
-    val type: String = "CUP" // CUP, WATER
+    val type: String = "CUP"
 )
 
 @Serializable
-@Entity(
-    tableName = "pantry_items",
-    primaryKeys = ["coffeeId", "userId"],
-    foreignKeys = [
-        ForeignKey(entity = Coffee::class, parentColumns = ["id"], childColumns = ["coffeeId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [Index(value = ["userId"])]
-)
+@Entity(tableName = "pantry_items", primaryKeys = ["coffeeId", "userId"])
 data class PantryItemEntity(
     @SerialName("coffee_id") val coffeeId: String,
     @SerialName("user_id") val userId: Int,
@@ -131,13 +113,7 @@ data class UserEntity(
 )
 
 @Serializable
-@Entity(
-    tableName = "posts_db",
-    foreignKeys = [
-        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [Index(value = ["userId"])]
-)
+@Entity(tableName = "posts_db")
 data class PostEntity(
     @PrimaryKey val id: String,
     @SerialName("user_id") val userId: Int,
@@ -147,14 +123,14 @@ data class PostEntity(
 )
 
 @Serializable
-@Entity(
-    tableName = "comments_db",
-    foreignKeys = [
-        ForeignKey(entity = PostEntity::class, parentColumns = ["id"], childColumns = ["postId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [Index(value = ["postId"]), Index(value = ["userId"])]
+@Entity(tableName = "likes_db", primaryKeys = ["postId", "userId"])
+data class LikeEntity(
+    @SerialName("post_id") val postId: String,
+    @SerialName("user_id") val userId: Int
 )
+
+@Serializable
+@Entity(tableName = "comments_db")
 data class CommentEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     @SerialName("post_id") val postId: String,
@@ -164,47 +140,24 @@ data class CommentEntity(
 )
 
 @Serializable
-@Entity(
-    tableName = "likes_db",
-    primaryKeys = ["postId", "userId"],
-    foreignKeys = [
-        ForeignKey(entity = PostEntity::class, parentColumns = ["id"], childColumns = ["postId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [Index(value = ["userId"])]
-)
-data class LikeEntity(
-    @SerialName("post_id") val postId: String,
-    @SerialName("user_id") val userId: Int
-)
-
-@Serializable
-@Entity(
-    tableName = "follows",
-    primaryKeys = ["followerId", "followedId"],
-    foreignKeys = [
-        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followerId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["followedId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [
-        Index(value = ["followerId"]),
-        Index(value = ["followedId"])
-    ]
-)
-data class FollowEntity(
-    @SerialName("follower_id") val followerId: Int,
-    @SerialName("followed_id") val followedId: Int,
-    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
+@Entity(tableName = "reviews_db")
+data class ReviewEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    val rating: Float,
+    val comment: String,
+    @SerialName("image_url") val imageUrl: String? = null,
+    val timestamp: Long,
+    val method: String? = null,
+    val ratio: String? = null,
+    @SerialName("water_temp") val waterTemp: Int? = null,
+    @SerialName("extraction_time") val extractionTime: String? = null,
+    @SerialName("grind_size") val grindSize: String? = null
 )
 
 @Serializable
-@Entity(
-    tableName = "notifications_db",
-    foreignKeys = [
-        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [Index(value = ["userId"])]
-)
+@Entity(tableName = "notifications_db")
 data class NotificationEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     @SerialName("user_id") val userId: Int,
@@ -216,6 +169,23 @@ data class NotificationEntity(
     @SerialName("related_id") val relatedId: String? = null
 )
 
+@Serializable
+@Entity(tableName = "follows", primaryKeys = ["followerId", "followedId"])
+data class FollowEntity(
+    @SerialName("follower_id") val followerId: Int,
+    @SerialName("followed_id") val followedId: Int,
+    @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
+)
+
+@Serializable
+@Entity(tableName = "local_favorites", primaryKeys = ["coffeeId", "userId"])
+data class LocalFavorite(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
+)
+
+// Wrappers / DTOs
 data class PostWithDetails(
     @Embedded val post: PostEntity,
     @Relation(parentColumn = "userId", entityColumn = "id")
@@ -224,18 +194,6 @@ data class PostWithDetails(
     val likes: List<LikeEntity> = emptyList(),
     @Relation(parentColumn = "id", entityColumn = "postId")
     val comments: List<CommentEntity> = emptyList()
-)
-
-data class ReviewWithAuthor(
-    @Embedded val review: ReviewEntity,
-    @Relation(parentColumn = "userId", entityColumn = "id")
-    val author: UserEntity
-)
-
-data class CommentWithAuthor(
-    @Embedded val comment: CommentEntity,
-    @Relation(parentColumn = "userId", entityColumn = "id")
-    val author: UserEntity
 )
 
 data class CoffeeWithDetails(
@@ -249,6 +207,11 @@ data class CoffeeWithDetails(
     val averageRating: Float get() = if (reviews.isEmpty()) 0.0f else reviews.map { it.rating }.average().toFloat()
 }
 
+data class PantryItemWithDetails(
+    val pantryItem: PantryItemEntity,
+    val coffee: Coffee
+)
+
 data class UserReviewInfo(
     val coffeeDetails: CoffeeWithDetails, 
     val review: ReviewEntity, 
@@ -256,8 +219,14 @@ data class UserReviewInfo(
     val authorAvatarUrl: String?
 )
 
-data class PantryItemWithDetails(
-    @Embedded val pantryItem: PantryItemEntity,
-    @Relation(parentColumn = "coffeeId", entityColumn = "id")
-    val coffee: Coffee
+data class CommentWithAuthor(
+    @Embedded val comment: CommentEntity,
+    @Relation(parentColumn = "userId", entityColumn = "id")
+    val author: UserEntity
+)
+
+data class ReviewWithAuthor(
+    @Embedded val review: ReviewEntity,
+    @Relation(parentColumn = "userId", entityColumn = "id")
+    val author: UserEntity
 )

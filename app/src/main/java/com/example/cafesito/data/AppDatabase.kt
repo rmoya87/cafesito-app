@@ -15,9 +15,10 @@ import androidx.room.RoomDatabase
         LikeEntity::class,
         NotificationEntity::class,
         DiaryEntryEntity::class,
-        PantryItemEntity::class
+        PantryItemEntity::class,
+        CustomCoffeeEntity::class
     ],
-    version = 20, 
+    version = 21, 
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -27,6 +27,7 @@ import com.example.cafesito.ui.access.*
 import com.example.cafesito.ui.detail.DetailScreen
 import com.example.cafesito.ui.diary.DiaryScreen
 import com.example.cafesito.ui.diary.AddDiaryEntryScreen
+import com.example.cafesito.ui.diary.AddPantryItemScreen
 import com.example.cafesito.ui.profile.FollowersScreen
 import com.example.cafesito.ui.profile.FollowingScreen
 import com.example.cafesito.ui.profile.ProfileScreen
@@ -228,6 +229,13 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 val type = backStackEntry.arguments?.getString("type") ?: ""
                 AddDiaryEntryScreen(
                     initialType = type,
+                    onBackClick = { navController.popBackStack() },
+                    onAddPantryItemClick = { navController.navigate("addPantryItem") }
+                )
+            }
+
+            composable("addPantryItem") {
+                AddPantryItemScreen(
                     onBackClick = { navController.popBackStack() }
                 )
             }

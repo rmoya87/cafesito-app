@@ -166,16 +166,15 @@ interface DiaryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDiaryEntry(entry: DiaryEntryEntity)
 
-    @Delete
-    suspend fun deleteDiaryEntry(entry: DiaryEntryEntity)
+    @Query("DELETE FROM diary_entries WHERE id = :entryId")
+    suspend fun deleteDiaryEntryById(entryId: Long)
 
-    @Transaction
     @Query("SELECT * FROM pantry_items WHERE userId = :userId")
-    fun getPantryItemsWithDetails(userId: Int): Flow<List<PantryItemWithDetails>>
+    fun getPantryItems(userId: Int): Flow<List<PantryItemEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPantryItem(item: PantryItemEntity)
 
-    @Delete
-    suspend fun deletePantryItem(item: PantryItemEntity)
+    @Query("DELETE FROM pantry_items WHERE coffeeId = :coffeeId AND userId = :userId")
+    suspend fun deletePantryItem(coffeeId: String, userId: Int)
 }
