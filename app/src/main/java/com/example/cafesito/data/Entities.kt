@@ -185,7 +185,7 @@ data class LocalFavorite(
     @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
 )
 
-// Wrappers / DTOs
+// Wrappers (Not Room Entities)
 data class PostWithDetails(
     @Embedded val post: PostEntity,
     @Relation(parentColumn = "userId", entityColumn = "id")

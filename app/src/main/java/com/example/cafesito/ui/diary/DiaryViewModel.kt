@@ -43,17 +43,23 @@ class DiaryViewModel @Inject constructor(
         val calendar = Calendar.getInstance()
         when (period) {
             DiaryPeriod.HOY -> {
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+                calendar.apply {
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                }
                 entries.filter { it.timestamp >= calendar.timeInMillis }
             }
             DiaryPeriod.SEMANA -> {
-                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+                calendar.apply {
+                    set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                }
                 entries.filter { it.timestamp >= calendar.timeInMillis }
             }
             DiaryPeriod.MES -> {
-                calendar.set(Calendar.DAY_OF_MONTH, 1)
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+                calendar.apply {
+                    set(Calendar.DAY_OF_MONTH, 1)
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                }
                 entries.filter { it.timestamp >= calendar.timeInMillis }
             }
         }
@@ -75,63 +81,63 @@ class DiaryViewModel @Inject constructor(
         val (currentEntries, previousEntries, averageValue) = when (period) {
             DiaryPeriod.HOY -> {
                 calendar.timeInMillis = now
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+                calendar.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
                 val startOfToday = calendar.timeInMillis
+                val startOfYesterday = startOfToday - 86400000
                 val dailySums = entries.groupBy { 
                     val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
                     "${c.get(Calendar.YEAR)}-${c.get(Calendar.DAY_OF_YEAR)}"
                 }.values.map { it.sumOf { e -> e.caffeineAmount } }
-                Triple(entries.filter { it.timestamp >= startOfToday }, entries.filter { it.timestamp in (startOfToday - 86400000) until startOfToday }, if(dailySums.isEmpty()) 0 else dailySums.average().toInt())
+                Triple(entries.filter { it.timestamp >= startOfToday }, entries.filter { it.timestamp in startOfYesterday until startOfToday }, if(dailySums.isEmpty()) 0 else dailySums.average().toInt())
             }
             DiaryPeriod.SEMANA -> {
                 calendar.timeInMillis = now
-                calendar.set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0)
+                calendar.apply { set(Calendar.DAY_OF_WEEK, firstDayOfWeek); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
                 val startOfWeek = calendar.timeInMillis
+                val startOfLastWeek = startOfWeek - (7 * 86400000)
                 val weeklySums = entries.groupBy { 
                     val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
                     "${c.get(Calendar.YEAR)}-${c.get(Calendar.WEEK_OF_YEAR)}" 
                 }.values.map { it.sumOf { e -> e.caffeineAmount } }
-                Triple(entries.filter { it.timestamp >= startOfWeek }, emptyList(), if(weeklySums.isEmpty()) 0 else weeklySums.average().toInt())
+                Triple(entries.filter { it.timestamp >= startOfWeek }, entries.filter { it.timestamp in (startOfLastWeek until startOfWeek) }, if(weeklySums.isEmpty()) 0 else weeklySums.average().toInt())
             }
             DiaryPeriod.MES -> {
                 calendar.timeInMillis = now
-                calendar.set(Calendar.DAY_OF_MONTH, 1)
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0)
+                calendar.apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
                 val startOfMonth = calendar.timeInMillis
+                calendar.add(Calendar.MONTH, -1)
+                val startOfLastMonth = calendar.timeInMillis
                 val monthlySums = entries.groupBy { 
                     val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
                     "${c.get(Calendar.YEAR)}-${c.get(Calendar.MONTH)}" 
                 }.values.map { it.sumOf { e -> e.caffeineAmount } }
-                Triple(entries.filter { it.timestamp >= startOfMonth }, emptyList(), if(monthlySums.isEmpty()) 0 else monthlySums.average().toInt())
+                Triple(entries.filter { it.timestamp >= startOfMonth }, entries.filter { it.timestamp in startOfLastMonth until startOfMonth }, if(monthlySums.isEmpty()) 0 else monthlySums.average().toInt())
             }
         }
 
-        val totalCaffeine = currentEntries.sumOf { it.caffeineAmount }
+        val total = currentEntries.sumOf { it.caffeineAmount }
         val prevTotal = previousEntries.sumOf { it.caffeineAmount }
-        val comparison = if (prevTotal == 0) 0 else ((totalCaffeine - prevTotal).toFloat() / prevTotal * 100).toInt()
+        val comp = if (prevTotal == 0) 0 else ((total - prevTotal).toFloat() / prevTotal * 100).toInt()
 
         val chartData = when (period) {
-            DiaryPeriod.HOY -> (0..23).map { hour ->
+            DiaryPeriod.HOY -> (0..23).map { hour -> 
                 String.format("%02d:00", hour) to currentEntries.filter { 
                     val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
                     c.get(Calendar.HOUR_OF_DAY) == hour
                 }.sumOf { it.caffeineAmount }
             }
-            DiaryPeriod.SEMANA -> {
-                val days = listOf("Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom")
-                (0..6).map { i ->
-                    days[i] to currentEntries.filter {
-                        val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
-                        val day = c.get(Calendar.DAY_OF_WEEK)
-                        (if (day == Calendar.SUNDAY) 6 else day - 2) == i
-                    }.sumOf { it.caffeineAmount }
-                }
+            DiaryPeriod.SEMANA -> listOf("Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom").mapIndexed { i, d ->
+                d to currentEntries.filter { 
+                    val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
+                    val day = c.get(Calendar.DAY_OF_WEEK)
+                    (if (day == Calendar.SUNDAY) 6 else day - 2) == i
+                }.sumOf { it.caffeineAmount }
             }
             DiaryPeriod.MES -> {
-                val maxDay = calendar.apply { timeInMillis = now }.getActualMaximum(Calendar.DAY_OF_MONTH)
+                calendar.timeInMillis = now
+                val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
                 (1..maxDay).map { day ->
-                    day.toString() to currentEntries.filter {
+                    day.toString() to currentEntries.filter { 
                         val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
                         c.get(Calendar.DAY_OF_MONTH) == day
                     }.sumOf { it.caffeineAmount }
@@ -139,7 +145,7 @@ class DiaryViewModel @Inject constructor(
             }
         }
 
-        DiaryAnalytics(chartData, currentEntries.count { it.type == "WATER" }, currentEntries.count { it.type == "CUP" }, totalCaffeine, averageValue, comparison, period)
+        DiaryAnalytics(chartData, currentEntries.count { it.type == "WATER" }, currentEntries.count { it.type == "CUP" }, total, averageValue, comp, period)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun setPeriod(period: DiaryPeriod) { _selectedPeriod.value = period }
@@ -154,25 +160,14 @@ class DiaryViewModel @Inject constructor(
     fun removeFromPantry(coffeeId: String) { viewModelScope.launch { diaryRepository.deletePantryItem(coffeeId) } }
     
     fun saveCustomCoffee(
-        name: String, 
-        brand: String, 
-        specialty: String, 
-        roast: String?, 
-        variety: String?, 
-        country: String, 
-        hasCaffeine: Boolean, 
-        format: String, 
-        imageUri: Uri?, 
+        name: String, brand: String, specialty: String, roast: String?, variety: String?, 
+        country: String, hasCaffeine: Boolean, format: String, imageUri: Uri?, 
         onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
             try {
-                val imageBytes = imageUri?.let {
-                    context.contentResolver.openInputStream(it)?.readBytes()
-                }
-                diaryRepository.createCustomCoffeeAndAddToPantry(
-                    name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes
-                )
+                val imageBytes = imageUri?.let { context.contentResolver.openInputStream(it)?.readBytes() }
+                diaryRepository.createCustomCoffeeAndAddToPantry(name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes)
                 onSuccess()
             } catch (e: Exception) { e.printStackTrace() }
         }

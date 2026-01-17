@@ -42,10 +42,10 @@ fun DiaryScreen(
     onAddCoffeeClick: () -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
-    val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
-    val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
-    val analytics by viewModel.analytics.collectAsState(initial = null)
-    val selectedPeriod by viewModel.selectedPeriod.collectAsState(initial = DiaryPeriod.HOY)
+    val entries: List<DiaryEntryEntity> by viewModel.diaryEntries.collectAsState(initial = emptyList())
+    val pantryItems: List<PantryItemWithDetails> by viewModel.pantryItems.collectAsState(initial = emptyList())
+    val analytics: DiaryAnalytics? by viewModel.analytics.collectAsState(initial = null)
+    val selectedPeriod: DiaryPeriod by viewModel.selectedPeriod.collectAsState(initial = DiaryPeriod.HOY)
     
     var showPeriodMenu by remember { mutableStateOf(false) }
 
@@ -54,50 +54,54 @@ fun DiaryScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(
-                        text = "Mi Diario", 
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = Color.Black
-                    ) 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Mi Diario", 
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = Color.Black
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .border(1.2.dp, CoffeeBrown, RoundedCornerShape(8.dp))
+                                .clickable { showPeriodMenu = true }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = selectedPeriod.name.lowercase().replaceFirstChar { it.uppercase() },
+                                    color = CoffeeBrown,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 16.sp
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = CoffeeBrown)
+                            }
+                            DropdownMenu(
+                                expanded = showPeriodMenu,
+                                onDismissRequest = { showPeriodMenu = false }
+                            ) {
+                                DiaryPeriod.entries.forEach { period ->
+                                    DropdownMenuItem(
+                                        text = { Text(period.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                        onClick = {
+                                            viewModel.setPeriod(period)
+                                            showPeriodMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFF8F8F8),
                     scrolledContainerColor = Color(0xFFF8F8F8)
-                ),
-                actions = {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(1.2.dp, CoffeeBrown, RoundedCornerShape(8.dp))
-                            .clickable { showPeriodMenu = true }
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = selectedPeriod.name.lowercase().replaceFirstChar { it.uppercase() },
-                                color = CoffeeBrown,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 16.sp
-                            )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = CoffeeBrown)
-                        }
-                        DropdownMenu(
-                            expanded = showPeriodMenu,
-                            onDismissRequest = { showPeriodMenu = false }
-                        ) {
-                            DiaryPeriod.entries.forEach { period ->
-                                DropdownMenuItem(
-                                    text = { Text(period.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                                    onClick = {
-                                        viewModel.setPeriod(period)
-                                        showPeriodMenu = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+                )
             )
         }
     ) { padding ->
@@ -149,7 +153,7 @@ fun DiaryScreen(
             if (entries.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                        Text("No hay registros hoy", color = Color.Gray, fontSize = 14.sp)
+                        Text("No hay registros", color = Color.Gray, fontSize = 14.sp)
                     }
                 }
             } else {
@@ -276,7 +280,7 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            elevation = CardDefaults.cardElevation(0.dp),
             border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
             shape = RoundedCornerShape(24.dp)
         ) {
@@ -421,7 +425,7 @@ fun PantrySection(
         } else {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(items) { item ->
-                    PantryCard(item, onClick = { onItemClick(item.pantryItem.coffeeId) }, onRemove = { onRemoveItem(item.pantryItem.coffeeId) })
+                    PantryCard(item, onClick = { onItemClick(item.coffee.id) }, onRemove = { onRemoveItem(item.coffee.id) })
                 }
             }
         }
