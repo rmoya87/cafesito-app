@@ -1,7 +1,9 @@
 package com.example.cafesito.data
 
 import android.util.Log
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,37 +36,97 @@ class DiaryRepository @Inject constructor(
         flow {
             val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
             try {
-                val items = supabaseDataSource.getPantryItems(user.id)
+                val pantryEntities = supabaseDataSource.getPantryItems(user.id)
                 val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
-                val customCoffees = try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (e: Exception) { emptyList() }
-                val allAvailable = publicCoffees + customCoffees
+                val customEntities = try { supabaseDataSource.getCustomCoffees(user.id) } catch (e: Exception) { emptyList() }
                 
-                val details = items.mapNotNull { item ->
-                    allAvailable.find { it.id == item.coffeeId }?.let { PantryItemWithDetails(item, it) }
+                val allAvailable = publicCoffees + customEntities.map { it.toCoffee() }
+                
+                val itemsWithStock = pantryEntities.mapNotNull { item ->
+                    allAvailable.find { it.id == item.coffeeId }?.let { coffee ->
+                        PantryItemWithDetails(item, coffee)
+                    }
                 }
-                emit(details)
+
+                val onlyCustom = customEntities.filter { custom ->
+                    pantryEntities.none { it.coffeeId == custom.id }
+                }.map { custom ->
+                    PantryItemWithDetails(
+                        PantryItemEntity(custom.id, user.id, custom.totalGrams, custom.totalGrams, System.currentTimeMillis()),
+                        custom.toCoffee()
+                    )
+                }
+                
+                emit((itemsWithStock + onlyCustom).sortedByDescending { it.pantryItem.lastUpdated })
             } catch (e: Exception) {
-                Log.e("DIARY_REPO", "Error obteniendo despensa: ${e.message}")
+                Log.e("DIARY_REPO", "Error al cargar despensa", e)
                 emit(emptyList())
             }
         }
     }
 
-    suspend fun addDiaryEntry(coffeeId: String?, coffeeName: String, caffeineAmount: Int, type: String = "CUP", amountMl: Int = 250) {
+    suspend fun addDiaryEntry(
+        coffeeId: String?, 
+        coffeeName: String, 
+        caffeineAmount: Int, 
+        type: String = "CUP", 
+        amountMl: Int = 250,
+        coffeeGrams: Int = 15
+    ) {
         val user = userRepository.getActiveUser() ?: return
-        try {
-            val entry = DiaryEntryEntity(userId = user.id, coffeeId = coffeeId, coffeeName = coffeeName, caffeineAmount = caffeineAmount, amountMl = amountMl, timestamp = System.currentTimeMillis(), type = type)
-            supabaseDataSource.insertDiaryEntry(entry)
-            if (coffeeId != null && type == "CUP") updatePantryStock(coffeeId, -15) 
-            triggerRefresh()
-        } catch (e: Exception) { }
+        withContext(NonCancellable) {
+            try {
+                val entry = DiaryEntryEntity(
+                    userId = user.id, 
+                    coffeeId = coffeeId, 
+                    coffeeName = coffeeName, 
+                    caffeineAmount = caffeineAmount, 
+                    amountMl = amountMl, 
+                    coffeeGrams = coffeeGrams,
+                    timestamp = System.currentTimeMillis(), 
+                    type = type
+                )
+                supabaseDataSource.insertDiaryEntry(entry)
+                
+                if (coffeeId != null && type == "CUP") {
+                    updatePantryStock(coffeeId, -coffeeGrams)
+                }
+                
+                triggerRefresh()
+            } catch (e: Exception) { 
+                Log.e("DIARY_REPO", "Error al añadir entrada", e)
+            }
+        }
     }
 
-    suspend fun deleteDiaryEntry(entryId: Long) {
+    private suspend fun updatePantryStock(coffeeId: String, deltaGrams: Int) {
+        val user = userRepository.getActiveUser() ?: return
         try {
-            supabaseDataSource.deleteDiaryEntry(entryId)
-            triggerRefresh()
-        } catch (e: Exception) { }
+            val items = supabaseDataSource.getPantryItems(user.id)
+            val existing = items.find { it.coffeeId == coffeeId }
+            
+            if (existing != null) {
+                val updated = existing.copy(
+                    gramsRemaining = (existing.gramsRemaining + deltaGrams).coerceAtLeast(0), 
+                    lastUpdated = System.currentTimeMillis()
+                )
+                supabaseDataSource.upsertPantryItem(updated)
+            } else {
+                // Si no existe el registro de stock, lo creamos ahora
+                val customCoffees = supabaseDataSource.getCustomCoffees(user.id)
+                val totalG = customCoffees.find { it.id == coffeeId }?.totalGrams ?: 250
+                val newItem = PantryItemEntity(
+                    coffeeId = coffeeId,
+                    userId = user.id,
+                    gramsRemaining = (totalG + deltaGrams).coerceAtLeast(0),
+                    totalGrams = totalG,
+                    lastUpdated = System.currentTimeMillis()
+                )
+                supabaseDataSource.upsertPantryItem(newItem)
+            }
+        } catch (e: Exception) { 
+            Log.e("DIARY_REPO", "Error actualizando stock", e)
+        }
     }
 
     suspend fun createCustomCoffeeAndAddToPantry(
@@ -73,27 +135,31 @@ class DiaryRepository @Inject constructor(
         totalGrams: Int = 250
     ) {
         val user = userRepository.getActiveUser() ?: return
-        try {
-            val coffeeId = UUID.randomUUID().toString()
-            var imageUrl = ""
-            if (imageBytes != null) {
-                try {
-                    imageUrl = supabaseDataSource.uploadImage("coffees", "custom_$coffeeId.jpg", imageBytes)
-                } catch (e: Exception) {
-                    Log.e("DIARY_REPO", "Error imagen")
+        withContext(NonCancellable) {
+            try {
+                val coffeeId = UUID.randomUUID().toString()
+                var imageUrl = ""
+                if (imageBytes != null) {
+                    try {
+                        imageUrl = supabaseDataSource.uploadImage("coffees", "custom_$coffeeId.jpg", imageBytes)
+                    } catch (e: Exception) { Log.e("DIARY_REPO", "Error imagen") }
                 }
-            }
 
-            val customCoffee = CustomCoffeeEntity(
-                id = coffeeId, userId = user.id, name = name, brand = brand,
-                specialty = specialty, roast = roast, variety = variety,
-                country = country, hasCaffeine = hasCaffeine, format = format, imageUrl = imageUrl
-            )
-            
-            supabaseDataSource.insertCustomCoffee(customCoffee)
-            addToPantry(coffeeId, totalGrams) 
-            triggerRefresh()
-        } catch (e: Exception) { }
+                val customCoffee = CustomCoffeeEntity(
+                    id = coffeeId, userId = user.id, name = name, brand = brand,
+                    specialty = specialty, roast = roast, variety = variety,
+                    country = country, hasCaffeine = hasCaffeine, format = format, 
+                    imageUrl = imageUrl, totalGrams = totalGrams
+                )
+                
+                supabaseDataSource.insertCustomCoffee(customCoffee)
+                addToPantry(coffeeId, totalGrams) 
+                triggerRefresh()
+            } catch (e: Exception) {
+                Log.e("DIARY_REPO", "Error al crear café", e)
+                throw e
+            }
+        }
     }
 
     suspend fun addToPantry(coffeeId: String, totalGrams: Int) {
@@ -108,24 +174,20 @@ class DiaryRepository @Inject constructor(
             )
             supabaseDataSource.upsertPantryItem(item)
             triggerRefresh()
-        } catch (e: Exception) { }
-    }
-
-    private suspend fun updatePantryStock(coffeeId: String, deltaGrams: Int) {
-        val user = userRepository.getActiveUser() ?: return
-        try {
-            val items = supabaseDataSource.getPantryItems(user.id)
-            items.find { it.coffeeId == coffeeId }?.let { existing ->
-                val updated = existing.copy(gramsRemaining = (existing.gramsRemaining + deltaGrams).coerceAtLeast(0), lastUpdated = System.currentTimeMillis())
-                supabaseDataSource.upsertPantryItem(updated)
-            }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { throw e }
     }
 
     suspend fun deletePantryItem(coffeeId: String) {
         val user = userRepository.getActiveUser() ?: return
         try {
             supabaseDataSource.deletePantryItem(coffeeId, user.id)
+            triggerRefresh()
+        } catch (e: Exception) { }
+    }
+
+    suspend fun deleteDiaryEntry(entryId: Long) {
+        try {
+            supabaseDataSource.deleteDiaryEntry(entryId)
             triggerRefresh()
         } catch (e: Exception) { }
     }

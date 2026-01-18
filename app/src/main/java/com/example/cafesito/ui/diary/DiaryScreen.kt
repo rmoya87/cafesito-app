@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -434,7 +435,10 @@ fun PantrySection(
 
 @Composable
 fun PantryCard(item: PantryItemWithDetails, onClick: () -> Unit, onRemove: () -> Unit) {
-    val progress = item.pantryItem.gramsRemaining.toFloat() / item.pantryItem.totalGrams
+    val progress = if (item.pantryItem.totalGrams > 0) {
+        item.pantryItem.gramsRemaining.toFloat() / item.pantryItem.totalGrams
+    } else 0f
+    
     val color = when {
         progress < 0.15f -> Color.Red
         progress < 0.4f -> Color(0xFFFFA000)
@@ -448,11 +452,22 @@ fun PantryCard(item: PantryItemWithDetails, onClick: () -> Unit, onRemove: () ->
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(model = item.coffee.imageUrl, contentDescription = null, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
+                AsyncImage(
+                    model = item.coffee.imageUrl.ifBlank { null }, 
+                    contentDescription = null, 
+                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFF5F5F5)), 
+                    contentScale = ContentScale.Crop,
+                    error = rememberVectorPainter(Icons.Default.Coffee)
+                )
                 Spacer(Modifier.width(8.dp))
                 Column {
                     Text(item.coffee.nombre, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text("${item.pantryItem.gramsRemaining}g", fontSize = 10.sp, color = color, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (item.pantryItem.totalGrams > 0) "${item.pantryItem.gramsRemaining}g" else "Sin stock", 
+                        fontSize = 10.sp, 
+                        color = color, 
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
             Spacer(Modifier.height(12.dp))

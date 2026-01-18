@@ -35,18 +35,17 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = filters.flatMapLatest { (query, score, origin) ->
         repository.getFilteredCoffees(
             query = query,
-            origin = origin,
-            roast = null,
-            specialty = null,
-            variety = null,
-            format = null,
-            grind = null
-        ).map<List<CoffeeWithDetails>, HomeUiState> { coffees -> 
+            origin = origin
+        ).map { coffees: List<CoffeeWithDetails> -> 
             val filtered = if (score > 0) {
                 coffees.filter { it.averageRating >= score }
-            } else coffees
-            HomeUiState.Success(filtered)
-        }.catch { emit(HomeUiState.Error(it.message ?: "An unknown error occurred")) }
+            } else {
+                coffees
+            }
+            HomeUiState.Success(filtered) as HomeUiState
+        }.catch { e -> 
+            emit(HomeUiState.Error(e.message ?: "Error desconocido")) 
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

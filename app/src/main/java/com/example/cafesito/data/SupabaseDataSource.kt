@@ -93,13 +93,13 @@ class SupabaseDataSource @Inject constructor(
     // --- DIARIO ---
     suspend fun getDiaryEntries(userId: Int): List<DiaryEntryEntity> = client.postgrest["diary_entries"].select { filter { eq("user_id", userId) }; order("timestamp", Order.DESCENDING) }.decodeList<DiaryEntryEntity>()
     suspend fun insertDiaryEntry(entry: DiaryEntryEntity) {
-        // Al insertar en Supabase omitimos el id para que lo genere la DB
         val entryData = mapOf(
             "user_id" to entry.userId,
             "coffee_id" to entry.coffeeId,
             "coffee_name" to entry.coffeeName,
             "caffeine_mg" to entry.caffeineAmount,
             "amount_ml" to entry.amountMl,
+            "coffee_grams" to entry.coffeeGrams,
             "timestamp" to entry.timestamp,
             "type" to entry.type
         )
@@ -109,7 +109,9 @@ class SupabaseDataSource @Inject constructor(
 
     // --- DESPENSA ---
     suspend fun getPantryItems(userId: Int): List<PantryItemEntity> = client.postgrest["pantry_items"].select { filter { eq("user_id", userId) } }.decodeList<PantryItemEntity>()
-    suspend fun upsertPantryItem(item: PantryItemEntity) = client.postgrest["pantry_items"].upsert(item)
+    suspend fun upsertPantryItem(item: PantryItemEntity) {
+        client.postgrest["pantry_items"].upsert(item)
+    }
     suspend fun deletePantryItem(coffeeId: String, userId: Int) { client.postgrest["pantry_items"].delete { filter { eq("coffee_id", coffeeId); eq("user_id", userId) } } }
 
     // --- NOTIFICACIONES ---

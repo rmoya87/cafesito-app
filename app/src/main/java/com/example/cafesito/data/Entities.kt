@@ -3,7 +3,6 @@ package com.example.cafesito.data
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
-import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
@@ -55,7 +54,8 @@ data class CustomCoffeeEntity(
     val country: String,
     @SerialName("has_caffeine") val hasCaffeine: Boolean,
     val format: String,
-    @SerialName("image_url") val imageUrl: String
+    @SerialName("image_url") val imageUrl: String,
+    @SerialName("total_grams") val totalGrams: Int = 250
 ) {
     fun toCoffee(): Coffee = Coffee(
         id = id,
@@ -86,6 +86,7 @@ data class DiaryEntryEntity(
     @SerialName("coffee_name") val coffeeName: String,
     @SerialName("caffeine_mg") val caffeineAmount: Int,
     @SerialName("amount_ml") val amountMl: Int = 250,
+    @SerialName("coffee_grams") val coffeeGrams: Int = 15,
     val timestamp: Long = System.currentTimeMillis(),
     val type: String = "CUP"
 )
@@ -139,6 +140,35 @@ data class CommentEntity(
     val timestamp: Long
 )
 
+data class PostWithDetails(
+    @Embedded val post: PostEntity,
+    @Relation(parentColumn = "userId", entityColumn = "id")
+    val author: UserEntity,
+    @Relation(parentColumn = "id", entityColumn = "postId")
+    val likes: List<LikeEntity> = emptyList(),
+    @Relation(parentColumn = "id", entityColumn = "postId")
+    val comments: List<CommentEntity> = emptyList()
+)
+
+data class CoffeeWithDetails(
+    @Embedded val coffee: Coffee,
+    @Relation(parentColumn = "id", entityColumn = "coffeeId")
+    val favorite: LocalFavorite? = null,
+    @Relation(parentColumn = "id", entityColumn = "coffeeId")
+    val reviews: List<ReviewEntity> = emptyList()
+) {
+    val isFavorite: Boolean get() = favorite != null
+    val averageRating: Float get() = if (reviews.isEmpty()) 0.0f else reviews.map { it.rating }.average().toFloat()
+}
+
+@Serializable
+@Entity(tableName = "local_favorites", primaryKeys = ["coffeeId", "userId"])
+data class LocalFavorite(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
+)
+
 @Serializable
 @Entity(tableName = "reviews_db")
 data class ReviewEntity(
@@ -176,36 +206,6 @@ data class FollowEntity(
     @SerialName("followed_id") val followedId: Int,
     @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
 )
-
-@Serializable
-@Entity(tableName = "local_favorites", primaryKeys = ["coffeeId", "userId"])
-data class LocalFavorite(
-    @SerialName("coffee_id") val coffeeId: String,
-    @SerialName("user_id") val userId: Int,
-    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
-)
-
-// Wrappers (Not Room Entities)
-data class PostWithDetails(
-    @Embedded val post: PostEntity,
-    @Relation(parentColumn = "userId", entityColumn = "id")
-    val author: UserEntity,
-    @Relation(parentColumn = "id", entityColumn = "postId")
-    val likes: List<LikeEntity> = emptyList(),
-    @Relation(parentColumn = "id", entityColumn = "postId")
-    val comments: List<CommentEntity> = emptyList()
-)
-
-data class CoffeeWithDetails(
-    @Embedded val coffee: Coffee,
-    @Relation(parentColumn = "id", entityColumn = "coffeeId")
-    val favorite: LocalFavorite? = null,
-    @Relation(parentColumn = "id", entityColumn = "coffeeId")
-    val reviews: List<ReviewEntity> = emptyList()
-) {
-    val isFavorite: Boolean get() = favorite != null
-    val averageRating: Float get() = if (reviews.isEmpty()) 0.0f else reviews.map { it.rating }.average().toFloat()
-}
 
 data class PantryItemWithDetails(
     val pantryItem: PantryItemEntity,

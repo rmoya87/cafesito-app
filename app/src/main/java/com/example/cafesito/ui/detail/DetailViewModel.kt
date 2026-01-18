@@ -18,6 +18,7 @@ class DetailViewModel @Inject constructor(
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
     private val userRepository: UserRepository,
+    private val diaryRepository: DiaryRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -55,6 +56,12 @@ class DetailViewModel @Inject constructor(
     fun toggleFavorite(isFavorite: Boolean) {
         viewModelScope.launch {
             coffeeRepository.toggleFavorite(coffeeId, isFavorite)
+        }
+    }
+
+    fun addToPantry(grams: Int = 250) {
+        viewModelScope.launch {
+            diaryRepository.addToPantry(coffeeId, grams)
         }
     }
 

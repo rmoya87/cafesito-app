@@ -100,6 +100,7 @@ fun DetailScreen(
                     reviews = state.reviews,
                     onBackClick = onBackClick,
                     onFavoriteToggle = { viewModel.toggleFavorite(state.coffee.isFavorite) },
+                    onAddToPantry = { viewModel.addToPantry() },
                     onReviewSubmit = { rating, comment, imageUri -> 
                         viewModel.submitReview(rating, comment, imageUri) 
                     }
@@ -116,6 +117,7 @@ private fun DetailContent(
     reviews: List<UserReviewInfo>,
     onBackClick: () -> Unit,
     onFavoriteToggle: () -> Unit,
+    onAddToPantry: () -> Unit,
     onReviewSubmit: (Float, String, Uri?) -> Unit
 ) {
     val scrollState = rememberLazyListState()
@@ -164,6 +166,20 @@ private fun DetailContent(
                         if (coffee.descripcion.isNotBlank()) {
                             Text(text = coffee.descripcion, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = if (isDescExpanded) Int.MAX_VALUE else 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.animateContentSize())
                             Text(text = if (isDescExpanded) "Leer menos" else "Leer más", color = CoffeeBrown, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(vertical = 4.dp).clickable { isDescExpanded = !isDescExpanded })
+                        }
+
+                        Spacer(Modifier.height(24.dp))
+                        
+                        // BOTÓN AÑADIR A DESPENSA
+                        Button(
+                            onClick = onAddToPantry,
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)
+                        ) {
+                            Icon(Icons.Default.Inventory, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("AÑADIR A MI DESPENSA (250g)", fontWeight = FontWeight.Bold)
                         }
 
                         Spacer(Modifier.height(32.dp))

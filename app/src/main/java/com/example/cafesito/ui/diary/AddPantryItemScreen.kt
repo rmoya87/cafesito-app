@@ -237,6 +237,7 @@ fun AddPantryItemScreen(
                             country = country,
                             hasCaffeine = hasCaffeine,
                             format = format,
+                            totalGrams = grams.toIntOrNull() ?: 250,
                             imageUri = imageUri,
                             onSuccess = { onBackClick() }
                         )
