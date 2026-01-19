@@ -37,7 +37,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
@@ -107,9 +106,7 @@ fun DetailScreen(
                     currentStock = state.currentPantryItem,
                     onBackClick = onBackClick,
                     onFavoriteToggle = { viewModel.toggleFavorite(state.coffee.isFavorite) },
-                    onUpdateStock = { total, remaining, name, brand -> 
-                        viewModel.updateStock(total, remaining, name, brand) 
-                    },
+                    onUpdateStock = { total, remaining, name, brand -> viewModel.updateStock(total, remaining, name, brand) },
                     onReviewSubmit = { rating, comment, imageUri -> 
                         viewModel.submitReview(rating, comment, imageUri) 
                     }

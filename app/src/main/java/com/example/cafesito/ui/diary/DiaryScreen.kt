@@ -62,6 +62,8 @@ fun DiaryScreen(
     
     var showStockSheet by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<PantryItemWithDetails?>(null) }
+    var showQuickActions by remember { mutableStateOf(false) }
+    var showPeriodMenu by remember { mutableStateOf(false) }
 
     if (showStockSheet && itemToEdit != null) {
         StockEditBottomSheet(
@@ -72,6 +74,59 @@ fun DiaryScreen(
                 showStockSheet = false
             }
         )
+    }
+
+    if (showQuickActions) {
+        ModalBottomSheet(
+            onDismissRequest = { showQuickActions = false },
+            containerColor = Color.White,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 48.dp)) {
+                Text(
+                    "Añadir registro", 
+                    modifier = Modifier.padding(24.dp), 
+                    style = MaterialTheme.typography.titleLarge, 
+                    fontWeight = FontWeight.Bold
+                )
+                ListItem(
+                    headlineContent = { Text("Registro de agua", fontWeight = FontWeight.Medium) },
+                    leadingContent = { 
+                        Box(Modifier.size(40.dp).background(Color(0xFFE3F2FD), CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.WaterDrop, null, tint = Color(0xFF2196F3)) 
+                        }
+                    },
+                    modifier = Modifier.clickable { 
+                        showQuickActions = false
+                        onAddWaterClick() 
+                    }
+                )
+                ListItem(
+                    headlineContent = { Text("Registro de café", fontWeight = FontWeight.Medium) },
+                    leadingContent = { 
+                        Box(Modifier.size(40.dp).background(CoffeeBrown.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Coffee, null, tint = CoffeeBrown) 
+                        }
+                    },
+                    modifier = Modifier.clickable { 
+                        showQuickActions = false
+                        onAddCoffeeClick() 
+                    }
+                )
+                ListItem(
+                    headlineContent = { Text("Café a mi despensa", fontWeight = FontWeight.Medium) },
+                    leadingContent = { 
+                        Box(Modifier.size(40.dp).background(Color(0xFFF5F5F5), CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Inventory, null, tint = Color.Gray) 
+                        }
+                    },
+                    modifier = Modifier.clickable { 
+                        showQuickActions = false
+                        onAddStockClick() 
+                    }
+                )
+            }
+        }
     }
 
     Scaffold(
@@ -89,22 +144,51 @@ fun DiaryScreen(
                             style = MaterialTheme.typography.headlineMedium,
                             color = Color.Black
                         )
-                        Box(
-                            modifier = Modifier
-                                .padding(end = 16.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .border(1.2.dp, CoffeeBrown, RoundedCornerShape(8.dp))
-                                .clickable { /* showPeriodMenu logic */ }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = selectedPeriod.name.lowercase().replaceFirstChar { it.uppercase() },
-                                    color = CoffeeBrown,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 16.sp
-                                )
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = CoffeeBrown)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
+                            IconButton(
+                                onClick = { showQuickActions = true },
+                                colors = IconButtonDefaults.iconButtonColors(containerColor = CoffeeBrown, contentColor = Color.White),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Acciones rápidas", modifier = Modifier.size(20.dp))
+                            }
+                            
+                            Spacer(Modifier.width(12.dp))
+                            
+                            Box {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .border(1.2.dp, CoffeeBrown, RoundedCornerShape(8.dp))
+                                        .clickable { showPeriodMenu = true }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = selectedPeriod.name.lowercase().replaceFirstChar { it.uppercase() },
+                                            color = CoffeeBrown,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 14.sp
+                                        )
+                                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = CoffeeBrown, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                                
+                                DropdownMenu(
+                                    expanded = showPeriodMenu,
+                                    onDismissRequest = { showPeriodMenu = false },
+                                    modifier = Modifier.background(Color.White)
+                                ) {
+                                    DiaryPeriod.values().forEach { period ->
+                                        DropdownMenuItem(
+                                            text = { Text(period.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                            onClick = {
+                                                viewModel.setPeriod(period)
+                                                showPeriodMenu = false
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -140,37 +224,13 @@ fun DiaryScreen(
                         fontWeight = FontWeight.Bold, 
                         color = Color.Black
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilledTonalButton(
-                            onClick = onAddWaterClick,
-                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color(0xFFE3F2FD), contentColor = Color(0xFF2196F3)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                            modifier = Modifier.height(38.dp)
-                        ) {
-                            Icon(Icons.Default.WaterDrop, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Agua", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        }
-                        FilledTonalButton(
-                            onClick = onAddCoffeeClick,
-                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = CoffeeBrown.copy(alpha = 0.1f), contentColor = CoffeeBrown),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                            modifier = Modifier.height(38.dp)
-                        ) {
-                            Icon(Icons.Default.Coffee, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Café", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
                 }
             }
 
             if (entries.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("No hay registros hoy", color = Color.Gray, fontSize = 14.sp)
+                        Text("No hay registros en este periodo", color = Color.Gray, fontSize = 14.sp)
                     }
                 }
             } else {
@@ -374,7 +434,7 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Consumo $totalLabel", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                        Text("Cafeína $totalLabel", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                         Text(
                             text = "${analytics.totalCaffeine} mg",
                             style = MaterialTheme.typography.headlineLarge,
@@ -383,13 +443,17 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                         )
                     }
                     
-                    val compColor = if (analytics.comparisonPercentage > 0) Color(0xFFE57373) else Color(0xFF81C784)
-                    Surface(color = compColor.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                            Icon(if (analytics.comparisonPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown, null, tint = compColor, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("${if (analytics.comparisonPercentage > 0) "+" else ""}${analytics.comparisonPercentage}%", color = compColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Column(horizontalAlignment = Alignment.End) {
+                        val compColor = if (analytics.comparisonPercentage > 0) Color(0xFFE57373) else Color(0xFF81C784)
+                        Surface(color = compColor.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                Icon(if (analytics.comparisonPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown, null, tint = compColor, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("${if (analytics.comparisonPercentage > 0) "+" else ""}${analytics.comparisonPercentage}%", color = compColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
                         }
+                        Spacer(Modifier.height(8.dp))
+                        Text("Agua: ${analytics.totalWaterMl} ml", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF2196F3))
                     }
                 }
 
@@ -422,14 +486,14 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                         verticalAlignment = Alignment.Bottom
                     ) {
                         analytics.chartData.forEach { (label, amount) ->
-                            val barHeight = (amount.toFloat() / 500f).coerceIn(0.05f, 1f)
+                            val barHeight = (amount.toFloat() / 1000f).coerceIn(0.05f, 1f)
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(32.dp)) {
                                 Box(
                                     modifier = Modifier
                                         .width(14.dp)
                                         .fillMaxHeight(barHeight)
                                         .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                        .background(if (amount > 400) Color.Red.copy(alpha = 0.6f) else CoffeeBrown.copy(alpha = 0.8f))
+                                        .background(if (amount > 800) Color.Red.copy(alpha = 0.6f) else CoffeeBrown.copy(alpha = 0.8f))
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 Text(label, fontSize = 9.sp, color = Color.Gray)
@@ -459,8 +523,8 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                         modifier = Modifier.weight(1f)
                     )
                     MetricBox(
-                        label = "Agua",
-                        value = "${analytics.waterCount}",
+                        label = "Agua (ml)",
+                        value = "${analytics.totalWaterMl}",
                         icon = Icons.Default.WaterDrop,
                         color = Color(0xFF2196F3),
                         modifier = Modifier.weight(1f)
@@ -483,7 +547,7 @@ fun MetricBox(label: String, value: String, icon: ImageVector, color: Color, mod
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(value, fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color.Black)
+                Text(value, fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.Black, maxLines = 1)
             }
             Spacer(Modifier.height(4.dp))
             Text(label, fontSize = 10.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)

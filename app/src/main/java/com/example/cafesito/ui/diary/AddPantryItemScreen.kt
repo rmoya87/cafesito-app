@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.cafesito.data.CoffeeWithDetails
 import com.example.cafesito.ui.theme.CoffeeBrown
 import java.util.Locale
 
@@ -51,11 +52,17 @@ fun AddPantryItemScreen(
     var existingImageUrl by remember { mutableStateOf("") }
 
     val coffees by viewModel.availableCoffees.collectAsState()
+    val pantryItems by viewModel.pantryItems.collectAsState()
 
-    LaunchedEffect(coffeeId, coffees) {
-        if (coffeeId != null && coffees.isNotEmpty()) {
-            coffees.find { it.coffee.id == coffeeId }?.let { details ->
-                val c = details.coffee
+    LaunchedEffect(coffeeId, coffees, pantryItems) {
+        if (coffeeId != null) {
+            val foundInCoffees = coffees.find { it.coffee.id == coffeeId }
+            val foundInPantry = pantryItems.find { it.coffee.id == coffeeId }
+            
+            val details = foundInCoffees ?: foundInPantry?.let { CoffeeWithDetails(it.coffee, null, emptyList()) }
+            
+            details?.let { d ->
+                val c = d.coffee
                 name = c.nombre
                 brand = c.marca
                 specialty = c.especialidad
@@ -66,7 +73,7 @@ fun AddPantryItemScreen(
                 format = c.formato
                 existingImageUrl = c.imageUrl
                 
-                viewModel.pantryItems.value.find { it.coffee.id == coffeeId }?.let {
+                foundInPantry?.let {
                     grams = it.pantryItem.totalGrams.toString()
                 }
             }
@@ -226,7 +233,17 @@ fun AddPantryItemScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                            Switch(checked = hasCaffeine, onCheckedChange = { hasCaffeine = it }, colors = SwitchDefaults.colors(checkedThumbColor = CoffeeBrown))
+                            Switch(
+                                checked = hasCaffeine, 
+                                onCheckedChange = { hasCaffeine = it }, 
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = CoffeeBrown,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = Color.LightGray,
+                                    uncheckedBorderColor = Color.Transparent
+                                )
+                            )
                         }
 
                         Text("Presentación", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)

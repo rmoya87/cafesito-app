@@ -19,6 +19,7 @@ enum class DiaryPeriod { HOY, SEMANA, MES }
 data class DiaryAnalytics(
     val chartData: List<Pair<String, Int>>,
     val waterCount: Int,
+    val totalWaterMl: Int,
     val cupsCount: Int,
     val totalCaffeine: Int,
     val averageCaffeine: Int,
@@ -43,7 +44,6 @@ class DiaryViewModel @Inject constructor(
         _selectedPeriod
     ) { entries, period ->
         val calendar = Calendar.getInstance()
-        val now = System.currentTimeMillis()
         when (period) {
             DiaryPeriod.HOY -> {
                 calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
@@ -56,9 +56,7 @@ class DiaryViewModel @Inject constructor(
             }
         }
         val startTime = calendar.timeInMillis
-        val filtered = entries.filter { it.timestamp >= startTime }
-        Log.d("DIARY_VM", "Entradas filtradas para $period: ${filtered.size}")
-        filtered
+        entries.filter { it.timestamp >= startTime }
     }
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -71,7 +69,7 @@ class DiaryViewModel @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val analytics: StateFlow<DiaryAnalytics?> = combine(allEntriesFlow, _selectedPeriod) { entries, period ->
-        if (entries.isEmpty()) return@combine DiaryAnalytics(emptyList(), 0, 0, 0, 0, 0, period)
+        if (entries.isEmpty()) return@combine DiaryAnalytics(emptyList(), 0, 0, 0, 0, 0, 0, period)
         
         val calendar = Calendar.getInstance()
         val now = System.currentTimeMillis()
@@ -103,34 +101,57 @@ class DiaryViewModel @Inject constructor(
             }
         }
 
-        val total = currentEntries.filter { it.type == "CUP" }.sumOf { it.caffeineAmount }
+        val totalCaffeine = currentEntries.filter { it.type == "CUP" }.sumOf { it.caffeineAmount }
+        val totalWaterMl = currentEntries.filter { it.type == "WATER" }.sumOf { it.amountMl }
+        
         val prevTotal = previousEntries.filter { it.type == "CUP" }.sumOf { it.caffeineAmount }
-        val comp = if (prevTotal == 0) 0 else ((total - prevTotal).toFloat() / prevTotal * 100).toInt()
+        val comp = if (prevTotal == 0) 0 else ((totalCaffeine - prevTotal).toFloat() / prevTotal * 100).toInt()
 
         val chartData = when (period) {
             DiaryPeriod.HOY -> {
-                val hourlyData = currentEntries.filter { it.type == "CUP" }.groupBy { 
+                val hourlyData = currentEntries.groupBy { 
                     Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.HOUR_OF_DAY)
                 }
-                (0..23).map { hour -> String.format("%02d:00", hour) to (hourlyData[hour]?.sumOf { it.caffeineAmount } ?: 0) }
+                (0..23).map { hour -> 
+                    val caffeine = hourlyData[hour]?.filter { it.type == "CUP" }?.sumOf { it.caffeineAmount } ?: 0
+                    val water = hourlyData[hour]?.filter { it.type == "WATER" }?.sumOf { it.amountMl } ?: 0
+                    String.format("%02d:00", hour) to (caffeine + water)
+                }
             }
             DiaryPeriod.SEMANA -> {
-                val weeklyData = currentEntries.filter { it.type == "CUP" }.groupBy { 
+                val weeklyData = currentEntries.groupBy { 
                     val day = Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_WEEK)
                     if (day == Calendar.SUNDAY) 6 else day - 2
                 }
-                listOf("Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom").mapIndexed { i, d -> d to (weeklyData[i]?.sumOf { it.caffeineAmount } ?: 0) }
+                listOf("Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom").mapIndexed { i, d -> 
+                    val caffeine = weeklyData[i]?.filter { it.type == "CUP" }?.sumOf { it.caffeineAmount } ?: 0
+                    val water = weeklyData[i]?.filter { it.type == "WATER" }?.sumOf { it.amountMl } ?: 0
+                    d to (caffeine + water)
+                }
             }
             DiaryPeriod.MES -> {
                 val maxDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-                val monthlyData = currentEntries.filter { it.type == "CUP" }.groupBy { 
+                val monthlyData = currentEntries.groupBy { 
                     Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_MONTH)
                 }
-                (1..maxDays).map { day -> day.toString() to (monthlyData[day]?.sumOf { it.caffeineAmount } ?: 0) }
+                (1..maxDays).map { day -> 
+                    val caffeine = monthlyData[day]?.filter { it.type == "CUP" }?.sumOf { it.caffeineAmount } ?: 0
+                    val water = monthlyData[day]?.filter { it.type == "WATER" }?.sumOf { it.amountMl } ?: 0
+                    day.toString() to (caffeine + water)
+                }
             }
         }
 
-        DiaryAnalytics(chartData, currentEntries.count { it.type == "WATER" }, currentEntries.count { it.type == "CUP" }, total, averageValue, comp, period)
+        DiaryAnalytics(
+            chartData = chartData, 
+            waterCount = currentEntries.count { it.type == "WATER" }, 
+            totalWaterMl = totalWaterMl,
+            cupsCount = currentEntries.count { it.type == "CUP" }, 
+            totalCaffeine = totalCaffeine, 
+            averageCaffeine = averageValue, 
+            comparisonPercentage = comp, 
+            period = period
+        )
     }
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -164,7 +185,11 @@ class DiaryViewModel @Inject constructor(
         }
     }
 
-    fun removeFromPantry(coffeeId: String) { viewModelScope.launch { diaryRepository.deletePantryItem(coffeeId) } }
+    fun removeFromPantry(coffeeId: String) { 
+        viewModelScope.launch { 
+            diaryRepository.deletePantryItem(coffeeId) 
+        } 
+    }
     
     fun saveCustomCoffee(
         name: String, brand: String, specialty: String, roast: String?, variety: String?, 
