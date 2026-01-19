@@ -91,19 +91,26 @@ class SupabaseDataSource @Inject constructor(
     }
 
     // --- DIARIO ---
-    suspend fun getDiaryEntries(userId: Int): List<DiaryEntryEntity> = client.postgrest["diary_entries"].select { filter { eq("user_id", userId) }; order("timestamp", Order.DESCENDING) }.decodeList<DiaryEntryEntity>()
+    suspend fun getDiaryEntries(userId: Int): List<DiaryEntryEntity> = client.postgrest["diary_entries"].select { 
+        filter { eq("user_id", userId) }
+        order("timestamp", Order.DESCENDING) 
+    }.decodeList<DiaryEntryEntity>()
+
     suspend fun insertDiaryEntry(entry: DiaryEntryEntity) {
-        val entryData = mapOf(
-            "user_id" to entry.userId,
-            "coffee_id" to entry.coffeeId,
-            "coffee_name" to entry.coffeeName,
-            "caffeine_mg" to entry.caffeineAmount,
-            "amount_ml" to entry.amountMl,
-            "coffee_grams" to entry.coffeeGrams,
-            "timestamp" to entry.timestamp,
-            "type" to entry.type
+        // Usamos el DTO para evitar el error de Any y dejar que Supabase asigne el ID
+        val insertData = DiaryEntryInsert(
+            userId = entry.userId,
+            coffeeId = entry.coffeeId,
+            coffeeName = entry.coffeeName,
+            coffeeBrand = entry.coffeeBrand,
+            caffeineAmount = entry.caffeineAmount,
+            amountMl = entry.amountMl,
+            coffeeGrams = entry.coffeeGrams,
+            preparationType = entry.preparationType,
+            timestamp = entry.timestamp,
+            type = entry.type
         )
-        client.postgrest["diary_entries"].insert(entryData)
+        client.postgrest["diary_entries"].insert(insertData)
     }
     suspend fun deleteDiaryEntry(entryId: Long) { client.postgrest["diary_entries"].delete { filter { eq("id", entryId) } } }
 

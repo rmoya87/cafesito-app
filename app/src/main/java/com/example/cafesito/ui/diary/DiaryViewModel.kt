@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
@@ -56,9 +57,11 @@ class DiaryViewModel @Inject constructor(
         }
         val startTime = calendar.timeInMillis
         val filtered = entries.filter { it.timestamp >= startTime }
-        Log.d("DIARY_VM", "Entradas para $period: ${filtered.size}")
+        Log.d("DIARY_VM", "Entradas filtradas para $period: ${filtered.size}")
         filtered
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
+    .flowOn(Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val pantryItems: StateFlow<List<PantryItemWithDetails>> = diaryRepository.getPantryItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -81,57 +84,75 @@ class DiaryViewModel @Inject constructor(
                 val dailySums = entries.groupBy { 
                     val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
                     "${c.get(Calendar.YEAR)}-${c.get(Calendar.DAY_OF_YEAR)}"
-                }.values.map { it.sumOf { e -> e.caffeineAmount } }
+                }.values.map { it.filter { e -> e.type == "CUP" }.sumOf { e -> e.caffeineAmount } }
                 Triple(entries.filter { it.timestamp >= startOfToday }, entries.filter { it.timestamp in (startOfToday - 86400000) until startOfToday }, if(dailySums.isEmpty()) 0 else dailySums.average().toInt())
             }
             DiaryPeriod.SEMANA -> {
                 calendar.timeInMillis = now
                 calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek); calendar.set(Calendar.HOUR_OF_DAY, 0)
                 val startOfWeek = calendar.timeInMillis
-                val weeklySums = entries.groupBy { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; "${c.get(Calendar.YEAR)}-${c.get(Calendar.WEEK_OF_YEAR)}" }.values.map { it.sumOf { e -> e.caffeineAmount } }
+                val weeklySums = entries.groupBy { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; "${c.get(Calendar.YEAR)}-${c.get(Calendar.WEEK_OF_YEAR)}" }.values.map { it.filter { e -> e.type == "CUP" }.sumOf { e -> e.caffeineAmount } }
                 Triple(entries.filter { it.timestamp >= startOfWeek }, entries.filter { it.timestamp in (startOfWeek - 604800000) until startOfWeek }, if(weeklySums.isEmpty()) 0 else weeklySums.average().toInt())
             }
             DiaryPeriod.MES -> {
                 calendar.timeInMillis = now
                 calendar.set(Calendar.DAY_OF_MONTH, 1); calendar.set(Calendar.HOUR_OF_DAY, 0)
                 val startOfMonth = calendar.timeInMillis
-                val monthlySums = entries.groupBy { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; "${c.get(Calendar.YEAR)}-${c.get(Calendar.MONTH)}" }.values.map { it.sumOf { e -> e.caffeineAmount } }
-                Triple(entries.filter { it.timestamp >= startOfMonth }, emptyList(), if(monthlySums.isEmpty()) 0 else monthlySums.average().toInt())
+                val monthlySums = entries.groupBy { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; "${c.get(Calendar.YEAR)}-${c.get(Calendar.MONTH)}" }.values.map { it.filter { e -> e.type == "CUP" }.sumOf { e -> e.caffeineAmount } }
+                Triple(entries.filter { it.timestamp >= startOfMonth }, emptyList<DiaryEntryEntity>(), if(monthlySums.isEmpty()) 0 else monthlySums.average().toInt())
             }
         }
 
-        val total = currentEntries.sumOf { it.caffeineAmount }
-        val prevTotal = previousEntries.sumOf { it.caffeineAmount }
+        val total = currentEntries.filter { it.type == "CUP" }.sumOf { it.caffeineAmount }
+        val prevTotal = previousEntries.filter { it.type == "CUP" }.sumOf { it.caffeineAmount }
         val comp = if (prevTotal == 0) 0 else ((total - prevTotal).toFloat() / prevTotal * 100).toInt()
 
         val chartData = when (period) {
-            DiaryPeriod.HOY -> (0..23).map { hour -> String.format("%02d:00", hour) to currentEntries.filter { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; c.get(Calendar.HOUR_OF_DAY) == hour }.sumOf { it.caffeineAmount } }
-            DiaryPeriod.SEMANA -> listOf("Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom").mapIndexed { i, d -> d to currentEntries.filter { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; val day = c.get(Calendar.DAY_OF_WEEK); (if (day == Calendar.SUNDAY) 6 else day - 2) == i }.sumOf { it.caffeineAmount } }
-            DiaryPeriod.MES -> {
-                calendar.timeInMillis = now
-                val maxDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-                (1..maxDays).map { day -> 
-                    day.toString() to currentEntries.filter { 
-                        val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
-                        c.get(Calendar.DAY_OF_MONTH) == day 
-                    }.sumOf { it.caffeineAmount } 
+            DiaryPeriod.HOY -> {
+                val hourlyData = currentEntries.filter { it.type == "CUP" }.groupBy { 
+                    Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.HOUR_OF_DAY)
                 }
+                (0..23).map { hour -> String.format("%02d:00", hour) to (hourlyData[hour]?.sumOf { it.caffeineAmount } ?: 0) }
+            }
+            DiaryPeriod.SEMANA -> {
+                val weeklyData = currentEntries.filter { it.type == "CUP" }.groupBy { 
+                    val day = Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_WEEK)
+                    if (day == Calendar.SUNDAY) 6 else day - 2
+                }
+                listOf("Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom").mapIndexed { i, d -> d to (weeklyData[i]?.sumOf { it.caffeineAmount } ?: 0) }
+            }
+            DiaryPeriod.MES -> {
+                val maxDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val monthlyData = currentEntries.filter { it.type == "CUP" }.groupBy { 
+                    Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_MONTH)
+                }
+                (1..maxDays).map { day -> day.toString() to (monthlyData[day]?.sumOf { it.caffeineAmount } ?: 0) }
             }
         }
 
         DiaryAnalytics(chartData, currentEntries.count { it.type == "WATER" }, currentEntries.count { it.type == "CUP" }, total, averageValue, comp, period)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    }
+    .flowOn(Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun setPeriod(period: DiaryPeriod) { _selectedPeriod.value = period }
     
-    fun addCoffeeConsumption(coffeeId: String?, coffeeName: String, caffeineAmount: Int, amountMl: Int, coffeeGrams: Int) {
+    fun addCoffeeConsumption(
+        coffeeId: String?, 
+        coffeeName: String, 
+        coffeeBrand: String,
+        caffeineAmount: Int, 
+        amountMl: Int, 
+        coffeeGrams: Int,
+        preparationType: String
+    ) {
         viewModelScope.launch { 
-            diaryRepository.addDiaryEntry(coffeeId, coffeeName, caffeineAmount, "CUP", amountMl, coffeeGrams) 
+            diaryRepository.addDiaryEntry(coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams, preparationType) 
         }
     }
     
     fun addWaterConsumption(amountMl: Int) {
-        viewModelScope.launch { diaryRepository.addDiaryEntry(null, "Agua", 0, "WATER", amountMl, 0) }
+        viewModelScope.launch { diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None") }
     }
     
     fun deleteEntry(entryId: Long) { viewModelScope.launch { diaryRepository.deleteDiaryEntry(entryId) } }

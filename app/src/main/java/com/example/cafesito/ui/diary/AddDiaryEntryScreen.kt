@@ -1,14 +1,17 @@
 package com.example.cafesito.ui.diary
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,8 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,7 +47,7 @@ import kotlin.math.roundToInt
 fun AddDiaryEntryScreen(
     initialType: String,
     onBackClick: () -> Unit,
-    onAddPantryItemClick: () -> Unit,
+    onAddNotFoundClick: () -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
@@ -49,39 +55,43 @@ fun AddDiaryEntryScreen(
     
     var selectedCoffee by remember { mutableStateOf<com.example.cafesito.data.Coffee?>(null) }
     var step by remember { mutableIntStateOf(1) } 
-    var waterAmountMl by remember { mutableFloatStateOf(250f) }
 
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+
+    val isCustomizing = initialType != "WATER" && step == 2
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { 
                     Text(
-                        text = if (initialType == "WATER") "Hidratación" 
-                               else if (step == 1) "Seleccionar Café" 
-                               else "Personalizar Taza",
-                        fontWeight = FontWeight.Bold 
+                        text = if (initialType == "WATER") "Añadir Agua" else if (step == 1) "Seleccionar Café" else "Personalizar Taza",
+                        fontWeight = FontWeight.Normal,
+                        color = if (isCustomizing) Color.White else Color.Black
                     ) 
                 },
                 navigationIcon = {
                     IconButton(onClick = { if (step == 2) step = 1 else onBackClick() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = "Atrás", 
+                            tint = if (isCustomizing) Color.White else Color.Black
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = if (isCustomizing) Color.Transparent else Color(0xFFF9F5F2)
+                )
             )
         },
-        containerColor = Color.White
+        containerColor = if (isCustomizing) Color.White else Color(0xFFF9F5F2)
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize().let { if (!isCustomizing) it.padding(padding) else it }) {
             if (initialType == "WATER") {
-                WaterRegistrationView(
-                    amount = waterAmountMl,
-                    onAmountChange = { waterAmountMl = it },
-                    onRegister = {
-                        viewModel.addWaterConsumption(waterAmountMl.toInt())
+                WaterRegistrationStep(
+                    onRegister = { ml ->
+                        viewModel.addWaterConsumption(ml)
                         onBackClick()
                     }
                 )
@@ -105,7 +115,7 @@ fun AddDiaryEntryScreen(
                             isSearchActive = isSearchActive,
                             onSearchToggle = { isSearchActive = !isSearchActive },
                             onSearchQueryChange = { searchQuery = it },
-                            onAddPantryClick = onAddPantryItemClick,
+                            onAddNotFoundClick = onAddNotFoundClick,
                             onCoffeeSelected = { 
                                 selectedCoffee = it
                                 step = 2 
@@ -115,8 +125,16 @@ fun AddDiaryEntryScreen(
                         selectedCoffee?.let { coffee ->
                             CoffeeCustomizationStep(
                                 coffee = coffee,
-                                onRegister = { name, caffeine, ml, grams ->
-                                    viewModel.addCoffeeConsumption(coffee.id, name, caffeine, ml, grams)
+                                onRegister = { name, caffeine, ml, grams, prepType ->
+                                    viewModel.addCoffeeConsumption(
+                                        coffeeId = coffee.id, 
+                                        coffeeName = coffee.nombre, 
+                                        coffeeBrand = coffee.marca, 
+                                        caffeineAmount = caffeine, 
+                                        amountMl = ml, 
+                                        coffeeGrams = grams, 
+                                        preparationType = prepType
+                                    )
                                     onBackClick()
                                 }
                             )
@@ -129,6 +147,51 @@ fun AddDiaryEntryScreen(
 }
 
 @Composable
+fun WaterRegistrationStep(onRegister: (Int) -> Unit) {
+    var ml by remember { mutableFloatStateOf(250f) }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Default.WaterDrop,
+            contentDescription = null,
+            modifier = Modifier.size(100.dp),
+            tint = Color(0xFF2196F3)
+        )
+        Spacer(Modifier.height(32.dp))
+        Text(
+            text = "${ml.roundToInt()} ml",
+            style = MaterialTheme.typography.displayMedium,
+            fontWeight = FontWeight.Black,
+            color = Color(0xFF2196F3)
+        )
+        Spacer(Modifier.height(48.dp))
+        Slider(
+            value = ml,
+            onValueChange = { ml = it },
+            valueRange = 50f..1000f,
+            steps = 18,
+            colors = SliderDefaults.colors(
+                thumbColor = Color(0xFF2196F3),
+                activeTrackColor = Color(0xFF2196F3)
+            )
+        )
+        Spacer(Modifier.height(64.dp))
+        Button(
+            onClick = { onRegister(ml.roundToInt()) },
+            modifier = Modifier.fillMaxWidth().height(60.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text("REGISTRAR AGUA", fontWeight = FontWeight.ExtraBold, color = Color.White)
+        }
+    }
+}
+
+@Composable
 fun CoffeeSelectionStep(
     pantryItems: List<PantryItemWithDetails>,
     allCoffees: List<CoffeeWithDetails>,
@@ -136,56 +199,49 @@ fun CoffeeSelectionStep(
     isSearchActive: Boolean,
     onSearchToggle: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
-    onAddPantryClick: () -> Unit,
+    onAddNotFoundClick: () -> Unit,
     onCoffeeSelected: (com.example.cafesito.data.Coffee) -> Unit
 ) {
-    val filteredSugerencias = allCoffees.filter { 
+    val filteredCatalog = allCoffees.filter { 
         it.coffee.nombre.contains(searchQuery, ignoreCase = true) || 
         it.coffee.marca.contains(searchQuery, ignoreCase = true)
-    }.take(10)
+    }.take(15)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        contentPadding = PaddingValues(16.dp)
     ) {
+        // --- MI DESPENSA ---
         item {
-            Text("Tu Despensa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Mi despensa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Normal)
             Spacer(Modifier.height(16.dp))
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item {
-                    Surface(
-                        onClick = onAddPantryClick,
-                        modifier = Modifier.size(160.dp, 200.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        color = Color(0xFFF8F8F8),
-                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.2f))
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = CoffeeBrown, modifier = Modifier.size(48.dp))
+            if (pantryItems.isEmpty()) {
+                Text("Tu despensa está vacía", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
+            } else {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(pantryItems) { item ->
+                        PantrySuggestionCard(item) { 
+                            onCoffeeSelected(item.coffee) 
                         }
                     }
                 }
-                items(pantryItems) { item ->
-                    PantrySuggestionCard(item) { 
-                        onCoffeeSelected(item.coffee) 
-                    }
-                }
             }
+            Spacer(Modifier.height(32.dp))
         }
 
+        // --- SUGERENCIAS ---
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Sugerencias", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Sugerencias", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Normal)
                 IconButton(onClick = onSearchToggle) {
-                    Icon(if (isSearchActive) Icons.Default.Close else Icons.Default.Search, contentDescription = null)
+                    Icon(if (isSearchActive) Icons.Default.Close else Icons.Default.Search, contentDescription = null, tint = Color.Black)
                 }
             }
             
@@ -194,16 +250,223 @@ fun CoffeeSelectionStep(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    placeholder = { Text("Busca cualquier café...") },
+                    placeholder = { Text("Busca en el catálogo...") },
                     shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CoffeeBrown)
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = CoffeeBrown,
+                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = Color.White
+                    )
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
+        items(filteredCatalog) { coffee ->
+            CoffeeRowItem(coffee) { onCoffeeSelected(coffee.coffee) }
+        }
+
+        item {
+            Spacer(Modifier.height(24.dp))
+            Button(
+                onClick = onAddNotFoundClick,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CoffeeBrown,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Café no encontrado", fontWeight = FontWeight.ExtraBold)
+            }
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun CoffeeCustomizationStep(
+    coffee: com.example.cafesito.data.Coffee,
+    onRegister: (String, Int, Int, Int, String) -> Unit
+) {
+    var grams by remember { mutableFloatStateOf(15f) }
+    var selectedPrepType by remember { mutableStateOf("Espresso") }
+    val context = LocalContext.current
+    
+    val prepTypes = remember {
+        listOf(
+            Triple("Espresso", "espresso", "Corto e intenso"),
+            Triple("Marroqui", "marroqui", "Con especias"),
+            Triple("Aguamiles", "aguamiel", "Endulzado con aguamiel"),
+            Triple("Americano", "americano", "Espresso con agua caliente"),
+            Triple("Capuchino", "capuchino", "Espresso, leche y espuma"),
+            Triple("Latte", "latte", "Mucha leche"),
+            Triple("Macchiato", "macchiato", "Espresso con gota de leche"),
+            Triple("Moca", "moca", "Espresso con chocolate y leche"),
+            Triple("Bombón", "bombon", "Con leche condensada"),
+            Triple("Vienés", "vienes", "Espresso con nata montada"),
+            Triple("Affogato", "affogato", "Espresso sobre helado"),
+            Triple("Irlandés", "irlandes", "Con whisky y nata"),
+            Triple("Corretto", "corretto", "Con un toque de licor"),
+            Triple("Frappuccino", "frappuccino", "Batido con hielo y nata"),
+            Triple("Solo con hielo", "freddo", "Refrescante"),
+            Triple("Latte macchiato", "latte_macchiato", "Leche manchada"),
+            Triple("Leche con chocolate", "leche_con_chocolate", "Para los más dulces"),
+            Triple("Lungo", "lungo", "Más agua, menos cuerpo"),
+            Triple("Romano", "romano", "Con rodaja de limón")
+        )
+    }
+
+    val prepConfig = mapOf(
+        "Espresso" to Pair(80, 40),
+        "Marroqui" to Pair(70, 60),
+        "Aguamiles" to Pair(60, 150),
+        "Americano" to Pair(80, 150),
+        "Capuchino" to Pair(80, 180),
+        "Latte" to Pair(80, 250),
+        "Macchiato" to Pair(70, 50),
+        "Moca" to Pair(90, 250),
+        "Bombón" to Pair(50, 60),
+        "Vienés" to Pair(60, 100),
+        "Affogato" to Pair(40, 50),
+        "Irlandés" to Pair(60, 150),
+        "Corretto" to Pair(70, 50),
+        "Frappuccino" to Pair(60, 300),
+        "Solo con hielo" to Pair(80, 100),
+        "Latte macchiato" to Pair(70, 250),
+        "Leche con chocolate" to Pair(30, 250),
+        "Lungo" to Pair(90, 60),
+        "Romano" to Pair(80, 50)
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxWidth().height(400.dp)) {
+            AsyncImage(
+                model = coffee.imageUrl.ifBlank { null },
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                error = rememberVectorPainter(Icons.Default.Coffee)
+            )
+            Box(
+                modifier = Modifier.fillMaxSize()
+                    .background(Brush.verticalGradient(
+                        colors = listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                        startY = 0f
+                    ))
+            )
+            Column(
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, end = 24.dp, bottom = 80.dp)
+            ) {
+                Text(text = coffee.marca, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
+                Text(
+                    text = coffee.nombre, 
+                    color = Color.White, 
+                    style = MaterialTheme.typography.headlineSmall, 
+                    fontWeight = FontWeight.Bold, 
+                    maxLines = 3, 
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
 
-        items(filteredSugerencias) { coffee ->
-            CoffeeRowItem(coffee) { onCoffeeSelected(coffee.coffee) }
-            HorizontalDivider(modifier = Modifier.padding(start = 64.dp), thickness = 0.5.dp, color = Color(0xFFEEEEEE))
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
+            item { Spacer(Modifier.height(340.dp)) }
+
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White, RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                        .padding(top = 40.dp)
+                ) {
+                    Text("Cantidad de café", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 24.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text("${grams.roundToInt()} g", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = CoffeeBrown, modifier = Modifier.padding(horizontal = 24.dp))
+                    Slider(
+                        value = grams,
+                        onValueChange = { grams = it },
+                        valueRange = 5f..50f,
+                        steps = 44,
+                        colors = SliderDefaults.colors(thumbColor = CoffeeBrown, activeTrackColor = CoffeeBrown),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(Modifier.height(32.dp))
+
+                    Text("Tipo de preparación", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 24.dp))
+                    Spacer(Modifier.height(16.dp))
+
+                    Box(modifier = Modifier.height(850.dp).padding(horizontal = 24.dp)) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            userScrollEnabled = false
+                        ) {
+                            items(prepTypes) { (type, resName, _) ->
+                                val isSelected = selectedPrepType == type
+                                val imageRes = remember(resName) {
+                                    context.resources.getIdentifier(resName, "drawable", context.packageName)
+                                }
+                                
+                                Surface(
+                                    onClick = { selectedPrepType = type },
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (isSelected) CoffeeBrown.copy(alpha = 0.08f) else Color(0xFFFBFBFB),
+                                    border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) CoffeeBrown else Color.LightGray.copy(alpha = 0.2f))
+                                ) {
+                                    Column(
+                                        Modifier.padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        if (imageRes != 0) {
+                                            Image(
+                                                painter = painterResource(id = imageRes),
+                                                contentDescription = type,
+                                                modifier = Modifier.size(64.dp)
+                                            )
+                                        } else {
+                                            Icon(Icons.Default.Coffee, null, tint = CoffeeBrown, modifier = Modifier.size(64.dp))
+                                        }
+                                        
+                                        Spacer(Modifier.height(12.dp))
+                                        Text(
+                                            type, 
+                                            color = Color.Black, 
+                                            fontSize = 13.sp, 
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(32.dp))
+
+                    val config = prepConfig[selectedPrepType] ?: Pair(80, 150)
+                    Button(
+                        onClick = { 
+                            onRegister("${coffee.nombre} ($selectedPrepType)", config.first, config.second, grams.roundToInt(), selectedPrepType) 
+                        },
+                        modifier = Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text("REGISTRAR CONSUMO", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
+                    }
+                    Spacer(Modifier.height(40.dp))
+                }
+            }
         }
     }
 }
@@ -215,219 +478,98 @@ fun PantrySuggestionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
     } else 0f
     
     Card(
-        modifier = Modifier.size(160.dp, 200.dp).clickable(onClick = onClick),
+        modifier = Modifier
+            .width(220.dp)
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(24.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
-        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            AsyncImage(
-                model = item.coffee.imageUrl.ifBlank { null },
-                contentDescription = null,
-                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF5F5F5)),
-                contentScale = ContentScale.Crop,
-                error = rememberVectorPainter(Icons.Default.Coffee),
-                placeholder = rememberVectorPainter(Icons.Default.Refresh)
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = item.coffee.nombre, 
-                maxLines = 2, 
-                overflow = TextOverflow.Ellipsis, 
-                fontSize = 14.sp, 
-                fontWeight = FontWeight.Bold,
-                lineHeight = 18.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = if (item.pantryItem.totalGrams > 0) "${item.pantryItem.gramsRemaining}g restantes" else "Sin stock", 
-                fontSize = 11.sp, 
-                color = Color.Gray
-            )
-            Spacer(Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                color = CoffeeBrown,
-                trackColor = Color(0xFFF0F0F0)
-            )
-        }
-    }
-}
-
-@Composable
-fun CoffeeCustomizationStep(
-    coffee: com.example.cafesito.data.Coffee,
-    onRegister: (String, Int, Int, Int) -> Unit
-) {
-    var selectedType by remember { mutableStateOf("Espresso") }
-    // Triple: Nombre, Cafeína mg, ML, Gramos café
-    val coffeeTypes = listOf(
-        listOf("Espresso", 80, 40, 9),
-        listOf("Café con leche", 80, 200, 15),
-        listOf("Mocca", 90, 250, 15),
-        listOf("Americano", 80, 150, 15),
-        listOf("Capuchino", 80, 180, 15)
-    )
-
-    Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        AsyncImage(
-            model = coffee.imageUrl.ifBlank { null },
-            contentDescription = null,
-            modifier = Modifier.size(120.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFF5F5F5)),
-            contentScale = ContentScale.Crop,
-            error = rememberVectorPainter(Icons.Default.Coffee)
-        )
-        Text(text = coffee.nombre, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp))
-        Text(text = coffee.marca, color = Color.Gray)
-
-        Spacer(Modifier.height(32.dp))
-        Text("¿Cómo lo has preparado?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Start))
-        
-        Spacer(Modifier.height(16.dp))
-        
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(coffeeTypes) { data ->
-                val type = data[0] as String
-                val isSelected = selectedType == type
-                Surface(
-                    onClick = { selectedType = type },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) CoffeeBrown else Color(0xFFF5F5F5),
-                    modifier = Modifier.width(130.dp)
+        Column {
+            Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+                AsyncImage(
+                    model = item.coffee.imageUrl.ifBlank { null },
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    error = rememberVectorPainter(Icons.Default.Coffee)
+                )
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                        .background(Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+                            startY = 200f
+                        ))
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(12.dp)
                 ) {
-                    Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = if (type == "Espresso") Icons.Default.Coffee else Icons.Default.LocalCafe,
-                            contentDescription = null,
-                            tint = if (isSelected) Color.White else Color.Black
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(type, color = if (isSelected) Color.White else Color.Black, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 1)
-                    }
+                    Text(
+                        text = item.coffee.marca,
+                        color = Color.White.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Text(
+                        text = item.coffee.nombre,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        val currentData = coffeeTypes.find { it[0] == selectedType }!!
-        Button(
-            onClick = { 
-                onRegister(
-                    "${coffee.nombre} (${currentData[0]})", 
-                    currentData[1] as Int, 
-                    currentData[2] as Int,
-                    currentData[3] as Int
-                ) 
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("REGISTRAR TAZA", fontWeight = FontWeight.Bold, color = Color.White)
-        }
-    }
-}
-
-@Composable
-fun WaterRegistrationView(
-    amount: Float,
-    onAmountChange: (Float) -> Unit,
-    onRegister: () -> Unit
-) {
-    val animatedFill = animateFloatAsState(targetValue = amount / 2000f, label = "waterFill")
-
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(Modifier.height(10.dp))
-        
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.width(40.dp).height(15.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF1976D2)))
-            Box(Modifier.width(55.dp).height(30.dp).background(Color(0xFFF0F7FF)).border(2.dp, Color(0xFFE1E9F3)))
-            Box(
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(260.dp)
-                    .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
-                    .background(Color(0xFFF0F7FF))
-                    .border(2.dp, Color(0xFFE1E9F3), RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)),
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(animatedFill.value)
-                        .background(Brush.verticalGradient(listOf(Color(0xFF64B5F6), Color(0xFF2196F3))))
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = "${item.pantryItem.gramsRemaining}g / ${item.pantryItem.totalGrams}g",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Medium
                 )
-                Box(
-                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 10.dp).width(8.dp).fillMaxHeight(0.8f).clip(CircleShape).background(Color.White.copy(alpha = 0.3f))
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                    color = CoffeeBrown,
+                    trackColor = Color(0xFFF0F0F0)
                 )
             }
-        }
-
-        Spacer(Modifier.height(30.dp))
-
-        Text(text = "${amount.roundToInt()} ml", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black, color = Color(0xFF1976D2))
-        
-        Text(text = if (amount >= 1000) String.format("%.1f Litros", amount/1000f) else "Volumen de hidratación", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-
-        Spacer(Modifier.weight(1f))
-
-        Slider(
-            value = amount,
-            onValueChange = onAmountChange,
-            valueRange = 0f..2000f,
-            steps = 19,
-            colors = SliderDefaults.colors(thumbColor = Color(0xFF2196F3), activeTrackColor = Color(0xFF2196F3), inactiveTrackColor = Color(0xFFE3F2FD))
-        )
-        
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("0ml", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            Text("2L", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        Button(
-            onClick = onRegister,
-            modifier = Modifier.fillMaxWidth().height(60.dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-        ) {
-            Text("REGISTRAR", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
         }
     }
 }
 
 @Composable
 fun CoffeeRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
-    Surface(
+    Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        color = Color.White
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(0.dp),
+        border = BorderStroke(0.5.dp, Color(0xFFEEEEEE))
     ) {
-        Row(Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffee.coffee.imageUrl.ifBlank { null }, 
                 contentDescription = null, 
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF5F5F5)), 
+                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(Color.White), 
                 contentScale = ContentScale.Crop,
                 error = rememberVectorPainter(Icons.Default.Coffee)
             )
             Spacer(Modifier.width(16.dp))
             Column {
-                Text(coffee.coffee.nombre, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(coffee.coffee.marca, color = Color.Gray, fontSize = 12.sp)
+                Text(
+                    text = coffee.coffee.nombre, 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 15.sp, 
+                    maxLines = 2, 
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(coffee.coffee.marca, color = Color.Gray, fontSize = 13.sp)
             }
         }
     }
-}
-
-@Composable
-fun HorizontalDivider(modifier: Modifier = Modifier, thickness: androidx.compose.ui.unit.Dp = 1.dp, color: Color = Color.Black) {
-    androidx.compose.material3.HorizontalDivider(modifier = modifier, thickness = thickness, color = color)
 }

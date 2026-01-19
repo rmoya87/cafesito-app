@@ -230,12 +230,19 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 AddDiaryEntryScreen(
                     initialType = type,
                     onBackClick = { navController.popBackStack() },
-                    onAddPantryItemClick = { navController.navigate("addPantryItem") }
+                    onAddNotFoundClick = { navController.navigate("addPantryItem?onlyActivity=true") }
                 )
             }
 
-            composable("addPantryItem") {
+            composable(
+                route = "addPantryItem?onlyActivity={onlyActivity}",
+                arguments = listOf(
+                    navArgument("onlyActivity") { type = NavType.BoolType; defaultValue = false }
+                )
+            ) { backStackEntry ->
+                val onlyActivity = backStackEntry.arguments?.getBoolean("onlyActivity") ?: false
                 AddPantryItemScreen(
+                    onlyActivity = onlyActivity,
                     onBackClick = { navController.popBackStack() }
                 )
             }

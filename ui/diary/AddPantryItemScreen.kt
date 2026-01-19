@@ -33,8 +33,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPantryItemScreen(
-    onBackClick: () -> Unit,
     onlyActivity: Boolean = false,
+    onBackClick: () -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     var name by remember { mutableStateOf("") }
@@ -57,12 +57,12 @@ fun AddPantryItemScreen(
         imageUri = uri
     }
 
-    val isFormValid = name.isNotBlank() && brand.isNotBlank() && imageUri != null && grams.isNotEmpty()
+    val isFormValid = name.isNotBlank() && brand.isNotBlank() && grams.isNotEmpty()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nuevo Café", fontWeight = FontWeight.Bold, color = Color.Black) },
+                title = { Text(if (onlyActivity) "Registrar nuevo café" else "Nuevo Café", fontWeight = FontWeight.Bold, color = Color.Black) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.Black)
@@ -216,7 +216,7 @@ fun AddPantryItemScreen(
                         OutlinedTextField(
                             value = grams,
                             onValueChange = { grams = it },
-                            label = { Text("Peso total de la bolsa (g)") },
+                            label = { Text(if (onlyActivity) "Gramos a registrar" else "Peso total de la bolsa (g)") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
@@ -229,19 +229,33 @@ fun AddPantryItemScreen(
             item {
                 Button(
                     onClick = { 
-                        viewModel.saveCustomCoffee(
-                            name = name,
-                            brand = brand,
-                            specialty = specialty,
-                            roast = roast,
-                            variety = variety,
-                            country = country,
-                            hasCaffeine = hasCaffeine,
-                            format = format,
-                            totalGrams = grams.toIntOrNull() ?: 250,
-                            imageUri = imageUri,
-                            onSuccess = { onBackClick() }
-                        )
+                        if (onlyActivity) {
+                            // En este caso idealmente iríamos a personalización pero para simplificar lo registramos directo como "Manual"
+                            viewModel.addCoffeeConsumption(
+                                coffeeId = null,
+                                coffeeName = name,
+                                coffeeBrand = brand,
+                                caffeineAmount = 80, // valor base
+                                amountMl = 150,
+                                coffeeGrams = grams.toIntOrNull() ?: 15,
+                                preparationType = "Manual"
+                            )
+                            onBackClick()
+                        } else {
+                            viewModel.saveCustomCoffee(
+                                name = name,
+                                brand = brand,
+                                specialty = specialty,
+                                roast = roast,
+                                variety = variety,
+                                country = country,
+                                hasCaffeine = hasCaffeine,
+                                format = format,
+                                totalGrams = grams.toIntOrNull() ?: 250,
+                                imageUri = imageUri,
+                                onSuccess = { onBackClick() }
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     enabled = isFormValid,
@@ -252,11 +266,7 @@ fun AddPantryItemScreen(
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        text = if (onlyActivity) "AÑADIR Y SELECCIONAR" else "DAR DE ALTA CAFÉ",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 16.sp
-                    )
+                    Text(if (onlyActivity) "REGISTRAR TAZA" else "DAR DE ALTA CAFÉ", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                 }
             }
             item { Spacer(Modifier.height(12.dp)) }

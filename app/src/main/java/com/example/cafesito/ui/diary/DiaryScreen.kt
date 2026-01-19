@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -158,7 +159,7 @@ fun DiaryScreen(
                     }
                 }
             } else {
-                items(entries, key = { it.id }) { entry ->
+                items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
                     Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                         SwipeableDiaryItem(
                             entry = entry,
@@ -255,15 +256,34 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier.size(44.dp).background(if (entry.type == "WATER") Color(0xFFE3F2FD) else CoffeeBrown.copy(alpha = 0.1f), CircleShape),
+                modifier = Modifier.size(48.dp).background(
+                    if (entry.type == "WATER") Color(0xFFE3F2FD) else CoffeeBrown.copy(alpha = 0.1f), 
+                    CircleShape
+                ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, contentDescription = null, tint = if (entry.type == "WATER") Color(0xFF2196F3) else CoffeeBrown, modifier = Modifier.size(22.dp))
+                Icon(
+                    imageVector = if (entry.type == "WATER") Icons.Default.WaterDrop 
+                                 else when(entry.preparationType) {
+                                     "Espresso", "Ristretto", "Lungo", "Doppio" -> Icons.Default.Coffee
+                                     else -> Icons.Default.LocalCafe
+                                 }, 
+                    contentDescription = null, 
+                    tint = if (entry.type == "WATER") Color(0xFF2196F3) else CoffeeBrown, 
+                    modifier = Modifier.size(24.dp)
+                )
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(entry.coffeeName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
-                Text("$dateStr • ${if (entry.type == "WATER") "${entry.amountMl}ml" else "${entry.caffeineAmount}mg"}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(entry.coffeeName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (entry.type == "CUP") {
+                    Text(entry.coffeeBrand, color = Color.Gray, fontSize = 12.sp)
+                }
+                Text(
+                    text = "$dateStr • ${if (entry.type == "WATER") "${entry.amountMl}ml" else "${entry.coffeeGrams}g - ${entry.preparationType}"}", 
+                    style = MaterialTheme.typography.labelSmall, 
+                    color = CoffeeBrown.copy(alpha = 0.7f)
+                )
             }
         }
     }
@@ -445,33 +465,41 @@ fun PantryCard(item: PantryItemWithDetails, onClick: () -> Unit, onRemove: () ->
         else -> CoffeeBrown
     }
     Card(
-        modifier = Modifier.width(150.dp).clickable(onClick = onClick),
+        modifier = Modifier.width(160.dp).clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(1.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(24.dp),
         border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
-        Column(Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(
-                    model = item.coffee.imageUrl.ifBlank { null }, 
-                    contentDescription = null, 
-                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFF5F5F5)), 
-                    contentScale = ContentScale.Crop,
-                    error = rememberVectorPainter(Icons.Default.Coffee)
-                )
-                Spacer(Modifier.width(8.dp))
-                Column {
-                    Text(item.coffee.nombre, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text(
-                        text = if (item.pantryItem.totalGrams > 0) "${item.pantryItem.gramsRemaining}g" else "Sin stock", 
-                        fontSize = 10.sp, 
-                        color = color, 
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            AsyncImage(
+                model = item.coffee.imageUrl.ifBlank { null },
+                contentDescription = null,
+                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF5F5F5)),
+                contentScale = ContentScale.Crop,
+                error = rememberVectorPainter(Icons.Default.Coffee)
+            )
             Spacer(Modifier.height(12.dp))
-            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape), color = color, trackColor = Color(0xFFF0F0F0))
+            Text(
+                text = item.coffee.nombre, 
+                maxLines = 1, 
+                overflow = TextOverflow.Ellipsis, 
+                fontSize = 14.sp, 
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "${item.pantryItem.gramsRemaining}g restantes", 
+                fontSize = 11.sp, 
+                color = Color.Gray
+            )
+            Spacer(Modifier.height(12.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                color = CoffeeBrown,
+                trackColor = Color(0xFFF0F0F0)
+            )
         }
     }
 }

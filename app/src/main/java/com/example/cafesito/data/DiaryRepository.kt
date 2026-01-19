@@ -27,7 +27,10 @@ class DiaryRepository @Inject constructor(
             val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
             try {
                 emit(supabaseDataSource.getDiaryEntries(user.id))
-            } catch (e: Exception) { emit(emptyList()) }
+            } catch (e: Exception) { 
+                Log.e("DIARY_REPO", "Error cargando entradas", e)
+                emit(emptyList()) 
+            }
         }
     }
 
@@ -68,10 +71,12 @@ class DiaryRepository @Inject constructor(
     suspend fun addDiaryEntry(
         coffeeId: String?, 
         coffeeName: String, 
+        coffeeBrand: String,
         caffeineAmount: Int, 
         type: String = "CUP", 
         amountMl: Int = 250,
-        coffeeGrams: Int = 15
+        coffeeGrams: Int = 15,
+        preparationType: String = "Espresso"
     ) {
         val user = userRepository.getActiveUser() ?: return
         withContext(NonCancellable) {
@@ -80,9 +85,11 @@ class DiaryRepository @Inject constructor(
                     userId = user.id, 
                     coffeeId = coffeeId, 
                     coffeeName = coffeeName, 
+                    coffeeBrand = coffeeBrand,
                     caffeineAmount = caffeineAmount, 
                     amountMl = amountMl, 
                     coffeeGrams = coffeeGrams,
+                    preparationType = preparationType,
                     timestamp = System.currentTimeMillis(), 
                     type = type
                 )
@@ -112,9 +119,8 @@ class DiaryRepository @Inject constructor(
                 )
                 supabaseDataSource.upsertPantryItem(updated)
             } else {
-                // Si no existe el registro de stock, lo creamos ahora
-                val customCoffees = supabaseDataSource.getCustomCoffees(user.id)
-                val totalG = customCoffees.find { it.id == coffeeId }?.totalGrams ?: 250
+                val customEntities = supabaseDataSource.getCustomCoffees(user.id)
+                val totalG = customEntities.find { it.id == coffeeId }?.totalGrams ?: 250
                 val newItem = PantryItemEntity(
                     coffeeId = coffeeId,
                     userId = user.id,
