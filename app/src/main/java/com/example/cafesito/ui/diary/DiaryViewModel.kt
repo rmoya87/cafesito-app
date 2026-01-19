@@ -157,6 +157,13 @@ class DiaryViewModel @Inject constructor(
     
     fun deleteEntry(entryId: Long) { viewModelScope.launch { diaryRepository.deleteDiaryEntry(entryId) } }
     fun addToPantry(coffeeId: String, grams: Int) { viewModelScope.launch { diaryRepository.addToPantry(coffeeId, grams) } }
+    
+    fun updateStock(coffeeId: String, total: Int, remaining: Int) {
+        viewModelScope.launch {
+            diaryRepository.updatePantryStockFull(coffeeId, total, remaining)
+        }
+    }
+
     fun removeFromPantry(coffeeId: String) { viewModelScope.launch { diaryRepository.deletePantryItem(coffeeId) } }
     
     fun saveCustomCoffee(
@@ -175,6 +182,26 @@ class DiaryViewModel @Inject constructor(
                 onSuccess()
             } catch (e: Exception) { 
                 Log.e("DIARY_VIEWMODEL", "Error al guardar café personalizado", e)
+            }
+        }
+    }
+
+    fun updateCustomCoffee(
+        id: String, name: String, brand: String, specialty: String, roast: String?, 
+        variety: String?, country: String, hasCaffeine: Boolean, format: String, 
+        imageUri: Uri?, totalGrams: Int, onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val imageBytes = imageUri?.let { uri ->
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }
+                diaryRepository.updateCustomCoffee(
+                    id, name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams
+                )
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("DIARY_VIEWMODEL", "Error al actualizar café personalizado", e)
             }
         }
     }

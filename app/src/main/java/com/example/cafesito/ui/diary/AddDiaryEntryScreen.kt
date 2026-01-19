@@ -63,27 +63,23 @@ fun AddDiaryEntryScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        text = if (initialType == "WATER") "Añadir Agua" else if (step == 1) "Seleccionar Café" else "Personalizar Taza",
-                        fontWeight = FontWeight.Normal,
-                        color = if (isCustomizing) Color.White else Color.Black
-                    ) 
-                },
-                navigationIcon = {
-                    IconButton(onClick = { if (step == 2) step = 1 else onBackClick() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack, 
-                            contentDescription = "Atrás", 
-                            tint = if (isCustomizing) Color.White else Color.Black
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isCustomizing) Color.Transparent else Color(0xFFF9F5F2)
+            if (!isCustomizing) {
+                TopAppBar(
+                    title = { 
+                        Text(
+                            text = if (initialType == "WATER") "Añadir Agua" else "Seleccionar Café",
+                            fontWeight = FontWeight.Normal,
+                            color = Color.Black
+                        ) 
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.Black)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF9F5F2))
                 )
-            )
+            }
         },
         containerColor = if (isCustomizing) Color.White else Color(0xFFF9F5F2)
     ) { padding ->
@@ -123,21 +119,24 @@ fun AddDiaryEntryScreen(
                         )
                     } else {
                         selectedCoffee?.let { coffee ->
-                            CoffeeCustomizationStep(
-                                coffee = coffee,
-                                onRegister = { name, caffeine, ml, grams, prepType ->
-                                    viewModel.addCoffeeConsumption(
-                                        coffeeId = coffee.id, 
-                                        coffeeName = coffee.nombre, 
-                                        coffeeBrand = coffee.marca, 
-                                        caffeineAmount = caffeine, 
-                                        amountMl = ml, 
-                                        coffeeGrams = grams, 
-                                        preparationType = prepType
-                                    )
-                                    onBackClick()
-                                }
-                            )
+                            Box(Modifier.fillMaxSize()) {
+                                CoffeeCustomizationStep(
+                                    coffee = coffee,
+                                    onBackStep = { step = 1 },
+                                    onRegister = { name, caffeine, ml, grams, prepType ->
+                                        viewModel.addCoffeeConsumption(
+                                            coffeeId = coffee.id, 
+                                            coffeeName = coffee.nombre, 
+                                            coffeeBrand = coffee.marca, 
+                                            caffeineAmount = caffeine, 
+                                            amountMl = ml, 
+                                            coffeeGrams = grams, 
+                                            preparationType = prepType
+                                        )
+                                        onBackClick()
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -211,7 +210,6 @@ fun CoffeeSelectionStep(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp)
     ) {
-        // --- MI DESPENSA ---
         item {
             Text("Mi despensa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Normal)
             Spacer(Modifier.height(16.dp))
@@ -232,7 +230,6 @@ fun CoffeeSelectionStep(
             Spacer(Modifier.height(32.dp))
         }
 
-        // --- SUGERENCIAS ---
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -289,6 +286,7 @@ fun CoffeeSelectionStep(
 @Composable
 fun CoffeeCustomizationStep(
     coffee: com.example.cafesito.data.Coffee,
+    onBackStep: () -> Unit,
     onRegister: (String, Int, Int, Int, String) -> Unit
 ) {
     var grams by remember { mutableFloatStateOf(15f) }
@@ -305,9 +303,7 @@ fun CoffeeCustomizationStep(
             Triple("Latte", "latte", "Mucha leche"),
             Triple("Macchiato", "macchiato", "Espresso con gota de leche"),
             Triple("Moca", "moca", "Espresso con chocolate y leche"),
-            Triple("Bombón", "bombon", "Con leche condensada"),
             Triple("Vienés", "vienes", "Espresso con nata montada"),
-            Triple("Affogato", "affogato", "Espresso sobre helado"),
             Triple("Irlandés", "irlandes", "Con whisky y nata"),
             Triple("Corretto", "corretto", "Con un toque de licor"),
             Triple("Frappuccino", "frappuccino", "Batido con hielo y nata"),
@@ -328,9 +324,7 @@ fun CoffeeCustomizationStep(
         "Latte" to Pair(80, 250),
         "Macchiato" to Pair(70, 50),
         "Moca" to Pair(90, 250),
-        "Bombón" to Pair(50, 60),
         "Vienés" to Pair(60, 100),
-        "Affogato" to Pair(40, 50),
         "Irlandés" to Pair(60, 150),
         "Corretto" to Pair(70, 50),
         "Frappuccino" to Pair(60, 300),
@@ -357,6 +351,12 @@ fun CoffeeCustomizationStep(
                         startY = 0f
                     ))
             )
+            IconButton(
+                onClick = onBackStep,
+                modifier = Modifier.statusBarsPadding().padding(8.dp)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Atrás", tint = Color.White)
+            }
             Column(
                 modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, end = 24.dp, bottom = 80.dp)
             ) {
@@ -462,7 +462,7 @@ fun CoffeeCustomizationStep(
                         colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("REGISTRAR CONSUMO", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
+                        Text("AÑADIR AL DIARIO", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
                     }
                     Spacer(Modifier.height(40.dp))
                 }
@@ -522,7 +522,7 @@ fun PantrySuggestionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                     )
                 }
             }
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "${item.pantryItem.gramsRemaining}g / ${item.pantryItem.totalGrams}g",
                     style = MaterialTheme.typography.labelMedium,

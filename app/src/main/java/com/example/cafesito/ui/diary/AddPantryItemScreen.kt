@@ -35,6 +35,7 @@ import java.util.Locale
 fun AddPantryItemScreen(
     onBackClick: () -> Unit,
     onlyActivity: Boolean = false,
+    coffeeId: String? = null,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     var name by remember { mutableStateOf("") }
@@ -47,6 +48,30 @@ fun AddPantryItemScreen(
     var format by remember { mutableStateOf("Grano") }
     var grams by remember { mutableStateOf("250") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var existingImageUrl by remember { mutableStateOf("") }
+
+    val coffees by viewModel.availableCoffees.collectAsState()
+
+    LaunchedEffect(coffeeId, coffees) {
+        if (coffeeId != null && coffees.isNotEmpty()) {
+            coffees.find { it.coffee.id == coffeeId }?.let { details ->
+                val c = details.coffee
+                name = c.nombre
+                brand = c.marca
+                specialty = c.especialidad
+                roast = c.tueste
+                variety = c.variedadTipo ?: ""
+                country = c.paisOrigen ?: "España"
+                hasCaffeine = c.cafeina == "Sí"
+                format = c.formato
+                existingImageUrl = c.imageUrl
+                
+                viewModel.pantryItems.value.find { it.coffee.id == coffeeId }?.let {
+                    grams = it.pantryItem.totalGrams.toString()
+                }
+            }
+        }
+    }
 
     var countryExpanded by remember { mutableStateOf(false) }
     val countries = remember { 
@@ -57,12 +82,12 @@ fun AddPantryItemScreen(
         imageUri = uri
     }
 
-    val isFormValid = name.isNotBlank() && brand.isNotBlank() && imageUri != null && grams.isNotEmpty()
+    val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && grams.isNotEmpty()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nuevo Café", fontWeight = FontWeight.Bold, color = Color.Black) },
+                title = { Text(if (coffeeId != null) "Editar Café" else "Nuevo Café", fontWeight = FontWeight.Bold, color = Color.Black) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.Black)
@@ -92,6 +117,8 @@ fun AddPantryItemScreen(
                         ) {
                             if (imageUri != null) {
                                 AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            } else if (existingImageUrl.isNotBlank()) {
+                                AsyncImage(model = existingImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                             } else {
                                 Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = CoffeeBrown, modifier = Modifier.size(44.dp))
                             }
@@ -104,7 +131,8 @@ fun AddPantryItemScreen(
                             onValueChange = { name = it },
                             label = { Text("Nombre del café") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
@@ -112,7 +140,8 @@ fun AddPantryItemScreen(
                             onValueChange = { brand = it },
                             label = { Text("Marca") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
                     }
                 }
@@ -215,7 +244,7 @@ fun AddPantryItemScreen(
 
                         OutlinedTextField(
                             value = grams,
-                            onValueChange = { grams = it },
+                            onValueChange = { if (it.all { c -> c.isDigit() }) grams = it },
                             label = { Text("Peso total de la bolsa (g)") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
@@ -225,23 +254,40 @@ fun AddPantryItemScreen(
                 }
             }
 
-            // BOTÓN GUARDAR
+            // BOTÓN GUARDAR / ACTUALIZAR
             item {
                 Button(
                     onClick = { 
-                        viewModel.saveCustomCoffee(
-                            name = name,
-                            brand = brand,
-                            specialty = specialty,
-                            roast = roast,
-                            variety = variety,
-                            country = country,
-                            hasCaffeine = hasCaffeine,
-                            format = format,
-                            totalGrams = grams.toIntOrNull() ?: 250,
-                            imageUri = imageUri,
-                            onSuccess = { onBackClick() }
-                        )
+                        if (coffeeId != null) {
+                            viewModel.updateCustomCoffee(
+                                id = coffeeId,
+                                name = name,
+                                brand = brand,
+                                specialty = specialty,
+                                roast = roast,
+                                variety = variety,
+                                country = country,
+                                hasCaffeine = hasCaffeine,
+                                format = format,
+                                totalGrams = grams.toIntOrNull() ?: 250,
+                                imageUri = imageUri,
+                                onSuccess = { onBackClick() }
+                            )
+                        } else {
+                            viewModel.saveCustomCoffee(
+                                name = name,
+                                brand = brand,
+                                specialty = specialty,
+                                roast = roast,
+                                variety = variety,
+                                country = country,
+                                hasCaffeine = hasCaffeine,
+                                format = format,
+                                totalGrams = grams.toIntOrNull() ?: 250,
+                                imageUri = imageUri,
+                                onSuccess = { onBackClick() }
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     enabled = isFormValid,
@@ -253,7 +299,7 @@ fun AddPantryItemScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = if (onlyActivity) "AÑADIR Y SELECCIONAR" else "DAR DE ALTA CAFÉ",
+                        text = if (coffeeId != null) "GUARDAR CAMBIOS" else if (onlyActivity) "AÑADIR A MI DESPENSA" else "DAR DE ALTA CAFÉ",
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 16.sp
                     )

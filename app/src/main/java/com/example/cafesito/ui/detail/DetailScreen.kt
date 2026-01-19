@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -30,13 +32,16 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
+import com.example.cafesito.data.PantryItemEntity
 import com.example.cafesito.data.ReviewEntity
 import com.example.cafesito.data.UserReviewInfo
 import com.example.cafesito.ui.components.SemicircleRatingBar
@@ -45,7 +50,9 @@ import com.example.cafesito.ui.theme.CoffeeBrown
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
+// --- FUNCIONES DE UTILIDAD ---
 fun formatRelativeTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
@@ -76,9 +83,7 @@ private fun openCustomTab(context: Context, url: String) {
             .setToolbarColor(CoffeeBrown.toArgb())
             .build()
         intent.launchUrl(context, Uri.parse(url))
-    } catch (e: Exception) {
-        // Fallback si falla
-    }
+    } catch (e: Exception) {}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,9 +103,13 @@ fun DetailScreen(
                     coffeeDetails = state.coffee,
                     userReview = state.userReview,
                     reviews = state.reviews,
+                    isCustom = state.isCustom,
+                    currentStock = state.currentPantryItem,
                     onBackClick = onBackClick,
                     onFavoriteToggle = { viewModel.toggleFavorite(state.coffee.isFavorite) },
-                    onAddToPantry = { viewModel.addToPantry() },
+                    onUpdateStock = { total, remaining, name, brand -> 
+                        viewModel.updateStock(total, remaining, name, brand) 
+                    },
                     onReviewSubmit = { rating, comment, imageUri -> 
                         viewModel.submitReview(rating, comment, imageUri) 
                     }
@@ -110,29 +119,45 @@ fun DetailScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DetailContent(
     coffeeDetails: CoffeeWithDetails,
     userReview: ReviewEntity?,
     reviews: List<UserReviewInfo>,
+    isCustom: Boolean,
+    currentStock: PantryItemEntity?,
     onBackClick: () -> Unit,
     onFavoriteToggle: () -> Unit,
-    onAddToPantry: () -> Unit,
+    onUpdateStock: (Int, Int, String?, String?) -> Unit,
     onReviewSubmit: (Float, String, Uri?) -> Unit
 ) {
     val scrollState = rememberLazyListState()
-    val context = LocalContext.current
     val coffee = coffeeDetails.coffee
     var showAddReviewDialog by remember { mutableStateOf(false) }
+    var showStockDialog by remember { mutableStateOf(false) }
     var isDescExpanded by remember { mutableStateOf(false) }
 
     if (showAddReviewDialog) {
-        AddReviewDialog(
+        ReviewBottomSheet(
             existingReview = userReview,
             onDismissRequest = { showAddReviewDialog = false },
             onSaveReview = { rating, comment, imageUri ->
                 onReviewSubmit(rating, comment, imageUri)
                 showAddReviewDialog = false
+            }
+        )
+    }
+
+    if (showStockDialog) {
+        StockEditBottomSheet(
+            coffeeDetails = coffeeDetails,
+            isCustom = isCustom,
+            currentStock = currentStock,
+            onDismiss = { showStockDialog = false },
+            onSave = { total, remaining, name, brand -> 
+                onUpdateStock(total, remaining, name, brand)
+                showStockDialog = false
             }
         )
     }
@@ -144,14 +169,18 @@ private fun DetailContent(
         }) {
             AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)), startY = 600f)))
+            
             Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 48.dp, end = 120.dp)) {
                 Text(text = coffee.marca, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
                 Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
             }
-            Surface(modifier = Modifier.padding(end = 20.dp, bottom = 48.dp).align(Alignment.BottomEnd), color = Color.White.copy(alpha = 0.95f), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Nota Media", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+            if (!isCustom) {
+                Surface(modifier = Modifier.padding(end = 20.dp, bottom = 48.dp).align(Alignment.BottomEnd), color = Color.White.copy(alpha = 0.95f), shape = RoundedCornerShape(16.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Nota Media", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -161,28 +190,14 @@ private fun DetailContent(
             item {
                 Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp) {
                     Column(modifier = Modifier.padding(24.dp)) {
-                        Text("Descripción", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(12.dp))
-                        if (coffee.descripcion.isNotBlank()) {
+                        
+                        if (!isCustom && coffee.descripcion.isNotBlank()) {
+                            Text("Descripción", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(12.dp))
                             Text(text = coffee.descripcion, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = if (isDescExpanded) Int.MAX_VALUE else 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.animateContentSize())
                             Text(text = if (isDescExpanded) "Leer menos" else "Leer más", color = CoffeeBrown, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(vertical = 4.dp).clickable { isDescExpanded = !isDescExpanded })
+                            Spacer(Modifier.height(24.dp))
                         }
-
-                        Spacer(Modifier.height(24.dp))
-                        
-                        // BOTÓN AÑADIR A DESPENSA
-                        Button(
-                            onClick = onAddToPantry,
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)
-                        ) {
-                            Icon(Icons.Default.Inventory, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("AÑADIR A MI DESPENSA (250g)", fontWeight = FontWeight.Bold)
-                        }
-
-                        Spacer(Modifier.height(32.dp))
 
                         Text("Detalles", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(16.dp))
@@ -204,105 +219,57 @@ private fun DetailContent(
                                     rowItems.forEach { (label, value) ->
                                         DetailStatBlock(label, value, Modifier.weight(1f))
                                     }
-                                    repeat(3 - rowItems.size) {
-                                        Spacer(Modifier.weight(1f))
+                                    repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                                }
+                            }
+                        }
+
+                        if (!isCustom) {
+                            Spacer(Modifier.height(32.dp))
+                            Text("Características", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(16.dp))
+                            val characteristics = listOf(
+                                "Aroma" to coffee.aroma,
+                                "Sabor" to coffee.sabor,
+                                "Cuerpo" to coffee.cuerpo,
+                                "Acidez" to coffee.acidez,
+                                "Retrogusto" to coffee.retrogusto,
+                                "Dulzura" to coffee.dulzura,
+                                "Uniformidad" to coffee.uniformidad
+                            )
+                            characteristics.forEach { (label, value) ->
+                                CharacteristicBar(label, value)
+                                Spacer(Modifier.height(12.dp))
+                            }
+                        }
+
+                        if (!isCustom) {
+                            Spacer(Modifier.height(32.dp))
+                            val reviewCount = reviews.size
+                            val opinionsTitle = when {
+                                reviewCount == 0 -> "Opiniones"
+                                reviewCount == 1 -> "1 Opinión"
+                                else -> "$reviewCount Opiniones"
+                            }
+                            
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(opinionsTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Button(onClick = { showAddReviewDialog = true }, colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown), shape = RoundedCornerShape(12.dp)) {
+                                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(if (userReview != null) "Editar" else "Añadir")
+                                }
+                            }
+                            
+                            Spacer(Modifier.height(24.dp))
+                            if (reviews.isNotEmpty()) {
+                                reviews.sortedByDescending { it.review.timestamp }.forEachIndexed { index, info ->
+                                    DetailReviewItem(info)
+                                    if (index < reviews.size - 1) {
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                                     }
                                 }
                             }
-                        }
-
-                        Spacer(Modifier.height(32.dp))
-
-                        Text("Características", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(16.dp))
-                        val characteristics = listOf(
-                            "Aroma" to coffee.aroma,
-                            "Sabor" to coffee.sabor,
-                            "Cuerpo" to coffee.cuerpo,
-                            "Acidez" to coffee.acidez,
-                            "Retrogusto" to coffee.retrogusto,
-                            "Dulzura" to coffee.dulzura,
-                            "Uniformidad" to coffee.uniformidad
-                        )
-                        characteristics.forEach { (label, value) ->
-                            CharacteristicBar(label, value)
-                            Spacer(Modifier.height(12.dp))
-                        }
-
-                        if (coffee.productUrl.isNotBlank()) {
-                            Spacer(Modifier.height(32.dp))
-                            Text("Donde encontrarlo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(16.dp))
-                            
-                            val domain = remember(coffee.productUrl) {
-                                try {
-                                    val host = Uri.parse(coffee.productUrl).host ?: ""
-                                    host.removePrefix("www.")
-                                } catch (e: Exception) {
-                                    ""
-                                }
-                            }
-
-                            Surface(
-                                onClick = { openCustomTab(context, coffee.productUrl) },
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFF8F8F8),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = domain.ifBlank { "Ver en tienda" },
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        contentDescription = null,
-                                        tint = Color.Gray
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(32.dp))
-                        
-                        val reviewCount = reviews.size
-                        val opinionsTitle = when {
-                            reviewCount == 0 -> "Opiniones"
-                            reviewCount == 1 -> "1 Opinión"
-                            else -> "$reviewCount Opiniones"
-                        }
-                        
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(opinionsTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Button(onClick = { showAddReviewDialog = true }, colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown), shape = RoundedCornerShape(12.dp)) {
-                                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(if (userReview != null) "Editar" else "Añadir")
-                            }
-                        }
-                        
-                        Spacer(Modifier.height(24.dp))
-                        if (reviews.isNotEmpty()) {
-                            reviews.sortedByDescending { it.review.timestamp }.forEachIndexed { index, info ->
-                                DetailReviewItem(info)
-                                if (index < reviews.size - 1) {
-                                    HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                                }
-                            }
-                        } else {
-                            Text(
-                                text = "Sin opiniones todavía.\n¿Quieres ser el primero?",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp)
-                            )
                         }
                         
                         Spacer(Modifier.height(100.dp))
@@ -311,16 +278,259 @@ private fun DetailContent(
             }
         }
 
-        Row(modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(16.dp), 
+            horizontalArrangement = Arrangement.SpaceBetween, 
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Surface(onClick = onBackClick, color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(12.dp), modifier = Modifier.size(44.dp)) {
                 Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(24.dp)) }
             }
-            Surface(onClick = onFavoriteToggle, color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(12.dp), modifier = Modifier.size(44.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(imageVector = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, tint = if (coffeeDetails.isFavorite) Color.Red else Color.Gray, modifier = Modifier.size(24.dp))
+            Row {
+                Surface(
+                    onClick = { showStockDialog = true }, 
+                    color = Color.White.copy(alpha = 0.9f), 
+                    shape = RoundedCornerShape(12.dp), 
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) { 
+                        Icon(Icons.Default.Inventory, contentDescription = "Gestionar Stock", tint = CoffeeBrown, modifier = Modifier.size(24.dp)) 
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Surface(onClick = onFavoriteToggle, color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(12.dp), modifier = Modifier.size(44.dp)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(imageVector = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, tint = if (coffeeDetails.isFavorite) Color.Red else Color.Gray, modifier = Modifier.size(24.dp))
+                    }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StockEditBottomSheet(
+    coffeeDetails: CoffeeWithDetails,
+    isCustom: Boolean,
+    currentStock: PantryItemEntity?,
+    onDismiss: () -> Unit,
+    onSave: (Int, Int, String?, String?) -> Unit
+) {
+    var totalGrams by remember { mutableFloatStateOf(currentStock?.totalGrams?.toFloat() ?: 600f) }
+    var remainingGrams by remember { mutableFloatStateOf(currentStock?.gramsRemaining?.toFloat() ?: totalGrams) }
+    
+    var editName by remember { mutableStateOf(coffeeDetails.coffee.nombre) }
+    var editBrand by remember { mutableStateOf(coffeeDetails.coffee.marca) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            item {
+                Text(
+                    text = if (isCustom) "Editar Café y Stock" else "Gestionar Stock", 
+                    style = MaterialTheme.typography.titleLarge, 
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (isCustom) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = editName,
+                            onValueChange = { editName = it },
+                            label = { Text("Nombre") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = editBrand,
+                            onValueChange = { editBrand = it },
+                            label = { Text("Marca") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
+                        )
+                    }
+                }
+            }
+
+            item {
+                StockSliderSection(
+                    label = "Total de la bolsa",
+                    value = totalGrams,
+                    onValueChange = { 
+                        totalGrams = it
+                        if (remainingGrams > it) remainingGrams = it
+                    }
+                )
+            }
+
+            item {
+                StockSliderSection(
+                    label = "Gramos restantes",
+                    value = remainingGrams,
+                    maxValue = totalGrams,
+                    onValueChange = { remainingGrams = it }
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color.LightGray)
+                    ) {
+                        Text("CANCELAR", color = Color.Gray, fontWeight = FontWeight.Bold)
+                    }
+                    Button(
+                        onClick = { 
+                            onSave(
+                                totalGrams.roundToInt(), 
+                                remainingGrams.roundToInt(),
+                                if (isCustom) editName else null,
+                                if (isCustom) editBrand else null
+                            ) 
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text("GUARDAR", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReviewBottomSheet(
+    existingReview: ReviewEntity?, 
+    onDismissRequest: () -> Unit, 
+    onSaveReview: (Float, String, Uri?) -> Unit
+) {
+    var rating by remember { mutableStateOf(existingReview?.rating ?: 0f) }
+    var comment by remember { mutableStateOf(existingReview?.comment ?: "") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        containerColor = Color.White,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(if (existingReview != null) "Editar opinión" else "Añadir opinión", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(24.dp))
+            
+            Text("Puntuación", style = MaterialTheme.typography.labelLarge, color = CoffeeBrown)
+            Spacer(Modifier.height(8.dp))
+            SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
+            
+            Spacer(Modifier.height(24.dp))
+            OutlinedTextField(
+                value = comment, 
+                onValueChange = { comment = it }, 
+                label = { Text("Tu comentario (obligatorio)") }, 
+                modifier = Modifier.fillMaxWidth(), 
+                minLines = 3,
+                shape = RoundedCornerShape(12.dp)
+            )
+            
+            Spacer(Modifier.height(16.dp))
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { launcher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (selectedImageUri != null) {
+                    AsyncImage(model = selectedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                } else if (!existingReview?.imageUrl.isNullOrBlank()) {
+                    AsyncImage(model = existingReview?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = CoffeeBrown)
+                        Text("Añadir foto", style = MaterialTheme.typography.labelMedium, color = CoffeeBrown)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = onDismissRequest,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color.LightGray)
+                ) {
+                    Text("CANCELAR", color = Color.Gray, fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = { onSaveReview(rating, comment, selectedImageUri) }, 
+                    enabled = rating > 0 && comment.isNotBlank(),
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("GUARDAR", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StockSliderSection(label: String, value: Float, maxValue: Float = 1000f, onValueChange: (Float) -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = Color.Gray)
+        Text(
+            text = "${value.roundToInt()} g", 
+            style = MaterialTheme.typography.headlineSmall, 
+            fontWeight = FontWeight.Black, 
+            color = CoffeeBrown
+        )
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 0f..(if(maxValue > 0) maxValue else 1000f),
+            colors = SliderDefaults.colors(thumbColor = CoffeeBrown, activeTrackColor = CoffeeBrown)
+        )
     }
 }
 
@@ -353,102 +563,6 @@ private fun DetailReviewItem(info: UserReviewInfo) {
             }
         }
     }
-}
-
-@Composable
-private fun AddReviewDialog(
-    existingReview: ReviewEntity?, 
-    onDismissRequest: () -> Unit, 
-    onSaveReview: (Float, String, Uri?) -> Unit
-) {
-    var rating by remember { mutableStateOf(existingReview?.rating ?: 0f) }
-    var comment by remember { mutableStateOf(existingReview?.comment ?: "") }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        selectedImageUri = uri
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        confirmButton = {
-            Button(
-                onClick = { onSaveReview(rating, comment, selectedImageUri) }, 
-                enabled = rating > 0 && comment.isNotBlank(), 
-                colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)
-            ) { 
-                Text("Guardar") 
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismissRequest) { Text("Cancelar") }
-        },
-        title = { Text(if (existingReview != null) "Editar opinión" else "Añadir opinión", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text("Puntuación", style = MaterialTheme.typography.labelLarge, color = CoffeeBrown)
-                Spacer(Modifier.height(16.dp))
-                SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
-                Spacer(Modifier.height(24.dp))
-                OutlinedTextField(
-                    value = comment, 
-                    onValueChange = { comment = it }, 
-                    label = { Text("Tu comentario (obligatorio)") }, 
-                    modifier = Modifier.fillMaxWidth(), 
-                    minLines = 3,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                Spacer(Modifier.height(16.dp))
-                
-                // SECCIÓN DE IMAGEN
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { launcher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (selectedImageUri != null) {
-                        AsyncImage(
-                            model = selectedImageUri,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                        IconButton(
-                            onClick = { selectedImageUri = null },
-                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Eliminar", tint = Color.White)
-                        }
-                    } else if (!existingReview?.imageUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = existingReview?.imageUrl,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                        Text(
-                            "Toca para cambiar",
-                            modifier = Modifier.align(Alignment.BottomCenter).background(Color.Black.copy(alpha = 0.5f)).fillMaxWidth().padding(4.dp),
-                            color = Color.White,
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = CoffeeBrown)
-                            Text("Añadir foto", style = MaterialTheme.typography.labelMedium, color = CoffeeBrown)
-                        }
-                    }
-                }
-            }
-        }
-    )
 }
 
 @Composable

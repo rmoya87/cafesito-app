@@ -27,8 +27,9 @@ class DetailViewModel @Inject constructor(
     val uiState: StateFlow<DetailUiState> = combine(
         userRepository.getActiveUserFlow(),
         coffeeRepository.getCoffeeWithDetailsById(coffeeId),
-        socialRepository.getAllReviewsWithAuthor()
-    ) { activeUser: UserEntity?, coffee: CoffeeWithDetails?, allReviews: List<ReviewWithAuthor> ->
+        socialRepository.getAllReviewsWithAuthor(),
+        diaryRepository.getPantryItems()
+    ) { activeUser: UserEntity?, coffee: CoffeeWithDetails?, allReviews: List<ReviewWithAuthor>, pantryItems: List<PantryItemWithDetails> ->
         if (coffee == null) return@combine DetailUiState.Error("Café no encontrado")
 
         val reviewsForThisCoffee = allReviews
@@ -46,10 +47,14 @@ class DetailViewModel @Inject constructor(
             it.review.coffeeId == coffeeId && it.review.userId == activeUser?.id 
         }?.review
 
+        val pantryDetails = pantryItems.find { it.coffee.id == coffeeId }
+
         DetailUiState.Success(
             coffee = coffee,
             reviews = reviewsForThisCoffee,
-            userReview = userReview
+            userReview = userReview,
+            isCustom = pantryDetails?.isCustom ?: false,
+            currentPantryItem = pantryDetails?.pantryItem
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
 
@@ -59,9 +64,27 @@ class DetailViewModel @Inject constructor(
         }
     }
 
-    fun addToPantry(grams: Int = 250) {
+    fun updateStock(total: Int, remaining: Int, name: String? = null, brand: String? = null) {
         viewModelScope.launch {
-            diaryRepository.addToPantry(coffeeId, grams)
+            if (name != null && brand != null) {
+                // Actualizar café personalizado
+                val currentState = uiState.value as? DetailUiState.Success
+                diaryRepository.updateCustomCoffee(
+                    id = coffeeId,
+                    name = name,
+                    brand = brand,
+                    specialty = currentState?.coffee?.coffee?.especialidad ?: "Arabica",
+                    roast = currentState?.coffee?.coffee?.tueste,
+                    variety = currentState?.coffee?.coffee?.variedadTipo,
+                    country = currentState?.coffee?.coffee?.paisOrigen ?: "España",
+                    hasCaffeine = currentState?.coffee?.coffee?.cafeina == "Sí",
+                    format = currentState?.coffee?.coffee?.formato ?: "Grano",
+                    imageBytes = null, // Mantener imagen actual
+                    totalGrams = total
+                )
+            }
+            // Siempre actualizamos el stock físico en la despensa
+            diaryRepository.updatePantryStockFull(coffeeId, total, remaining)
         }
     }
 
@@ -71,7 +94,6 @@ class DetailViewModel @Inject constructor(
             
             var uploadedImageUrl: String? = null
             
-            // 1. Si hay una imagen nueva, la subimos a Supabase Storage
             imageUri?.let { uri ->
                 try {
                     val bytes = context.contentResolver.openInputStream(uri)?.readBytes()
@@ -102,7 +124,9 @@ sealed interface DetailUiState {
     data class Success(
         val coffee: CoffeeWithDetails, 
         val reviews: List<UserReviewInfo>,
-        val userReview: ReviewEntity?
+        val userReview: ReviewEntity?,
+        val isCustom: Boolean,
+        val currentPantryItem: PantryItemEntity?
     ) : DetailUiState
     data class Error(val message: String) : DetailUiState
 }

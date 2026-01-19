@@ -12,20 +12,17 @@ class CoffeeRepository @Inject constructor(
     private val supabaseDataSource: SupabaseDataSource,
     private val userRepository: UserRepository
 ) {
-    // CONSULTAS UNIFICADAS (PÚBLICAS + PRIVADAS)
+    // CONSULTAS PARA EXPLORAR (SOLO PÚBLICAS)
     val allCoffees: Flow<List<CoffeeWithDetails>> = flow {
         try {
             val user = userRepository.getActiveUser()
+            // Filtramos: Solo cargamos los cafés de la tabla oficial 'coffees'
             val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
-            val customCoffees = if (user != null) {
-                try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (e: Exception) { emptyList() }
-            } else emptyList()
-
-            val allAvailable = publicCoffees + customCoffees
+            
             val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (e: Exception) { emptyList() }
             val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (e: Exception) { emptyList() }
 
-            val details = allAvailable.map { coffee ->
+            val details = publicCoffees.map { coffee ->
                 CoffeeWithDetails(
                     coffee = coffee,
                     favorite = remoteFavorites.find { it.coffeeId == coffee.id && it.userId == user?.id },
@@ -64,12 +61,10 @@ class CoffeeRepository @Inject constructor(
     ): Flow<List<CoffeeWithDetails>> = flow {
         try {
             val user = userRepository.getActiveUser()
+            // Filtramos: Solo buscamos en el catálogo público
             val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
-            val customCoffees = if (user != null) {
-                try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (e: Exception) { emptyList() }
-            } else emptyList()
 
-            val filtered = (publicCoffees + customCoffees).filter { coffee ->
+            val filtered = publicCoffees.filter { coffee ->
                 val matchQuery = query.isNullOrBlank() || coffee.nombre.contains(query, true) || coffee.marca.contains(query, true)
                 val matchOrigin = origin == null || coffee.paisOrigen == origin
                 val matchRoast = roast == null || coffee.tueste == roast
@@ -98,6 +93,7 @@ class CoffeeRepository @Inject constructor(
                 try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (e: Exception) { emptyList() }
             } else emptyList()
             
+            // Aquí sí permitimos ambos para que la pantalla de detalle funcione desde cualquier origen
             val coffee = (publicCoffees + customCoffees).find { it.id == id } ?: return@flow
             val remoteFavorites = supabaseDataSource.getAllFavorites()
             val remoteReviews = supabaseDataSource.getAllReviews()

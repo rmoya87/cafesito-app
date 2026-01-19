@@ -25,9 +25,7 @@ import androidx.navigation.navArgument
 import com.example.cafesito.data.SyncManager
 import com.example.cafesito.ui.access.*
 import com.example.cafesito.ui.detail.DetailScreen
-import com.example.cafesito.ui.diary.DiaryScreen
-import com.example.cafesito.ui.diary.AddDiaryEntryScreen
-import com.example.cafesito.ui.diary.AddPantryItemScreen
+import com.example.cafesito.ui.diary.*
 import com.example.cafesito.ui.profile.FollowersScreen
 import com.example.cafesito.ui.profile.FollowingScreen
 import com.example.cafesito.ui.profile.ProfileScreen
@@ -218,7 +216,44 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 DiaryScreen(
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onAddWaterClick = { navController.navigate("addDiaryEntry?type=WATER") },
-                    onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE") }
+                    onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE") },
+                    onAddStockClick = { navController.navigate("addStock") },
+                    onEditStockClick = { id, isCustom ->
+                        if (isCustom) {
+                            navController.navigate("editCustomCoffee/$id")
+                        } else {
+                            navController.navigate("editNormalStock/$id")
+                        }
+                    }
+                )
+            }
+
+            composable("addStock") {
+                AddStockScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") }
+                )
+            }
+
+            composable(
+                route = "editCustomCoffee/{coffeeId}",
+                arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val coffeeId = backStackEntry.arguments?.getString("coffeeId")
+                AddPantryItemScreen(
+                    coffeeId = coffeeId,
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = "editNormalStock/{coffeeId}",
+                arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val coffeeId = backStackEntry.arguments?.getString("coffeeId") ?: ""
+                EditNormalStockScreen(
+                    coffeeId = coffeeId,
+                    onBackClick = { navController.popBackStack() }
                 )
             }
 
@@ -243,7 +278,13 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 val onlyActivity = backStackEntry.arguments?.getBoolean("onlyActivity") ?: false
                 AddPantryItemScreen(
                     onlyActivity = onlyActivity,
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { 
+                        if (onlyActivity) {
+                            navController.popBackStack("diary", inclusive = false)
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }
                 )
             }
 

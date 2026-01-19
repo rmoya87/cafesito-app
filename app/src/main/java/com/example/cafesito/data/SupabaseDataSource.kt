@@ -50,6 +50,28 @@ class SupabaseDataSource @Inject constructor(
     // --- CAFÉS PERSONALIZADOS ---
     suspend fun getCustomCoffees(userId: Int): List<CustomCoffeeEntity> = client.postgrest["custom_coffees"].select { filter { eq("user_id", userId) } }.decodeList<CustomCoffeeEntity>()
     suspend fun insertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].insert(coffee)
+    suspend fun upsertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].upsert(coffee)
+    
+    suspend fun updateCustomCoffee(id: String, userId: Int, coffee: CustomCoffeeEntity) {
+        // Realizamos una actualización parcial para evitar violar políticas RLS que prohíben cambiar el owner o el ID
+        client.postgrest["custom_coffees"].update({
+            set("name", coffee.name)
+            set("brand", coffee.brand)
+            set("specialty", coffee.specialty)
+            set("roast", coffee.roast)
+            set("variety", coffee.variety)
+            set("country", coffee.country)
+            set("has_caffeine", coffee.hasCaffeine)
+            set("format", coffee.format)
+            set("image_url", coffee.imageUrl)
+            set("total_grams", coffee.totalGrams)
+        }) {
+            filter {
+                eq("id", id)
+                eq("user_id", userId)
+            }
+        }
+    }
 
     // --- PUBLICACIONES ---
     suspend fun getAllPosts(): List<PostEntity> = client.postgrest["posts_db"].select { order("timestamp", Order.DESCENDING) }.decodeList<PostEntity>()

@@ -225,7 +225,8 @@ data class FollowEntity(
 
 data class PantryItemWithDetails(
     val pantryItem: PantryItemEntity,
-    val coffee: Coffee
+    val coffee: Coffee,
+    val isCustom: Boolean = false
 )
 
 data class UserReviewInfo(
