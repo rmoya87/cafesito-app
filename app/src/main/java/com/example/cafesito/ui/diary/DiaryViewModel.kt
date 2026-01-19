@@ -16,8 +16,14 @@ import javax.inject.Inject
 
 enum class DiaryPeriod { HOY, SEMANA, MES }
 
+data class ChartEntry(
+    val label: String,
+    val caffeine: Int,
+    val water: Int
+)
+
 data class DiaryAnalytics(
-    val chartData: List<Pair<String, Int>>,
+    val chartData: List<ChartEntry>,
     val waterCount: Int,
     val totalWaterMl: Int,
     val cupsCount: Int,
@@ -115,7 +121,7 @@ class DiaryViewModel @Inject constructor(
                 (0..23).map { hour -> 
                     val caffeine = hourlyData[hour]?.filter { it.type == "CUP" }?.sumOf { it.caffeineAmount } ?: 0
                     val water = hourlyData[hour]?.filter { it.type == "WATER" }?.sumOf { it.amountMl } ?: 0
-                    String.format("%02d:00", hour) to (caffeine + water)
+                    ChartEntry(String.format("%02d:00", hour), caffeine, water)
                 }
             }
             DiaryPeriod.SEMANA -> {
@@ -126,7 +132,7 @@ class DiaryViewModel @Inject constructor(
                 listOf("Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom").mapIndexed { i, d -> 
                     val caffeine = weeklyData[i]?.filter { it.type == "CUP" }?.sumOf { it.caffeineAmount } ?: 0
                     val water = weeklyData[i]?.filter { it.type == "WATER" }?.sumOf { it.amountMl } ?: 0
-                    d to (caffeine + water)
+                    ChartEntry(d, caffeine, water)
                 }
             }
             DiaryPeriod.MES -> {
@@ -137,7 +143,7 @@ class DiaryViewModel @Inject constructor(
                 (1..maxDays).map { day -> 
                     val caffeine = monthlyData[day]?.filter { it.type == "CUP" }?.sumOf { it.caffeineAmount } ?: 0
                     val water = monthlyData[day]?.filter { it.type == "WATER" }?.sumOf { it.amountMl } ?: 0
-                    day.toString() to (caffeine + water)
+                    ChartEntry(day.toString(), caffeine, water)
                 }
             }
         }

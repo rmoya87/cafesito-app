@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -93,7 +94,7 @@ fun DetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         when (val state = uiState) {
             is DetailUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             is DetailUiState.Error -> Text("Error: ${state.message}", modifier = Modifier.align(Alignment.Center))
@@ -116,7 +117,7 @@ fun DetailScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun DetailContent(
     coffeeDetails: CoffeeWithDetails,
@@ -131,6 +132,7 @@ private fun DetailContent(
 ) {
     val scrollState = rememberLazyListState()
     val coffee = coffeeDetails.coffee
+    val context = LocalContext.current
     var showAddReviewDialog by remember { mutableStateOf(false) }
     var showStockDialog by remember { mutableStateOf(false) }
     var isDescExpanded by remember { mutableStateOf(false) }
@@ -185,45 +187,67 @@ private fun DetailContent(
         LazyColumn(state = scrollState, modifier = Modifier.fillMaxSize()) {
             item { Spacer(modifier = Modifier.height(360.dp)) }
             item {
-                Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(), 
+                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), 
+                    color = Color.White
+                ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         
                         if (!isCustom && coffee.descripcion.isNotBlank()) {
-                            Text("Descripción", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Descripción", 
+                                style = MaterialTheme.typography.titleLarge, 
+                                fontWeight = FontWeight.Normal,
+                                color = Color.Black
+                            )
                             Spacer(Modifier.height(12.dp))
                             Text(text = coffee.descripcion, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = if (isDescExpanded) Int.MAX_VALUE else 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.animateContentSize())
                             Text(text = if (isDescExpanded) "Leer menos" else "Leer más", color = CoffeeBrown, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(vertical = 4.dp).clickable { isDescExpanded = !isDescExpanded })
                             Spacer(Modifier.height(24.dp))
                         }
 
-                        Text("Detalles", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "Detalles", 
+                            style = MaterialTheme.typography.titleLarge, 
+                            fontWeight = FontWeight.Normal,
+                            color = Color.Black
+                        )
+                        Spacer(Modifier.height(20.dp))
                         
                         val detailsItems = listOfNotNull(
-                            coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let { "País" to it.capitalizeWords() },
-                            coffee.especialidad.takeIf { it.isNotBlank() }?.let { "Especialidad" to it.capitalizeWords() },
-                            coffee.variedadTipo?.takeIf { it.isNotBlank() }?.let { "Variedad" to it.capitalizeWords() },
-                            coffee.tueste.takeIf { it.isNotBlank() }?.let { "Tueste" to it.capitalizeWords() },
-                            coffee.proceso.takeIf { it.isNotBlank() }?.let { "Proceso" to it.capitalizeWords() },
-                            coffee.ratioRecomendado?.takeIf { it.isNotBlank() }?.let { "Ratio" to it },
-                            coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let { "Molienda" to it },
-                            coffee.cafeina.takeIf { it.isNotBlank() }?.let { "Cafeína" to it }
+                            coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let { Triple("País", it.capitalizeWords(), Icons.Default.Public) },
+                            coffee.especialidad.takeIf { it.isNotBlank() }?.let { Triple("Especialidad", it.capitalizeWords(), Icons.Default.Verified) },
+                            coffee.variedadTipo?.takeIf { it.isNotBlank() }?.let { Triple("Variedad", it.capitalizeWords(), Icons.Default.Category) },
+                            coffee.tueste.takeIf { it.isNotBlank() }?.let { Triple("Tueste", it.capitalizeWords(), Icons.Default.LocalFireDepartment) },
+                            coffee.proceso.takeIf { it.isNotBlank() }?.let { Triple("Proceso", it.capitalizeWords(), Icons.Default.Settings) },
+                            coffee.ratioRecomendado?.takeIf { it.isNotBlank() }?.let { Triple("Ratio", it, Icons.Default.Scale) },
+                            coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let { Triple("Molienda", it, Icons.Default.Grain) },
+                            coffee.cafeina.takeIf { it.isNotBlank() }?.let { Triple("Cafeína", it, Icons.Default.Bolt) }
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            detailsItems.chunked(3).forEach { rowItems ->
-                                Row(modifier = Modifier.fillMaxWidth()) {
-                                    rowItems.forEach { (label, value) ->
-                                        DetailStatBlock(label, value, Modifier.weight(1f))
-                                    }
-                                    repeat(3 - rowItems.size) { Spacer(Modifier.weight(1f)) }
-                                }
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            maxItemsInEachRow = 2
+                        ) {
+                            detailsItems.forEach { (label, value, icon) ->
+                                DetailStatBlock(label, value, icon, Modifier.weight(1f))
+                            }
+                            if (detailsItems.size % 2 != 0) {
+                                Spacer(Modifier.weight(1f))
                             }
                         }
 
                         if (!isCustom) {
                             Spacer(Modifier.height(32.dp))
-                            Text("Características", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Características", 
+                                style = MaterialTheme.typography.titleLarge, 
+                                fontWeight = FontWeight.Normal,
+                                color = Color.Black
+                            )
                             Spacer(Modifier.height(16.dp))
                             val characteristics = listOf(
                                 "Aroma" to coffee.aroma,
@@ -238,9 +262,47 @@ private fun DetailContent(
                                 CharacteristicBar(label, value)
                                 Spacer(Modifier.height(12.dp))
                             }
-                        }
 
-                        if (!isCustom) {
+                            if (!coffee.productUrl.isNullOrBlank()) {
+                                Spacer(Modifier.height(32.dp))
+                                Text(
+                                    "Donde comprar", 
+                                    style = MaterialTheme.typography.titleLarge, 
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color.Black
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Surface(
+                                    onClick = { openCustomTab(context, coffee.productUrl) },
+                                    color = Color(0xFFF8F8F8),
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        val domain = coffee.productUrl
+                                            .removePrefix("https://")
+                                            .removePrefix("http://")
+                                            .removePrefix("www.")
+                                            .substringBefore("/")
+                                        Text(
+                                            text = domain, 
+                                            style = MaterialTheme.typography.bodyLarge, 
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Black
+                                        )
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.KeyboardArrowRight, 
+                                            contentDescription = null,
+                                            tint = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
+
                             Spacer(Modifier.height(32.dp))
                             val reviewCount = reviews.size
                             val opinionsTitle = when {
@@ -250,7 +312,12 @@ private fun DetailContent(
                             }
                             
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(opinionsTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text(
+                                    opinionsTitle, 
+                                    style = MaterialTheme.typography.titleLarge, 
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color.Black
+                                )
                                 Button(onClick = { showAddReviewDialog = true }, colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown), shape = RoundedCornerShape(12.dp)) {
                                     Icon(Icons.Default.Add, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
@@ -563,10 +630,31 @@ private fun DetailReviewItem(info: UserReviewInfo) {
 }
 
 @Composable
-private fun DetailStatBlock(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-        Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+private fun DetailStatBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = Color(0xFFF8F8F8),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(CoffeeBrown.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = CoffeeBrown, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
     }
 }
 

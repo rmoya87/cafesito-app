@@ -84,10 +84,14 @@ fun DiaryScreen(
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(bottom = 48.dp)) {
                 Text(
-                    "Añadir registro", 
-                    modifier = Modifier.padding(24.dp), 
+                    text = "Añadir registro", 
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp), 
                     style = MaterialTheme.typography.titleLarge, 
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black
                 )
                 ListItem(
                     headlineContent = { Text("Registro de agua", fontWeight = FontWeight.Medium) },
@@ -117,7 +121,7 @@ fun DiaryScreen(
                     headlineContent = { Text("Café a mi despensa", fontWeight = FontWeight.Medium) },
                     leadingContent = { 
                         Box(Modifier.size(40.dp).background(Color(0xFFF5F5F5), CircleShape), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Inventory, null, tint = Color.Gray) 
+                            Icon(Icons.Default.Inventory, null, tint = Color.Black) 
                         }
                     },
                     modifier = Modifier.clickable { 
@@ -265,7 +269,7 @@ fun DiaryScreen(
                 }
             }
             
-            item { Spacer(Modifier.height(80.dp)) }
+            item { Spacer(Modifier.height(32.dp)) }
         }
     }
 }
@@ -408,8 +412,7 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
                 Text(
                     text = "$dateStr • ${if (entry.type == "WATER") "${entry.amountMl}ml" else "${entry.coffeeGrams}g - ${entry.preparationType}"}", 
                     style = MaterialTheme.typography.labelSmall, 
-                    color = Color.Gray
-                )
+                    color = Color.Gray)
             }
         }
     }
@@ -432,7 +435,7 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
             shape = RoundedCornerShape(24.dp)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Cafeína $totalLabel", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                         Text(
@@ -440,6 +443,13 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Black,
                             color = Color.Black
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Agua: ${analytics.totalWaterMl} ml", 
+                            style = MaterialTheme.typography.labelLarge, 
+                            fontWeight = FontWeight.Bold, 
+                            color = Color(0xFF2196F3)
                         )
                     }
                     
@@ -452,8 +462,6 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                                 Text("${if (analytics.comparisonPercentage > 0) "+" else ""}${analytics.comparisonPercentage}%", color = compColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Text("Agua: ${analytics.totalWaterMl} ml", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF2196F3))
                     }
                 }
 
@@ -463,7 +471,7 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                     val scrollState = rememberScrollState()
                     val density = LocalDensity.current
                     val screenWidthPx = with(density) { maxWidth.toPx() }
-                    val itemWidthPx = with(density) { (32 + 16).dp.toPx() } 
+                    val itemWidthPx = with(density) { (44 + 12).dp.toPx() } 
 
                     LaunchedEffect(analytics.chartData, analytics.period) {
                         val calendar = Calendar.getInstance()
@@ -481,22 +489,41 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
                     }
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().height(100.dp).horizontalScroll(scrollState),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxWidth().height(120.dp).horizontalScroll(scrollState),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        analytics.chartData.forEach { (label, amount) ->
-                            val barHeight = (amount.toFloat() / 1000f).coerceIn(0.05f, 1f)
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(32.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(14.dp)
-                                        .fillMaxHeight(barHeight)
-                                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                        .background(if (amount > 800) Color.Red.copy(alpha = 0.6f) else CoffeeBrown.copy(alpha = 0.8f))
-                                )
+                        analytics.chartData.forEach { entry ->
+                            // Scale caffeine (max 400mg) and water (max 2000ml)
+                            val caffeineHeight = (entry.caffeine.toFloat() / 400f).coerceIn(0.02f, 1f)
+                            val waterHeight = (entry.water.toFloat() / 2000f).coerceIn(0.02f, 1f)
+                            
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(44.dp)) {
+                                Row(
+                                    modifier = Modifier.height(80.dp).fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    // Caffeine Bar
+                                    Box(
+                                        modifier = Modifier
+                                            .width(10.dp)
+                                            .fillMaxHeight(caffeineHeight)
+                                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                            .background(CoffeeBrown.copy(alpha = 0.8f))
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    // Water Bar
+                                    Box(
+                                        modifier = Modifier
+                                            .width(10.dp)
+                                            .fillMaxHeight(waterHeight)
+                                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                            .background(Color(0xFF2196F3).copy(alpha = 0.6f))
+                                    )
+                                }
                                 Spacer(Modifier.height(8.dp))
-                                Text(label, fontSize = 9.sp, color = Color.Gray)
+                                Text(entry.label, fontSize = 9.sp, color = Color.Gray)
                             }
                         }
                     }
@@ -566,14 +593,11 @@ fun PantrySection(
 ) {
     Column {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Mi Despensa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black)
-            TextButton(onClick = onAddClick) {
-                Text("+ Añadir stock", color = CoffeeBrown, fontWeight = FontWeight.Bold)
-            }
         }
         
         if (items.isEmpty()) {
