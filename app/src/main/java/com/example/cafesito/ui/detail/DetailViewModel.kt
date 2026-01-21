@@ -24,19 +24,25 @@ class DetailViewModel @Inject constructor(
 
     private val coffeeId: String = checkNotNull(savedStateHandle["coffeeId"])
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DetailUiState> = combine(
         userRepository.getActiveUserFlow(),
         coffeeRepository.getCoffeeWithDetailsById(coffeeId),
         socialRepository.getAllReviewsWithAuthor(),
-        diaryRepository.getPantryItems()
-    ) { activeUser: UserEntity?, coffee: CoffeeWithDetails?, allReviews: List<ReviewWithAuthor>, pantryItems: List<PantryItemWithDetails> ->
+        diaryRepository.getPantryItems(),
+        coffeeRepository.favorites // Observamos los favoritos locales para reactividad instantánea
+    ) { activeUser, coffee, allReviews, pantryItems, favorites ->
         if (coffee == null) return@combine DetailUiState.Error("Café no encontrado")
+
+        // Determinamos si es favorito basándonos en el flujo de favoritos local
+        val isFavoriteLocally = favorites.any { it.coffeeId == coffeeId && it.userId == activeUser?.id }
+        val updatedCoffee = coffee.copy(favorite = if (isFavoriteLocally) LocalFavorite(coffeeId, activeUser?.id ?: 0) else null)
 
         val reviewsForThisCoffee = allReviews
             .filter { it.review.coffeeId == coffeeId }
             .map { reviewWithAuthor ->
                 UserReviewInfo(
-                    coffeeDetails = coffee,
+                    coffeeDetails = updatedCoffee,
                     review = reviewWithAuthor.review,
                     authorName = reviewWithAuthor.author.fullName,
                     authorAvatarUrl = reviewWithAuthor.author.avatarUrl
@@ -50,7 +56,7 @@ class DetailViewModel @Inject constructor(
         val pantryDetails = pantryItems.find { it.coffee.id == coffeeId }
 
         DetailUiState.Success(
-            coffee = coffee,
+            coffee = updatedCoffee,
             reviews = reviewsForThisCoffee,
             userReview = userReview,
             isCustom = pantryDetails?.isCustom ?: false,
@@ -58,16 +64,17 @@ class DetailViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
 
-    fun toggleFavorite(isFavorite: Boolean) {
+    fun toggleFavorite(shouldBeFavorite: Boolean) {
         viewModelScope.launch {
-            coffeeRepository.toggleFavorite(coffeeId, isFavorite)
+            // Esta llamada actualiza Room y Supabase. 
+            // Al actualizar Room, el flujo 'favorites' arriba reaccionará al instante.
+            coffeeRepository.toggleFavorite(coffeeId, shouldBeFavorite)
         }
     }
 
     fun updateStock(total: Int, remaining: Int, name: String? = null, brand: String? = null) {
         viewModelScope.launch {
             if (name != null && brand != null) {
-                // Actualizar café personalizado
                 val currentState = uiState.value as? DetailUiState.Success
                 diaryRepository.updateCustomCoffee(
                     id = coffeeId,
@@ -79,11 +86,10 @@ class DetailViewModel @Inject constructor(
                     country = currentState?.coffee?.coffee?.paisOrigen ?: "España",
                     hasCaffeine = currentState?.coffee?.coffee?.cafeina == "Sí",
                     format = currentState?.coffee?.coffee?.formato ?: "Grano",
-                    imageBytes = null, // Mantener imagen actual
+                    imageBytes = null,
                     totalGrams = total
                 )
             }
-            // Siempre actualizamos el stock físico en la despensa
             diaryRepository.updatePantryStockFull(coffeeId, total, remaining)
         }
     }
@@ -91,7 +97,6 @@ class DetailViewModel @Inject constructor(
     fun submitReview(rating: Float, comment: String, imageUri: Uri? = null) {
         viewModelScope.launch {
             val user = userRepository.getActiveUser() ?: return@launch
-            
             var uploadedImageUrl: String? = null
             
             imageUri?.let { uri ->

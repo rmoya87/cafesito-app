@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Coffee
 import androidx.compose.material3.*
@@ -26,6 +28,7 @@ import com.example.cafesito.data.PostWithDetails
 import com.example.cafesito.ui.detail.formatRelativeTime
 import com.example.cafesito.ui.theme.CoffeeBrown
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostCard(
     details: PostWithDetails, 
@@ -41,7 +44,34 @@ fun PostCard(
 ) {
     val post = details.post
     val author = details.author
-    var showMenu by remember { mutableStateOf(false) }
+    var showOptionsSheet by remember { mutableStateOf(false) }
+
+    if (showOptionsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showOptionsSheet = false },
+            containerColor = Color.White,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+                ListItem(
+                    headlineContent = { Text("Editar información") },
+                    leadingContent = { Icon(Icons.Default.Edit, null) },
+                    modifier = Modifier.clickable { 
+                        showOptionsSheet = false
+                        onEditClick() 
+                    }
+                )
+                ListItem(
+                    headlineContent = { Text("Borrar publicación", color = Color.Red) },
+                    leadingContent = { Icon(Icons.Default.Delete, null, tint = Color.Red) },
+                    modifier = Modifier.clickable { 
+                        showOptionsSheet = false
+                        onDeleteClick() 
+                    }
+                )
+            }
+        }
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -81,27 +111,8 @@ fun PostCard(
 
                     if (isOwnPost) {
                         Box {
-                            IconButton(onClick = { showMenu = true }) {
+                            IconButton(onClick = { showOptionsSheet = true }) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "Opciones")
-                            }
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Editar") },
-                                    onClick = { 
-                                        showMenu = false
-                                        onEditClick()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Borrar", color = Color.Red) },
-                                    onClick = { 
-                                        showMenu = false
-                                        onDeleteClick()
-                                    }
-                                )
                             }
                         }
                     }
@@ -158,27 +169,8 @@ fun PostCard(
                             color = Color.Gray
                         )
                         Box {
-                            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
+                            IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(32.dp)) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(18.dp))
-                            }
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Editar") },
-                                    onClick = { 
-                                        showMenu = false
-                                        onEditClick()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Borrar", color = Color.Red) },
-                                    onClick = { 
-                                        showMenu = false
-                                        onDeleteClick()
-                                    }
-                                )
                             }
                         }
                     }

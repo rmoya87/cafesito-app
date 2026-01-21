@@ -10,13 +10,18 @@ interface CoffeeDao {
     fun getAllCoffeesWithDetails(): Flow<List<CoffeeWithDetails>>
 
     @Transaction
+    @Query("SELECT * FROM coffees WHERE isCustom = 0 ORDER BY nombre ASC")
+    fun getPublicCoffeesWithDetails(): Flow<List<CoffeeWithDetails>>
+
+    @Transaction
     @Query("SELECT * FROM coffees WHERE id = :id")
     fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?>
 
     @Transaction
     @Query("""
         SELECT * FROM coffees 
-        WHERE (:query IS NULL OR nombre LIKE '%' || :query || '%' OR marca LIKE '%' || :query || '%')
+        WHERE isCustom = 0
+        AND (:query IS NULL OR nombre LIKE '%' || :query || '%' OR marca LIKE '%' || :query || '%')
         AND (:origin IS NULL OR paisOrigen = :origin)
         AND (:roast IS NULL OR tueste = :roast)
         AND (:specialty IS NULL OR especialidad = :specialty)
@@ -25,7 +30,7 @@ interface CoffeeDao {
         AND (:grind IS NULL OR moliendaRecomendada LIKE '%' || :grind || '%')
         ORDER BY nombre ASC
     """)
-    fun getFilteredCoffees(
+    fun getFilteredPublicCoffees(
         query: String?, 
         origin: String?,
         roast: String?,

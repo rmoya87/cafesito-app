@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
@@ -36,6 +35,7 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    // ID DE CLIENTE WEB - VERIFICADO: TERMINA EN 485
     val webClientId = "789398399906-468mj79uf2t4e485n7ilufv4eiouk3sm.apps.googleusercontent.com"
 
     Column(
@@ -46,25 +46,25 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Iniciar sesión",
+            text = "¡Bienvenido!",
             style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.ExtraBold,
             color = CoffeeBrown
         )
-
-        Spacer(modifier = Modifier.height(48.dp))
+        
+        Spacer(modifier = Modifier.height(64.dp))
 
         if (isLoading) {
             CircularProgressIndicator(color = CoffeeBrown)
         } else {
-            OutlinedButton(
+            Button(
                 onClick = {
                     scope.launch {
                         try {
                             val googleIdOption = GetGoogleIdOption.Builder()
                                 .setFilterByAuthorizedAccounts(false)
                                 .setServerClientId(webClientId)
-                                .setAutoSelectEnabled(true)
+                                .setAutoSelectEnabled(false)
                                 .build()
 
                             val request = GetCredentialRequest.Builder()
@@ -79,7 +79,7 @@ fun LoginScreen(
                                 onSuccess = { supabaseUuid, isNewUser ->
                                     onLoginSuccess(
                                         supabaseUuid, 
-                                        googleIdTokenCredential.id, // email
+                                        googleIdTokenCredential.id, 
                                         googleIdTokenCredential.displayName ?: "",
                                         googleIdTokenCredential.profilePictureUri?.toString() ?: "",
                                         isNewUser
@@ -90,27 +90,27 @@ fun LoginScreen(
                                 }
                             )
                         } catch (e: GetCredentialCancellationException) {
-                            Log.d("LoginScreen", "Selector cerrado")
+                            Log.d("LoginScreen", "Cerrado")
                         } catch (e: NoCredentialException) {
-                            Toast.makeText(context, "No hay cuentas de Google configuradas en este dispositivo", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "No hay cuentas de Google. Inicia sesión en el móvil.", Toast.LENGTH_LONG).show()
                         } catch (e: Exception) {
                             Log.e("LoginScreen", "Error: ${e.message}", e)
-                            Toast.makeText(context, "Error de Google: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(44.dp),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, Color(0xFF747775)),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Color(0xFF1F1F1F)),
-                contentPadding = PaddingValues(horizontal = 12.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF3C4043)),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.dp, Color(0xFFDADCE0))
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(modifier = Modifier.size(18.dp), shape = CircleShape, color = Color(0xFFF2F2F2), border = BorderStroke(0.5.dp, Color.LightGray)) {
-                        Text("G", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color(0xFF4285F4), modifier = Modifier.wrapContentHeight())
+                    Surface(modifier = Modifier.size(20.dp), shape = CircleShape, color = Color.White) {
+                        Text("G", color = Color(0xFF4285F4), fontSize = 14.sp, fontWeight = FontWeight.Black)
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text("Continuar con Google", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Continuar con Google", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

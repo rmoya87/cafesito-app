@@ -24,7 +24,7 @@ class SearchViewModel @Inject constructor(
     // Control de paginación
     private val _displayLimit = MutableStateFlow(10)
     private val PAGE_SIZE = 10
-    private val LOAD_THRESHOLD = 2 // Cargar cuando falten 2 para el final (el 8vo de 10)
+    private val LOAD_THRESHOLD = 2 
 
     init {
         refreshData()
@@ -85,7 +85,8 @@ class SearchViewModel @Inject constructor(
     val uiState: StateFlow<SearchUiState> = combine(
         _searchQuery, _selectedOrigin, _selectedRoast, 
         _selectedSpecialty, _selectedVariety, _selectedFormat, _selectedGrind, _minRating,
-        _displayLimit
+        _displayLimit,
+        repository.favorites // Añadimos favoritos al combine para reaccionar a cambios
     ) { args: Array<Any?> ->
         FilterParams(
             query = args[0] as String,
@@ -103,16 +104,11 @@ class SearchViewModel @Inject constructor(
             .map<List<CoffeeWithDetails>, SearchUiState> { coffees -> 
                 val baseFiltered = if (p.rating > 0) coffees.filter { it.averageRating >= p.rating } else coffees
                 
-                // Si NO hay búsqueda ni filtros, aplicamos el límite de paginación
                 val isSearching = p.query.isNotBlank() || p.origin != null || p.roast != null || 
                                  p.specialty != null || p.variety != null || p.format != null || 
                                  p.grind != null || p.rating > 0f
 
-                val finalItems = if (isSearching) {
-                    baseFiltered // Búsqueda total
-                } else {
-                    baseFiltered.take(p.limit) // Exploración paginada
-                }
+                val finalItems = if (isSearching) baseFiltered else baseFiltered.take(p.limit)
                 
                 SearchUiState.Success(finalItems, isPaginated = !isSearching)
             }
@@ -124,7 +120,6 @@ class SearchViewModel @Inject constructor(
         val currentItems = (uiState.value as? SearchUiState.Success)?.coffees?.size ?: 0
         val isPaginated = (uiState.value as? SearchUiState.Success)?.isPaginated ?: false
         
-        // Si estamos en modo paginado y llegamos al umbral (ej: el 8 de 10)
         if (isPaginated && index >= currentItems - LOAD_THRESHOLD) {
             _displayLimit.value += PAGE_SIZE
         }
@@ -147,11 +142,19 @@ class SearchViewModel @Inject constructor(
         _selectedFormat.value = null
         _selectedGrind.value = null
         _minRating.value = 0f
-        _displayLimit.value = 10 // Resetear paginación al limpiar
+        _displayLimit.value = 10 
     }
 
     fun toggleFavorite(id: String, isFav: Boolean) {
-        viewModelScope.launch { repository.toggleFavorite(id, !isFav) }
+        viewModelScope.launch {
+            try {
+                repository.toggleFavorite(id, !isFav)
+                // No necesitamos refrescar manualmente si el repository.favorites está en el combine del uiState
+            } catch (e: Exception) {
+                Log.e("SEARCH_VM", "Error al cambiar favorito", e)
+                _syncError.value = "No se pudo actualizar el favorito"
+            }
+        }
     }
 }
 

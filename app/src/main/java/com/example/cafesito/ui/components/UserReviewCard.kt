@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +25,7 @@ import com.example.cafesito.data.UserReviewInfo
 import com.example.cafesito.ui.detail.formatRelativeTime
 import com.example.cafesito.ui.theme.CoffeeBrown
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserReviewCard(
     info: UserReviewInfo, 
@@ -32,7 +35,34 @@ fun UserReviewCard(
     onDeleteClick: () -> Unit = {},
     onClick: () -> Unit
 ) {
-    var showMenu by remember { mutableStateOf(false) }
+    var showOptionsSheet by remember { mutableStateOf(false) }
+
+    if (showOptionsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showOptionsSheet = false },
+            containerColor = Color.White,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+                ListItem(
+                    headlineContent = { Text("Editar información") },
+                    leadingContent = { Icon(Icons.Default.Edit, null) },
+                    modifier = Modifier.clickable { 
+                        showOptionsSheet = false
+                        onEditClick() 
+                    }
+                )
+                ListItem(
+                    headlineContent = { Text("Eliminar opinión", color = Color.Red) },
+                    leadingContent = { Icon(Icons.Default.Delete, null, tint = Color.Red) },
+                    modifier = Modifier.clickable { 
+                        showOptionsSheet = false
+                        onDeleteClick() 
+                    }
+                )
+            }
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -79,27 +109,8 @@ fun UserReviewCard(
 
                     if (isOwnReview) {
                         Box {
-                            IconButton(onClick = { showMenu = true }) {
+                            IconButton(onClick = { showOptionsSheet = true }) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "Opciones")
-                            }
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Editar") },
-                                    onClick = { 
-                                        showMenu = false
-                                        onEditClick()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Borrar", color = Color.Red) },
-                                    onClick = { 
-                                        showMenu = false
-                                        onDeleteClick()
-                                    }
-                                )
                             }
                         }
                     }
@@ -176,27 +187,8 @@ fun UserReviewCard(
                 Column(horizontalAlignment = Alignment.End) {
                     if (!showHeader && isOwnReview) {
                         Box {
-                            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp).offset(x = 12.dp, y = (-12).dp)) {
+                            IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(32.dp).offset(x = 12.dp, y = (-12).dp)) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(18.dp))
-                            }
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Editar") },
-                                    onClick = { 
-                                        showMenu = false
-                                        onEditClick()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Borrar", color = Color.Red) },
-                                    onClick = { 
-                                        showMenu = false
-                                        onDeleteClick()
-                                    }
-                                )
                             }
                         }
                     }

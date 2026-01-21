@@ -106,7 +106,7 @@ fun DetailScreen(
                     isCustom = state.isCustom,
                     currentStock = state.currentPantryItem,
                     onBackClick = onBackClick,
-                    onFavoriteToggle = { viewModel.toggleFavorite(state.coffee.isFavorite) },
+                    onFavoriteToggle = { shouldBeFav -> viewModel.toggleFavorite(shouldBeFav) },
                     onUpdateStock = { total, remaining, name, brand -> viewModel.updateStock(total, remaining, name, brand) },
                     onReviewSubmit = { rating, comment, imageUri -> 
                         viewModel.submitReview(rating, comment, imageUri) 
@@ -126,7 +126,7 @@ private fun DetailContent(
     isCustom: Boolean,
     currentStock: PantryItemEntity?,
     onBackClick: () -> Unit,
-    onFavoriteToggle: () -> Unit,
+    onFavoriteToggle: (Boolean) -> Unit,
     onUpdateStock: (Int, Int, String?, String?) -> Unit,
     onReviewSubmit: (Float, String, Uri?) -> Unit
 ) {
@@ -362,9 +362,19 @@ private fun DetailContent(
                     }
                 }
                 Spacer(Modifier.width(12.dp))
-                Surface(onClick = onFavoriteToggle, color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(12.dp), modifier = Modifier.size(44.dp)) {
+                Surface(
+                    onClick = { onFavoriteToggle(!coffeeDetails.isFavorite) }, 
+                    color = Color.White.copy(alpha = 0.9f), 
+                    shape = RoundedCornerShape(12.dp), 
+                    modifier = Modifier.size(44.dp)
+                ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(imageVector = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, tint = if (coffeeDetails.isFavorite) Color.Red else Color.Gray, modifier = Modifier.size(24.dp))
+                        Icon(
+                            imageVector = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder, 
+                            contentDescription = null, 
+                            tint = if (coffeeDetails.isFavorite) Color.Red else Color.Gray, 
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
             }

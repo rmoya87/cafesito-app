@@ -50,7 +50,6 @@ class ProfileViewModel @Inject constructor(
 
     private val activeUserFlow = userRepository.getActiveUserFlow()
     
-    // Flujo del usuario objetivo
     private val targetUserFlow = if (requestedUserId == 0) {
         activeUserFlow
     } else {
@@ -59,7 +58,6 @@ class ProfileViewModel @Inject constructor(
         }.distinctUntilChanged()
     }
 
-    // Flujo de posts filtrado DIRECTAMENTE DESDE EL REPOSITORIO (SUPABASE)
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val userPostsFlow = targetUserFlow.flatMapLatest { user ->
         if (user != null) {
@@ -132,10 +130,8 @@ class ProfileViewModel @Inject constructor(
     fun refreshData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Sincronizamos a través de los refrescos de los repositorios
                 userRepository.triggerRefresh()
                 socialRepository.triggerRefresh()
-                
                 if (requestedUserId != 0) {
                     userRepository.getUserById(requestedUserId)
                 }
@@ -167,6 +163,12 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun logout() {
+        viewModelScope.launch {
+            userRepository.logout()
+        }
+    }
+
     fun toggleFollow() {
         viewModelScope.launch(Dispatchers.IO) {
             val me = userRepository.getActiveUser() ?: return@launch
@@ -176,7 +178,13 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun onToggleFavorite(coffeeId: String, isFavorite: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) { coffeeRepository.toggleFavorite(coffeeId, isFavorite) }
+        viewModelScope.launch(Dispatchers.IO) { 
+            try {
+                coffeeRepository.toggleFavorite(coffeeId, isFavorite)
+            } catch (e: Exception) {
+                _error.value = "Error al actualizar favorito"
+            }
+        }
     }
 
     fun onToggleLike(postId: String) {

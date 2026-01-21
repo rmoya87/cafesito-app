@@ -38,7 +38,10 @@ data class Coffee(
     @SerialName("puntuacion_total") val puntuacionTotal: Double = 0.0,
     @SerialName("codigo_barras") val codigoBarras: String? = null,
     @SerialName("image_url") val imageUrl: String = "",
-    @SerialName("product_url") val productUrl: String = ""
+    @SerialName("product_url") val productUrl: String = "",
+    // Campos para control local
+    val isCustom: Boolean = false,
+    val userId: Int? = null
 )
 
 @Serializable
@@ -67,7 +70,9 @@ data class CustomCoffeeEntity(
         paisOrigen = country,
         cafeina = if (hasCaffeine) "Sí" else "No",
         formato = format,
-        imageUrl = imageUrl
+        imageUrl = imageUrl,
+        isCustom = true,
+        userId = userId
     )
 }
 

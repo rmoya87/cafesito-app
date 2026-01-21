@@ -12,8 +12,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +25,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -54,6 +58,7 @@ fun ProfileScreen(
     
     val snackbarHostState = remember { SnackbarHostState() }
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
+    var showSettingsSheet by remember { mutableStateOf(false) }
 
     // ESTADOS DE EDICIÓN Y BORRADO
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
@@ -65,11 +70,38 @@ fun ProfileScreen(
         viewModel.refreshData()
     }
 
-    // Lanzar SnackBar si hay un error de guardado
+    // Lanzar SnackBar si hay un error
     LaunchedEffect(uiState) {
         val state = uiState
         if (state is ProfileUiState.Success && state.errorMessage != null) {
             snackbarHostState.showSnackbar(state.errorMessage)
+        }
+    }
+
+    if (showSettingsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSettingsSheet = false },
+            containerColor = Color.White,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+                ListItem(
+                    headlineContent = { Text("Editar mi perfil") },
+                    leadingContent = { Icon(Icons.Default.Edit, null) },
+                    modifier = Modifier.clickable { 
+                        showSettingsSheet = false
+                        viewModel.toggleEditMode() 
+                    }
+                )
+                ListItem(
+                    headlineContent = { Text("Cerrar sesión", color = Color.Red) },
+                    leadingContent = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.Red) },
+                    modifier = Modifier.clickable { 
+                        showSettingsSheet = false
+                        viewModel.logout() 
+                    }
+                )
+            }
         }
     }
 
@@ -104,15 +136,18 @@ fun ProfileScreen(
                                         text = state.user.username, 
                                         style = MaterialTheme.typography.titleLarge, 
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.Black // NOMBRE EN NEGRO
+                                        color = Color.Black
                                     )
                                     Spacer(Modifier.weight(1f))
                                     if (state.isCurrentUser) {
-                                        TextButton(onClick = { 
-                                            if (state.isEditing) viewModel.onSaveProfile(username, fullName, bio, email)
-                                            else viewModel.toggleEditMode()
-                                        }) {
-                                            Text(if (state.isEditing) "Guardar" else "Editar Perfil", color = CoffeeBrown)
+                                        if (state.isEditing) {
+                                            TextButton(onClick = { viewModel.onSaveProfile(username, fullName, bio, email) }) {
+                                                Text("Guardar", color = CoffeeBrown, fontWeight = FontWeight.Bold)
+                                            }
+                                        } else {
+                                            IconButton(onClick = { showSettingsSheet = true }) {
+                                                Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color.Black)
+                                            }
                                         }
                                     } else {
                                         Button(
@@ -165,19 +200,26 @@ fun ProfileScreen(
                                         label = { Text("Nombre de usuario") },
                                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                                         isError = state.usernameError != null,
-                                        supportingText = { if (state.usernameError != null) Text(state.usernameError!!) }
+                                        supportingText = { if (state.usernameError != null) Text(state.usernameError!!) },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                                     )
                                     OutlinedTextField(
                                         value = fullName,
                                         onValueChange = { fullName = it },
                                         label = { Text("Nombre completo") },
-                                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, capitalization = KeyboardCapitalization.Words)
                                     )
                                     OutlinedTextField(
                                         value = bio,
                                         onValueChange = { bio = it },
                                         label = { Text("Biografía") },
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier.fillMaxWidth(),
+                                        minLines = 3,
+                                        singleLine = false,
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default, capitalization = KeyboardCapitalization.Sentences)
                                     )
                                 } else {
                                     Text(text = state.user.fullName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black)
@@ -217,7 +259,7 @@ fun ProfileScreen(
                                 CoffeeFavoriteItem(
                                     coffeeDetails = coffeeDetails,
                                     isFavorite = true,
-                                    onFavoriteClick = { viewModel.onToggleFavorite(coffeeDetails.coffee.id, true) },
+                                    onFavoriteClick = { viewModel.onToggleFavorite(coffeeDetails.coffee.id, false) },
                                     onClick = { onCoffeeClick(coffeeDetails.coffee.id) }
                                 )
                             }
@@ -303,7 +345,13 @@ fun CoffeeFavoriteItem(coffeeDetails: CoffeeWithDetails, isFavorite: Boolean, on
                 Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black)
                 Text(text = "${coffeeDetails.coffee.marca}", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
             }
-            IconButton(onClick = onFavoriteClick) { Icon(Icons.Default.Favorite, "Favorito", tint = Color.Red) }
+            IconButton(onClick = onFavoriteClick) { 
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, 
+                    contentDescription = "Favorito", 
+                    tint = if (isFavorite) Color.Red else Color.Gray 
+                ) 
+            }
         }
     }
 }

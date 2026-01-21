@@ -14,8 +14,7 @@ import javax.inject.Inject
 
 sealed interface SessionState {
     data object Loading : SessionState
-    data object NewUser : SessionState
-    data object Registered : SessionState
+    data object NotAuthenticated : SessionState
     data object Authenticated : SessionState
 }
 
@@ -39,25 +38,23 @@ class SessionViewModel @Inject constructor(
     private fun checkSession() {
         viewModelScope.launch {
             try {
-                // 1. Verificamos si hay un usuario autenticado en el motor de Auth de Supabase
                 val currentUid = supabaseClient.auth.currentUserOrNull()?.id
                 
                 if (currentUid != null) {
-                    // 2. Si hay sesión, descargamos el perfil de Supabase para validar si está completo
                     val activeUser = userRepository.getActiveUser()
                     if (activeUser != null && activeUser.username.isNotBlank()) {
                         _sessionState.value = SessionState.Authenticated
                     } else {
-                        // Sesión activa pero perfil sin completar (ej: falta el username)
-                        _sessionState.value = SessionState.Registered
+                        // Si hay sesión pero el perfil no está listo, lo tratamos como No Autenticado
+                        // para que pase por el flujo de Login/CompleteProfile si es necesario
+                        _sessionState.value = SessionState.NotAuthenticated
                     }
                 } else {
-                    // No hay sesión en Supabase (o ha expirado)
-                    _sessionState.value = SessionState.NewUser
+                    _sessionState.value = SessionState.NotAuthenticated
                 }
             } catch (e: Exception) {
                 Log.e("SessionViewModel", "Error comprobando sesión", e)
-                _sessionState.value = SessionState.NewUser
+                _sessionState.value = SessionState.NotAuthenticated
             }
         }
     }
