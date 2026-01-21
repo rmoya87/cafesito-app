@@ -3,21 +3,15 @@ package com.example.cafesito.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Coffee
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -25,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import com.example.cafesito.data.PostWithDetails
-import com.example.cafesito.ui.detail.formatRelativeTime
-import com.example.cafesito.ui.theme.CoffeeBrown
+import com.example.cafesito.ui.utils.formatRelativeTime
+import com.example.cafesito.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,134 +44,141 @@ fun PostCard(
         ModalBottomSheet(
             onDismissRequest = { showOptionsSheet = false },
             containerColor = Color.White,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
                 ListItem(
-                    headlineContent = { Text("Editar información") },
-                    leadingContent = { Icon(Icons.Default.Edit, null) },
+                    headlineContent = { Text("Editar información", color = EspressoDeep) },
+                    leadingContent = { Icon(Icons.Default.Edit, null, tint = EspressoDeep) },
                     modifier = Modifier.clickable { 
                         showOptionsSheet = false
                         onEditClick() 
-                    }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.White)
                 )
                 ListItem(
-                    headlineContent = { Text("Borrar publicación", color = Color.Red) },
-                    leadingContent = { Icon(Icons.Default.Delete, null, tint = Color.Red) },
+                    headlineContent = { Text("Borrar publicación", color = ElectricRed) },
+                    leadingContent = { Icon(Icons.Default.Delete, null, tint = ElectricRed) },
                     modifier = Modifier.clickable { 
                         showOptionsSheet = false
                         onDeleteClick() 
-                    }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.White)
                 )
             }
         }
     }
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(0.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
+    PremiumCard(modifier = modifier.fillMaxWidth()) {
         Column {
             if (showHeader) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         modifier = Modifier.weight(1f).clickable(onClick = onUserClick),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SubcomposeAsyncImage(
-                            model = author.avatarUrl,
-                            loading = { Box(Modifier.fillMaxSize().background(Color.LightGray)) },
-                            error = { Icon(Icons.Default.BrokenImage, contentDescription = null, tint = Color.Gray) },
-                            contentDescription = "Avatar",
-                            modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentScale = ContentScale.Crop
-                        )
+                        ModernAvatar(imageUrl = author.avatarUrl, size = 44.dp)
                         Column(modifier = Modifier.padding(start = 12.dp)) {
-                            Text(author.fullName, fontWeight = FontWeight.Bold)
                             Text(
-                                text = formatRelativeTime(post.timestamp),
+                                text = author.fullName, 
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = EspressoDeep
+                            )
+                            Text(
+                                text = formatRelativeTime(post.timestamp).uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                color = CaramelAccent,
+                                letterSpacing = 1.sp
                             )
                         }
                     }
 
-                    if (isOwnPost) {
-                        Box {
-                            IconButton(onClick = { showOptionsSheet = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Opciones")
-                            }
-                        }
+                    IconButton(onClick = { showOptionsSheet = true }) {
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = EspressoDeep)
                     }
                 }
             }
 
+            // Imagen Ancho Completo sin bordes redondeados internos
             SubcomposeAsyncImage(
                 model = post.imageUrl,
-                loading = { 
-                    Box(modifier = Modifier.fillMaxWidth().height(250.dp).background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    }
-                },
-                error = { 
-                    Box(modifier = Modifier.fillMaxWidth().height(200.dp).background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.BrokenImage, contentDescription = "Error de carga", tint = Color.LightGray)
-                    }
-                },
+                loading = { ShimmerItem(Modifier.fillMaxWidth().height(350.dp)) },
                 contentDescription = null,
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier.fillMaxWidth().wrapContentHeight()
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
             )
 
-            Column(modifier = Modifier.padding(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Row(
-                        modifier = Modifier.clickable(onClick = onCommentClick),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(imageVector = Icons.Outlined.ChatBubbleOutline, contentDescription = "Comentarios", modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.size(4.dp))
-                        Text(text = "${details.comments.size}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    InteractionItem(
+                        icon = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        count = details.likes.size,
+                        color = if (isLiked) ElectricRed else EspressoDeep,
+                        onClick = onLikeClick
+                    )
                     
-                    Spacer(modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(24.dp))
                     
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onLikeClick, modifier = Modifier.size(40.dp)) {
-                            Icon(
-                                imageVector = if (isLiked) Icons.Filled.Coffee else Icons.Outlined.Coffee,
-                                contentDescription = "Me gusta",
-                                tint = if (isLiked) CoffeeBrown else Color.Gray,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Text(text = "${details.likes.size}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
+                    InteractionItem(
+                        icon = Icons.Outlined.ChatBubbleOutline,
+                        count = details.comments.size,
+                        color = EspressoDeep,
+                        onClick = onCommentClick
+                    )
 
                     if (!showHeader && isOwnPost) {
                         Spacer(Modifier.weight(1f))
-                        Text(
-                            text = formatRelativeTime(post.timestamp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray
-                        )
-                        Box {
-                            IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(18.dp))
-                            }
+                        IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.MoreHoriz, null, tint = EspressoDeep)
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(post.comment)
+
+                if (post.comment.isNotBlank()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = post.comment,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = EspressoDeep,
+                        lineHeight = 22.sp
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun InteractionItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    count: Int,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+        if (count > 0) {
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
         }
     }
 }

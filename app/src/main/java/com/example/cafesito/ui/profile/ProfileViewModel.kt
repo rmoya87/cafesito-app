@@ -37,9 +37,7 @@ class ProfileViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
-    private val socialRepository: SocialRepository,
-    private val socialDao: SocialDao,
-    private val userDao: UserDao
+    private val socialRepository: SocialRepository
 ) : ViewModel() {
 
     private val requestedUserId: Int = savedStateHandle["userId"] ?: 0

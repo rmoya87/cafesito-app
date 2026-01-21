@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,11 +15,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,8 +36,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
-import com.example.cafesito.ui.components.SemicircleRatingBar // FIX: Import corregido
-import com.example.cafesito.ui.theme.CoffeeBrown
+import com.example.cafesito.ui.components.*
+import com.example.cafesito.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,42 +45,25 @@ fun AddPostScreen(
     onBackClick: () -> Unit = {},
     viewModel: AddPostViewModel = hiltViewModel()
 ) {
-    val currentStep: Int by viewModel.currentStep.collectAsState()
-    val postType: PostType by viewModel.postType.collectAsState()
+    val currentStep by viewModel.currentStep.collectAsState()
+    val postType by viewModel.postType.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
 
     Scaffold(
+        containerColor = SoftOffWhite,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Nueva publicación", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    if (currentStep == 0) {
-                        TextButton(onClick = onBackClick) {
-                            Text("Cancelar", color = Color.Gray, fontSize = 16.sp)
-                        }
-                    } else {
-                        IconButton(onClick = { viewModel.goToStep(0) }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                        }
-                    }
-                },
+            GlassyTopBar(
+                title = if (currentStep == 0) "NUEVA PUBLICACIÓN" else "DETALLES",
+                onBackClick = if (currentStep == 0) onBackClick else { { viewModel.goToStep(0) } },
                 actions = {
                     val canNext = when (postType) {
                         PostType.PUBLICATION -> imageSource != null
                         PostType.OPINION -> selectedCoffee != null
                     }
                     if (currentStep == 0 && canNext) {
-                        Surface(
-                            onClick = { viewModel.goToStep(1) },
-                            color = Color.White,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.padding(end = 8.dp).size(40.dp),
-                            shadowElevation = 1.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, "Siguiente", tint = Color(0xFF3C3C3C), modifier = Modifier.size(20.dp))
-                            }
+                        IconButton(onClick = { viewModel.goToStep(1) }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = EspressoDeep, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -87,35 +72,147 @@ fun AddPostScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             
-            // CONTENIDO PRINCIPAL
             AnimatedContent(
                 targetState = currentStep, 
-                label = "FlowTransition",
-                modifier = Modifier.fillMaxSize()
+                transitionSpec = { fadeIn() + slideInHorizontally { it } togetherWith fadeOut() + slideOutHorizontally { -it } },
+                label = "FlowTransition"
             ) { step ->
                 when {
-                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStep(viewModel)
-                    postType == PostType.PUBLICATION && step == 1 -> PostDetailsStep(onSuccess = onBackClick, viewModel = viewModel)
-                    postType == PostType.OPINION && step == 0 -> CoffeeSelectionStep(viewModel)
-                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStep(onSuccess = onBackClick, viewModel = viewModel)
+                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel)
+                    postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
+                    postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
+                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
                 }
             }
             
-            // MENU FLOTANTE
             if (currentStep == 0) {
                 Box(
                     modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(bottom = 32.dp), 
                     contentAlignment = Alignment.Center
                 ) {
-                    Surface(
-                        modifier = Modifier.width(240.dp).height(44.dp),
-                        shape = RoundedCornerShape(22.dp),
-                        color = Color.White.copy(alpha = 0.95f),
-                        shadowElevation = 8.dp
-                    ) {
-                        Row(modifier = Modifier.fillMaxSize().padding(4.dp)) {
-                            PostTypeTab("Publicación", postType == PostType.PUBLICATION) { viewModel.setPostType(PostType.PUBLICATION) }
-                            PostTypeTab("Opinión", postType == PostType.OPINION) { viewModel.setPostType(PostType.OPINION) }
+                    PremiumTabRow(
+                        selectedTabIndex = if(postType == PostType.PUBLICATION) 0 else 1,
+                        tabs = listOf("MOMENTO", "RESEÑA"),
+                        onTabSelected = { viewModel.setPostType(if(it == 0) PostType.PUBLICATION else PostType.OPINION) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel) {
+    val imageSource by viewModel.imageSource.collectAsState()
+    val galleryImages by viewModel.galleryImages.collectAsState()
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxWidth().weight(1f).background(SoftOffWhite), contentAlignment = Alignment.Center) {
+            if (imageSource != null) {
+                AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
+                Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.labelLarge, color = Color.LightGray)
+            }
+        }
+        
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(4), 
+            modifier = Modifier.weight(1.2f).background(Color.White), 
+            contentPadding = PaddingValues(1.dp), 
+            horizontalArrangement = Arrangement.spacedBy(1.dp), 
+            verticalArrangement = Arrangement.spacedBy(1.dp)
+        ) {
+            item {
+                Box(modifier = Modifier.aspectRatio(1f).background(CreamLight).clickable { cameraLauncher.launch(null) }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.PhotoCamera, null, tint = EspressoDeep)
+                }
+            }
+            items(galleryImages) { uri ->
+                val isSelected = imageSource == uri
+                Box(modifier = Modifier.aspectRatio(1f).clickable { viewModel.setImage(uri) }) {
+                    AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.4f)).border(2.dp, CaramelAccent))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PostDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostViewModel) {
+    val imageSource by viewModel.imageSource.collectAsState()
+    var comment by remember { mutableStateOf("") }
+    
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+        PremiumCard {
+            Column(Modifier.padding(12.dp)) {
+                AsyncImage(
+                    model = imageSource, 
+                    contentDescription = null, 
+                    modifier = Modifier.fillMaxWidth().height(300.dp).clip(RoundedCornerShape(24.dp)), 
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+        
+        Spacer(Modifier.height(32.dp))
+        
+        Text("TU HISTORIA", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+        Spacer(Modifier.height(16.dp))
+        
+        OutlinedTextField(
+            value = comment, 
+            onValueChange = { comment = it }, 
+            placeholder = { Text("Comparte tu experiencia...") }, 
+            modifier = Modifier.fillMaxWidth().heightIn(min = 150.dp), 
+            shape = RoundedCornerShape(24.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent)
+        )
+        
+        Spacer(Modifier.height(32.dp))
+        
+        Button(
+            onClick = { viewModel.createPost(comment, onSuccess) }, 
+            modifier = Modifier.fillMaxWidth().height(60.dp), 
+            enabled = comment.isNotBlank(), 
+            shape = RoundedCornerShape(30.dp), 
+            colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep)
+        ) {
+            Text("PUBLICAR", fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+        }
+    }
+}
+
+@Composable
+private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val coffeeList by viewModel.coffeeList.collectAsState()
+    
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = viewModel::onSearchQueryChanged,
+            placeholder = { Text("¿Qué café estás catando?") },
+            leadingIcon = { Icon(Icons.Default.Search, null, tint = EspressoDeep) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent)
+        )
+        
+        Spacer(Modifier.height(24.dp))
+        Text("RECIENTES", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+        Spacer(Modifier.height(16.dp))
+        
+        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(coffeeList) { coffee ->
+                PremiumCard(modifier = Modifier.clickable { viewModel.selectCoffee(coffee) }) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        AsyncImage(model = coffee.coffee.imageUrl, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
+                        Spacer(Modifier.width(16.dp))
+                        Column {
+                            Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = CaramelAccent, fontSize = 9.sp)
                         }
                     }
                 }
@@ -125,188 +222,67 @@ fun AddPostScreen(
 }
 
 @Composable
-private fun RowScope.PostTypeTab(label: String, isActive: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (isActive) CoffeeBrown else Color.Transparent)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = if (isActive) Color.White else Color.Gray, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-    }
-}
-
-@Composable
-private fun PhotoSelectionStep(viewModel: AddPostViewModel) {
-    val imageSource by viewModel.imageSource.collectAsState()
-    val galleryImages by viewModel.galleryImages.collectAsState()
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxWidth().weight(1f).background(Color.White), contentAlignment = Alignment.Center) {
-            AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxWidth().wrapContentHeight(), contentScale = ContentScale.FillWidth)
-        }
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4), 
-            modifier = Modifier.weight(1.2f).background(Color.White), 
-            contentPadding = PaddingValues(1.dp, 1.dp, 1.dp, 100.dp), 
-            horizontalArrangement = Arrangement.spacedBy(1.dp), 
-            verticalArrangement = Arrangement.spacedBy(1.dp)
-        ) {
-            item {
-                Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) }, contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(28.dp), tint = Color.Black)
-                        Text("Cámara", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-            items(galleryImages) { uri ->
-                val isSelected = imageSource == uri
-                Box(modifier = Modifier.aspectRatio(1f).clickable { viewModel.setImage(uri) }) {
-                    AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.3f)).border(2.dp, CoffeeBrown))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PostDetailsStep(onSuccess: () -> Unit, viewModel: AddPostViewModel) {
-    val imageSource by viewModel.imageSource.collectAsState()
-    var comment by remember { mutableStateOf("") }
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.FillWidth)
-        Spacer(Modifier.height(24.dp))
-        OutlinedTextField(
-            value = comment, 
-            onValueChange = { comment = it }, 
-            placeholder = { Text("Escribe lo que está pasando...") }, 
-            modifier = Modifier.fillMaxWidth().weight(1f), 
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = CoffeeBrown,
-                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            )
-        )
-        Spacer(Modifier.height(20.dp))
-        Button(onClick = { viewModel.createPost(comment, onSuccess) }, modifier = Modifier.fillMaxWidth().height(54.dp), enabled = comment.isNotBlank(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)) {
-            Text("Publicar", fontWeight = FontWeight.Bold, color = Color.White)
-        }
-    }
-}
-
-@Composable
-private fun CoffeeSelectionStep(viewModel: AddPostViewModel) {
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val coffeeList by viewModel.coffeeList.collectAsState()
-    
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = viewModel::onSearchQueryChanged,
-            placeholder = { Text("¿Sobre qué café quieres opinar?") },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = CoffeeBrown,
-                unfocusedBorderColor = Color.LightGray,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            )
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(text = if (searchQuery.isEmpty()) "Vistos recientemente" else "Resultados", style = MaterialTheme.typography.labelLarge, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
-        LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = 100.dp)) {
-            items(coffeeList) { coffee ->
-                ListItem(
-                    headlineContent = { Text(coffee.coffee.nombre, fontWeight = FontWeight.Bold) },
-                    supportingContent = { Text(coffee.coffee.marca) },
-                    leadingContent = { AsyncImage(model = coffee.coffee.imageUrl, contentDescription = null, modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop) },
-                    modifier = Modifier.clickable { viewModel.selectCoffee(coffee) }
-                )
-                HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.5f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReviewDetailsStep(onSuccess: () -> Unit, viewModel: AddPostViewModel) {
+private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostViewModel) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
-    
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
-    var rating by remember { mutableStateOf(0f) }
+    var rating by remember { mutableFloatStateOf(0f) }
     var comment by remember { mutableStateOf("") }
     
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+        Text("CAFÉ SELECCIONADO", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
         Spacer(Modifier.height(16.dp))
         
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(12.dp))
-                .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(model = selectedCoffee?.coffee?.imageUrl, contentDescription = null, modifier = Modifier.size(60.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(selectedCoffee?.coffee?.nombre ?: "", fontWeight = FontWeight.Bold, color = Color.DarkGray)
-                Text(selectedCoffee?.coffee?.marca ?: "", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        PremiumCard {
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(model = selectedCoffee?.coffee?.imageUrl, contentDescription = null, modifier = Modifier.size(60.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(selectedCoffee?.coffee?.nombre ?: "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(selectedCoffee?.coffee?.marca ?: "", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
             }
         }
         
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(32.dp))
         
         Box(
-            modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF8F8F8)).clickable { cameraLauncher.launch(null) },
+            modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(32.dp)).background(CreamLight).clickable { cameraLauncher.launch(null) }.border(1.dp, BorderLight, RoundedCornerShape(32.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (imageSource != null && !imageSource.toString().contains("picsum")) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.AddAPhoto, null, Modifier.size(32.dp), tint = Color.Gray)
-                    Text("Añadir foto del café", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                    Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(32.dp), tint = CaramelAccent)
+                    Spacer(Modifier.height(8.dp))
+                    Text("AÑADIR FOTO", style = MaterialTheme.typography.labelSmall, color = CaramelAccent)
                 }
             }
         }
         
-        Spacer(Modifier.height(24.dp))
-        Text("Puntuación", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
-        SemicircleRatingBar(rating = rating, onRatingChanged = { newRating -> rating = newRating })
-        
+        Spacer(Modifier.height(32.dp))
+        Text("CALIFICACIÓN", style = MaterialTheme.typography.labelLarge, color = CaramelAccent, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(Modifier.height(16.dp))
+        SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
         
+        Spacer(Modifier.height(32.dp))
         OutlinedTextField(
-            value = comment, 
-            onValueChange = { comment = it }, 
-            label = { Text("¿Qué te ha parecido?") }, 
-            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), 
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = CoffeeBrown,
-                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            )
+            value = comment, onValueChange = { comment = it }, label = { Text("Nota de cata...") },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), shape = RoundedCornerShape(24.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent)
         )
         
         Spacer(Modifier.height(32.dp))
-        
-        Button(onClick = { viewModel.submitReview(rating, comment, onSuccess) }, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = rating > 0 && comment.isNotBlank(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)) {
-            Text("Enviar opinión", fontWeight = FontWeight.Bold, color = Color.White)
+        Button(
+            onClick = { viewModel.submitReview(rating, comment, onSuccess) }, 
+            modifier = Modifier.fillMaxWidth().height(60.dp), 
+            enabled = rating > 0 && comment.isNotBlank(), 
+            shape = RoundedCornerShape(30.dp), 
+            colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent)
+        ) {
+            Text("GUARDAR RESEÑA", fontWeight = FontWeight.Bold, color = Color.White, letterSpacing = 1.sp)
         }
-        Spacer(Modifier.height(100.dp))
+        Spacer(Modifier.height(40.dp))
     }
 }

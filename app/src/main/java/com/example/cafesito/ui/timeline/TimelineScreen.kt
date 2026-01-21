@@ -2,12 +2,15 @@ package com.example.cafesito.ui.timeline
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -26,13 +29,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.PostWithDetails
-import com.example.cafesito.ui.components.PostCard
-import com.example.cafesito.ui.components.RatingBar
-import com.example.cafesito.ui.components.UserReviewCard
-import com.example.cafesito.ui.components.UserSuggestionCarousel
-import com.example.cafesito.ui.components.RecommendationCarousel
-import com.example.cafesito.ui.theme.CoffeeBrown
-import com.example.cafesito.ui.theme.LightGrayBackground
+import com.example.cafesito.ui.components.*
+import com.example.cafesito.ui.theme.*
+import com.example.cafesito.ui.timeline.CommentsSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,42 +48,46 @@ fun TimelineScreen(
     var reviewToEdit by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
 
-    // Refrescar cada vez que se entra en la pantalla
-    LaunchedEffect(Unit) {
-        viewModel.refreshData()
-    }
+    LaunchedEffect(Unit) { viewModel.refreshData() }
 
     Scaffold(
-        containerColor = Color(0xFFF8F8F8),
+        containerColor = SoftOffWhite,
+        topBar = { GlassyTopBar(title = "Cafesito") },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddPostClick, containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White) {
-                Icon(Icons.Default.Add, contentDescription = "Añadir")
-            }
+            LargeFloatingActionButton(
+                onClick = onAddPostClick,
+                containerColor = EspressoDeep,
+                contentColor = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.padding(bottom = 16.dp, end = 8.dp)
+            ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(30.dp)) }
         }
     ) { padding ->
         when (val state = uiState) {
-            is TimelineUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+            is TimelineUiState.Loading -> {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    items(5) { ShimmerItem(Modifier.fillMaxWidth().height(400.dp).padding(16.dp)) }
+                }
+            }
+            is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message) }
             is TimelineUiState.Success -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(bottom = 16.dp)
+                    contentPadding = PaddingValues(bottom = 100.dp)
                 ) {
-                    item { 
-                        Text(
-                            text = "Inicio", 
-                            style = MaterialTheme.typography.headlineMedium, 
-                            color = Color.Black, // CAMBIADO A NEGRO
-                            modifier = Modifier.padding(16.dp)
-                        ) 
-                    }
-
-                    // SECCIÓN DE RECOMENDACIONES SENSORIALES
                     if (state.recommendations.isNotEmpty()) {
                         item {
+                            Text(
+                                "DESCUBRE TU PRÓXIMO CAFÉ",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = CaramelAccent,
+                                modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 12.dp)
+                            )
                             RecommendationCarousel(
                                 recommendations = state.recommendations,
                                 onCoffeeClick = onCoffeeClick
                             )
+                            Spacer(Modifier.height(24.dp))
                         }
                     }
 
@@ -96,35 +99,82 @@ fun TimelineScreen(
                                 onUserClick = onUserClick,
                                 onFollowClick = { viewModel.toggleFollowSuggestion(it) }
                             )
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(32.dp))
                         }
+                    }
+
+                    item {
+                        Text(
+                            "FEED",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = CaramelAccent,
+                            modifier = Modifier.padding(start = 24.dp, bottom = 16.dp)
+                        )
                     }
 
                     itemsIndexed(state.items) { index, item ->
-                        when (item) {
-                            is TimelineItem.PostItem -> PostCard(
-                                details = item.details,
-                                isLiked = item.details.likes.any { it.userId == state.activeUser.id },
-                                onUserClick = { onUserClick(item.details.author.id) },
-                                onCommentClick = { showCommentSheetId = item.details.post.id },
-                                onLikeClick = { viewModel.toggleLike(item.details.post.id) },
-                                isOwnPost = item.details.post.userId == state.activeUser.id,
-                                onEditClick = { postToEdit = item.details },
-                                onDeleteClick = { itemToDelete = item.details }
-                            )
-                            is TimelineItem.ReviewItem -> UserReviewCard(
-                                info = item.reviewInfo,
-                                isOwnReview = item.reviewInfo.review.userId == state.activeUser.id,
-                                onEditClick = { reviewToEdit = item },
-                                onDeleteClick = { itemToDelete = item },
-                                onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
-                            )
-                            else -> {}
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(animationSpec = tween(500, delayMillis = index * 100)) + 
+                                    slideInVertically(initialOffsetY = { 50 })
+                        ) {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                when (item) {
+                                    is TimelineItem.PostItem -> PostCard(
+                                        details = item.details,
+                                        isLiked = item.details.likes.any { it.userId == state.activeUser.id },
+                                        onUserClick = { onUserClick(item.details.author.id) },
+                                        onCommentClick = { showCommentSheetId = item.details.post.id },
+                                        onLikeClick = { viewModel.toggleLike(item.details.post.id) },
+                                        isOwnPost = item.details.post.userId == state.activeUser.id,
+                                        onEditClick = { postToEdit = item.details },
+                                        onDeleteClick = { itemToDelete = item.details }
+                                    )
+                                    is TimelineItem.ReviewItem -> UserReviewCard(
+                                        info = item.reviewInfo,
+                                        isOwnReview = item.reviewInfo.review.userId == state.activeUser.id,
+                                        onEditClick = { reviewToEdit = item },
+                                        onDeleteClick = { itemToDelete = item },
+                                        onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
+                                    )
+                                    else -> {}
+                                }
+                            }
                         }
-                        Spacer(Modifier.height(16.dp))
                     }
                 }
 
+                if (itemToDelete != null) {
+                    AlertDialog(
+                        onDismissRequest = { itemToDelete = null },
+                        title = { Text("Eliminar publicación", fontWeight = FontWeight.Bold) },
+                        text = { Text("Esta acción es irreversible.") },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    val item = itemToDelete
+                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
+                                    else if (item is TimelineItem.ReviewItem) viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
+                                    itemToDelete = null
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
+                            ) { Text("ELIMINAR") }
+                        },
+                        dismissButton = { TextButton(onClick = { itemToDelete = null }) { Text("CANCELAR", color = Color.Gray) } },
+                        shape = RoundedCornerShape(28.dp),
+                        containerColor = Color.White
+                    )
+                }
+
+                showCommentSheetId?.let { id ->
+                    CommentsSheet(
+                        postId = id,
+                        onDismiss = { showCommentSheetId = null },
+                        onAddComment = { viewModel.onAddComment(id, it) },
+                        onNavigateToProfile = onUserClick
+                    )
+                }
+                
                 postToEdit?.let { details ->
                     EditPostDialog(
                         initialText = details.post.comment,
@@ -136,7 +186,7 @@ fun TimelineScreen(
                         }
                     )
                 }
-
+                
                 reviewToEdit?.let { item ->
                     EditReviewDialog(
                         initialRating = item.reviewInfo.review.rating,
@@ -149,147 +199,7 @@ fun TimelineScreen(
                         }
                     )
                 }
-
-                itemToDelete?.let { item ->
-                    AlertDialog(
-                        onDismissRequest = { itemToDelete = null },
-                        title = { Text("¿Borrar publicación?") },
-                        text = { Text("Esta acción no se puede deshacer.") },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                                else if (item is TimelineItem.ReviewItem) viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
-                                itemToDelete = null
-                            }) { Text("Borrar", color = Color.Red) }
-                        },
-                        dismissButton = { TextButton(onClick = { itemToDelete = null }) { Text("Cancelar") } }
-                    )
-                }
-
-                showCommentSheetId?.let { id ->
-                    CommentsSheet(postId = id, onDismiss = { showCommentSheetId = null }, onAddComment = { viewModel.onAddComment(id, it) }, onNavigateToProfile = onUserClick)
-                }
             }
         }
     }
-}
-
-@Composable
-fun EditPostDialog(
-    initialText: String, 
-    initialImage: String,
-    onDismiss: () -> Unit, 
-    onConfirm: (String, String) -> Unit
-) {
-    var text by remember { mutableStateOf(initialText) }
-    var imageUrl by remember { mutableStateOf(initialImage) }
-    
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { imageUrl = it.toString() }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Editar Publicación") },
-        text = {
-            Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                        .clickable { launcher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.5f),
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text("Cambiar foto", color = Color.White, modifier = Modifier.padding(4.dp), fontSize = 10.sp)
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = text, 
-                    onValueChange = { text = it }, 
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Descripción") }
-                )
-            }
-        },
-        confirmButton = { Button(onClick = { onConfirm(text, imageUrl) }, colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
-}
-
-@Composable
-fun EditReviewDialog(
-    initialRating: Float, 
-    initialComment: String, 
-    initialImage: String?,
-    onDismiss: () -> Unit, 
-    onConfirm: (Float, String, String?) -> Unit
-) {
-    var rating by remember { mutableFloatStateOf(initialRating) }
-    var comment by remember { mutableStateOf(initialComment) }
-    var imageUrl by remember { mutableStateOf(initialImage) }
-
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { imageUrl = it.toString() }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Editar Opinión") },
-        text = {
-            Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                        .clickable { launcher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (imageUrl != null) {
-                        AsyncImage(
-                            model = imageUrl, 
-                            contentDescription = null, 
-                            modifier = Modifier.fillMaxSize(), 
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AddAPhoto, null, tint = Color.Gray)
-                            Text("Añadir foto", color = Color.Gray, fontSize = 12.sp)
-                        }
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                RatingBar(
-                    rating = rating, 
-                    isInteractive = true, 
-                    onRatingChanged = { rating = it }
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = comment, 
-                    onValueChange = { comment = it }, 
-                    label = { Text("Tu opinión") }, 
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = { Button(onClick = { onConfirm(rating, comment, imageUrl) }, colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)) { Text("Actualizar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
 }

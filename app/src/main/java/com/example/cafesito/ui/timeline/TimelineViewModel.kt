@@ -175,6 +175,7 @@ sealed class TimelineItem {
 
 sealed interface TimelineUiState {
     data object Loading : TimelineUiState
+    data class Error(val message: String) : TimelineUiState
     data class Success(
         val items: List<TimelineItem>,
         val suggestedUsers: List<SuggestedUserInfo>,

@@ -1,5 +1,6 @@
 package com.example.cafesito.ui.access
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,7 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.example.cafesito.ui.theme.CoffeeBrown
+import com.example.cafesito.ui.theme.*
+import com.example.cafesito.ui.components.*
 import kotlinx.coroutines.launch
 
 data class OnboardingPage(
@@ -54,41 +56,40 @@ fun OnboardingScreen(
     val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
     val scope = rememberCoroutineScope()
 
-    Scaffold { padding ->
+    Scaffold(containerColor = SoftOffWhite) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
         ) {
-            // TEXTO OMITIR - Arriba a la Derecha con prioridad táctica (zIndex)
             if (pagerState.currentPage < onboardingPages.size - 1) {
                 TextButton(
                     onClick = onFinished,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(16.dp)
+                        .padding(24.dp)
                         .statusBarsPadding()
                         .zIndex(1f) 
                 ) {
-                    Text("Omitir", color = Color.Gray, fontSize = 16.sp)
+                    Text(
+                        "OMITIR", 
+                        style = MaterialTheme.typography.labelLarge, 
+                        color = CaramelAccent,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                 ) { page ->
-                    OnboardingPageContent(onboardingPages[page])
+                    OnboardingPageContentPremium(onboardingPages[page])
                 }
 
-                // CONTROLES INFERIORES - Posicionados más abajo
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -96,49 +97,44 @@ fun OnboardingScreen(
                         .padding(bottom = 64.dp), 
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Page Indicator
                     Row(
-                        modifier = Modifier
-                            .height(40.dp)
-                            .fillMaxWidth(),
+                        modifier = Modifier.height(40.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         repeat(onboardingPages.size) { iteration ->
-                            val color = if (pagerState.currentPage == iteration) CoffeeBrown else Color.LightGray
+                            val isSelected = pagerState.currentPage == iteration
                             Box(
                                 modifier = Modifier
                                     .padding(4.dp)
                                     .clip(CircleShape)
-                                    .background(color)
-                                    .size(10.dp)
+                                    .background(if (isSelected) EspressoDeep else BorderLight)
+                                    .size(if (isSelected) 10.dp else 6.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
                         onClick = {
                             if (pagerState.currentPage < onboardingPages.size - 1) {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                }
+                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                             } else {
                                 onFinished()
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
-                        shape = RoundedCornerShape(16.dp)
+                            .height(60.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
+                        shape = RoundedCornerShape(30.dp)
                     ) {
                         Text(
-                            text = if (pagerState.currentPage == onboardingPages.size - 1) "Empezar" else "Siguiente",
-                            fontSize = 16.sp,
+                            text = if (pagerState.currentPage == onboardingPages.size - 1) "EMPEZAR" else "SIGUIENTE",
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            letterSpacing = 2.sp
                         )
                     }
                 }
@@ -148,33 +144,41 @@ fun OnboardingScreen(
 }
 
 @Composable
-fun OnboardingPageContent(page: OnboardingPage) {
+fun OnboardingPageContentPremium(page: OnboardingPage) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(40.dp),
+            .padding(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        PremiumCard(
+            modifier = Modifier.size(200.dp),
+            shape = RoundedCornerShape(40.dp)
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = page.icon, fontSize = 80.sp)
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(48.dp))
+        
         Text(
-            text = page.icon,
-            fontSize = 100.sp,
-            modifier = Modifier.padding(bottom = 40.dp)
-        )
-        Text(
-            text = page.title,
+            text = page.title.uppercase(),
             style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            color = CoffeeBrown
+            color = EspressoDeep,
+            letterSpacing = 1.sp
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        
+        Spacer(modifier = Modifier.height(20.dp))
+        
         Text(
             text = page.description,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = Color.Gray,
-            lineHeight = 24.sp
+            lineHeight = 26.sp
         )
     }
 }

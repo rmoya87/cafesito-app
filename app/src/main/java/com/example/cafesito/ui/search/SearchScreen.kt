@@ -35,7 +35,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
-import com.example.cafesito.ui.theme.CoffeeBrown
+import com.example.cafesito.ui.components.*
+import com.example.cafesito.ui.theme.*
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -50,44 +51,23 @@ fun SearchScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val options by viewModel.filterOptions.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val syncError by viewModel.syncError.collectAsState()
     
     val selectedOrigin: String? by viewModel.selectedOrigin.collectAsState(initial = null)
     val selectedRoast: String? by viewModel.selectedRoast.collectAsState(initial = null)
-    val selectedSpecialty: String? by viewModel.selectedSpecialty.collectAsState(initial = null)
-    val selectedVariety: String? by viewModel.selectedVariety.collectAsState(initial = null)
-    val selectedFormat: String? by viewModel.selectedFormat.collectAsState(initial = null)
     val minRating: Float by viewModel.minRating.collectAsState(initial = 0f)
 
     var isSearchActive by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
-    val context = LocalContext.current
-
-    LaunchedEffect(syncError) {
-        syncError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-        }
-    }
 
     Scaffold(
-        containerColor = Color(0xFFF8F8F8),
+        containerColor = SoftOffWhite,
         topBar = {
             if (!isSearchActive) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Explorar",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = Color.Black
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFFF8F8F8),
-                        scrolledContainerColor = Color(0xFFF8F8F8)
-                    ),
+                GlassyTopBar(
+                    title = "EXPLORAR",
                     actions = {
                         IconButton(onClick = { isSearchActive = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Black)
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = EspressoDeep)
                         }
                     }
                 )
@@ -97,41 +77,39 @@ fun SearchScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             
             when (val state = uiState) {
-                is SearchUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = CoffeeBrown) }
-                is SearchUiState.Error -> ErrorMessage(state.message, modifier = Modifier.align(Alignment.Center))
+                is SearchUiState.Loading -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(3) { ShimmerItem(Modifier.fillMaxWidth().height(350.dp).padding(16.dp)) }
+                    }
+                }
+                is SearchUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message) }
                 is SearchUiState.Success -> {
                     if (state.coffees.isEmpty() && !isRefreshing) {
-                        EmptySearchResults(modifier = Modifier.align(Alignment.Center))
+                        EmptySearchResults(Modifier.align(Alignment.Center))
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = 16.dp, bottom = 20.dp),
-                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                            contentPadding = PaddingValues(bottom = 32.dp)
                         ) {
                             itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
-                                LaunchedEffect(index) {
-                                    viewModel.onItemDisplayed(index)
-                                }
-                                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                                    CoffeeListItem(
-                                        coffeeDetails = coffeeDetails,
-                                        onCoffeeClick = onCoffeeClick,
-                                        onFavoriteClick = { 
-                                            viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) 
-                                        }
-                                    )
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn() + slideInVertically(initialOffsetY = { 50 })
+                                ) {
+                                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                        CoffeePremiumListItem(
+                                            coffeeDetails = coffeeDetails,
+                                            onCoffeeClick = onCoffeeClick,
+                                            onFavoriteClick = { 
+                                                viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) 
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-
-            if (isRefreshing) {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                    color = CoffeeBrown
-                )
             }
 
             AnimatedVisibility(
@@ -139,195 +117,35 @@ fun SearchScreen(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            Row(
-                                modifier = Modifier
-                                    .statusBarsPadding()
-                                    .fillMaxWidth()
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(onClick = { isSearchActive = false }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                                }
-                                TextField(
-                                    value = searchQuery,
-                                    onValueChange = viewModel::onSearchQueryChanged,
-                                    placeholder = { Text("¿Qué café buscas hoy?") },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .focusRequester(focusRequester),
-                                    colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = Color.Transparent,
-                                        unfocusedContainerColor = Color.Transparent,
-                                        focusedIndicatorColor = Color.Transparent,
-                                        unfocusedIndicatorColor = Color.Transparent
-                                    ),
-                                    singleLine = true,
-                                    trailingIcon = {
-                                        IconButton(onClick = { 
-                                            isSearchActive = false
-                                            viewModel.onSearchQueryChanged("")
-                                        }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Cerrar buscador")
-                                        }
-                                    }
-                                )
-                            }
-                            HorizontalDivider(thickness = 0.5.dp)
-
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 100.dp)
-                            ) {
-                                Text("Filtrar por", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                                Spacer(Modifier.height(16.dp))
-
-                                FilterSection("País de Origen", options.origins, selectedOrigin, viewModel::setOrigin)
-                                FilterSection("Tueste", options.roasts, selectedRoast, viewModel::setRoast)
-                                FilterSection("Variedad", options.varieties, selectedVariety, viewModel::setVariety)
-                                FilterSection("Especialidad", options.specialties, selectedSpecialty, viewModel::setSpecialty)
-                                FilterSection("Formato", options.formats, selectedFormat, viewModel::setFormat)
-                                
-                                Spacer(Modifier.height(8.dp))
-                                Text("Puntuación", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-                                Slider(
-                                    value = minRating,
-                                    onValueChange = { viewModel.setMinRating(it.roundToInt().toFloat()) },
-                                    valueRange = 0f..5f,
-                                    steps = 4,
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                    colors = SliderDefaults.colors(thumbColor = CoffeeBrown, activeTrackColor = CoffeeBrown)
-                                )
-                                Text(
-                                    text = if (minRating > 0) "★ ${minRating.toInt()} o más" else "Cualquier puntuación",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.align(Alignment.End)
-                                )
-                            }
-                        }
-
-                        Surface(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth()
-                                .shadow(8.dp),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(16.dp)
-                                    .navigationBarsPadding(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = { viewModel.clearFilters() },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                                ) {
-                                    Text("Limpiar filtro")
-                                }
-                                
-                                Button(
-                                    onClick = { isSearchActive = false },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)
-                                ) {
-                                    Text("Ver resultado", color = Color.White)
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                LaunchedEffect(Unit) {
-                    focusRequester.requestFocus()
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun FilterSection(
-    title: String,
-    options: List<String>,
-    selected: String?,
-    onSelected: (String?) -> Unit
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-    
-    Column(modifier = Modifier.padding(bottom = 24.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-            if (options.size > 6) {
-                Text(
-                    text = if (isExpanded) "Ver menos" else "Ver más",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = CoffeeBrown,
-                    modifier = Modifier.clickable { isExpanded = !isExpanded }
-                )
-            }
-        }
-        
-        Spacer(Modifier.height(12.dp))
-        
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val displayOptions = if (isExpanded) options else options.take(6)
-            
-            displayOptions.forEach { option ->
-                val isSelected = option == selected
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onSelected(if (isSelected) null else option) },
-                    label = { Text(option) },
-                    leadingIcon = null,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = CoffeeBrown,
-                        selectedLabelColor = Color.White
-                    )
+                SearchFilterPanel(
+                    query = searchQuery,
+                    onQueryChange = viewModel::onSearchQueryChanged,
+                    onClose = { isSearchActive = false },
+                    options = options,
+                    selectedOrigin = selectedOrigin,
+                    onOriginSelected = viewModel::setOrigin,
+                    selectedRoast = selectedRoast,
+                    onRoastSelected = viewModel::setRoast,
+                    minRating = minRating,
+                    onRatingChange = viewModel::setMinRating,
+                    onClear = viewModel::clearFilters,
+                    focusRequester = focusRequester
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CoffeeListItem(
+private fun CoffeePremiumListItem(
     coffeeDetails: CoffeeWithDetails,
     onCoffeeClick: (String) -> Unit,
     onFavoriteClick: () -> Unit
 ) {
     val coffee = coffeeDetails.coffee
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onCoffeeClick(coffee.id) },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
-    ) {
+    PremiumCard(modifier = Modifier.clickable { onCoffeeClick(coffee.id) }) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(320.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
                 AsyncImage(
                     model = coffee.imageUrl,
                     contentDescription = null,
@@ -337,12 +155,13 @@ private fun CoffeeListItem(
                 Box(
                     modifier = Modifier.fillMaxSize()
                         .background(Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                            startY = 450f
+                            colors = listOf(Color.Transparent, EspressoDeep.copy(alpha = 0.9f)),
+                            startY = 300f
                         ))
                 )
+                
                 Surface(
-                    modifier = Modifier.padding(16.dp).align(Alignment.TopEnd).size(40.dp),
+                    modifier = Modifier.padding(16.dp).align(Alignment.TopEnd).size(36.dp),
                     color = Color.White.copy(alpha = 0.9f),
                     shape = CircleShape
                 ) {
@@ -350,47 +169,163 @@ private fun CoffeeListItem(
                         Icon(
                             imageVector = if (coffeeDetails.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = null,
-                            tint = if (coffeeDetails.isFavorite) Color.Red else Color.Gray,
-                            modifier = Modifier.size(20.dp)
+                            tint = if (coffeeDetails.isFavorite) ErrorRed else Color.Gray,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(20.dp),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+
+                Column(modifier = Modifier.align(Alignment.BottomStart).padding(20.dp)) {
+                    Text(text = coffee.marca.uppercase(), color = CaramelAccent, style = MaterialTheme.typography.labelLarge, fontSize = 10.sp)
+                    Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 2)
+                }
+
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+                    color = Color.White.copy(alpha = 0.95f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = coffee.marca, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
-                        Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                    Surface(color = Color.White.copy(alpha = 0.95f), shape = RoundedCornerShape(12.dp)) {
-                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "Opiniones", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                            Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        }
+                    Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Star, null, tint = CaramelAccent, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                     }
                 }
             }
-            Column(modifier = Modifier.padding(20.dp)) {
-                FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("País" to (coffee.paisOrigen ?: "N/A"), "Esp." to coffee.especialidad, "Var." to (coffee.variedadTipo ?: "N/A")).forEach { (label, value) ->
-                        value.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach { subItem ->
-                            TagChip(label = label, value = subItem)
-                        }
-                    }
-                }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                coffee.paisOrigen?.let { TagChip(it) }
+                TagChip(coffee.especialidad)
+                coffee.tueste?.let { TagChip(it) }
             }
         }
     }
 }
 
 @Composable
-private fun TagChip(label: String, value: String) {
-    Surface(color = Color.White, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
-        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-            Text(text = "$label: ", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-            Text(text = value, style = MaterialTheme.typography.labelMedium, color = Color.DarkGray, fontWeight = FontWeight.Bold)
+private fun TagChip(text: String) {
+    Surface(
+        color = CreamLight,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, BorderLight)
+    ) {
+        Text(
+            text = text.uppercase(),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = EspressoDeep,
+            fontSize = 9.sp,
+            letterSpacing = 0.5.sp
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun SearchFilterPanel(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClose: () -> Unit,
+    options: FilterOptions,
+    selectedOrigin: String?,
+    onOriginSelected: (String?) -> Unit,
+    selectedRoast: String?,
+    onRoastSelected: (String?) -> Unit,
+    minRating: Float,
+    onRatingChange: (Float) -> Unit,
+    onClear: () -> Unit,
+    focusRequester: FocusRequester
+) {
+    Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+                TextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    placeholder = { Text("Busca granos, marcas...") },
+                    modifier = Modifier.weight(1f).focusRequester(focusRequester),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
+            HorizontalDivider(color = BorderLight)
+
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(24.dp)
+            ) {
+                Text("FILTRAR", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+                Spacer(Modifier.height(24.dp))
+
+                PremiumFilterSection("ORIGEN", options.origins, selectedOrigin, onOriginSelected)
+                PremiumFilterSection("TUESTE", options.roasts, selectedRoast, onRoastSelected)
+
+                Text("PUNTUACIÓN MÍNIMA", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Slider(
+                    value = minRating,
+                    onValueChange = { onRatingChange(it.roundToInt().toFloat()) },
+                    valueRange = 0f..5f,
+                    steps = 4,
+                    colors = SliderDefaults.colors(thumbColor = CaramelAccent, activeTrackColor = CaramelAccent)
+                )
+            }
+
+            Surface(modifier = Modifier.fillMaxWidth().shadow(12.dp), color = Color.White) {
+                Row(modifier = Modifier.padding(16.dp).navigationBarsPadding(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = onClear,
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(25.dp),
+                        border = BorderStroke(1.dp, ErrorRed),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed)
+                    ) { Text("LIMPIAR", color = ErrorRed) }
+                    
+                    Button(
+                        onClick = onClose,
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(25.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep)
+                    ) { Text("APLICAR", color = Color.White) }
+                }
+            }
+        }
+    }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PremiumFilterSection(title: String, items: List<String>, selected: String?, onSelected: (String?) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = 32.dp)) {
+        Text(title, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Spacer(Modifier.height(12.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items.forEach { item ->
+                val isSelected = item == selected
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onSelected(if (isSelected) null else item) },
+                    label = { Text(item, fontSize = 11.sp) },
+                    enabled = true,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = CaramelAccent,
+                        selectedLabelColor = Color.White,
+                        containerColor = CreamLight,
+                        labelColor = EspressoDeep
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSelected, borderColor = if(isSelected) CaramelAccent else BorderLight, borderWidth = 1.dp)
+                )
+            }
         }
     }
 }
@@ -398,14 +333,9 @@ private fun TagChip(label: String, value: String) {
 @Composable
 private fun EmptySearchResults(modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Default.SearchOff, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("No hay cafés disponibles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("Revisa tu conexión o intenta más tarde", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(Icons.Default.Coffee, null, modifier = Modifier.size(64.dp), tint = BorderLight)
+        Spacer(Modifier.height(16.dp))
+        Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = EspressoDeep)
+        Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
     }
-}
-
-@Composable
-private fun ErrorMessage(message: String, modifier: Modifier = Modifier) {
-    Text(text = message, color = MaterialTheme.colorScheme.error, modifier = modifier.padding(32.dp), textAlign = TextAlign.Center)
 }

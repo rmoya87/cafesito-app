@@ -2,15 +2,15 @@ package com.example.cafesito.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Palette: Espresso & Cream Premium
+val EspressoDeep = Color(0xFF1A120B)
+val CoffeeBrown = EspressoDeep // Alias para compatibilidad con código existente
+val EspressoMedium = Color(0xFF3C2A21)
+val CaramelAccent = Color(0xFF6F4E37) 
+val CreamLight = Color(0xFFF9F5F2)
+val SoftOffWhite = Color(0xFFFDFDFD)
+val BorderLight = Color(0xFFE0E0E0).copy(alpha = 0.4f)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
-
-// New colors
-val LightGray = Color(0xFFE0E0E0)
-val CoffeeBrown = Color(0xFF6F4E37) // A warm brown color
-val LightGrayBackground = Color(0xFFF5F5F5) // A very light gray for the background
+val SuccessGreen = Color(0xFF81C784)
+val ErrorRed = Color(0xFFE57373)
+val ElectricRed = Color(0xFFFF3B30) // Nuevo Rojo Eléctrico para favoritos
