@@ -60,13 +60,13 @@ fun CommentsSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        windowInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
+        sheetState = sheetState
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
+                .imePadding() // Añadimos padding para el teclado aquí
         ) {
             Text(
                 text = "Comentarios", 

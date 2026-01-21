@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
     entities = [
         Coffee::class, 
         LocalFavorite::class,
+        LocalFavoriteCustom::class,
         ReviewEntity::class,
         UserEntity::class,
         FollowEntity::class,
@@ -18,7 +19,7 @@ import androidx.room.RoomDatabase
         PantryItemEntity::class,
         CustomCoffeeEntity::class
     ],
-    version = 23, // INCREMENTADO DE 22 A 23
+    version = 24, // INCREMENTADO DE 23 A 24
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

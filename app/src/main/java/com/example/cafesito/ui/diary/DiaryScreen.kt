@@ -1,6 +1,7 @@
 package com.example.cafesito.ui.diary
 
 import android.util.Log
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,6 +10,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -16,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,7 +39,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
@@ -64,6 +68,8 @@ fun DiaryScreen(
     var itemToEdit by remember { mutableStateOf<PantryItemWithDetails?>(null) }
     var showQuickActions by remember { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
+    
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Actividad, 1: Despensa
 
     if (showStockSheet && itemToEdit != null) {
         StockEditBottomSheet(
@@ -85,11 +91,8 @@ fun DiaryScreen(
             Column(modifier = Modifier.fillMaxWidth().padding(bottom = 48.dp)) {
                 Text(
                     text = "Añadir registro", 
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp), 
+                    modifier = Modifier.fillMaxWidth().padding(24.dp), 
                     style = MaterialTheme.typography.titleLarge, 
-                    fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Center,
                     color = Color.Black
                 )
@@ -138,424 +141,139 @@ fun DiaryScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Mi Diario", 
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = Color.Black
-                        )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Mi Diario", style = MaterialTheme.typography.headlineMedium, color = Color.Black)
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
                             IconButton(
                                 onClick = { showQuickActions = true },
                                 colors = IconButtonDefaults.iconButtonColors(containerColor = CoffeeBrown, contentColor = Color.White),
                                 modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = "Acciones rápidas", modifier = Modifier.size(20.dp))
-                            }
-                            
+                            ) { Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp)) }
                             Spacer(Modifier.width(12.dp))
-                            
-                            Box {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .border(1.2.dp, CoffeeBrown, RoundedCornerShape(8.dp))
-                                        .clickable { showPeriodMenu = true }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = selectedPeriod.name.lowercase().replaceFirstChar { it.uppercase() },
-                                            color = CoffeeBrown,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 14.sp
-                                        )
-                                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = CoffeeBrown, modifier = Modifier.size(18.dp))
-                                    }
-                                }
-                                
-                                DropdownMenu(
-                                    expanded = showPeriodMenu,
-                                    onDismissRequest = { showPeriodMenu = false },
-                                    modifier = Modifier.background(Color.White)
-                                ) {
-                                    DiaryPeriod.values().forEach { period ->
-                                        DropdownMenuItem(
-                                            text = { Text(period.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                                            onClick = {
-                                                viewModel.setPeriod(period)
-                                                showPeriodMenu = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
+                            PeriodSelector(selectedPeriod) { showPeriodMenu = true }
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFF8F8F8),
-                    scrolledContainerColor = Color(0xFFF8F8F8)
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF8F8F8))
             )
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp) 
+            modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             item {
                 analytics?.let { CaffeineAnalyticsCard(it) }
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(24.dp))
             }
 
             item {
+                // PESTAÑAS (TABS)
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).background(Color(0xFFEEEEEE), RoundedCornerShape(12.dp)).padding(4.dp)
                 ) {
-                    Text(
-                        text = "Actividad", 
-                        style = MaterialTheme.typography.titleMedium, 
-                        fontWeight = FontWeight.Bold, 
-                        color = Color.Black
-                    )
+                    TabItem("Actividad", selectedTab == 0, Modifier.weight(1f)) { selectedTab = 0 }
+                    TabItem("Despensa", selectedTab == 1, Modifier.weight(1f)) { selectedTab = 1 }
                 }
+                Spacer(Modifier.height(16.dp))
             }
 
-            if (entries.isEmpty()) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("No hay registros en este periodo", color = Color.Gray, fontSize = 14.sp)
+            if (selectedTab == 0) {
+                if (entries.isEmpty()) {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+                            Text("No hay registros todavía", color = Color.Gray)
+                        }
+                    }
+                } else {
+                    items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp)) { // Espacio reducido entre actividades
+                            SwipeableDiaryItem(entry = entry, onDelete = { viewModel.deleteEntry(entry.id) })
+                        }
                     }
                 }
             } else {
-                items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
-                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        SwipeableDiaryItem(
-                            entry = entry,
-                            onDelete = { viewModel.deleteEntry(entry.id) }
+                item {
+                    // DESPENSA EN DOS COLUMNAS
+                    Box(modifier = Modifier.padding(horizontal = 16.dp).heightIn(max = 2000.dp)) {
+                        PantrySection(
+                            items = pantryItems,
+                            onAddClick = { onAddStockClick() },
+                            onItemClick = onCoffeeClick,
+                            onRemoveItem = { id -> viewModel.removeFromPantry(id) },
+                            onUpdateGrams = { id, grams -> viewModel.addToPantry(id, grams) },
+                            onEditClick = { id, isCustom ->
+                                if (isCustom) onEditStockClick(id, true)
+                                else {
+                                    itemToEdit = pantryItems.find { it.coffee.id == id }
+                                    showStockSheet = true
+                                }
+                            }
                         )
                     }
                 }
             }
-
-            item {
-                Spacer(Modifier.height(32.dp))
-                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    PantrySection(
-                        items = pantryItems,
-                        onAddClick = { onAddStockClick() },
-                        onItemClick = onCoffeeClick,
-                        onRemoveItem = { id -> viewModel.removeFromPantry(id) },
-                        onUpdateGrams = { id, grams -> viewModel.addToPantry(id, grams) },
-                        onEditClick = { id, isCustom ->
-                            if (isCustom) {
-                                onEditStockClick(id, true)
-                            } else {
-                                itemToEdit = pantryItems.find { it.coffee.id == id }
-                                showStockSheet = true
-                            }
-                        }
-                    )
-                }
-            }
-            
-            item { Spacer(Modifier.height(32.dp)) }
+            item { Spacer(Modifier.height(100.dp)) }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StockEditBottomSheet(
-    item: PantryItemWithDetails,
-    onDismiss: () -> Unit,
-    onSave: (Int, Int) -> Unit
-) {
-    var totalGrams by remember { mutableFloatStateOf(item.pantryItem.totalGrams.toFloat()) }
-    var remainingGrams by remember { mutableFloatStateOf(item.pantryItem.gramsRemaining.toFloat()) }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = Color.White,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+fun TabItem(label: String, isSelected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val bgColor by animateColorAsState(if (isSelected) Color.White else Color.Transparent)
+    val textColor by animateColorAsState(if (isSelected) CoffeeBrown else Color.Gray)
+    
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(bgColor)
+            .clickable { onClick() }
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Gestionar Stock", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(32.dp))
-
-            StockSliderSection("Total de la bolsa", totalGrams, 1000f) { 
-                totalGrams = it
-                if (remainingGrams > it) remainingGrams = it
-            }
-            
-            Spacer(Modifier.height(24.dp))
-
-            StockSliderSection("Gramos restantes", remainingGrams, totalGrams) { 
-                remainingGrams = it 
-            }
-
-            Spacer(Modifier.height(40.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color.LightGray)
-                ) {
-                    Text("CANCELAR", color = Color.Gray, fontWeight = FontWeight.Bold)
-                }
-                Button(
-                    onClick = { onSave(totalGrams.roundToInt(), remainingGrams.roundToInt()) },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text("GUARDAR", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun StockSliderSection(label: String, value: Float, maxValue: Float = 1000f, onValueChange: (Float) -> Unit) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-        Text(
-            text = "${value.roundToInt()} g", 
-            style = MaterialTheme.typography.headlineSmall, 
-            fontWeight = FontWeight.Black, 
-            color = CoffeeBrown
-        )
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = 0f..maxValue.coerceAtLeast(1f),
-            colors = SliderDefaults.colors(thumbColor = CoffeeBrown, activeTrackColor = CoffeeBrown)
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SwipeableDiaryItem(
-    entry: DiaryEntryEntity,
-    onDelete: () -> Unit
-) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = {
-            if (it == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                true
-            } else false
-        }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
-                Modifier.fillMaxSize().background(Color.Red.copy(alpha = 0.8f)),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.padding(end = 16.dp))
-            }
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        DiaryEntryItem(entry)
-    }
-}
-
-@Composable
-fun DiaryEntryItem(entry: DiaryEntryEntity) {
-    val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
-        border = BorderStroke(0.2.dp, Color(0xFFEEEEEE))
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(40.dp).background(
-                    if (entry.type == "WATER") Color(0xFFE3F2FD) else CoffeeBrown.copy(alpha = 0.1f), 
-                    CircleShape
-                ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (entry.type == "WATER") Icons.Default.WaterDrop 
-                                 else Icons.Default.Coffee, 
-                    contentDescription = null, 
-                    tint = if (entry.type == "WATER") Color(0xFF2196F3) else CoffeeBrown, 
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(entry.coffeeName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    text = "$dateStr • ${if (entry.type == "WATER") "${entry.amountMl}ml" else "${entry.coffeeGrams}g - ${entry.preparationType}"}", 
-                    style = MaterialTheme.typography.labelSmall, 
-                    color = Color.Gray)
-            }
-        }
+        Text(label, color = textColor, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp)
     }
 }
 
 @Composable
 fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
-    val totalLabel = when(analytics.period) {
-        DiaryPeriod.HOY -> "Hoy"
-        DiaryPeriod.SEMANA -> "Semana"
-        DiaryPeriod.MES -> "Mes"
-    }
+    var showInfo by remember { mutableStateOf(false) }
+    if (showInfo) InfoBottomSheet { showInfo = false }
 
     Box(modifier = Modifier.padding(horizontal = 16.dp)) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(0.dp),
-            border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, Color(0xFFEEEEEE))
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                Row(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Cafeína $totalLabel", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                        Text(
-                            text = "${analytics.totalCaffeine} mg",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Black,
-                            color = Color.Black
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "Agua: ${analytics.totalWaterMl} ml", 
-                            style = MaterialTheme.typography.labelLarge, 
-                            fontWeight = FontWeight.Bold, 
-                            color = Color(0xFF2196F3)
-                        )
-                    }
-                    
-                    Column(horizontalAlignment = Alignment.End) {
-                        val compColor = if (analytics.comparisonPercentage > 0) Color(0xFFE57373) else Color(0xFF81C784)
-                        Surface(color = compColor.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                Icon(if (analytics.comparisonPercentage > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown, null, tint = compColor, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("${if (analytics.comparisonPercentage > 0) "+" else ""}${analytics.comparisonPercentage}%", color = compColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Cafeína estimada", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            IconButton(onClick = { showInfo = true }, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Outlined.Info, null, tint = CoffeeBrown, modifier = Modifier.size(14.dp))
                             }
                         }
+                        Text("${analytics.totalCaffeine} mg", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
+                        ComparisonLabel(analytics.comparisonPercentage)
+                    }
+
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                        Text("Agua", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                        Text("${analytics.totalWaterMl} ml", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color(0xFF2196F3))
+                        ComparisonLabel(-2, Color(0xFF2196F3)) 
                     }
                 }
 
                 Spacer(Modifier.height(24.dp))
-
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val scrollState = rememberScrollState()
-                    val density = LocalDensity.current
-                    val screenWidthPx = with(density) { maxWidth.toPx() }
-                    val itemWidthPx = with(density) { (44 + 12).dp.toPx() } 
-
-                    LaunchedEffect(analytics.chartData, analytics.period) {
-                        val calendar = Calendar.getInstance()
-                        val currentIndex = when (analytics.period) {
-                            DiaryPeriod.HOY -> calendar.get(Calendar.HOUR_OF_DAY)
-                            DiaryPeriod.SEMANA -> {
-                                val day = calendar.get(Calendar.DAY_OF_WEEK)
-                                if (day == Calendar.SUNDAY) 6 else day - 2
-                            }
-                            DiaryPeriod.MES -> calendar.get(Calendar.DAY_OF_MONTH) - 1
-                        }
-                        
-                        val targetScroll = (currentIndex * itemWidthPx) - (screenWidthPx / 2) + (itemWidthPx / 2)
-                        scrollState.animateScrollTo(targetScroll.roundToInt().coerceIn(0, scrollState.maxValue))
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(120.dp).horizontalScroll(scrollState),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        analytics.chartData.forEach { entry ->
-                            // Scale caffeine (max 400mg) and water (max 2000ml)
-                            val caffeineHeight = (entry.caffeine.toFloat() / 400f).coerceIn(0.02f, 1f)
-                            val waterHeight = (entry.water.toFloat() / 2000f).coerceIn(0.02f, 1f)
-                            
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(44.dp)) {
-                                Row(
-                                    modifier = Modifier.height(80.dp).fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.Bottom
-                                ) {
-                                    // Caffeine Bar
-                                    Box(
-                                        modifier = Modifier
-                                            .width(10.dp)
-                                            .fillMaxHeight(caffeineHeight)
-                                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                            .background(CoffeeBrown.copy(alpha = 0.8f))
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    // Water Bar
-                                    Box(
-                                        modifier = Modifier
-                                            .width(10.dp)
-                                            .fillMaxHeight(waterHeight)
-                                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                            .background(Color(0xFF2196F3).copy(alpha = 0.6f))
-                                    )
-                                }
-                                Spacer(Modifier.height(8.dp))
-                                Text(entry.label, fontSize = 9.sp, color = Color.Gray)
-                            }
-                        }
-                    }
-                }
-
+                ChartSection(analytics)
                 Spacer(Modifier.height(24.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MetricBox(
-                        label = "Media $totalLabel",
-                        value = "${analytics.averageCaffeine}",
-                        icon = Icons.Default.BarChart,
-                        color = Color.Gray,
-                        modifier = Modifier.weight(1f)
-                    )
-                    MetricBox(
-                        label = "Tazas",
-                        value = "${analytics.cupsCount}",
-                        icon = Icons.Default.Coffee,
-                        color = CoffeeBrown,
-                        modifier = Modifier.weight(1f)
-                    )
-                    MetricBox(
-                        label = "Agua (ml)",
-                        value = "${analytics.totalWaterMl}",
-                        icon = Icons.Default.WaterDrop,
-                        color = Color(0xFF2196F3),
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MetricBox("Cafeína media", "${analytics.averageCaffeine} mg", Icons.Default.BarChart, Color.Gray, Modifier.weight(1f))
+                    MetricBox("Tazas hoy", "${analytics.cupsCount}", Icons.Default.Coffee, CoffeeBrown, Modifier.weight(1f))
+                    MetricBox("Progreso", "85%", Icons.Default.CheckCircle, Color(0xFF81C784), Modifier.weight(1f))
                 }
             }
         }
@@ -563,58 +281,129 @@ fun CaffeineAnalyticsCard(analytics: DiaryAnalytics) {
 }
 
 @Composable
-fun MetricBox(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        color = Color(0xFFFBFBFB),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFFF0F0F0))
+fun ComparisonLabel(percentage: Int, baseColor: Color? = null) {
+    val isPositive = percentage > 0
+    val color = baseColor ?: if (isPositive) Color(0xFFE57373) else Color(0xFF81C784)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(if (isPositive) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward, null, tint = color, modifier = Modifier.size(12.dp))
+        Text("${if (isPositive) "+" else ""}$percentage%", color = color, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun ChartSection(analytics: DiaryAnalytics) {
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    val itemWidthPx = with(density) { (44 + 12).dp.toPx() }
+
+    LaunchedEffect(analytics.chartData) {
+        scrollState.animateScrollTo(scrollState.maxValue)
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().height(100.dp).horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Bottom
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(value, fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.Black, maxLines = 1)
+        analytics.chartData.forEach { entry ->
+            val caffeineHeight = (entry.caffeine.toFloat() / 400f).coerceIn(0.05f, 1f)
+            val waterHeight = (entry.water.toFloat() / 2000f).coerceIn(0.05f, 1f)
+            
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
+                Row(modifier = Modifier.height(70.dp), verticalAlignment = Alignment.Bottom) {
+                    Box(Modifier.width(8.dp).fillMaxHeight(caffeineHeight).clip(CircleShape).background(CoffeeBrown))
+                    Spacer(Modifier.width(4.dp))
+                    Box(Modifier.width(8.dp).fillMaxHeight(waterHeight).clip(CircleShape).background(Color(0xFF2196F3).copy(alpha = 0.6f)))
+                }
+                Text(entry.label, fontSize = 9.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
             }
-            Spacer(Modifier.height(4.dp))
-            Text(label, fontSize = 10.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+fun PeriodSelector(period: DiaryPeriod, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.2.dp, CoffeeBrown),
+        color = Color.Transparent
+    ) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(period.name.lowercase().capitalize(), color = CoffeeBrown, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+            Icon(Icons.Default.KeyboardArrowDown, null, tint = CoffeeBrown, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InfoBottomSheet(onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp)) {
+            Text("Recomendaciones OMS", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(24.dp))
+            InfoRow("Máximo Diario", "400 mg", "Aprox. 4 espressos. Límite seguro para adultos sanos.")
+            HorizontalDivider(Modifier.padding(vertical = 16.dp))
+            InfoRow("Embarazo", "200 mg", "Se recomienda reducir el consumo a la mitad.")
+            HorizontalDivider(Modifier.padding(vertical = 16.dp))
+            InfoRow("Hidratación", "2.5 L", "El agua es vital. El café deshidrata ligeramente.")
+        }
+    }
+}
+
+@Composable
+fun InfoRow(label: String, value: String, desc: String) {
+    Column {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, fontWeight = FontWeight.Bold)
+            Text(value, color = CoffeeBrown, fontWeight = FontWeight.Black)
+        }
+        Text(desc, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+    }
+}
+
+@Composable
+fun MetricBox(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
+    Surface(modifier = modifier, color = Color(0xFFFBFBFB), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFF0F0F0))) {
+        Column(Modifier.padding(12.dp)) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
+            Text(value, fontSize = 16.sp, fontWeight = FontWeight.Black)
+            Text(label, fontSize = 10.sp, color = Color.Gray)
         }
     }
 }
 
 @Composable
 fun PantrySection(
-    items: List<PantryItemWithDetails>,
-    onAddClick: () -> Unit,
-    onItemClick: (String) -> Unit,
-    onRemoveItem: (String) -> Unit,
-    onUpdateGrams: (String, Int) -> Unit,
+    items: List<PantryItemWithDetails>, 
+    onAddClick: () -> Unit, 
+    onItemClick: (String) -> Unit, 
+    onRemoveItem: (String) -> Unit, 
+    onUpdateGrams: (String, Int) -> Unit, 
     onEditClick: (String, Boolean) -> Unit
 ) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Mi Despensa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black)
+    if (items.isEmpty()) {
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Text("No tienes café en stock.", Modifier.padding(24.dp), color = Color.Gray, textAlign = TextAlign.Center)
         }
-        
-        if (items.isEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
-                Text("Registra tu café para controlar el stock.", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
-        } else {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(items, key = { it.coffee.id }) { item ->
-                    PantryCard(
-                        item = item, 
-                        onClick = { onItemClick(item.coffee.id) }, 
-                        onRemove = { onRemoveItem(item.coffee.id) },
-                        onUpdateGrams = { grams -> onUpdateGrams(item.coffee.id, grams) },
-                        onEditClick = onEditClick
-                    )
-                }
+    } else {
+        // USO DE GRID PARA DOS COLUMNAS
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.heightIn(max = 1000.dp), // Permitimos que la grid crezca dentro del scroll de la pantalla
+            userScrollEnabled = false // El scroll lo maneja la LazyColumn principal
+        ) {
+            items(items, key = { it.coffee.id }) { item ->
+                PantryCard(
+                    item = item, 
+                    onClick = { onItemClick(item.coffee.id) }, 
+                    onRemove = { onRemoveItem(item.coffee.id) }, 
+                    onUpdateGrams = { onUpdateGrams(item.coffee.id, it) }, 
+                    onEditClick = onEditClick
+                )
             }
         }
     }
@@ -626,89 +415,19 @@ fun PantryCard(
     item: PantryItemWithDetails, 
     onClick: () -> Unit, 
     onRemove: () -> Unit, 
-    onUpdateGrams: (Int) -> Unit,
+    onUpdateGrams: (Int) -> Unit, 
     onEditClick: (String, Boolean) -> Unit
 ) {
-    val progress = if (item.pantryItem.totalGrams > 0) {
-        item.pantryItem.gramsRemaining.toFloat() / item.pantryItem.totalGrams
-    } else 0f
+    val progress = if (item.pantryItem.totalGrams > 0) item.pantryItem.gramsRemaining.toFloat() / item.pantryItem.totalGrams else 0f
     
-    var showOptionsSheet by remember { mutableStateOf(false) }
-    var showDeleteSheet by remember { mutableStateOf(false) }
-
-    // MODAL DE OPCIONES (Editar / Eliminar)
-    if (showOptionsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showOptionsSheet = false },
-            containerColor = Color.White,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
-                ListItem(
-                    headlineContent = { Text("Editar información") },
-                    leadingContent = { Icon(Icons.Default.Edit, null) },
-                    modifier = Modifier.clickable { 
-                        showOptionsSheet = false
-                        onEditClick(item.coffee.id, item.isCustom) 
-                    }
-                )
-                ListItem(
-                    headlineContent = { Text("Eliminar de la despensa", color = Color.Red) },
-                    leadingContent = { Icon(Icons.Default.Delete, null, tint = Color.Red) },
-                    modifier = Modifier.clickable { 
-                        showOptionsSheet = false
-                        showDeleteSheet = true 
-                    }
-                )
-            }
-        }
-    }
-
-    // MODAL DE CONFIRMACIÓN DE BORRADO
-    if (showDeleteSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showDeleteSheet = false },
-            containerColor = Color.White,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("¿Eliminar de la despensa?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(16.dp))
-                Text("Se borrará este café de tu stock. Podrás añadirlo de nuevo más tarde.", textAlign = TextAlign.Center, color = Color.Gray)
-                Spacer(Modifier.height(32.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(
-                        onClick = { showDeleteSheet = false },
-                        modifier = Modifier.weight(1f).height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color.LightGray)
-                    ) {
-                        Text("CANCELAR", color = Color.Gray, fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = { onRemove(); showDeleteSheet = false },
-                        modifier = Modifier.weight(1f).height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                    ) {
-                        Text("ELIMINAR", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-
     Card(
-        modifier = Modifier
-            .width(220.dp)
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp), // Ligeramente menos redondeado para la grid
         border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().height(120.dp)) { // Altura reducida para la grid
                 AsyncImage(
                     model = item.coffee.imageUrl.ifBlank { null },
                     contentDescription = null,
@@ -720,55 +439,99 @@ fun PantryCard(
                     modifier = Modifier.fillMaxSize()
                         .background(Brush.verticalGradient(
                             colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                            startY = 200f
+                            startY = 100f
                         ))
                 )
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp)
+                Column(modifier = Modifier.align(Alignment.BottomStart).padding(10.dp)) {
+                    Text(text = item.coffee.marca, color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp)
+                    Text(text = item.coffee.nombre, color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                
+                IconButton(
+                    onClick = { onEditClick(item.coffee.id, item.isCustom) },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).background(Color.Black.copy(alpha = 0.2f), CircleShape).size(28.dp)
                 ) {
-                    Text(
-                        text = item.coffee.marca,
-                        color = Color.White.copy(alpha = 0.8f),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                    Text(
-                        text = item.coffee.nombre,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(14.dp))
                 }
             }
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "${item.pantryItem.gramsRemaining}g / ${item.pantryItem.totalGrams}g",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Box {
-                        IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                    color = CoffeeBrown,
-                    trackColor = Color(0xFFF0F0F0)
-                )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(text = "${item.pantryItem.gramsRemaining}g / ${item.pantryItem.totalGrams}g", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Spacer(Modifier.height(6.dp))
+                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape), color = CoffeeBrown, trackColor = Color(0xFFF0F0F0))
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeableDiaryItem(entry: DiaryEntryEntity, onDelete: () -> Unit) {
+    val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { if (it == SwipeToDismissBoxValue.EndToStart) { onDelete(); true } else false })
+    
+    SwipeToDismissBox(
+        state = dismissState, 
+        enableDismissFromStartToEnd = false, 
+        backgroundContent = { 
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(16.dp)) 
+                    .background(Color.Red.copy(alpha = 0.8f)), 
+                contentAlignment = Alignment.CenterEnd
+            ) { 
+                Icon(Icons.Default.Delete, null, tint = Color.White, modifier = Modifier.padding(end = 16.dp)) 
+            } 
+        }
+    ) {
+        DiaryEntryItem(entry)
+    }
+}
+
+@Composable
+fun DiaryEntryItem(entry: DiaryEntryEntity) {
+    val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
+    Surface(
+        modifier = Modifier.fillMaxWidth(), 
+        color = Color.White, 
+        shape = RoundedCornerShape(16.dp), 
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+    ) {
+        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) { // Padding reducido
+            Box(modifier = Modifier.size(36.dp).background(if (entry.type == "WATER") Color(0xFFE3F2FD) else CoffeeBrown.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, null, tint = if (entry.type == "WATER") Color(0xFF2196F3) else CoffeeBrown, modifier = Modifier.size(18.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(entry.coffeeName, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, color = Color.Black)
+                Text("$dateStr • ${if (entry.type == "WATER") "${entry.amountMl}ml" else "${entry.caffeineAmount}mg - ${entry.preparationType}"}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onSave: (Int, Int) -> Unit) {
+    var total by remember { mutableFloatStateOf(item.pantryItem.totalGrams.toFloat()) }
+    var rem by remember { mutableFloatStateOf(item.pantryItem.gramsRemaining.toFloat()) }
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
+        Column(Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 32.dp)) {
+            Text("Editar Stock", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(32.dp))
+            StockSliderSection("Bolsa total", total, 1000f) { total = it; if (rem > it) rem = it }
+            Spacer(Modifier.height(24.dp))
+            StockSliderSection("Restante", rem, total) { rem = it }
+            Spacer(Modifier.height(40.dp))
+            Button(onClick = { onSave(total.roundToInt(), rem.roundToInt()) }, Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown), shape = RoundedCornerShape(16.dp)) { Text("GUARDAR") }
+        }
+    }
+}
+
+@Composable
+fun StockSliderSection(label: String, value: Float, maxValue: Float, onValueChange: (Float) -> Unit) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Text("${value.roundToInt()} g", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = CoffeeBrown)
+        Slider(value = value, onValueChange = onValueChange, valueRange = 0f..maxValue, colors = SliderDefaults.colors(thumbColor = CoffeeBrown, activeTrackColor = CoffeeBrown))
     }
 }

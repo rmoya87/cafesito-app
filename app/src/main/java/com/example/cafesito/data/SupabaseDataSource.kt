@@ -53,7 +53,6 @@ class SupabaseDataSource @Inject constructor(
     suspend fun upsertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].upsert(coffee)
     
     suspend fun updateCustomCoffee(id: String, userId: Int, coffee: CustomCoffeeEntity) {
-        // Realizamos una actualización parcial para evitar violar políticas RLS que prohíben cambiar el owner o el ID
         client.postgrest["custom_coffees"].update({
             set("name", coffee.name)
             set("brand", coffee.brand)
@@ -103,11 +102,20 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
-    // --- FAVORITOS ---
+    // --- FAVORITOS (OFICIALES) ---
     suspend fun getAllFavorites(): List<LocalFavorite> = client.postgrest["local_favorites"].select().decodeList<LocalFavorite>()
-    suspend fun insertFavorite(favorite: LocalFavorite) { client.postgrest["local_favorites"].insert(favorite) }
+    suspend fun insertFavorite(favorite: LocalFavorite) { client.postgrest["local_favorites"].upsert(favorite) }
     suspend fun deleteFavorite(coffeeId: String, userId: Int) {
         client.postgrest["local_favorites"].delete {
+            filter { eq("coffee_id", coffeeId); eq("user_id", userId) }
+        }
+    }
+
+    // --- FAVORITOS (CUSTOM) ---
+    suspend fun getAllFavoritesCustom(): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select().decodeList<LocalFavoriteCustom>()
+    suspend fun insertFavoriteCustom(favorite: LocalFavoriteCustom) { client.postgrest["local_favorites_custom"].upsert(favorite) }
+    suspend fun deleteFavoriteCustom(coffeeId: String, userId: Int) {
+        client.postgrest["local_favorites_custom"].delete {
             filter { eq("coffee_id", coffeeId); eq("user_id", userId) }
         }
     }
@@ -119,7 +127,6 @@ class SupabaseDataSource @Inject constructor(
     }.decodeList<DiaryEntryEntity>()
 
     suspend fun insertDiaryEntry(entry: DiaryEntryEntity) {
-        // Usamos el DTO para evitar el error de Any y dejar que Supabase asigne el ID
         val insertData = DiaryEntryInsert(
             userId = entry.userId,
             coffeeId = entry.coffeeId,

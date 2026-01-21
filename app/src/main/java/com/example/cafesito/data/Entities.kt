@@ -191,6 +191,16 @@ data class LocalFavorite(
 )
 
 @Serializable
+@Entity(tableName = "local_favorites_custom", primaryKeys = ["coffeeId", "userId"])
+data class LocalFavoriteCustom(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
+) {
+    fun toLocalFavorite(): LocalFavorite = LocalFavorite(coffeeId, userId, savedAt)
+}
+
+@Serializable
 @Entity(tableName = "reviews_db")
 data class ReviewEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

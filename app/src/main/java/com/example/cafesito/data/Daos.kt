@@ -55,6 +55,16 @@ interface CoffeeDao {
     @Delete
     suspend fun deleteFavorite(favorite: LocalFavorite)
 
+    // FAVORITOS CUSTOM
+    @Query("SELECT * FROM local_favorites_custom")
+    fun getLocalFavoritesCustom(): Flow<List<LocalFavoriteCustom>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFavoriteCustom(favorite: LocalFavoriteCustom)
+
+    @Delete
+    suspend fun deleteFavoriteCustom(favorite: LocalFavoriteCustom)
+
     @Query("SELECT * FROM reviews_db ORDER BY timestamp DESC")
     fun getAllReviews(): Flow<List<ReviewEntity>>
 
