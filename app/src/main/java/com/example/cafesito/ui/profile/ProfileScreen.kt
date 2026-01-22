@@ -54,12 +54,13 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
-    val tabs = listOf("PUBLICACIONES", "FAVORITOS", "RESEÑAS")
+    val tabs = listOf("POSTS", "ADN", "FAVORITOS", "RESEÑAS")
     var selectedTab by remember { mutableIntStateOf(0) }
     
     val snackbarHostState = remember { SnackbarHostState() }
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var showSensoryDetail by remember { mutableStateOf(false) }
 
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
     var reviewToEdit by remember { mutableStateOf<UserReviewInfo?>(null) }
@@ -185,45 +186,77 @@ fun ProfileScreen(
 
                     item { Spacer(Modifier.height(16.dp)) }
 
-                    items(
-                        when (selectedTab) {
-                            0 -> state.posts
-                            1 -> state.favoriteCoffees
-                            else -> state.userReviews
+                    if (selectedTab == 1) { // ADN Tab
+                        item {
+                            PremiumCard(
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .clickable { showSensoryDetail = true }
+                            ) {
+                                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    SensoryRadarChart(
+                                        data = state.sensoryProfile,
+                                        lineColor = CaramelAccent,
+                                        fillColor = CaramelAccent.copy(alpha = 0.2f),
+                                        modifier = Modifier.size(200.dp)
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        "Pulsa para descubrir tus preferencias",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
                         }
-                    ) { item ->
-                        Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            when (item) {
-                                is PostWithDetails -> PostCard(
-                                    details = item,
-                                    onUserClick = { onUserClick(item.author.id) },
-                                    onCommentClick = { showCommentSheetId = item.post.id },
-                                    onLikeClick = { viewModel.onToggleLike(item.post.id) },
-                                    isLiked = state.activeUser?.let { me -> item.likes.any { it.userId == me.id } } ?: false,
-                                    showHeader = false,
-                                    isOwnPost = state.isCurrentUser,
-                                    onEditClick = { postToEdit = item },
-                                    onDeleteClick = { itemToDelete = item }
-                                )
-                                is CoffeeWithDetails -> CoffeeFavoritePremiumItem(
-                                    coffeeDetails = item,
-                                    onFavoriteClick = { viewModel.onToggleFavorite(item.coffee.id, false) },
-                                    onClick = { onCoffeeClick(item.coffee.id) }
-                                )
-                                is UserReviewInfo -> UserReviewCard(
-                                    info = item,
-                                    showHeader = false,
-                                    isOwnReview = state.isCurrentUser,
-                                    onEditClick = { reviewToEdit = item },
-                                    onDeleteClick = { itemToDelete = item },
-                                    onClick = { onCoffeeClick(item.coffeeDetails.coffee.id) }
-                                )
+                    } else {
+                        items(
+                            when (selectedTab) {
+                                0 -> state.posts
+                                2 -> state.favoriteCoffees
+                                else -> state.userReviews
+                            }
+                        ) { item ->
+                            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                when (item) {
+                                    is PostWithDetails -> PostCard(
+                                        details = item,
+                                        onUserClick = { onUserClick(item.author.id) },
+                                        onCommentClick = { showCommentSheetId = item.post.id },
+                                        onLikeClick = { viewModel.onToggleLike(item.post.id) },
+                                        isLiked = state.activeUser?.let { me -> item.likes.any { it.userId == me.id } } ?: false,
+                                        showHeader = false,
+                                        isOwnPost = state.isCurrentUser,
+                                        onEditClick = { postToEdit = item },
+                                        onDeleteClick = { itemToDelete = item }
+                                    )
+                                    is CoffeeWithDetails -> CoffeeFavoritePremiumItem(
+                                        coffeeDetails = item,
+                                        onFavoriteClick = { viewModel.onToggleFavorite(item.coffee.id, false) },
+                                        onClick = { onCoffeeClick(item.coffee.id) }
+                                    )
+                                    is UserReviewInfo -> UserReviewCard(
+                                        info = item,
+                                        showHeader = false,
+                                        isOwnReview = state.isCurrentUser,
+                                        onEditClick = { reviewToEdit = item },
+                                        onDeleteClick = { itemToDelete = item },
+                                        onClick = { onCoffeeClick(item.coffeeDetails.coffee.id) }
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
                 // Modals & Dialogs
+                if (showSensoryDetail) {
+                    SensoryDetailBottomSheet(
+                        profile = state.sensoryProfile,
+                        onDismiss = { showSensoryDetail = false }
+                    )
+                }
+
                 if (showSettingsSheet) {
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
@@ -294,6 +327,43 @@ fun ProfileScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
+        Column(Modifier.padding(24.dp).padding(bottom = 48.dp)) {
+            Text("ANÁLISIS DE PREFERENCIAS", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = EspressoDeep)
+            Spacer(Modifier.height(24.dp))
+            
+            val highest = profile.maxByOrNull { it.value }
+            if (highest != null) {
+                Text(
+                    text = "Tu paladar destaca por preferir notas de ${highest.key.lowercase()}.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = EspressoDeep
+                )
+                Spacer(Modifier.height(12.dp))
+                val description = when(highest.key) {
+                    "Acidez" -> "Te atraen los cafés con perfiles brillantes y cítricos, típicos de orígenes de alta montaña."
+                    "Dulzura" -> "Prefieres cafés equilibrados con notas acarameladas o achocolatadas que dejan un postgusto agradable."
+                    "Cuerpo" -> "Buscas una sensación táctil rica y densa en boca, característica de tuestes medios-oscuros."
+                    "Aroma" -> "Tu experiencia comienza por el olfato; disfrutas de cafés con fragancias florales o frutales intensas."
+                    else -> "Disfrutas de una complejidad balanceada en cada taza."
+                }
+                Text(text = description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            }
+            
+            Spacer(Modifier.height(32.dp))
+            Button(
+                onClick = onDismiss, 
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent),
+                shape = RoundedCornerShape(28.dp)
+            ) { Text("ENTENDIDO") }
+        }
+    }
+}
+
 @Composable
 fun ProfileStatsRow(
     posts: Int,
@@ -345,7 +415,7 @@ fun CoffeeFavoritePremiumItem(
                 Text(text = coffeeDetails.coffee.marca, style = MaterialTheme.typography.bodySmall, color = CaramelAccent)
             }
             IconButton(onClick = onFavoriteClick) {
-                Icon(Icons.Default.Favorite, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Favorite, contentDescription = null, tint = ElectricRed, modifier = Modifier.size(20.dp))
             }
         }
     }

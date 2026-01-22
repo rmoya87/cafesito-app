@@ -33,20 +33,21 @@ import com.example.cafesito.data.SyncManager
 import com.example.cafesito.ui.access.*
 import com.example.cafesito.ui.detail.DetailScreen
 import com.example.cafesito.ui.diary.*
-import com.example.cafesito.ui.profile.FollowersScreen
-import com.example.cafesito.ui.profile.FollowingScreen
-import com.example.cafesito.ui.profile.ProfileScreen
+import com.example.cafesito.ui.brewlab.*
+import com.example.cafesito.ui.profile.*
 import com.example.cafesito.ui.search.SearchScreen
 import com.example.cafesito.ui.timeline.AddPostScreen
 import com.example.cafesito.ui.timeline.TimelineScreen
-import com.example.cafesito.ui.theme.CafesitoTheme
+import com.example.cafesito.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Science
 import javax.inject.Inject
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -69,7 +70,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF8F8F8)) {
+                Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
                     if (sessionState is SessionState.Loading) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
@@ -100,23 +101,102 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route ?: ""
 
-    val mainScreens = listOf("timeline", "search", "diary", "profile")
-    val userId = navBackStackEntry?.arguments?.getInt("userId") ?: 0
-    val isOtherUserProfile = currentRoute.startsWith("profile/") && userId != 0
-    val isFollowersOrFollowing = currentRoute.contains("/followers") || currentRoute.contains("/following")
+    val state = remember(currentRoute) {
+        val mainScreens = listOf("timeline", "search", "brewlab", "diary", "profile")
+        val userIdArg = navBackStackEntry?.arguments?.getInt("userId") ?: 0
+        val isOther = currentRoute.startsWith("profile/") && userIdArg != 0
+        val isFollow = currentRoute.contains("/followers") || currentRoute.contains("/following")
+        val showBottom = mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow
+        
+        Triple(showBottom, isOther, isFollow)
+    }
+    
+    val shouldShowBottomBar = state.first
 
-    val shouldShowBottomBar = mainScreens.any { currentRoute.startsWith(it) } && 
-                             !isOtherUserProfile && 
-                             !isFollowersOrFollowing
-
-    // Behavior para ocultar/mostrar TopBar al hacer scroll
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    
+    val navItems = remember {
+        listOf(
+            Triple("timeline", "Inicio", Icons.Filled.Home),
+            Triple("search", "Explorar", Icons.Filled.Explore),
+            Triple("brewlab", "Elabora", Icons.Filled.Science),
+            Triple("diary", "Diario", Icons.Filled.Book),
+            Triple("profile", "Perfil", Icons.Filled.Person)
+        )
+    }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        bottomBar = {
+            if (shouldShowBottomBar) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
+                ) {
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(32.dp),
+                        shadowElevation = 12.dp,
+                        border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp,
+                            windowInsets = WindowInsets(0, 0, 0, 0),
+                            modifier = Modifier.height(64.dp)
+                        ) {
+                            navItems.forEach { (route, label, icon) ->
+                                val isSelected = currentRoute.startsWith(route)
+
+                                NavigationBarItem(
+                                    icon = { 
+                                        Icon(
+                                            imageVector = icon, 
+                                            contentDescription = label
+                                        ) 
+                                    },
+                                    label = { if (!isSelected) Text(label, style = MaterialTheme.typography.labelSmall) },
+                                    selected = isSelected,
+                                    alwaysShowLabel = true,
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = Color.Transparent,
+                                        selectedIconColor = CaramelAccent,
+                                        unselectedIconColor = EspressoDeep.copy(alpha = 0.6f),
+                                        selectedTextColor = CaramelAccent,
+                                        unselectedTextColor = EspressoDeep.copy(alpha = 0.6f)
+                                    ),
+                                    onClick = {
+                                        if (route == "profile") {
+                                            navController.navigate("profile/0") {
+                                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        } else {
+                                            navController.navigate(route) {
+                                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        containerColor = SoftOffWhite
+    ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = startRoute,
-            modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
             composable("onboarding") {
                 OnboardingScreen(onFinished = { 
@@ -177,6 +257,19 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     onCoffeeClick = { id -> navController.navigate("detail/$id") }, 
                     onProfileClick = { id -> navController.navigate("profile/$id") },
                     scrollBehavior = scrollBehavior
+                ) 
+            }
+
+            composable("brewlab") { 
+                val brewViewModel: BrewLabViewModel = hiltViewModel()
+                BrewLabScreen(
+                    viewModel = brewViewModel,
+                    scrollBehavior = scrollBehavior,
+                    onNavigateToDiary = { 
+                        navController.navigate("diary") { 
+                            popUpTo("brewlab") { inclusive = false } 
+                        } 
+                    }
                 ) 
             }
             
@@ -298,70 +391,6 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             
             composable(route = "detail/{coffeeId}", arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })) { DetailScreen(onBackClick = { navController.popBackStack() }) }
             composable("addPost") { AddPostScreen(onBackClick = { navController.popBackStack() }) }
-        }
-
-        // --- FLOATING NAVIGATION BAR (ANCHO COMPLETO Y OPACO) ---
-        if (shouldShowBottomBar) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
-                    .navigationBarsPadding()
-            ) {
-                Surface(
-                    color = Color.White, // Fondo opaco (quitamos transparencia)
-                    shape = RoundedCornerShape(32.dp),
-                    shadowElevation = 12.dp,
-                    border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    NavigationBar(
-                        containerColor = Color.Transparent,
-                        tonalElevation = 0.dp,
-                        windowInsets = WindowInsets(0, 0, 0, 0),
-                        modifier = Modifier.height(64.dp)
-                    ) {
-                        val navItems = listOf(
-                            Triple("timeline", "Inicio", Icons.Filled.Home),
-                            Triple("search", "Explorar", Icons.Filled.Coffee),
-                            Triple("diary", "Diario", Icons.Filled.Book),
-                            Triple("profile", "Perfil", Icons.Filled.Person)
-                        )
-
-                        navItems.forEach { (route, label, icon) ->
-                            val isSelected = currentRoute.startsWith(route)
-
-                            NavigationBarItem(
-                                icon = { Icon(icon, contentDescription = label) },
-                                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                                selected = isSelected,
-                                colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = Color.Transparent,
-                                    selectedIconColor = com.example.cafesito.ui.theme.CoffeeBrown,
-                                    unselectedIconColor = Color.Gray,
-                                    selectedTextColor = com.example.cafesito.ui.theme.CoffeeBrown,
-                                    unselectedTextColor = Color.Gray
-                                ),
-                                onClick = {
-                                    if (route == "profile") {
-                                        navController.navigate("profile/0") {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    } else {
-                                        navController.navigate(route) {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }

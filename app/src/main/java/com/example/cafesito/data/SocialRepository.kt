@@ -1,6 +1,7 @@
 package com.example.cafesito.data
 
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,6 +38,9 @@ class SocialRepository @Inject constructor(
                     )
                 }
                 emit(details)
+            } catch (e: CancellationException) {
+                // Ignorar cancelaciones esperadas por flatMapLatest
+                throw e
             } catch (e: Exception) {
                 Log.e("SOCIAL_REPO", "Error fetching from Supabase", e)
                 emit(emptyList())
@@ -62,6 +66,8 @@ class SocialRepository @Inject constructor(
                     )
                 }
                 emit(details)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 emit(emptyList())
             }
@@ -80,6 +86,8 @@ class SocialRepository @Inject constructor(
                     }
                 }
                 emit(result)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 emit(emptyList())
             }
@@ -185,6 +193,8 @@ class SocialRepository @Inject constructor(
                     CommentWithAuthor(comment, author)
                 }
                 emit(result)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 emit(emptyList())
             }

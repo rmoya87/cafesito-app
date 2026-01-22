@@ -1,11 +1,8 @@
 package com.example.cafesito.ui.timeline
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,24 +11,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
 import com.example.cafesito.data.PostWithDetails
 import com.example.cafesito.ui.components.*
 import com.example.cafesito.ui.theme.*
-import com.example.cafesito.ui.timeline.CommentsSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,19 +40,35 @@ fun TimelineScreen(
     var reviewToEdit by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
 
+    // Posiciones aleatorias para sugerencias (se calculan una vez al entrar)
+    val suggestionIndices = remember(uiState) {
+        if (uiState is TimelineUiState.Success) {
+            val itemsCount = (uiState as TimelineUiState.Success).items.size
+            if (itemsCount > 2) {
+                val first = (1 until itemsCount / 2).random()
+                val second = (itemsCount / 2 until itemsCount).random()
+                listOf(first, second)
+            } else {
+                listOf(0, 1)
+            }
+        } else listOf(0, 1)
+    }
+
     LaunchedEffect(Unit) { viewModel.refreshData() }
 
     Scaffold(
         containerColor = SoftOffWhite,
         topBar = { GlassyTopBar(title = "Cafesito", scrollBehavior = scrollBehavior) },
         floatingActionButton = {
-            LargeFloatingActionButton(
+            FloatingActionButton(
                 onClick = onAddPostClick,
                 containerColor = EspressoDeep,
                 contentColor = Color.White,
                 shape = CircleShape,
-                modifier = Modifier.padding(bottom = 80.dp, end = 8.dp)
-            ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(30.dp)) }
+                modifier = Modifier
+                    .padding(bottom = 90.dp, end = 8.dp)
+                    .size(56.dp) // Reducido un 25% aprox (de LargeFAB 96dp o normal 56dp)
+            ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(24.dp)) }
         }
     ) { padding ->
         when (val state = uiState) {
@@ -74,26 +81,29 @@ fun TimelineScreen(
             is TimelineUiState.Success -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(bottom = 100.dp)
+                    contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
-                    if (state.recommendations.isNotEmpty()) {
-                        item {
-                            Text(
-                                "DESCUBRE TU PRÓXIMO CAFÉ",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = CaramelAccent,
-                                modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 12.dp)
-                            )
-                            RecommendationCarousel(
-                                recommendations = state.recommendations,
-                                onCoffeeClick = onCoffeeClick
-                            )
-                            Spacer(Modifier.height(24.dp))
+                    itemsIndexed(state.items) { index, item ->
+                        
+                        // Insertar Carrusel de Recomendaciones en posición aleatoria
+                        if (index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
+                            Column {
+                                Text(
+                                    "DESCUBRE TU PRÓXIMO CAFÉ",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = CaramelAccent,
+                                    modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 12.dp)
+                                )
+                                RecommendationCarousel(
+                                    recommendations = state.recommendations,
+                                    onCoffeeClick = onCoffeeClick
+                                )
+                                Spacer(Modifier.height(24.dp))
+                            }
                         }
-                    }
 
-                    if (state.suggestedUsers.isNotEmpty()) {
-                        item {
+                        // Insertar Sugerencias de Usuarios en posición aleatoria
+                        if (index == suggestionIndices[1] && state.suggestedUsers.isNotEmpty()) {
                             UserSuggestionCarousel(
                                 users = state.suggestedUsers,
                                 followingIds = state.myFollowingIds,
@@ -102,18 +112,7 @@ fun TimelineScreen(
                             )
                             Spacer(Modifier.height(32.dp))
                         }
-                    }
 
-                    item {
-                        Text(
-                            "FEED",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = CaramelAccent,
-                            modifier = Modifier.padding(start = 24.dp, bottom = 16.dp)
-                        )
-                    }
-
-                    itemsIndexed(state.items) { index, item ->
                         AnimatedVisibility(
                             visible = true,
                             enter = fadeIn(animationSpec = tween(500, delayMillis = index * 100)) + 

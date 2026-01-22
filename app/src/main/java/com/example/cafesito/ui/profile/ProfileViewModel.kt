@@ -28,7 +28,8 @@ sealed interface ProfileUiState {
         val errorMessage: String?,
         val usernameError: String?,
         val myFavoriteIds: Set<String>,
-        val activeUser: UserEntity?
+        val activeUser: UserEntity?,
+        val sensoryProfile: Map<String, Float>
     ) : ProfileUiState
 }
 
@@ -95,6 +96,24 @@ class ProfileViewModel @Inject constructor(
             targetUser.copy(avatarUrl = tempAvatar.toString())
         } else targetUser
 
+        val userReviewsForSensory = allReviews.filter { it.userId == targetUser.id }
+        val reviewedCoffees = userReviewsForSensory.mapNotNull { review ->
+            allCoffees.find { it.coffee.id == review.coffeeId }?.coffee
+        }
+
+        // Cálculo del ADN Cafetero (AI Sensory Profile)
+        val sensoryProfile = if (reviewedCoffees.isEmpty()) {
+            mapOf("Aroma" to 5f, "Sabor" to 5f, "Cuerpo" to 5f, "Acidez" to 5f, "Dulzura" to 5f)
+        } else {
+            mapOf(
+                "Aroma" to reviewedCoffees.map { it.aroma }.average().toFloat(),
+                "Sabor" to reviewedCoffees.map { it.sabor }.average().toFloat(),
+                "Cuerpo" to reviewedCoffees.map { it.cuerpo }.average().toFloat(),
+                "Acidez" to reviewedCoffees.map { it.acidez }.average().toFloat(),
+                "Dulzura" to reviewedCoffees.map { it.dulzura }.average().toFloat()
+            )
+        }
+
         ProfileUiState.Success(
             user = displayUser,
             posts = userPosts, 
@@ -102,7 +121,7 @@ class ProfileViewModel @Inject constructor(
                 val favIds = myFavorites.map { it.coffeeId }.toSet()
                 allCoffees.filter { favIds.contains(it.coffee.id) }
             } else emptyList(),
-            userReviews = allReviews.filter { it.userId == targetUser.id }.mapNotNull { review ->
+            userReviews = userReviewsForSensory.mapNotNull { review ->
                 allCoffees.find { it.coffee.id == review.coffeeId }?.let { coffee ->
                     UserReviewInfo(coffee, review, targetUser.fullName, targetUser.avatarUrl)
                 }
@@ -115,7 +134,8 @@ class ProfileViewModel @Inject constructor(
             errorMessage = generalError,
             usernameError = usernameError,
             myFavoriteIds = myFavorites.map { it.coffeeId }.toSet(),
-            activeUser = activeUser
+            activeUser = activeUser,
+            sensoryProfile = sensoryProfile
         )
     }
     .flowOn(Dispatchers.Default)

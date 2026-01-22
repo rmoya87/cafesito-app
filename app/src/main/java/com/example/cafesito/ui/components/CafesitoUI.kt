@@ -45,7 +45,7 @@ import kotlin.math.roundToInt
 fun PremiumCard(
     modifier: Modifier = Modifier,
     shape: RoundedCornerShape = RoundedCornerShape(32.dp),
-    containerColor: Color = SoftOffWhite,
+    containerColor: Color = Color.White,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
@@ -210,6 +210,22 @@ fun StockSliderSection(label: String, value: Float, maxValue: Float, onValueChan
                 inactiveTrackColor = Color.LightGray
             )
         )
+    }
+}
+
+@Composable
+fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    PremiumCard(modifier = modifier) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(32.dp).background(CaramelAccent.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = CaramelAccent, modifier = Modifier.size(16.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
+                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
     }
 }
 
