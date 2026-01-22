@@ -45,6 +45,7 @@ import kotlin.math.roundToInt
 fun SearchScreen(
     onCoffeeClick: (String) -> Unit,
     onProfileClick: (Int) -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -65,6 +66,7 @@ fun SearchScreen(
             if (!isSearchActive) {
                 GlassyTopBar(
                     title = "EXPLORAR",
+                    scrollBehavior = scrollBehavior,
                     actions = {
                         IconButton(onClick = { isSearchActive = true }) {
                             Icon(Icons.Default.Search, contentDescription = "Buscar", tint = EspressoDeep)
@@ -92,6 +94,9 @@ fun SearchScreen(
                             contentPadding = PaddingValues(bottom = 32.dp)
                         ) {
                             itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
+                                LaunchedEffect(index) {
+                                    viewModel.onItemDisplayed(index)
+                                }
                                 AnimatedVisibility(
                                     visible = true,
                                     enter = fadeIn() + slideInVertically(initialOffsetY = { 50 })
@@ -169,26 +174,56 @@ private fun CoffeePremiumListItem(
                         Icon(
                             imageVector = if (coffeeDetails.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = null,
-                            tint = if (coffeeDetails.isFavorite) ErrorRed else Color.Gray,
+                            tint = if (coffeeDetails.isFavorite) ElectricRed else Color.Gray,
                             modifier = Modifier.size(18.dp)
                         )
                     }
                 }
 
-                Column(modifier = Modifier.align(Alignment.BottomStart).padding(20.dp)) {
-                    Text(text = coffee.marca.uppercase(), color = CaramelAccent, style = MaterialTheme.typography.labelLarge, fontSize = 10.sp)
-                    Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 2)
-                }
-
-                Surface(
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
-                    color = Color.White.copy(alpha = 0.95f),
-                    shape = RoundedCornerShape(12.dp)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, null, tint = CaramelAccent, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = coffee.marca.uppercase(), 
+                            color = CreamLight, 
+                            style = MaterialTheme.typography.labelLarge, 
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = coffee.nombre, 
+                            color = Color.White, 
+                            style = MaterialTheme.typography.titleLarge, 
+                            fontWeight = FontWeight.Bold, 
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(Modifier.width(16.dp))
+
+                    Surface(
+                        color = Color.White.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("NOTA", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
+                            Text(
+                                text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), 
+                                style = MaterialTheme.typography.titleMedium, 
+                                fontWeight = FontWeight.Black,
+                                color = EspressoDeep
+                            )
+                        }
                     }
                 }
             }
@@ -197,29 +232,37 @@ private fun CoffeePremiumListItem(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                coffee.paisOrigen?.let { TagChip(it) }
-                TagChip(coffee.especialidad)
-                coffee.tueste?.let { TagChip(it) }
+                coffee.paisOrigen?.let { TagChip("PAÍS", it) }
+                TagChip("ESTILO", coffee.especialidad)
+                coffee.tueste?.let { TagChip("TUESTE", it) }
             }
         }
     }
 }
 
 @Composable
-private fun TagChip(text: String) {
+private fun TagChip(label: String, value: String) {
     Surface(
         color = CreamLight,
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, BorderLight)
     ) {
-        Text(
-            text = text.uppercase(),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = EspressoDeep,
-            fontSize = 9.sp,
-            letterSpacing = 0.5.sp
-        )
+        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
+            Text(
+                text = "$label: ", 
+                style = MaterialTheme.typography.labelSmall, 
+                color = Color.Gray, 
+                fontSize = 9.sp
+            )
+            Text(
+                text = value.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = EspressoDeep,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+        }
     }
 }
 

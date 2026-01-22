@@ -39,6 +39,7 @@ fun TimelineScreen(
     onUserClick: (Int) -> Unit,
     onCoffeeClick: (String) -> Unit,
     onAddPostClick: () -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: TimelineViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -52,14 +53,14 @@ fun TimelineScreen(
 
     Scaffold(
         containerColor = SoftOffWhite,
-        topBar = { GlassyTopBar(title = "Cafesito") },
+        topBar = { GlassyTopBar(title = "Cafesito", scrollBehavior = scrollBehavior) },
         floatingActionButton = {
             LargeFloatingActionButton(
                 onClick = onAddPostClick,
                 containerColor = EspressoDeep,
                 contentColor = Color.White,
                 shape = CircleShape,
-                modifier = Modifier.padding(bottom = 16.dp, end = 8.dp)
+                modifier = Modifier.padding(bottom = 80.dp, end = 8.dp)
             ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(30.dp)) }
         }
     ) { padding ->

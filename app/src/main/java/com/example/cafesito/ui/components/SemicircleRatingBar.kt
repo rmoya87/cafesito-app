@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.example.cafesito.ui.theme.CoffeeBrown
+import com.example.cafesito.ui.theme.OrangeYellow
 
 @Composable
 fun SemicircleRatingBar(
@@ -45,7 +45,7 @@ fun SemicircleRatingBar(
                 modifier = Modifier
                     .size(48.dp)
                     .clickableWithoutRipple { onRatingChanged(i.toFloat()) },
-                tint = if (isFilled || isHalf) CoffeeBrown else Color.LightGray
+                tint = if (isFilled || isHalf) OrangeYellow else Color.LightGray
             )
         }
     }

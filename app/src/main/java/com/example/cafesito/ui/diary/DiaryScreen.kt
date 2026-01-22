@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +49,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DiaryScreen(
     onCoffeeClick: (String) -> Unit,
@@ -56,6 +57,7 @@ fun DiaryScreen(
     onAddCoffeeClick: () -> Unit,
     onAddStockClick: () -> Unit,
     onEditStockClick: (String, Boolean) -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
@@ -70,6 +72,10 @@ fun DiaryScreen(
     
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Actividad, 1: Despensa
 
+    // Estado para la modal de opciones de despensa
+    var showPantryOptionsId by remember { mutableStateOf<String?>(null) }
+    var itemToDeleteId by remember { mutableStateOf<String?>(null) }
+
     if (showStockSheet && itemToEdit != null) {
         StockEditBottomSheet(
             item = itemToEdit!!,
@@ -81,11 +87,77 @@ fun DiaryScreen(
         )
     }
 
+    if (showPantryOptionsId != null) {
+        val selectedItem = pantryItems.find { it.coffee.id == showPantryOptionsId }
+        if (selectedItem != null) {
+            ModalBottomSheet(
+                onDismissRequest = { showPantryOptionsId = null },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+            ) {
+                Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                    Text(
+                        text = selectedItem.coffee.nombre.uppercase(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = CaramelAccent,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    ModalMenuOption(
+                        title = "Editar Stock",
+                        icon = Icons.Default.Edit,
+                        color = EspressoDeep,
+                        onClick = { 
+                            val id = showPantryOptionsId!!
+                            showPantryOptionsId = null
+                            if (selectedItem.isCustom) onEditStockClick(id, true)
+                            else {
+                                itemToEdit = selectedItem
+                                showStockSheet = true
+                            }
+                        }
+                    )
+                    ModalMenuOption(
+                        title = "Eliminar de la Despensa",
+                        icon = Icons.Default.Delete,
+                        color = ErrorRed,
+                        onClick = { 
+                            itemToDeleteId = showPantryOptionsId
+                            showPantryOptionsId = null 
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    if (itemToDeleteId != null) {
+        AlertDialog(
+            onDismissRequest = { itemToDeleteId = null },
+            title = { Text("Eliminar de la Despensa", fontWeight = FontWeight.Bold) },
+            text = { Text("¿Estás seguro de que deseas eliminar este café? Se borrará tu stock actual.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.removeFromPantry(itemToDeleteId!!)
+                        itemToDeleteId = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
+                ) { Text("ELIMINAR") }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToDeleteId = null }) { Text("CANCELAR", color = Color.Gray) }
+            },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = Color.White
+        )
+    }
+
     Scaffold(
         containerColor = SoftOffWhite,
         topBar = {
             GlassyTopBar(
                 title = "MI DIARIO",
+                scrollBehavior = scrollBehavior,
                 actions = {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
                         IconButton(onClick = { showQuickActions = true }) {
@@ -106,15 +178,16 @@ fun DiaryScreen(
                 Spacer(Modifier.height(24.dp))
             }
 
-            item {
-                // PESTAÑAS PREMIUM
+            stickyHeader {
+                // PESTAÑAS PREMIUM STICKY
                 PremiumTabRow(
                     selectedTabIndex = selectedTab,
                     tabs = listOf("ACTIVIDAD", "DESPENSA"),
                     onTabSelected = { selectedTab = it }
                 )
-                Spacer(Modifier.height(16.dp))
             }
+
+            item { Spacer(Modifier.height(16.dp)) }
 
             if (selectedTab == 0) {
                 if (entries.isEmpty()) {
@@ -136,12 +209,8 @@ fun DiaryScreen(
                     PantryPremiumGrid(
                         items = pantryItems,
                         onItemClick = onCoffeeClick,
-                        onEditClick = { id, isCustom ->
-                            if (isCustom) onEditStockClick(id, true)
-                            else {
-                                itemToEdit = pantryItems.find { it.coffee.id == id }
-                                showStockSheet = true
-                            }
+                        onOptionsClick = { id ->
+                            showPantryOptionsId = id
                         }
                     )
                 }
@@ -261,7 +330,7 @@ fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: 
 fun PantryPremiumGrid(
     items: List<PantryItemWithDetails>,
     onItemClick: (String) -> Unit,
-    onEditClick: (String, Boolean) -> Unit
+    onOptionsClick: (String) -> Unit
 ) {
     if (items.isEmpty()) {
         EmptyStateMessage("No hay café en tu despensa")
@@ -275,7 +344,7 @@ fun PantryPremiumGrid(
             userScrollEnabled = false
         ) {
             items(items, key = { it.coffee.id }) { item ->
-                PantryPremiumCard(item, onItemClick, onEditClick)
+                PantryPremiumCard(item, onItemClick, onOptionsClick)
             }
         }
     }
@@ -285,7 +354,7 @@ fun PantryPremiumGrid(
 fun PantryPremiumCard(
     item: PantryItemWithDetails,
     onClick: (String) -> Unit,
-    onEditClick: (String, Boolean) -> Unit
+    onOptionsClick: (String) -> Unit
 ) {
     val progress = if (item.pantryItem.totalGrams > 0) item.pantryItem.gramsRemaining.toFloat() / item.pantryItem.totalGrams else 0f
     
@@ -303,13 +372,14 @@ fun PantryPremiumCard(
             Box(
                 Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, EspressoDeep.copy(alpha = 0.8f))))
             )
+            
             IconButton(
-                onClick = { onEditClick(item.coffee.id, item.isCustom) },
-                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(28.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)
-            ) { Icon(Icons.Default.Tune, null, tint = Color.White, modifier = Modifier.size(14.dp)) }
+                onClick = { onOptionsClick(item.coffee.id) },
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(28.dp).background(Color.White.copy(alpha = 0.8f), CircleShape)
+            ) { Icon(Icons.Default.MoreVert, null, tint = Color.Black, modifier = Modifier.size(16.dp)) }
             
             Column(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
-                Text(item.coffee.marca.uppercase(), color = CaramelAccent, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                Text(item.coffee.marca.uppercase(), color = SoftOffWhite, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                 Text(item.coffee.nombre, color = Color.White, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -357,9 +427,9 @@ fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoff
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
             Text("NUEVO REGISTRO", style = MaterialTheme.typography.labelLarge, color = CaramelAccent, modifier = Modifier.padding(bottom = 16.dp))
-            EntryOption("Registro de Agua", Icons.Default.WaterDrop, Color(0xFF2196F3), onAddWater)
-            EntryOption("Registro de Café", Icons.Default.Coffee, EspressoDeep, onAddCoffee)
-            EntryOption("Añadir a Despensa", Icons.Default.Inventory, CaramelAccent, onAddPantry)
+            ModalMenuOption(title = "Registro de Agua", icon = Icons.Default.WaterDrop, color = Color(0xFF2196F3), onClick = onAddWater)
+            ModalMenuOption(title = "Registro de Café", icon = Icons.Default.Coffee, color = EspressoDeep, onClick = onAddCoffee)
+            ModalMenuOption(title = "Añadir a Despensa", icon = Icons.Default.Inventory, color = CaramelAccent, onClick = onAddPantry)
         }
     }
 }
@@ -402,7 +472,7 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
             
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
                 Row(modifier = Modifier.height(80.dp), verticalAlignment = Alignment.Bottom) {
-                    Box(Modifier.width(10.dp).fillMaxHeight(caffeineHeight).clip(CircleShape).background(EspressoDeep))
+                    Box(Modifier.width(10.dp).fillMaxHeight(caffeineHeight).clip(CircleShape).background(CaramelAccent))
                     Spacer(Modifier.width(4.dp))
                     Box(Modifier.width(10.dp).fillMaxHeight(waterHeight).clip(CircleShape).background(Color(0xFF2196F3).copy(alpha = 0.4f)))
                 }

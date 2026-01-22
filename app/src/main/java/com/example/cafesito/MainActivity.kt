@@ -4,15 +4,23 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -49,6 +57,7 @@ class MainActivity : ComponentActivity() {
     lateinit var syncManager: SyncManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             CafesitoTheme {
@@ -66,7 +75,6 @@ class MainActivity : ComponentActivity() {
                             CircularProgressIndicator()
                         }
                     } else {
-                        // Flujo corregido: Si no está autenticado completamente, siempre va a onboarding
                         val startRoute = when (sessionState) {
                             is SessionState.Authenticated -> "timeline"
                             else -> "onboarding"
@@ -84,77 +92,31 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route ?: ""
+
     val mainScreens = listOf("timeline", "search", "diary", "profile")
+    val userId = navBackStackEntry?.arguments?.getInt("userId") ?: 0
+    val isOtherUserProfile = currentRoute.startsWith("profile/") && userId != 0
+    val isFollowersOrFollowing = currentRoute.contains("/followers") || currentRoute.contains("/following")
 
-    Scaffold(
-        bottomBar = {
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentDestination = navBackStackEntry?.destination
-            val currentRoute = currentDestination?.route ?: ""
+    val shouldShowBottomBar = mainScreens.any { currentRoute.startsWith(it) } && 
+                             !isOtherUserProfile && 
+                             !isFollowersOrFollowing
 
-            val isFollowersOrFollowing = currentRoute.contains("/followers") || currentRoute.contains("/following")
-            val userId = navBackStackEntry?.arguments?.getInt("userId") ?: 0
-            val isOtherUserProfile = currentRoute.startsWith("profile/") && userId != 0
+    // Behavior para ocultar/mostrar TopBar al hacer scroll
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
-            val shouldShowBottomBar = mainScreens.any { currentRoute.startsWith(it) } && 
-                                     !isOtherUserProfile && 
-                                     !isFollowersOrFollowing
-
-            if (shouldShowBottomBar) {
-                NavigationBar(
-                    containerColor = Color(0xFFF8F8F8),
-                    tonalElevation = 0.dp
-                ) {
-                    val navItems = listOf(
-                        Triple("timeline", "Inicio", Icons.Filled.Home),
-                        Triple("search", "Explorar", Icons.Filled.Coffee),
-                        Triple("diary", "Diario", Icons.Filled.Book),
-                        Triple("profile", "Perfil", Icons.Filled.Person)
-                    )
-
-                    navItems.forEach { (route, label, icon) ->
-                        val isSelected = currentRoute.startsWith(route)
-
-                        NavigationBarItem(
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label) },
-                            selected = isSelected,
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = Color.Transparent,
-                                selectedIconColor = com.example.cafesito.ui.theme.CoffeeBrown,
-                                unselectedIconColor = Color.Black,
-                                selectedTextColor = com.example.cafesito.ui.theme.CoffeeBrown,
-                                unselectedTextColor = Color.Black
-                            ),
-                            onClick = {
-                                if (route == "profile") {
-                                    navController.navigate("profile/0") {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                } else {
-                                    navController.navigate(route) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-        },
-        containerColor = Color(0xFFF8F8F8)
-    ) { innerPadding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = startRoute,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
             composable("onboarding") {
                 OnboardingScreen(onFinished = { 
@@ -205,11 +167,18 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 TimelineScreen(
                     onUserClick = { id -> navController.navigate("profile/$id") },
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onAddPostClick = { navController.navigate("addPost") }
+                    onAddPostClick = { navController.navigate("addPost") },
+                    scrollBehavior = scrollBehavior
                 )
             }
             
-            composable("search") { SearchScreen(onCoffeeClick = { id -> navController.navigate("detail/$id") }, onProfileClick = { id -> navController.navigate("profile/$id") }) }
+            composable("search") { 
+                SearchScreen(
+                    onCoffeeClick = { id -> navController.navigate("detail/$id") }, 
+                    onProfileClick = { id -> navController.navigate("profile/$id") },
+                    scrollBehavior = scrollBehavior
+                ) 
+            }
             
             composable("diary") {
                 DiaryScreen(
@@ -223,7 +192,8 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                         } else {
                             navController.navigate("editNormalStock/$id")
                         }
-                    }
+                    },
+                    scrollBehavior = scrollBehavior
                 )
             }
 
@@ -297,7 +267,8 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     onUserClick = { id -> navController.navigate("profile/$id") },
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
-                    onFollowingClick = { id -> navController.navigate("profile/$id/following") }
+                    onFollowingClick = { id -> navController.navigate("profile/$id/following") },
+                    scrollBehavior = scrollBehavior
                 )
             }
 
@@ -327,6 +298,70 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             
             composable(route = "detail/{coffeeId}", arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })) { DetailScreen(onBackClick = { navController.popBackStack() }) }
             composable("addPost") { AddPostScreen(onBackClick = { navController.popBackStack() }) }
+        }
+
+        // --- FLOATING NAVIGATION BAR (ANCHO COMPLETO Y OPACO) ---
+        if (shouldShowBottomBar) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
+                    .navigationBarsPadding()
+            ) {
+                Surface(
+                    color = Color.White, // Fondo opaco (quitamos transparencia)
+                    shape = RoundedCornerShape(32.dp),
+                    shadowElevation = 12.dp,
+                    border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    NavigationBar(
+                        containerColor = Color.Transparent,
+                        tonalElevation = 0.dp,
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        modifier = Modifier.height(64.dp)
+                    ) {
+                        val navItems = listOf(
+                            Triple("timeline", "Inicio", Icons.Filled.Home),
+                            Triple("search", "Explorar", Icons.Filled.Coffee),
+                            Triple("diary", "Diario", Icons.Filled.Book),
+                            Triple("profile", "Perfil", Icons.Filled.Person)
+                        )
+
+                        navItems.forEach { (route, label, icon) ->
+                            val isSelected = currentRoute.startsWith(route)
+
+                            NavigationBarItem(
+                                icon = { Icon(icon, contentDescription = label) },
+                                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                                selected = isSelected,
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = Color.Transparent,
+                                    selectedIconColor = com.example.cafesito.ui.theme.CoffeeBrown,
+                                    unselectedIconColor = Color.Gray,
+                                    selectedTextColor = com.example.cafesito.ui.theme.CoffeeBrown,
+                                    unselectedTextColor = Color.Gray
+                                ),
+                                onClick = {
+                                    if (route == "profile") {
+                                        navController.navigate("profile/0") {
+                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    } else {
+                                        navController.navigate(route) {
+                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -18,7 +18,6 @@ class CoffeeRepository @Inject constructor(
         _refreshTrigger.tryEmit(Unit)
     }
 
-    // CONSULTAS PARA PERFIL Y DIARIO (PÚBLICAS + PROPIAS)
     @OptIn(ExperimentalCoroutinesApi::class)
     val allCoffees: Flow<List<CoffeeWithDetails>> = _refreshTrigger.flatMapLatest {
         flow {
@@ -30,19 +29,17 @@ class CoffeeRepository @Inject constructor(
                 } else emptyList()
                 
                 val totalCoffees = publicCoffees + customCoffees
-                
-                // Combinamos favoritos remotos, locales estándar y locales custom
                 val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (e: Exception) { emptyList() }
+                val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }
                 val localFavorites = coffeeDao.getLocalFavorites().first()
                 val localFavoritesCustom = coffeeDao.getLocalFavoritesCustom().first()
-                
-                val allFavs = (remoteFavorites + localFavorites + localFavoritesCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
-                
+                val allFavs = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() } + localFavorites + localFavoritesCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
+
                 emit(totalCoffees.map { coffee ->
                     CoffeeWithDetails(
                         coffee = coffee,
                         favorite = allFavs.find { it.coffeeId == coffee.id && it.userId == user?.id },
-                        reviews = emptyList()
+                        reviews = emptyList() 
                     )
                 })
             } catch (e: Exception) {
@@ -71,17 +68,20 @@ class CoffeeRepository @Inject constructor(
         (remote + local + localCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
     }
 
-    val allReviews: Flow<List<ReviewEntity>> = flow {
-        try {
-            emit(supabaseDataSource.getAllReviews())
-        } catch (e: Exception) { emit(emptyList()) }
+    val allReviews: Flow<List<ReviewEntity>> = _refreshTrigger.flatMapLatest {
+        flow {
+            try {
+                emit(supabaseDataSource.getAllReviews())
+            } catch (e: Exception) {
+                Log.e("COFFEE_REPO", "Error cargando reseñas: ${e.message}")
+                emit(emptyList())
+            }
+        }
     }
 
     suspend fun toggleFavorite(coffeeId: String, shouldBeFavorite: Boolean) {
         val currentUser = userRepository.getActiveUser() ?: return
-        
         try {
-            // Determinamos si es un café custom buscando en Room
             val isCustom = coffeeDao.getCoffeeById(coffeeId)?.isCustom 
                 ?: (supabaseDataSource.getCustomCoffees(currentUser.id).any { it.id == coffeeId })
 
@@ -89,40 +89,24 @@ class CoffeeRepository @Inject constructor(
                 if (isCustom) {
                     val favCustom = LocalFavoriteCustom(coffeeId, currentUser.id)
                     coffeeDao.insertFavoriteCustom(favCustom)
-                    try {
-                        supabaseDataSource.insertFavoriteCustom(favCustom)
-                    } catch (e: Exception) {
-                        Log.e("COFFEE_REPO", "Error al insertar favorito custom en Supabase: ${e.message}")
-                    }
+                    try { supabaseDataSource.insertFavoriteCustom(favCustom) } catch (e: Exception) { }
                 } else {
                     val favorite = LocalFavorite(coffeeId, currentUser.id)
                     coffeeDao.insertFavorite(favorite)
-                    try {
-                        supabaseDataSource.insertFavorite(favorite)
-                    } catch (e: Exception) {
-                        Log.e("COFFEE_REPO", "Error al insertar favorito en Supabase: ${e.message}")
-                    }
+                    try { supabaseDataSource.insertFavorite(favorite) } catch (e: Exception) { }
                 }
             } else {
                 if (isCustom) {
                     coffeeDao.deleteFavoriteCustom(LocalFavoriteCustom(coffeeId, currentUser.id))
-                    try {
-                        supabaseDataSource.deleteFavoriteCustom(coffeeId, currentUser.id)
-                    } catch (e: Exception) {
-                        Log.e("COFFEE_REPO", "Error al eliminar favorito custom en Supabase: ${e.message}")
-                    }
+                    try { supabaseDataSource.deleteFavoriteCustom(coffeeId, currentUser.id) } catch (e: Exception) { }
                 } else {
                     coffeeDao.deleteFavorite(LocalFavorite(coffeeId, currentUser.id))
-                    try {
-                        supabaseDataSource.deleteFavorite(coffeeId, currentUser.id)
-                    } catch (e: Exception) {
-                        Log.e("COFFEE_REPO", "Error al eliminar favorito en Supabase: ${e.message}")
-                    }
+                    try { supabaseDataSource.deleteFavorite(coffeeId, currentUser.id) } catch (e: Exception) { }
                 }
             }
             triggerRefresh()
         } catch (e: Exception) {
-            Log.e("COFFEE_REPO", "Error general en toggleFavorite: ${e.message}")
+            Log.e("COFFEE_REPO", "Error general en toggleFavorite", e)
         }
     }
 
@@ -155,52 +139,22 @@ class CoffeeRepository @Inject constructor(
         }
     }
 
-    fun getRecommendations(): Flow<List<CoffeeWithDetails>> = flow {
-        try {
-            val remoteCoffees = supabaseDataSource.getAllCoffees()
-            val remoteFavorites = supabaseDataSource.getAllFavorites()
-            val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }
-            val remoteReviews = supabaseDataSource.getAllReviews()
-            val currentUser = userRepository.getActiveUser() ?: return@flow emit(emptyList())
-
-            val favIds = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() })
-                .filter { it.userId == currentUser.id }
-                .map { it.coffeeId }.toSet()
-            
-            val myFavs = remoteCoffees.filter { favIds.contains(it.id) }
-
-            if (myFavs.isEmpty()) {
-                emit(emptyList())
-                return@flow
-            }
-
-            val avgAroma = myFavs.map { it.aroma }.average()
-            val avgSabor = myFavs.map { it.sabor }.average()
-            val recommendations = remoteCoffees
-                .filter { !favIds.contains(it.id) }
-                .map { coffee ->
-                    val distance = kotlin.math.sqrt(Math.pow((coffee.aroma - avgAroma), 2.0) + Math.pow((coffee.sabor - avgSabor), 2.0))
-                    coffee to distance
-                }
-                .sortedBy { it.second }.take(5).map { (coffee, _) ->
-                    CoffeeWithDetails(coffee = coffee, favorite = null, reviews = remoteReviews.filter { it.coffeeId == coffee.id })
-                }
-            emit(recommendations)
-        } catch (e: Exception) { emit(emptyList()) }
-    }
-
     suspend fun upsertReview(review: ReviewEntity) {
         try { 
             supabaseDataSource.upsertReview(review) 
             triggerRefresh()
-        } catch (e: Exception) { }
+        } catch (e: Exception) { 
+            Log.e("COFFEE_REPO", "ERROR AL GUARDAR RESEÑA EN SUPABASE: ${e.message}", e)
+        }
     }
 
     suspend fun deleteReview(coffeeId: String, userId: Int) {
         try { 
             supabaseDataSource.deleteReview(coffeeId, userId) 
             triggerRefresh()
-        } catch (e: Exception) { }
+        } catch (e: Exception) { 
+            Log.e("COFFEE_REPO", "Error al borrar reseña: ${e.message}")
+        }
     }
 
     suspend fun syncCoffees() {
@@ -244,5 +198,39 @@ class CoffeeRepository @Inject constructor(
                 })
             } catch (e: Exception) { emit(emptyList()) }
         }
+    }
+
+    fun getRecommendations(): Flow<List<CoffeeWithDetails>> = flow {
+        try {
+            val remoteCoffees = supabaseDataSource.getAllCoffees()
+            val remoteFavorites = supabaseDataSource.getAllFavorites()
+            val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }
+            val remoteReviews = supabaseDataSource.getAllReviews()
+            val currentUser = userRepository.getActiveUser() ?: return@flow emit(emptyList())
+
+            val favIds = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() })
+                .filter { it.userId == currentUser.id }
+                .map { it.coffeeId }.toSet()
+            
+            val myFavs = remoteCoffees.filter { favIds.contains(it.id) }
+
+            if (myFavs.isEmpty()) {
+                emit(emptyList())
+                return@flow
+            }
+
+            val avgAroma = myFavs.map { it.aroma }.average()
+            val avgSabor = myFavs.map { it.sabor }.average()
+            val recommendations = remoteCoffees
+                .filter { !favIds.contains(it.id) }
+                .map { coffee ->
+                    val distance = kotlin.math.sqrt(Math.pow((coffee.aroma - avgAroma), 2.0) + Math.pow((coffee.sabor - avgSabor), 2.0))
+                    coffee to distance
+                }
+                .sortedBy { it.second }.take(5).map { (coffee, _) ->
+                    CoffeeWithDetails(coffee = coffee, favorite = null, reviews = remoteReviews.filter { it.coffeeId == coffee.id })
+                }
+            emit(recommendations)
+        } catch (e: Exception) { emit(emptyList()) }
     }
 }

@@ -95,7 +95,26 @@ class SupabaseDataSource @Inject constructor(
 
     // --- RESEÑAS ---
     suspend fun getAllReviews(): List<ReviewEntity> = client.postgrest["reviews_db"].select().decodeList<ReviewEntity>()
-    suspend fun upsertReview(review: ReviewEntity) { client.postgrest["reviews_db"].upsert(review) }
+    
+    suspend fun upsertReview(review: ReviewEntity) {
+        // Usamos ReviewInsert para evitar enviar el ID (que podría ser 0 y causar conflictos)
+        // y permitir que Supabase use la restricción coffee_id + user_id para el upsert.
+        val insertData = ReviewInsert(
+            coffeeId = review.coffeeId,
+            userId = review.userId,
+            rating = review.rating,
+            comment = review.comment,
+            imageUrl = review.imageUrl,
+            timestamp = review.timestamp,
+            method = review.method,
+            ratio = review.ratio,
+            waterTemp = review.waterTemp,
+            extractionTime = review.extractionTime,
+            grindSize = review.grindSize
+        )
+        client.postgrest["reviews_db"].upsert(insertData, onConflict = "coffee_id,user_id")
+    }
+
     suspend fun deleteReview(coffeeId: String, userId: Int) {
         client.postgrest["reviews_db"].delete {
             filter { eq("coffee_id", coffeeId); eq("user_id", userId) }

@@ -46,24 +46,30 @@ fun PostCard(
             containerColor = Color.White,
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
-                ListItem(
-                    headlineContent = { Text("Editar información", color = EspressoDeep) },
-                    leadingContent = { Icon(Icons.Default.Edit, null, tint = EspressoDeep) },
-                    modifier = Modifier.clickable { 
+            Column(modifier = Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Text(
+                    "OPCIONES DE PUBLICACIÓN", 
+                    style = MaterialTheme.typography.labelLarge, 
+                    color = CaramelAccent,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                ModalMenuOption(
+                    title = "Editar información",
+                    icon = Icons.Default.Edit,
+                    color = EspressoDeep,
+                    onClick = { 
                         showOptionsSheet = false
                         onEditClick() 
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.White)
+                    }
                 )
-                ListItem(
-                    headlineContent = { Text("Borrar publicación", color = ElectricRed) },
-                    leadingContent = { Icon(Icons.Default.Delete, null, tint = ElectricRed) },
-                    modifier = Modifier.clickable { 
+                ModalMenuOption(
+                    title = "Borrar publicación",
+                    icon = Icons.Default.Delete,
+                    color = ElectricRed,
+                    onClick = { 
                         showOptionsSheet = false
                         onDeleteClick() 
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.White)
+                    }
                 )
             }
         }

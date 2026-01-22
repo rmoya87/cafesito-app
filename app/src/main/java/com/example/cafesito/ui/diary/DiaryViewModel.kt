@@ -164,7 +164,7 @@ class DiaryViewModel @Inject constructor(
 
     fun setPeriod(period: DiaryPeriod) { _selectedPeriod.value = period }
     
-    fun addCoffeeConsumption(
+    suspend fun addCoffeeConsumption(
         coffeeId: String?, 
         coffeeName: String, 
         coffeeBrand: String,
@@ -173,13 +173,11 @@ class DiaryViewModel @Inject constructor(
         coffeeGrams: Int,
         preparationType: String
     ) {
-        viewModelScope.launch { 
-            diaryRepository.addDiaryEntry(coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams, preparationType) 
-        }
+        diaryRepository.addDiaryEntry(coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams, preparationType)
     }
     
-    fun addWaterConsumption(amountMl: Int) {
-        viewModelScope.launch { diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None") }
+    suspend fun addWaterConsumption(amountMl: Int) {
+        diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None")
     }
     
     fun deleteEntry(entryId: Long) { viewModelScope.launch { diaryRepository.deleteDiaryEntry(entryId) } }

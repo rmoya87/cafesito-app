@@ -2,6 +2,7 @@ package com.example.cafesito.ui.detail
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,11 +31,10 @@ class DetailViewModel @Inject constructor(
         coffeeRepository.getCoffeeWithDetailsById(coffeeId),
         socialRepository.getAllReviewsWithAuthor(),
         diaryRepository.getPantryItems(),
-        coffeeRepository.favorites // Observamos los favoritos locales para reactividad instantánea
+        coffeeRepository.favorites
     ) { activeUser, coffee, allReviews, pantryItems, favorites ->
         if (coffee == null) return@combine DetailUiState.Error("Café no encontrado")
 
-        // Determinamos si es favorito basándonos en el flujo de favoritos local
         val isFavoriteLocally = favorites.any { it.coffeeId == coffeeId && it.userId == activeUser?.id }
         val updatedCoffee = coffee.copy(favorite = if (isFavoriteLocally) LocalFavorite(coffeeId, activeUser?.id ?: 0) else null)
 
@@ -66,8 +66,6 @@ class DetailViewModel @Inject constructor(
 
     fun toggleFavorite(shouldBeFavorite: Boolean) {
         viewModelScope.launch {
-            // Esta llamada actualiza Room y Supabase. 
-            // Al actualizar Room, el flujo 'favorites' arriba reaccionará al instante.
             coffeeRepository.toggleFavorite(coffeeId, shouldBeFavorite)
         }
     }
@@ -97,29 +95,43 @@ class DetailViewModel @Inject constructor(
     fun submitReview(rating: Float, comment: String, imageUri: Uri? = null) {
         viewModelScope.launch {
             val user = userRepository.getActiveUser() ?: return@launch
+            val currentState = uiState.value as? DetailUiState.Success
+            val existingReview = currentState?.userReview
+            
             var uploadedImageUrl: String? = null
             
+            // 1. Subida de imagen si se selecciona una nueva
             imageUri?.let { uri ->
                 try {
-                    val bytes = context.contentResolver.openInputStream(uri)?.readBytes()
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     if (bytes != null) {
                         val fileName = "review_${user.id}_${System.currentTimeMillis()}.jpg"
-                        uploadedImageUrl = socialRepository.uploadImage("reviews", fileName, bytes)
+                        uploadedImageUrl = socialRepository.uploadImage("coffees", fileName, bytes)
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    Log.e("DETAIL_VM", "Error subiendo imagen: ${e.message}")
                 }
             }
 
+            // 2. Construcción de la entidad incluyendo el ID existente para evitar duplicados
             val review = ReviewEntity(
+                id = existingReview?.id ?: 0,
                 coffeeId = coffeeId,
                 userId = user.id,
                 rating = rating,
                 comment = comment,
-                imageUrl = uploadedImageUrl ?: (uiState.value as? DetailUiState.Success)?.userReview?.imageUrl,
+                imageUrl = uploadedImageUrl ?: existingReview?.imageUrl,
                 timestamp = System.currentTimeMillis()
             )
-            coffeeRepository.upsertReview(review)
+
+            try {
+                coffeeRepository.upsertReview(review)
+                // Es crucial refrescar AMBOS repositorios para que la UI se actualice al instante
+                socialRepository.triggerRefresh()
+                coffeeRepository.triggerRefresh()
+            } catch (e: Exception) {
+                Log.e("DETAIL_VM", "Error al guardar reseña: ${e.message}")
+            }
         }
     }
 }

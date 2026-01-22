@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -125,6 +126,7 @@ fun AnimatedTabIndicator(
 fun GlassyTopBar(
     title: String,
     onBackClick: (() -> Unit)? = null,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     CenterAlignedTopAppBar(
@@ -144,8 +146,10 @@ fun GlassyTopBar(
             }
         },
         actions = actions,
+        scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color.White.copy(alpha = 0.85f)
+            containerColor = Color.White.copy(alpha = 0.85f),
+            scrolledContainerColor = Color.White.copy(alpha = 0.95f)
         )
     )
 }
@@ -170,6 +174,7 @@ fun PremiumTabRow(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .fillMaxWidth()
                 .height(54.dp)
+                .background(Color.White, RoundedCornerShape(28.dp))
                 .premiumBorder(RoundedCornerShape(28.dp))
                 .padding(4.dp)
         ) {
@@ -199,7 +204,11 @@ fun StockSliderSection(label: String, value: Float, maxValue: Float, onValueChan
             value = value, 
             onValueChange = onValueChange, 
             valueRange = 0f..maxValue.coerceAtLeast(1f), 
-            colors = SliderDefaults.colors(thumbColor = EspressoDeep, activeTrackColor = EspressoDeep)
+            colors = SliderDefaults.colors(
+                thumbColor = CaramelAccent,
+                activeTrackColor = CaramelAccent,
+                inactiveTrackColor = Color.LightGray
+            )
         )
     }
 }
@@ -238,8 +247,21 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
         border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(40.dp).background(if (entry.type == "WATER") Color(0xFFE3F2FD) else EspressoDeep.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, null, tint = if (entry.type == "WATER") Color(0xFF2196F3) else EspressoDeep, modifier = Modifier.size(20.dp))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        if (entry.type == "WATER") Color(0xFFE3F2FD) else CaramelAccent.copy(alpha = 0.15f),
+                        CircleShape
+                    ), 
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, 
+                    null, 
+                    tint = if (entry.type == "WATER") Color(0xFF2196F3) else EspressoDeep, 
+                    modifier = Modifier.size(20.dp)
+                )
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
@@ -290,7 +312,76 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
             Spacer(Modifier.height(24.dp))
             StockSliderSection("Restante", rem, total) { rem = it }
             Spacer(Modifier.height(40.dp))
-            Button(onClick = { onSave(total.roundToInt(), rem.roundToInt()) }, Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep), shape = RoundedCornerShape(16.dp)) { Text("GUARDAR") }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, CaramelAccent),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CaramelAccent)
+                ) {
+                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                }
+                
+                Button(
+                    onClick = { onSave(total.roundToInt(), rem.roundToInt()) }, 
+                    Modifier.weight(1f).height(56.dp), 
+                    colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent),
+                    shape = RoundedCornerShape(16.dp)
+                ) { 
+                    Text("GUARDAR", fontWeight = FontWeight.Bold) 
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Componente estandarizado para opciones de menú en modales inferiores.
+ */
+@Composable
+fun ModalMenuOption(
+    title: String,
+    icon: ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = Color.DarkGray
+            )
+            Spacer(Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color.LightGray
+            )
         }
     }
 }
@@ -303,16 +394,24 @@ fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogout
         containerColor = Color.White, 
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = 16.dp, end = 16.dp)) {
-            ListItem(
-                headlineContent = { Text("Editar Perfil", fontWeight = FontWeight.Medium) },
-                leadingContent = { Icon(Icons.Default.Edit, null, tint = EspressoDeep) },
-                modifier = Modifier.clickable { onDismiss(); onEditClick() }
+        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+            Text(
+                "AJUSTES", 
+                style = MaterialTheme.typography.labelLarge, 
+                color = CaramelAccent,
+                modifier = Modifier.padding(bottom = 16.dp)
             )
-            ListItem(
-                headlineContent = { Text("Cerrar Sesión", color = ErrorRed, fontWeight = FontWeight.Medium) },
-                leadingContent = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = ErrorRed) },
-                modifier = Modifier.clickable { onDismiss(); onLogoutClick() }
+            ModalMenuOption(
+                title = "Editar Perfil",
+                icon = Icons.Default.Edit,
+                color = EspressoDeep,
+                onClick = { onDismiss(); onEditClick() }
+            )
+            ModalMenuOption(
+                title = "Cerrar Sesión",
+                icon = Icons.AutoMirrored.Filled.Logout,
+                color = ErrorRed,
+                onClick = { onDismiss(); onLogoutClick() }
             )
         }
     }

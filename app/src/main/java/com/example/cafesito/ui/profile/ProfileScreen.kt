@@ -49,6 +49,7 @@ fun ProfileScreen(
     onCoffeeClick: (String) -> Unit,
     onFollowersClick: (Int) -> Unit,
     onFollowingClick: (Int) -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -73,6 +74,7 @@ fun ProfileScreen(
             GlassyTopBar(
                 title = "PERFIL",
                 onBackClick = if ((uiState as? ProfileUiState.Success)?.isCurrentUser == false) onBackClick else null,
+                scrollBehavior = scrollBehavior,
                 actions = {
                     val state = uiState as? ProfileUiState.Success
                     if (state?.isCurrentUser == true) {
@@ -98,7 +100,7 @@ fun ProfileScreen(
                 LazyColumn(
                     state = scrollState,
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
                     item {
                         Column(
@@ -397,28 +399,5 @@ fun EditProfileFields(
             onClick = onSave, modifier = Modifier.fillMaxWidth().height(54.dp),
             colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), shape = RoundedCornerShape(28.dp)
         ) { Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold) }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogoutClick: () -> Unit) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss, 
-        containerColor = Color.White, 
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
-    ) {
-        Column(Modifier.padding(bottom = 40.dp, start = 16.dp, end = 16.dp)) {
-            ListItem(
-                headlineContent = { Text("Editar Perfil", fontWeight = FontWeight.Medium) },
-                leadingContent = { Icon(Icons.Default.Edit, null, tint = EspressoDeep) },
-                modifier = Modifier.clickable { onDismiss(); onEditClick() }
-            )
-            ListItem(
-                headlineContent = { Text("Cerrar Sesión", color = ErrorRed, fontWeight = FontWeight.Medium) },
-                leadingContent = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = ErrorRed) },
-                modifier = Modifier.clickable { onDismiss(); onLogoutClick() }
-            )
-        }
     }
 }
