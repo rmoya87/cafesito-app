@@ -6,7 +6,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cafesito.data.*
+import com.example.cafesito.ui.utils.ConnectivityObserver
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.jan.supabase.exceptions.HttpRequestException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -38,7 +40,8 @@ class ProfileViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
-    private val socialRepository: SocialRepository
+    private val socialRepository: SocialRepository,
+    private val connectivityObserver: ConnectivityObserver
 ) : ViewModel() {
 
     private val requestedUserId: Int = savedStateHandle["userId"] ?: 0
@@ -76,7 +79,8 @@ class ProfileViewModel @Inject constructor(
         _isEditing,
         _error,
         _usernameError,
-        _temporaryAvatarUri
+        _temporaryAvatarUri,
+        connectivityObserver.observe()
     ) { args ->
         val activeUser = args[0] as? UserEntity
         val targetUser = args[1] as? UserEntity
@@ -89,7 +93,15 @@ class ProfileViewModel @Inject constructor(
         val generalError = args[8] as? String
         val usernameError = args[9] as? String
         val tempAvatar = args[10] as? Uri
+        val connectivityStatus = args[11] as ConnectivityObserver.Status
 
+        if (connectivityStatus != ConnectivityObserver.Status.Available) {
+            return@combine ProfileUiState.Error("No hay conexión a Internet. Por favor, revisa tu conexión.")
+        }
+
+        if (generalError != null) {
+            return@combine ProfileUiState.Error(generalError)
+        }
         if (targetUser == null) return@combine ProfileUiState.Loading
 
         val displayUser = if (isEditing && tempAvatar != null) {
@@ -138,23 +150,38 @@ class ProfileViewModel @Inject constructor(
             sensoryProfile = sensoryProfile
         )
     }
+    .catch { e -> 
+        Log.e("ProfileViewModel", "Error in UI state flow", e)
+        emit(ProfileUiState.Error("Se ha producido un error inesperado."))
+    }
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfileUiState.Loading)
 
     init {
-        refreshData()
+        viewModelScope.launch {
+            connectivityObserver.observe().collect {
+                if (it == ConnectivityObserver.Status.Available) {
+                    refreshData()
+                }
+            }
+        }
     }
 
     fun refreshData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                _error.value = null // Clear previous errors
                 userRepository.triggerRefresh()
                 socialRepository.triggerRefresh()
                 if (requestedUserId != 0) {
                     userRepository.getUserById(requestedUserId)
                 }
+            } catch (e: HttpRequestException) {
+                Log.e("ProfileViewModel", "Error de red al sincronizar", e)
+                _error.value = "No hay conexión a Internet. Por favor, revisa tu conexión."
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error sincronizando datos del perfil", e)
+                _error.value = "Ha ocurrido un error inesperado al cargar el perfil."
             }
         }
     }

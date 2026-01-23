@@ -2,11 +2,9 @@ package com.example.cafesito.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.cafesito.data.AppDatabase
-import com.example.cafesito.data.CoffeeDao
-import com.example.cafesito.data.DiaryDao
-import com.example.cafesito.data.SocialDao
-import com.example.cafesito.data.UserDao
+import com.example.cafesito.data.*
+import com.example.cafesito.ui.utils.ConnectivityObserver
+import com.example.cafesito.ui.utils.NetworkConnectivityObserver
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,33 +18,43 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(
-            context,
+            context.applicationContext,
             AppDatabase::class.java,
             "cafesito_db"
-        )
-        .fallbackToDestructiveMigration()
-        .build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
-    fun provideCoffeeDao(db: AppDatabase): CoffeeDao {
-        return db.coffeeDao()
+    @Singleton
+    fun provideCoffeeDao(appDatabase: AppDatabase): CoffeeDao {
+        return appDatabase.coffeeDao()
     }
 
     @Provides
-    fun provideUserDao(db: AppDatabase): UserDao {
-        return db.userDao()
+    @Singleton
+    fun provideUserDao(appDatabase: AppDatabase): UserDao {
+        return appDatabase.userDao()
     }
 
     @Provides
-    fun provideSocialDao(db: AppDatabase): SocialDao {
-        return db.socialDao()
+    @Singleton
+    fun provideSocialDao(appDatabase: AppDatabase): SocialDao {
+        return appDatabase.socialDao()
     }
 
     @Provides
-    fun provideDiaryDao(db: AppDatabase): DiaryDao {
-        return db.diaryDao()
+    @Singleton
+    fun provideDiaryDao(appDatabase: AppDatabase): DiaryDao {
+        return appDatabase.diaryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideConnectivityObserver(
+        @ApplicationContext context: Context
+    ): ConnectivityObserver {
+        return NetworkConnectivityObserver(context)
     }
 }
