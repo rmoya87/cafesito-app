@@ -88,12 +88,6 @@ fun TimelineScreen(
                         // Insertar Carrusel de Recomendaciones en posición aleatoria
                         if (index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
                             Column {
-                                Text(
-                                    "DESCUBRE TU PRÓXIMO CAFÉ",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = CaramelAccent,
-                                    modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 12.dp)
-                                )
                                 RecommendationCarousel(
                                     recommendations = state.recommendations,
                                     onCoffeeClick = onCoffeeClick

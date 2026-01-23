@@ -110,7 +110,8 @@ fun UserSuggestionCard(
             .height(200.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, Color(0xFFE0E0E0).copy(alpha = 0.4f)),
         onClick = { onUserClick(user.id) }
     ) {
         Column(

@@ -7,9 +7,18 @@ hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 [versions]
-agp = "9.0.0"
-kotlin = "2.2.10"
-ksp = "2.3.2"
+# ⬇️ Baja AGP a 8.13.x para evitar incompatibilidades actuales de Hilt con AGP 9.0
+agp = "8.4.1"
+
+# Mantén Kotlin
+kotlin = "2.0.0"
+
+# ⬇️ KSP alineado con Kotlin 2.2.10
+ksp = "2.0.0-1.0.21"
+
+# ⬆️ Hilt actualizado para soportar mejor Kotlin 2.2.x (metadata)
+hilt = "2.57.1"
+
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -18,7 +27,6 @@ lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.9.3"
 composeBom = "2024.11.00"
 room = "2.6.1"
-hilt = "2.52"
 coil = "2.7.0"
 navCompose = "2.8.4"
 hiltNavCompose = "1.2.0"

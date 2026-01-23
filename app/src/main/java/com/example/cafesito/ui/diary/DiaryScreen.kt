@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +47,7 @@ import com.example.cafesito.data.PantryItemWithDetails
 import com.example.cafesito.ui.components.*
 import com.example.cafesito.ui.theme.*
 import com.example.cafesito.ui.utils.formatRelativeTime
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
@@ -52,6 +55,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DiaryScreen(
+    navigateTo: String = "",
     onCoffeeClick: (String) -> Unit,
     onAddWaterClick: () -> Unit,
     onAddCoffeeClick: () -> Unit,
@@ -70,7 +74,14 @@ fun DiaryScreen(
     var showQuickActions by remember { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
     
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Actividad, 1: Despensa
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(navigateTo) {
+        if (navigateTo == "pantry") {
+            pagerState.scrollToPage(1)
+        }
+    }
 
     // Estado para la modal de opciones de despensa
     var showPantryOptionsId by remember { mutableStateOf<String?>(null) }
@@ -170,52 +181,69 @@ fun DiaryScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding)
-        ) {
-            item {
-                analytics?.let { CaffeinePremiumCard(it) }
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            analytics?.let { 
+                CaffeinePremiumCard(it) 
                 Spacer(Modifier.height(24.dp))
             }
 
-            stickyHeader {
-                // PESTAÑAS PREMIUM STICKY
-                PremiumTabRow(
-                    selectedTabIndex = selectedTab,
-                    tabs = listOf("ACTIVIDAD", "DESPENSA"),
-                    onTabSelected = { selectedTab = it }
-                )
-            }
-
-            item { Spacer(Modifier.height(16.dp)) }
-
-            if (selectedTab == 0) {
-                if (entries.isEmpty()) {
-                    item { EmptyStateMessage("No hay registros en este periodo") }
-                } else {
-                    items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
-                        ) {
-                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                SwipeableDiaryItem(entry = entry, onDelete = { viewModel.deleteEntry(entry.id) })
+            PremiumTabRow(
+                selectedTabIndex = pagerState.currentPage,
+                tabs = listOf("ACTIVIDAD", "DESPENSA"),
+                onTabSelected = { 
+                    coroutineScope.launch { pagerState.animateScrollToPage(it) }
+                }
+            )
+            
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.Top
+            ) {
+                when(it) {
+                    0 -> {
+                        if (entries.isEmpty()) {
+                            EmptyStateMessage("No hay registros en este periodo")
+                        } else {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                item { Spacer(Modifier.height(16.dp)) }
+                                items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
+                                    AnimatedVisibility(
+                                        visible = true,
+                                        enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
+                                    ) {
+                                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                                            SwipeableDiaryItem(entry = entry, onDelete = { viewModel.deleteEntry(entry.id) })
+                                        }
+                                    }
+                                }
+                                item { Spacer(Modifier.height(100.dp)) }
+                            }
+                        }
+                    }
+                    1 -> {
+                         if (pantryItems.isEmpty()) {
+                            EmptyStateMessage("No hay café en tu despensa")
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                contentPadding = PaddingValues(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(pantryItems, key = { it.coffee.id }) { item ->
+                                    PantryPremiumCard(
+                                        item = item,
+                                        onClick = onCoffeeClick,
+                                        onOptionsClick = { coffeeId -> showPantryOptionsId = coffeeId }
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            } else {
-                item {
-                    PantryPremiumGrid(
-                        items = pantryItems,
-                        onItemClick = onCoffeeClick,
-                        onOptionsClick = { id ->
-                            showPantryOptionsId = id
-                        }
-                    )
-                }
             }
-            item { Spacer(Modifier.height(100.dp)) }
         }
 
         if (showPeriodMenu) {
@@ -327,34 +355,10 @@ fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: 
 }
 
 @Composable
-fun PantryPremiumGrid(
-    items: List<PantryItemWithDetails>,
-    onItemClick: (String) -> Unit,
-    onOptionsClick: (String) -> Unit
-) {
-    if (items.isEmpty()) {
-        EmptyStateMessage("No hay café en tu despensa")
-    } else {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.heightIn(max = 2000.dp),
-            userScrollEnabled = false
-        ) {
-            items(items, key = { it.coffee.id }) { item ->
-                PantryPremiumCard(item, onItemClick, onOptionsClick)
-            }
-        }
-    }
-}
-
-@Composable
 fun PantryPremiumCard(
     item: PantryItemWithDetails,
     onClick: (String) -> Unit,
-    onOptionsClick: (String) -> Unit
+    onOptionsClick: ((String) -> Unit)? = null
 ) {
     val progress = if (item.pantryItem.totalGrams > 0) item.pantryItem.gramsRemaining.toFloat() / item.pantryItem.totalGrams else 0f
     
@@ -373,10 +377,12 @@ fun PantryPremiumCard(
                 Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, EspressoDeep.copy(alpha = 0.8f))))
             )
             
-            IconButton(
-                onClick = { onOptionsClick(item.coffee.id) },
-                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(28.dp).background(Color.White.copy(alpha = 0.8f), CircleShape)
-            ) { Icon(Icons.Default.MoreVert, null, tint = Color.Black, modifier = Modifier.size(16.dp)) }
+            if (onOptionsClick != null) {
+                IconButton(
+                    onClick = { onOptionsClick(item.coffee.id) },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(28.dp).background(Color.White.copy(alpha = 0.8f), CircleShape)
+                ) { Icon(Icons.Default.MoreVert, null, tint = Color.Black, modifier = Modifier.size(16.dp)) }
+            }
             
             Column(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
                 Text(item.coffee.marca.uppercase(), color = SoftOffWhite, fontSize = 8.sp, fontWeight = FontWeight.Bold)

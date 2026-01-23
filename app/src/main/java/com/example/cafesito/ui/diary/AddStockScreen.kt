@@ -29,6 +29,7 @@ import com.example.cafesito.ui.theme.*
 fun AddStockScreen(
     onBackClick: () -> Unit,
     onAddCustomClick: () -> Unit,
+    onSuccess: () -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val coffees by viewModel.availableCoffees.collectAsState()
@@ -81,7 +82,7 @@ fun AddStockScreen(
                         val g = grams.toIntOrNull() ?: 250
                         viewModel.addToPantry(selectedCoffeeId!!, g)
                         selectedCoffeeId = null
-                        onBackClick()
+                        onSuccess()
                     }, 
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),

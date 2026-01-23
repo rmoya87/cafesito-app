@@ -1,5 +1,6 @@
 package com.example.cafesito.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -54,7 +55,8 @@ private fun RecommendationCard(
         modifier = Modifier.width(160.dp).clickable { onClick(item.coffee.id) },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, Color(0xFFE0E0E0).copy(alpha = 0.4f))
     ) {
         Column {
             AsyncImage(

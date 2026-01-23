@@ -2,19 +2,19 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
     namespace = "com.example.cafesito"
-    compileSdk = 36 // ACTUALIZADO DE 34 A 36
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.cafesito"
         minSdk = 24
-        targetSdk = 34 // Mantenemos el target en 34 para estabilidad de comportamiento en runtime
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -30,6 +30,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -45,16 +46,17 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+
+    // Activity / Compose
     implementation(libs.androidx.activity.compose)
-    implementation("androidx.activity:activity-ktx:1.9.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.extended) 
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.browser)
-    
+
     // Google Auth & Credentials
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
@@ -76,24 +78,30 @@ dependencies {
     implementation(libs.supabase.storage)
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
 
-    // Hilt (DI)
+    // Hilt (DI)  ✅ centralizado en libs.versions.toml
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
-    
+
     // Hilt Testing
     androidTestImplementation(libs.hilt.android.testing)
     kspAndroidTest(libs.hilt.compiler)
+    kspTest(libs.hilt.compiler)
 
-    // Coil (Images)
+    // Coil
     implementation(libs.coil.compose)
 
+    // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

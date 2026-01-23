@@ -201,12 +201,12 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
         )
         
         Spacer(Modifier.height(24.dp))
-        Text("RECIENTES", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+        Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
         Spacer(Modifier.height(16.dp))
         
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(coffeeList) { coffee ->
-                PremiumCard(modifier = Modifier.clickable { viewModel.selectCoffee(coffee) }) {
+                PremiumCard(modifier = Modifier.fillMaxWidth().clickable { viewModel.selectCoffee(coffee) }) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         AsyncImage(model = coffee.coffee.imageUrl, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
                         Spacer(Modifier.width(16.dp))

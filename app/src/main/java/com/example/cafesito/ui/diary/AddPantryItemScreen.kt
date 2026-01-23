@@ -34,7 +34,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPantryItemScreen(
-    onBackClick: () -> Unit,
+    onBackClick: (String?) -> Unit,
     onlyActivity: Boolean = false,
     coffeeId: String? = null,
     viewModel: DiaryViewModel = hiltViewModel()
@@ -96,7 +96,7 @@ fun AddPantryItemScreen(
             TopAppBar(
                 title = { Text(if (coffeeId != null) "Editar Café" else "Nuevo Café", fontWeight = FontWeight.Bold, color = Color.Black) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = { onBackClick(null) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.Black)
                     }
                 },
@@ -275,6 +275,7 @@ fun AddPantryItemScreen(
             item {
                 Button(
                     onClick = { 
+                        val onSuccessNavigation = if (onlyActivity) "pantry" else null
                         if (coffeeId != null) {
                             viewModel.updateCustomCoffee(
                                 id = coffeeId,
@@ -288,7 +289,7 @@ fun AddPantryItemScreen(
                                 format = format,
                                 totalGrams = grams.toIntOrNull() ?: 250,
                                 imageUri = imageUri,
-                                onSuccess = { onBackClick() }
+                                onSuccess = { onBackClick(onSuccessNavigation) }
                             )
                         } else {
                             viewModel.saveCustomCoffee(
@@ -302,7 +303,7 @@ fun AddPantryItemScreen(
                                 format = format,
                                 totalGrams = grams.toIntOrNull() ?: 250,
                                 imageUri = imageUri,
-                                onSuccess = { onBackClick() }
+                                onSuccess = { onBackClick(onSuccessNavigation) }
                             )
                         }
                     },

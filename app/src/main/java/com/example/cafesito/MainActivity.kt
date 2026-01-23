@@ -46,6 +46,11 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Science
 import javax.inject.Inject
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -153,19 +158,22 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                                 NavigationBarItem(
                                     icon = { 
                                         Icon(
-                                            imageVector = icon, 
+                                            imageVector = if (isSelected) icon else when (label) {
+                                                "Inicio" -> Icons.Outlined.Home
+                                                "Explorar" -> Icons.Outlined.Explore
+                                                "Elabora" -> Icons.Outlined.Science
+                                                "Diario" -> Icons.Outlined.Book
+                                                "Perfil" -> Icons.Outlined.Person
+                                                else -> icon
+                                            }, 
                                             contentDescription = label
                                         ) 
                                     },
-                                    label = { if (!isSelected) Text(label, style = MaterialTheme.typography.labelSmall) },
                                     selected = isSelected,
-                                    alwaysShowLabel = true,
                                     colors = NavigationBarItemDefaults.colors(
                                         indicatorColor = Color.Transparent,
                                         selectedIconColor = CaramelAccent,
-                                        unselectedIconColor = EspressoDeep.copy(alpha = 0.6f),
-                                        selectedTextColor = CaramelAccent,
-                                        unselectedTextColor = EspressoDeep.copy(alpha = 0.6f)
+                                        unselectedIconColor = CaramelAccent.copy(alpha = 0.6f),
                                     ),
                                     onClick = {
                                         if (route == "profile") {
@@ -273,8 +281,13 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 ) 
             }
             
-            composable("diary") {
+            composable(
+                route = "diary?navigateTo={navigateTo}",
+                arguments = listOf(navArgument("navigateTo") { defaultValue = ""})
+            ) { backStackEntry ->
+                val navigateTo = backStackEntry.arguments?.getString("navigateTo") ?: ""
                 DiaryScreen(
+                    navigateTo = navigateTo,
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onAddWaterClick = { navController.navigate("addDiaryEntry?type=WATER") },
                     onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE") },
@@ -293,7 +306,12 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             composable("addStock") {
                 AddStockScreen(
                     onBackClick = { navController.popBackStack() },
-                    onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") }
+                    onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") },
+                    onSuccess = {
+                        navController.navigate("diary?navigateTo=pantry") {
+                            popUpTo("diary") { inclusive = true }
+                        }
+                    }
                 )
             }
 
@@ -304,7 +322,15 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 val coffeeId = backStackEntry.arguments?.getString("coffeeId")
                 AddPantryItemScreen(
                     coffeeId = coffeeId,
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { navigateTo ->
+                        if (navigateTo != null) {
+                            navController.navigate("diary?navigateTo=$navigateTo") {
+                                popUpTo("diary") { inclusive = true }
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }
                 )
             }
 
@@ -340,9 +366,11 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 val onlyActivity = backStackEntry.arguments?.getBoolean("onlyActivity") ?: false
                 AddPantryItemScreen(
                     onlyActivity = onlyActivity,
-                    onBackClick = { 
-                        if (onlyActivity) {
-                            navController.popBackStack("diary", inclusive = false)
+                    onBackClick = { navigateTo ->
+                        if (navigateTo != null) {
+                            navController.navigate("diary?navigateTo=$navigateTo") {
+                                popUpTo("diary") { inclusive = true }
+                            }
                         } else {
                             navController.popBackStack()
                         }

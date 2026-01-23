@@ -14,7 +14,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -244,11 +244,11 @@ private fun DetailContent(
 
         // --- GLASSY ACTIONS ---
         Row(
-            modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(16.dp), 
+            modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(top = 16.dp, start = 16.dp, end = 16.dp), 
             horizontalArrangement = Arrangement.SpaceBetween, 
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBackIos, onClick = onBackClick)
+            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = Color.Black, onClick = onBackClick)
             Row {
                 GlassyIconButton(icon = Icons.Default.Inventory, onClick = { showStockDialog = true })
                 Spacer(Modifier.width(12.dp))
