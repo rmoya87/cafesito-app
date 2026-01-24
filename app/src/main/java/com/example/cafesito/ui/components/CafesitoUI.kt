@@ -407,7 +407,7 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InfoBottomSheet(onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.Transparent) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp)) {
             Text(
                 text = "Recomendaciones OMS",
@@ -443,7 +443,7 @@ fun InfoRow(label: String, value: String, desc: String) {
 fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onSave: (Int, Int) -> Unit) {
     var total by remember { mutableFloatStateOf(item.pantryItem.totalGrams.toFloat()) }
     var rem by remember { mutableFloatStateOf(item.pantryItem.gramsRemaining.toFloat()) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.Transparent) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -547,7 +547,7 @@ fun PostOptionsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.Transparent,
+        containerColor = Color.White,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
@@ -576,7 +576,7 @@ fun ReviewOptionsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.Transparent,
+        containerColor = Color.White,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
@@ -601,7 +601,7 @@ fun ReviewOptionsBottomSheet(
 fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogoutClick: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
-        containerColor = Color.Transparent, 
+        containerColor = Color.White, 
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
@@ -640,7 +640,7 @@ fun EditPostBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState, 
-        containerColor = Color.Transparent
+        containerColor = Color.White
     ) {
         Column(
             modifier = Modifier
@@ -727,7 +727,7 @@ fun EditReviewBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
         sheetState = sheetState,
-        containerColor = Color.Transparent
+        containerColor = Color.White
     ) {
         Column(
             Modifier
@@ -825,7 +825,7 @@ fun DeleteConfirmationDialog(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        containerColor = Color.Transparent,
+        containerColor = Color.White,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(
