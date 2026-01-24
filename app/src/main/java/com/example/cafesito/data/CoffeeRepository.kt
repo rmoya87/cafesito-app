@@ -47,11 +47,14 @@ class CoffeeRepository @Inject constructor(
                 val localFavoritesCustom = coffeeDao.getLocalFavoritesCustom().first()
                 val allFavs = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() } + localFavorites + localFavoritesCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
 
+                // ✅ Cargar reseñas para que el promedio no sea 0
+                val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (e: Exception) { emptyList() }
+
                 emit(totalCoffees.map { coffee ->
                     CoffeeWithDetails(
                         coffee = coffee,
                         favorite = allFavs.find { it.coffeeId == coffee.id && it.userId == user?.id },
-                        reviews = emptyList() 
+                        reviews = remoteReviews.filter { it.coffeeId == coffee.id }
                     )
                 })
             } catch (e: Exception) {

@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -21,10 +20,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.domain.User
-import com.example.cafesito.ui.theme.CoffeeBrown
+import com.example.cafesito.ui.components.GlassyTopBar
+import com.example.cafesito.ui.components.ModernAvatar
+import com.example.cafesito.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,84 +49,73 @@ fun FollowersScreen(
     }
 
     Scaffold(
+        containerColor = SoftOffWhite,
         topBar = {
-            TopAppBar(
-                title = {
+            GlassyTopBar(
+                title = if (isSearchMode) "" else "Seguidores",
+                onBackClick = {
                     if (isSearchMode) {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = { Text("Buscar seguidores...") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            )
-                        )
+                        isSearchMode = false
+                        searchQuery = ""
                     } else {
-                        Text("Seguidores")
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (isSearchMode) {
-                            isSearchMode = false
-                            searchQuery = ""
-                        } else {
-                            onBackClick()
-                        }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        onBackClick()
                     }
                 },
                 actions = {
                     if (isSearchMode) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Buscar...") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Limpiar")
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = EspressoDeep)
                         }
                     } else {
                         IconButton(onClick = { isSearchMode = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar")
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = EspressoDeep)
                         }
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Box(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color.White)
+                .padding(paddingValues),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                if (filteredFollowers.isEmpty()) {
-                    item {
-                        Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(if (searchQuery.isEmpty()) "Todavía no tiene seguidores." else "No se encontraron seguidores.")
-                        }
-                    }
-                } else {
-                    items(filteredFollowers) { info ->
-                        FollowItem(
-                            user = info.user,
-                            followersCount = info.followersCount,
-                            followingCount = info.followingCount,
-                            isFollowing = myFollowingIds.contains(info.user.id),
-                            isMe = activeUser?.id == info.user.id,
-                            onFollowClick = { viewModel.toggleFollow(info.user.id) },
-                            onClick = { onUserClick(info.user.id) }
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant
+            if (filteredFollowers.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier.fillParentMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (searchQuery.isEmpty()) "Todavía no hay seguidores" else "No se encontraron resultados",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
+                }
+            } else {
+                items(filteredFollowers) { info ->
+                    FollowItemModern(
+                        user = info.user,
+                        isFollowing = myFollowingIds.contains(info.user.id),
+                        isMe = activeUser?.id == info.user.id,
+                        onFollowClick = { viewModel.toggleFollow(info.user.id) },
+                        onClick = { onUserClick(info.user.id) }
+                    )
                 }
             }
         }
@@ -132,73 +123,61 @@ fun FollowersScreen(
 }
 
 @Composable
-fun FollowItem(
+fun FollowItemModern(
     user: User,
-    followersCount: Int,
-    followingCount: Int,
     isFollowing: Boolean,
     isMe: Boolean,
     onFollowClick: () -> Unit,
     onClick: () -> Unit
 ) {
-    Row(
+    Surface(
+        color = Color.White,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
-        AsyncImage(
-            model = user.avatarUrl,
-            contentDescription = null,
-            modifier = Modifier.size(50.dp).clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = user.username,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "$followersCount Seguidores • $followingCount Seguidos",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(8.dp))
-        
-        if (!isMe) {
-            if (isFollowing) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ModernAvatar(imageUrl = user.avatarUrl, size = 48.dp)
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = user.username,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = EspressoDeep
+                )
+                Text(
+                    text = user.fullName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+            
+            if (!isMe) {
                 Button(
                     onClick = onFollowClick,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = CoffeeBrown,
-                        contentColor = Color.White
+                        containerColor = if (isFollowing) Color(0xFFF5F5F5) else EspressoDeep,
+                        contentColor = if (isFollowing) EspressoDeep else Color.White
                     ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    modifier = Modifier.height(32.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    modifier = Modifier.height(36.dp)
                 ) {
-                    Text("Siguiendo", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                }
-            } else {
-                OutlinedButton(
-                    onClick = onFollowClick,
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, CoffeeBrown),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.White,
-                        contentColor = CoffeeBrown
-                    ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text("Seguir", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (isFollowing) "Siguiendo" else "Seguir",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
                 }
             }
         }

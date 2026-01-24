@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class, ExperimentalLayoutApi::class)
 
 package com.example.cafesito.ui.search
 
@@ -20,13 +20,18 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -46,6 +51,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,11 +62,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -70,15 +80,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -95,6 +113,7 @@ import com.example.cafesito.ui.theme.EspressoDeep
 import com.example.cafesito.ui.theme.SoftOffWhite
 import kotlinx.coroutines.delay
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 private fun SearchTopBar(
@@ -103,7 +122,10 @@ private fun SearchTopBar(
     onCancel: () -> Unit,
     interactionSource: MutableInteractionSource,
     filterCounts: Map<String, Int>,
-    onFilterClick: (String) -> Unit
+    availableFilters: List<String>,
+    onFilterClick: (String) -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior,
+    isLoading: Boolean
 ) {
     val animatedWords = remember { listOf("marca", "café") }
     var targetWord by remember { mutableStateOf(animatedWords[0]) }
@@ -116,7 +138,17 @@ private fun SearchTopBar(
         }
     }
 
-    Surface(color = SoftOffWhite) {
+    Surface(
+        color = SoftOffWhite,
+        modifier = Modifier
+            .onGloballyPositioned { coords ->
+                val height = coords.size.height.toFloat()
+                if (scrollBehavior.state.heightOffsetLimit != -height) {
+                    scrollBehavior.state.heightOffsetLimit = -height
+                }
+            }
+            .offset { IntOffset(0, scrollBehavior.state.heightOffset.roundToInt()) }
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -128,65 +160,61 @@ private fun SearchTopBar(
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BasicTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    interactionSource = interactionSource,
-                    cursorBrush = SolidColor(CaramelAccent),
-                    decorationBox = { innerTextField ->
-                        OutlinedTextFieldDefaults.DecorationBox(
-                            value = query,
-                            innerTextField = innerTextField,
-                            enabled = true,
-                            singleLine = true,
-                            visualTransformation = VisualTransformation.None,
-                            interactionSource = interactionSource,
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription = "Search Icon",
-                                    tint = Color.Gray
-                                )
-                            },
-                            placeholder = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Busca ", color = Color.Gray)
-                                    AnimatedContent(
-                                        targetState = targetWord,
-                                        transitionSpec = {
-                                            (slideInVertically { h -> h } + fadeIn())
-                                                .togetherWith(slideOutVertically { h -> -h } + fadeOut())
-                                        },
-                                        label = "PlaceholderAnimation"
-                                    ) { word ->
-                                        Text(word, color = Color.Gray)
+                if (isLoading) {
+                    ShimmerItem(Modifier.weight(1f).height(48.dp))
+                } else {
+                    BasicTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        interactionSource = interactionSource,
+                        cursorBrush = SolidColor(CaramelAccent),
+                        decorationBox = { innerTextField ->
+                            OutlinedTextFieldDefaults.DecorationBox(
+                                value = query,
+                                innerTextField = innerTextField,
+                                enabled = true,
+                                singleLine = true,
+                                visualTransformation = VisualTransformation.None,
+                                interactionSource = interactionSource,
+                                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) },
+                                placeholder = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Busca ", color = Color.Gray)
+                                        AnimatedContent(
+                                            targetState = targetWord,
+                                            transitionSpec = {
+                                                (slideInVertically { h -> h } + fadeIn())
+                                                    .togetherWith(slideOutVertically { h -> -h } + fadeOut())
+                                            },
+                                            label = "PlaceholderAnimation"
+                                        ) { word -> Text(word, color = Color.Gray) }
+                                        Text("...", color = Color.Gray)
                                     }
-                                    Text("...", color = Color.Gray)
+                                },
+                                contentPadding = PaddingValues(top = 0.dp, bottom = 0.dp, start = 0.dp, end = 12.dp),
+                                container = {
+                                    OutlinedTextFieldDefaults.Container(
+                                        enabled = true,
+                                        isError = false,
+                                        interactionSource = interactionSource,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            unfocusedContainerColor = Color.White,
+                                            focusedContainerColor = Color.White,
+                                            unfocusedBorderColor = BorderLight,
+                                            focusedBorderColor = CaramelAccent
+                                        ),
+                                        shape = RoundedCornerShape(32.dp),
+                                    )
                                 }
-                            },
-                            contentPadding = PaddingValues(top = 0.dp, bottom = 0.dp, start = 0.dp, end = 12.dp),
-                            container = {
-                                OutlinedTextFieldDefaults.Container(
-                                    enabled = true,
-                                    isError = false,
-                                    interactionSource = interactionSource,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        unfocusedContainerColor = Color.White,
-                                        focusedContainerColor = Color.White,
-                                        unfocusedBorderColor = BorderLight,
-                                        focusedBorderColor = CaramelAccent
-                                    ),
-                                    shape = RoundedCornerShape(32.dp),
-                                )
-                            }
-                        )
-                    }
-                )
+                            )
+                        }
+                    )
+                }
 
                 AnimatedVisibility(
-                    visible = query.isNotBlank() || isFocused,
+                    visible = (query.isNotBlank() || isFocused) && !isLoading,
                     enter = fadeIn() + expandHorizontally(),
                     exit = fadeOut() + shrinkHorizontally()
                 ) {
@@ -199,50 +227,61 @@ private fun SearchTopBar(
                 }
             }
 
-            FilterChipsRow(filterCounts = filterCounts, onFilterClick = onFilterClick)
+            FilterChipsRow(
+                availableFilters = availableFilters,
+                filterCounts = filterCounts, 
+                onFilterClick = onFilterClick,
+                isLoading = isLoading
+            )
         }
     }
 }
 
 @Composable
 private fun FilterChipsRow(
+    availableFilters: List<String>,
     filterCounts: Map<String, Int>,
-    onFilterClick: (String) -> Unit
+    onFilterClick: (String) -> Unit,
+    isLoading: Boolean
 ) {
-    val filters = listOf("País", "Especialidad", "Variedad", "Tueste", "Formato", "Molienda", "Valoración")
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.padding(bottom = 8.dp)
     ) {
-        items(filters) { filter ->
-            val count = filterCounts[filter] ?: 0
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = if (count > 0) CaramelAccent.copy(alpha = 0.1f) else Color.White,
-                border = BorderStroke(1.dp, if (count > 0) CaramelAccent else BorderLight),
-                modifier = Modifier.clickable { onFilterClick(filter) }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+        if (isLoading) {
+            items(4) { ShimmerItem(Modifier.size(width = 80.dp, height = 32.dp).clip(RoundedCornerShape(12.dp))) }
+        } else {
+            items(availableFilters) { filter ->
+                val count = filterCounts[filter] ?: 0
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (count > 0) CaramelAccent.copy(alpha = 0.1f) else Color.White,
+                    border = BorderStroke(1.dp, if (count > 0) CaramelAccent else BorderLight),
+                    modifier = Modifier.clickable { onFilterClick(filter) }
                 ) {
-                    Text(text = filter, style = MaterialTheme.typography.labelMedium, color = EspressoDeep, fontSize = 12.sp)
-                    if (count > 0) {
-                        Spacer(Modifier.width(6.dp))
-                        Surface(
-                            shape = CircleShape,
-                            color = CaramelAccent,
-                            modifier = Modifier.size(18.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = filter, style = MaterialTheme.typography.labelMedium, color = EspressoDeep, fontSize = 12.sp)
+                        if (count > 0) {
+                            Spacer(Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .background(color = CaramelAccent, shape = CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Text(
                                     text = count.toString(),
                                     color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
+                                    style = TextStyle(
+                                        textAlign = TextAlign.Center,
+                                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                    )
                                 )
                             }
                         }
@@ -264,38 +303,49 @@ fun SearchScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val recentSearches by viewModel.recentSearches.collectAsState()
-    val filterOptions by viewModel.filterOptions.collectAsState()
+    val filterOptions by viewModel.adaptiveFilterOptions.collectAsState()
     
-    val selectedOrigin by viewModel.selectedOrigin.collectAsState()
-    val selectedRoast by viewModel.selectedRoast.collectAsState()
-    val selectedSpecialty by viewModel.selectedSpecialty.collectAsState()
-    val selectedVariety by viewModel.selectedVariety.collectAsState()
-    val selectedFormat by viewModel.selectedFormat.collectAsState()
-    val selectedGrind by viewModel.selectedGrind.collectAsState()
+    val selectedOrigins by viewModel.selectedOrigins.collectAsState()
+    val selectedRoasts by viewModel.selectedRoasts.collectAsState()
+    val selectedSpecialties by viewModel.selectedSpecialties.collectAsState()
+    val selectedFormats by viewModel.selectedFormats.collectAsState()
     val minRating by viewModel.minRating.collectAsState()
 
     val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
+    val actualScrollBehavior = scrollBehavior ?: TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
     var showFilterSheet by remember { mutableStateOf(false) }
     var activeFilterType by remember { mutableStateOf("") }
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val currentFilterCounts = remember(selectedOrigin, selectedRoast, selectedSpecialty, selectedVariety, selectedFormat, selectedGrind, minRating) {
+    val isLoading = uiState is SearchUiState.Loading && !isRefreshing
+
+    val currentFilterCounts = remember(selectedOrigins, selectedRoasts, selectedSpecialties, selectedFormats, minRating) {
         mapOf(
-            "País" to if (selectedOrigin != null) 1 else 0,
-            "Tueste" to if (selectedRoast != null) 1 else 0,
-            "Especialidad" to if (selectedSpecialty != null) 1 else 0,
-            "Variedad" to if (selectedVariety != null) 1 else 0,
-            "Formato" to if (selectedFormat != null) 1 else 0,
-            "Molienda" to if (selectedGrind != null) 1 else 0,
-            "Valoración" to if (minRating > 0) 1 else 0
+            "País" to selectedOrigins.size,
+            "Tueste" to selectedRoasts.size,
+            "Especialidad" to selectedSpecialties.size,
+            "Formato" to selectedFormats.size,
+            "Nota" to if (minRating > 0) 1 else 0
+        )
+    }
+
+    val availableFilters = remember(filterOptions, currentFilterCounts) {
+        listOfNotNull(
+            if (filterOptions.origins.isNotEmpty() || currentFilterCounts["País"]!! > 0) "País" else null,
+            if (filterOptions.specialties.isNotEmpty() || currentFilterCounts["Especialidad"]!! > 0) "Especialidad" else null,
+            if (filterOptions.roasts.isNotEmpty() || currentFilterCounts["Tueste"]!! > 0) "Tueste" else null,
+            if (filterOptions.formats.isNotEmpty() || currentFilterCounts["Formato"]!! > 0) "Formato" else null,
+            "Nota"
         )
     }
 
     Scaffold(
         containerColor = SoftOffWhite,
+        modifier = Modifier.nestedScroll(actualScrollBehavior.nestedScrollConnection),
         topBar = {
             SearchTopBar(
                 query = searchQuery,
@@ -307,15 +357,23 @@ fun SearchScreen(
                 },
                 interactionSource = interactionSource,
                 filterCounts = currentFilterCounts,
+                availableFilters = availableFilters,
                 onFilterClick = { type ->
                     activeFilterType = type
                     showFilterSheet = true
-                }
+                },
+                scrollBehavior = actualScrollBehavior,
+                isLoading = isLoading
             )
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            AnimatedVisibility(visible = (isFocused || searchQuery.isNotBlank()) && recentSearches.isNotEmpty()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .offset { IntOffset(0, actualScrollBehavior.state.heightOffset.roundToInt()) }
+                .padding(top = padding.calculateTopPadding())
+        ) {
+            AnimatedVisibility(visible = (isFocused || searchQuery.isNotBlank()) && recentSearches.isNotEmpty() && !isLoading) {
                 RecentSearches(
                     recentSearches = recentSearches.take(10),
                     onRecentSearchClick = { term -> 
@@ -358,80 +416,139 @@ fun SearchScreen(
         }
 
         if (showFilterSheet) {
+            val configuration = LocalConfiguration.current
+            val screenHeight = configuration.screenHeightDp.dp
+            
             ModalBottomSheet(
                 onDismissRequest = { showFilterSheet = false },
                 sheetState = sheetState,
                 containerColor = Color.White
             ) {
-                FilterSelectionContent(
-                    type = activeFilterType,
-                    options = when(activeFilterType) {
-                        "País" -> filterOptions.origins
-                        "Tueste" -> filterOptions.roasts
-                        "Especialidad" -> filterOptions.specialties
-                        "Variedad" -> filterOptions.varieties
-                        "Formato" -> filterOptions.formats
-                        "Molienda" -> filterOptions.grinds
-                        "Valoración" -> listOf("1", "2", "3", "4", "5")
-                        else -> emptyList()
-                    },
-                    selectedValue = when(activeFilterType) {
-                        "País" -> selectedOrigin
-                        "Tueste" -> selectedRoast
-                        "Especialidad" -> selectedSpecialty
-                        "Variedad" -> selectedVariety
-                        "Formato" -> selectedFormat
-                        "Molienda" -> selectedGrind
-                        "Valoración" -> if (minRating > 0) minRating.toInt().toString() else null
-                        else -> null
-                    },
-                    onOptionSelected = { option ->
-                        when(activeFilterType) {
-                            "País" -> viewModel.setOrigin(if (selectedOrigin == option) null else option)
-                            "Tueste" -> viewModel.setRoast(if (selectedRoast == option) null else option)
-                            "Especialidad" -> viewModel.setSpecialty(if (selectedSpecialty == option) null else option)
-                            "Variedad" -> viewModel.setVariety(if (selectedVariety == option) null else option)
-                            "Formato" -> viewModel.setFormat(if (selectedFormat == option) null else option)
-                            "Molienda" -> viewModel.setGrind(if (selectedGrind == option) null else option)
-                            "Valoración" -> viewModel.setMinRating(if (minRating.toInt().toString() == option) 0f else option.toFloat())
-                        }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = screenHeight * 0.85f)
+                ) {
+                    if (activeFilterType == "Nota") {
+                        RatingFilterContent(
+                            currentRating = minRating,
+                            onRatingChange = { viewModel.setMinRating(it) }
+                        )
+                    } else {
+                        FilterSelectionContent(
+                            options = when(activeFilterType) {
+                                "País" -> filterOptions.origins
+                                "Tueste" -> filterOptions.roasts
+                                "Especialidad" -> filterOptions.specialties
+                                "Formato" -> filterOptions.formats
+                                else -> emptyList()
+                            },
+                            selectedValues = when(activeFilterType) {
+                                "País" -> selectedOrigins
+                                "Tueste" -> selectedRoasts
+                                "Especialidad" -> selectedSpecialties
+                                "Formato" -> selectedFormats
+                                else -> emptySet()
+                            },
+                            onOptionToggle = { option ->
+                                when(activeFilterType) {
+                                    "País" -> viewModel.toggleOrigin(option)
+                                    "Tueste" -> viewModel.toggleRoast(option)
+                                    "Especialidad" -> viewModel.toggleSpecialty(option)
+                                    "Formato" -> viewModel.toggleFormat(option)
+                                }
+                            }
+                        )
                     }
-                )
-                Spacer(Modifier.height(24.dp))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun FilterSelectionContent(
-    type: String,
-    options: List<String>,
-    selectedValue: String?,
-    onOptionSelected: (String) -> Unit
+private fun RatingFilterContent(
+    currentRating: Float,
+    onRatingChange: (Float) -> Unit
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-        options.forEach { option ->
+    // ✅ Slider invertido: 5 a la izquierda, 0 a la derecha
+    // Usamos una transformación visual: el usuario ve X, pero la lógica procesa (5-X)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val displayRating = (5f - currentRating).toInt()
+            Text(
+                text = if (displayRating == 0) "Cualquier nota" else "Nota: $displayRating+",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = EspressoDeep
+            )
+            if (displayRating > 0) {
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Default.Star, null, tint = CaramelAccent, modifier = Modifier.size(20.dp))
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Slider(
+            value = currentRating,
+            onValueChange = onRatingChange,
+            valueRange = 0f..5f,
+            steps = 4,
+            colors = SliderDefaults.colors(
+                thumbColor = CaramelAccent,
+                activeTrackColor = CaramelAccent,
+                inactiveTrackColor = BorderLight
+            )
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("5 Estrellas", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            Text("Todas", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun FilterSelectionContent(
+    options: List<String>,
+    selectedValues: Set<String>,
+    onOptionToggle: (String) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+    ) {
+        items(options) { option ->
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clickable { onOptionSelected(option) }
+                    .clickable { onOptionToggle(option) }
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
-                    checked = selectedValue == option,
-                    onCheckedChange = { onOptionSelected(option) },
+                    checked = selectedValues.contains(option),
+                    onCheckedChange = { onOptionToggle(option) },
                     colors = CheckboxDefaults.colors(checkedColor = CaramelAccent),
                     modifier = Modifier.size(32.dp)
                 )
                 Text(
-                    text = if (type == "Valoración") "$option Estrellas" else option,
+                    text = option,
                     style = MaterialTheme.typography.bodyMedium,
                     color = EspressoDeep,
                     modifier = Modifier.padding(start = 4.dp)
                 )
             }
+        }
+        item { 
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
@@ -505,7 +622,11 @@ private fun CoffeePremiumListItem(
                     }
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 coffee.paisOrigen?.let { TagChip("PAÍS", it) }
                 TagChip("ESTILO", coffee.especialidad)
                 coffee.tueste?.let { TagChip("TUESTE", it) }

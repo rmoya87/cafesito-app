@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -24,12 +25,17 @@ fun TagChip(label: String, value: String) {
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, BorderLight)
     ) {
-        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 text = "$label: ",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray,
-                fontSize = 9.sp
+                fontSize = 9.sp,
+                maxLines = 1,
+                softWrap = false
             )
             Text(
                 text = value.uppercase(),
@@ -37,7 +43,9 @@ fun TagChip(label: String, value: String) {
                 color = EspressoDeep,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.5.sp,
+                maxLines = 1,
+                softWrap = false
             )
         }
     }

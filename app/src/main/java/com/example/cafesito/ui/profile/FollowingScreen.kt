@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -15,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.cafesito.ui.components.GlassyTopBar
+import com.example.cafesito.ui.theme.EspressoDeep
+import com.example.cafesito.ui.theme.SoftOffWhite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,84 +39,73 @@ fun FollowingScreen(
     }
 
     Scaffold(
+        containerColor = SoftOffWhite,
         topBar = {
-            TopAppBar(
-                title = {
+            GlassyTopBar(
+                title = if (isSearchMode) "" else "Seguidos",
+                onBackClick = {
                     if (isSearchMode) {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = { Text("Buscar seguidos...") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            )
-                        )
+                        isSearchMode = false
+                        searchQuery = ""
                     } else {
-                        Text("Seguidos")
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (isSearchMode) {
-                            isSearchMode = false
-                            searchQuery = ""
-                        } else {
-                            onBackClick()
-                        }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        onBackClick()
                     }
                 },
                 actions = {
                     if (isSearchMode) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Buscar...") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Limpiar")
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = EspressoDeep)
                         }
                     } else {
                         IconButton(onClick = { isSearchMode = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar")
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = EspressoDeep)
                         }
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Box(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color.White)
+                .padding(paddingValues),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                if (filteredFollowing.isEmpty()) {
-                    item {
-                        Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(if (searchQuery.isEmpty()) "No sigue a nadie todavía." else "No se encontraron resultados.")
-                        }
-                    }
-                } else {
-                    items(filteredFollowing) { info ->
-                        FollowItem(
-                            user = info.user,
-                            followersCount = info.followersCount,
-                            followingCount = info.followingCount,
-                            isFollowing = myFollowingIds.contains(info.user.id),
-                            isMe = activeUser?.id == info.user.id,
-                            onFollowClick = { viewModel.toggleFollow(info.user.id) },
-                            onClick = { onUserClick(info.user.id) }
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant
+            if (filteredFollowing.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier.fillParentMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (searchQuery.isEmpty()) "No sigue a nadie todavía" else "No se encontraron resultados",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
+                }
+            } else {
+                items(filteredFollowing) { info ->
+                    FollowItemModern(
+                        user = info.user,
+                        isFollowing = myFollowingIds.contains(info.user.id),
+                        isMe = activeUser?.id == info.user.id,
+                        onFollowClick = { viewModel.toggleFollow(info.user.id) },
+                        onClick = { onUserClick(info.user.id) }
+                    )
                 }
             }
         }
