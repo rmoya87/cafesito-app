@@ -416,7 +416,9 @@ fun SearchScreen(
             val screenHeight = configuration.screenHeightDp.dp
             
             ModalBottomSheet(
-                onDismissRequest = { showFilterSheet = false },
+                onDismissRequest = { 
+                    showFilterSheet = false 
+                },
                 sheetState = sheetState,
                 containerColor = Color.White
             ) {
@@ -425,21 +427,22 @@ fun SearchScreen(
                         .fillMaxWidth()
                         .heightIn(max = screenHeight * 0.85f)
                 ) {
-                    if (activeFilterType == "Nota") {
+                    val currentActiveType = activeFilterType
+                    if (currentActiveType == "Nota") {
                         RatingFilterContent(
                             currentRating = minRating,
                             onRatingChange = { viewModel.setMinRating(it) }
                         )
                     } else {
                         FilterSelectionContent(
-                            options = when(activeFilterType) {
+                            options = when(currentActiveType) {
                                 "País" -> filterOptions.origins
                                 "Tueste" -> filterOptions.roasts
                                 "Especialidad" -> filterOptions.specialties
                                 "Formato" -> filterOptions.formats
                                 else -> emptyList()
                             },
-                            selectedValues = when(activeFilterType) {
+                            selectedValues = when(currentActiveType) {
                                 "País" -> selectedOrigins
                                 "Tueste" -> selectedRoasts
                                 "Especialidad" -> selectedSpecialties
@@ -447,7 +450,7 @@ fun SearchScreen(
                                 else -> emptySet()
                             },
                             onOptionToggle = { option ->
-                                when(activeFilterType) {
+                                when(currentActiveType) {
                                     "País" -> viewModel.toggleOrigin(option)
                                     "Tueste" -> viewModel.toggleRoast(option)
                                     "Especialidad" -> viewModel.toggleSpecialty(option)
@@ -622,8 +625,8 @@ private fun CoffeePremiumListItem(
                     Spacer(Modifier.width(16.dp))
                     Surface(color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(16.dp)) {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("NOTA", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
-                            Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = EspressoDeep)
+                            Text(\"NOTA\", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
+                            Text(text = String.format(Locale.getDefault(), \"%.1f\", coffeeDetails.averageRating), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = EspressoDeep)
                         }
                     }
                 }
@@ -633,9 +636,9 @@ private fun CoffeePremiumListItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                coffee.paisOrigen?.let { TagChip("PAÍS", it) }
-                TagChip("ESTILO", coffee.especialidad)
-                TagChip("TUESTE", coffee.tueste)
+                coffee.paisOrigen?.let { TagChip(\"PAÍS\", it) }
+                TagChip(\"ESTILO\", coffee.especialidad)
+                TagChip(\"TUESTE\", coffee.tueste)
             }
         }
     }
@@ -646,7 +649,7 @@ private fun EmptySearchResults(modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Default.Coffee, null, modifier = Modifier.size(64.dp), tint = BorderLight)
         Spacer(Modifier.height(16.dp))
-        Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = EspressoDeep)
-        Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+        Text(\"No encontramos ese aroma...\", style = MaterialTheme.typography.titleMedium, color = EspressoDeep)
+        Text(\"Prueba con otros términos o filtros.\", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
     }
 }

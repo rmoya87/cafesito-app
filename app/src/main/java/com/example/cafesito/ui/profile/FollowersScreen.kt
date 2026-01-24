@@ -104,12 +104,10 @@ fun FollowersScreen(
                 }
             } else {
                 items(filteredFollowers, key = { it.user.id }) { info ->
-                    val isFollowing = myFollowingIds.contains(info.user.id)
-                    val isMe = activeUser?.id == info.user.id
                     FollowItemModern(
                         user = info.user,
-                        isFollowing = isFollowing,
-                        isMe = isMe,
+                        isFollowing = myFollowingIds.contains(info.user.id),
+                        isMe = activeUser?.id == info.user.id,
                         onFollowClick = { viewModel.toggleFollow(info.user.id) },
                         onClick = { onUserClick(info.user.id) }
                     )

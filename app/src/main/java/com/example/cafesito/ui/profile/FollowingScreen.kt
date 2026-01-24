@@ -29,32 +29,34 @@ fun FollowingScreen(
     val myFollowingIds by viewModel.myFollowingIds.collectAsState(initial = emptySet())
     val activeUser by viewModel.activeUser.collectAsState(initial = null)
     
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearchMode by remember { mutableStateOf(false) }
+    var currentQuery by remember { mutableStateOf("") }
+    var searchActive by remember { mutableStateOf(false) }
 
-    val filteredFollowing = uiState.filter {
-        it.user.username.contains(searchQuery, ignoreCase = true) || 
-        it.user.fullName.contains(searchQuery, ignoreCase = true)
+    val filteredFollowing = remember(uiState, currentQuery) {
+        uiState.filter {
+            it.user.username.contains(currentQuery, ignoreCase = true) || 
+            it.user.fullName.contains(currentQuery, ignoreCase = true)
+        }
     }
 
     Scaffold(
         containerColor = SoftOffWhite,
         topBar = {
             GlassyTopBar(
-                title = if (isSearchMode) "" else "Seguidos",
+                title = if (searchActive) "" else "Seguidos",
                 onBackClick = {
-                    if (isSearchMode) {
-                        isSearchMode = false
-                        searchQuery = ""
+                    if (searchActive) {
+                        searchActive = false
+                        currentQuery = ""
                     } else {
                         onBackClick()
                     }
                 },
                 actions = {
-                    if (isSearchMode) {
+                    if (searchActive) {
                         TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            value = currentQuery,
+                            onValueChange = { currentQuery = it },
                             placeholder = { Text("Buscar...") },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
@@ -65,11 +67,11 @@ fun FollowingScreen(
                                 unfocusedIndicatorColor = Color.Transparent
                             )
                         )
-                        IconButton(onClick = { searchQuery = "" }) {
+                        IconButton(onClick = { currentQuery = "" }) {
                             Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = EspressoDeep)
                         }
                     } else {
-                        IconButton(onClick = { isSearchMode = true }) {
+                        IconButton(onClick = { searchActive = true }) {
                             Icon(Icons.Default.Search, contentDescription = "Buscar", tint = EspressoDeep)
                         }
                     }
@@ -90,7 +92,7 @@ fun FollowingScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (searchQuery.isEmpty()) "No sigue a nadie todavía" else "No se encontraron resultados",
+                            text = if (currentQuery.isEmpty()) "No sigue a nadie todavía" else "No se encontraron resultados",
                             color = Color.Gray,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -98,12 +100,10 @@ fun FollowingScreen(
                 }
             } else {
                 items(filteredFollowing, key = { it.user.id }) { info ->
-                    val isFollowing = myFollowingIds.contains(info.user.id)
-                    val isMe = activeUser?.id == info.user.id
                     FollowItemModern(
                         user = info.user,
-                        isFollowing = isFollowing,
-                        isMe = isMe,
+                        isFollowing = myFollowingIds.contains(info.user.id),
+                        isMe = activeUser?.id == info.user.id,
                         onFollowClick = { viewModel.toggleFollow(info.user.id) },
                         onClick = { onUserClick(info.user.id) }
                     )
