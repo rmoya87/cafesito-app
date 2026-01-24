@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,20 +34,20 @@ class CoffeeRepository @Inject constructor(
             try {
                 ensureConnected()
                 val user = userRepository.getActiveUser()
-                val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
+                val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (_: Exception) { emptyList() }
                 val customCoffees = if (user != null) {
-                    try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (e: Exception) { emptyList() }
+                    try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (_: Exception) { emptyList() }
                 } else emptyList()
                 
                 val totalCoffees = publicCoffees + customCoffees
-                val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (e: Exception) { emptyList() }
-                val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }
+                val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() }
+                val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() }
                 val localFavorites = coffeeDao.getLocalFavorites().first()
                 val localFavoritesCustom = coffeeDao.getLocalFavoritesCustom().first()
                 val allFavs = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() } + localFavorites + localFavoritesCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
 
                 // ✅ Cargar reseñas para que el promedio no sea 0
-                val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (e: Exception) { emptyList() }
+                val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() }
 
                 emit(totalCoffees.map { coffee ->
                     CoffeeWithDetails(
@@ -72,10 +71,10 @@ class CoffeeRepository @Inject constructor(
                 val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
                 try {
                     val remoteStd = supabaseDataSource.getAllFavorites()
-                    val remoteCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }
+                    val remoteCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() }
                     val allRemote = remoteStd + remoteCustom.map { it.toLocalFavorite() }
                     emit(allRemote.filter { it.userId == user.id })
-                } catch (e: Exception) { emit(emptyList()) }
+                } catch (_: Exception) { emit(emptyList()) }
             }.flowOn(Dispatchers.IO)
         },
         coffeeDao.getLocalFavorites(),
@@ -84,6 +83,7 @@ class CoffeeRepository @Inject constructor(
         (remote + local + localCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val allReviews: Flow<List<ReviewEntity>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
@@ -107,19 +107,19 @@ class CoffeeRepository @Inject constructor(
                 if (isCustom) {
                     val favCustom = LocalFavoriteCustom(coffeeId, currentUser.id)
                     coffeeDao.insertFavoriteCustom(favCustom)
-                    try { supabaseDataSource.insertFavoriteCustom(favCustom) } catch (e: Exception) { }
+                    try { supabaseDataSource.insertFavoriteCustom(favCustom) } catch (_: Exception) { }
                 } else {
                     val favorite = LocalFavorite(coffeeId, currentUser.id)
                     coffeeDao.insertFavorite(favorite)
-                    try { supabaseDataSource.insertFavorite(favorite) } catch (e: Exception) { }
+                    try { supabaseDataSource.insertFavorite(favorite) } catch (_: Exception) { }
                 }
             } else {
                 if (isCustom) {
                     coffeeDao.deleteFavoriteCustom(LocalFavoriteCustom(coffeeId, currentUser.id))
-                    try { supabaseDataSource.deleteFavoriteCustom(coffeeId, currentUser.id) } catch (e: Exception) { }
+                    try { supabaseDataSource.deleteFavoriteCustom(coffeeId, currentUser.id) } catch (_: Exception) { }
                 } else {
                     coffeeDao.deleteFavorite(LocalFavorite(coffeeId, currentUser.id))
-                    try { supabaseDataSource.deleteFavorite(coffeeId, currentUser.id) } catch (e: Exception) { }
+                    try { supabaseDataSource.deleteFavorite(coffeeId, currentUser.id) } catch (_: Exception) { }
                 }
             }
             triggerRefresh()
@@ -134,27 +134,27 @@ class CoffeeRepository @Inject constructor(
             try {
                 ensureConnected()
                 val user = userRepository.getActiveUser()
-                val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
+                val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (_: Exception) { emptyList() }
                 val customCoffees = if (user != null) {
-                    try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (e: Exception) { emptyList() }
+                    try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (_: Exception) { emptyList() }
                 } else emptyList()
                 
                 val coffee = (publicCoffees + customCoffees).find { it.id == id } ?: return@flow emit(null)
                 
-                val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (e: Exception) { emptyList() }
-                val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }
+                val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() }
+                val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() }
                 val localFavorites = coffeeDao.getLocalFavorites().first()
                 val localFavoritesCustom = coffeeDao.getLocalFavoritesCustom().first()
                 val allFavs = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() } + localFavorites + localFavoritesCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
 
-                val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (e: Exception) { emptyList() }
+                val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() }
 
                 emit(CoffeeWithDetails(
                     coffee = coffee,
                     favorite = allFavs.find { it.coffeeId == coffee.id && it.userId == user?.id },
                     reviews = remoteReviews.filter { it.coffeeId == coffee.id }
                 ))
-            } catch (e: Exception) { emit(null) }
+            } catch (_: Exception) { emit(null) }
         }.flowOn(Dispatchers.IO)
     }
 
@@ -191,27 +191,23 @@ class CoffeeRepository @Inject constructor(
     fun getFilteredCoffees(
         query: String? = null,
         origin: String? = null,
-        roast: String? = null,
-        specialty: String? = null,
-        variety: String? = null,
-        format: String? = null,
-        grind: String? = null
+        roast: String? = null
     ): Flow<List<CoffeeWithDetails>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
                 ensureConnected()
                 val user = userRepository.getActiveUser()
-                val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
+                val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (_: Exception) { emptyList() }
                 val filtered = publicCoffees.filter { coffee ->
                     val matchQuery = query.isNullOrBlank() || coffee.nombre.contains(query, true) || coffee.marca.contains(query, true)
                     val matchOrigin = origin == null || coffee.paisOrigen == origin
                     val matchRoast = roast == null || coffee.tueste == roast
                     matchQuery && matchOrigin && matchRoast
                 }
-                val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (e: Exception) { emptyList() }
-                val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }
+                val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() }
+                val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() }
                 val allRemoteFavs = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() })
-                val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (e: Exception) { emptyList() }
+                val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() }
                 emit(filtered.map { coffee ->
                     CoffeeWithDetails(
                         coffee = coffee,
@@ -219,7 +215,7 @@ class CoffeeRepository @Inject constructor(
                         reviews = remoteReviews.filter { it.coffeeId == coffee.id }
                     )
                 })
-            } catch (e: Exception) { emit(emptyList()) }
+            } catch (_: Exception) { emit(emptyList()) }
         }.flowOn(Dispatchers.IO)
     }
 
@@ -228,7 +224,7 @@ class CoffeeRepository @Inject constructor(
             ensureConnected()
             val remoteCoffees = supabaseDataSource.getAllCoffees()
             val remoteFavorites = supabaseDataSource.getAllFavorites()
-            val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }
+            val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() }
             val remoteReviews = supabaseDataSource.getAllReviews()
             val currentUser = userRepository.getActiveUser() ?: return@flow emit(emptyList())
 
@@ -255,6 +251,6 @@ class CoffeeRepository @Inject constructor(
                     CoffeeWithDetails(coffee = coffee, favorite = null, reviews = remoteReviews.filter { it.coffeeId == coffee.id })
                 }
             emit(recommendations)
-        } catch (e: Exception) { emit(emptyList()) }
+        } catch (_: Exception) { emit(emptyList()) }
     }.flowOn(Dispatchers.IO)
 }

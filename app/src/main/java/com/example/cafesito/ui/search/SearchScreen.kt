@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -88,7 +87,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -190,7 +188,6 @@ private fun SearchTopBar(
                                             },
                                             label = "PlaceholderAnimation"
                                         ) { word -> Text(word, color = Color.Gray) }
-                                        Text("...", color = Color.Gray)
                                     }
                                 },
                                 contentPadding = PaddingValues(top = 0.dp, bottom = 0.dp, start = 0.dp, end = 12.dp),
@@ -295,7 +292,6 @@ private fun FilterChipsRow(
 @Composable
 fun SearchScreen(
     onCoffeeClick: (String) -> Unit,
-    onProfileClick: (Int) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
@@ -457,7 +453,8 @@ fun SearchScreen(
                                     "Especialidad" -> viewModel.toggleSpecialty(option)
                                     "Formato" -> viewModel.toggleFormat(option)
                                 }
-                            }
+                            },
+                            onClearAll = { viewModel.clearFilters() }
                         )
                     }
                 }
@@ -471,8 +468,6 @@ private fun RatingFilterContent(
     currentRating: Float,
     onRatingChange: (Float) -> Unit
 ) {
-    // ✅ Slider invertido: 5 a la izquierda, 0 a la derecha
-    // Usamos una transformación visual: el usuario ve X, pero la lógica procesa (5-X)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -519,36 +514,47 @@ private fun RatingFilterContent(
 private fun FilterSelectionContent(
     options: List<String>,
     selectedValues: Set<String>,
-    onOptionToggle: (String) -> Unit
+    onOptionToggle: (String) -> Unit,
+    onClearAll: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
-    ) {
-        items(options) { option ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onOptionToggle(option) }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = selectedValues.contains(option),
-                    onCheckedChange = { onOptionToggle(option) },
-                    colors = CheckboxDefaults.colors(checkedColor = CaramelAccent),
-                    modifier = Modifier.size(32.dp)
-                )
-                Text(
-                    text = option,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = EspressoDeep,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = onClearAll) {
+                Text("Limpiar filtros", color = CaramelAccent, style = MaterialTheme.typography.labelLarge)
             }
         }
-        item { 
-            Spacer(Modifier.height(32.dp))
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+        ) {
+            items(options) { option ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onOptionToggle(option) }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = selectedValues.contains(option),
+                        onCheckedChange = { onOptionToggle(option) },
+                        colors = CheckboxDefaults.colors(checkedColor = CaramelAccent),
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text(
+                        text = option,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = EspressoDeep,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
+            }
+            item { 
+                Spacer(Modifier.height(32.dp))
+            }
         }
     }
 }
@@ -629,7 +635,7 @@ private fun CoffeePremiumListItem(
             ) {
                 coffee.paisOrigen?.let { TagChip("PAÍS", it) }
                 TagChip("ESTILO", coffee.especialidad)
-                coffee.tueste?.let { TagChip("TUESTE", it) }
+                TagChip("TUESTE", coffee.tueste)
             }
         }
     }

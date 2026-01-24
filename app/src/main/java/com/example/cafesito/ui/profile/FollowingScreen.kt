@@ -1,6 +1,5 @@
 package com.example.cafesito.ui.profile
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -98,11 +97,13 @@ fun FollowingScreen(
                     }
                 }
             } else {
-                items(filteredFollowing) { info ->
+                items(filteredFollowing, key = { it.user.id }) { info ->
+                    val isFollowing = myFollowingIds.contains(info.user.id)
+                    val isMe = activeUser?.id == info.user.id
                     FollowItemModern(
                         user = info.user,
-                        isFollowing = myFollowingIds.contains(info.user.id),
-                        isMe = activeUser?.id == info.user.id,
+                        isFollowing = isFollowing,
+                        isMe = isMe,
                         onFollowClick = { viewModel.toggleFollow(info.user.id) },
                         onClick = { onUserClick(info.user.id) }
                     )

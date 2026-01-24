@@ -62,26 +62,23 @@ class SearchViewModel @Inject constructor(
 
     private val publicCoffees = repository.allCoffees.map { list -> list.filter { !it.coffee.isCustom } }
 
-    val baseFilterOptions: StateFlow<FilterOptions> = publicCoffees.map { list ->
-        FilterOptions(
-            origins = list.flatMap { it.coffee.paisOrigen.toAtomizedList() }.distinct().sorted(),
-            roasts = list.flatMap { it.coffee.tueste.toAtomizedList() }.distinct().sorted(),
-            specialties = list.flatMap { it.coffee.especialidad.toAtomizedList() }.distinct().sorted(),
-            formats = list.flatMap { it.coffee.formato.toAtomizedList() }.distinct().sorted()
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FilterOptions())
-
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val adaptiveFilterOptions: StateFlow<FilterOptions> = combine(
         listOf(publicCoffees, _searchQuery, _selectedOrigins, _selectedRoasts, _selectedSpecialties, _selectedFormats, _minRating)
     ) { args ->
         @Suppress("UNCHECKED_CAST")
         val coffees = args[0] as List<CoffeeWithDetails>
+        @Suppress("UNCHECKED_CAST")
         val q = args[1] as String
+        @Suppress("UNCHECKED_CAST")
         val origins = args[2] as Set<String>
+        @Suppress("UNCHECKED_CAST")
         val roasts = args[3] as Set<String>
+        @Suppress("UNCHECKED_CAST")
         val specialties = args[4] as Set<String>
+        @Suppress("UNCHECKED_CAST")
         val formats = args[5] as Set<String>
+        @Suppress("UNCHECKED_CAST")
         val rating = args[6] as Float
 
         val qAdapt = if (q.length >= 2) q else ""
@@ -116,12 +113,19 @@ class SearchViewModel @Inject constructor(
     ) { args ->
         @Suppress("UNCHECKED_CAST")
         val coffees = args[0] as List<CoffeeWithDetails>
+        @Suppress("UNCHECKED_CAST")
         val q = args[1] as String
+        @Suppress("UNCHECKED_CAST")
         val origins = args[2] as Set<String>
+        @Suppress("UNCHECKED_CAST")
         val roasts = args[3] as Set<String>
+        @Suppress("UNCHECKED_CAST")
         val specialties = args[4] as Set<String>
+        @Suppress("UNCHECKED_CAST")
         val formats = args[5] as Set<String>
+        @Suppress("UNCHECKED_CAST")
         val rating = args[6] as Float
+        @Suppress("UNCHECKED_CAST")
         val limit = args[7] as Int
 
         val filtered = coffees.filter { item ->
@@ -154,11 +158,13 @@ class SearchViewModel @Inject constructor(
     fun toggleFormat(v: String) { _selectedFormats.value = _selectedFormats.value.toggle(v) }
     fun setMinRating(v: Float) { _minRating.value = v }
     private fun Set<String>.toggle(v: String) = if (contains(v)) this - v else this + v
+    
     fun clearFilters() {
         _selectedOrigins.value = emptySet(); _selectedRoasts.value = emptySet()
         _selectedSpecialties.value = emptySet(); _selectedFormats.value = emptySet()
         _minRating.value = 0f; _displayLimit.value = 10
     }
+
     fun toggleFavorite(id: String, isFav: Boolean) { viewModelScope.launch { repository.toggleFavorite(id, !isFav) } }
 }
 
