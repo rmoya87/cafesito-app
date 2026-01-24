@@ -225,7 +225,6 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 val searchViewModel: SearchViewModel = hiltViewModel()
                 SearchScreen(
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onProfileClick = { id -> navController.navigate("profile/$id") },
                     scrollBehavior = scrollBehavior,
                     viewModel = searchViewModel
                 )

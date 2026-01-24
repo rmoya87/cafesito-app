@@ -292,6 +292,7 @@ private fun FilterChipsRow(
 @Composable
 fun SearchScreen(
     onCoffeeClick: (String) -> Unit,
+    onProfileClick: (Int) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
@@ -331,10 +332,10 @@ fun SearchScreen(
 
     val availableFilters = remember(filterOptions, currentFilterCounts) {
         listOfNotNull(
-            if (filterOptions.origins.isNotEmpty() || currentFilterCounts["País"]!! > 0) "País" else null,
-            if (filterOptions.specialties.isNotEmpty() || currentFilterCounts["Especialidad"]!! > 0) "Especialidad" else null,
-            if (filterOptions.roasts.isNotEmpty() || currentFilterCounts["Tueste"]!! > 0) "Tueste" else null,
-            if (filterOptions.formats.isNotEmpty() || currentFilterCounts["Formato"]!! > 0) "Formato" else null,
+            if (filterOptions.origins.isNotEmpty() || (currentFilterCounts["País"] ?: 0) > 0) "País" else null,
+            if (filterOptions.specialties.isNotEmpty() || (currentFilterCounts["Especialidad"] ?: 0) > 0) "Especialidad" else null,
+            if (filterOptions.roasts.isNotEmpty() || (currentFilterCounts["Tueste"] ?: 0) > 0) "Tueste" else null,
+            if (filterOptions.formats.isNotEmpty() || (currentFilterCounts["Formato"] ?: 0) > 0) "Formato" else null,
             "Nota"
         )
     }
@@ -416,9 +417,7 @@ fun SearchScreen(
             val screenHeight = configuration.screenHeightDp.dp
             
             ModalBottomSheet(
-                onDismissRequest = { 
-                    showFilterSheet = false 
-                },
+                onDismissRequest = { showFilterSheet = false },
                 sheetState = sheetState,
                 containerColor = Color.White
             ) {
@@ -625,8 +624,8 @@ private fun CoffeePremiumListItem(
                     Spacer(Modifier.width(16.dp))
                     Surface(color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(16.dp)) {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(\"NOTA\", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
-                            Text(text = String.format(Locale.getDefault(), \"%.1f\", coffeeDetails.averageRating), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = EspressoDeep)
+                            Text("NOTA", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
+                            Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = EspressoDeep)
                         }
                     }
                 }
@@ -636,9 +635,9 @@ private fun CoffeePremiumListItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                coffee.paisOrigen?.let { TagChip(\"PAÍS\", it) }
-                TagChip(\"ESTILO\", coffee.especialidad)
-                TagChip(\"TUESTE\", coffee.tueste)
+                coffee.paisOrigen?.let { TagChip("PAÍS", it) }
+                TagChip("ESTILO", coffee.especialidad)
+                TagChip("TUESTE", coffee.tueste)
             }
         }
     }
@@ -649,7 +648,7 @@ private fun EmptySearchResults(modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Default.Coffee, null, modifier = Modifier.size(64.dp), tint = BorderLight)
         Spacer(Modifier.height(16.dp))
-        Text(\"No encontramos ese aroma...\", style = MaterialTheme.typography.titleMedium, color = EspressoDeep)
-        Text(\"Prueba con otros términos o filtros.\", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+        Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = EspressoDeep)
+        Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
     }
 }
