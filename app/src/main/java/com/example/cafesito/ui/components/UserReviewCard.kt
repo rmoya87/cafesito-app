@@ -37,10 +37,16 @@ fun UserReviewCard(
     var showOptionsSheet by remember { mutableStateOf(false) }
 
     if (showOptionsSheet) {
-        SettingsBottomSheet(
+        ReviewOptionsBottomSheet(
             onDismiss = { showOptionsSheet = false },
-            onEditClick = onEditClick,
-            onLogoutClick = onDeleteClick
+            onEditClick = {
+                showOptionsSheet = false
+                onEditClick()
+            },
+            onDeleteClick = {
+                showOptionsSheet = false
+                onDeleteClick()
+            }
         )
     }
 

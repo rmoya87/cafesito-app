@@ -41,38 +41,17 @@ fun PostCard(
     var showOptionsSheet by remember { mutableStateOf(false) }
 
     if (showOptionsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showOptionsSheet = false },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
-        ) {
-            Column(modifier = Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-                Text(
-                    "OPCIONES DE PUBLICACIÓN", 
-                    style = MaterialTheme.typography.labelLarge, 
-                    color = CaramelAccent,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                ModalMenuOption(
-                    title = "Editar información",
-                    icon = Icons.Default.Edit,
-                    color = EspressoDeep,
-                    onClick = { 
-                        showOptionsSheet = false
-                        onEditClick() 
-                    }
-                )
-                ModalMenuOption(
-                    title = "Borrar publicación",
-                    icon = Icons.Default.Delete,
-                    color = ElectricRed,
-                    onClick = { 
-                        showOptionsSheet = false
-                        onDeleteClick() 
-                    }
-                )
+        PostOptionsBottomSheet(
+            onDismiss = { showOptionsSheet = false },
+            onEditClick = {
+                showOptionsSheet = false
+                onEditClick()
+            },
+            onDeleteClick = {
+                showOptionsSheet = false
+                onDeleteClick()
             }
-        }
+        )
     }
 
     PremiumCard(modifier = modifier.fillMaxWidth()) {

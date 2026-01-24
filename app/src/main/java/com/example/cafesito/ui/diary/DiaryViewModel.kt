@@ -40,6 +40,9 @@ class DiaryViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     private val _selectedPeriod = MutableStateFlow(DiaryPeriod.HOY)
     val selectedPeriod: StateFlow<DiaryPeriod> = _selectedPeriod.asStateFlow()
 
@@ -64,10 +67,12 @@ class DiaryViewModel @Inject constructor(
         val startTime = calendar.timeInMillis
         entries.filter { it.timestamp >= startTime }
     }
+    .onEach { _isLoading.value = false } // Se desactiva el loading cuando llegan los datos
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val pantryItems: StateFlow<List<PantryItemWithDetails>> = diaryRepository.getPantryItems()
+        .onEach { _isLoading.value = false } // Se desactiva el loading cuando llegan los datos
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val availableCoffees: StateFlow<List<CoffeeWithDetails>> = coffeeRepository.allCoffees
@@ -159,6 +164,7 @@ class DiaryViewModel @Inject constructor(
             period = period
         )
     }
+    .onEach { _isLoading.value = false } // Se desactiva el loading cuando llegan los datos
     .flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 

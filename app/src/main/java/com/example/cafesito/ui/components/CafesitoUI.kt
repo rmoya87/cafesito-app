@@ -10,8 +10,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -31,11 +33,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.cafesito.data.DiaryEntryEntity
 import com.example.cafesito.data.PantryItemWithDetails
 import com.example.cafesito.ui.theme.*
-import com.example.cafesito.ui.utils.formatRelativeTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -163,12 +165,126 @@ fun ShimmerItem(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun ProfileHeaderShimmer() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        ShimmerItem(modifier = Modifier.size(110.dp).clip(CircleShape))
+        Spacer(Modifier.height(16.dp))
+        ShimmerItem(modifier = Modifier.height(30.dp).width(200.dp))
+        Spacer(Modifier.height(8.dp))
+        ShimmerItem(modifier = Modifier.height(20.dp).width(120.dp))
+        Spacer(Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ShimmerItem(modifier = Modifier.height(50.dp).width(80.dp))
+            ShimmerItem(modifier = Modifier.height(50.dp).width(80.dp))
+            ShimmerItem(modifier = Modifier.height(50.dp).width(80.dp))
+        }
+    }
+}
+
+@Composable
+fun PostCardShimmer() {
+    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .background(Color.LightGray.copy(alpha = 0.3f)))
+            Spacer(Modifier.height(16.dp))
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                ShimmerItem(modifier = Modifier.height(20.dp).fillMaxWidth(0.7f))
+                Spacer(Modifier.height(8.dp))
+                ShimmerItem(modifier = Modifier.height(16.dp).fillMaxWidth(0.9f))
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+fun CaffeinePremiumCardShimmer() {
+    PremiumCard(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ShimmerItem(modifier = Modifier.height(10.dp).width(120.dp))
+                    ShimmerItem(modifier = Modifier.height(30.dp).width(100.dp))
+                    ShimmerItem(modifier = Modifier.height(20.dp).width(50.dp))
+                }
+                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                     ShimmerItem(modifier = Modifier.height(10.dp).width(80.dp))
+                     ShimmerItem(modifier = Modifier.height(24.dp).width(90.dp))
+                     ShimmerItem(modifier = Modifier.height(20.dp).width(50.dp))
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+            ShimmerItem(modifier = Modifier.fillMaxWidth().height(120.dp))
+            Spacer(Modifier.height(24.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ShimmerItem(modifier = Modifier.weight(1f).height(60.dp))
+                ShimmerItem(modifier = Modifier.weight(1f).height(60.dp))
+                ShimmerItem(modifier = Modifier.weight(1f).height(60.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun DiaryItemShimmer() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(), 
+        color = Color.White, 
+        shape = RoundedCornerShape(16.dp), 
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            ShimmerItem(modifier = Modifier.size(40.dp).clip(CircleShape))
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                ShimmerItem(modifier = Modifier.height(20.dp).fillMaxWidth(0.7f))
+                Spacer(Modifier.height(4.dp))
+                ShimmerItem(modifier = Modifier.height(16.dp).fillMaxWidth(0.9f))
+            }
+        }
+    }
+}
+
+@Composable
+fun PantryItemShimmer() {
+    PremiumCard(shape = RoundedCornerShape(28.dp)) {
+        Column {
+            Box(modifier = Modifier.fillMaxWidth().height(130.dp).background(Color.LightGray.copy(alpha = 0.3f)))
+            Column(Modifier.padding(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    ShimmerItem(modifier = Modifier.height(16.dp).width(50.dp))
+                    ShimmerItem(modifier = Modifier.height(16.dp).width(40.dp))
+                }
+                Spacer(Modifier.height(6.dp))
+                ShimmerItem(modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape))
+            }
+        }
+    }
+}
+
+
+@Composable
 fun PremiumTabRow(
     selectedTabIndex: Int,
     tabs: List<String>,
     onTabSelected: (Int) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().background(Color.Transparent)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -291,9 +407,16 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InfoBottomSheet(onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.Transparent) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp)) {
-            Text("Recomendaciones OMS", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Recomendaciones OMS",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = EspressoDeep,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(Modifier.height(24.dp))
             InfoRow("Máximo Diario", "400 mg", "Aprox. 4 espressos. Límite seguro para adultos sanos.")
             HorizontalDivider(Modifier.padding(vertical = 16.dp))
@@ -320,9 +443,22 @@ fun InfoRow(label: String, value: String, desc: String) {
 fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onSave: (Int, Int) -> Unit) {
     var total by remember { mutableFloatStateOf(item.pantryItem.totalGrams.toFloat()) }
     var rem by remember { mutableFloatStateOf(item.pantryItem.gramsRemaining.toFloat()) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
-        Column(Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 32.dp)) {
-            Text("Editar Stock", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.Transparent) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+                .padding(bottom = 32.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(
+                text = "Editar Stock",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = EspressoDeep,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(Modifier.height(32.dp))
             StockSliderSection("Bolsa total", total, 1000f) { total = it; if (rem > it) rem = it }
             Spacer(Modifier.height(24.dp))
@@ -404,19 +540,71 @@ fun ModalMenuOption(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogoutClick: () -> Unit) {
+fun PostOptionsBottomSheet(
+    onDismiss: () -> Unit,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
-        containerColor = Color.White, 
+        onDismissRequest = onDismiss,
+        containerColor = Color.Transparent,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-            Text(
-                "AJUSTES", 
-                style = MaterialTheme.typography.labelLarge, 
-                color = CaramelAccent,
-                modifier = Modifier.padding(bottom = 16.dp)
+            ModalMenuOption(
+                title = "Editar publicación",
+                icon = Icons.Default.Edit,
+                color = EspressoDeep,
+                onClick = onEditClick
             )
+            ModalMenuOption(
+                title = "Borrar publicación",
+                icon = Icons.Default.Delete,
+                color = ErrorRed,
+                onClick = onDeleteClick
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReviewOptionsBottomSheet(
+    onDismiss: () -> Unit,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.Transparent,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+    ) {
+        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+            ModalMenuOption(
+                title = "Editar opinión",
+                icon = Icons.Default.Edit,
+                color = EspressoDeep,
+                onClick = onEditClick
+            )
+            ModalMenuOption(
+                title = "Borrar opinión",
+                icon = Icons.Default.Delete,
+                color = ErrorRed,
+                onClick = onDeleteClick
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogoutClick: () -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss, 
+        containerColor = Color.Transparent, 
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+    ) {
+        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
             ModalMenuOption(
                 title = "Editar Perfil",
                 icon = Icons.Default.Edit,
@@ -433,119 +621,259 @@ fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogout
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditPostDialog(
-    initialText: String, 
+fun EditPostBottomSheet(
+    initialText: String,
     initialImage: String,
-    onDismiss: () -> Unit, 
+    onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
     var text by remember { mutableStateOf(initialText) }
     var imageUrl by remember { mutableStateOf(initialImage) }
-    
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { imageUrl = it.toString() }
     }
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Editar Publicación", fontWeight = FontWeight.Bold) },
-        text = {
-            Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
-                        .clickable { launcher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                Spacer(Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = text, 
-                    onValueChange = { text = it }, 
+        sheetState = sheetState, 
+        containerColor = Color.Transparent
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = "Editar Publicación",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = EspressoDeep,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
+                    .clickable { launcher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = null,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Descripción") },
-                    shape = RoundedCornerShape(12.dp)
+                    contentScale = ContentScale.FillWidth
                 )
             }
-        },
-        confirmButton = { Button(onClick = { onConfirm(text, imageUrl) }, colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep)) { Text("GUARDAR") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR", color = Color.Gray) } },
-        shape = RoundedCornerShape(28.dp),
-        containerColor = Color.White
-    )
+            Spacer(Modifier.height(16.dp))
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Descripción") },
+                shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, EspressoDeep),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = EspressoDeep)
+                ) {
+                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = { onConfirm(text, imageUrl) },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("GUARDAR", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditReviewDialog(
-    initialRating: Float, 
-    initialComment: String, 
+fun EditReviewBottomSheet(
+    initialRating: Float,
+    initialComment: String,
     initialImage: String?,
-    onDismiss: () -> Unit, 
+    onDismiss: () -> Unit,
     onConfirm: (Float, String, String?) -> Unit
 ) {
     var rating by remember { mutableFloatStateOf(initialRating) }
     var comment by remember { mutableStateOf(initialComment) }
     var imageUrl by remember { mutableStateOf(initialImage) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { imageUrl = it.toString() }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Editar Opinión", fontWeight = FontWeight.Bold) },
-        text = {
-            Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
-                        .clickable { launcher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (imageUrl != null) {
-                        AsyncImage(model = imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } else {
-                        Icon(Icons.Default.AddAPhoto, null, tint = Color.Gray)
-                    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss, 
+        sheetState = sheetState,
+        containerColor = Color.Transparent
+    ) {
+        Column(
+            Modifier
+                .padding(24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = "Editar Opinión",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = EspressoDeep,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
+                    .clickable { launcher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageUrl != null) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxWidth(),
+                        contentScale = ContentScale.FillWidth
+                    )
+                } else {
+                    Icon(Icons.Default.AddAPhoto, null, tint = Color.Gray)
                 }
-                Spacer(Modifier.height(16.dp))
-                // Simple Rating bar replacement
-                Row {
-                    repeat(5) { i ->
-                        Icon(
-                            imageVector = if (rating > i) Icons.Default.Star else Icons.Default.StarBorder,
-                            contentDescription = null,
-                            tint = CaramelAccent,
-                            modifier = Modifier.clickable { rating = (i + 1).toFloat() }
-                        )
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = comment, 
-                    onValueChange = { comment = it }, 
-                    label = { Text("Tu opinión") }, 
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
             }
-        },
-        confirmButton = { Button(onClick = { onConfirm(rating, comment, imageUrl) }, colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep)) { Text("ACTUALIZAR") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR", color = Color.Gray) } },
-        shape = RoundedCornerShape(28.dp),
-        containerColor = Color.White
-    )
+            Spacer(Modifier.height(16.dp))
+            // Simple Rating bar replacement
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(5) { i ->
+                    Icon(
+                        imageVector = if (rating > i) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = null,
+                        tint = CaramelAccent,
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .clickable { rating = (i + 1).toFloat() }
+                            .size(32.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = comment,
+                onValueChange = { comment = it },
+                label = { Text("Tu opinión") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, EspressoDeep),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = EspressoDeep)
+                ) {
+                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = { onConfirm(rating, comment, imageUrl) },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("ACTUALIZAR", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeleteConfirmationDialog(
+    onDismissRequest: () -> Unit,
+    onConfirm: () -> Unit,
+    title: String,
+    text: String
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        containerColor = Color.Transparent,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = EspressoDeep,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = text,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
+            Spacer(Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismissRequest,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, EspressoDeep),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = EspressoDeep)
+                ) {
+                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = {
+                        onConfirm()
+                        onDismissRequest()
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("ELIMINAR", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
 }

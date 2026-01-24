@@ -1,8 +1,10 @@
 package com.example.cafesito.data
 
 import android.util.Log
+import com.example.cafesito.ui.utils.ConnectivityObserver
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,9 +12,16 @@ import javax.inject.Singleton
 class CoffeeRepository @Inject constructor(
     private val coffeeDao: CoffeeDao,
     private val supabaseDataSource: SupabaseDataSource,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val connectivityObserver: ConnectivityObserver
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+
+    private suspend fun ensureConnected() {
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
+            throw NoConnectivityException("No hay conexión a internet.")
+        }
+    }
 
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
@@ -22,6 +31,7 @@ class CoffeeRepository @Inject constructor(
     val allCoffees: Flow<List<CoffeeWithDetails>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
+                ensureConnected()
                 val user = userRepository.getActiveUser()
                 val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
                 val customCoffees = if (user != null) {
@@ -53,6 +63,7 @@ class CoffeeRepository @Inject constructor(
     val favorites: Flow<List<LocalFavorite>> = combine(
         _refreshTrigger.flatMapLatest {
             flow {
+                ensureConnected()
                 val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
                 try {
                     val remoteStd = supabaseDataSource.getAllFavorites()
@@ -71,6 +82,7 @@ class CoffeeRepository @Inject constructor(
     val allReviews: Flow<List<ReviewEntity>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
+                ensureConnected()
                 emit(supabaseDataSource.getAllReviews())
             } catch (e: Exception) {
                 Log.e("COFFEE_REPO", "Error cargando reseñas: ${e.message}")
@@ -80,6 +92,7 @@ class CoffeeRepository @Inject constructor(
     }
 
     suspend fun toggleFavorite(coffeeId: String, shouldBeFavorite: Boolean) {
+        ensureConnected()
         val currentUser = userRepository.getActiveUser() ?: return
         try {
             val isCustom = coffeeDao.getCoffeeById(coffeeId)?.isCustom 
@@ -114,6 +127,7 @@ class CoffeeRepository @Inject constructor(
     fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = _refreshTrigger.flatMapLatest {
         flow {
             try {
+                ensureConnected()
                 val user = userRepository.getActiveUser()
                 val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
                 val customCoffees = if (user != null) {
@@ -141,6 +155,7 @@ class CoffeeRepository @Inject constructor(
 
     suspend fun upsertReview(review: ReviewEntity) {
         try { 
+            ensureConnected()
             supabaseDataSource.upsertReview(review) 
             triggerRefresh()
         } catch (e: Exception) { 
@@ -150,6 +165,7 @@ class CoffeeRepository @Inject constructor(
 
     suspend fun deleteReview(coffeeId: String, userId: Int) {
         try { 
+            ensureConnected()
             supabaseDataSource.deleteReview(coffeeId, userId) 
             triggerRefresh()
         } catch (e: Exception) { 
@@ -159,6 +175,7 @@ class CoffeeRepository @Inject constructor(
 
     suspend fun syncCoffees() {
         try {
+            ensureConnected()
             triggerRefresh()
         } catch (e: Exception) {
             Log.e("COFFEE_REPO", "Error al sincronizar catálogo", e)
@@ -177,6 +194,7 @@ class CoffeeRepository @Inject constructor(
     ): Flow<List<CoffeeWithDetails>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
+                ensureConnected()
                 val user = userRepository.getActiveUser()
                 val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
                 val filtered = publicCoffees.filter { coffee ->
@@ -202,6 +220,7 @@ class CoffeeRepository @Inject constructor(
 
     fun getRecommendations(): Flow<List<CoffeeWithDetails>> = flow {
         try {
+            ensureConnected()
             val remoteCoffees = supabaseDataSource.getAllCoffees()
             val remoteFavorites = supabaseDataSource.getAllFavorites()
             val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (e: Exception) { emptyList() }

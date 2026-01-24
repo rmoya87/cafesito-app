@@ -68,6 +68,7 @@ fun DiaryScreen(
     val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
     val analytics by viewModel.analytics.collectAsState(initial = null)
     val selectedPeriod by viewModel.selectedPeriod.collectAsState(initial = DiaryPeriod.HOY)
+    val isLoading by viewModel.isLoading.collectAsState(initial = true)
     
     var showStockSheet by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<PantryItemWithDetails?>(null) }
@@ -182,10 +183,13 @@ fun DiaryScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            analytics?.let { 
-                CaffeinePremiumCard(it) 
-                Spacer(Modifier.height(24.dp))
+            val currentAnalytics = analytics
+            if (isLoading) {
+                CaffeinePremiumCardShimmer()
+            } else if (currentAnalytics != null) {
+                CaffeinePremiumCard(currentAnalytics)
             }
+            Spacer(Modifier.height(24.dp))
 
             PremiumTabRow(
                 selectedTabIndex = pagerState.currentPage,
@@ -202,7 +206,16 @@ fun DiaryScreen(
             ) {
                 when(it) {
                     0 -> {
-                        if (entries.isEmpty()) {
+                        if (isLoading) {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                item { Spacer(Modifier.height(16.dp)) }
+                                items(5) { 
+                                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                                        DiaryItemShimmer()
+                                    }
+                                }
+                            }
+                        } else if (entries.isEmpty()) {
                             EmptyStateMessage("No hay registros en este periodo")
                         } else {
                             LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -222,7 +235,17 @@ fun DiaryScreen(
                         }
                     }
                     1 -> {
-                         if (pantryItems.isEmpty()) {
+                         if (isLoading) {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                contentPadding = PaddingValues(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(4) { PantryItemShimmer() }
+                            }
+                        } else if (pantryItems.isEmpty()) {
                             EmptyStateMessage("No hay café en tu despensa")
                         } else {
                             LazyVerticalGrid(

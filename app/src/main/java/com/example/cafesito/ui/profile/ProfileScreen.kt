@@ -16,9 +16,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -73,6 +75,9 @@ fun ProfileScreen(
     var showSettingsSheet by remember { mutableStateOf(false) }
     var showSensoryDetail by remember { mutableStateOf(false) }
 
+    var showPostOptions by remember { mutableStateOf<PostWithDetails?>(null) }
+    var showReviewOptions by remember { mutableStateOf<UserReviewInfo?>(null) }
+
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
     var reviewToEdit by remember { mutableStateOf<UserReviewInfo?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
@@ -99,7 +104,12 @@ fun ProfileScreen(
         }
     ) { padding ->
         when (val state = uiState) {
-            is ProfileUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = CaramelAccent) }
+            is ProfileUiState.Loading -> {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    item { ProfileHeaderShimmer() }
+                    items(3) { PostCardShimmer() }
+                }
+            }
             is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message) }
             is ProfileUiState.Success -> {
                 var username by remember { mutableStateOf(state.user.username) }
@@ -209,7 +219,7 @@ fun ProfileScreen(
                                         onUserClick = onUserClick,
                                         listState = postsListState,
                                         onCommentClick = { c -> showCommentSheetId = c },
-                                        onEditClick = { post -> postToEdit = post },
+                                        onEditClick = { post -> showPostOptions = post },
                                         onDeleteClick = { post -> itemToDelete = post }
                                     )
                                     1 -> ProfileAdn(state, listState = adnListState) { showSensoryDetail = true }
@@ -219,7 +229,7 @@ fun ProfileScreen(
                                         isCurrentUser = state.isCurrentUser,
                                         onCoffeeClick = onCoffeeClick,
                                         listState = reviewsListState,
-                                        onEditClick = { review -> reviewToEdit = review },
+                                        onEditClick = { review -> showReviewOptions = review },
                                         onDeleteClick = { review -> itemToDelete = review }
                                     )
                                 }
@@ -241,6 +251,34 @@ fun ProfileScreen(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
                         onLogoutClick = { viewModel.logout() }
+                    )
+                }
+
+                showPostOptions?.let { post ->
+                    PostOptionsBottomSheet(
+                        onDismiss = { showPostOptions = null },
+                        onEditClick = { 
+                            showPostOptions = null
+                            postToEdit = post 
+                        },
+                        onDeleteClick = { 
+                            showPostOptions = null
+                            itemToDelete = post 
+                        }
+                    )
+                }
+
+                showReviewOptions?.let { review ->
+                    ReviewOptionsBottomSheet(
+                        onDismiss = { showReviewOptions = null },
+                        onEditClick = { 
+                            showReviewOptions = null
+                            reviewToEdit = review 
+                        },
+                        onDeleteClick = { 
+                            showReviewOptions = null
+                            itemToDelete = review 
+                        }
                     )
                 }
 
@@ -266,7 +304,7 @@ fun ProfileScreen(
                 }
 
                 postToEdit?.let { details ->
-                    EditPostDialog(
+                    EditPostBottomSheet(
                         initialText = details.post.comment,
                         initialImage = details.post.imageUrl,
                         onDismiss = { postToEdit = null },
@@ -278,7 +316,7 @@ fun ProfileScreen(
                 }
 
                 reviewToEdit?.let { info ->
-                    EditReviewDialog(
+                    EditReviewBottomSheet(
                         initialRating = info.review.rating,
                         initialComment = info.review.comment,
                         initialImage = info.review.imageUrl,
@@ -422,7 +460,14 @@ fun ProfileReviews(
 fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
         Column(Modifier.padding(24.dp).padding(bottom = 48.dp)) {
-            Text("ANÁLISIS DE PREFERENCIAS", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = EspressoDeep)
+            Text(
+                text = "ANÁLISIS DE PREFERENCIAS",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = EspressoDeep,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(Modifier.height(24.dp))
 
             val highest = profile.maxByOrNull { it.value }

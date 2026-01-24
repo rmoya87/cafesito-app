@@ -1,9 +1,11 @@
 package com.example.cafesito.data
 
 import android.util.Log
+import com.example.cafesito.ui.utils.ConnectivityObserver
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,9 +14,16 @@ import javax.inject.Singleton
 class DiaryRepository @Inject constructor(
     private val diaryDao: DiaryDao,
     private val supabaseDataSource: SupabaseDataSource,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val connectivityObserver: ConnectivityObserver
 ) {
     private val _refreshCount = MutableStateFlow(0L)
+
+    private suspend fun ensureConnected() {
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
+            throw NoConnectivityException("No hay conexión a internet.")
+        }
+    }
 
     fun triggerRefresh() {
         _refreshCount.value++
@@ -25,6 +34,7 @@ class DiaryRepository @Inject constructor(
         flow {
             val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
             try {
+                ensureConnected()
                 emit(supabaseDataSource.getDiaryEntries(user.id))
             } catch (e: Exception) { 
                 Log.e("DIARY_REPO", "Error cargando entradas", e)
@@ -38,6 +48,7 @@ class DiaryRepository @Inject constructor(
         flow {
             val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
             try {
+                ensureConnected()
                 val pantryEntities = supabaseDataSource.getPantryItems(user.id)
                 val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
                 val customEntities = try { supabaseDataSource.getCustomCoffees(user.id) } catch (e: Exception) { emptyList() }
@@ -69,6 +80,7 @@ class DiaryRepository @Inject constructor(
         coffeeGrams: Int = 15,
         preparationType: String = "Espresso"
     ) {
+        ensureConnected()
         val user = userRepository.getActiveUser() ?: return
         withContext(NonCancellable) {
             try {
@@ -98,6 +110,7 @@ class DiaryRepository @Inject constructor(
     }
 
     private suspend fun updatePantryStockDelta(coffeeId: String, deltaGrams: Int) {
+        ensureConnected()
         val user = userRepository.getActiveUser() ?: return
         try {
             val items = supabaseDataSource.getPantryItems(user.id)
@@ -120,6 +133,7 @@ class DiaryRepository @Inject constructor(
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
         totalGrams: Int = 250
     ) {
+        ensureConnected()
         val user = userRepository.getActiveUser() ?: return
         withContext(NonCancellable) {
             try {
@@ -153,6 +167,7 @@ class DiaryRepository @Inject constructor(
         variety: String?, country: String, hasCaffeine: Boolean, format: String, 
         imageBytes: ByteArray?, totalGrams: Int
     ) {
+        ensureConnected()
         val user = userRepository.getActiveUser() ?: return
         withContext(NonCancellable) {
             try {
@@ -187,6 +202,7 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun updatePantryStockFull(coffeeId: String, totalGrams: Int, gramsRemaining: Int) {
+        ensureConnected()
         val user = userRepository.getActiveUser() ?: return
         try {
             val item = PantryItemEntity(
@@ -202,10 +218,12 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun addToPantry(coffeeId: String, totalGrams: Int) {
+        ensureConnected()
         updatePantryStockFull(coffeeId, totalGrams, totalGrams)
     }
 
     suspend fun deletePantryItem(coffeeId: String) {
+        ensureConnected()
         val user = userRepository.getActiveUser() ?: return
         try {
             supabaseDataSource.deletePantryItem(coffeeId, user.id)
@@ -215,6 +233,7 @@ class DiaryRepository @Inject constructor(
 
     suspend fun deleteDiaryEntry(entryId: Long) {
         try {
+            ensureConnected()
             supabaseDataSource.deleteDiaryEntry(entryId)
             triggerRefresh()
         } catch (e: Exception) { }

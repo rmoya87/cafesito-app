@@ -1,8 +1,10 @@
 package com.example.cafesito.data
 
 import android.util.Log
+import com.example.cafesito.ui.utils.ConnectivityObserver
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,10 +12,17 @@ import javax.inject.Singleton
 class SocialRepository @Inject constructor(
     private val socialDao: SocialDao,
     private val supabaseDataSource: SupabaseDataSource,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val connectivityObserver: ConnectivityObserver
 ) {
     // Señal para forzar recarga
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+
+    private suspend fun ensureConnected() {
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
+            throw NoConnectivityException("No hay conexión a internet.")
+        }
+    }
 
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
@@ -23,6 +32,7 @@ class SocialRepository @Inject constructor(
     fun getAllPostsWithDetails(): Flow<List<PostWithDetails>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
+                ensureConnected()
                 val remotePosts = supabaseDataSource.getAllPosts()
                 val remoteLikes = supabaseDataSource.getAllLikes()
                 val remoteComments = supabaseDataSource.getAllComments()
@@ -52,6 +62,7 @@ class SocialRepository @Inject constructor(
     fun getPostsByUserId(userId: Int): Flow<List<PostWithDetails>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
+                ensureConnected()
                 val remotePosts = supabaseDataSource.getAllPosts().filter { it.userId == userId }
                 val remoteLikes = supabaseDataSource.getAllLikes()
                 val remoteComments = supabaseDataSource.getAllComments()
@@ -78,6 +89,7 @@ class SocialRepository @Inject constructor(
     fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
+                ensureConnected()
                 val reviews = supabaseDataSource.getAllReviews()
                 val users = userRepository.getAllUsersList()
                 val result = reviews.mapNotNull { review ->
@@ -95,16 +107,19 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun createPost(post: PostEntity) {
+        ensureConnected()
         supabaseDataSource.insertPost(post)
         triggerRefresh()
     }
 
     suspend fun deletePost(postId: String) {
+        ensureConnected()
         supabaseDataSource.deletePost(postId)
         triggerRefresh()
     }
 
     suspend fun updatePost(postId: String, newComment: String, newImageUrl: String) {
+        ensureConnected()
         val posts = supabaseDataSource.getAllPosts()
         val existing = posts.find { it.id == postId } ?: return
         val updated = existing.copy(comment = newComment, imageUrl = newImageUrl)
@@ -113,6 +128,7 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun addComment(comment: CommentEntity) {
+        ensureConnected()
         supabaseDataSource.insertComment(comment)
         triggerRefresh()
         
@@ -136,6 +152,7 @@ class SocialRepository @Inject constructor(
 
     suspend fun deleteComment(commentId: Int) {
         try {
+            ensureConnected()
             supabaseDataSource.deleteComment(commentId)
             triggerRefresh()
         } catch (e: Exception) { }
@@ -143,6 +160,7 @@ class SocialRepository @Inject constructor(
 
     suspend fun updateComment(commentId: Int, newText: String) {
         try {
+            ensureConnected()
             val comments = supabaseDataSource.getAllComments()
             val existing = comments.find { it.id == commentId } ?: return
             val updated = existing.copy(text = newText)
@@ -152,6 +170,7 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun toggleLike(postId: String, userId: Int) {
+        ensureConnected()
         val likes = supabaseDataSource.getAllLikes()
         val isLiked = likes.any { it.postId == postId && it.userId == userId }
 
@@ -179,6 +198,7 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun uploadImage(bucket: String, path: String, bytes: ByteArray): String {
+        ensureConnected()
         return supabaseDataSource.uploadImage(bucket, path, bytes)
     }
 
@@ -186,6 +206,7 @@ class SocialRepository @Inject constructor(
     fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> = _refreshTrigger.flatMapLatest {
         flow {
             try {
+                ensureConnected()
                 val comments = supabaseDataSource.getCommentsForPost(postId)
                 val users = userRepository.getAllUsersList()
                 val result = comments.map { comment ->
@@ -203,6 +224,7 @@ class SocialRepository @Inject constructor(
 
     suspend fun syncSocialData() {
         // Mantenemos por compatibilidad, pero triggerRefresh es lo principal ahora
+        ensureConnected()
         triggerRefresh()
     }
 }

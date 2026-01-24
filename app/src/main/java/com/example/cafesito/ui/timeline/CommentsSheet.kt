@@ -1,8 +1,21 @@
+
 package com.example.cafesito.ui.timeline
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -51,8 +64,7 @@ fun CommentsSheet(
     // Estado para edición
     var editingCommentId by remember { mutableStateOf<Int?>(null) }
 
-    // Forzamos que se abra completamente para que el input sea siempre visible
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = comments.size > 5)
 
     LaunchedEffect(postId) {
         viewModel.setPostId(postId)
@@ -60,50 +72,55 @@ fun CommentsSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.85f)
-                .imePadding() // Añadimos padding para el teclado aquí
+                .imePadding()
         ) {
-            Text(
-                text = "Comentarios", 
-                style = MaterialTheme.typography.titleLarge, 
-                fontWeight = FontWeight.Bold, 
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Comentarios", 
+                    style = MaterialTheme.typography.titleLarge, 
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
             
-            Box(modifier = Modifier.weight(1f)) {
-                if (comments.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No hay comentarios todavía", color = Color.Gray)
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 16.dp)
-                    ) {
-                        items(comments) { item ->
-                            CommentRow(
-                                commentWithAuthor = item,
-                                isOwnComment = item.author.id == activeUser?.id,
-                                onNavigateToProfile = onNavigateToProfile,
-                                onDeleteClick = { viewModel.deleteComment(item.comment.id) },
-                                onEditClick = {
-                                    editingCommentId = item.comment.id
-                                    text = item.comment.text
-                                },
-                                onMentionClick = { username ->
-                                    scope.launch {
-                                        viewModel.getUserIdByUsername(username)?.let { id ->
-                                            onNavigateToProfile(id)
-                                        }
+            // Comentarios
+            if (comments.isEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
+                    Text("No hay comentarios todavía", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                    contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp)
+                ) {
+                    items(comments) { item ->
+                        CommentRow(
+                            commentWithAuthor = item,
+                            isOwnComment = item.author.id == activeUser?.id,
+                            onNavigateToProfile = onNavigateToProfile,
+                            onDeleteClick = { viewModel.deleteComment(item.comment.id) },
+                            onEditClick = {
+                                editingCommentId = item.comment.id
+                                text = item.comment.text
+                            },
+                            onMentionClick = { username ->
+                                scope.launch {
+                                    viewModel.getUserIdByUsername(username)?.let { id ->
+                                        onNavigateToProfile(id)
                                     }
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
             }
@@ -127,9 +144,7 @@ fun CommentsSheet(
 
             // INPUT FIJO
             Surface(
-                tonalElevation = 8.dp,
-                shadowElevation = 12.dp,
-                color = MaterialTheme.colorScheme.surface
+                color = Color.White
             ) {
                 Column {
                     if (editingCommentId != null) {

@@ -2,6 +2,7 @@ package com.example.cafesito.ui.timeline
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,6 +38,8 @@ fun TimelineScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     
+    var showReviewOptions by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
+
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
     var reviewToEdit by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
@@ -139,24 +143,16 @@ fun TimelineScreen(
                 }
 
                 if (itemToDelete != null) {
-                    AlertDialog(
+                    DeleteConfirmationDialog(
                         onDismissRequest = { itemToDelete = null },
-                        title = { Text("Eliminar publicación", fontWeight = FontWeight.Bold) },
-                        text = { Text("Esta acción es irreversible.") },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    val item = itemToDelete
-                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                                    else if (item is TimelineItem.ReviewItem) viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
-                                    itemToDelete = null
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
-                            ) { Text("ELIMINAR") }
+                        onConfirm = {
+                            val item = itemToDelete
+                            if (item is PostWithDetails) viewModel.deletePost(item.post.id)
+                            else if (item is TimelineItem.ReviewItem) viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
+                            itemToDelete = null
                         },
-                        dismissButton = { TextButton(onClick = { itemToDelete = null }) { Text("CANCELAR", color = Color.Gray) } },
-                        shape = RoundedCornerShape(28.dp),
-                        containerColor = Color.White
+                        title = "Borrar",
+                        text = "Una vez borrado no se puede recuperar. ¿Estás seguro?"
                     )
                 }
 
@@ -168,9 +164,23 @@ fun TimelineScreen(
                         onNavigateToProfile = onUserClick
                     )
                 }
-                
+
+                showReviewOptions?.let { review ->
+                    ReviewOptionsBottomSheet(
+                        onDismiss = { showReviewOptions = null },
+                        onEditClick = { 
+                            showReviewOptions = null
+                            reviewToEdit = review 
+                        },
+                        onDeleteClick = { 
+                            showReviewOptions = null
+                            itemToDelete = review 
+                        }
+                    )
+                }
+
                 postToEdit?.let { details ->
-                    EditPostDialog(
+                    EditPostBottomSheet(
                         initialText = details.post.comment,
                         initialImage = details.post.imageUrl,
                         onDismiss = { postToEdit = null },
@@ -182,7 +192,7 @@ fun TimelineScreen(
                 }
                 
                 reviewToEdit?.let { item ->
-                    EditReviewDialog(
+                    EditReviewBottomSheet(
                         initialRating = item.reviewInfo.review.rating,
                         initialComment = item.reviewInfo.review.comment,
                         initialImage = item.reviewInfo.review.imageUrl,
