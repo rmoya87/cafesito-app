@@ -358,7 +358,7 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, onDelete: () -> Unit) {
                 Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(16.dp)) 
-                    .background(Color.Red.copy(alpha = 0.8f)), 
+                    .background(EspressoDeep.copy(alpha = 0.8f)),
                 contentAlignment = Alignment.CenterEnd
             ) { 
                 Icon(Icons.Default.Delete, null, tint = Color.White, modifier = Modifier.padding(end = 16.dp)) 
@@ -560,7 +560,7 @@ fun PostOptionsBottomSheet(
             ModalMenuOption(
                 title = "Borrar publicación",
                 icon = Icons.Default.Delete,
-                color = ErrorRed,
+                color = EspressoDeep,
                 onClick = onDeleteClick
             )
         }
@@ -589,7 +589,7 @@ fun ReviewOptionsBottomSheet(
             ModalMenuOption(
                 title = "Borrar opinión",
                 icon = Icons.Default.Delete,
-                color = ErrorRed,
+                color = EspressoDeep,
                 onClick = onDeleteClick
             )
         }
@@ -614,7 +614,7 @@ fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogout
             ModalMenuOption(
                 title = "Cerrar Sesión",
                 icon = Icons.AutoMirrored.Filled.Logout,
-                color = ErrorRed,
+                color = EspressoDeep,
                 onClick = { onDismiss(); onLogoutClick() }
             )
         }
@@ -868,7 +868,7 @@ fun DeleteConfirmationDialog(
                         onDismissRequest()
                     },
                     modifier = Modifier.weight(1f).height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
+                    colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text("ELIMINAR", fontWeight = FontWeight.Bold)

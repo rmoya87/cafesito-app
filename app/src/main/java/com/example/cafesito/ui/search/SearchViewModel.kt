@@ -21,10 +21,12 @@ class SearchViewModel @Inject constructor(
     private val _syncError = MutableStateFlow<String?>(null)
     val syncError = _syncError.asStateFlow()
 
-    // Control de paginación
     private val _displayLimit = MutableStateFlow(10)
     private val PAGE_SIZE = 10
-    private val LOAD_THRESHOLD = 2 
+    private val LOAD_THRESHOLD = 2
+
+    private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
+    val recentSearches = _recentSearches.asStateFlow()
 
     init {
         refreshData()
@@ -83,7 +85,7 @@ class SearchViewModel @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<SearchUiState> = combine(
-        _searchQuery, _selectedOrigin, _selectedRoast, 
+        _searchQuery, _selectedOrigin, _selectedRoast,
         _selectedSpecialty, _selectedVariety, _selectedFormat, _selectedGrind, _minRating,
         _displayLimit,
         repository.favorites // Añadimos favoritos al combine para reaccionar a cambios
@@ -101,31 +103,42 @@ class SearchViewModel @Inject constructor(
         )
     }.flatMapLatest { p ->
         repository.getFilteredCoffees(p.query, p.origin, p.roast, p.specialty, p.variety, p.format, p.grind)
-            .map<List<CoffeeWithDetails>, SearchUiState> { coffees -> 
+            .map<List<CoffeeWithDetails>, SearchUiState> { coffees ->
                 val baseFiltered = if (p.rating > 0) coffees.filter { it.averageRating >= p.rating } else coffees
-                
-                val isSearching = p.query.isNotBlank() || p.origin != null || p.roast != null || 
-                                 p.specialty != null || p.variety != null || p.format != null || 
-                                 p.grind != null || p.rating > 0f
+
+                val isSearching = p.query.isNotBlank() || p.origin != null || p.roast != null ||
+                        p.specialty != null || p.variety != null || p.format != null ||
+                        p.grind != null || p.rating > 0f
 
                 val finalItems = if (isSearching) baseFiltered else baseFiltered.take(p.limit)
-                
+
                 SearchUiState.Success(finalItems, isPaginated = !isSearching)
             }
     }.catch { e ->
-        emit(SearchUiState.Error(e.message ?: "Error desconocido")) 
+        emit(SearchUiState.Error(e.message ?: "Error desconocido"))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SearchUiState.Loading)
 
     fun onItemDisplayed(index: Int) {
         val currentItems = (uiState.value as? SearchUiState.Success)?.coffees?.size ?: 0
         val isPaginated = (uiState.value as? SearchUiState.Success)?.isPaginated ?: false
-        
+
         if (isPaginated && index >= currentItems - LOAD_THRESHOLD) {
             _displayLimit.value += PAGE_SIZE
         }
     }
 
     fun onSearchQueryChanged(q: String) { _searchQuery.value = q }
+
+    fun addSearchToHistory(query: String) {
+        if (query.isNotBlank() && !_recentSearches.value.contains(query)) {
+            _recentSearches.value = (_recentSearches.value + query).take(5) // Keep last 5
+        }
+    }
+
+    fun clearRecentSearches() {
+        _recentSearches.value = emptyList()
+    }
+
     fun setOrigin(v: String?) { _selectedOrigin.value = v }
     fun setRoast(v: String?) { _selectedRoast.value = v }
     fun setSpecialty(v: String?) { _selectedSpecialty.value = v }
@@ -142,14 +155,13 @@ class SearchViewModel @Inject constructor(
         _selectedFormat.value = null
         _selectedGrind.value = null
         _minRating.value = 0f
-        _displayLimit.value = 10 
+        _displayLimit.value = 10
     }
 
     fun toggleFavorite(id: String, isFav: Boolean) {
         viewModelScope.launch {
             try {
                 repository.toggleFavorite(id, !isFav)
-                // No necesitamos refrescar manualmente si el repository.favorites está en el combine del uiState
             } catch (e: Exception) {
                 Log.e("SEARCH_VM", "Error al cambiar favorito", e)
                 _syncError.value = "No se pudo actualizar el favorito"
@@ -159,8 +171,8 @@ class SearchViewModel @Inject constructor(
 }
 
 private data class FilterParams(
-    val query: String, val origin: String?, val roast: String?, 
-    val specialty: String?, val variety: String?, val format: String?, 
+    val query: String, val origin: String?, val roast: String?,
+    val specialty: String?, val variety: String?, val format: String?,
     val grind: String?, val rating: Float, val limit: Int
 )
 

@@ -3,6 +3,7 @@ package com.example.cafesito
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -15,6 +16,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -31,51 +44,62 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.cafesito.data.SyncManager
 import com.example.cafesito.ui.access.*
+import com.example.cafesito.ui.brewlab.*
 import com.example.cafesito.ui.detail.DetailScreen
 import com.example.cafesito.ui.diary.*
-import com.example.cafesito.ui.brewlab.*
 import com.example.cafesito.ui.profile.*
 import com.example.cafesito.ui.search.SearchScreen
+import com.example.cafesito.ui.search.SearchViewModel
+import com.example.cafesito.ui.theme.*
 import com.example.cafesito.ui.timeline.AddPostScreen
 import com.example.cafesito.ui.timeline.TimelineScreen
-import com.example.cafesito.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Book
-import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.Science
 import javax.inject.Inject
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.graphics.Color as AndroidColor
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    
+
     private val sessionViewModel: SessionViewModel by viewModels()
 
     @Inject
     lateinit var syncManager: SyncManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+
+        // ✅ Edge-to-edge REAL: barras del sistema transparentes
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT
+            )
+        )
+
+        // ✅ Fallback (algunas ROMs/phones lo requieren)
+        window.statusBarColor = AndroidColor.TRANSPARENT
+        window.navigationBarColor = AndroidColor.TRANSPARENT
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         super.onCreate(savedInstanceState)
+
         setContent {
             CafesitoTheme {
                 val sessionState by sessionViewModel.sessionState.collectAsState()
-                
+
                 LaunchedEffect(sessionState) {
                     if (sessionState is SessionState.Authenticated) {
                         syncManager.syncAll()
                     }
                 }
 
-                Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
+                // ✅ IMPORTANTE: NO transparente. Pinta hasta abajo.
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = SoftOffWhite
+                ) {
                     if (sessionState is SessionState.Loading) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
@@ -86,8 +110,8 @@ class MainActivity : ComponentActivity() {
                             else -> "onboarding"
                         }
                         AppNavigation(
-                            startRoute = startRoute, 
-                            onProfileFinished = { 
+                            startRoute = startRoute,
+                            onProfileFinished = {
                                 sessionViewModel.refreshSession()
                             }
                         )
@@ -112,14 +136,19 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
         val isOther = currentRoute.startsWith("profile/") && userIdArg != 0
         val isFollow = currentRoute.contains("/followers") || currentRoute.contains("/following")
         val showBottom = mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow
-        
         Triple(showBottom, isOther, isFollow)
     }
-    
-    val shouldShowBottomBar = state.first
 
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    
+    val shouldShowBottomBar = state.first
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
+    LaunchedEffect(currentRoute) {
+        if (navController.previousBackStackEntry?.destination?.route != currentRoute) {
+            scrollBehavior.state.heightOffset = 0f
+            scrollBehavior.state.contentOffset = 0f
+        }
+    }
+
     val navItems = remember {
         listOf(
             Triple("timeline", "Inicio", Icons.Filled.Home),
@@ -130,75 +159,7 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
         )
     }
 
-    Scaffold(
-        bottomBar = {
-            if (shouldShowBottomBar) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
-                ) {
-                    Surface(
-                        color = Color.White,
-                        shape = RoundedCornerShape(32.dp),
-                        shadowElevation = 12.dp,
-                        border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        NavigationBar(
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            windowInsets = WindowInsets(0, 0, 0, 0),
-                            modifier = Modifier.height(64.dp)
-                        ) {
-                            navItems.forEach { (route, label, icon) ->
-                                val isSelected = currentRoute.startsWith(route)
-
-                                NavigationBarItem(
-                                    icon = { 
-                                        Icon(
-                                            imageVector = if (isSelected) icon else when (label) {
-                                                "Inicio" -> Icons.Outlined.Home
-                                                "Explorar" -> Icons.Outlined.Explore
-                                                "Elabora" -> Icons.Outlined.Science
-                                                "Diario" -> Icons.Outlined.Book
-                                                "Perfil" -> Icons.Outlined.Person
-                                                else -> icon
-                                            }, 
-                                            contentDescription = label
-                                        ) 
-                                    },
-                                    selected = isSelected,
-                                    colors = NavigationBarItemDefaults.colors(
-                                        indicatorColor = Color.Transparent,
-                                        selectedIconColor = CaramelAccent,
-                                        unselectedIconColor = CaramelAccent.copy(alpha = 0.6f),
-                                    ),
-                                    onClick = {
-                                        if (route == "profile") {
-                                            navController.navigate("profile/0") {
-                                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        } else {
-                                            navController.navigate(route) {
-                                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        containerColor = SoftOffWhite
-    ) { innerPadding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = startRoute,
@@ -207,11 +168,11 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
             composable("onboarding") {
-                OnboardingScreen(onFinished = { 
+                OnboardingScreen(onFinished = {
                     navController.navigate("login") { popUpTo("onboarding") { inclusive = true } }
                 })
             }
-            
+
             composable("login") {
                 LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
                     if (isNewUser) {
@@ -259,31 +220,33 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     scrollBehavior = scrollBehavior
                 )
             }
-            
-            composable("search") { 
+
+            composable("search") {
+                val searchViewModel: SearchViewModel = hiltViewModel()
                 SearchScreen(
-                    onCoffeeClick = { id -> navController.navigate("detail/$id") }, 
+                    onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onProfileClick = { id -> navController.navigate("profile/$id") },
-                    scrollBehavior = scrollBehavior
-                ) 
+                    scrollBehavior = scrollBehavior,
+                    viewModel = searchViewModel
+                )
             }
 
-            composable("brewlab") { 
+            composable("brewlab") {
                 val brewViewModel: BrewLabViewModel = hiltViewModel()
                 BrewLabScreen(
                     viewModel = brewViewModel,
                     scrollBehavior = scrollBehavior,
-                    onNavigateToDiary = { 
-                        navController.navigate("diary") { 
-                            popUpTo("brewlab") { inclusive = false } 
-                        } 
+                    onNavigateToDiary = {
+                        navController.navigate("diary") {
+                            popUpTo("brewlab") { inclusive = false }
+                        }
                     }
-                ) 
+                )
             }
-            
+
             composable(
                 route = "diary?navigateTo={navigateTo}",
-                arguments = listOf(navArgument("navigateTo") { defaultValue = ""})
+                arguments = listOf(navArgument("navigateTo") { defaultValue = "" })
             ) { backStackEntry ->
                 val navigateTo = backStackEntry.arguments?.getString("navigateTo") ?: ""
                 DiaryScreen(
@@ -293,11 +256,8 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE") },
                     onAddStockClick = { navController.navigate("addStock") },
                     onEditStockClick = { id, isCustom ->
-                        if (isCustom) {
-                            navController.navigate("editCustomCoffee/$id")
-                        } else {
-                            navController.navigate("editNormalStock/$id")
-                        }
+                        if (isCustom) navController.navigate("editCustomCoffee/$id")
+                        else navController.navigate("editNormalStock/$id")
                     },
                     scrollBehavior = scrollBehavior
                 )
@@ -359,9 +319,7 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
 
             composable(
                 route = "addPantryItem?onlyActivity={onlyActivity}",
-                arguments = listOf(
-                    navArgument("onlyActivity") { type = NavType.BoolType; defaultValue = false }
-                )
+                arguments = listOf(navArgument("onlyActivity") { type = NavType.BoolType; defaultValue = false })
             ) { backStackEntry ->
                 val onlyActivity = backStackEntry.arguments?.getBoolean("onlyActivity") ?: false
                 AddPantryItemScreen(
@@ -416,9 +374,84 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     onUserClick = { id -> navController.navigate("profile/$id") }
                 )
             }
-            
-            composable(route = "detail/{coffeeId}", arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })) { DetailScreen(onBackClick = { navController.popBackStack() }) }
-            composable("addPost") { AddPostScreen(onBackClick = { navController.popBackStack() }) }
+
+            composable(
+                route = "detail/{coffeeId}",
+                arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
+            ) {
+                DetailScreen(onBackClick = { navController.popBackStack() })
+            }
+
+            composable("addPost") {
+                AddPostScreen(onBackClick = { navController.popBackStack() })
+            }
+        }
+
+        if (shouldShowBottomBar) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Surface(
+                    color = Color.White,
+                    shape = RoundedCornerShape(32.dp),
+                    shadowElevation = 12.dp,
+                    border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    NavigationBar(
+                        containerColor = Color.Transparent,
+                        tonalElevation = 0.dp,
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        modifier = Modifier.height(64.dp)
+                    ) {
+                        navItems.forEach { (route, label, icon) ->
+                            val isSelected = currentRoute.startsWith(route)
+
+                            NavigationBarItem(
+                                icon = {
+                                    Icon(
+                                        imageVector = if (isSelected) icon else when (label) {
+                                            "Inicio" -> Icons.Outlined.Home
+                                            "Explorar" -> Icons.Outlined.Explore
+                                            "Elabora" -> Icons.Outlined.Science
+                                            "Diario" -> Icons.Outlined.Book
+                                            "Perfil" -> Icons.Outlined.Person
+                                            else -> icon
+                                        },
+                                        contentDescription = label
+                                    )
+                                },
+                                selected = isSelected,
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = Color.Transparent,
+                                    selectedIconColor = CaramelAccent,
+                                    unselectedIconColor = CaramelAccent.copy(alpha = 0.6f),
+                                ),
+                                onClick = {
+                                    val previousRoute = navController.previousBackStackEntry?.destination?.route
+                                    if (route == "profile") {
+                                        navController.navigate("profile/0") {
+                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = previousRoute == route
+                                        }
+                                    } else {
+                                        navController.navigate(route) {
+                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = previousRoute == route
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

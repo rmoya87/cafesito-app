@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 import javax.inject.Inject
 
@@ -202,34 +203,38 @@ class DiaryViewModel @Inject constructor(
     }
     
     fun saveCustomCoffee(
-        name: String, brand: String, specialty: String, roast: String?, variety: String?, 
-        country: String, hasCaffeine: Boolean, format: String, totalGrams: Int, 
+        name: String, brand: String, specialty: String, roast: String?, variety: String?,
+        country: String, hasCaffeine: Boolean, format: String, totalGrams: Int,
         imageUri: Uri?, onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
             try {
                 val imageBytes = imageUri?.let { uri ->
-                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    }
                 }
                 diaryRepository.createCustomCoffeeAndAddToPantry(
                     name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams
                 )
                 onSuccess()
-            } catch (e: Exception) { 
+            } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error al guardar café personalizado", e)
             }
         }
     }
 
     fun updateCustomCoffee(
-        id: String, name: String, brand: String, specialty: String, roast: String?, 
-        variety: String?, country: String, hasCaffeine: Boolean, format: String, 
+        id: String, name: String, brand: String, specialty: String, roast: String?,
+        variety: String?, country: String, hasCaffeine: Boolean, format: String,
         imageUri: Uri?, totalGrams: Int, onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
             try {
                 val imageBytes = imageUri?.let { uri ->
-                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    }
                 }
                 diaryRepository.updateCustomCoffee(
                     id, name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams

@@ -2,8 +2,10 @@ package com.example.cafesito.data
 
 import android.util.Log
 import com.example.cafesito.ui.utils.ConnectivityObserver
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -56,7 +58,7 @@ class CoffeeRepository @Inject constructor(
                 Log.e("COFFEE_REPO", "Error allCoffees: ${e.message}")
                 emit(emptyList())
             }
-        }
+        }.flowOn(Dispatchers.IO)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -71,7 +73,7 @@ class CoffeeRepository @Inject constructor(
                     val allRemote = remoteStd + remoteCustom.map { it.toLocalFavorite() }
                     emit(allRemote.filter { it.userId == user.id })
                 } catch (e: Exception) { emit(emptyList()) }
-            }
+            }.flowOn(Dispatchers.IO)
         },
         coffeeDao.getLocalFavorites(),
         coffeeDao.getLocalFavoritesCustom()
@@ -88,12 +90,12 @@ class CoffeeRepository @Inject constructor(
                 Log.e("COFFEE_REPO", "Error cargando reseñas: ${e.message}")
                 emit(emptyList())
             }
-        }
+        }.flowOn(Dispatchers.IO)
     }
 
-    suspend fun toggleFavorite(coffeeId: String, shouldBeFavorite: Boolean) {
+    suspend fun toggleFavorite(coffeeId: String, shouldBeFavorite: Boolean) = withContext(Dispatchers.IO) {
         ensureConnected()
-        val currentUser = userRepository.getActiveUser() ?: return
+        val currentUser = userRepository.getActiveUser() ?: return@withContext
         try {
             val isCustom = coffeeDao.getCoffeeById(coffeeId)?.isCustom 
                 ?: (supabaseDataSource.getCustomCoffees(currentUser.id).any { it.id == coffeeId })
@@ -150,10 +152,10 @@ class CoffeeRepository @Inject constructor(
                     reviews = remoteReviews.filter { it.coffeeId == coffee.id }
                 ))
             } catch (e: Exception) { emit(null) }
-        }
+        }.flowOn(Dispatchers.IO)
     }
 
-    suspend fun upsertReview(review: ReviewEntity) {
+    suspend fun upsertReview(review: ReviewEntity) = withContext(Dispatchers.IO) {
         try { 
             ensureConnected()
             supabaseDataSource.upsertReview(review) 
@@ -163,7 +165,7 @@ class CoffeeRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteReview(coffeeId: String, userId: Int) {
+    suspend fun deleteReview(coffeeId: String, userId: Int) = withContext(Dispatchers.IO) {
         try { 
             ensureConnected()
             supabaseDataSource.deleteReview(coffeeId, userId) 
@@ -173,7 +175,7 @@ class CoffeeRepository @Inject constructor(
         }
     }
 
-    suspend fun syncCoffees() {
+    suspend fun syncCoffees() = withContext(Dispatchers.IO) {
         try {
             ensureConnected()
             triggerRefresh()
@@ -215,7 +217,7 @@ class CoffeeRepository @Inject constructor(
                     )
                 })
             } catch (e: Exception) { emit(emptyList()) }
-        }
+        }.flowOn(Dispatchers.IO)
     }
 
     fun getRecommendations(): Flow<List<CoffeeWithDetails>> = flow {
@@ -251,5 +253,5 @@ class CoffeeRepository @Inject constructor(
                 }
             emit(recommendations)
         } catch (e: Exception) { emit(emptyList()) }
-    }
+    }.flowOn(Dispatchers.IO)
 }
