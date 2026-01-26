@@ -7,18 +7,10 @@ hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 [versions]
-# ⬇️ Baja AGP a 8.13.x para evitar incompatibilidades actuales de Hilt con AGP 9.0
 agp = "8.13.2"
-
-# Mantén Kotlin
 kotlin = "2.0.0"
-
-# ⬇️ KSP alineado con Kotlin 2.2.10
 ksp = "2.0.0-1.0.21"
-
-# ⬆️ Hilt actualizado para soportar mejor Kotlin 2.2.x (metadata)
 hilt = "2.57.1"
-
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -36,6 +28,7 @@ googleId = "1.1.1"
 supabase = "2.6.1"
 ktor = "2.3.12"
 browser = "1.8.0"
+paging = "3.3.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -54,6 +47,10 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
+
+# Paging 3
+androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "paging" }
+androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "paging" }
 
 # Credentials and Google Auth
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }

@@ -2,7 +2,9 @@ package com.example.cafesito.data
 
 import android.util.Log
 import com.example.cafesito.ui.utils.ConnectivityObserver
+import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import java.io.IOException
 import javax.inject.Inject
@@ -15,7 +17,6 @@ class SocialRepository @Inject constructor(
     private val userRepository: UserRepository,
     private val connectivityObserver: ConnectivityObserver
 ) {
-    // Señal para forzar recarga
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
     private suspend fun ensureConnected() {
@@ -28,61 +29,73 @@ class SocialRepository @Inject constructor(
         _refreshTrigger.tryEmit(Unit)
     }
 
+    /**
+     * Flujo reactivo que combina la carga inicial con actualizaciones Realtime de Supabase.
+     */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun getAllPostsWithDetails(): Flow<List<PostWithDetails>> = _refreshTrigger.flatMapLatest {
-        flow {
-            try {
-                ensureConnected()
-                val remotePosts = supabaseDataSource.getAllPosts()
-                val remoteLikes = supabaseDataSource.getAllLikes()
-                val remoteComments = supabaseDataSource.getAllComments()
-                val users = userRepository.getAllUsersList()
+    fun getAllPostsWithDetails(): Flow<List<PostWithDetails>> {
+        val realtimeUpdates = merge(
+            supabaseDataSource.subscribeToLikes(),
+            supabaseDataSource.subscribeToComments()
+        ).onEach { Log.d("REALTIME", "Cambio detectado social: $it") }
 
-                val details = remotePosts.map { post ->
-                    val author = users.find { it.id == post.userId } ?: UserEntity(post.userId, "", "Usuario", "Usuario", "", "", "")
-                    PostWithDetails(
-                        post = post,
-                        author = author,
-                        likes = remoteLikes.filter { it.postId == post.id },
-                        comments = remoteComments.filter { it.postId == post.id }
-                    )
+        // Unimos el trigger manual con las actualizaciones en tiempo real
+        return merge(_refreshTrigger, realtimeUpdates.map { Unit })
+            .flatMapLatest {
+                flow {
+                    try {
+                        ensureConnected()
+                        val remotePosts = supabaseDataSource.getAllPosts()
+                        val remoteLikes = supabaseDataSource.getAllLikes()
+                        val remoteComments = supabaseDataSource.getAllComments()
+                        val users = userRepository.getAllUsersList()
+
+                        val details = remotePosts.map { post ->
+                            val author = users.find { it.id == post.userId } ?: UserEntity(post.userId, "", "Usuario", "Usuario", "", "", "")
+                            PostWithDetails(
+                                post = post,
+                                author = author,
+                                likes = remoteLikes.filter { it.postId == post.id },
+                                comments = remoteComments.filter { it.postId == post.id }
+                            )
+                        }
+                        emit(details)
+                    } catch (e: Exception) {
+                        Log.e("SOCIAL_REPO", "Error fetching social data", e)
+                        emit(emptyList())
+                    }
                 }
-                emit(details)
-            } catch (e: CancellationException) {
-                // Ignorar cancelaciones esperadas por flatMapLatest
-                throw e
-            } catch (e: Exception) {
-                Log.e("SOCIAL_REPO", "Error fetching from Supabase", e)
-                emit(emptyList())
-            }
-        }
+            }.flowOn(Dispatchers.IO)
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun getPostsByUserId(userId: Int): Flow<List<PostWithDetails>> = _refreshTrigger.flatMapLatest {
-        flow {
-            try {
-                ensureConnected()
-                val remotePosts = supabaseDataSource.getAllPosts().filter { it.userId == userId }
-                val remoteLikes = supabaseDataSource.getAllLikes()
-                val remoteComments = supabaseDataSource.getAllComments()
-                val author = userRepository.getUserById(userId) ?: UserEntity(userId, "", "Usuario", "Usuario", "", "", "")
+    fun getPostsByUserId(userId: Int): Flow<List<PostWithDetails>> {
+        val realtimeLikes = supabaseDataSource.subscribeToLikes()
+        
+        return merge(_refreshTrigger, realtimeLikes.map { Unit })
+            .flatMapLatest {
+                flow {
+                    try {
+                        ensureConnected()
+                        val remotePosts = supabaseDataSource.getAllPosts().filter { it.userId == userId }
+                        val remoteLikes = supabaseDataSource.getAllLikes()
+                        val remoteComments = supabaseDataSource.getAllComments()
+                        val author = userRepository.getUserById(userId) ?: UserEntity(userId, "", "Usuario", "Usuario", "", "", "")
 
-                val details = remotePosts.map { post ->
-                    PostWithDetails(
-                        post = post,
-                        author = author,
-                        likes = remoteLikes.filter { it.postId == post.id },
-                        comments = remoteComments.filter { it.postId == post.id }
-                    )
+                        val details = remotePosts.map { post ->
+                            PostWithDetails(
+                                post = post,
+                                author = author,
+                                likes = remoteLikes.filter { it.postId == post.id },
+                                comments = remoteComments.filter { it.postId == post.id }
+                            )
+                        }
+                        emit(details)
+                    } catch (e: Exception) {
+                        emit(emptyList())
+                    }
                 }
-                emit(details)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                emit(emptyList())
-            }
-        }
+            }.flowOn(Dispatchers.IO)
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -98,8 +111,6 @@ class SocialRepository @Inject constructor(
                     }
                 }
                 emit(result)
-            } catch (e: CancellationException) {
-                throw e
             } catch (e: Exception) {
                 emit(emptyList())
             }
@@ -130,16 +141,13 @@ class SocialRepository @Inject constructor(
     suspend fun addComment(comment: CommentEntity) {
         ensureConnected()
         supabaseDataSource.insertComment(comment)
-        triggerRefresh()
         
-        val posts = supabaseDataSource.getAllPosts()
-        val post = posts.find { it.id == comment.postId }
         val currentUser = userRepository.getActiveUser()
-        
-        if (post != null && currentUser != null && post.userId != currentUser.id) {
+        val postOwnerId = supabaseDataSource.getAllPosts().find { it.id == comment.postId }?.userId
+        if (postOwnerId != null && currentUser != null && postOwnerId != currentUser.id) {
             try {
                 supabaseDataSource.insertNotification(NotificationEntity(
-                    userId = post.userId,
+                    userId = postOwnerId,
                     type = "COMMENT",
                     fromUsername = currentUser.username,
                     message = "ha comentado tu publicación.",
@@ -154,7 +162,6 @@ class SocialRepository @Inject constructor(
         try {
             ensureConnected()
             supabaseDataSource.deleteComment(commentId)
-            triggerRefresh()
         } catch (e: Exception) { }
     }
 
@@ -165,7 +172,6 @@ class SocialRepository @Inject constructor(
             val existing = comments.find { it.id == commentId } ?: return
             val updated = existing.copy(text = newText)
             supabaseDataSource.upsertComment(updated)
-            triggerRefresh()
         } catch (e: Exception) { }
     }
 
@@ -178,8 +184,7 @@ class SocialRepository @Inject constructor(
             supabaseDataSource.deleteLike(postId, userId)
         } else {
             supabaseDataSource.insertLike(LikeEntity(postId, userId))
-            val posts = supabaseDataSource.getAllPosts()
-            val post = posts.find { it.id == postId }
+            val post = supabaseDataSource.getAllPosts().find { it.id == postId }
             val currentUser = userRepository.getActiveUser()
             if (post != null && currentUser != null && post.userId != currentUser.id) {
                 try {
@@ -194,7 +199,6 @@ class SocialRepository @Inject constructor(
                 } catch (e: Exception) { }
             }
         }
-        triggerRefresh()
     }
 
     suspend fun uploadImage(bucket: String, path: String, bytes: ByteArray): String {
@@ -203,28 +207,29 @@ class SocialRepository @Inject constructor(
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> = _refreshTrigger.flatMapLatest {
-        flow {
-            try {
-                ensureConnected()
-                val comments = supabaseDataSource.getCommentsForPost(postId)
-                val users = userRepository.getAllUsersList()
-                val result = comments.map { comment ->
-                    val author = users.find { it.id == comment.userId } ?: UserEntity(comment.userId, "", "Usuario", "", "", "", "")
-                    CommentWithAuthor(comment, author)
+    fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> {
+        val realtimeComments = supabaseDataSource.subscribeToComments()
+        
+        return merge(_refreshTrigger, realtimeComments.map { Unit })
+            .flatMapLatest {
+                flow {
+                    try {
+                        ensureConnected()
+                        val comments = supabaseDataSource.getCommentsForPost(postId)
+                        val users = userRepository.getAllUsersList()
+                        val result = comments.map { comment ->
+                            val author = users.find { it.id == comment.userId } ?: UserEntity(comment.userId, "", "Usuario", "", "", "", "")
+                            CommentWithAuthor(comment, author)
+                        }
+                        emit(result)
+                    } catch (e: Exception) {
+                        emit(emptyList())
+                    }
                 }
-                emit(result)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                emit(emptyList())
-            }
-        }
+            }.flowOn(Dispatchers.IO)
     }
 
     suspend fun syncSocialData() {
-        // Mantenemos por compatibilidad, pero triggerRefresh es lo principal ahora
-        ensureConnected()
         triggerRefresh()
     }
 }

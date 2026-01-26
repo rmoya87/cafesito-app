@@ -23,11 +23,18 @@ class SupabaseDataSource @Inject constructor(
         return bucketRef.publicUrl(path)
     }
 
-    // --- REALTIME LIKES ---
+    // --- REALTIME ---
     fun subscribeToLikes(): Flow<PostgresAction> {
-        val channel = client.realtime.channel("likes-changes")
+        val channel = client.realtime.channel("likes-realtime")
         return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "likes_db"
+        }
+    }
+
+    fun subscribeToComments(): Flow<PostgresAction> {
+        val channel = client.realtime.channel("comments-realtime")
+        return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+            table = "comments_db"
         }
     }
 
@@ -45,6 +52,34 @@ class SupabaseDataSource @Inject constructor(
 
     // --- CAFÉS ---
     suspend fun getAllCoffees(): List<Coffee> = client.postgrest["coffees"].select { order("nombre", Order.ASCENDING) }.decodeList<Coffee>()
+    
+    suspend fun getCoffeesPaginated(
+        from: Long, 
+        to: Long, 
+        query: String? = null, 
+        origins: Set<String> = emptySet(),
+        roasts: Set<String> = emptySet(),
+        specialties: Set<String> = emptySet(),
+        formats: Set<String> = emptySet(),
+        minRating: Float = 0f
+    ): List<Coffee> = client.postgrest["coffees"].select {
+        filter {
+            if (!query.isNullOrBlank()) {
+                or {
+                    ilike("nombre", "%$query%")
+                    ilike("marca", "%$query%")
+                }
+            }
+            if (origins.isNotEmpty()) isIn("pais_origen", origins.toList())
+            if (roasts.isNotEmpty()) isIn("tueste", roasts.toList())
+            if (specialties.isNotEmpty()) isIn("especialidad", specialties.toList())
+            if (formats.isNotEmpty()) isIn("formato", formats.toList())
+            if (minRating > 0) gte("puntuacion_total", minRating)
+        }
+        order("nombre", Order.ASCENDING)
+        range(from, to)
+    }.decodeList<Coffee>()
+
     suspend fun upsertCoffees(coffees: List<Coffee>) { client.postgrest["coffees"].upsert(coffees) }
 
     // --- CAFÉS PERSONALIZADOS ---
@@ -97,8 +132,6 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getAllReviews(): List<ReviewEntity> = client.postgrest["reviews_db"].select().decodeList<ReviewEntity>()
     
     suspend fun upsertReview(review: ReviewEntity) {
-        // Usamos ReviewInsert para evitar enviar el ID (que podría ser 0 y causar conflictos)
-        // y permitir que Supabase use la restricción coffee_id + user_id para el upsert.
         val insertData = ReviewInsert(
             coffeeId = review.coffeeId,
             userId = review.userId,

@@ -1,21 +1,38 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# --- REGLAS BASE ---
+-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
+-dontwarn javax.annotation.**
+-dontwarn org.jetbrains.annotations.**
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- KOTLIN SERIALIZATION (Crítico para Supabase) ---
+# Mantiene los serializadores generados y evita que se eliminen campos de tus modelos
+-keepclassmembers class com.example.cafesito.data.** {
+    *** Companion;
+    *** $serializer;
+}
+-keep,allowobfuscation,allowoptimization class com.example.cafesito.data.** { *; }
+-keep class kotlinx.serialization.json.** { *; }
+-dontwarn kotlinx.serialization.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- SUPABASE & KTOR ---
+-keep class io.github.jan.supabase.** { *; }
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+-dontwarn io.github.jan.supabase.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- HILT / DAGGER ---
+-keep class dagger.hilt.android.internal.** { *; }
+-keep class * extends dagger.hilt.internal.GeneratedComponent { *; }
+-keep class * extends dagger.hilt.internal.ComponentEntryPoint { *; }
+
+# --- ROOM ---
+-keep class * extends androidx.room.RoomDatabase
+-dontwarn androidx.room.**
+
+# --- COIL (Carga de imágenes) ---
+-keep class coil.** { *; }
+-dontwarn coil.**
+
+# --- OPTIMIZACIÓN AGRESIVA ---
+-repackageclasses ''
+-allowaccessmodification
+-mergeinterfacesaggressively
