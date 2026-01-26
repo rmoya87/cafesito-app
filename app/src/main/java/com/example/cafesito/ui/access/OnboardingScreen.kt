@@ -1,184 +1,239 @@
 package com.example.cafesito.ui.access
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.ExperimentalFoundationApi
+import android.net.Uri
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import com.example.cafesito.ui.theme.*
 import com.example.cafesito.ui.components.*
-import kotlinx.coroutines.launch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoGraph
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Science
 
-data class OnboardingPage(
-    val title: String,
-    val description: String,
-    val icon: String 
-)
-
-val onboardingPages = listOf(
-    OnboardingPage(
-        "¡Bienvenido a Cafesito!",
-        "La comunidad para los amantes del café de especialidad.",
-        "☕"
-    ),
-    OnboardingPage(
-        "Comparte tu Pasión",
-        "Publica tus momentos cafeteros, sigue a otros baristas y descubre otros tipos de cafes",
-        "📸"
-    ),
-    OnboardingPage(
-        "Tu Diario de Cata",
-        "Valora cada café, guarda tus favoritos y crea tu propio perfil sensorial personalizado.",
-        "📊"
-    )
-)
-
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(UnstableApi::class)
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit
 ) {
-    val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
-    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    
+    // Configuración de ExoPlayer para el video de fondo
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            val videoUri = Uri.parse("android.resource://${context.packageName}/raw/onboarding_bg")
+            setMediaItem(MediaItem.fromUri(videoUri))
+            
+            // Cámara lenta (0.5f)
+            playbackParameters = PlaybackParameters(0.5f)
+            
+            // Parar al finalizar
+            repeatMode = Player.REPEAT_MODE_OFF
+            
+            volume = 0f // Silenciado
+            prepare()
+            playWhenReady = true
+        }
+    }
 
-    Scaffold(containerColor = SoftOffWhite) { padding ->
+    DisposableEffect(Unit) {
+        onDispose { exoPlayer.release() }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        
+        // Video de fondo inmersivo
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    player = exoPlayer
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+        
+        // Capas de gradientes ajustadas para máxima legibilidad
+        // Superior (Blanco a transparente): Cubre hasta el final del texto superior (aprox 40% de la pantalla)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (pagerState.currentPage < onboardingPages.size - 1) {
-                TextButton(
-                    onClick = onFinished,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(24.dp)
-                        .statusBarsPadding()
-                        .zIndex(1f) 
-                ) {
-                    Text(
-                        "OMITIR", 
-                        style = MaterialTheme.typography.labelLarge, 
-                        color = CaramelAccent,
-                        fontWeight = FontWeight.Bold
+                .background(
+                    Brush.verticalGradient(
+                        1f to SoftOffWhite.copy(alpha = 0.95f),
+                        0.4f to Color.Transparent
                     )
-                }
+                )
+        )
+        
+        // Inferior (Transparente a Negro): Empieza antes (0.4f) y es más denso (0.95f) para el texto blanco
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0.4f to Color.Transparent,
+                        1.0f to Color.Black.copy(alpha = 0.95f)
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Cabecera superior (dentro de la zona SoftOffWhite extendida)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = 24.dp)
+            ) {
+                Text(
+                    text = "BIENVENIDO A",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = EspressoDeep.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 4.sp
+                )
+                Text(
+                    text = "CAFESITO",
+                    style = MaterialTheme.typography.headlineLarge,
+                    textAlign = TextAlign.Center,
+                    color = EspressoDeep,
+                    fontWeight = FontWeight.Black,
+                    lineHeight = 44.sp,
+                    letterSpacing = 2.sp
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "La comunidad definitiva para los amantes del café de especialidad.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = EspressoDeep.copy(alpha = 0.8f),
+                    lineHeight = 26.sp
+                )
             }
 
-            Column(modifier = Modifier.fillMaxSize()) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) { page ->
-                    OnboardingPageContentPremium(onboardingPages[page])
-                }
+            // Espaciador flexible para dejar libre el centro del video
+            Spacer(modifier = Modifier.weight(1f))
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp)
-                        .padding(bottom = 64.dp), 
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        modifier = Modifier.height(40.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        repeat(onboardingPages.size) { iteration ->
-                            val isSelected = pagerState.currentPage == iteration
-                            Box(
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSelected) EspressoDeep else BorderLight)
-                                    .size(if (isSelected) 10.dp else 6.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = {
-                            if (pagerState.currentPage < onboardingPages.size - 1) {
-                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                            } else {
-                                onFinished()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
-                        shape = RoundedCornerShape(30.dp)
-                    ) {
-                        Text(
-                            text = if (pagerState.currentPage == onboardingPages.size - 1) "EMPEZAR" else "SIGUIENTE",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp
-                        )
-                    }
-                }
+            // Lista de funcionalidades agrupada encima del botón, con iconos marrones
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                FeatureRowOnboardingVideo(
+                    icon = Icons.Default.CameraAlt,
+                    title = "Comparte",
+                    desc = "Publica tus momentos cafeteros."
+                )
+                FeatureRowOnboardingVideo(
+                    icon = Icons.Default.Coffee,
+                    title = "Explora",
+                    desc = "Descubre nuevos granos y baristas."
+                )
+                FeatureRowOnboardingVideo(
+                    icon = Icons.Default.Science,
+                    title = "Elabora",
+                    desc = "Prepara recetas como un profesional."
+                )
+                FeatureRowOnboardingVideo(
+                    icon = Icons.Default.AutoGraph,
+                    title = "Registra",
+                    desc = "Crea tu propio perfil sensorial."
+                )
             }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Button(
+                onClick = onFinished,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = EspressoDeep
+                ),
+                shape = RoundedCornerShape(20.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+            ) {
+                Text(
+                    text = "EMPEZAR AHORA",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-fun OnboardingPageContentPremium(page: OnboardingPage) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+fun FeatureRowOnboardingVideo(icon: ImageVector, title: String, desc: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        PremiumCard(
-            modifier = Modifier.size(200.dp),
-            shape = RoundedCornerShape(40.dp)
+        Surface(
+            color = Color.White.copy(alpha = 0.9f), // Más opaco para resaltar el marrón
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.size(44.dp)
         ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = page.icon, fontSize = 80.sp)
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = EspressoDeep, modifier = Modifier.size(22.dp)) // Icono marrón
             }
         }
-        
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        Text(
-            text = page.title.uppercase(),
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-            color = EspressoDeep,
-            letterSpacing = 1.sp
-        )
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        Text(
-            text = page.description,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = Color.Gray,
-            lineHeight = 26.sp
-        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                text = desc,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.85f)
+            )
+        }
     }
 }

@@ -8,7 +8,7 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 
 [versions]
 # ⬇️ Baja AGP a 8.13.x para evitar incompatibilidades actuales de Hilt con AGP 9.0
-agp = "8.4.1"
+agp = "8.13.2"
 
 # Mantén Kotlin
 kotlin = "2.0.0"

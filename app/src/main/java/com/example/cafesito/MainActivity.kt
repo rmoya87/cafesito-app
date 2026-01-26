@@ -32,7 +32,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -49,7 +48,6 @@ import com.example.cafesito.ui.detail.DetailScreen
 import com.example.cafesito.ui.diary.*
 import com.example.cafesito.ui.profile.*
 import com.example.cafesito.ui.search.SearchScreen
-import com.example.cafesito.ui.search.SearchViewModel
 import com.example.cafesito.ui.theme.*
 import com.example.cafesito.ui.timeline.AddPostScreen
 import com.example.cafesito.ui.timeline.TimelineScreen
@@ -140,14 +138,6 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
     }
 
     val shouldShowBottomBar = state.first
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-
-    LaunchedEffect(currentRoute) {
-        if (navController.previousBackStackEntry?.destination?.route != currentRoute) {
-            scrollBehavior.state.heightOffset = 0f
-            scrollBehavior.state.contentOffset = 0f
-        }
-    }
 
     val navItems = remember {
         listOf(
@@ -163,9 +153,7 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
         NavHost(
             navController = navController,
             startDestination = startRoute,
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
+            modifier = Modifier.fillMaxSize()
         ) {
             composable("onboarding") {
                 OnboardingScreen(onFinished = {
@@ -216,25 +204,19 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 TimelineScreen(
                     onUserClick = { id -> navController.navigate("profile/$id") },
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onAddPostClick = { navController.navigate("addPost") },
-                    scrollBehavior = scrollBehavior
+                    onAddPostClick = { navController.navigate("addPost") }
                 )
             }
 
             composable("search") {
-                val searchViewModel: SearchViewModel = hiltViewModel()
                 SearchScreen(
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    scrollBehavior = scrollBehavior,
-                    viewModel = searchViewModel
+                    onProfileClick = { id -> navController.navigate("profile/$id") }
                 )
             }
 
             composable("brewlab") {
-                val brewViewModel: BrewLabViewModel = hiltViewModel()
                 BrewLabScreen(
-                    viewModel = brewViewModel,
-                    scrollBehavior = scrollBehavior,
                     onNavigateToDiary = {
                         navController.navigate("diary") {
                             popUpTo("brewlab") { inclusive = false }
@@ -257,8 +239,7 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     onEditStockClick = { id, isCustom ->
                         if (isCustom) navController.navigate("editCustomCoffee/$id")
                         else navController.navigate("editNormalStock/$id")
-                    },
-                    scrollBehavior = scrollBehavior
+                    }
                 )
             }
 
@@ -345,8 +326,7 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     onUserClick = { id -> navController.navigate("profile/$id") },
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
-                    onFollowingClick = { id -> navController.navigate("profile/$id/following") },
-                    scrollBehavior = scrollBehavior
+                    onFollowingClick = { id -> navController.navigate("profile/$id/following") }
                 )
             }
 
