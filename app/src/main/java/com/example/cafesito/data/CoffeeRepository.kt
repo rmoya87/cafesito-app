@@ -52,6 +52,7 @@ class CoffeeRepository @Inject constructor(
         formats: Set<String> = emptySet(),
         minRating: Float = 0f
     ): Flow<PagingData<Coffee>> {
+        @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
         return _refreshCount.flatMapLatest {
             Pager(
                 config = PagingConfig(

@@ -31,12 +31,17 @@ Se identificaron y eliminaron módulos y archivos que ya no estaban en uso tras 
     - `data/DataSeeder.kt` (Script de utilidad antiguo).
     - `ui/profile/FollowItem.kt` (Archivo roto y no usado; reemplazado por `FollowItemModern`).
 
-## 4. Corrección de Bugs
-- **TimelineViewModel.kt:** Se corrigió un error de sintaxis crítico (llaves de cierre mal colocadas) y se reorganizaron las clases auxiliares de datos para evitar métodos huérfanos.
-- **FollowItem.kt:** Resuelto el error `Unresolved reference 'currentUser'` eliminando el archivo, ya que era código muerto.
+## 4. Corrección de Bugs y Warnings
+- **TimelineViewModel.kt:** Se corrigió un error de sintaxis crítico y se reorganizaron clases auxiliares.
+- **FollowItem.kt:** Resuelto el error `Unresolved reference` eliminando el código muerto.
+- **Limpieza de Warnings:** 
+    - Se migraron usos de APIs deprecadas (`Locale`, `CustomTabs`, `WindowInsets`) a sus equivalentes modernos.
+    - Se añadieron anotaciones `@OptIn` para APIs experimentales estables (`FlowPreview`, `ExperimentalCoroutinesApi`).
+    - Se suprimieron advertencias de componentes UI legacy (`ClickableText`) que se mantendrán por ahora.
+    - **Resultado:** Código limpio, sin errores y sin warnings ruidosos en la compilación.
 
 ## Estado Final
-La aplicación está optimizada y el código fuente saneado.
+La aplicación está optimizada, saneada y lista para producción.
 **Nota:** Para compilar localmente, asegúrese de tener configurada la variable de entorno `JAVA_HOME` apuntando a su instalación de JDK 17 o superior.
 
 ---

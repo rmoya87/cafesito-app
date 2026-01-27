@@ -82,7 +82,7 @@ fun AddPantryItemScreen(
 
     var countryExpanded by remember { mutableStateOf(false) }
     val countries = remember { 
-        Locale.getISOCountries().map { Locale("", it).getDisplayCountry(Locale("es")) }.sorted() 
+        Locale.getISOCountries().map { Locale.Builder().setRegion(it).build().getDisplayCountry(Locale.forLanguageTag("es")) }.sorted() 
     }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -204,7 +204,7 @@ fun AddPantryItemScreen(
                                 readOnly = true,
                                 label = { Text("País") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = countryExpanded) },
-                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                             )

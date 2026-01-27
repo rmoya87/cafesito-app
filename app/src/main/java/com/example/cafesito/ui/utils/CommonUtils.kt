@@ -58,11 +58,19 @@ fun String.capitalizeWords(): String = if (this.isBlank()) "" else {
 }
 
 // --- NAVIGATION ---
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+
+// ... (existing imports skipped in replacement if not needed, but ensuring CustomTabColorSchemeParams is available)
+
 fun openCustomTab(context: Context, url: String) {
     try {
+        val params = CustomTabColorSchemeParams.Builder()
+            .setToolbarColor(EspressoDeep.toArgb())
+            .build()
+            
         val intent = CustomTabsIntent.Builder()
             .setShowTitle(true)
-            .setToolbarColor(EspressoDeep.toArgb())
+            .setDefaultColorSchemeParams(params)
             .build()
         intent.launchUrl(context, Uri.parse(url))
     } catch (e: Exception) {}

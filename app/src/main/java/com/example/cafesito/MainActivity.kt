@@ -99,7 +99,9 @@ class MainActivity : ComponentActivity() {
         )
 
         // ✅ Fallback (algunas ROMs/phones lo requieren)
+        @Suppress("DEPRECATION")
         window.statusBarColor = AndroidColor.TRANSPARENT
+        @Suppress("DEPRECATION")
         window.navigationBarColor = AndroidColor.TRANSPARENT
         WindowCompat.setDecorFitsSystemWindows(window, false)
 

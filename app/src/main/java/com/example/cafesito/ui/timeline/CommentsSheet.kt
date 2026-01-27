@@ -236,6 +236,7 @@ private fun CommentRow(
             )
             
             val annotatedContent = buildAnnotatedStringWithMentions(comment.text)
+            @Suppress("DEPRECATION")
             ClickableText(
                 text = annotatedContent,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),

@@ -63,6 +63,7 @@ class SearchViewModel @Inject constructor(
     private val publicCoffees = repository.allCoffees.map { list -> list.filter { !it.coffee.isCustom } }
 
     // ✅ OPTIMIZACIÓN: Añadir debounce de 300ms a la búsqueda
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
     private val debouncedSearchQuery = _searchQuery
         .debounce(300)
         .distinctUntilChanged()
