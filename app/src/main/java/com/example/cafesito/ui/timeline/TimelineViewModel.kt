@@ -121,21 +121,7 @@ class TimelineViewModel @Inject constructor(
             recommendations = static.recommendations
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
-}
 
-// Clases auxiliares para optimización de Combine
-private data class TimelineStaticData(
-    val activeUser: UserEntity?,
-    val allCoffees: List<CoffeeWithDetails>,
-    val allUsers: List<UserEntity>,
-    val recommendations: List<CoffeeWithDetails>
-)
-
-private data class TimelineDynamicData(
-    val posts: List<PostWithDetails>,
-    val reviews: List<ReviewWithAuthor>,
-    val following: Map<Int, Set<Int>>
-)
     fun toggleFollowSuggestion(userId: Int) {
         viewModelScope.launch {
             val me = userRepository.getActiveUser() ?: return@launch
@@ -186,6 +172,20 @@ private data class TimelineDynamicData(
         }
     }
 }
+
+// Clases auxiliares para optimización de Combine
+private data class TimelineStaticData(
+    val activeUser: UserEntity?,
+    val allCoffees: List<CoffeeWithDetails>,
+    val allUsers: List<UserEntity>,
+    val recommendations: List<CoffeeWithDetails>
+)
+
+private data class TimelineDynamicData(
+    val posts: List<PostWithDetails>,
+    val reviews: List<ReviewWithAuthor>,
+    val following: Map<Int, Set<Int>>
+)
 
 sealed class TimelineItem {
     abstract val timestamp: Long
