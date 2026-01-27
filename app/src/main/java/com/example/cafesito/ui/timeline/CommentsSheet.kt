@@ -44,6 +44,7 @@ import coil.compose.AsyncImage
 import com.example.cafesito.data.CommentWithAuthor
 import com.example.cafesito.data.UserEntity
 import com.example.cafesito.ui.theme.CoffeeBrown
+import com.example.cafesito.ui.theme.ElectricRed
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
