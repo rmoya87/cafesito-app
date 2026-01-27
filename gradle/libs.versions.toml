@@ -29,6 +29,8 @@ supabase = "2.6.1"
 ktor = "2.3.12"
 browser = "1.8.0"
 paging = "3.3.5"
+health-connect = "1.1.0-alpha11"
+
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -86,3 +88,6 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 
 # Image Loading
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+
+# Health Connect
+androidx-health-connect = { group = "androidx.health.connect", name = "connect-client", version.ref = "health-connect" }

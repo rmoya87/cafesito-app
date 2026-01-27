@@ -253,7 +253,7 @@ class SupabaseDataSource @Inject constructor(
         order("timestamp", Order.DESCENDING) 
     }.decodeList<DiaryEntryEntity>()
 
-    suspend fun insertDiaryEntry(entry: DiaryEntryEntity) {
+    suspend fun insertDiaryEntry(entry: DiaryEntryEntity): DiaryEntryEntity {
         val insertData = DiaryEntryInsert(
             userId = entry.userId,
             coffeeId = entry.coffeeId,
@@ -264,9 +264,10 @@ class SupabaseDataSource @Inject constructor(
             coffeeGrams = entry.coffeeGrams,
             preparationType = entry.preparationType,
             timestamp = entry.timestamp,
-            type = entry.type
+            type = entry.type,
+            externalId = entry.externalId
         )
-        client.postgrest["diary_entries"].insert(insertData)
+        return client.postgrest["diary_entries"].insert(insertData) { select() }.decodeSingle<DiaryEntryEntity>()
     }
     suspend fun deleteDiaryEntry(entryId: Long) { client.postgrest["diary_entries"].delete { filter { eq("id", entryId) } } }
 

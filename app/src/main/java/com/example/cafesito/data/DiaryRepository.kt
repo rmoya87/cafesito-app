@@ -2,6 +2,7 @@ package com.example.cafesito.data
 
 import android.util.Log
 import com.example.cafesito.ui.utils.ConnectivityObserver
+import com.example.cafesito.health.HealthConnectRepository
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
@@ -15,7 +16,8 @@ class DiaryRepository @Inject constructor(
     private val diaryDao: DiaryDao,
     private val supabaseDataSource: SupabaseDataSource,
     private val userRepository: UserRepository,
-    private val connectivityObserver: ConnectivityObserver
+    private val connectivityObserver: ConnectivityObserver,
+    private val healthConnectRepository: HealthConnectRepository
 ) {
     private val _refreshCount = MutableStateFlow(0L)
 
@@ -102,7 +104,15 @@ class DiaryRepository @Inject constructor(
                     timestamp = System.currentTimeMillis(), 
                     type = type
                 )
-                supabaseDataSource.insertDiaryEntry(entry)
+                val insertedEntry = supabaseDataSource.insertDiaryEntry(entry)
+                
+                // Sync with Health Connect if enabled
+                healthConnectRepository.syncDiaryEntry(
+                    mg = if (type == "WATER") 0 else caffeineAmount,
+                    ml = if (type == "WATER") amountMl else 0,
+                    timestamp = entry.timestamp,
+                    entryId = insertedEntry.id.toString()
+                )
                 
                 if (coffeeId != null && type == "CUP") {
                     updatePantryStockDelta(coffeeId, -coffeeGrams)
@@ -243,5 +253,35 @@ class DiaryRepository @Inject constructor(
             supabaseDataSource.deleteDiaryEntry(entryId)
             triggerRefresh()
         } catch (e: Exception) { }
+    }
+
+    suspend fun syncExternalHealthData() {
+        if (!healthConnectRepository.isEnabled()) return
+        
+        try {
+            val user = userRepository.getActiveUser() ?: return
+            val externalRecords = healthConnectRepository.readAndSyncExternalData()
+            val currentEntries = supabaseDataSource.getDiaryEntries(user.id)
+            val existingExternalIds = currentEntries.mapNotNull { it.externalId }.toSet()
+            
+            externalRecords.forEach { (mg, ts) ->
+                val externalId = "hc_$ts" // Unique for HC records based on timestamp
+                if (!existingExternalIds.contains(externalId)) {
+                    val entry = DiaryEntryEntity(
+                        userId = user.id,
+                        coffeeName = "Registro Externo",
+                        coffeeBrand = "Salud",
+                        caffeineAmount = mg,
+                        timestamp = ts,
+                        type = "CUP",
+                        externalId = externalId
+                    )
+                    supabaseDataSource.insertDiaryEntry(entry)
+                }
+            }
+            triggerRefresh()
+        } catch (e: Exception) {
+            Log.e("DIARY_REPO", "Error syncing HC", e)
+        }
     }
 }

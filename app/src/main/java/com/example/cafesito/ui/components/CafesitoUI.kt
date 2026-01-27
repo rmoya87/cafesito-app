@@ -598,13 +598,27 @@ fun ReviewOptionsBottomSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogoutClick: () -> Unit) {
+fun SettingsBottomSheet(
+    onDismiss: () -> Unit, 
+    onEditClick: () -> Unit, 
+    onLogoutClick: () -> Unit,
+    healthConnectEnabled: Boolean = false,
+    onHealthConnectToggle: (Boolean) -> Unit = {}
+) {
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
         containerColor = Color.White, 
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+        Column(Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp)) {
+            // Sección General
+            Text(
+                "GENERAL", 
+                style = MaterialTheme.typography.labelMedium, 
+                color = Color.Gray, 
+                modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+            )
+            
             ModalMenuOption(
                 title = "Editar Perfil",
                 icon = Icons.Default.Edit,
@@ -617,6 +631,40 @@ fun SettingsBottomSheet(onDismiss: () -> Unit, onEditClick: () -> Unit, onLogout
                 color = EspressoDeep,
                 onClick = { onDismiss(); onLogoutClick() }
             )
+            
+            Spacer(Modifier.height(24.dp))
+            
+            // Sección Integraciones
+            Text(
+                "INTEGRACIONES", 
+                style = MaterialTheme.typography.labelMedium, 
+                color = Color.Gray, 
+                modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+            )
+            
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.HealthAndSafety, null, tint = SuccessGreen, modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Health Connect", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color.DarkGray)
+                        Text("Sincroniza cafeína y agua", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    }
+                    Switch(
+                        checked = healthConnectEnabled,
+                        onCheckedChange = { onHealthConnectToggle(it) },
+                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = SuccessGreen)
+                    )
+                }
+            }
         }
     }
 }

@@ -120,6 +120,16 @@ fun ProfileScreen(
                 var email by remember { mutableStateOf(state.user.email) }
 
                 val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { viewModel.onAvatarChange(it) }
+                
+                val requestPermissionLauncher = rememberLauncherForActivityResult(
+                    viewModel.healthConnectRepository.healthConnectManager.healthConnectClient?.permissionController?.createRequestPermissionResultContract() ?: ActivityResultContracts.RequestMultiplePermissions()
+                ) { granted ->
+                    if (granted.containsAll(viewModel.healthConnectRepository.permissions)) {
+                        viewModel.onToggleHealthConnect(true)
+                    } else {
+                        viewModel.onToggleHealthConnect(false)
+                    }
+                }
 
                 Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                     LazyColumn(
@@ -252,7 +262,21 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
-                        onLogoutClick = { viewModel.logout() }
+                        onLogoutClick = { viewModel.logout() },
+                        healthConnectEnabled = state.healthConnectEnabled,
+                        onHealthConnectToggle = { enabled ->
+                            if (enabled) {
+                                coroutineScope.launch {
+                                    if (viewModel.healthConnectRepository.hasPermissions()) {
+                                        viewModel.onToggleHealthConnect(true)
+                                    } else {
+                                        requestPermissionLauncher.launch(viewModel.healthConnectRepository.permissions)
+                                    }
+                                }
+                            } else {
+                                viewModel.onToggleHealthConnect(false)
+                            }
+                        }
                     )
                 }
 

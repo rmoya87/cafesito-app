@@ -57,4 +57,10 @@ object AppModule {
     ): ConnectivityObserver {
         return NetworkConnectivityObserver(context)
     }
+
+    @Provides
+    @Singleton
+    fun provideSharedPreferences(@ApplicationContext context: Context): android.content.SharedPreferences {
+        return context.getSharedPreferences("cafesito_prefs", Context.MODE_PRIVATE)
+    }
 }

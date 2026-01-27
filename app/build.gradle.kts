@@ -117,6 +117,9 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
+    // Health Connect
+    implementation(libs.androidx.health.connect)
+
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
