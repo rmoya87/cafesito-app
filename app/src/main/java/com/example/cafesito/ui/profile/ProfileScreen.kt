@@ -406,6 +406,17 @@ fun ProfileAdn(
                 }
             }
         }
+        item {
+            Text(
+                text = "Tu ADN se elabora analizando tus cafés favoritos y tus reseñas.",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp, vertical = 8.dp)
+            )
+        }
     }
 }
 
@@ -515,17 +526,18 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                 Surface(
                     color = CaramelAccent.copy(alpha = 0.05f),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.2f))
+                    border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.2f)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = CaramelAccent, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = CaramelAccent, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.height(12.dp))
-                        Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = EspressoDeep)
-                        Text(text = "Orígenes sugeridos: $idealOrigin", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = EspressoDeep)
+                        Text(text = "Orígenes sugeridos: $idealOrigin", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                     }
                 }
             }
