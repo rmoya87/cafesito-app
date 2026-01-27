@@ -49,11 +49,13 @@ fun TimelineScreen(
     val suggestionIndices = remember(uiState) {
         if (uiState is TimelineUiState.Success) {
             val itemsCount = (uiState as TimelineUiState.Success).items.size
-            if (itemsCount > 2) {
-                val first = (1 until itemsCount / 2).random()
-                val second = (itemsCount / 2 until itemsCount).random()
+            if (itemsCount >= 4) {
+                val mid = itemsCount / 2
+                val first = (1 until mid).random()
+                val second = (mid until itemsCount).random()
                 listOf(first, second)
             } else {
+                // Si hay pocos items, usar posiciones fijas o no mostrar si es 0
                 listOf(0, 1)
             }
         } else listOf(0, 1)

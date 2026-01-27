@@ -5,14 +5,17 @@ import com.example.cafesito.ui.utils.ConnectivityObserver
 import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Singleton
 class SocialRepository @Inject constructor(
     private val socialDao: SocialDao,
@@ -42,7 +45,6 @@ class SocialRepository @Inject constructor(
      * Flujo reactivo que combina la carga inicial con actualizaciones Realtime de Supabase.
      * Implementa paralelización y caché.
      */
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun getAllPostsWithDetails(forceRefresh: Boolean = false): Flow<List<PostWithDetails>> {
         if (forceRefresh) _cachedPosts = null
 
@@ -52,13 +54,14 @@ class SocialRepository @Inject constructor(
         ).map { Unit }
 
         return merge(_refreshTrigger.map { Unit }, realtimeUpdates)
+            .debounce(300)
             .flatMapLatest {
                 flow {
                     _cachedPosts?.let { emit(it); if (!forceRefresh) return@flow }
 
                     try {
                         ensureConnected()
-                        coroutineScope {
+                        supervisorScope {
                             val postsDef = async { supabaseDataSource.getAllPosts() }
                             val likesDef = async { supabaseDataSource.getAllLikes() }
                             val commentsDef = async { supabaseDataSource.getAllComments() }
@@ -83,6 +86,8 @@ class SocialRepository @Inject constructor(
                             _cachedPosts = details
                             emit(details)
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Log.e("SOCIAL_REPO", "Error fetching social data", e)
                         emit(_cachedPosts ?: emptyList())
@@ -91,14 +96,14 @@ class SocialRepository @Inject constructor(
             }.flowOn(Dispatchers.IO)
     }
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun getPostsByUserId(userId: Int): Flow<List<PostWithDetails>> {
         return merge(_refreshTrigger.map { Unit }, supabaseDataSource.subscribeToLikes().map { Unit })
+            .debounce(300)
             .flatMapLatest {
                 flow {
                     try {
                         ensureConnected()
-                        coroutineScope {
+                        supervisorScope {
                             // ✅ OPTIMIZACIÓN: Filtrado en servidor
                             val postsDef = async { supabaseDataSource.getPostsByUserId(userId) }
                             val likesDef = async { supabaseDataSource.getAllLikes() }
@@ -122,6 +127,8 @@ class SocialRepository @Inject constructor(
                             }
                             emit(details)
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         emit(emptyList())
                     }
@@ -129,13 +136,12 @@ class SocialRepository @Inject constructor(
             }.flowOn(Dispatchers.IO)
     }
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>> = _refreshTrigger.flatMapLatest {
+    fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>> = _refreshTrigger.debounce(300).flatMapLatest {
         flow {
             _cachedReviews?.let { emit(it); return@flow }
             try {
                 ensureConnected()
-                coroutineScope {
+                supervisorScope {
                     val reviewsDef = async { supabaseDataSource.getAllReviews() }
                     val usersDef = async { userRepository.getAllUsersList() }
 
@@ -152,6 +158,8 @@ class SocialRepository @Inject constructor(
                     _cachedReviews = result
                     emit(result)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 emit(_cachedReviews ?: emptyList())
             }
@@ -251,11 +259,11 @@ class SocialRepository @Inject constructor(
         return supabaseDataSource.uploadImage(bucket, path, bytes)
     }
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> {
         val realtimeComments = supabaseDataSource.subscribeToComments().map { Unit }
         
         return merge(_refreshTrigger.map { Unit }, realtimeComments)
+            .debounce(300)
             .flatMapLatest {
                 flow {
                     try {
@@ -269,6 +277,8 @@ class SocialRepository @Inject constructor(
                             }
                         }
                         emit(result)
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         emit(emptyList())
                     }

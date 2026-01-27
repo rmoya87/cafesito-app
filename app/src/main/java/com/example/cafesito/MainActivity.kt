@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -122,15 +123,27 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = SoftOffWhite
                 ) {
-                    if (sessionState is SessionState.Loading) {
+                    // Mantenemos la carga inicial persistente para evitar parpadeos y pérdida de estado del NavHost
+                    var initialLoadDone by rememberSaveable { mutableStateOf(false) }
+                    
+                    if (sessionState !is SessionState.Loading) {
+                        initialLoadDone = true
+                    }
+
+                    if (!initialLoadDone) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
                     } else {
-                        val startRoute = when (sessionState) {
-                            is SessionState.Authenticated -> "timeline"
-                            else -> "onboarding"
+                        // El startRoute solo se calcula una vez al inicio para evitar que cambios momentáneos 
+                        // en el estado de la sesión (como al volver de permisos) reinicien el NavHost.
+                        val startRoute = rememberSaveable {
+                            when (sessionState) {
+                                is SessionState.Authenticated -> "timeline"
+                                else -> "onboarding"
+                            }
                         }
+
                         AppNavigation(
                             startRoute = startRoute,
                             onProfileFinished = {

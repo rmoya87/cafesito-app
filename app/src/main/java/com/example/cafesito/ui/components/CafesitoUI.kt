@@ -374,8 +374,7 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
     val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
     Surface(
         modifier = Modifier.fillMaxWidth(), 
-        color = Color.White, 
-        shape = RoundedCornerShape(16.dp), 
+        color = Color.White, shape = RoundedCornerShape(16.dp), 
         border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -634,9 +633,9 @@ fun SettingsBottomSheet(
             
             Spacer(Modifier.height(24.dp))
             
-            // Sección Integraciones
+            // Sección Servicios
             Text(
-                "INTEGRACIONES", 
+                "SERVICIOS", 
                 style = MaterialTheme.typography.labelMedium, 
                 color = Color.Gray, 
                 modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
@@ -658,11 +657,22 @@ fun SettingsBottomSheet(
                         Text("Health Connect", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color.DarkGray)
                         Text("Sincroniza cafeína y agua", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     }
-                    Switch(
-                        checked = healthConnectEnabled,
-                        onCheckedChange = { onHealthConnectToggle(it) },
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = SuccessGreen)
-                    )
+                    Button(
+                        onClick = { onHealthConnectToggle(!healthConnectEnabled) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (healthConnectEnabled) SuccessGreen else EspressoDeep,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.height(36.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        Text(
+                            text = if (healthConnectEnabled) "CONECTADO" else "CONECTA",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

@@ -6,15 +6,18 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
 import com.example.cafesito.ui.utils.ConnectivityObserver
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Singleton
 class CoffeeRepository @Inject constructor(
     private val coffeeDao: CoffeeDao,
@@ -52,7 +55,6 @@ class CoffeeRepository @Inject constructor(
         formats: Set<String> = emptySet(),
         minRating: Float = 0f
     ): Flow<PagingData<Coffee>> {
-        @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
         return _refreshCount.flatMapLatest {
             Pager(
                 config = PagingConfig(
@@ -75,64 +77,72 @@ class CoffeeRepository @Inject constructor(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val allCoffees: Flow<List<CoffeeWithDetails>> = _refreshTrigger.flatMapLatest {
-        flow {
-            _cachedCoffees?.let { emit(it); return@flow }
-
-            try {
-                ensureConnected()
-                val user = userRepository.getActiveUser()
-                
-                coroutineScope {
-                    val publicDef = async { try { supabaseDataSource.getAllCoffees() } catch (_: Exception) { emptyList() } }
-                    val customDef = async { 
-                        if (user != null) {
-                            try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (_: Exception) { emptyList() }
-                        } else emptyList()
-                    }
-                    val favsDef = async { try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() } }
-                    val favsCustomDef = async { try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() } }
-                    val localFavsDef = async { coffeeDao.getLocalFavorites().first() }
-                    val localFavsCustomDef = async { coffeeDao.getLocalFavoritesCustom().first() }
-                    val reviewsDef = async { try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() } }
-
-                    val totalCoffees = publicDef.await() + customDef.await()
-                    val allFavs = (favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() } + 
-                                  localFavsDef.await() + localFavsCustomDef.await().map { it.toLocalFavorite() })
-                                  .distinctBy { it.coffeeId }
-                    val remoteReviews = reviewsDef.await()
-
-                    val result = withContext(Dispatchers.Default) {
-                        totalCoffees.map { coffee ->
-                            CoffeeWithDetails(
-                                coffee = coffee,
-                                favorite = allFavs.find { it.coffeeId == coffee.id && it.userId == user?.id },
-                                reviews = remoteReviews.filter { it.coffeeId == coffee.id }
-                            )
-                        }
-                    }
-                    _cachedCoffees = result
-                    emit(result)
-                }
-            } catch (e: Exception) {
-                Log.e("COFFEE_REPO", "Error allCoffees: ${e.message}")
-                emit(emptyList())
-            }
-        }.flowOn(Dispatchers.IO)
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val favorites: Flow<List<LocalFavorite>> = combine(
-        _refreshTrigger.flatMapLatest {
+    val allCoffees: Flow<List<CoffeeWithDetails>> = _refreshTrigger
+        .debounce(300)
+        .flatMapLatest {
             flow {
-                ensureConnected()
-                val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
-                coroutineScope {
-                    val stdDef = async { try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() } }
-                    val customDef = async { try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() } }
-                    val allRemote = stdDef.await() + customDef.await().map { it.toLocalFavorite() }
-                    emit(allRemote.filter { it.userId == user.id })
+                _cachedCoffees?.let { emit(it); return@flow }
+
+                try {
+                    ensureConnected()
+                    val user = userRepository.getActiveUser()
+                    
+                    supervisorScope {
+                        val publicDef = async { try { supabaseDataSource.getAllCoffees() } catch (_: Exception) { emptyList() } }
+                        val customDef = async { 
+                            if (user != null) {
+                                try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (_: Exception) { emptyList() }
+                            } else emptyList()
+                        }
+                        val favsDef = async { try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() } }
+                        val favsCustomDef = async { try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() } }
+                        val localFavsDef = async { coffeeDao.getLocalFavorites().first() }
+                        val localFavsCustomDef = async { coffeeDao.getLocalFavoritesCustom().first() }
+                        val reviewsDef = async { try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() } }
+
+                        val totalCoffees = publicDef.await() + customDef.await()
+                        val allFavs = (favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() } + 
+                                      localFavsDef.await() + localFavsCustomDef.await().map { it.toLocalFavorite() })
+                                      .distinctBy { it.coffeeId }
+                        val remoteReviews = reviewsDef.await()
+
+                        val result = withContext(Dispatchers.Default) {
+                            totalCoffees.map { coffee ->
+                                CoffeeWithDetails(
+                                    coffee = coffee,
+                                    favorite = allFavs.find { it.coffeeId == coffee.id && it.userId == user?.id },
+                                    reviews = remoteReviews.filter { it.coffeeId == coffee.id }
+                                )
+                            }
+                        }
+                        _cachedCoffees = result
+                        emit(result)
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e("COFFEE_REPO", "Error allCoffees: ${e.message}")
+                    emit(_cachedCoffees ?: emptyList())
+                }
+            }.flowOn(Dispatchers.IO)
+        }
+
+    val favorites: Flow<List<LocalFavorite>> = combine(
+        _refreshTrigger.debounce(300).flatMapLatest {
+            flow {
+                try {
+                    ensureConnected()
+                    val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
+                    supervisorScope {
+                        val stdDef = async { try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() } }
+                        val customDef = async { try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() } }
+                        val allRemote = stdDef.await() + customDef.await().map { it.toLocalFavorite() }
+                        emit(allRemote.filter { it.userId == user.id })
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    emit(emptyList())
                 }
             }.flowOn(Dispatchers.IO)
         },
@@ -142,12 +152,13 @@ class CoffeeRepository @Inject constructor(
         (remote + local + localCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val allReviews: Flow<List<ReviewEntity>> = _refreshTrigger.flatMapLatest {
+    val allReviews: Flow<List<ReviewEntity>> = _refreshTrigger.debounce(300).flatMapLatest {
         flow {
             try {
                 ensureConnected()
                 emit(supabaseDataSource.getAllReviews())
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("COFFEE_REPO", "Error cargando reseñas: ${e.message}")
                 emit(emptyList())
@@ -187,14 +198,13 @@ class CoffeeRepository @Inject constructor(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = _refreshTrigger.flatMapLatest {
+    fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = _refreshTrigger.debounce(100).flatMapLatest {
         flow {
             try {
                 ensureConnected()
                 val user = userRepository.getActiveUser()
 
-                coroutineScope {
+                supervisorScope {
                     // ✅ OPTIMIZACIÓN: Descargar solo EL café necesario (no los 1000)
                     val publicDef = async { try { supabaseDataSource.getCoffeesByIds(listOf(id)).firstOrNull() } catch (_: Exception) { null } }
                     val customDef = async {
@@ -203,7 +213,6 @@ class CoffeeRepository @Inject constructor(
                         } else null
                     }
                     
-                    // ✅ OPTIMIZACIÓN: Solo favoritos del usuario logueado
                     val favsDef = async { 
                         if (user != null) try { supabaseDataSource.getFavoritesByUserId(user.id) } catch (_: Exception) { emptyList() } else emptyList()
                     }
@@ -214,12 +223,11 @@ class CoffeeRepository @Inject constructor(
                     val localFavsDef = async { coffeeDao.getLocalFavorites().first() }
                     val localFavsCustomDef = async { coffeeDao.getLocalFavoritesCustom().first() }
                     
-                    // ✅ OPTIMIZACIÓN: Solo reviews de ESTE café
                     val reviewsDef = async { try { supabaseDataSource.getReviewsByCoffeeId(id) } catch (_: Exception) { emptyList() } }
 
                     val publicCoffee = publicDef.await()
                     val customCoffee = customDef.await()
-                    val coffee = publicCoffee ?: customCoffee ?: return@coroutineScope emit(null)
+                    val coffee = publicCoffee ?: customCoffee ?: return@supervisorScope emit(null)
 
                     val allFavs = (favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() } +
                             localFavsDef.await() + localFavsCustomDef.await().map { it.toLocalFavorite() })
@@ -236,6 +244,8 @@ class CoffeeRepository @Inject constructor(
                     }
                     emit(result)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) { emit(null) }
         }.flowOn(Dispatchers.IO)
     }
@@ -269,19 +279,17 @@ class CoffeeRepository @Inject constructor(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun getFilteredCoffees(
         query: String? = null,
         origin: String? = null,
         roast: String? = null
-    ): Flow<List<CoffeeWithDetails>> = _refreshTrigger.flatMapLatest {
+    ): Flow<List<CoffeeWithDetails>> = _refreshTrigger.debounce(300).flatMapLatest {
         flow {
             try {
                 ensureConnected()
                 val user = userRepository.getActiveUser()
                 
-                coroutineScope {
-                    // ✅ FILTRADO EN EL SERVIDOR (no en Kotlin)
+                supervisorScope {
                     val publicDef = async { 
                         try { 
                             supabaseDataSource.getAllCoffees(
@@ -310,6 +318,8 @@ class CoffeeRepository @Inject constructor(
                     }
                     emit(result)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) { emit(emptyList()) }
         }.flowOn(Dispatchers.IO)
     }
@@ -322,8 +332,7 @@ class CoffeeRepository @Inject constructor(
             ensureConnected()
             val currentUser = userRepository.getActiveUser() ?: return@flow emit(emptyList())
             
-            coroutineScope {
-                // 1. Llamada RPC para obtener los cafés recomendados ya procesados por el servidor
+            supervisorScope {
                 val recommendedCoffeesDef = async { supabaseDataSource.getRecommendationsRpc(currentUser.id) }
                 val favsDef = async { try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() } }
                 val favsCustomDef = async { try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() } }
@@ -333,7 +342,6 @@ class CoffeeRepository @Inject constructor(
                 val allFavs = favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() }
                 val remoteReviews = reviewsDef.await()
 
-                // 2. Mapear a CoffeeWithDetails
                 val result = withContext(Dispatchers.Default) {
                     recommendedCoffees.map { coffee ->
                         CoffeeWithDetails(
@@ -345,6 +353,8 @@ class CoffeeRepository @Inject constructor(
                 }
                 emit(result)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("COFFEE_REPO", "Error en getRecommendations RPC: ${e.message}")
             emit(emptyList())

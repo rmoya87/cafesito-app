@@ -1,44 +1,35 @@
 package com.example.cafesito.ui.profile
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.health.connect.client.PermissionController
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
@@ -73,7 +64,7 @@ fun ProfileScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
-    var showSettingsSheet by remember { mutableStateOf(false) }
+    var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
     var showSensoryDetail by remember { mutableStateOf(false) }
 
     var showPostOptions by remember { mutableStateOf<PostWithDetails?>(null) }
@@ -122,7 +113,7 @@ fun ProfileScreen(
                 val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { viewModel.onAvatarChange(it) }
                 
                 val requestPermissionLauncher = rememberLauncherForActivityResult(
-                    viewModel.healthConnectRepository.healthConnectManager.healthConnectClient?.permissionController?.createRequestPermissionResultContract() ?: ActivityResultContracts.RequestMultiplePermissions()
+                    PermissionController.createRequestPermissionResultContract()
                 ) { granted ->
                     if (granted.containsAll(viewModel.healthConnectRepository.permissions)) {
                         viewModel.onToggleHealthConnect(true)
@@ -516,7 +507,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                 val secondaryName = second?.first?.lowercase()
 
                 Text(
-                    text = if (secondaryName != null && second!!.second > 3f) {
+                    text = if (secondaryName != null && second.second > 3f) {
                         "Tu paladar es una combinación experta de $primaryName y $secondaryName."
                     } else {
                         "Tu paladar destaca principalmente por preferir notas de $primaryName."

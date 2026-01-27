@@ -6,14 +6,15 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-class NoConnectivityException(message: String) : IOException(message)
-
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Singleton
 class UserRepository @Inject constructor(
     private val userDao: UserDao,
@@ -21,12 +22,14 @@ class UserRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val connectivityObserver: ConnectivityObserver
 ) {
-    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+    private val _refreshTrigger = MutableStateFlow(0L)
     
     // ✅ OPTIMIZACIÓN: Caché de usuarios en memoria
     private var _usersCache: List<UserEntity>? = null
     private var _lastUsersCacheTime: Long = 0
-    private val USERS_CACHE_DURATION = 5 * 60 * 1000L // 5 minutos
+    private companion object {
+        const val UsersCacheDuration = 5 * 60 * 1000L // 5 minutos
+    }
 
     private suspend fun ensureConnected() {
         if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
@@ -34,26 +37,29 @@ class UserRepository @Inject constructor(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val followingMap: Flow<Map<Int, Set<Int>>> = _refreshTrigger.flatMapLatest {
-        flow {
-            try {
-                ensureConnected()
-                val follows = supabaseDataSource.getAllFollows()
-                val map = follows.groupBy { it.followerId }
-                    .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
-                emit(map)
-            } catch (e: Exception) {
-                emit(emptyMap())
+    val followingMap: Flow<Map<Int, Set<Int>>> = _refreshTrigger
+        .debounce(300)
+        .flatMapLatest {
+            flow {
+                try {
+                    ensureConnected()
+                    val follows = supabaseDataSource.getAllFollows()
+                    val map = follows.groupBy { it.followerId }
+                        .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
+                    emit(map)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    emit(emptyMap())
+                }
             }
-        }
-    }
+        }.flowOn(Dispatchers.IO)
 
     fun triggerRefresh() {
         // ✅ Invalidar caché al refrescar
         _usersCache = null
         _lastUsersCacheTime = 0
-        _refreshTrigger.tryEmit(Unit)
+        _refreshTrigger.value++
     }
 
     suspend fun signInWithSupabase(token: String): String? {
@@ -65,7 +71,7 @@ class UserRepository @Inject constructor(
             }
             supabaseClient.auth.currentUserOrNull()?.id
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("UserRepository", "SignIn failed", e)
             null
         }
     }
@@ -83,47 +89,47 @@ class UserRepository @Inject constructor(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun getAllUsersFlow(): Flow<List<UserEntity>> = _refreshTrigger.flatMapLatest {
-        flow {
-            try {
-                ensureConnected()
-                emit(supabaseDataSource.getAllUsers())
-            } catch (e: Exception) {
-                emit(emptyList())
+    fun getAllUsersFlow(): Flow<List<UserEntity>> = _refreshTrigger
+        .debounce(300)
+        .flatMapLatest {
+            flow {
+                try {
+                    ensureConnected()
+                    emit(supabaseDataSource.getAllUsers())
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    emit(emptyList())
+                }
             }
-        }
-    }
+        }.flowOn(Dispatchers.IO)
 
     /**
      * ✅ OPTIMIZACIÓN: Caché con TTL para usuarios
-     * Evita descargar 1000+ usuarios en cada pantalla
      */
     suspend fun getAllUsersList(): List<UserEntity> {
         val now = System.currentTimeMillis()
         
-        // Retornar caché si es reciente
-        if (_usersCache != null && (now - _lastUsersCacheTime) < USERS_CACHE_DURATION) {
-            Log.d("UserRepository", "Usando caché de usuarios (${_usersCache!!.size} usuarios)")
+        if (_usersCache != null && (now - _lastUsersCacheTime) < UsersCacheDuration) {
             return _usersCache!!
         }
         
-        ensureConnected()
         return try {
+            ensureConnected()
             val users = supabaseDataSource.getAllUsers()
             _usersCache = users
             _lastUsersCacheTime = now
-            Log.d("UserRepository", "Usuarios descargados y cacheados (${users.size})")
             users
-        } catch (e: Exception) {
-            Log.e("UserRepository", "Error descargando usuarios, usando caché antigua")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
             _usersCache ?: emptyList()
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun getActiveUserFlow(): Flow<UserEntity?> {
         return combine(supabaseClient.auth.sessionStatus, _refreshTrigger) { _, _ -> }
+            .debounce(100)
             .flatMapLatest {
                 val uid = supabaseClient.auth.currentUserOrNull()?.id
                 if (uid != null) {
@@ -131,49 +137,53 @@ class UserRepository @Inject constructor(
                         try {
                             ensureConnected()
                             emit(supabaseDataSource.getUserByGoogleId(uid))
-                        } catch (e: NoConnectivityException) {
+                        } catch (_: NoConnectivityException) {
                             emit(userDao.getUserByGoogleId(uid))
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            emit(null)
                         }
                     }
                 } else {
                     flowOf(null)
                 }
-            }
+            }.flowOn(Dispatchers.IO)
     }
 
     suspend fun getActiveUser(): UserEntity? {
-        ensureConnected()
         val currentUid = supabaseClient.auth.currentUserOrNull()?.id ?: return null
         return try {
+            ensureConnected()
             supabaseDataSource.getUserByGoogleId(currentUid)
-        } catch (e: Exception) {
-            null
+        } catch (_: Exception) {
+            userDao.getUserByGoogleId(currentUid)
         }
     }
 
     suspend fun getUserById(userId: Int): UserEntity? {
-        ensureConnected()
         return try {
+            ensureConnected()
             supabaseDataSource.getUserById(userId)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
 
     suspend fun getUserByGoogleId(googleId: String): UserEntity? {
-        ensureConnected()
         return try {
+            ensureConnected()
             supabaseDataSource.getUserByGoogleId(googleId)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
 
     suspend fun getUserByUsername(username: String): UserEntity? {
-        ensureConnected()
         return try {
+            ensureConnected()
             supabaseDataSource.getUserByUsername(username)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -193,11 +203,11 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun isFollowing(followerId: Int, targetId: Int): Boolean {
-        ensureConnected()
         return try {
+            ensureConnected()
             val follows = supabaseDataSource.getAllFollows()
             follows.any { it.followerId == followerId && it.followedId == targetId }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -220,7 +230,7 @@ class UserRepository @Inject constructor(
                             timestamp = System.currentTimeMillis(),
                             relatedId = me.id.toString()
                         ))
-                    } catch (e: Exception) { }
+                    } catch (_: Exception) { }
                 }
             }
             triggerRefresh()
@@ -229,11 +239,11 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun syncUsers() {
+    fun syncUsers() {
         triggerRefresh()
     }
 
-    suspend fun syncFollows() {
+    fun syncFollows() {
         triggerRefresh()
     }
 }

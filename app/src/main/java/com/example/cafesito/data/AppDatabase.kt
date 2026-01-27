@@ -19,7 +19,7 @@ import androidx.room.RoomDatabase
         PantryItemEntity::class,
         CustomCoffeeEntity::class
     ],
-    version = 24, // INCREMENTADO DE 23 A 24
+    version = 25, // INCREMENTADO DE 24 A 25
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
