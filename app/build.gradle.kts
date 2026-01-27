@@ -38,23 +38,23 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-        
-        // ✅ OPTIMIZACIÓN: Configuración del Compose Compiler
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.RequiresOptIn",
-            // Permite a Compose inferir @Stable automáticamente
-            "-Xcontext-receivers"
-        )
-    }
+    
+    // ✅ FIX: Migración de kotlinOptions a configuración de tareas (Kotlin 2.0)
+    // Se elimina el bloque 'kotlinOptions' deprecado y 'composeOptions' obsoleto.
+    
     buildFeatures {
         compose = true
     }
-    
-    // ✅ OPTIMIZACIÓN: Configuración avanzada de Compose
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
+}
+
+// Configuración de compilación para Kotlin
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        freeCompilerArgs.addAll(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-Xcontext-receivers" 
+        )
     }
 }
 
