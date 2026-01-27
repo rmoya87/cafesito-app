@@ -90,8 +90,9 @@ fun OnboardingScreen(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        1f to SoftOffWhite.copy(alpha = 0.95f),
-                        0.4f to Color.Transparent
+                        0f to SoftOffWhite,
+                        0.05f to SoftOffWhite,
+                        0.45f to Color.Transparent
                     )
                 )
         )
@@ -102,8 +103,8 @@ fun OnboardingScreen(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0.4f to Color.Transparent,
-                        1.0f to Color.Black.copy(alpha = 0.95f)
+                        0.2f to Color.Transparent,
+                        1.0f to Color.Black.copy(alpha = 0.8f)
                     )
                 )
         )
@@ -141,7 +142,7 @@ fun OnboardingScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "La comunidad definitiva para los amantes del café de especialidad.",
+                    text = "La comunidad para los amantes del café.",
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = EspressoDeep.copy(alpha = 0.8f),
