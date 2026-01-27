@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.CoffeeWithDetails
@@ -57,9 +58,9 @@ fun ProfileScreen(
     onCoffeeClick: (String) -> Unit,
     onFollowersClick: (Int) -> Unit,
     onFollowingClick: (Int) -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
     val tabs = listOf("POSTS", "ADN", "FAVORITOS", "RESEÑAS")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
@@ -85,6 +86,7 @@ fun ProfileScreen(
     LaunchedEffect(Unit) { viewModel.refreshData() }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = SoftOffWhite,
         topBar = {
@@ -470,31 +472,71 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
             )
             Spacer(Modifier.height(24.dp))
 
-            val highest = profile.maxByOrNull { it.value }
+            val sorted = profile.toList().sortedByDescending { it.second }
+            val highest = sorted.getOrNull(0)
+            val second = sorted.getOrNull(1)
+
             if (highest != null) {
+                val primaryName = highest.first.lowercase()
+                val secondaryName = second?.first?.lowercase()
+
                 Text(
-                    text = "Tu paladar destaca por preferir notas de ${highest.key.lowercase()}.",
+                    text = if (secondaryName != null && second!!.second > 3f) {
+                        "Tu paladar es una combinación experta de $primaryName y $secondaryName."
+                    } else {
+                        "Tu paladar destaca principalmente por preferir notas de $primaryName."
+                    },
                     style = MaterialTheme.typography.bodyLarge,
-                    color = EspressoDeep
+                    color = EspressoDeep,
+                    fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(12.dp))
-                val description = when(highest.key) {
-                    "Acidez" -> "Te atraen los cafés con perfiles brillantes y cítricos, típicos de orígenes de alta montaña."
-                    "Dulzura" -> "Prefieres cafés equilibrados con notas acarameladas o achocolatadas que dejan un postgusto agradable."
-                    "Cuerpo" -> "Buscas una sensación táctil rica y densa en boca, característica de tuestes medios-oscuros."
-                    "Aroma" -> "Tu experiencia comienza por el olfato; disfrutas de cafés con fragancias florales o frutales intensas."
-                    else -> "Disfrutas de una complejidad balanceada en cada taza."
+                
+                val description = when(highest.first) {
+                    "Acidez" -> "Buscas brillo en cada taza. Te apasionan los perfiles cítricos y vibrantes de cafés de altura (1500m+)."
+                    "Dulzura" -> "Eres amante de lo meloso. Prefieres cafés con procesos naturales que resaltan notas de chocolate, caramelo y frutas maduras."
+                    "Cuerpo" -> "Para ti, la textura lo es todo. Disfrutas de esa sensación aterciopelada y densa, típica de tuestes medios y perfiles clásicos."
+                    "Aroma" -> "Tu ritual empieza con el olfato. Te atraen las fragancias complejas, florales y especiadas que inundan la habitación."
+                    "Sabor" -> "Buscas la máxima intensidad y complejidad gustativa. Valoras la persistencia de las notas tras cada sorbo."
+                    else -> "Disfrutas de una complejidad excepcional y un balance perfectamente equilibrado en tu ADN cafetero."
                 }
-                Text(text = description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                Text(text = description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, lineHeight = 22.sp)
+
+                val (idealType, idealOrigin) = when(highest.first) {
+                    "Acidez" -> "Lavados de alta montaña" to "Etiopía o Colombia (Nariño)"
+                    "Dulzura" -> "Procesos Natural o Honey" to "Brasil o El Salvador"
+                    "Cuerpo" -> "Tuestes medios / Naturales" to "Sumatra o Guatemala"
+                    "Aroma" -> "Variedades florales / Geishas" to "Panamá o Ruanda"
+                    "Sabor" -> "Micro-lotes de especialidad" to "Costa Rica o Kenia"
+                    else -> "Blends equilibrados" to "Cualquier origen de especialidad"
+                }
+
+                Spacer(Modifier.height(24.dp))
+                Surface(
+                    color = CaramelAccent.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.2f))
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = CaramelAccent, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = CaramelAccent, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = EspressoDeep)
+                        Text(text = "Orígenes sugeridos: $idealOrigin", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    }
+                }
             }
 
             Spacer(Modifier.height(32.dp))
             Button(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent),
+                colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
                 shape = RoundedCornerShape(28.dp)
-            ) { Text("ENTENDIDO") }
+            ) { Text("CONTINUAR EXPLORANDO", fontWeight = FontWeight.Bold) }
         }
     }
 }

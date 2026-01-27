@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.PantryItemWithDetails
@@ -48,11 +49,11 @@ import kotlin.math.sin
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrewLabScreen(
-    scrollBehavior: TopAppBarScrollBehavior? = null,
     onNavigateToDiary: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     viewModel: BrewLabViewModel = hiltViewModel()
 ) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val step by viewModel.currentStep.collectAsState()
     val selectedMethod by viewModel.selectedMethod.collectAsState()
     val selectedItem by viewModel.selectedPantryItem.collectAsState()
@@ -80,6 +81,7 @@ fun BrewLabScreen(
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = SoftOffWhite,
         topBar = { 
             GlassyTopBar(
@@ -266,7 +268,7 @@ fun PreparationStep(
             
             PremiumCard {
                 Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.fillMaxWidth().size(220.dp).clip(CircleShape).background(CreamLight).border(BorderStroke(1.dp, BorderLight), CircleShape), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxWidth().size(280.dp).clip(CircleShape).background(CreamLight).border(BorderStroke(1.dp, BorderLight), CircleShape), contentAlignment = Alignment.Center) {
                         WaterWaveAnimation(progress = if (isTimerRunning) (timerSeconds % 180) / 180f else 0f, modifier = Modifier.fillMaxSize())
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = EspressoDeep)

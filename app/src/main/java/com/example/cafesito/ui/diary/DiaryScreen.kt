@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.cafesito.data.DiaryEntryEntity
@@ -61,9 +62,9 @@ fun DiaryScreen(
     onAddCoffeeClick: () -> Unit,
     onAddStockClick: () -> Unit,
     onEditStockClick: (String, Boolean) -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
     val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
     val analytics by viewModel.analytics.collectAsState(initial = null)
@@ -165,6 +166,7 @@ fun DiaryScreen(
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = SoftOffWhite,
         topBar = {
             GlassyTopBar(
@@ -182,85 +184,93 @@ fun DiaryScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            val currentAnalytics = analytics
-            if (isLoading) {
-                CaffeinePremiumCardShimmer()
-            } else if (currentAnalytics != null) {
-                CaffeinePremiumCard(currentAnalytics)
-            }
-            Spacer(Modifier.height(24.dp))
-
-            PremiumTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                tabs = listOf("ACTIVIDAD", "DESPENSA"),
-                onTabSelected = { 
-                    coroutineScope.launch { pagerState.animateScrollToPage(it) }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            item {
+                val currentAnalytics = analytics
+                if (isLoading) {
+                    CaffeinePremiumCardShimmer()
+                } else if (currentAnalytics != null) {
+                    CaffeinePremiumCard(currentAnalytics)
                 }
-            )
+                Spacer(Modifier.height(16.dp))
+            }
+
+            stickyHeader {
+                PremiumTabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    tabs = listOf("ACTIVIDAD", "DESPENSA"),
+                    onTabSelected = { 
+                        coroutineScope.launch { pagerState.animateScrollToPage(it) }
+                    }
+                )
+            }
             
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.Top
-            ) {
-                when(it) {
-                    0 -> {
-                        if (isLoading) {
-                            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                item { Spacer(Modifier.height(16.dp)) }
-                                items(5) { 
-                                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                        DiaryItemShimmer()
-                                    }
-                                }
-                            }
-                        } else if (entries.isEmpty()) {
-                            EmptyStateMessage("No hay registros en este periodo")
-                        } else {
-                            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                item { Spacer(Modifier.height(16.dp)) }
-                                items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
-                                    AnimatedVisibility(
-                                        visible = true,
-                                        enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
-                                    ) {
+            item {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillParentMaxHeight(),
+                    verticalAlignment = Alignment.Top
+                ) { page ->
+                    when(page) {
+                        0 -> {
+                            if (isLoading) {
+                                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                    item { Spacer(Modifier.height(16.dp)) }
+                                    items(5) { 
                                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                            SwipeableDiaryItem(entry = entry, onDelete = { viewModel.deleteEntry(entry.id) })
+                                            DiaryItemShimmer()
                                         }
                                     }
                                 }
-                                item { Spacer(Modifier.height(100.dp)) }
+                            } else if (entries.isEmpty()) {
+                                EmptyStateMessage("No hay registros en este periodo")
+                            } else {
+                                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                    item { Spacer(Modifier.height(16.dp)) }
+                                    items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
+                                        AnimatedVisibility(
+                                            visible = true,
+                                            enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
+                                        ) {
+                                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                                                SwipeableDiaryItem(entry = entry, onDelete = { viewModel.deleteEntry(entry.id) })
+                                            }
+                                        }
+                                    }
+                                    item { Spacer(Modifier.height(140.dp)) }
+                                }
                             }
                         }
-                    }
-                    1 -> {
-                         if (isLoading) {
-                            LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
-                                contentPadding = PaddingValues(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                items(4) { PantryItemShimmer() }
-                            }
-                        } else if (pantryItems.isEmpty()) {
-                            EmptyStateMessage("No hay café en tu despensa")
-                        } else {
-                            LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
-                                contentPadding = PaddingValues(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                items(pantryItems, key = { it.coffee.id }) { item ->
-                                    PantryPremiumCard(
-                                        item = item,
-                                        onClick = onCoffeeClick,
-                                        onOptionsClick = { coffeeId -> showPantryOptionsId = coffeeId }
-                                    )
+                        1 -> {
+                             if (isLoading) {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    contentPadding = PaddingValues(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(4) { PantryItemShimmer() }
+                                }
+                            } else if (pantryItems.isEmpty()) {
+                                EmptyStateMessage("No hay café en tu despensa")
+                            } else {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 140.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(pantryItems, key = { it.coffee.id }) { item ->
+                                        PantryPremiumCard(
+                                            item = item,
+                                            onClick = onCoffeeClick,
+                                            onOptionsClick = { coffeeId -> showPantryOptionsId = coffeeId }
+                                        )
+                                    }
                                 }
                             }
                         }

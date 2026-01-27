@@ -115,40 +115,40 @@ class BrewLabViewModel @Inject constructor(
     val phasesTimeline: StateFlow<List<BrewPhaseInfo>> = combine(_waterAmount, _selectedMethod) { water, method ->
         when (method?.name) {
             "Espresso" -> listOf(
-                BrewPhaseInfo("Extracción", "Presión constante. Busca 36-40g en taza.", 25)
+                BrewPhaseInfo("Extracción", "Aplica presión constante. Vigila el flujo: debe ser como un hilo de miel. Busca obtener unos 36-40g de líquido final.", 25)
             )
             "Prensa francesa" -> listOf(
-                BrewPhaseInfo("Infusión", "Vierte todo el agua y mantén la tapa puesta.", 240)
+                BrewPhaseInfo("Inmersión total", "Vierte todo el agua caliente uniformemente sobre el café. Coloca la tapa sin presionar para mantener el calor.", 240)
             )
             "Aeropress" -> listOf(
-                BrewPhaseInfo("Blooming", "Vierte 50ml y remueve suavemente.", 30),
-                BrewPhaseInfo("Infusión", "Añade el resto y espera el tiempo de inmersión.", 90),
-                BrewPhaseInfo("Presión", "Presiona el émbolo con fuerza constante.", 30)
+                BrewPhaseInfo("Blooming", "Vierte unos 50ml de agua para humedecer todo el café. Remueve suavemente 3 veces para asegurar una extracción uniforme.", 30),
+                BrewPhaseInfo("Infusión", "Añade el resto del agua. Deja que el café repose e interactúe con el agua para extraer todos sus sabores.", 90),
+                BrewPhaseInfo("Presión", "Presiona el émbolo hacia abajo con una fuerza firme y constante. Escucha el 'sssh' final y detente.", 30)
             )
             "Italiana" -> {
                 val boilTime = (120 + (water * 0.2)).toInt()
                 listOf(
-                    BrewPhaseInfo("Calentamiento", "Espera a que el agua suba por el embudo.", boilTime),
-                    BrewPhaseInfo("Extracción", "Baja el fuego cuando el café empiece a salir.", 40)
+                    BrewPhaseInfo("Calentamiento", "Mantén el fuego medio-bajo. El agua en la base empezará a crear presión para subir por la chimenea.", boilTime),
+                    BrewPhaseInfo("Extracción", "Cuando el café empiece a salir, baja el fuego o retíralo. Escucha el burbujeo suave y detente antes del chorro final.", 40)
                 )
             }
             "Turco" -> listOf(
-                BrewPhaseInfo("Calentamiento", "Calienta a fuego lento hasta la primera espuma.", 120),
-                BrewPhaseInfo("Espuma 1", "Retira brevemente y vuelve al fuego.", 20),
-                BrewPhaseInfo("Espuma 2", "Repite el proceso para más cuerpo.", 20),
-                BrewPhaseInfo("Espuma 3", "Último ciclo antes de servir.", 20)
+                BrewPhaseInfo("Infusión lenta", "Calienta a fuego muy lento hasta que veas que se forma una espuma densa y oscura en la superficie (crema).", 120),
+                BrewPhaseInfo("Levantamiento 1", "Retira el cezve del fuego justo antes de que hierva. Deja que la espuma baje un poco y vuelve al fuego.", 20),
+                BrewPhaseInfo("Levantamiento 2", "Repite el proceso: deja que suba la espuma por segunda vez para intensificar el cuerpo y sabor.", 20),
+                BrewPhaseInfo("Toque Final", "Último ciclo de espuma. El café turco se caracteriza por su densidad y su sedimento único.", 20)
             )
             "Sifón" -> listOf(
-                BrewPhaseInfo("Ascenso", "El agua debe subir a la cámara superior.", 90),
-                BrewPhaseInfo("Mezcla", "Añade el café y remueve en círculos.", 60),
-                BrewPhaseInfo("Filtrado", "Retira el calor para el efecto vacío.", 45)
+                BrewPhaseInfo("Ascenso Físico", "La presión enviará el agua a la cámara superior. Espera a que se estabilice antes de añadir el café.", 90),
+                BrewPhaseInfo("Mezcla Dinámica", "Añade el café molido y remueve en círculos suavemente. Asegúrate de que todo el café esté sumergido.", 60),
+                BrewPhaseInfo("Efecto Vacío", "Retira la fuente de calor. El enfriamiento creará un vacío que filtrará el café hacia abajo a través del filtro.", 45)
             )
             else -> { // Pour-overs (V60, Chemex, Goteo, Manual)
                 val totalPourTime = (120 + (water - 250) * 0.18).toInt().coerceIn(90, 300)
                 listOf(
-                    BrewPhaseInfo("Pre-infusión", "Vierte ${(water/10).toInt()}ml para liberar gases.", 30),
-                    BrewPhaseInfo("Primer vertido", "Vierte hasta el 60% (${(water * 0.6).toInt()}ml).", (totalPourTime * 0.4).toInt()),
-                    BrewPhaseInfo("Segundo vertido", "Completa hasta los ${water.toInt()}ml suavemente.", (totalPourTime * 0.6).toInt())
+                    BrewPhaseInfo("Pre-infusión (Bloom)", "Vierte unos ${(water/10).toInt()}ml. Verás burbujas: es el CO2 liberándose para que el agua penetre mejor.", 30),
+                    BrewPhaseInfo("Desarrollo de Sabor", "Vierte en espiral desde el centro hacia afuera hasta los ${(water * 0.6).toInt()}ml. Mantén un flujo constante.", (totalPourTime * 0.4).toInt()),
+                    BrewPhaseInfo("Cuerpo y Dulzor", "Añade el agua restante hasta los ${water.toInt()}ml. Hazlo con suavidad para finalizar la extracción limpiamente.", (totalPourTime * 0.6).toInt())
                 )
             }
         }

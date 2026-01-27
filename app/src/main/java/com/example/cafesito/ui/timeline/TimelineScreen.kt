@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.cafesito.data.PostWithDetails
 import com.example.cafesito.ui.components.*
@@ -32,9 +33,9 @@ fun TimelineScreen(
     onUserClick: (Int) -> Unit,
     onCoffeeClick: (String) -> Unit,
     onAddPostClick: () -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: TimelineViewModel = hiltViewModel()
 ) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     
@@ -61,6 +62,7 @@ fun TimelineScreen(
     LaunchedEffect(Unit) { viewModel.refreshData() }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = SoftOffWhite,
         topBar = { GlassyTopBar(title = "Cafesito", scrollBehavior = scrollBehavior) },
         floatingActionButton = {

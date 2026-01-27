@@ -112,17 +112,25 @@ class ProfileViewModel @Inject constructor(
         val reviewedCoffees = userReviewsForSensory.mapNotNull { review ->
             allCoffees.find { it.coffee.id == review.coffeeId }?.coffee
         }
+        
+        // Incluir favoritos en el cálculo del perfil para mayor precisión si es el usuario actual
+        val userFavs = if (targetUser.id == (activeUser?.id ?: -1)) {
+            val favIds = myFavorites.map { it.coffeeId }.toSet()
+            allCoffees.filter { favIds.contains(it.coffee.id) }.map { it.coffee }
+        } else emptyList()
+
+        val allRelevantCoffees = (reviewedCoffees + userFavs).distinctBy { it.id }
 
         // Cálculo del ADN Cafetero (AI Sensory Profile)
-        val sensoryProfile = if (reviewedCoffees.isEmpty()) {
+        val sensoryProfile = if (allRelevantCoffees.isEmpty()) {
             mapOf("Aroma" to 5f, "Sabor" to 5f, "Cuerpo" to 5f, "Acidez" to 5f, "Dulzura" to 5f)
         } else {
             mapOf(
-                "Aroma" to reviewedCoffees.map { it.aroma }.average().toFloat(),
-                "Sabor" to reviewedCoffees.map { it.sabor }.average().toFloat(),
-                "Cuerpo" to reviewedCoffees.map { it.cuerpo }.average().toFloat(),
-                "Acidez" to reviewedCoffees.map { it.acidez }.average().toFloat(),
-                "Dulzura" to reviewedCoffees.map { it.dulzura }.average().toFloat()
+                "Aroma" to allRelevantCoffees.map { it.aroma }.average().toFloat(),
+                "Sabor" to allRelevantCoffees.map { it.sabor }.average().toFloat(),
+                "Cuerpo" to allRelevantCoffees.map { it.cuerpo }.average().toFloat(),
+                "Acidez" to allRelevantCoffees.map { it.acidez }.average().toFloat(),
+                "Dulzura" to allRelevantCoffees.map { it.dulzura }.average().toFloat()
             )
         }
 
