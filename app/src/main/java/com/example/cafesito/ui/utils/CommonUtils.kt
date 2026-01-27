@@ -3,6 +3,7 @@ package com.example.cafesito.ui.utils
 import android.content.Context
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.compose.ui.graphics.toArgb
 import com.example.cafesito.ui.theme.EspressoDeep
 import java.text.SimpleDateFormat
@@ -58,9 +59,6 @@ fun String.capitalizeWords(): String = if (this.isBlank()) "" else {
 }
 
 // --- NAVIGATION ---
-import androidx.browser.customtabs.CustomTabColorSchemeParams
-
-// ... (existing imports skipped in replacement if not needed, but ensuring CustomTabColorSchemeParams is available)
 
 fun openCustomTab(context: Context, url: String) {
     try {
