@@ -192,34 +192,45 @@ class CoffeeRepository @Inject constructor(
             try {
                 ensureConnected()
                 val user = userRepository.getActiveUser()
-                
+
                 coroutineScope {
-                    val publicDef = async { try { supabaseDataSource.getAllCoffees() } catch (_: Exception) { emptyList() } }
-                    val customDef = async { 
+                    // ✅ OPTIMIZACIÓN: Descargar solo EL café necesario (no los 1000)
+                    val publicDef = async { try { supabaseDataSource.getCoffeesByIds(listOf(id)).firstOrNull() } catch (_: Exception) { null } }
+                    val customDef = async {
                         if (user != null) {
-                            try { supabaseDataSource.getCustomCoffees(user.id).map { it.toCoffee() } } catch (_: Exception) { emptyList() }
-                        } else emptyList()
+                            try { supabaseDataSource.getCustomCoffees(user.id).find { it.id == id }?.toCoffee() } catch (_: Exception) { null }
+                        } else null
                     }
-                    val favsDef = async { try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() } }
-                    val favsCustomDef = async { try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() } }
+                    
+                    // ✅ OPTIMIZACIÓN: Solo favoritos del usuario logueado
+                    val favsDef = async { 
+                        if (user != null) try { supabaseDataSource.getFavoritesByUserId(user.id) } catch (_: Exception) { emptyList() } else emptyList()
+                    }
+                    val favsCustomDef = async { 
+                        if (user != null) try { supabaseDataSource.getFavoritesCustomByUserId(user.id) } catch (_: Exception) { emptyList() } else emptyList()
+                    }
+                    
                     val localFavsDef = async { coffeeDao.getLocalFavorites().first() }
                     val localFavsCustomDef = async { coffeeDao.getLocalFavoritesCustom().first() }
-                    val reviewsDef = async { try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() } }
-
-                    val public = publicDef.await()
-                    val custom = customDef.await()
-                    val coffee = (public + custom).find { it.id == id } ?: return@coroutineScope emit(null)
                     
-                    val allFavs = (favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() } + 
-                                  localFavsDef.await() + localFavsCustomDef.await().map { it.toLocalFavorite() })
-                                  .distinctBy { it.coffeeId }
+                    // ✅ OPTIMIZACIÓN: Solo reviews de ESTE café
+                    val reviewsDef = async { try { supabaseDataSource.getReviewsByCoffeeId(id) } catch (_: Exception) { emptyList() } }
+
+                    val publicCoffee = publicDef.await()
+                    val customCoffee = customDef.await()
+                    val coffee = publicCoffee ?: customCoffee ?: return@coroutineScope emit(null)
+
+                    val allFavs = (favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() } +
+                            localFavsDef.await() + localFavsCustomDef.await().map { it.toLocalFavorite() })
+                        .distinctBy { it.coffeeId }
+                    
                     val remoteReviews = reviewsDef.await()
 
                     val result = withContext(Dispatchers.Default) {
                         CoffeeWithDetails(
                             coffee = coffee,
                             favorite = allFavs.find { it.coffeeId == coffee.id && it.userId == user?.id },
-                            reviews = remoteReviews.filter { it.coffeeId == coffee.id }
+                            reviews = remoteReviews // Ya vienen filtradas
                         )
                     }
                     emit(result)

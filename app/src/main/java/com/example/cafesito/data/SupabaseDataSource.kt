@@ -179,6 +179,16 @@ class SupabaseDataSource @Inject constructor(
 
     // --- RESEÑAS ---
     suspend fun getAllReviews(): List<ReviewEntity> = client.postgrest["reviews_db"].select().decodeList<ReviewEntity>()
+
+    /**
+     * ✅ OPTIMIZACIÓN: Obtener reviews de un café específico
+     * Evita descargar 5000 reviews para ver las de un solo café
+     */
+    suspend fun getReviewsByCoffeeId(coffeeId: String): List<ReviewEntity> = client.postgrest["reviews_db"].select {
+        filter {
+            eq("coffee_id", coffeeId)
+        }
+    }.decodeList<ReviewEntity>()
     
     suspend fun upsertReview(review: ReviewEntity) {
         val insertData = ReviewInsert(
@@ -205,6 +215,14 @@ class SupabaseDataSource @Inject constructor(
 
     // --- FAVORITOS (OFICIALES) ---
     suspend fun getAllFavorites(): List<LocalFavorite> = client.postgrest["local_favorites"].select().decodeList<LocalFavorite>()
+    
+    /**
+     * ✅ OPTIMIZACIÓN: Solo favoritos del usuario
+     */
+    suspend fun getFavoritesByUserId(userId: Int): List<LocalFavorite> = client.postgrest["local_favorites"].select {
+        filter { eq("user_id", userId) }
+    }.decodeList<LocalFavorite>()
+    
     suspend fun insertFavorite(favorite: LocalFavorite) { client.postgrest["local_favorites"].upsert(favorite) }
     suspend fun deleteFavorite(coffeeId: String, userId: Int) {
         client.postgrest["local_favorites"].delete {
@@ -214,6 +232,14 @@ class SupabaseDataSource @Inject constructor(
 
     // --- FAVORITOS (CUSTOM) ---
     suspend fun getAllFavoritesCustom(): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select().decodeList<LocalFavoriteCustom>()
+
+    /**
+     * ✅ OPTIMIZACIÓN: Solo favoritos custom del usuario
+     */
+    suspend fun getFavoritesCustomByUserId(userId: Int): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select {
+        filter { eq("user_id", userId) }
+    }.decodeList<LocalFavoriteCustom>()
+
     suspend fun insertFavoriteCustom(favorite: LocalFavoriteCustom) { client.postgrest["local_favorites_custom"].upsert(favorite) }
     suspend fun deleteFavoriteCustom(coffeeId: String, userId: Int) {
         client.postgrest["local_favorites_custom"].delete {
