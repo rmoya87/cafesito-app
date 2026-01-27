@@ -8,17 +8,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.imageLoader
+import coil.request.ImageRequest
 import com.example.cafesito.data.CoffeeWithDetails
 import com.example.cafesito.ui.theme.CoffeeBrown
+import kotlinx.coroutines.launch
 
 @Composable
 fun RecommendationCarousel(
@@ -27,6 +33,22 @@ fun RecommendationCarousel(
     modifier: Modifier = Modifier
 ) {
     if (recommendations.isEmpty()) return
+
+    val context = LocalContext.current
+    val imageLoader = context.imageLoader
+    val scope = rememberCoroutineScope()
+
+    // ✅ OPTIMIZACIÓN: Pre-cargar las primeras 3 imágenes
+    LaunchedEffect(recommendations) {
+        scope.launch {
+            recommendations.take(3).forEach { item ->
+                val request = ImageRequest.Builder(context)
+                    .data(item.coffee.imageUrl)
+                    .build()
+                imageLoader.enqueue(request)
+            }
+        }
+    }
 
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 16.dp)) {
         Text(

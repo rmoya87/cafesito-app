@@ -62,9 +62,14 @@ class SearchViewModel @Inject constructor(
 
     private val publicCoffees = repository.allCoffees.map { list -> list.filter { !it.coffee.isCustom } }
 
+    // ✅ OPTIMIZACIÓN: Añadir debounce de 300ms a la búsqueda
+    private val debouncedSearchQuery = _searchQuery
+        .debounce(300)
+        .distinctUntilChanged()
+
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val adaptiveFilterOptions: StateFlow<FilterOptions> = combine(
-        listOf(publicCoffees, _searchQuery, _selectedOrigins, _selectedRoasts, _selectedSpecialties, _selectedFormats, _minRating)
+        listOf(publicCoffees, debouncedSearchQuery, _selectedOrigins, _selectedRoasts, _selectedSpecialties, _selectedFormats, _minRating)
     ) { args ->
         @Suppress("UNCHECKED_CAST")
         val coffees = args[0] as List<CoffeeWithDetails>
@@ -109,7 +114,7 @@ class SearchViewModel @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<SearchUiState> = combine(
-        listOf(publicCoffees, _searchQuery, _selectedOrigins, _selectedRoasts, _selectedSpecialties, _selectedFormats, _minRating, _displayLimit)
+        listOf(publicCoffees, debouncedSearchQuery, _selectedOrigins, _selectedRoasts, _selectedSpecialties, _selectedFormats, _minRating, _displayLimit)
     ) { args ->
         @Suppress("UNCHECKED_CAST")
         val coffees = args[0] as List<CoffeeWithDetails>

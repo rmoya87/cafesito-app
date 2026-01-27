@@ -42,6 +42,7 @@ class CoffeeRepository @Inject constructor(
 
     /**
      * Devuelve un flujo paginado de cafés directamente desde Supabase.
+     * OPTIMIZADO: No carga favoritos/reseñas en cada página para evitar sobrecarga.
      */
     fun getCoffeesPagingFlow(
         query: String? = null,
@@ -50,7 +51,7 @@ class CoffeeRepository @Inject constructor(
         specialties: Set<String> = emptySet(),
         formats: Set<String> = emptySet(),
         minRating: Float = 0f
-    ): Flow<PagingData<CoffeeWithDetails>> {
+    ): Flow<PagingData<Coffee>> {
         return _refreshCount.flatMapLatest {
             Pager(
                 config = PagingConfig(
@@ -69,23 +70,7 @@ class CoffeeRepository @Inject constructor(
                         minRating = minRating
                     )
                 }
-            ).flow.map { pagingData ->
-                val user = userRepository.getActiveUser()
-                val remoteFavorites = try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() }
-                val remoteFavoritesCustom = try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() }
-                val localFavorites = coffeeDao.getLocalFavorites().first()
-                val localFavoritesCustom = coffeeDao.getLocalFavoritesCustom().first()
-                val allFavs = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() } + localFavorites + localFavoritesCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
-                val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() }
-
-                pagingData.map { coffee ->
-                    CoffeeWithDetails(
-                        coffee = coffee,
-                        favorite = allFavs.find { it.coffeeId == coffee.id && it.userId == user?.id },
-                        reviews = remoteReviews.filter { it.coffeeId == coffee.id }
-                    )
-                }
-            }
+            ).flow
         }
     }
 
@@ -284,22 +269,26 @@ class CoffeeRepository @Inject constructor(
                 val user = userRepository.getActiveUser()
                 
                 coroutineScope {
-                    val publicDef = async { try { supabaseDataSource.getAllCoffees() } catch (_: Exception) { emptyList() } }
+                    // ✅ FILTRADO EN EL SERVIDOR (no en Kotlin)
+                    val publicDef = async { 
+                        try { 
+                            supabaseDataSource.getAllCoffees(
+                                query = query,
+                                origin = origin,
+                                roast = roast
+                            ) 
+                        } catch (_: Exception) { emptyList() } 
+                    }
                     val favsDef = async { try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() } }
                     val favsCustomDef = async { try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() } }
                     val reviewsDef = async { try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() } }
 
-                    val publicCoffees = publicDef.await()
+                    val filteredCoffees = publicDef.await()
                     val allRemoteFavs = favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() }
                     val remoteReviews = reviewsDef.await()
 
                     val result = withContext(Dispatchers.Default) {
-                        publicCoffees.filter { coffee ->
-                            val matchQuery = query.isNullOrBlank() || coffee.nombre.contains(query, true) || (coffee.marca ?: "").contains(query, true)
-                            val matchOrigin = origin == null || coffee.paisOrigen == origin
-                            val matchRoast = roast == null || coffee.tueste == roast
-                            matchQuery && matchOrigin && matchRoast
-                        }.map { coffee ->
+                        filteredCoffees.map { coffee ->
                             CoffeeWithDetails(
                                 coffee = coffee,
                                 favorite = allRemoteFavs.find { it.coffeeId == coffee.id && it.userId == user?.id },
