@@ -40,7 +40,7 @@ class UserRepository @Inject constructor(
     val followingMap: Flow<Map<Int, Set<Int>>> = _refreshTrigger
         .debounce(300)
         .flatMapLatest {
-            flow {
+            flow<Map<Int, Set<Int>>> {
                 try {
                     ensureConnected()
                     val follows = supabaseDataSource.getAllFollows()
@@ -92,7 +92,7 @@ class UserRepository @Inject constructor(
     fun getAllUsersFlow(): Flow<List<UserEntity>> = _refreshTrigger
         .debounce(300)
         .flatMapLatest {
-            flow {
+            flow<List<UserEntity>> {
                 try {
                     ensureConnected()
                     emit(supabaseDataSource.getAllUsers())
@@ -100,6 +100,24 @@ class UserRepository @Inject constructor(
                     throw e
                 } catch (_: Exception) {
                     emit(emptyList())
+                }
+            }
+        }.flowOn(Dispatchers.IO)
+
+    /**
+     * ✅ OPTIMIZACIÓN: Obtener un flujo de un usuario específico por ID
+     */
+    fun getUserByIdFlow(userId: Int): Flow<UserEntity?> = _refreshTrigger
+        .debounce(300)
+        .flatMapLatest {
+            flow<UserEntity?> {
+                try {
+                    ensureConnected()
+                    emit(supabaseDataSource.getUserById(userId))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    emit(null)
                 }
             }
         }.flowOn(Dispatchers.IO)
@@ -133,7 +151,7 @@ class UserRepository @Inject constructor(
             .flatMapLatest {
                 val uid = supabaseClient.auth.currentUserOrNull()?.id
                 if (uid != null) {
-                    flow {
+                    flow<UserEntity?> {
                         try {
                             ensureConnected()
                             emit(supabaseDataSource.getUserByGoogleId(uid))
@@ -146,7 +164,7 @@ class UserRepository @Inject constructor(
                         }
                     }
                 } else {
-                    flowOf(null)
+                    flowOf<UserEntity?>(null)
                 }
             }.flowOn(Dispatchers.IO)
     }

@@ -57,13 +57,12 @@ class ProfileViewModel @Inject constructor(
 
     private val activeUserFlow = userRepository.getActiveUserFlow()
     
+    // ✅ OPTIMIZACIÓN: Usar getUserByIdFlow para evitar cargar todos los usuarios
     private val targetUserFlow = if (requestedUserId == 0) {
         activeUserFlow
     } else {
-        userRepository.getAllUsersFlow().map { users ->
-            users.find { it.id == requestedUserId }
-        }.distinctUntilChanged()
-    }
+        userRepository.getUserByIdFlow(requestedUserId)
+    }.distinctUntilChanged()
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val userPostsFlow = targetUserFlow.flatMapLatest { user ->
@@ -120,7 +119,6 @@ class ProfileViewModel @Inject constructor(
             allCoffees.find { it.coffee.id == review.coffeeId }?.coffee
         }
         
-        // Incluir favoritos en el cálculo del perfil para mayor precisión si es el usuario actual
         val userFavs = if (targetUser.id == (activeUser?.id ?: -1)) {
             val favIds = myFavorites.map { it.coffeeId }.toSet()
             allCoffees.filter { favIds.contains(it.coffee.id) }.map { it.coffee }
@@ -128,7 +126,6 @@ class ProfileViewModel @Inject constructor(
 
         val allRelevantCoffees = (reviewedCoffees + userFavs).distinctBy { it.id }
 
-        // Cálculo del ADN Cafetero (AI Sensory Profile)
         val sensoryProfile = if (allRelevantCoffees.isEmpty()) {
             mapOf("Aroma" to 5f, "Sabor" to 5f, "Cuerpo" to 5f, "Acidez" to 5f, "Dulzura" to 5f)
         } else {
@@ -174,8 +171,11 @@ class ProfileViewModel @Inject constructor(
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfileUiState.Loading)
 
     init {
+        // ✅ ELIMINADO: El refresco automático al inicio que duplicaba peticiones
+        // El refresco ahora se gestiona solo cuando hay cambios de conectividad críticos
+        // o manualmente por el usuario.
         viewModelScope.launch {
-            connectivityObserver.observe().collect {
+            connectivityObserver.observe().drop(1).collect { // drop(1) evita el primer evento al suscribirse
                 if (it == ConnectivityObserver.Status.Available) {
                     refreshData()
                 }
@@ -186,13 +186,10 @@ class ProfileViewModel @Inject constructor(
     fun refreshData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                _error.value = null // Clear previous errors
+                _error.value = null 
                 userRepository.triggerRefresh()
                 socialRepository.triggerRefresh()
                 diaryRepository.syncExternalHealthData()
-                if (requestedUserId != 0) {
-                    userRepository.getUserById(requestedUserId)
-                }
             } catch (e: HttpRequestException) {
                 Log.e("ProfileViewModel", "Error de red al sincronizar", e)
                 _error.value = "No hay conexión a Internet. Por favor, revisa tu conexión."
