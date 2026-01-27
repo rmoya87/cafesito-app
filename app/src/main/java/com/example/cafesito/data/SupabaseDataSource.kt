@@ -80,6 +80,7 @@ class SupabaseDataSource @Inject constructor(
         formats: Set<String> = emptySet(),
         minRating: Float = 0f
     ): List<Coffee> = client.postgrest["coffees"].select {
+        // ✅ OPTIMIZACIÓN: Filtros en servidor
         filter {
             if (!query.isNullOrBlank()) {
                 or {
