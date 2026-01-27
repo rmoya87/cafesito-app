@@ -1,5 +1,6 @@
 package com.example.cafesito.data
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -9,6 +10,7 @@ import androidx.room.Relation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+@Immutable
 @Serializable
 @Entity(tableName = "coffees")
 data class Coffee(
@@ -161,6 +163,7 @@ data class CommentEntity(
     val timestamp: Long
 )
 
+@Immutable
 data class PostWithDetails(
     @Embedded val post: PostEntity,
     @Relation(parentColumn = "userId", entityColumn = "id")
@@ -171,6 +174,7 @@ data class PostWithDetails(
     val comments: List<CommentEntity> = emptyList()
 )
 
+@Immutable
 data class CoffeeWithDetails(
     @Embedded val coffee: Coffee,
     @Relation(parentColumn = "id", entityColumn = "coffeeId")
@@ -253,12 +257,14 @@ data class FollowEntity(
     @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
 )
 
+@Immutable
 data class PantryItemWithDetails(
     val pantryItem: PantryItemEntity,
     val coffee: Coffee,
     val isCustom: Boolean = false
 )
 
+@Immutable
 data class UserReviewInfo(
     val coffeeDetails: CoffeeWithDetails, 
     val review: ReviewEntity, 
@@ -266,12 +272,14 @@ data class UserReviewInfo(
     val authorAvatarUrl: String?
 )
 
+@Immutable
 data class CommentWithAuthor(
     @Embedded val comment: CommentEntity,
     @Relation(parentColumn = "userId", entityColumn = "id")
     val author: UserEntity
 )
 
+@Immutable
 data class ReviewWithAuthor(
     @Embedded val review: ReviewEntity,
     @Relation(parentColumn = "userId", entityColumn = "id")

@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
             CafesitoTheme {
                 val sessionState by sessionViewModel.sessionState.collectAsState()
 
-                LaunchedEffect(sessionState) {
+                LaunchedEffect(sessionState.userId) {
                     if (sessionState is SessionState.Authenticated) {
                         syncManager.syncAll()
                     }

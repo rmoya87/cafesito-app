@@ -25,6 +25,9 @@ class CoffeeRepository @Inject constructor(
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
     private val _refreshCount = MutableStateFlow(0L)
 
+    // --- CACHÉ EN MEMORIA ---
+    private var _cachedCoffees: List<CoffeeWithDetails>? = null
+
     private suspend fun ensureConnected() {
         if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
             throw NoConnectivityException("No hay conexión a internet.")
@@ -32,6 +35,7 @@ class CoffeeRepository @Inject constructor(
     }
 
     fun triggerRefresh() {
+        _cachedCoffees = null
         _refreshCount.value++
         _refreshTrigger.tryEmit(Unit)
     }
@@ -74,7 +78,6 @@ class CoffeeRepository @Inject constructor(
                 val allFavs = (remoteFavorites + remoteFavoritesCustom.map { it.toLocalFavorite() } + localFavorites + localFavoritesCustom.map { it.toLocalFavorite() }).distinctBy { it.coffeeId }
                 val remoteReviews = try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() }
 
-                // El mapeo de PagingData ocurre mientras se consume el flujo
                 pagingData.map { coffee ->
                     CoffeeWithDetails(
                         coffee = coffee,
@@ -89,6 +92,8 @@ class CoffeeRepository @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val allCoffees: Flow<List<CoffeeWithDetails>> = _refreshTrigger.flatMapLatest {
         flow {
+            _cachedCoffees?.let { emit(it); return@flow }
+
             try {
                 ensureConnected()
                 val user = userRepository.getActiveUser()
@@ -112,7 +117,6 @@ class CoffeeRepository @Inject constructor(
                                   .distinctBy { it.coffeeId }
                     val remoteReviews = reviewsDef.await()
 
-                    // Procesamiento CPU-Intensivo en Dispatchers.Default
                     val result = withContext(Dispatchers.Default) {
                         totalCoffees.map { coffee ->
                             CoffeeWithDetails(
@@ -122,6 +126,7 @@ class CoffeeRepository @Inject constructor(
                             )
                         }
                     }
+                    _cachedCoffees = result
                     emit(result)
                 }
             } catch (e: Exception) {
@@ -288,7 +293,6 @@ class CoffeeRepository @Inject constructor(
                     val allRemoteFavs = favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() }
                     val remoteReviews = reviewsDef.await()
 
-                    // Filtrado y mapeo en Dispatchers.Default
                     val result = withContext(Dispatchers.Default) {
                         publicCoffees.filter { coffee ->
                             val matchQuery = query.isNullOrBlank() || coffee.nombre.contains(query, true) || (coffee.marca ?: "").contains(query, true)
@@ -309,49 +313,40 @@ class CoffeeRepository @Inject constructor(
         }.flowOn(Dispatchers.IO)
     }
 
+    /**
+     * Obtiene recomendaciones delegando el cálculo sensorial a Supabase (RPC).
+     */
     fun getRecommendations(): Flow<List<CoffeeWithDetails>> = flow {
         try {
             ensureConnected()
+            val currentUser = userRepository.getActiveUser() ?: return@flow emit(emptyList())
+            
             coroutineScope {
-                val coffeesDef = async { supabaseDataSource.getAllCoffees() }
-                val favsDef = async { supabaseDataSource.getAllFavorites() }
+                // 1. Llamada RPC para obtener los cafés recomendados ya procesados por el servidor
+                val recommendedCoffeesDef = async { supabaseDataSource.getRecommendationsRpc(currentUser.id) }
+                val favsDef = async { try { supabaseDataSource.getAllFavorites() } catch (_: Exception) { emptyList() } }
                 val favsCustomDef = async { try { supabaseDataSource.getAllFavoritesCustom() } catch (_: Exception) { emptyList() } }
-                val reviewsDef = async { supabaseDataSource.getAllReviews() }
-                val userDef = async { userRepository.getActiveUser() }
+                val reviewsDef = async { try { supabaseDataSource.getAllReviews() } catch (_: Exception) { emptyList() } }
 
-                val remoteCoffees = coffeesDef.await()
-                val currentUser = userDef.await() ?: return@coroutineScope emit(emptyList())
+                val recommendedCoffees = recommendedCoffeesDef.await()
                 val allFavs = favsDef.await() + favsCustomDef.await().map { it.toLocalFavorite() }
                 val remoteReviews = reviewsDef.await()
 
-                // Cálculo matemático pesado en Dispatchers.Default
-                val recommendations = withContext(Dispatchers.Default) {
-                    val favIds = allFavs
-                        .filter { it.userId == currentUser.id }
-                        .map { it.coffeeId }.toSet()
-                    
-                    val myFavs = remoteCoffees.filter { favIds.contains(it.id) }
-
-                    if (myFavs.isEmpty()) return@withContext emptyList<CoffeeWithDetails>()
-
-                    val avgAroma = myFavs.mapNotNull { it.aroma }.average()
-                    val avgSabor = myFavs.mapNotNull { it.sabor }.average()
-                    
-                    remoteCoffees
-                        .filter { !favIds.contains(it.id) }
-                        .map { coffee ->
-                            val distance = kotlin.math.sqrt(
-                                Math.pow(((coffee.aroma ?: 0f).toDouble() - avgAroma), 2.0) + 
-                                Math.pow(((coffee.sabor ?: 0f).toDouble() - avgSabor), 2.0)
-                            )
-                            coffee to distance
-                        }
-                        .sortedBy { it.second }.take(5).map { (coffee, _) ->
-                            CoffeeWithDetails(coffee = coffee, favorite = null, reviews = remoteReviews.filter { it.coffeeId == coffee.id })
-                        }
+                // 2. Mapear a CoffeeWithDetails
+                val result = withContext(Dispatchers.Default) {
+                    recommendedCoffees.map { coffee ->
+                        CoffeeWithDetails(
+                            coffee = coffee,
+                            favorite = allFavs.find { it.coffeeId == coffee.id && it.userId == currentUser.id },
+                            reviews = remoteReviews.filter { it.coffeeId == coffee.id }
+                        )
+                    }
                 }
-                emit(recommendations)
+                emit(result)
             }
-        } catch (_: Exception) { emit(emptyList()) }
+        } catch (e: Exception) {
+            Log.e("COFFEE_REPO", "Error en getRecommendations RPC: ${e.message}")
+            emit(emptyList())
+        }
     }.flowOn(Dispatchers.IO)
 }

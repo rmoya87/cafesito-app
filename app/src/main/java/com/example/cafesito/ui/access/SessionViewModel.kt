@@ -8,9 +8,11 @@ import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 sealed interface SessionState {
+    val userId: Int? get() = null
+
     data object Loading : SessionState
     data object NotAuthenticated : SessionState
-    data object Authenticated : SessionState
+    data class Authenticated(override val userId: Int) : SessionState
 }
 
 @HiltViewModel
@@ -26,7 +28,7 @@ class SessionViewModel @Inject constructor(
     val sessionState: StateFlow<SessionState> = userRepository.getActiveUserFlow()
         .map { user ->
             if (user != null && user.username.isNotBlank()) {
-                SessionState.Authenticated
+                SessionState.Authenticated(user.id)
             } else {
                 SessionState.NotAuthenticated
             }

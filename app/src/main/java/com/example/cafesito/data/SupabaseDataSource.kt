@@ -2,6 +2,7 @@ package com.example.cafesito.data
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import io.github.jan.supabase.realtime.realtime
@@ -51,7 +52,23 @@ class SupabaseDataSource @Inject constructor(
     suspend fun deleteFollow(followerId: Int, followedId: Int) { client.postgrest["follows"].delete { filter { eq("follower_id", followerId); eq("followed_id", followedId) } } }
 
     // --- CAFÉS ---
-    suspend fun getAllCoffees(): List<Coffee> = client.postgrest["coffees"].select { order("nombre", Order.ASCENDING) }.decodeList<Coffee>()
+    suspend fun getAllCoffees(
+        query: String? = null,
+        origin: String? = null,
+        roast: String? = null
+    ): List<Coffee> = client.postgrest["coffees"].select {
+        filter {
+            if (!query.isNullOrBlank()) {
+                or {
+                    ilike("nombre", "%$query%")
+                    ilike("marca", "%$query%")
+                }
+            }
+            if (origin != null) eq("pais_origen", origin)
+            if (roast != null) eq("tueste", roast)
+        }
+        order("nombre", Order.ASCENDING) 
+    }.decodeList<Coffee>()
     
     suspend fun getCoffeesPaginated(
         from: Long, 
@@ -81,6 +98,11 @@ class SupabaseDataSource @Inject constructor(
     }.decodeList<Coffee>()
 
     suspend fun upsertCoffees(coffees: List<Coffee>) { client.postgrest["coffees"].upsert(coffees) }
+
+    // --- RECOMENDACIONES (RPC) ---
+    suspend fun getRecommendationsRpc(userId: Int): List<Coffee> {
+        return client.postgrest.rpc("get_coffee_recommendations", mapOf("target_user_id" to userId)).decodeList<Coffee>()
+    }
 
     // --- CAFÉS PERSONALIZADOS ---
     suspend fun getCustomCoffees(userId: Int): List<CustomCoffeeEntity> = client.postgrest["custom_coffees"].select { filter { eq("user_id", userId) } }.decodeList<CustomCoffeeEntity>()

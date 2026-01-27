@@ -39,7 +39,8 @@ fun RecommendationCarousel(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(recommendations) { item ->
+            // Usamos key para mejorar la fluidez del scroll y evitar recomposiciones innecesarias
+            items(recommendations, key = { it.coffee.id }) { item ->
                 RecommendationCard(item, onCoffeeClick)
             }
         }
@@ -67,14 +68,14 @@ private fun RecommendationCard(
             )
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
-                    text = item.coffee.nombre,
+                    text = item.coffee.nombre ?: "Café",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = item.coffee.marca,
+                    text = item.coffee.marca ?: "",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray,
                     maxLines = 1

@@ -34,11 +34,10 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
     val coffee = coffeeDetails.coffee
     val context = LocalContext.current
 
-    // Optimizamos la URL para solicitar un thumbnail a Supabase (width=400, quality=80)
-    // Esto asume que usas el servicio de transformación de Supabase Storage.
+    // Solicitamos a Supabase imágenes transformadas (thumbnails) para ahorrar RAM y datos
     val optimizedImageUrl = remember(coffee.imageUrl) {
         if (coffee.imageUrl.contains("storage/v1/object/public")) {
-            "${coffee.imageUrl}?width=400&quality=80"
+            "${coffee.imageUrl}?width=400&height=300&resize=contain"
         } else {
             coffee.imageUrl
         }

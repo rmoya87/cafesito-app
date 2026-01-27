@@ -5,7 +5,10 @@ import com.example.cafesito.ui.utils.ConnectivityObserver
 import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +22,10 @@ class SocialRepository @Inject constructor(
 ) {
     private val _refreshTrigger = MutableStateFlow(0L)
 
+    // --- CACHÉ EN MEMORIA ---
+    private var _cachedPosts: List<PostWithDetails>? = null
+    private var _cachedReviews: List<ReviewWithAuthor>? = null
+
     private suspend fun ensureConnected() {
         if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
             throw NoConnectivityException("No hay conexión a internet.")
@@ -26,43 +33,59 @@ class SocialRepository @Inject constructor(
     }
 
     fun triggerRefresh() {
+        _cachedPosts = null
+        _cachedReviews = null
         _refreshTrigger.value++
     }
 
     /**
      * Flujo reactivo que combina la carga inicial con actualizaciones Realtime de Supabase.
+     * Implementa paralelización y caché.
      */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun getAllPostsWithDetails(): Flow<List<PostWithDetails>> {
+    fun getAllPostsWithDetails(forceRefresh: Boolean = false): Flow<List<PostWithDetails>> {
+        if (forceRefresh) _cachedPosts = null
+
         val realtimeUpdates = merge(
             supabaseDataSource.subscribeToLikes(),
             supabaseDataSource.subscribeToComments()
-        ).onEach { Log.d("REALTIME", "Cambio detectado social: $it") }.map { Unit }
+        ).map { Unit }
 
-        // Utilizamos merge de los triggers (manual + realtime) mapeados a Unit
         return merge(_refreshTrigger.map { Unit }, realtimeUpdates)
             .flatMapLatest {
                 flow {
+                    _cachedPosts?.let { emit(it); if (!forceRefresh) return@flow }
+
                     try {
                         ensureConnected()
-                        val remotePosts = supabaseDataSource.getAllPosts()
-                        val remoteLikes = supabaseDataSource.getAllLikes()
-                        val remoteComments = supabaseDataSource.getAllComments()
-                        val users = userRepository.getAllUsersList()
+                        coroutineScope {
+                            val postsDef = async { supabaseDataSource.getAllPosts() }
+                            val likesDef = async { supabaseDataSource.getAllLikes() }
+                            val commentsDef = async { supabaseDataSource.getAllComments() }
+                            val usersDef = async { userRepository.getAllUsersList() }
 
-                        val details = remotePosts.map { post ->
-                            val author = users.find { it.id == post.userId } ?: UserEntity(post.userId, null, "Usuario", "Usuario", "", "", "")
-                            PostWithDetails(
-                                post = post,
-                                author = author,
-                                likes = remoteLikes.filter { it.postId == post.id },
-                                comments = remoteComments.filter { it.postId == post.id }
-                            )
+                            val remotePosts = postsDef.await()
+                            val remoteLikes = likesDef.await()
+                            val remoteComments = commentsDef.await()
+                            val users = usersDef.await()
+
+                            val details = withContext(Dispatchers.Default) {
+                                remotePosts.map { post ->
+                                    val author = users.find { it.id == post.userId } ?: UserEntity(post.userId, null, "Usuario", "Usuario", "", "", "")
+                                    PostWithDetails(
+                                        post = post,
+                                        author = author,
+                                        likes = remoteLikes.filter { it.postId == post.id },
+                                        comments = remoteComments.filter { it.postId == post.id }
+                                    )
+                                }
+                            }
+                            _cachedPosts = details
+                            emit(details)
                         }
-                        emit(details)
                     } catch (e: Exception) {
                         Log.e("SOCIAL_REPO", "Error fetching social data", e)
-                        emit(emptyList())
+                        emit(_cachedPosts ?: emptyList())
                     }
                 }
             }.flowOn(Dispatchers.IO)
@@ -70,27 +93,34 @@ class SocialRepository @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun getPostsByUserId(userId: Int): Flow<List<PostWithDetails>> {
-        val realtimeLikes = supabaseDataSource.subscribeToLikes().map { Unit }
-        
-        return merge(_refreshTrigger.map { Unit }, realtimeLikes)
+        return merge(_refreshTrigger.map { Unit }, supabaseDataSource.subscribeToLikes().map { Unit })
             .flatMapLatest {
                 flow {
                     try {
                         ensureConnected()
-                        val remotePosts = supabaseDataSource.getAllPosts().filter { it.userId == userId }
-                        val remoteLikes = supabaseDataSource.getAllLikes()
-                        val remoteComments = supabaseDataSource.getAllComments()
-                        val author = userRepository.getUserById(userId) ?: UserEntity(userId, null, "Usuario", "Usuario", "", "", "")
+                        coroutineScope {
+                            val postsDef = async { supabaseDataSource.getAllPosts() }
+                            val likesDef = async { supabaseDataSource.getAllLikes() }
+                            val commentsDef = async { supabaseDataSource.getAllComments() }
+                            val authorDef = async { userRepository.getUserById(userId) }
 
-                        val details = remotePosts.map { post ->
-                            PostWithDetails(
-                                post = post,
-                                author = author,
-                                likes = remoteLikes.filter { it.postId == post.id },
-                                comments = remoteComments.filter { it.postId == post.id }
-                            )
+                            val filteredPosts = postsDef.await().filter { it.userId == userId }
+                            val remoteLikes = likesDef.await()
+                            val remoteComments = commentsDef.await()
+                            val author = authorDef.await() ?: UserEntity(userId, null, "Usuario", "Usuario", "", "", "")
+
+                            val details = withContext(Dispatchers.Default) {
+                                filteredPosts.map { post ->
+                                    PostWithDetails(
+                                        post = post,
+                                        author = author,
+                                        likes = remoteLikes.filter { it.postId == post.id },
+                                        comments = remoteComments.filter { it.postId == post.id }
+                                    )
+                                }
+                            }
+                            emit(details)
                         }
-                        emit(details)
                     } catch (e: Exception) {
                         emit(emptyList())
                     }
@@ -101,18 +131,28 @@ class SocialRepository @Inject constructor(
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>> = _refreshTrigger.flatMapLatest {
         flow {
+            _cachedReviews?.let { emit(it); return@flow }
             try {
                 ensureConnected()
-                val reviews = supabaseDataSource.getAllReviews()
-                val users = userRepository.getAllUsersList()
-                val result = reviews.mapNotNull { review ->
-                    users.find { it.id == review.userId }?.let { author ->
-                        ReviewWithAuthor(review, author)
+                coroutineScope {
+                    val reviewsDef = async { supabaseDataSource.getAllReviews() }
+                    val usersDef = async { userRepository.getAllUsersList() }
+
+                    val reviews = reviewsDef.await()
+                    val users = usersDef.await()
+
+                    val result = withContext(Dispatchers.Default) {
+                        reviews.mapNotNull { review ->
+                            users.find { it.id == review.userId }?.let { author ->
+                                ReviewWithAuthor(review, author)
+                            }
+                        }
                     }
+                    _cachedReviews = result
+                    emit(result)
                 }
-                emit(result)
             } catch (e: Exception) {
-                emit(emptyList())
+                emit(_cachedReviews ?: emptyList())
             }
         }
     }
@@ -221,9 +261,11 @@ class SocialRepository @Inject constructor(
                         ensureConnected()
                         val comments = supabaseDataSource.getCommentsForPost(postId)
                         val users = userRepository.getAllUsersList()
-                        val result = comments.map { comment ->
-                            val author = users.find { it.id == comment.userId } ?: UserEntity(comment.userId, null, "Usuario", "", "", "", "")
-                            CommentWithAuthor(comment, author)
+                        val result = withContext(Dispatchers.Default) {
+                            comments.map { comment ->
+                                val author = users.find { it.id == comment.userId } ?: UserEntity(comment.userId, null, "Usuario", "", "", "", "")
+                                CommentWithAuthor(comment, author)
+                            }
                         }
                         emit(result)
                     } catch (e: Exception) {

@@ -71,7 +71,7 @@ fun TimelineScreen(
                 shape = CircleShape,
                 modifier = Modifier
                     .padding(bottom = 90.dp, end = 8.dp)
-                    .size(56.dp) // Reducido un 25% aprox (de LargeFAB 96dp o normal 56dp)
+                    .size(56.dp) 
             ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(24.dp)) }
         }
     ) { padding ->
@@ -87,9 +87,18 @@ fun TimelineScreen(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
-                    itemsIndexed(state.items) { index, item ->
+                    itemsIndexed(
+                        items = state.items,
+                        key = { _, item -> 
+                            when(item) {
+                                is TimelineItem.PostItem -> "post_${item.details.post.id}"
+                                is TimelineItem.ReviewItem -> "review_${item.reviewInfo.review.id}"
+                                is TimelineItem.FavoriteActionItem -> "fav_${item.timestamp}"
+                            }
+                        }
+                    ) { index, item ->
                         
-                        // Insertar Carrusel de Recomendaciones en posición aleatoria
+                        // Insertar Carrusel de Recomendaciones
                         if (index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
                             Column {
                                 RecommendationCarousel(
@@ -100,7 +109,7 @@ fun TimelineScreen(
                             }
                         }
 
-                        // Insertar Sugerencias de Usuarios en posición aleatoria
+                        // Insertar Sugerencias de Usuarios
                         if (index == suggestionIndices[1] && state.suggestedUsers.isNotEmpty()) {
                             UserSuggestionCarousel(
                                 users = state.suggestedUsers,
@@ -113,8 +122,8 @@ fun TimelineScreen(
 
                         AnimatedVisibility(
                             visible = true,
-                            enter = fadeIn(animationSpec = tween(500, delayMillis = index * 100)) + 
-                                    slideInVertically(initialOffsetY = { 50 })
+                            enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) + 
+                                    slideInVertically(initialOffsetY = { 20 })
                         ) {
                             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
                                 when (item) {
