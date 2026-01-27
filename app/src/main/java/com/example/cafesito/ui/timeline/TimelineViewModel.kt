@@ -39,29 +39,40 @@ class TimelineViewModel @Inject constructor(
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    val uiState: StateFlow<TimelineUiState> = combine(
-        userRepository.getActiveUserFlow(), 
-        socialRepository.getAllPostsWithDetails(),
-        socialRepository.getAllReviewsWithAuthor(),
+    // ✅ OPTIMIZACIÓN: Datos "estáticos" (cambian poco frecuente) en un Flow separado
+    private val staticData = combine(
+        userRepository.getActiveUserFlow(),
         coffeeRepository.allCoffees,
-        userRepository.followingMap,
         userRepository.getAllUsersFlow(),
         coffeeRepository.getRecommendations()
-    ) { args: Array<Any?> ->
-        val activeUser = args[0] as? UserEntity
-        val posts = args[1] as? List<PostWithDetails> ?: emptyList()
-        val reviews = args[2] as? List<ReviewWithAuthor> ?: emptyList()
-        val allCoffees = args[3] as? List<CoffeeWithDetails> ?: emptyList()
-        val followingMap = args[4] as? Map<Int, Set<Int>> ?: emptyMap()
-        val allUsers = args[5] as? List<UserEntity> ?: emptyList()
-        val recommendations = args[6] as? List<CoffeeWithDetails> ?: emptyList()
-        
-        if (activeUser == null) return@combine TimelineUiState.Loading
+    ) { me, coffees, users, reco -> 
+        TimelineStaticData(me, coffees, users, reco)
+    }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-        val myFollowing = followingMap[activeUser.id] ?: emptySet()
+    // ✅ OPTIMIZACIÓN: Datos "dinámicos" (Realtime) en otro Flow
+    private val dynamicData = combine(
+        socialRepository.getAllPostsWithDetails(),
+        socialRepository.getAllReviewsWithAuthor(),
+        userRepository.followingMap
+    ) { posts, reviews, following -> 
+        TimelineDynamicData(posts, reviews, following)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    val uiState: StateFlow<TimelineUiState> = combine(
+        staticData,
+        dynamicData
+    ) { static, dynamic ->
+        if (static?.activeUser == null) return@combine TimelineUiState.Loading
+
+        val activeUser = static.activeUser
+        val posts = dynamic.posts
+        val reviews = dynamic.reviews
+        val myFollowing = dynamic.following[activeUser.id] ?: emptySet()
+        
         val visibleUserIds = myFollowing + activeUser.id
 
+        // Procesamiento en background/default dispatcher
         val postItems = posts
             .filter { visibleUserIds.contains(it.post.userId) }
             .map { TimelineItem.PostItem(it) }
@@ -69,7 +80,7 @@ class TimelineViewModel @Inject constructor(
         val reviewItems = reviews
             .filter { visibleUserIds.contains(it.review.userId) }
             .mapNotNull { reviewWithAuthor ->
-                val coffeeDetails = allCoffees.find { it.coffee.id == reviewWithAuthor.review.coffeeId }
+                val coffeeDetails = static.allCoffees.find { it.coffee.id == reviewWithAuthor.review.coffeeId }
                 coffeeDetails?.let {
                     TimelineItem.ReviewItem(
                         UserReviewInfo(
@@ -84,7 +95,7 @@ class TimelineViewModel @Inject constructor(
 
         val combinedItems = (postItems + reviewItems).sortedByDescending { it.timestamp }
 
-        val suggestedUsers = allUsers
+        val suggestedUsers = static.allUsers
             .filter { it.id != activeUser.id && !myFollowing.contains(it.id) }
             .map { entity ->
                 SuggestedUserInfo(
@@ -96,8 +107,8 @@ class TimelineViewModel @Inject constructor(
                         email = entity.email,
                         bio = entity.bio
                     ),
-                    followersCount = followingMap.values.count { it.contains(entity.id) },
-                    followingCount = followingMap[entity.id]?.size ?: 0
+                    followersCount = dynamic.following.values.count { it.contains(entity.id) },
+                    followingCount = dynamic.following[entity.id]?.size ?: 0
                 )
             }
             .take(10)
@@ -107,10 +118,24 @@ class TimelineViewModel @Inject constructor(
             suggestedUsers = suggestedUsers,
             myFollowingIds = myFollowing,
             activeUser = activeUser,
-            recommendations = recommendations
+            recommendations = static.recommendations
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
+}
 
+// Clases auxiliares para optimización de Combine
+private data class TimelineStaticData(
+    val activeUser: UserEntity?,
+    val allCoffees: List<CoffeeWithDetails>,
+    val allUsers: List<UserEntity>,
+    val recommendations: List<CoffeeWithDetails>
+)
+
+private data class TimelineDynamicData(
+    val posts: List<PostWithDetails>,
+    val reviews: List<ReviewWithAuthor>,
+    val following: Map<Int, Set<Int>>
+)
     fun toggleFollowSuggestion(userId: Int) {
         viewModelScope.launch {
             val me = userRepository.getActiveUser() ?: return@launch

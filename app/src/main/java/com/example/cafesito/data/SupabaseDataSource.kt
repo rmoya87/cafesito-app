@@ -99,6 +99,19 @@ class SupabaseDataSource @Inject constructor(
     }.decodeList<Coffee>()
 
     suspend fun upsertCoffees(coffees: List<Coffee>) { client.postgrest["coffees"].upsert(coffees) }
+    
+    /**
+     * ✅ OPTIMIZACIÓN: Obtener solo cafés específicos por IDs
+     * Usado para la despensa (evita descargar 1000 cafés para mostrar 5)
+     */
+    suspend fun getCoffeesByIds(coffeeIds: List<String>): List<Coffee> {
+        if (coffeeIds.isEmpty()) return emptyList()
+        return client.postgrest["coffees"].select {
+            filter {
+                isIn("id", coffeeIds)
+            }
+        }.decodeList<Coffee>()
+    }
 
     // --- RECOMENDACIONES (RPC) ---
     suspend fun getRecommendationsRpc(userId: Int): List<Coffee> {
@@ -132,6 +145,19 @@ class SupabaseDataSource @Inject constructor(
 
     // --- PUBLICACIONES ---
     suspend fun getAllPosts(): List<PostEntity> = client.postgrest["posts_db"].select { order("timestamp", Order.DESCENDING) }.decodeList<PostEntity>()
+    
+    /**
+     * ✅ OPTIMIZACIÓN: Filtrar posts por usuario en el servidor
+     * Evita descargar 2000 posts para quedarse con 10
+     */
+    suspend fun getPostsByUserId(userId: Int): List<PostEntity> = client.postgrest["posts_db"].select {
+        filter {
+            eq("user_id", userId)
+        }
+        order("timestamp", Order.DESCENDING)
+        limit(50) // Límite razonable por usuario
+    }.decodeList<PostEntity>()
+    
     suspend fun insertPost(post: PostEntity) = client.postgrest["posts_db"].insert(post)
     suspend fun deletePost(postId: String) {
         client.postgrest["posts_db"].delete { filter { eq("id", postId) } }

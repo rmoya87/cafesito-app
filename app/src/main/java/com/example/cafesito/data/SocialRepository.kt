@@ -99,12 +99,13 @@ class SocialRepository @Inject constructor(
                     try {
                         ensureConnected()
                         coroutineScope {
-                            val postsDef = async { supabaseDataSource.getAllPosts() }
+                            // ✅ OPTIMIZACIÓN: Filtrado en servidor
+                            val postsDef = async { supabaseDataSource.getPostsByUserId(userId) }
                             val likesDef = async { supabaseDataSource.getAllLikes() }
                             val commentsDef = async { supabaseDataSource.getAllComments() }
                             val authorDef = async { userRepository.getUserById(userId) }
 
-                            val filteredPosts = postsDef.await().filter { it.userId == userId }
+                            val filteredPosts = postsDef.await()
                             val remoteLikes = likesDef.await()
                             val remoteComments = commentsDef.await()
                             val author = authorDef.await() ?: UserEntity(userId, null, "Usuario", "Usuario", "", "", "")

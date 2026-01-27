@@ -56,6 +56,11 @@ import javax.inject.Inject
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.graphics.Color as AndroidColor
 
+import coil.Coil
+import coil.ImageLoader
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -65,6 +70,23 @@ class MainActivity : ComponentActivity() {
     lateinit var syncManager: SyncManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // ✅ OPTIMIZACIÓN: Configuración Global de Coil
+        val imageLoader = ImageLoader.Builder(this)
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.25)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(50 * 1024 * 1024)
+                    .build()
+            }
+            .respectCacheHeaders(false)
+            .build()
+        Coil.setImageLoader(imageLoader)
 
         // ✅ Edge-to-edge REAL: barras del sistema transparentes
         enableEdgeToEdge(

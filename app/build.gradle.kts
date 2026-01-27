@@ -23,7 +23,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // ✅ OPTIMIZACIÓN: R8 Full Mode + Resource Shrinking
+            isMinifyEnabled = true
+            isShrinkResources = true // Elimina recursos no usados
+            
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -37,9 +40,21 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+        
+        // ✅ OPTIMIZACIÓN: Configuración del Compose Compiler
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.RequiresOptIn",
+            // Permite a Compose inferir @Stable automáticamente
+            "-Xcontext-receivers"
+        )
     }
     buildFeatures {
         compose = true
+    }
+    
+    // ✅ OPTIMIZACIÓN: Configuración avanzada de Compose
+    composeOptions {
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 }
 

@@ -50,7 +50,13 @@ class DiaryRepository @Inject constructor(
             try {
                 ensureConnected()
                 val pantryEntities = supabaseDataSource.getPantryItems(user.id)
-                val publicCoffees = try { supabaseDataSource.getAllCoffees() } catch (e: Exception) { emptyList() }
+                
+                // ✅ OPTIMIZACIÓN: Solo descargar los cafés necesarios (by IDs)
+                val coffeeIds = pantryEntities.map { it.coffeeId }.distinct()
+                val publicCoffees = try { 
+                    if (coffeeIds.isNotEmpty()) supabaseDataSource.getCoffeesByIds(coffeeIds) else emptyList()
+                } catch (e: Exception) { emptyList() }
+                
                 val customEntities = try { supabaseDataSource.getCustomCoffees(user.id) } catch (e: Exception) { emptyList() }
                 
                 val allAvailable = publicCoffees + customEntities.map { it.toCoffee() }

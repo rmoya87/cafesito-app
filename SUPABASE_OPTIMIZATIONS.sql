@@ -35,9 +35,12 @@ GROUP BY
     c.id;
 
 -- 5. Función RPC para recomendaciones (cálculo en servidor)
+<<<<<<< HEAD
 -- Eliminar función existente si existe (para permitir cambios en signature)
 DROP FUNCTION IF EXISTS get_coffee_recommendations(integer);
 
+=======
+>>>>>>> 97236d14357684791cec6b19803d52cb1873f578
 CREATE OR REPLACE FUNCTION get_coffee_recommendations(target_user_id INT)
 RETURNS TABLE (
     id TEXT,

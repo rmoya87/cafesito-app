@@ -22,6 +22,11 @@ class UserRepository @Inject constructor(
     private val connectivityObserver: ConnectivityObserver
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+    
+    // ✅ OPTIMIZACIÓN: Caché de usuarios en memoria
+    private var _usersCache: List<UserEntity>? = null
+    private var _lastUsersCacheTime: Long = 0
+    private val USERS_CACHE_DURATION = 5 * 60 * 1000L // 5 minutos
 
     private suspend fun ensureConnected() {
         if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
@@ -45,6 +50,9 @@ class UserRepository @Inject constructor(
     }
 
     fun triggerRefresh() {
+        // ✅ Invalidar caché al refrescar
+        _usersCache = null
+        _lastUsersCacheTime = 0
         _refreshTrigger.tryEmit(Unit)
     }
 
@@ -67,6 +75,9 @@ class UserRepository @Inject constructor(
             ensureConnected()
             supabaseClient.auth.signOut()
             userDao.deleteAllUsers()
+            // ✅ Limpiar caché al logout
+            _usersCache = null
+            _lastUsersCacheTime = 0
         } catch (e: Exception) {
             Log.e("UserRepository", "Logout failed, local session preserved", e)
         }
@@ -84,12 +95,29 @@ class UserRepository @Inject constructor(
         }
     }
 
+    /**
+     * ✅ OPTIMIZACIÓN: Caché con TTL para usuarios
+     * Evita descargar 1000+ usuarios en cada pantalla
+     */
     suspend fun getAllUsersList(): List<UserEntity> {
+        val now = System.currentTimeMillis()
+        
+        // Retornar caché si es reciente
+        if (_usersCache != null && (now - _lastUsersCacheTime) < USERS_CACHE_DURATION) {
+            Log.d("UserRepository", "Usando caché de usuarios (${_usersCache!!.size} usuarios)")
+            return _usersCache!!
+        }
+        
         ensureConnected()
         return try {
-            supabaseDataSource.getAllUsers()
+            val users = supabaseDataSource.getAllUsers()
+            _usersCache = users
+            _lastUsersCacheTime = now
+            Log.d("UserRepository", "Usuarios descargados y cacheados (${users.size})")
+            users
         } catch (e: Exception) {
-            emptyList()
+            Log.e("UserRepository", "Error descargando usuarios, usando caché antigua")
+            _usersCache ?: emptyList()
         }
     }
 
