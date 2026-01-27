@@ -358,7 +358,7 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, onDelete: () -> Unit) {
                 Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(16.dp)) 
-                    .background(EspressoDeep.copy(alpha = 0.8f)),
+                    .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
             ) { 
                 Icon(Icons.Default.Delete, null, tint = Color.White, modifier = Modifier.padding(end = 16.dp)) 

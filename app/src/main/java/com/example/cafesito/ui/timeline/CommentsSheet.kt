@@ -266,7 +266,7 @@ private fun CommentRow(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Borrar", color = Color.Red) },
+                        text = { Text("Borrar", color = ElectricRed) },
                         onClick = { 
                             showMenu = false
                             onDeleteClick()

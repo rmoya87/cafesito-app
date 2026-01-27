@@ -12,6 +12,6 @@ val SoftOffWhite = Color(0xFFFDFDFD)
 val BorderLight = Color(0xFFE0E0E0).copy(alpha = 0.4f)
 
 val SuccessGreen = Color(0xFF81C784)
-val ErrorRed = Color(0xFFE57373)
 val ElectricRed = Color(0xFFFF3B30) 
-val OrangeYellow = Color(0xFFFFB300) // Añadido para avisos y detalles vibrantes
+val ErrorRed = ElectricRed
+val OrangeYellow = Color(0xFFFFB300)
