@@ -236,7 +236,7 @@ Ver archivo completo: `SUPABASE_OPTIMIZATIONS.sql`
 ./gradlew :app:analyzers
 
 # Profile de rendimiento
-adb shell am start -n com.example.cafesito/.MainActivity --profile
+adb shell am start -n com.cafesito.ap/.MainActivity --profile
 ```
 
 ---

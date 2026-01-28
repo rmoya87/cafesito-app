@@ -1,15 +1,13 @@
-package com.cafesito.ap.ui.diary
+package com.cafesito.app.ui.diary
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,14 +25,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.cafesito.ap.ui.theme.CoffeeBrown
+import com.cafesito.app.data.CoffeeWithDetails
+import com.cafesito.app.ui.theme.CoffeeBrown
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPantryItemScreen(
+    onBackClick: (String?) -> Unit,
     onlyActivity: Boolean = false,
-    onBackClick: () -> Unit,
+    coffeeId: String? = null,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     var name by remember { mutableStateOf("") }
@@ -47,24 +47,54 @@ fun AddPantryItemScreen(
     var format by remember { mutableStateOf("Grano") }
     var grams by remember { mutableStateOf("250") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var existingImageUrl by remember { mutableStateOf("") }
+
+    val coffees by viewModel.availableCoffees.collectAsState()
+    val pantryItems by viewModel.pantryItems.collectAsState()
+
+    LaunchedEffect(coffeeId, coffees, pantryItems) {
+        if (coffeeId != null) {
+            val foundInCoffees = coffees.find { it.coffee.id == coffeeId }
+            val foundInPantry = pantryItems.find { it.coffee.id == coffeeId }
+            
+            val details = foundInCoffees ?: foundInPantry?.let { CoffeeWithDetails(it.coffee, null, emptyList()) }
+            
+            details?.let { d ->
+                val c = d.coffee
+                name = c.nombre
+                brand = c.marca
+                specialty = c.especialidad
+                roast = c.tueste
+                variety = c.variedadTipo ?: ""
+                country = c.paisOrigen ?: "España"
+                hasCaffeine = c.cafeina == "Sí"
+                format = c.formato
+                existingImageUrl = c.imageUrl
+                
+                foundInPantry?.let {
+                    grams = it.pantryItem.totalGrams.toString()
+                }
+            }
+        }
+    }
 
     var countryExpanded by remember { mutableStateOf(false) }
     val countries = remember { 
-        Locale.getISOCountries().map { Locale("", it).getDisplayCountry(Locale("es")) }.sorted() 
+        Locale.getISOCountries().map { Locale.Builder().setRegion(it).build().getDisplayCountry(Locale.forLanguageTag("es")) }.sorted() 
     }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         imageUri = uri
     }
 
-    val isFormValid = name.isNotBlank() && brand.isNotBlank() && grams.isNotEmpty()
+    val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && grams.isNotEmpty()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (onlyActivity) "Registrar nuevo café" else "Nuevo Café", fontWeight = FontWeight.Bold, color = Color.Black) },
+                title = { Text(if (coffeeId != null) "Editar Café" else "Nuevo Café", fontWeight = FontWeight.Bold, color = Color.Black) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = { onBackClick(null) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.Black)
                     }
                 },
@@ -92,6 +122,8 @@ fun AddPantryItemScreen(
                         ) {
                             if (imageUri != null) {
                                 AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            } else if (existingImageUrl.isNotBlank()) {
+                                AsyncImage(model = existingImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                             } else {
                                 Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = CoffeeBrown, modifier = Modifier.size(44.dp))
                             }
@@ -104,7 +136,8 @@ fun AddPantryItemScreen(
                             onValueChange = { name = it },
                             label = { Text("Nombre del café") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
@@ -112,7 +145,8 @@ fun AddPantryItemScreen(
                             onValueChange = { brand = it },
                             label = { Text("Marca") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
                     }
                 }
@@ -168,7 +202,7 @@ fun AddPantryItemScreen(
                                 readOnly = true,
                                 label = { Text("País") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = countryExpanded) },
-                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                             )
@@ -197,7 +231,17 @@ fun AddPantryItemScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                            Switch(checked = hasCaffeine, onCheckedChange = { hasCaffeine = it }, colors = SwitchDefaults.colors(checkedThumbColor = CoffeeBrown))
+                            Switch(
+                                checked = hasCaffeine, 
+                                onCheckedChange = { hasCaffeine = it }, 
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = CoffeeBrown,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = Color.LightGray,
+                                    uncheckedBorderColor = Color.Transparent
+                                )
+                            )
                         }
 
                         Text("Presentación", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
@@ -215,8 +259,8 @@ fun AddPantryItemScreen(
 
                         OutlinedTextField(
                             value = grams,
-                            onValueChange = { grams = it },
-                            label = { Text(if (onlyActivity) "Gramos a registrar" else "Peso total de la bolsa (g)") },
+                            onValueChange = { if (it.all { c -> c.isDigit() }) grams = it },
+                            label = { Text("Peso total de la bolsa (g)") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
@@ -225,22 +269,26 @@ fun AddPantryItemScreen(
                 }
             }
 
-            // BOTÓN GUARDAR
+            // BOTÓN GUARDAR / ACTUALIZAR
             item {
                 Button(
                     onClick = { 
-                        if (onlyActivity) {
-                            // En este caso idealmente iríamos a personalización pero para simplificar lo registramos directo como "Manual"
-                            viewModel.addCoffeeConsumption(
-                                coffeeId = null,
-                                coffeeName = name,
-                                coffeeBrand = brand,
-                                caffeineAmount = 80, // valor base
-                                amountMl = 150,
-                                coffeeGrams = grams.toIntOrNull() ?: 15,
-                                preparationType = "Manual"
+                        val onSuccessNavigation = if (onlyActivity) "pantry" else null
+                        if (coffeeId != null) {
+                            viewModel.updateCustomCoffee(
+                                id = coffeeId,
+                                name = name,
+                                brand = brand,
+                                specialty = specialty,
+                                roast = roast,
+                                variety = variety,
+                                country = country,
+                                hasCaffeine = hasCaffeine,
+                                format = format,
+                                totalGrams = grams.toIntOrNull() ?: 250,
+                                imageUri = imageUri,
+                                onSuccess = { onBackClick(onSuccessNavigation) }
                             )
-                            onBackClick()
                         } else {
                             viewModel.saveCustomCoffee(
                                 name = name,
@@ -253,7 +301,7 @@ fun AddPantryItemScreen(
                                 format = format,
                                 totalGrams = grams.toIntOrNull() ?: 250,
                                 imageUri = imageUri,
-                                onSuccess = { onBackClick() }
+                                onSuccess = { onBackClick(onSuccessNavigation) }
                             )
                         }
                     },
@@ -266,7 +314,11 @@ fun AddPantryItemScreen(
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(if (onlyActivity) "REGISTRAR TAZA" else "DAR DE ALTA CAFÉ", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                    Text(
+                        text = if (coffeeId != null) "GUARDAR CAMBIOS" else if (onlyActivity) "AÑADIR A MI DESPENSA" else "DAR DE ALTA CAFÉ",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 16.sp
+                    )
                 }
             }
             item { Spacer(Modifier.height(12.dp)) }

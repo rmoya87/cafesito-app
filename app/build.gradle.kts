@@ -8,17 +8,17 @@ plugins {
 }
 
 android {
-    namespace = "com.example.cafesito"
+    namespace = "com.cafesito.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.cafesito"
+        applicationId = "com.cafesito.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.1"
 
-        testInstrumentationRunner = "com.example.cafesito.HiltTestRunner"
+        testInstrumentationRunner = "com.cafesito.app.HiltTestRunner"
     }
 
     buildTypes {
@@ -44,6 +44,7 @@ android {
     
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

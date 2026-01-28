@@ -5,11 +5,11 @@
 
 # --- KOTLIN SERIALIZATION (Crítico para Supabase) ---
 # Mantiene los serializadores generados y evita que se eliminen campos de tus modelos
--keepclassmembers class com.example.cafesito.data.** {
+-keepclassmembers class com.cafesito.app.data.** {
     *** Companion;
     *** $serializer;
 }
--keep,allowobfuscation,allowoptimization class com.example.cafesito.data.** { *; }
+-keep,allowobfuscation,allowoptimization class com.cafesito.app.data.** { *; }
 -keep class kotlinx.serialization.json.** { *; }
 -dontwarn kotlinx.serialization.**
 
@@ -18,6 +18,9 @@
 -keep class io.ktor.** { *; }
 -dontwarn io.ktor.**
 -dontwarn io.github.jan.supabase.**
+
+# --- SLF4J ---
+-dontwarn org.slf4j.**
 
 # --- HILT / DAGGER ---
 -keep class dagger.hilt.android.internal.** { *; }

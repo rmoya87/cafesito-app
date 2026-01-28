@@ -1,0 +1,169 @@
+package com.cafesito.app.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.SubcomposeAsyncImage
+import com.cafesito.app.data.PostWithDetails
+import com.cafesito.app.ui.utils.formatRelativeTime
+import com.cafesito.app.ui.theme.*
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PostCard(
+    details: PostWithDetails, 
+    onUserClick: () -> Unit,
+    onCommentClick: () -> Unit,
+    onLikeClick: () -> Unit,
+    isLiked: Boolean,
+    modifier: Modifier = Modifier,
+    showHeader: Boolean = true,
+    isOwnPost: Boolean = false,
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
+) {
+    val post = details.post
+    val author = details.author
+    var showOptionsSheet by remember { mutableStateOf(false) }
+
+    if (showOptionsSheet) {
+        PostOptionsBottomSheet(
+            onDismiss = { showOptionsSheet = false },
+            onEditClick = {
+                showOptionsSheet = false
+                onEditClick()
+            },
+            onDeleteClick = {
+                showOptionsSheet = false
+                onDeleteClick()
+            }
+        )
+    }
+
+    PremiumCard(modifier = modifier.fillMaxWidth()) {
+        Column {
+            if (showHeader) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f).clickable(onClick = onUserClick),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ModernAvatar(imageUrl = author.avatarUrl, size = 44.dp)
+                        Column(modifier = Modifier.padding(start = 12.dp)) {
+                            Text(
+                                text = author.fullName, 
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = EspressoDeep
+                            )
+                            Text(
+                                text = formatRelativeTime(post.timestamp).uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CaramelAccent,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = { showOptionsSheet = true }) {
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = EspressoDeep)
+                    }
+                }
+            }
+
+            // Imagen Ancho Completo sin bordes redondeados internos
+            SubcomposeAsyncImage(
+                model = post.imageUrl,
+                loading = { ShimmerItem(Modifier.fillMaxWidth().height(350.dp)) },
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+            )
+
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    InteractionItem(
+                        icon = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        count = details.likes.size,
+                        color = if (isLiked) ElectricRed else EspressoDeep,
+                        onClick = onLikeClick
+                    )
+                    
+                    Spacer(Modifier.width(24.dp))
+                    
+                    InteractionItem(
+                        icon = Icons.Outlined.ChatBubbleOutline,
+                        count = details.comments.size,
+                        color = EspressoDeep,
+                        onClick = onCommentClick
+                    )
+
+                    if (!showHeader && isOwnPost) {
+                        Spacer(Modifier.weight(1f))
+                        IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.MoreHoriz, null, tint = EspressoDeep)
+                        }
+                    }
+                }
+
+                if (post.comment.isNotBlank()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = post.comment,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = EspressoDeep,
+                        lineHeight = 22.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InteractionItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    count: Int,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+        if (count > 0) {
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
