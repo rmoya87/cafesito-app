@@ -1,5 +1,7 @@
 package com.cafesito.app.di
 
+import com.cafesito.shared.data.repository.SupabaseCafesitoRepository
+import com.cafesito.shared.domain.repository.CafesitoRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
@@ -28,5 +30,11 @@ object SupabaseModule {
             install(Realtime)
             install(Storage)
         }
+    }
+
+    @Provides
+    @Singleton
+    fun provideSharedCafesitoRepository(client: SupabaseClient): CafesitoRepository {
+        return SupabaseCafesitoRepository.fromClient(client)
     }
 }

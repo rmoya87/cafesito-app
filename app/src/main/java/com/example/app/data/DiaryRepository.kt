@@ -1,12 +1,15 @@
 package com.cafesito.app.data
 
 import android.util.Log
+import com.cafesito.app.data.shared.toDomain
+import com.cafesito.app.data.shared.toEntity
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import com.cafesito.app.health.HealthConnectRepository
+import com.cafesito.shared.core.DataResult
+import com.cafesito.shared.domain.repository.CafesitoRepository
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
-import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,6 +18,7 @@ import javax.inject.Singleton
 class DiaryRepository @Inject constructor(
     private val diaryDao: DiaryDao,
     private val supabaseDataSource: SupabaseDataSource,
+    private val cafesitoRepository: CafesitoRepository,
     private val userRepository: UserRepository,
     private val connectivityObserver: ConnectivityObserver,
     private val healthConnectRepository: HealthConnectRepository
@@ -37,7 +41,10 @@ class DiaryRepository @Inject constructor(
             val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
             try {
                 ensureConnected()
-                emit(supabaseDataSource.getDiaryEntries(user.id))
+                when (val result = cafesitoRepository.getDiaryEntries(user.id)) {
+                    is DataResult.Success -> emit(result.data.map { it.toEntity() })
+                    is DataResult.Failure -> emit(emptyList())
+                }
             } catch (e: Exception) { 
                 Log.e("DIARY_REPO", "Error cargando entradas", e)
                 emit(emptyList()) 
@@ -51,7 +58,10 @@ class DiaryRepository @Inject constructor(
             val user = userRepository.getActiveUser() ?: return@flow emit(emptyList())
             try {
                 ensureConnected()
-                val pantryEntities = supabaseDataSource.getPantryItems(user.id)
+                val pantryEntities = when (val result = cafesitoRepository.getPantryItems(user.id)) {
+                    is DataResult.Success -> result.data.map { it.toEntity() }
+                    is DataResult.Failure -> emptyList()
+                }
                 
                 // ✅ OPTIMIZACIÓN: Solo descargar los cafés necesarios (by IDs)
                 val coffeeIds = pantryEntities.map { it.coffeeId }.distinct()
@@ -59,7 +69,10 @@ class DiaryRepository @Inject constructor(
                     if (coffeeIds.isNotEmpty()) supabaseDataSource.getCoffeesByIds(coffeeIds) else emptyList()
                 } catch (e: Exception) { emptyList() }
                 
-                val customEntities = try { supabaseDataSource.getCustomCoffees(user.id) } catch (e: Exception) { emptyList() }
+                val customEntities = when (val result = cafesitoRepository.getCustomCoffees(user.id)) {
+                    is DataResult.Success -> result.data.map { it.toEntity() }
+                    is DataResult.Failure -> emptyList()
+                }
                 
                 val allAvailable = publicCoffees + customEntities.map { it.toCoffee() }
                 
@@ -104,7 +117,10 @@ class DiaryRepository @Inject constructor(
                     timestamp = System.currentTimeMillis(), 
                     type = type
                 )
-                val insertedEntry = supabaseDataSource.insertDiaryEntry(entry)
+                val insertedEntry = when (val result = cafesitoRepository.addDiaryEntry(entry.toDomain())) {
+                    is DataResult.Success -> result.data.toEntity()
+                    is DataResult.Failure -> entry
+                }
                 
                 // Sync with Health Connect if enabled
                 healthConnectRepository.syncDiaryEntry(
@@ -129,7 +145,10 @@ class DiaryRepository @Inject constructor(
         ensureConnected()
         val user = userRepository.getActiveUser() ?: return
         try {
-            val items = supabaseDataSource.getPantryItems(user.id)
+            val items = when (val result = cafesitoRepository.getPantryItems(user.id)) {
+                is DataResult.Success -> result.data.map { it.toEntity() }
+                is DataResult.Failure -> emptyList()
+            }
             val existing = items.find { it.coffeeId == coffeeId }
             
             if (existing != null) {
@@ -137,7 +156,7 @@ class DiaryRepository @Inject constructor(
                     gramsRemaining = (existing.gramsRemaining + deltaGrams).coerceAtLeast(0), 
                     lastUpdated = System.currentTimeMillis()
                 )
-                supabaseDataSource.upsertPantryItem(updated)
+                cafesitoRepository.upsertPantryItem(updated.toDomain())
             }
         } catch (e: Exception) { 
             Log.e("DIARY_REPO", "Error actualizando stock", e)
@@ -168,7 +187,7 @@ class DiaryRepository @Inject constructor(
                     imageUrl = imageUrl, totalGrams = totalGrams
                 )
                 
-                supabaseDataSource.insertCustomCoffee(customCoffee)
+                cafesitoRepository.addCustomCoffee(customCoffee.toDomain())
                 updatePantryStockFull(coffeeId, totalGrams, totalGrams) 
                 triggerRefresh()
             } catch (e: Exception) {
@@ -187,7 +206,10 @@ class DiaryRepository @Inject constructor(
         val user = userRepository.getActiveUser() ?: return
         withContext(NonCancellable) {
             try {
-                val currentCoffees = supabaseDataSource.getCustomCoffees(user.id)
+                val currentCoffees = when (val result = cafesitoRepository.getCustomCoffees(user.id)) {
+                    is DataResult.Success -> result.data.map { it.toEntity() }
+                    is DataResult.Failure -> emptyList()
+                }
                 val existing = currentCoffees.find { it.id == id }
                 
                 var imageUrl = existing?.imageUrl ?: ""
@@ -202,11 +224,14 @@ class DiaryRepository @Inject constructor(
                     imageUrl = imageUrl, totalGrams = totalGrams
                 )
                 
-                supabaseDataSource.updateCustomCoffee(id, user.id, updatedCoffee) 
+                cafesitoRepository.updateCustomCoffee(updatedCoffee.toDomain())
                 
-                val currentPantryItem = supabaseDataSource.getPantryItems(user.id).find { it.coffeeId == id }
+                val currentPantryItem = when (val result = cafesitoRepository.getPantryItems(user.id)) {
+                    is DataResult.Success -> result.data.map { it.toEntity() }
+                    is DataResult.Failure -> emptyList()
+                }.find { it.coffeeId == id }
                 if (currentPantryItem != null) {
-                    supabaseDataSource.upsertPantryItem(currentPantryItem.copy(totalGrams = totalGrams))
+                    cafesitoRepository.upsertPantryItem(currentPantryItem.copy(totalGrams = totalGrams).toDomain())
                 }
                 
                 triggerRefresh()
@@ -228,7 +253,7 @@ class DiaryRepository @Inject constructor(
                 totalGrams = totalGrams,
                 lastUpdated = System.currentTimeMillis()
             )
-            supabaseDataSource.upsertPantryItem(item)
+            cafesitoRepository.upsertPantryItem(item.toDomain())
             triggerRefresh()
         } catch (e: Exception) { throw e }
     }
@@ -242,7 +267,7 @@ class DiaryRepository @Inject constructor(
         ensureConnected()
         val user = userRepository.getActiveUser() ?: return
         try {
-            supabaseDataSource.deletePantryItem(coffeeId, user.id)
+            cafesitoRepository.deletePantryItem(coffeeId, user.id)
             triggerRefresh()
         } catch (e: Exception) { }
     }
@@ -250,7 +275,7 @@ class DiaryRepository @Inject constructor(
     suspend fun deleteDiaryEntry(entryId: Long) {
         try {
             ensureConnected()
-            supabaseDataSource.deleteDiaryEntry(entryId)
+            cafesitoRepository.deleteDiaryEntry(entryId)
             triggerRefresh()
         } catch (e: Exception) { }
     }
@@ -261,7 +286,10 @@ class DiaryRepository @Inject constructor(
         try {
             val user = userRepository.getActiveUser() ?: return
             val externalRecords = healthConnectRepository.readAndSyncExternalData()
-            val currentEntries = supabaseDataSource.getDiaryEntries(user.id)
+            val currentEntries = when (val result = cafesitoRepository.getDiaryEntries(user.id)) {
+                is DataResult.Success -> result.data.map { it.toEntity() }
+                is DataResult.Failure -> emptyList()
+            }
             val existingExternalIds = currentEntries.mapNotNull { it.externalId }.toSet()
             
             externalRecords.forEach { (mg, ts) ->
@@ -276,7 +304,7 @@ class DiaryRepository @Inject constructor(
                         type = "CUP",
                         externalId = externalId
                     )
-                    supabaseDataSource.insertDiaryEntry(entry)
+                    cafesitoRepository.addDiaryEntry(entry.toDomain())
                 }
             }
             triggerRefresh()
