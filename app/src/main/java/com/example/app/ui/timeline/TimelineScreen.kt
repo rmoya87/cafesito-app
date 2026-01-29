@@ -86,7 +86,7 @@ fun TimelineScreen(
                 ) {
                     itemsIndexed(
                         items = state.items,
-                        key = { _, item -> 
+                        key = { _, item ->
                             when(item) {
                                 is TimelineItem.PostItem -> "post_${item.details.post.id}"
                                 is TimelineItem.ReviewItem -> "review_${item.reviewInfo.review.id}"
@@ -94,7 +94,7 @@ fun TimelineScreen(
                             }
                         }
                     ) { index, item ->
-                        
+
                         // Insertar Carrusel de Recomendaciones
                         if (index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
                             Column {
@@ -119,7 +119,7 @@ fun TimelineScreen(
 
                         AnimatedVisibility(
                             visible = true,
-                            enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) + 
+                            enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) +
                                     slideInVertically(initialOffsetY = { 20 })
                         ) {
                             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {

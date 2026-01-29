@@ -58,12 +58,12 @@ fun LoginScreen(
     }
 
     // Efecto para bypass de login en debug o pre-launch de Google Play
-    LaunchedEffect(Unit) {
-        if (BuildConfig.DEBUG || isPreLaunchDevice()) {
-            // Navegamos directamente al timeline con datos mock o genéricos
-            onLoginSuccess("test_user_id", "tester@cafesito.app", "Tester Google", "", false)
-        }
-    }
+    //LaunchedEffect(Unit) {
+    //    if (BuildConfig.DEBUG || isPreLaunchDevice()) {
+    //        // Navegamos directamente al timeline con datos mock o genéricos
+    //        onLoginSuccess("test-uuid-001", "alex@cafesito.test", "Alex Barista", "", false)
+    //    }
+    //}
 
     // Configuración de ExoPlayer para el video de fondo
     val exoPlayer = remember {

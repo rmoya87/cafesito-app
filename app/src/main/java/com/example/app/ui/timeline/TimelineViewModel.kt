@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.timeline
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
@@ -21,6 +22,7 @@ class TimelineViewModel @Inject constructor(
     val isRefreshing = _isRefreshing.asStateFlow()
 
     init {
+        Log.d("TimelineVM", "Initializing TimelineViewModel")
         refreshData()
     }
 
@@ -28,32 +30,34 @@ class TimelineViewModel @Inject constructor(
         viewModelScope.launch {
             if (_isRefreshing.value) return@launch
             _isRefreshing.value = true
+            Log.d("TimelineVM", "Triggering global refresh...")
             try {
                 userRepository.syncUsers()
                 socialRepository.syncSocialData()
+                Log.d("TimelineVM", "Refresh trigger sent successfully")
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("TimelineVM", "Error in refreshData", e)
             } finally {
                 _isRefreshing.value = false
             }
         }
     }
 
-    // ✅ OPTIMIZACIÓN: Datos "estáticos" (cambian poco frecuente) en un Flow separado
+    // ✅ Mejorado: staticData con logs y mayor tolerancia
     private val staticData = combine(
-        userRepository.getActiveUserFlow(),
-        coffeeRepository.allCoffees,
-        userRepository.getAllUsersFlow(),
-        coffeeRepository.getRecommendations()
+        userRepository.getActiveUserFlow().onEach { Log.d("TimelineVM", "ActiveUser emitted: ${it?.username}") },
+        coffeeRepository.allCoffees.onStart { emit(emptyList()) },
+        userRepository.getAllUsersFlow().onStart { emit(emptyList()) },
+        coffeeRepository.getRecommendations().onStart { emit(emptyList()) }
     ) { me, coffees, users, reco -> 
         TimelineStaticData(me, coffees, users, reco)
-    }.stateIn(viewModelScope, SharingStarted.Lazily, null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // ✅ OPTIMIZACIÓN: Datos "dinámicos" (Realtime) en otro Flow
+    // ✅ Mejorado: dynamicData con logs
     private val dynamicData = combine(
-        socialRepository.getAllPostsWithDetails(),
-        socialRepository.getAllReviewsWithAuthor(),
-        userRepository.followingMap
+        socialRepository.getAllPostsWithDetails().onEach { Log.d("TimelineVM", "Posts emitted: ${it.size}") },
+        socialRepository.getAllReviewsWithAuthor().onEach { Log.d("TimelineVM", "Reviews emitted: ${it.size}") },
+        userRepository.followingMap.onEach { Log.d("TimelineVM", "FollowingMap emitted: ${it.size} entries") }
     ) { posts, reviews, following -> 
         TimelineDynamicData(posts, reviews, following)
     }
@@ -63,16 +67,20 @@ class TimelineViewModel @Inject constructor(
         staticData,
         dynamicData
     ) { static, dynamic ->
-        if (static?.activeUser == null) return@combine TimelineUiState.Loading
+        Log.d("TimelineVM", "Combining UI State... staticUserPresent=${static?.activeUser != null}")
+        
+        if (static?.activeUser == null) {
+            return@combine TimelineUiState.Loading
+        }
 
         val activeUser = static.activeUser
         val posts = dynamic.posts
         val reviews = dynamic.reviews
         val myFollowing = dynamic.following[activeUser.id] ?: emptySet()
         
+        // FILTRO: Solo yo y a los que sigo
         val visibleUserIds = myFollowing + activeUser.id
 
-        // Procesamiento en background/default dispatcher
         val postItems = posts
             .filter { visibleUserIds.contains(it.post.userId) }
             .map { TimelineItem.PostItem(it) }
@@ -94,6 +102,7 @@ class TimelineViewModel @Inject constructor(
             }
 
         val combinedItems = (postItems + reviewItems).sortedByDescending { it.timestamp }
+        Log.d("TimelineVM", "Final Items Count: ${combinedItems.size}")
 
         val suggestedUsers = static.allUsers
             .filter { it.id != activeUser.id && !myFollowing.contains(it.id) }
@@ -122,6 +131,7 @@ class TimelineViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
 
+    // ... Resto de funciones (toggleLike, deletePost, etc) permanecen igual
     fun toggleFollowSuggestion(userId: Int) {
         viewModelScope.launch {
             val me = userRepository.getActiveUser() ?: return@launch
@@ -173,7 +183,6 @@ class TimelineViewModel @Inject constructor(
     }
 }
 
-// Clases auxiliares para optimización de Combine
 private data class TimelineStaticData(
     val activeUser: UserEntity?,
     val allCoffees: List<CoffeeWithDetails>,
