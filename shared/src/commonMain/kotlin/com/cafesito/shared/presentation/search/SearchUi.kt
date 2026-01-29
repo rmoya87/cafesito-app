@@ -3,6 +3,8 @@ package com.cafesito.shared.presentation.search
 import com.cafesito.shared.domain.search.CoffeeSummary
 import com.cafesito.shared.domain.search.SearchFilters
 import com.cafesito.shared.domain.search.SearchCoffeesUseCase
+import com.cafesito.shared.core.CommonFlow
+import com.cafesito.shared.core.asCommonFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -43,6 +45,10 @@ class SearchViewModel(
 
     private val _effects = MutableSharedFlow<SearchEffect>(extraBufferCapacity = 1)
     val effects = _effects.asSharedFlow()
+
+    fun stateFlow(): CommonFlow<SearchUiState> = state.asCommonFlow()
+
+    fun effectsFlow(): CommonFlow<SearchEffect> = effects.asCommonFlow()
 
     fun handle(intent: SearchIntent) {
         when (intent) {
