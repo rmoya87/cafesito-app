@@ -80,7 +80,7 @@ fun BrewLabScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = { 
             GlassyTopBar(
                 title = step.title,
@@ -150,7 +150,7 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
                     modifier = Modifier.size(48.dp)
                 )
             } else {
-                Icon(Icons.Default.CoffeeMaker, null, tint = CaramelAccent, modifier = Modifier.size(32.dp))
+                Icon(Icons.Default.CoffeeMaker, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
             }
             Spacer(Modifier.height(12.dp))
             Text(
@@ -158,7 +158,7 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                color = EspressoDeep,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -176,7 +176,7 @@ fun ChooseCoffeeStep(items: List<PantryItemWithDetails>, onSelect: (PantryItemWi
         if (items.isEmpty()) {
             item { 
                 Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No tienes café en tu despensa", color = Color.Gray)
+                    Text("No tienes café en tu despensa", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -201,15 +201,15 @@ fun ConfigStep(method: BrewMethod?, water: Float, ratio: Float, coffeeGrams: Flo
                         if (method?.hasWaterAdjustment == true) {
                             DataBlock("AGUA", "${water.roundToInt()} ml", waterBlue)
                         }
-                        DataBlock("CAFÉ", "${String.format("%.1f", coffeeGrams)} g", CaramelAccent)
+                        DataBlock("CAFÉ", "${String.format("%.1f", coffeeGrams)} g", MaterialTheme.colorScheme.primary)
                     }
                     
                     if (method?.hasWaterAdjustment == true) {
                         Spacer(Modifier.height(32.dp))
-                        Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Slider(
                             value = water, onValueChange = { viewModel.setWaterAmount(it) }, valueRange = 50f..1000f,
-                            colors = SliderDefaults.colors(thumbColor = waterBlue, activeTrackColor = waterBlue, inactiveTrackColor = Color.LightGray)
+                            colors = SliderDefaults.colors(thumbColor = waterBlue, activeTrackColor = waterBlue, inactiveTrackColor = MaterialTheme.colorScheme.outline)
                         )
                     }
                     
@@ -217,17 +217,17 @@ fun ConfigStep(method: BrewMethod?, water: Float, ratio: Float, coffeeGrams: Flo
                     val label = if (method?.hasWaterAdjustment == true) "RATIO (INTENSIDAD)" else "DOSIS DE CAFÉ"
                     val range = if (method?.hasWaterAdjustment == true) 10f..20f else 14f..22f
                     
-                    Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Slider(
                         value = ratio, onValueChange = { viewModel.setRatio(it) }, valueRange = range,
-                        colors = SliderDefaults.colors(thumbColor = CaramelAccent, activeTrackColor = CaramelAccent, inactiveTrackColor = Color.LightGray)
+                        colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary, activeTrackColor = MaterialTheme.colorScheme.primary, inactiveTrackColor = MaterialTheme.colorScheme.outline)
                     )
                 }
             }
 
             Spacer(Modifier.height(24.dp))
             
-            Text("CONSEJOS DEL BARISTA", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+            Text("CONSEJOS DEL BARISTA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LocalDetailBlock("MOLIENDA", method?.grindSize ?: "Media", Icons.Default.Grain, Modifier.weight(1f))
@@ -240,10 +240,10 @@ fun ConfigStep(method: BrewMethod?, water: Float, ratio: Float, coffeeGrams: Flo
             Button(
                 onClick = onNext, 
                 modifier = Modifier.fillMaxWidth().height(56.dp), 
-                colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep), 
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary), 
                 shape = RoundedCornerShape(28.dp)
             ) {
-                Text("EMPEZAR PREPARACIÓN", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text("EMPEZAR PREPARACIÓN", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
@@ -267,33 +267,33 @@ fun PreparationStep(
             
             PremiumCard {
                 Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.fillMaxWidth().size(280.dp).clip(CircleShape).background(CreamLight).border(BorderStroke(1.dp, BorderLight), CircleShape), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxWidth().size(280.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), CircleShape), contentAlignment = Alignment.Center) {
                         WaterWaveAnimation(progress = if (isTimerRunning) (timerSeconds % 180) / 180f else 0f, modifier = Modifier.fillMaxSize())
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = EspressoDeep)
-                            Text(currentPhase.label.uppercase(), style = MaterialTheme.typography.labelLarge, color = CaramelAccent, fontWeight = FontWeight.Bold)
+                            Text(text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                            Text(currentPhase.label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         }
                     }
                     
                     if (isTimerRunning && hasNextPhase) {
                         Spacer(Modifier.height(16.dp))
                         Surface(
-                            color = CaramelAccent.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
                                 text = "PRÓXIMO PASO EN ${remainingSeconds}S",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = CaramelAccent,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
                         }
                     }
 
                     Spacer(Modifier.height(24.dp))
-                    Surface(color = SoftOffWhite, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, BorderLight)) {
-                        Text(text = currentPhase.instruction, style = MaterialTheme.typography.bodyLarge, color = EspressoDeep, modifier = Modifier.padding(20.dp), textAlign = TextAlign.Center, lineHeight = 24.sp)
+                    Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
+                        Text(text = currentPhase.instruction, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(20.dp), textAlign = TextAlign.Center, lineHeight = 24.sp)
                     }
                 }
             }
@@ -305,20 +305,20 @@ fun PreparationStep(
                     onClick = { viewModel.resetAll() }, 
                     modifier = Modifier.weight(1f).height(56.dp), 
                     shape = RoundedCornerShape(28.dp), 
-                    border = BorderStroke(1.dp, EspressoDeep),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = EspressoDeep)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Bold)
                 }
                 Button(
                     onClick = { viewModel.toggleTimer() }, 
                     modifier = Modifier.weight(1f).height(56.dp), 
-                    colors = ButtonDefaults.buttonColors(containerColor = if (isTimerRunning) ElectricRed else EspressoDeep), 
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isTimerRunning) ElectricRed else MaterialTheme.colorScheme.primary), 
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Icon(if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null)
+                    Icon(if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isTimerRunning) "PAUSAR" else "INICIAR", fontWeight = FontWeight.Bold)
+                    Text(if (isTimerRunning) "PAUSAR" else "INICIAR", fontWeight = FontWeight.Bold, color = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
@@ -333,7 +333,7 @@ fun ResultStep(selectedTaste: String?, recommendation: String?, selectedItem: Pa
             
             PremiumCard {
                 Column(Modifier.padding(24.dp)) {
-                    Text("¿QUÉ SABOR HAS OBTENIDO?", style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                    Text("¿QUÉ SABOR HAS OBTENIDO?", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                     Spacer(Modifier.height(24.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TasteOption("AMARGO", isSelected = selectedTaste == "Amargo", Modifier.weight(1f)) { viewModel.onTasteFeedback("Amargo") }
@@ -344,11 +344,11 @@ fun ResultStep(selectedTaste: String?, recommendation: String?, selectedItem: Pa
                     AnimatedVisibility(visible = recommendation != null) {
                         Column {
                             Spacer(Modifier.height(24.dp))
-                            Surface(color = CaramelAccent.copy(alpha = 0.05f), shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.1f))) {
+                            Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f), shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))) {
                                 Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.AutoAwesome, null, tint = CaramelAccent, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                     Spacer(Modifier.width(16.dp))
-                                    Text(recommendation ?: "", style = MaterialTheme.typography.bodyMedium, color = EspressoDeep, lineHeight = 20.sp)
+                                    Text(recommendation ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, lineHeight = 20.sp)
                                 }
                             }
                             
@@ -356,7 +356,7 @@ fun ResultStep(selectedTaste: String?, recommendation: String?, selectedItem: Pa
                             Text(
                                 text = "Consejo: Deja reposar tu café 5 minutos antes de la primera cata para percibir mejor su dulzura natural.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             )
                         }
@@ -367,11 +367,11 @@ fun ResultStep(selectedTaste: String?, recommendation: String?, selectedItem: Pa
 
         BottomActionContainer {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = { viewModel.resetAll() }, Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(28.dp), border = BorderStroke(1.dp, EspressoDeep)) {
-                    Text("REINICIAR", fontWeight = FontWeight.Bold, color = EspressoDeep)
+                OutlinedButton(onClick = { viewModel.resetAll() }, Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(28.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)) {
+                    Text("REINICIAR", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
-                Button(onClick = { viewModel.saveToDiary { onNavigateToDiary() } }, enabled = selectedItem != null && selectedTaste != null, modifier = Modifier.weight(1.2f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent, disabledContainerColor = Color.LightGray), shape = RoundedCornerShape(28.dp)) {
-                    Text("GUARDAR EN MI DIARIO", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Button(onClick = { viewModel.saveToDiary { onNavigateToDiary() } }, enabled = selectedItem != null && selectedTaste != null, modifier = Modifier.weight(1.2f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, disabledContainerColor = MaterialTheme.colorScheme.outline), shape = RoundedCornerShape(28.dp)) {
+                    Text("GUARDAR EN MI DIARIO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
@@ -399,17 +399,17 @@ fun PantrySelectionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
             )
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(text = item.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(text = item.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = CaramelAccent)
+                Text(text = item.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = item.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
-                    color = CaramelAccent,
-                    trackColor = BorderLight
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.outline
                 )
             }
-            Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
+            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -419,7 +419,7 @@ fun BottomActionContainer(content: @Composable BoxScope.() -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .navigationBarsPadding()
             .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 100.dp),
         content = content
@@ -431,7 +431,7 @@ fun SectionHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelLarge,
-        color = CaramelAccent,
+        color = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.Black,
         letterSpacing = 1.sp,
         modifier = Modifier.padding(bottom = 12.dp)
@@ -439,9 +439,9 @@ fun SectionHeader(title: String) {
 }
 
 @Composable
-fun DataBlock(label: String, value: String, valueColor: Color = EspressoDeep) {
+fun DataBlock(label: String, value: String, valueColor: Color) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = valueColor)
     }
 }
@@ -452,8 +452,8 @@ fun TasteOption(label: String, isSelected: Boolean, modifier: Modifier = Modifie
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) CaramelAccent else Color.White,
-        border = BorderStroke(1.dp, if (isSelected) CaramelAccent else BorderLight)
+        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
     ) {
         Text(
             text = label, 
@@ -461,7 +461,7 @@ fun TasteOption(label: String, isSelected: Boolean, modifier: Modifier = Modifie
             textAlign = TextAlign.Center, 
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color.White else EspressoDeep
+            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -507,13 +507,13 @@ fun WaterWaveAnimation(progress: Float, modifier: Modifier = Modifier) {
 fun LocalDetailBlock(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier) {
     PremiumCard(modifier = modifier) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).background(CaramelAccent.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = CaramelAccent, modifier = Modifier.size(16.dp))
+            Box(Modifier.size(32.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
-                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
+                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

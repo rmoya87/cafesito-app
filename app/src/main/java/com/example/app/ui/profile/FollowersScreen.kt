@@ -44,7 +44,7 @@ fun FollowersScreen(
     }
 
     Scaffold(
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
                 title = if (isSearchMode) "" else "Seguidores",
@@ -68,15 +68,17 @@ fun FollowersScreen(
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                             )
                         )
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = EspressoDeep)
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     } else {
                         IconButton(onClick = { isSearchMode = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = EspressoDeep)
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -97,7 +99,7 @@ fun FollowersScreen(
                     ) {
                         Text(
                             text = if (searchQuery.isEmpty()) "Todavía no hay seguidores" else "No se encontraron resultados",
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -126,13 +128,13 @@ fun FollowItemModern(
     onClick: () -> Unit
 ) {
     Surface(
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -147,12 +149,12 @@ fun FollowItemModern(
                     text = user.username,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = EspressoDeep
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = user.fullName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
@@ -161,8 +163,8 @@ fun FollowItemModern(
                     onClick = onFollowClick,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFollowing) Color(0xFFF5F5F5) else EspressoDeep,
-                        contentColor = if (isFollowing) EspressoDeep else Color.White
+                        containerColor = if (isFollowing) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
+                        contentColor = if (isFollowing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
                     ),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     modifier = Modifier.height(36.dp)

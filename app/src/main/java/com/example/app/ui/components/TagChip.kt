@@ -14,16 +14,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cafesito.app.ui.theme.BorderLight
-import com.cafesito.app.ui.theme.CreamLight
-import com.cafesito.app.ui.theme.EspressoDeep
+import com.cafesito.app.ui.theme.*
 
 @Composable
 fun TagChip(label: String, value: String) {
     Surface(
-        color = CreamLight,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, BorderLight)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -32,7 +30,7 @@ fun TagChip(label: String, value: String) {
             Text(
                 text = "$label: ",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 9.sp,
                 maxLines = 1,
                 softWrap = false
@@ -40,7 +38,7 @@ fun TagChip(label: String, value: String) {
             Text(
                 text = value.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = EspressoDeep,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.5.sp,

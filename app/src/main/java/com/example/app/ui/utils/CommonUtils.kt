@@ -6,6 +6,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.compose.ui.graphics.toArgb
 import com.cafesito.app.ui.theme.EspressoDeep
+import com.cafesito.app.ui.theme.NightEspresso
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -62,13 +63,18 @@ fun String.capitalizeWords(): String = if (this.isBlank()) "" else {
 
 fun openCustomTab(context: Context, url: String) {
     try {
-        val params = CustomTabColorSchemeParams.Builder()
+        val lightParams = CustomTabColorSchemeParams.Builder()
             .setToolbarColor(EspressoDeep.toArgb())
+            .build()
+            
+        val darkParams = CustomTabColorSchemeParams.Builder()
+            .setToolbarColor(NightEspresso.toArgb())
             .build()
             
         val intent = CustomTabsIntent.Builder()
             .setShowTitle(true)
-            .setDefaultColorSchemeParams(params)
+            .setColorSchemeParams(CustomTabsIntent.COLOR_SCHEME_LIGHT, lightParams)
+            .setColorSchemeParams(CustomTabsIntent.COLOR_SCHEME_DARK, darkParams)
             .build()
         intent.launchUrl(context, Uri.parse(url))
     } catch (e: Exception) {}

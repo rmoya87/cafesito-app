@@ -49,7 +49,7 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
             .fillMaxWidth()
             .clickable { onClick(coffee.id) },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column {
@@ -74,7 +74,7 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(coffee.nombre ?: "Café", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(coffee.nombre ?: "Café", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text(
                         text = coffee.marca ?: "",
                         style = MaterialTheme.typography.bodyMedium,
@@ -90,7 +90,8 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "SCA",
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "${(coffee.puntuacionOficial ?: 0.0).roundToInt()}",

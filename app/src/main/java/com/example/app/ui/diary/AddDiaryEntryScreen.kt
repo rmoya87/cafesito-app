@@ -67,7 +67,7 @@ fun AddDiaryEntryScreen(
     val isCustomizing = initialType != "WATER" && step == 2
 
     Scaffold(
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             if (!isCustomizing) {
                 GlassyTopBar(
@@ -175,9 +175,9 @@ fun WaterRegistrationStepPremium(onRegister: (Int) -> Unit, onCancel: () -> Unit
                     text = "${ml.roundToInt()} ml",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    color = EspressoDeep
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelLarge, color = CaramelAccent, fontSize = 10.sp)
+                Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
             }
         }
         
@@ -191,7 +191,7 @@ fun WaterRegistrationStepPremium(onRegister: (Int) -> Unit, onCancel: () -> Unit
             colors = SliderDefaults.colors(
                 thumbColor = waterBlue,
                 activeTrackColor = waterBlue,
-                inactiveTrackColor = Color.LightGray
+                inactiveTrackColor = MaterialTheme.colorScheme.outline
             ),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -229,7 +229,7 @@ fun WaterRegistrationStepPremium(onRegister: (Int) -> Unit, onCancel: () -> Unit
                 if (isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                 } else {
-                    Text("REGISTRAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("REGISTRAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = Color.White)
                 }
             }
         }
@@ -258,11 +258,11 @@ fun CoffeeSelectionStepPremium(
         contentPadding = PaddingValues(24.dp)
     ) {
         item {
-            Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+            Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
             if (pantryItems.isEmpty()) {
                 PremiumCard {
-                    Text("Tu despensa está vacía", color = Color.Gray, modifier = Modifier.padding(24.dp))
+                    Text("Tu despensa está vacía", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(24.dp))
                 }
             } else {
                 LazyRow(
@@ -284,13 +284,13 @@ fun CoffeeSelectionStepPremium(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Busca un café o marca") },
                 shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
                 singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) }
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
             )
             Spacer(Modifier.height(16.dp))
             
-            Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+            Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
         }
 
@@ -304,12 +304,12 @@ fun CoffeeSelectionStepPremium(
             Button(
                 onClick = onQuickAddClick,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(28.dp)
             ) {
-                Icon(Icons.Default.Bolt, null)
+                Icon(Icons.Default.Bolt, null, tint = MaterialTheme.colorScheme.onPrimary)
                 Spacer(Modifier.width(12.dp))
-                Text("REGISTRO RÁPIDO", fontWeight = FontWeight.Bold)
+                Text("REGISTRO RÁPIDO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
@@ -341,7 +341,7 @@ fun CoffeeCustomizationStepPremium(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(SoftOffWhite)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp) // Espacio para el botón fijo
@@ -351,14 +351,14 @@ fun CoffeeCustomizationStepPremium(
                     if (coffee != null) {
                         AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     } else {
-                        Box(Modifier.fillMaxSize().background(CreamLight), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Coffee, null, Modifier.size(60.dp), tint = CaramelAccent)
+                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Coffee, null, Modifier.size(60.dp), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
-                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, EspressoDeep.copy(alpha = 0.9f)))))
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)))))
                     
                     Column(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
-                        Text(coffee?.marca?.uppercase() ?: "CAFESITO", color = SoftOffWhite, style = MaterialTheme.typography.labelLarge, fontSize = 10.sp)
+                        Text(coffee?.marca?.uppercase() ?: "CAFESITO", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontSize = 10.sp)
                         Text(coffee?.nombre ?: "Selecciona tu estilo", color = Color.White, style = MaterialTheme.typography.headlineMedium)
                     }
                 }
@@ -367,29 +367,29 @@ fun CoffeeCustomizationStepPremium(
             item {
                 Column(Modifier.padding(24.dp)) {
                     if (isFromPantry) {
-                        Text("DOSIS DE CAFÉ", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+                        Text("DOSIS DE CAFÉ", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(16.dp))
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("${grams.roundToInt()} g", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                            Text("${grams.roundToInt()} g", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                             Slider(
                                 value = grams,
                                 onValueChange = { grams = it },
                                 valueRange = 5f..50f,
                                 enabled = !isSaving,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = CaramelAccent, 
-                                    activeTrackColor = CaramelAccent, 
-                                    inactiveTrackColor = Color.LightGray
+                                    thumbColor = MaterialTheme.colorScheme.primary, 
+                                    activeTrackColor = MaterialTheme.colorScheme.primary, 
+                                    inactiveTrackColor = MaterialTheme.colorScheme.outline
                                 )
                             )
                         }
                         Spacer(Modifier.height(32.dp))
                     }
 
-                    Text("ESTILO DE PREPARACIÓN", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+                    Text("ESTILO DE PREPARACIÓN", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(16.dp))
                 }
             }
@@ -406,8 +406,8 @@ fun CoffeeCustomizationStepPremium(
                         Surface(
                             onClick = { if (!isSaving) selectedPrepType = type },
                             shape = RoundedCornerShape(24.dp),
-                            color = if (isSelected) EspressoDeep else Color.White,
-                            border = if (isSelected) null else BorderStroke(1.dp, BorderLight),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                            border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                             modifier = Modifier.weight(1f).height(120.dp)
                         ) {
                             Column(
@@ -425,7 +425,7 @@ fun CoffeeCustomizationStepPremium(
                                 }
                                 Text(
                                     text = type.uppercase(), 
-                                    color = if (isSelected) Color.White else EspressoDeep, 
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, 
                                     style = MaterialTheme.typography.labelLarge,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
@@ -449,7 +449,7 @@ fun CoffeeCustomizationStepPremium(
                 .navigationBarsPadding()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, SoftOffWhite.copy(alpha = 0.95f)),
+                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background.copy(alpha = 0.95f)),
                         startY = 0f
                     )
                 )
@@ -463,15 +463,15 @@ fun CoffeeCustomizationStepPremium(
                 },
                 enabled = !isSaving,
                 modifier = Modifier.fillMaxWidth().height(60.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(30.dp)
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("AÑADIR REGISTRO", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        Text("ESTIMACIÓN: $calculatedCaffeine MG CAFEÍNA", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
+                        Text("AÑADIR REGISTRO", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onPrimary)
+                        Text("ESTIMACIÓN: $calculatedCaffeine MG CAFEÍNA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
                     }
                 }
             }
@@ -481,7 +481,7 @@ fun CoffeeCustomizationStepPremium(
             onClick = { if (!isSaving) onBackStep() },
             modifier = Modifier.statusBarsPadding().padding(8.dp)
         ) {
-            Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(40.dp)) {
+            Surface(color = Color.Black.copy(alpha = 0.3f), shape = CircleShape, modifier = Modifier.size(40.dp)) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBackIos, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
@@ -504,8 +504,8 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(100.dp)
             )
             Column(Modifier.padding(12.dp)) {
-                Text(item.coffee.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${item.pantryItem.gramsRemaining}G REST.", style = MaterialTheme.typography.labelLarge, color = CaramelAccent, fontSize = 8.sp)
+                Text(item.coffee.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                Text("${item.pantryItem.gramsRemaining}G REST.", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 8.sp)
             }
         }
     }
@@ -523,8 +523,8 @@ fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
             )
             Spacer(Modifier.width(16.dp))
             Column {
-                Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = CaramelAccent, fontSize = 9.sp)
+                Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontSize = 9.sp)
             }
         }
     }

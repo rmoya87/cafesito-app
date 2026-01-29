@@ -103,12 +103,7 @@ import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.ui.components.PremiumCard
 import com.cafesito.app.ui.components.ShimmerItem
 import com.cafesito.app.ui.components.TagChip
-import com.cafesito.app.ui.theme.BorderLight
-import com.cafesito.app.ui.theme.CaramelAccent
-import com.cafesito.app.ui.theme.CreamLight
-import com.cafesito.app.ui.theme.ElectricRed
-import com.cafesito.app.ui.theme.EspressoDeep
-import com.cafesito.app.ui.theme.SoftOffWhite
+import com.cafesito.app.ui.theme.*
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -137,7 +132,7 @@ private fun SearchTopBar(
     }
 
     Surface(
-        color = SoftOffWhite,
+        color = MaterialTheme.colorScheme.background,
         modifier = Modifier
             .onGloballyPositioned { coords ->
                 val height = coords.size.height.toFloat()
@@ -167,7 +162,8 @@ private fun SearchTopBar(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         interactionSource = interactionSource,
-                        cursorBrush = SolidColor(CaramelAccent),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         decorationBox = { innerTextField ->
                             OutlinedTextFieldDefaults.DecorationBox(
                                 value = query,
@@ -176,10 +172,10 @@ private fun SearchTopBar(
                                 singleLine = true,
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
-                                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) },
+                                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 placeholder = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Busca ", color = Color.Gray)
+                                        Text("Busca ", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         AnimatedContent(
                                             targetState = targetWord,
                                             transitionSpec = {
@@ -187,7 +183,7 @@ private fun SearchTopBar(
                                                     .togetherWith(slideOutVertically { h -> -h } + fadeOut())
                                             },
                                             label = "PlaceholderAnimation"
-                                        ) { word -> Text(word, color = Color.Gray) }
+                                        ) { word -> Text(word, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                                     }
                                 },
                                 contentPadding = PaddingValues(top = 0.dp, bottom = 0.dp, start = 0.dp, end = 12.dp),
@@ -197,10 +193,10 @@ private fun SearchTopBar(
                                         isError = false,
                                         interactionSource = interactionSource,
                                         colors = OutlinedTextFieldDefaults.colors(
-                                            unfocusedContainerColor = Color.White,
-                                            focusedContainerColor = Color.White,
-                                            unfocusedBorderColor = BorderLight,
-                                            focusedBorderColor = CaramelAccent
+                                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary
                                         ),
                                         shape = RoundedCornerShape(32.dp),
                                     )
@@ -219,7 +215,7 @@ private fun SearchTopBar(
                         onClick = onCancel,
                         contentPadding = PaddingValues(start = 12.dp, end = 0.dp)
                     ) {
-                        Text("Cancelar", color = EspressoDeep, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Cancelar", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             }
@@ -253,26 +249,26 @@ private fun FilterChipsRow(
                 val count = filterCounts[filter] ?: 0
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (count > 0) CaramelAccent.copy(alpha = 0.1f) else Color.White,
-                    border = BorderStroke(1.dp, if (count > 0) CaramelAccent else BorderLight),
+                    color = if (count > 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, if (count > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
                     modifier = Modifier.clickable { onFilterClick(filter) }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = filter, style = MaterialTheme.typography.labelMedium, color = EspressoDeep, fontSize = 12.sp)
+                        Text(text = filter, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
                         if (count > 0) {
                             Spacer(Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
                                     .size(18.dp)
-                                    .background(color = CaramelAccent, shape = CircleShape),
+                                    .background(color = MaterialTheme.colorScheme.primary, shape = CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = count.toString(),
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     style = TextStyle(
@@ -341,7 +337,7 @@ fun SearchScreen(
     }
 
     Scaffold(
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = Modifier.nestedScroll(actualScrollBehavior.nestedScrollConnection),
         topBar = {
             SearchTopBar(
@@ -387,7 +383,7 @@ fun SearchScreen(
                         items(3) { ShimmerItem(Modifier.fillMaxWidth().height(350.dp).padding(16.dp)) }
                     }
                 }
-                is SearchUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message) }
+                is SearchUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
                 is SearchUiState.Success -> {
                     if (state.coffees.isEmpty() && !isRefreshing) {
                         EmptySearchResults(Modifier.align(Alignment.CenterHorizontally).padding(top = 64.dp))
@@ -419,7 +415,7 @@ fun SearchScreen(
             ModalBottomSheet(
                 onDismissRequest = { showFilterSheet = false },
                 sheetState = sheetState,
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 Box(
                     modifier = Modifier
@@ -482,11 +478,11 @@ private fun RatingFilterContent(
                 text = if (displayRating == 0) "Cualquier nota" else "Nota: $displayRating+",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = EspressoDeep
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (displayRating > 0) {
                 Spacer(Modifier.width(4.dp))
-                Icon(Icons.Default.Star, null, tint = CaramelAccent, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -496,17 +492,17 @@ private fun RatingFilterContent(
             valueRange = 0f..5f,
             steps = 4,
             colors = SliderDefaults.colors(
-                thumbColor = CaramelAccent,
-                activeTrackColor = CaramelAccent,
-                inactiveTrackColor = BorderLight
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.outline
             )
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("5 Estrellas", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            Text("Todas", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            Text("5 Estrellas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Todas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(16.dp))
     }
@@ -525,7 +521,7 @@ private fun FilterSelectionContent(
             horizontalArrangement = Arrangement.End
         ) {
             TextButton(onClick = onClearAll) {
-                Text("Limpiar filtros", color = CaramelAccent, style = MaterialTheme.typography.labelLarge)
+                Text("Limpiar filtros", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
             }
         }
         LazyColumn(
@@ -543,13 +539,13 @@ private fun FilterSelectionContent(
                     Checkbox(
                         checked = selectedValues.contains(option),
                         onCheckedChange = { onOptionToggle(option) },
-                        colors = CheckboxDefaults.colors(checkedColor = CaramelAccent),
+                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier.size(32.dp)
                     )
                     Text(
                         text = option,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = EspressoDeep,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 }
@@ -572,12 +568,12 @@ private fun RecentSearches(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            Icon(Icons.Default.History, null, tint = Color.Gray)
+            Icon(Icons.Default.History, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(8.dp))
-            Text("Búsquedas recientes", style = MaterialTheme.typography.titleSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
+            Text("Búsquedas recientes", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
             IconButton(onClick = onClearRecent, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Clear, null, tint = Color.Gray)
+                Icon(Icons.Default.Clear, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         LazyRow(
@@ -588,14 +584,14 @@ private fun RecentSearches(
                 Surface(
                     modifier = Modifier.clickable { onRecentSearchClick(term) },
                     shape = RoundedCornerShape(16.dp),
-                    color = CreamLight,
-                    border = BorderStroke(1.dp, BorderLight)
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Text(text = term, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontSize = 12.sp, color = EspressoDeep)
+                    Text(text = term, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
-        HorizontalDivider(color = BorderLight, modifier = Modifier.padding(top = 8.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -610,7 +606,7 @@ private fun CoffeePremiumListItem(
         Column {
             Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
                 AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, EspressoDeep.copy(alpha = 0.9f)), startY = 300f)))
+                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)), startY = 300f)))
                 Surface(modifier = Modifier.padding(16.dp).align(Alignment.TopEnd).size(36.dp), color = Color.White.copy(alpha = 0.9f), shape = CircleShape) {
                     IconButton(onClick = onFavoriteClick) {
                         Icon(imageVector = if (coffeeDetails.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, tint = if (coffeeDetails.isFavorite) ElectricRed else Color.Gray, modifier = Modifier.size(18.dp))
@@ -618,14 +614,14 @@ private fun CoffeePremiumListItem(
                 }
                 Row(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = coffee.marca.uppercase(), color = CreamLight, style = MaterialTheme.typography.labelLarge, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(text = coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                     Spacer(Modifier.width(16.dp))
                     Surface(color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(16.dp)) {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("NOTA", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
-                            Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = EspressoDeep)
+                            Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = Color.Black)
                         }
                     }
                 }
@@ -646,9 +642,9 @@ private fun CoffeePremiumListItem(
 @Composable
 private fun EmptySearchResults(modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Default.Coffee, null, modifier = Modifier.size(64.dp), tint = BorderLight)
+        Icon(Icons.Default.Coffee, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
         Spacer(Modifier.height(16.dp))
-        Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = EspressoDeep)
-        Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+        Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -51,7 +51,7 @@ fun AddPostScreen(
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
 
     Scaffold(
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
                 title = if (currentStep == 0) "NUEVA PUBLICACIÓN" else "DETALLES",
@@ -63,7 +63,7 @@ fun AddPostScreen(
                     }
                     if (currentStep == 0 && canNext) {
                         IconButton(onClick = { viewModel.goToStep(1) }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = EspressoDeep, modifier = Modifier.size(20.dp))
+                            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -108,31 +108,31 @@ private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel) {
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxWidth().weight(1f).background(SoftOffWhite), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
             if (imageSource != null) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
-                Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.labelLarge, color = Color.LightGray)
+                Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         
         LazyVerticalGrid(
             columns = GridCells.Fixed(4), 
-            modifier = Modifier.weight(1.2f).background(Color.White), 
+            modifier = Modifier.weight(1.2f).background(MaterialTheme.colorScheme.surface), 
             contentPadding = PaddingValues(1.dp), 
             horizontalArrangement = Arrangement.spacedBy(1.dp), 
             verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
             item {
-                Box(modifier = Modifier.aspectRatio(1f).background(CreamLight).clickable { cameraLauncher.launch(null) }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.PhotoCamera, null, tint = EspressoDeep)
+                Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
             items(galleryImages) { uri ->
                 val isSelected = imageSource == uri
                 Box(modifier = Modifier.aspectRatio(1f).clickable { viewModel.setImage(uri) }) {
                     AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.4f)).border(2.dp, CaramelAccent))
+                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.4f)).border(2.dp, MaterialTheme.colorScheme.primary))
                 }
             }
         }
@@ -158,7 +158,7 @@ private fun PostDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostView
         
         Spacer(Modifier.height(32.dp))
         
-        Text("TU HISTORIA", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+        Text("TU HISTORIA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(16.dp))
         
         OutlinedTextField(
@@ -167,7 +167,7 @@ private fun PostDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostView
             placeholder = { Text("Comparte tu experiencia...") }, 
             modifier = Modifier.fillMaxWidth().heightIn(min = 150.dp), 
             shape = RoundedCornerShape(24.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent)
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         
         Spacer(Modifier.height(32.dp))
@@ -177,9 +177,9 @@ private fun PostDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostView
             modifier = Modifier.fillMaxWidth().height(60.dp), 
             enabled = comment.isNotBlank(), 
             shape = RoundedCornerShape(30.dp), 
-            colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("PUBLICAR", fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+            Text("PUBLICAR", fontWeight = FontWeight.Bold, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }
@@ -194,14 +194,14 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
             value = searchQuery,
             onValueChange = viewModel::onSearchQueryChanged,
             placeholder = { Text("¿Qué café estás catando?") },
-            leadingIcon = { Icon(Icons.Default.Search, null, tint = EspressoDeep) },
+            leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurface) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent)
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         
         Spacer(Modifier.height(24.dp))
-        Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+        Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(16.dp))
         
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -211,8 +211,8 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
                         AsyncImage(model = coffee.coffee.imageUrl, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
                         Spacer(Modifier.width(16.dp))
                         Column {
-                            Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                            Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = CaramelAccent, fontSize = 9.sp)
+                            Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontSize = 9.sp)
                         }
                     }
                 }
@@ -230,7 +230,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
     var comment by remember { mutableStateOf("") }
     
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
-        Text("CAFÉ SELECCIONADO", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+        Text("CAFÉ SELECCIONADO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(16.dp))
         
         PremiumCard {
@@ -238,8 +238,8 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
                 AsyncImage(model = selectedCoffee?.coffee?.imageUrl, contentDescription = null, modifier = Modifier.size(60.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
                 Spacer(Modifier.width(16.dp))
                 Column {
-                    Text(selectedCoffee?.coffee?.nombre ?: "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(selectedCoffee?.coffee?.marca ?: "", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text(selectedCoffee?.coffee?.nombre ?: "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(selectedCoffee?.coffee?.marca ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -247,22 +247,22 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         Spacer(Modifier.height(32.dp))
         
         Box(
-            modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(32.dp)).background(CreamLight).clickable { cameraLauncher.launch(null) }.border(1.dp, BorderLight, RoundedCornerShape(32.dp)),
+            modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) }.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (imageSource != null && !imageSource.toString().contains("picsum")) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(32.dp), tint = CaramelAccent)
+                    Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(8.dp))
-                    Text("AÑADIR FOTO", style = MaterialTheme.typography.labelSmall, color = CaramelAccent)
+                    Text("AÑADIR FOTO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
         
         Spacer(Modifier.height(32.dp))
-        Text("CALIFICACIÓN", style = MaterialTheme.typography.labelLarge, color = CaramelAccent, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Text("CALIFICACIÓN", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(Modifier.height(16.dp))
         SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
         
@@ -270,7 +270,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         OutlinedTextField(
             value = comment, onValueChange = { comment = it }, label = { Text("Nota de cata...") },
             modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), shape = RoundedCornerShape(24.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent)
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         
         Spacer(Modifier.height(32.dp))
@@ -279,9 +279,9 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
             modifier = Modifier.fillMaxWidth().height(60.dp), 
             enabled = rating > 0 && comment.isNotBlank(), 
             shape = RoundedCornerShape(30.dp), 
-            colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("GUARDAR RESEÑA", fontWeight = FontWeight.Bold, color = Color.White, letterSpacing = 1.sp)
+            Text("GUARDAR RESEÑA", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, letterSpacing = 1.sp)
         }
         Spacer(Modifier.height(40.dp))
     }

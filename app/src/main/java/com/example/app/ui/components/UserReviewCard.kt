@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,18 +69,18 @@ fun UserReviewCard(
                             text = info.authorName ?: "Barista",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
-                            color = EspressoDeep
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = formatRelativeTime(info.review.timestamp).uppercase(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = CaramelAccent,
+                            color = MaterialTheme.colorScheme.primary,
                             letterSpacing = 1.sp
                         )
                     }
                     if (isOwnReview) {
                         IconButton(onClick = { showOptionsSheet = true }) {
-                            Icon(Icons.Default.MoreHoriz, null, tint = EspressoDeep)
+                            Icon(Icons.Default.MoreHoriz, null, tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -103,7 +104,7 @@ fun UserReviewCard(
                         text = info.review.comment,
                         style = MaterialTheme.typography.bodyLarge,
                         lineHeight = 24.sp,
-                        color = EspressoDeep,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Light
                     )
                     Spacer(Modifier.height(16.dp))
@@ -112,9 +113,9 @@ fun UserReviewCard(
                 // Bloque de Café: Estilo Minimalista
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = CreamLight,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(24.dp),
-                    border = borderLight()
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
@@ -135,12 +136,13 @@ fun UserReviewCard(
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = info.coffeeDetails.coffee.marca.uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = CaramelAccent,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 10.sp
                             )
                         }
@@ -151,7 +153,7 @@ fun UserReviewCard(
                                 text = String.format(Locale.getDefault(), "%.1f", info.review.rating),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
-                                color = EspressoDeep
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

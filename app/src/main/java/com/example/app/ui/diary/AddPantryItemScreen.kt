@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
-import com.cafesito.app.ui.theme.CoffeeBrown
+import com.cafesito.app.ui.theme.*
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,16 +92,16 @@ fun AddPantryItemScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (coffeeId != null) "Editar Café" else "Nuevo Café", fontWeight = FontWeight.Bold, color = Color.Black) },
+                title = { Text(if (coffeeId != null) "Editar Café" else "Nuevo Café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = { onBackClick(null) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.Black)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF8F8F8))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = Color(0xFFF8F8F8)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -116,7 +116,7 @@ fun AddPantryItemScreen(
                             modifier = Modifier
                                 .size(130.dp)
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(Color(0xFFF5F5F5))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable { launcher.launch("image/*") },
                             contentAlignment = Alignment.Center
                         ) {
@@ -125,7 +125,7 @@ fun AddPantryItemScreen(
                             } else if (existingImageUrl.isNotBlank()) {
                                 AsyncImage(model = existingImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                             } else {
-                                Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = CoffeeBrown, modifier = Modifier.size(44.dp))
+                                Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(44.dp))
                             }
                         }
                         
@@ -137,7 +137,8 @@ fun AddPantryItemScreen(
                             label = { Text("Nombre del café") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                         )
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
@@ -146,7 +147,8 @@ fun AddPantryItemScreen(
                             label = { Text("Marca") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                         )
                     }
                 }
@@ -156,7 +158,7 @@ fun AddPantryItemScreen(
             item {
                 FormSectionCard(title = "Perfil y Origen") {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text("Especialidad", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text("Especialidad", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             VisualOptionTile(
                                 label = "Arabica",
@@ -174,7 +176,7 @@ fun AddPantryItemScreen(
                             )
                         }
 
-                        Text("Tueste", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text("Tueste", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(
                                 Triple("Ligero", Icons.Default.LocalFireDepartment, 0.6f),
@@ -204,7 +206,7 @@ fun AddPantryItemScreen(
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = countryExpanded) },
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                             )
                             ExposedDropdownMenu(
                                 expanded = countryExpanded,
@@ -230,21 +232,21 @@ fun AddPantryItemScreen(
                 FormSectionCard(title = "Formato y Despensa") {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                            Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Switch(
                                 checked = hasCaffeine, 
                                 onCheckedChange = { hasCaffeine = it }, 
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
-                                    checkedTrackColor = CoffeeBrown,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary,
                                     uncheckedThumbColor = Color.White,
-                                    uncheckedTrackColor = Color.LightGray,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.outline,
                                     uncheckedBorderColor = Color.Transparent
                                 )
                             )
                         }
 
-                        Text("Presentación", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text("Presentación", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("Grano", "Molido", "Capsula").forEach { option ->
                                 VisualOptionTile(
@@ -263,7 +265,8 @@ fun AddPantryItemScreen(
                             label = { Text("Peso total de la bolsa (g)") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                         )
                     }
                 }
@@ -308,9 +311,9 @@ fun AddPantryItemScreen(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     enabled = isFormValid,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = CoffeeBrown,
-                        disabledContainerColor = Color.LightGray,
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = MaterialTheme.colorScheme.outline,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -330,13 +333,13 @@ fun AddPantryItemScreen(
 fun FormSectionCard(title: String? = null, content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(Modifier.padding(20.dp)) {
             if (title != null) {
-                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black, color = Color.Black, modifier = Modifier.padding(bottom = 16.dp))
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(bottom = 16.dp))
             }
             content()
         }
@@ -355,12 +358,12 @@ fun VisualOptionTile(
         onClick = onClick,
         modifier = modifier.height(75.dp),
         shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) CoffeeBrown.copy(alpha = 0.1f) else Color(0xFFFBFBFB),
-        border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) CoffeeBrown else Color(0xFFEEEEEE))
+        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Icon(icon, null, tint = if (isSelected) CoffeeBrown else Color.Gray, modifier = Modifier.size(24.dp))
-            Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = if (isSelected) CoffeeBrown else Color.Gray, textAlign = TextAlign.Center)
+            Icon(icon, null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+            Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
     }
 }

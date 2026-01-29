@@ -51,7 +51,7 @@ fun AddStockScreen(
     if (selectedCoffeeId != null) {
         ModalBottomSheet(
             onDismissRequest = { selectedCoffeeId = null },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
             Column(
@@ -61,7 +61,7 @@ fun AddStockScreen(
                     .padding(bottom = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("AÑADIR STOCK", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+                Text("AÑADIR STOCK", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(24.dp))
                 
                 OutlinedTextField(
@@ -72,7 +72,7 @@ fun AddStockScreen(
                     shape = RoundedCornerShape(16.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent)
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                 )
                 
                 Spacer(Modifier.height(32.dp))
@@ -85,24 +85,24 @@ fun AddStockScreen(
                         onSuccess()
                     }, 
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Text("GUARDAR EN DESPENSA", fontWeight = FontWeight.Bold)
+                    Text("GUARDAR EN DESPENSA", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
     }
 
     Scaffold(
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
                 title = "SUGERENCIAS",
                 onBackClick = onBackClick,
                 actions = {
                     IconButton(onClick = onAddCustomClick) {
-                        Icon(Icons.Default.Bolt, contentDescription = "Añadir rápido", tint = EspressoDeep)
+                        Icon(Icons.Default.Bolt, contentDescription = "Añadir rápido", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             )
@@ -118,11 +118,11 @@ fun AddStockScreen(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Busca un café o marca") }, // Cambiado según solicitud
+                    placeholder = { Text("Busca un café o marca") },
                     shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) }
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                 )
                 Spacer(Modifier.height(8.dp))
             }

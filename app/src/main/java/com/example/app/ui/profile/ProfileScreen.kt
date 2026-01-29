@@ -79,7 +79,7 @@ fun ProfileScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
                 title = "PERFIL",
@@ -89,7 +89,7 @@ fun ProfileScreen(
                     val state = uiState as? ProfileUiState.Success
                     if (state?.isCurrentUser == true) {
                         IconButton(onClick = { showSettingsSheet = true }) {
-                            Icon(Icons.Default.Tune, contentDescription = "Ajustes", tint = EspressoDeep)
+                            Icon(Icons.Default.Tune, contentDescription = "Ajustes", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -103,7 +103,11 @@ fun ProfileScreen(
                     items(3) { PostCardShimmer() }
                 }
             }
-            is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message) }
+            is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+            ProfileUiState.LoggedOut -> {
+                // Dejamos que la redirección global en MainActivity maneje la navegación a Login
+                Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+            }
             is ProfileUiState.Success -> {
                 var username by remember { mutableStateOf(state.user.username) }
                 var fullName by remember { mutableStateOf(state.user.fullName) }
@@ -136,7 +140,7 @@ fun ProfileScreen(
 
                                 if (state.isEditing) {
                                     TextButton(onClick = { launcher.launch("image/*") }) {
-                                        Text("CAMBIAR FOTO", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+                                        Text("CAMBIAR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
 
@@ -157,12 +161,12 @@ fun ProfileScreen(
                                     Text(
                                         text = state.user.fullName,
                                         style = MaterialTheme.typography.headlineMedium,
-                                        color = EspressoDeep
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = "@${state.user.username}",
                                         style = MaterialTheme.typography.bodyLarge,
-                                        color = CaramelAccent,
+                                        color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Medium
                                     )
                                     if (bio.isNotBlank()) {
@@ -171,7 +175,7 @@ fun ProfileScreen(
                                             text = bio,
                                             style = MaterialTheme.typography.bodyMedium,
                                             textAlign = TextAlign.Center,
-                                            color = Color.Gray,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(horizontal = 16.dp)
                                         )
                                     }
@@ -314,9 +318,9 @@ fun ProfileScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
                             ) { Text("ELIMINAR") }
                         },
-                        dismissButton = { TextButton(onClick = { itemToDelete = null }) { Text("CANCELAR", color = Color.Gray) } },
+                        dismissButton = { TextButton(onClick = { itemToDelete = null }) { Text("CANCELAR", color = MaterialTheme.colorScheme.onSurfaceVariant) } },
                         shape = RoundedCornerShape(28.dp),
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
                 }
 
@@ -408,15 +412,15 @@ fun ProfileAdn(
                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     SensoryRadarChart(
                         data = state.sensoryProfile,
-                        lineColor = CaramelAccent,
-                        fillColor = CaramelAccent.copy(alpha = 0.2f),
+                        lineColor = MaterialTheme.colorScheme.primary,
+                        fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Pulsa para descubrir tus preferencias",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -425,7 +429,7 @@ fun ProfileAdn(
             Text(
                 text = "Tu ADN se elabora analizando tus cafés favoritos y tus reseñas.",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -486,13 +490,13 @@ fun ProfileReviews(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
         Column(Modifier.padding(24.dp).padding(bottom = 48.dp)) {
             Text(
                 text = "ANÁLISIS DE PREFERENCIAS",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = EspressoDeep,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -513,7 +517,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                         "Tu paladar destaca principalmente por preferir notas de $primaryName."
                     },
                     style = MaterialTheme.typography.bodyLarge,
-                    color = EspressoDeep,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(12.dp))
@@ -526,7 +530,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                     "Sabor" -> "Buscas la máxima intensidad y complejidad gustativa. Valoras la persistencia de las notas tras cada sorbo."
                     else -> "Disfrutas de una complejidad excepcional y un balance perfectamente equilibrado en tu ADN cafetero."
                 }
-                Text(text = description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, lineHeight = 22.sp)
+                Text(text = description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 22.sp)
 
                 val (idealType, idealOrigin) = when(highest.first) {
                     "Acidez" -> "Lavados de alta montaña" to "Etiopía o Colombia (Nariño)"
@@ -539,20 +543,20 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
 
                 Spacer(Modifier.height(24.dp))
                 Surface(
-                    color = CaramelAccent.copy(alpha = 0.05f),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.2f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = CaramelAccent, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = CaramelAccent, fontWeight = FontWeight.Bold)
+                            Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.height(12.dp))
-                        Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = EspressoDeep)
-                        Text(text = "Orígenes sugeridos: $idealOrigin", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                        Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = "Orígenes sugeridos: $idealOrigin", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -561,9 +565,9 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
             Button(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(28.dp)
-            ) { Text("CONTINUAR EXPLORANDO", fontWeight = FontWeight.Bold) }
+            ) { Text("CONTINUAR EXPLORANDO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary) }
         }
     }
 }
@@ -594,8 +598,8 @@ fun StatItem(label: String, value: String, onClick: (() -> Unit)? = null) {
             if (onClick != null) it.clickable(onClick = onClick) else it 
         }.padding(8.dp)
     ) {
-        Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = EspressoDeep)
-        Text(text = label.uppercase(), style = MaterialTheme.typography.labelLarge, color = CaramelAccent, fontSize = 10.sp, letterSpacing = 1.sp)
+        Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(text = label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, letterSpacing = 1.sp)
     }
 }
 
@@ -615,8 +619,8 @@ fun CoffeeFavoritePremiumItem(
             )
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(text = coffeeDetails.coffee.marca, style = MaterialTheme.typography.bodySmall, color = CaramelAccent)
+                Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = coffeeDetails.coffee.marca, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onFavoriteClick) {
                 Icon(Icons.Default.Favorite, contentDescription = null, tint = ElectricRed, modifier = Modifier.size(20.dp))
@@ -631,11 +635,11 @@ fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(0.7f).height(48.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isFollowing) SoftOffWhite else EspressoDeep,
-            contentColor = if (isFollowing) EspressoDeep else Color.White
+            containerColor = if (isFollowing) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
+            contentColor = if (isFollowing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
         ),
         shape = RoundedCornerShape(24.dp),
-        border = if (isFollowing) BorderStroke(1.dp, BorderLight) else null
+        border = if (isFollowing) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null
     ) {
         Text(if (isFollowing) "SIGUIENDO" else "SEGUIR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     }
@@ -656,22 +660,25 @@ fun EditProfileFields(
         OutlinedTextField(
             value = username, onValueChange = onUsernameChange, label = { Text("Usuario") },
             modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
-            isError = usernameError != null, supportingText = { if (usernameError != null) Text(usernameError) }
+            isError = usernameError != null, supportingText = { if (usernameError != null) Text(usernameError) },
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = fullName, onValueChange = onFullNameChange, label = { Text("Nombre") },
-            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)
+            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = bio, onValueChange = onBioChange, label = { Text("Bio") },
-            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), minLines = 3
+            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), minLines = 3,
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = onSave, modifier = Modifier.fillMaxWidth().height(54.dp),
             colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), shape = RoundedCornerShape(28.dp)
-        ) { Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold) }
+        ) { Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold, color = Color.White) }
     }
 }

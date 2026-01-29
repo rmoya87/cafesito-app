@@ -58,13 +58,13 @@ fun TimelineScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = { GlassyTopBar(title = "Cafesito", scrollBehavior = scrollBehavior) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddPostClick,
-                containerColor = EspressoDeep,
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
                 modifier = Modifier
                     .padding(bottom = 90.dp, end = 8.dp)
@@ -78,7 +78,7 @@ fun TimelineScreen(
                     items(5) { ShimmerItem(Modifier.fillMaxWidth().height(400.dp).padding(16.dp)) }
                 }
             }
-            is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message) }
+            is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
             is TimelineUiState.Success -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),

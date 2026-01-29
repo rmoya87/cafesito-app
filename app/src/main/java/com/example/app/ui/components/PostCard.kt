@@ -73,19 +73,19 @@ fun PostCard(
                                 text = author.fullName, 
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = EspressoDeep
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = formatRelativeTime(post.timestamp).uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = CaramelAccent,
+                                color = MaterialTheme.colorScheme.primary,
                                 letterSpacing = 1.sp
                             )
                         }
                     }
 
                     IconButton(onClick = { showOptionsSheet = true }) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = EspressoDeep)
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -109,7 +109,7 @@ fun PostCard(
                     InteractionItem(
                         icon = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         count = details.likes.size,
-                        color = if (isLiked) ElectricRed else EspressoDeep,
+                        color = if (isLiked) ElectricRed else MaterialTheme.colorScheme.onSurface,
                         onClick = onLikeClick
                     )
                     
@@ -118,14 +118,14 @@ fun PostCard(
                     InteractionItem(
                         icon = Icons.Outlined.ChatBubbleOutline,
                         count = details.comments.size,
-                        color = EspressoDeep,
+                        color = MaterialTheme.colorScheme.onSurface,
                         onClick = onCommentClick
                     )
 
                     if (!showHeader && isOwnPost) {
                         Spacer(Modifier.weight(1f))
                         IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.MoreHoriz, null, tint = EspressoDeep)
+                            Icon(Icons.Default.MoreHoriz, null, tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -135,7 +135,7 @@ fun PostCard(
                     Text(
                         text = post.comment,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = EspressoDeep,
+                        color = MaterialTheme.colorScheme.onSurface,
                         lineHeight = 22.sp
                     )
                 }

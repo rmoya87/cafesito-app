@@ -54,10 +54,10 @@ fun DetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Surface(modifier = Modifier.fillMaxSize(), color = SoftOffWhite) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val state = uiState) {
-            is DetailUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = CaramelAccent) }
-            is DetailUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message) }
+            is DetailUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+            is DetailUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
             is DetailUiState.Success -> {
                 DetailContent(
                     coffeeDetails = state.coffee,
@@ -123,25 +123,25 @@ private fun DetailContent(
         }) {
             AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(
-                colors = listOf(Color.Transparent, EspressoDeep.copy(alpha = 0.85f)),
+                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
                 startY = 600f
             )))
             
             Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 60.dp, end = 100.dp)) {
-                Text(text = coffee.marca.uppercase(), color = CreamLight, style = MaterialTheme.typography.labelLarge, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(text = coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.headlineLarge, lineHeight = 38.sp)
             }
 
             if (!isCustom) {
                 Surface(
                     modifier = Modifier.padding(end = 24.dp, bottom = 60.dp).align(Alignment.BottomEnd),
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("NOTA", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        Text("NOTA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val ratingStr = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating)
-                        Text(text = ratingStr, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                        Text(text = ratingStr, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -154,23 +154,23 @@ private fun DetailContent(
                 Surface(
                     modifier = Modifier.fillMaxWidth(), 
                     shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp), 
-                    color = SoftOffWhite
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         
                         if (!isCustom && coffee.descripcion.isNotBlank()) {
-                            Text("HISTORIA", style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontWeight = FontWeight.Bold)
+                            Text("HISTORIA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(12.dp))
                             Text(
                                 text = coffee.descripcion, 
                                 style = MaterialTheme.typography.bodyLarge, 
-                                color = EspressoDeep,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.animateContentSize()
                             )
                             Spacer(Modifier.height(24.dp))
                         }
 
-                        Text("DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontWeight = FontWeight.Bold)
+                        Text("DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(20.dp))
                         
                         val detailsItems = listOfNotNull(
@@ -195,7 +195,7 @@ private fun DetailContent(
 
                         if (!isCustom) {
                             Spacer(Modifier.height(40.dp))
-                            Text("PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontWeight = FontWeight.Bold)
+                            Text("PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(20.dp))
                             val characteristics = listOf(
                                 "Aroma" to coffee.aroma,
@@ -211,17 +211,17 @@ private fun DetailContent(
 
                             if (!coffee.productUrl.isNullOrBlank()) {
                                 Spacer(Modifier.height(40.dp))
-                                Text("ADQUIRIR", style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontWeight = FontWeight.Bold)
+                                Text("ADQUIRIR", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(16.dp))
                                 BuyPremiumCard(coffee.productUrl) { openCustomTab(context, it) }
                             }
 
                             Spacer(Modifier.height(40.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("OPINIONES", style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontWeight = FontWeight.Bold)
+                                Text("OPINIONES", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 Button(
                                     onClick = { showAddReviewDialog = true }, 
-                                    colors = ButtonDefaults.buttonColors(containerColor = EspressoDeep),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                     shape = RoundedCornerShape(20.dp)
                                 ) {
                                     Icon(Icons.Default.Add, null, Modifier.size(16.dp))
@@ -248,13 +248,13 @@ private fun DetailContent(
             horizontalArrangement = Arrangement.SpaceBetween, 
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = Color.Black, onClick = onBackClick)
+            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = MaterialTheme.colorScheme.onSurface, onClick = onBackClick)
             Row {
-                GlassyIconButton(icon = Icons.Default.Inventory, onClick = { showStockDialog = true })
+                GlassyIconButton(icon = Icons.Default.Inventory, iconColor = MaterialTheme.colorScheme.onSurface, onClick = { showStockDialog = true })
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
                     icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
-                    iconColor = if (coffeeDetails.isFavorite) ElectricRed else EspressoDeep,
+                    iconColor = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.onSurface,
                     onClick = { onFavoriteToggle(!coffeeDetails.isFavorite) }
                 )
             }
@@ -263,10 +263,10 @@ private fun DetailContent(
 }
 
 @Composable
-fun GlassyIconButton(icon: ImageVector, iconColor: Color = EspressoDeep, onClick: () -> Unit) {
+fun GlassyIconButton(icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
     Surface(
         onClick = onClick, 
-        color = Color.White.copy(alpha = 0.8f), 
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), 
         shape = RoundedCornerShape(16.dp), 
         modifier = Modifier.size(44.dp)
     ) {
@@ -280,13 +280,13 @@ fun GlassyIconButton(icon: ImageVector, iconColor: Color = EspressoDeep, onClick
 fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
     PremiumCard(modifier = modifier) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).background(CaramelAccent.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = CaramelAccent, modifier = Modifier.size(16.dp))
+            Box(Modifier.size(32.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
-                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
+                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
@@ -296,16 +296,16 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
 fun PremiumCharacteristicBar(label: String, value: Float) {
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = label.uppercase(), style = MaterialTheme.typography.labelSmall, color = EspressoDeep, fontWeight = FontWeight.Bold)
+            Text(text = label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             val ratingStr = String.format(Locale.getDefault(), "%.1f", value)
-            Text(text = "$ratingStr/10", style = MaterialTheme.typography.labelSmall, color = CaramelAccent)
+            Text(text = "$ratingStr/10", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }
         Spacer(Modifier.height(6.dp))
         LinearProgressIndicator(
             progress = { value / 10f }, 
             modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape), 
-            color = CaramelAccent, 
-            trackColor = BorderLight
+            color = MaterialTheme.colorScheme.primary, 
+            trackColor = MaterialTheme.colorScheme.outline
         )
     }
 }
@@ -314,11 +314,11 @@ fun PremiumCharacteristicBar(label: String, value: Float) {
 fun BuyPremiumCard(url: String, onClick: (String) -> Unit) {
     PremiumCard(modifier = Modifier.clickable { onClick(url) }) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Storefront, null, tint = EspressoDeep)
+            Icon(Icons.Default.Storefront, null, tint = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.width(16.dp))
             val domain = url.removePrefix("https://").removePrefix("www.").substringBefore("/")
-            Text(domain.uppercase(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = CaramelAccent)
+            Text(domain.uppercase(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -330,15 +330,15 @@ fun DetailReviewPremiumItem(info: UserReviewInfo) {
             ModernAvatar(imageUrl = info.authorAvatarUrl, size = 40.dp)
             Spacer(Modifier.width(12.dp))
             Column {
-                Text(info.authorName ?: "Usuario", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Text(formatRelativeTime(info.review.timestamp).uppercase(), style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(info.authorName ?: "Usuario", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(formatRelativeTime(info.review.timestamp).uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.weight(1f))
             val ratingStr = String.format(Locale.getDefault(), "%.1f", info.review.rating)
-            Text(text = ratingStr, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = CaramelAccent)
+            Text(text = ratingStr, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
         }
         Spacer(Modifier.height(12.dp))
-        Text(info.review.comment, style = MaterialTheme.typography.bodyMedium, lineHeight = 20.sp)
+        Text(info.review.comment, style = MaterialTheme.typography.bodyMedium, lineHeight = 20.sp, color = MaterialTheme.colorScheme.onSurface)
         if (!info.review.imageUrl.isNullOrBlank()) {
             Spacer(Modifier.height(12.dp))
             AsyncImage(
@@ -369,7 +369,7 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest, 
-        containerColor = Color.White, 
+        containerColor = MaterialTheme.colorScheme.surface, 
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         sheetState = sheetState
     ) {
@@ -380,7 +380,7 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                 .padding(bottom = 48.dp), 
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("TU OPINIÓN", style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontWeight = FontWeight.Bold)
+            Text("TU OPINIÓN", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
             
             SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
@@ -393,9 +393,9 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                     .fillMaxWidth()
                     .height(200.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(CreamLight)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable(enabled = !isSaving) { launcher.launch("image/*") }
-                    .border(BorderStroke(1.dp, BorderLight.copy(alpha = 1f)), RoundedCornerShape(24.dp)),
+                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (selectedImageUri != null) {
@@ -404,8 +404,8 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                     AsyncImage(model = existingReview?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = CaramelAccent)
-                        Text("AÑADIR FOTO (OPCIONAL)", style = MaterialTheme.typography.labelSmall, color = CaramelAccent)
+                        Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text("AÑADIR FOTO (OPCIONAL)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -420,7 +420,7 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                 shape = RoundedCornerShape(16.dp), 
                 minLines = 3,
                 enabled = !isSaving,
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent)
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
             )
             Spacer(Modifier.height(32.dp))
             
@@ -433,8 +433,8 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                     modifier = Modifier.weight(1f).height(54.dp),
                     shape = RoundedCornerShape(28.dp),
                     enabled = !isSaving,
-                    border = BorderStroke(1.dp, CaramelAccent),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CaramelAccent)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
@@ -446,11 +446,11 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                     }, 
                     enabled = rating > 0 && comment.isNotBlank() && !isSaving,
                     modifier = Modifier.weight(1f).height(54.dp), 
-                    colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
                 ) { 
                     if (isSaving) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                     } else {
                         Text("PUBLICAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp) 
                     }
@@ -468,14 +468,14 @@ fun StockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, cu
     var name by remember { mutableStateOf(coffeeDetails.coffee.nombre) }
     var brand by remember { mutableStateOf(coffeeDetails.coffee.marca) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("GESTIÓN DE STOCK", style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontWeight = FontWeight.Bold)
+            Text("GESTIÓN DE STOCK", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
             if (isCustom) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent))
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(value = brand, onValueChange = { brand = it }, label = { Text("Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CaramelAccent))
+                OutlinedTextField(value = brand, onValueChange = { brand = it }, label = { Text("Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(24.dp))
             }
             StockSliderSection("TOTAL BOLSA", total, 1000f) { total = it; if (rem > it) rem = it }
@@ -491,8 +491,8 @@ fun StockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, cu
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f).height(54.dp),
                     shape = RoundedCornerShape(28.dp),
-                    border = BorderStroke(1.dp, CaramelAccent),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CaramelAccent)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Bold)
                 }
@@ -500,7 +500,7 @@ fun StockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, cu
                 Button(
                     onClick = { onSave(total.roundToInt(), rem.roundToInt(), if(isCustom) name else null, if(isCustom) brand else null) }, 
                     modifier = Modifier.weight(1f).height(54.dp), 
-                    colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
                 ) { 
                     Text("ACTUALIZAR", fontWeight = FontWeight.Bold) 

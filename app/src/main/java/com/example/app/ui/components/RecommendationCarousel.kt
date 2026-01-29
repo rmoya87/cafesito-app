@@ -23,7 +23,7 @@ import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.cafesito.app.data.CoffeeWithDetails
-import com.cafesito.app.ui.theme.CoffeeBrown
+import com.cafesito.app.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -55,7 +55,8 @@ fun RecommendationCarousel(
             text = "Recomendados para tu paladar",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            color = MaterialTheme.colorScheme.onSurface
         )
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -77,9 +78,9 @@ private fun RecommendationCard(
     Card(
         modifier = Modifier.width(160.dp).clickable { onClick(item.coffee.id) },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, Color(0xFFE0E0E0).copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column {
             AsyncImage(
@@ -94,12 +95,13 @@ private fun RecommendationCard(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = item.coffee.marca ?: "",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
                 Spacer(Modifier.height(4.dp))
@@ -108,7 +110,7 @@ private fun RecommendationCard(
                         text = "⭐ ${String.format("%.1f", item.averageRating)}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = CoffeeBrown
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }

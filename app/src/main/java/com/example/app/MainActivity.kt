@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -118,12 +119,10 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // ✅ IMPORTANTE: NO transparente. Pinta hasta abajo.
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = SoftOffWhite
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    // Mantenemos la carga inicial persistente para evitar parpadeos y pérdida de estado del NavHost
                     var initialLoadDone by rememberSaveable { mutableStateOf(false) }
                     
                     if (sessionState !is SessionState.Loading) {
@@ -135,8 +134,6 @@ class MainActivity : ComponentActivity() {
                             CircularProgressIndicator()
                         }
                     } else {
-                        // El startRoute solo se calcula una vez al inicio para evitar que cambios momentáneos 
-                        // en el estado de la sesión (como al volver de permisos) reinicien el NavHost.
                         val startRoute = rememberSaveable {
                             when (sessionState) {
                                 is SessionState.Authenticated -> "timeline"
@@ -164,6 +161,21 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route ?: ""
+
+    // ✅ Redirección global por estado de sesión
+    val sessionViewModel: SessionViewModel = hiltViewModel()
+    val sessionState by sessionViewModel.sessionState.collectAsState()
+
+    LaunchedEffect(sessionState) {
+        if (sessionState is SessionState.NotAuthenticated) {
+            val route = navController.currentDestination?.route ?: ""
+            if (route != "login" && route != "onboarding" && !route.startsWith("completeProfile")) {
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
 
     val state = remember(currentRoute) {
         val mainScreens = listOf("timeline", "search", "brewlab", "diary", "profile")
@@ -412,10 +424,10 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Surface(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(32.dp),
                     shadowElevation = 12.dp,
-                    border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     NavigationBar(
@@ -444,8 +456,8 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                                 selected = isSelected,
                                 colors = NavigationBarItemDefaults.colors(
                                     indicatorColor = Color.Transparent,
-                                    selectedIconColor = CaramelAccent,
-                                    unselectedIconColor = CaramelAccent.copy(alpha = 0.6f),
+                                    selectedIconColor = MaterialTheme.colorScheme.secondary,
+                                    unselectedIconColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
                                 ),
                                 onClick = {
                                     val previousRoute = navController.previousBackStackEntry?.destination?.route

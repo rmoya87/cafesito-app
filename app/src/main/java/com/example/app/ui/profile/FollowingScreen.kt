@@ -14,8 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.ui.components.GlassyTopBar
-import com.cafesito.app.ui.theme.EspressoDeep
-import com.cafesito.app.ui.theme.SoftOffWhite
+import com.cafesito.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +39,7 @@ fun FollowingScreen(
     }
 
     Scaffold(
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
                 title = if (searchActive) "" else "Seguidos",
@@ -64,15 +63,17 @@ fun FollowingScreen(
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                             )
                         )
                         IconButton(onClick = { currentQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = EspressoDeep)
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     } else {
                         IconButton(onClick = { searchActive = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = EspressoDeep)
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -93,7 +94,7 @@ fun FollowingScreen(
                     ) {
                         Text(
                             text = if (currentQuery.isEmpty()) "No sigue a nadie todavía" else "No se encontraron resultados",
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }

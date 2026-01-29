@@ -39,6 +39,7 @@ sealed interface ProfileUiState {
         val sensoryProfile: Map<String, Float>,
         val healthConnectEnabled: Boolean
     ) : ProfileUiState
+    data object LoggedOut : ProfileUiState
 }
 
 @HiltViewModel
@@ -60,10 +61,10 @@ class ProfileViewModel @Inject constructor(
     private val _usernameError = MutableStateFlow<String?>(null)
     private val _temporaryAvatarUri = MutableStateFlow<Uri?>(null)
     private val _healthConnectEnabled = MutableStateFlow(healthConnectRepository.isEnabled())
+    private val _loggedOut = MutableStateFlow(false)
 
     private val activeUserFlow = userRepository.getActiveUserFlow()
     
-    // ✅ OPTIMIZACIÓN: Usar getUserByIdFlow para evitar cargar todos los usuarios
     private val targetUserFlow = if (requestedUserId == 0) {
         activeUserFlow
     } else {
@@ -91,7 +92,8 @@ class ProfileViewModel @Inject constructor(
         _usernameError,
         _temporaryAvatarUri,
         connectivityObserver.observe(),
-        _healthConnectEnabled
+        _healthConnectEnabled,
+        _loggedOut
     ) { args ->
         val activeUser = args[0] as? UserEntity
         val targetUser = args[1] as? UserEntity
@@ -106,6 +108,9 @@ class ProfileViewModel @Inject constructor(
         val tempAvatar = args[10] as? Uri
         val connectivityStatus = args[11] as ConnectivityObserver.Status
         val healthConnectEnabled = args[12] as Boolean
+        val loggedOut = args[13] as Boolean
+
+        if (loggedOut) return@combine ProfileUiState.LoggedOut
 
         if (connectivityStatus != ConnectivityObserver.Status.Available) {
             return@combine ProfileUiState.Error("No hay conexión a Internet. Por favor, revisa tu conexión.")
@@ -177,11 +182,8 @@ class ProfileViewModel @Inject constructor(
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfileUiState.Loading)
 
     init {
-        // ✅ ELIMINADO: El refresco automático al inicio que duplicaba peticiones
-        // El refresco ahora se gestiona solo cuando hay cambios de conectividad críticos
-        // o manualmente por el usuario.
         viewModelScope.launch {
-            connectivityObserver.observe().drop(1).collect { // drop(1) evita el primer evento al suscribirse
+            connectivityObserver.observe().drop(1).collect { 
                 if (it == ConnectivityObserver.Status.Available) {
                     refreshData()
                 }
@@ -231,6 +233,7 @@ class ProfileViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             userRepository.logout()
+            _loggedOut.value = true
         }
     }
 

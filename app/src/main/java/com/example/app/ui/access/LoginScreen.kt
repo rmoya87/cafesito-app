@@ -49,7 +49,6 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // Función para detectar si es un dispositivo de Pre-Launch Report de Google Play
     fun isPreLaunchDevice(): Boolean {
         return android.os.Build.MODEL.contains("Emulator", ignoreCase = true) ||
                 android.os.Build.DEVICE.contains("generic", ignoreCase = true) ||
@@ -57,22 +56,18 @@ fun LoginScreen(
                 android.provider.Settings.Secure.getString(context.contentResolver, "firebase.test.lab") == "true"
     }
 
-    // Efecto para bypass de login en debug o pre-launch de Google Play
     //LaunchedEffect(Unit) {
     //    if (BuildConfig.DEBUG || isPreLaunchDevice()) {
-    //        // Navegamos directamente al timeline con datos mock o genéricos
     //        onLoginSuccess("test-uuid-001", "alex@cafesito.test", "Alex Barista", "", false)
     //    }
     //}
 
-    // Configuración de ExoPlayer para el video de fondo
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             val videoUri = Uri.parse("android.resource://${context.packageName}/raw/login_bg")
             setMediaItem(MediaItem.fromUri(videoUri))
-            // ✅ Se desactiva el bucle para que se detenga al finalizar
             repeatMode = Player.REPEAT_MODE_OFF 
-            volume = 0f // Silenciado
+            volume = 0f
             prepare()
             playWhenReady = true
         }
@@ -84,12 +79,9 @@ fun LoginScreen(
 
     val webClientId = "789398399906-468mj79uf2t4e485n7ilufv4eiouk3sm.apps.googleusercontent.com"
 
-    Box(modifier = Modifier.fillMaxSize().background(SoftOffWhite)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         
-        // Video de fondo ocupando toda la pantalla y centrado automáticamente (RESIZE_MODE_ZOOM)
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
@@ -107,20 +99,18 @@ fun LoginScreen(
             )
         }
         
-        // Gradiente superior MUCHO más corto para que el video sea visible casi desde arriba
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to SoftOffWhite,
-                        0.05f to SoftOffWhite,
+                        0f to MaterialTheme.colorScheme.background,
+                        0.05f to MaterialTheme.colorScheme.background,
                         0.45f to Color.Transparent
                     )
                 )
         )
         
-        // Gradiente inferior para legibilidad del texto y el botón
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -140,17 +130,15 @@ fun LoginScreen(
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Marca superior
             Text(
                 text = "CAFESITO",
                 style = MaterialTheme.typography.titleMedium,
-                color = EspressoDeep.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 8.sp,
                 modifier = Modifier.padding(top = 24.dp)
             )
 
-            // Espaciador con peso para liberar el centro de la pantalla (donde está la mano/café)
             Spacer(modifier = Modifier.weight(2.2f))
 
             Column(
@@ -186,7 +174,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(40.dp))
 
                 if (isLoading) {
-                    CircularProgressIndicator(color = CaramelAccent)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 } else {
                     Button(
                         onClick = {
@@ -234,8 +222,8 @@ fun LoginScreen(
                             .height(60.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = EspressoDeep
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
@@ -247,14 +235,15 @@ fun LoginScreen(
                                 text = "G",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Black,
-                                color = EspressoDeep,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(end = 12.dp)
                             )
                             Text(
                                 "Continuar con Google",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp
+                                letterSpacing = 0.5.sp,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

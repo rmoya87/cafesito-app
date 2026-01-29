@@ -43,118 +43,123 @@ fun CompleteProfileScreen(
     
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { imageUri = it }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        Text(
-            text = "Casi listo", 
-            style = MaterialTheme.typography.headlineMedium, 
-            fontWeight = FontWeight.Bold, 
-            color = CoffeeBrown
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Foto de Perfil
-        Box(
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Column(
             modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable { launcher.launch("image/*") },
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (imageUri != null) {
-                AsyncImage(
-                    model = imageUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Icon(Icons.Default.PhotoCamera, null, Modifier.size(32.dp), tint = Color.Gray)
-            }
-        }
-        TextButton(onClick = { launcher.launch("image/*") }) {
-            Text("Cambiar foto", color = CoffeeBrown)
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Email (Solo lectura)
-        OutlinedTextField(
-            value = userEmail,
-            onValueChange = {},
-            label = { Text("Email de Google") },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = false,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = Color.DarkGray,
-                disabledBorderColor = Color.LightGray,
-                disabledLabelColor = Color.Gray
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            Text(
+                text = "Casi listo", 
+                style = MaterialTheme.typography.headlineMedium, 
+                fontWeight = FontWeight.Bold, 
+                color = MaterialTheme.colorScheme.primary
             )
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-        // Nombre de usuario (REGLA: Sin espacios y Único)
-        OutlinedTextField(
-            value = username,
-            onValueChange = { 
-                username = it.replace(" ", "").lowercase()
-                viewModel.clearError() 
-            },
-            label = { Text("Nombre de usuario") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            singleLine = true,
-            isError = usernameError != null,
-            supportingText = {
-                if (usernameError != null) {
-                    Text(text = usernameError!!, color = MaterialTheme.colorScheme.error)
+            // Foto de Perfil
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { launcher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageUri != null) {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 } else {
-                    Text("Sin espacios y todo en minúsculas")
+                    Icon(Icons.Default.PhotoCamera, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-        )
+            TextButton(onClick = { launcher.launch("image/*") }) {
+                Text("Cambiar foto", color = MaterialTheme.colorScheme.primary)
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        OutlinedTextField(
-            value = bio,
-            onValueChange = { bio = it },
-            label = { Text("Cuéntanos sobre ti") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            minLines = 3
-        )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        Button(
-            onClick = { 
-                viewModel.saveUserProfile(
-                    googleId = googleId,
-                    email = userEmail,
-                    username = username,
-                    bio = bio,
-                    avatarUrl = imageUri?.toString() ?: "",
-                    onSuccess = onSuccess
+            // Email (Solo lectura)
+            OutlinedTextField(
+                value = userEmail,
+                onValueChange = {},
+                label = { Text("Email de Google") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown),
-            shape = RoundedCornerShape(16.dp),
-            enabled = username.isNotBlank() && usernameError == null
-        ) {
-            Text("Finalizar Perfil", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Nombre de usuario (REGLA: Sin espacios y Único)
+            OutlinedTextField(
+                value = username,
+                onValueChange = { 
+                    username = it.replace(" ", "").lowercase()
+                    viewModel.clearError() 
+                },
+                label = { Text("Nombre de usuario") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                isError = usernameError != null,
+                supportingText = {
+                    if (usernameError != null) {
+                        Text(text = usernameError!!, color = MaterialTheme.colorScheme.error)
+                    } else {
+                        Text("Sin espacios y todo en minúsculas")
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = bio,
+                onValueChange = { bio = it },
+                label = { Text("Cuéntanos sobre ti") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                minLines = 3
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Button(
+                onClick = { 
+                    viewModel.saveUserProfile(
+                        googleId = googleId,
+                        email = userEmail,
+                        username = username,
+                        bio = bio,
+                        avatarUrl = imageUri?.toString() ?: "",
+                        onSuccess = onSuccess
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(16.dp),
+                enabled = username.isNotBlank() && usernameError == null
+            ) {
+                Text("Finalizar Perfil", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

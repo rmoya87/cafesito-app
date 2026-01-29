@@ -78,14 +78,24 @@ class UserRepository @Inject constructor(
 
     suspend fun logout() {
         try {
-            ensureConnected()
-            supabaseClient.auth.signOut()
+            // Intentar cerrar sesión en el servidor
+            try {
+                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                    supabaseClient.auth.signOut()
+                }
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Remote logout failed", e)
+            }
+            
+            // ✅ Siempre limpiar localmente para asegurar el cierre de sesión
             userDao.deleteAllUsers()
-            // ✅ Limpiar caché al logout
             _usersCache = null
             _lastUsersCacheTime = 0
+            
+            // Forzar actualización de flujos reactivos
+            triggerRefresh()
         } catch (e: Exception) {
-            Log.e("UserRepository", "Logout failed, local session preserved", e)
+            Log.e("UserRepository", "Logout failed", e)
         }
     }
 

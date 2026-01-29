@@ -14,7 +14,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cafesito.app.ui.theme.CafesitoTheme
-import com.cafesito.app.ui.theme.EspressoDeep
 
 class HealthConnectRationaleActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,20 +46,32 @@ fun RationaleScreen(onOpenPrivacyPolicy: () -> Unit, onClose: () -> Unit) {
                 text = "Health Connect & Cafesito",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = EspressoDeep
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(16.dp))
             Text(
                 text = "Sincronizamos tus datos de consumo de cafeína (Nutrición) e hidratación con Health Connect para darte una visión completa de tu salud.",
                 style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(24.dp))
-            Button(onClick = onOpenPrivacyPolicy) {
+            Button(
+                onClick = onOpenPrivacyPolicy,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
                 Text("VER POLÍTICA DE PRIVACIDAD")
             }
             Spacer(Modifier.height(12.dp))
-            TextButton(onClick = onClose) {
+            TextButton(
+                onClick = onClose,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
                 Text("CERRAR")
             }
         }

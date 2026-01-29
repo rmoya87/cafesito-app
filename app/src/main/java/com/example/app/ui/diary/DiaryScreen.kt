@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -105,20 +106,20 @@ fun DiaryScreen(
         if (selectedItem != null) {
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                     Text(
                         text = selectedItem.coffee.nombre.uppercase(),
                         style = MaterialTheme.typography.labelLarge,
-                        color = CaramelAccent,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                     ModalMenuOption(
                         title = "Editar Stock",
                         icon = Icons.Default.Edit,
-                        color = EspressoDeep,
+                        color = MaterialTheme.colorScheme.onSurface,
                         onClick = { 
                             val id = showPantryOptionsId!!
                             showPantryOptionsId = null
@@ -158,16 +159,16 @@ fun DiaryScreen(
                 ) { Text("ELIMINAR") }
             },
             dismissButton = {
-                TextButton(onClick = { itemToDeleteId = null }) { Text("CANCELAR", color = Color.Gray) }
+                TextButton(onClick = { itemToDeleteId = null }) { Text("CANCELAR", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             },
             shape = RoundedCornerShape(28.dp),
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = SoftOffWhite,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
                 title = "MI DIARIO",
@@ -175,7 +176,7 @@ fun DiaryScreen(
                 actions = {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
                         IconButton(onClick = { showQuickActions = true }) {
-                            Icon(Icons.Default.AddCircle, contentDescription = "Añadir", tint = EspressoDeep, modifier = Modifier.size(28.dp))
+                            Icon(Icons.Default.AddCircle, contentDescription = "Añadir", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp))
                         }
                         Spacer(Modifier.width(8.dp))
                         PeriodSelectorPremium(selectedPeriod) { showPeriodMenu = true }
@@ -310,15 +311,15 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("CAFEÍNA ESTIMADA", style = MaterialTheme.typography.labelLarge, color = CaramelAccent, fontSize = 10.sp)
+                        Text("CAFEÍNA ESTIMADA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
                         IconButton(onClick = { showInfo = true }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Outlined.Info, null, tint = CaramelAccent, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                         }
                     }
                     Text(
                         text = "${analytics.totalCaffeine} mg",
                         style = MaterialTheme.typography.headlineLarge,
-                        color = EspressoDeep,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     ComparisonPill(analytics.comparisonPercentage)
@@ -329,7 +330,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
                     Text(
                         text = "${analytics.totalWaterMl} ml",
                         style = MaterialTheme.typography.headlineSmall,
-                        color = EspressoDeep,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     ComparisonPill(-2, Color(0xFF2196F3)) 
@@ -376,14 +377,14 @@ fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: 
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(CreamLight)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(icon, null, tint = EspressoDeep, modifier = Modifier.size(18.dp))
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(4.dp))
-        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = EspressoDeep)
-        Text(label.uppercase(), style = MaterialTheme.typography.labelLarge, color = Color.Gray, fontSize = 8.sp)
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
     }
 }
 
@@ -407,7 +408,7 @@ fun PantryPremiumCard(
                 modifier = Modifier.fillMaxSize()
             )
             Box(
-                Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, EspressoDeep.copy(alpha = 0.8f))))
+                Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))))
             )
             
             if (onOptionsClick != null) {
@@ -418,21 +419,21 @@ fun PantryPremiumCard(
             }
             
             Column(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
-                Text(item.coffee.marca.uppercase(), color = SoftOffWhite, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                Text(item.coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
                 Text(item.coffee.nombre, color = Color.White, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         Column(Modifier.padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${item.pantryItem.gramsRemaining}g", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                Text("${(progress * 100).roundToInt()}%", style = MaterialTheme.typography.bodySmall, color = CaramelAccent)
+                Text("${item.pantryItem.gramsRemaining}g", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("${(progress * 100).roundToInt()}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             Spacer(Modifier.height(6.dp))
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
-                color = CaramelAccent,
-                trackColor = BorderLight
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.outline
             )
         }
     }
@@ -441,7 +442,7 @@ fun PantryPremiumCard(
 @Composable
 fun EmptyStateMessage(message: String) {
     Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-        Text(message, style = MaterialTheme.typography.bodyLarge, color = Color.Gray, textAlign = TextAlign.Center)
+        Text(message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }
 
@@ -449,13 +450,13 @@ fun EmptyStateMessage(message: String) {
 fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        color = CreamLight,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, BorderLight)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(period.name, style = MaterialTheme.typography.labelLarge, color = EspressoDeep, fontSize = 11.sp)
-            Icon(Icons.Default.ExpandMore, null, tint = EspressoDeep, modifier = Modifier.size(16.dp))
+            Text(period.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp)
+            Icon(Icons.Default.ExpandMore, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -463,12 +464,12 @@ fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoffee: () -> Unit, onAddPantry: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-            Text("NUEVO REGISTRO", style = MaterialTheme.typography.labelLarge, color = CaramelAccent, modifier = Modifier.padding(bottom = 16.dp))
+            Text("NUEVO REGISTRO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
             ModalMenuOption(title = "Registro de Agua", icon = Icons.Default.WaterDrop, color = Color(0xFF2196F3), onClick = onAddWater)
-            ModalMenuOption(title = "Registro de Café", icon = Icons.Default.Coffee, color = EspressoDeep, onClick = onAddCoffee)
-            ModalMenuOption(title = "Añadir a Despensa", icon = Icons.Default.Inventory, color = CaramelAccent, onClick = onAddPantry)
+            ModalMenuOption(title = "Registro de Café", icon = Icons.Default.Coffee, color = MaterialTheme.colorScheme.onSurface, onClick = onAddCoffee)
+            ModalMenuOption(title = "Añadir a Despensa", icon = Icons.Default.Inventory, color = MaterialTheme.colorScheme.primary, onClick = onAddPantry)
         }
     }
 }
@@ -479,15 +480,15 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         shape = RoundedCornerShape(20.dp),
-        color = SoftOffWhite,
-        border = BorderStroke(1.dp, BorderLight)
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(16.dp))
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
+            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -511,12 +512,12 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
             
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
                 Row(modifier = Modifier.height(80.dp), verticalAlignment = Alignment.Bottom) {
-                    Box(Modifier.width(10.dp).fillMaxHeight(caffeineHeight).clip(CircleShape).background(CaramelAccent))
+                    Box(Modifier.width(10.dp).fillMaxHeight(caffeineHeight).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
                     Spacer(Modifier.width(4.dp))
                     Box(Modifier.width(10.dp).fillMaxHeight(waterHeight).clip(CircleShape).background(Color(0xFF2196F3).copy(alpha = 0.4f)))
                 }
                 Spacer(Modifier.height(8.dp))
-                Text(entry.label, fontSize = 9.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                Text(entry.label, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -525,9 +526,9 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeriodBottomSheet(selectedPeriod: DiaryPeriod, onDismiss: () -> Unit, onPeriodSelected: (DiaryPeriod) -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-            Text("SELECCIONAR PERIODO", style = MaterialTheme.typography.labelLarge, color = CaramelAccent)
+            Text("SELECCIONAR PERIODO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
             DiaryPeriod.values().forEach { period ->
                 val isSelected = period == selectedPeriod
@@ -535,13 +536,13 @@ fun PeriodBottomSheet(selectedPeriod: DiaryPeriod, onDismiss: () -> Unit, onPeri
                     onClick = { onPeriodSelected(period); onDismiss() },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) EspressoDeep else SoftOffWhite,
-                    border = if (isSelected) null else BorderStroke(1.dp, BorderLight)
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
                         period.name, 
                         modifier = Modifier.padding(16.dp),
-                        color = if (isSelected) Color.White else EspressoDeep,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
                 }

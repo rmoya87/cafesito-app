@@ -84,14 +84,14 @@ fun OnboardingScreen(
         )
         
         // Capas de gradientes ajustadas para máxima legibilidad
-        // Superior (Blanco a transparente): Cubre hasta el final del texto superior (aprox 40% de la pantalla)
+        // Superior: Dinámico según el tema
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to SoftOffWhite,
-                        0.05f to SoftOffWhite,
+                        0f to MaterialTheme.colorScheme.background,
+                        0.05f to MaterialTheme.colorScheme.background,
                         0.45f to Color.Transparent
                     )
                 )
@@ -117,7 +117,7 @@ fun OnboardingScreen(
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Cabecera superior (dentro de la zona SoftOffWhite extendida)
+            // Cabecera superior (dentro de la zona de fondo extendida)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 24.dp)
@@ -125,7 +125,7 @@ fun OnboardingScreen(
                 Text(
                     text = "BIENVENIDO A",
                     style = MaterialTheme.typography.titleMedium,
-                    color = EspressoDeep.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 4.sp
                 )
@@ -133,7 +133,7 @@ fun OnboardingScreen(
                     text = "CAFESITO",
                     style = MaterialTheme.typography.headlineLarge,
                     textAlign = TextAlign.Center,
-                    color = EspressoDeep,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Black,
                     lineHeight = 44.sp,
                     letterSpacing = 2.sp
@@ -145,7 +145,7 @@ fun OnboardingScreen(
                     text = "La comunidad para los amantes del café.",
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
-                    color = EspressoDeep.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     lineHeight = 26.sp
                 )
             }
@@ -153,7 +153,7 @@ fun OnboardingScreen(
             // Espaciador flexible para dejar libre el centro del video
             Spacer(modifier = Modifier.weight(1f))
 
-            // Lista de funcionalidades agrupada encima del botón, con iconos marrones
+            // Lista de funcionalidades agrupada encima del botón
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -188,8 +188,8 @@ fun OnboardingScreen(
                     .fillMaxWidth()
                     .height(64.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = EspressoDeep
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 shape = RoundedCornerShape(20.dp),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
@@ -214,12 +214,12 @@ fun FeatureRowOnboardingVideo(icon: ImageVector, title: String, desc: String) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Surface(
-            color = Color.White.copy(alpha = 0.9f), // Más opaco para resaltar el marrón
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.size(44.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = EspressoDeep, modifier = Modifier.size(22.dp)) // Icono marrón
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
             }
         }
         Spacer(modifier = Modifier.width(16.dp))

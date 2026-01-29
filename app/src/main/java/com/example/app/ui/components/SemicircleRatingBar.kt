@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +46,7 @@ fun SemicircleRatingBar(
                 modifier = Modifier
                     .size(48.dp)
                     .clickableWithoutRipple { onRatingChanged(i.toFloat()) },
-                tint = if (isFilled || isHalf) OrangeYellow else Color.LightGray
+                tint = if (isFilled || isHalf) OrangeYellow else MaterialTheme.colorScheme.outline
             )
         }
     }

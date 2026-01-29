@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
-import com.cafesito.app.ui.theme.CoffeeBrown
+import com.cafesito.app.ui.theme.*
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,124 +53,129 @@ fun EditNormalStockScreen(
     }
 
     if (coffeeDetails == null) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = CoffeeBrown) }
+        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
         return
     }
 
     val coffee = coffeeDetails.coffee
     val scrollState = rememberLazyListState()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        // CABECERA INMERSIVA ESTILO EXPLORAR
-        Box(modifier = Modifier.fillMaxWidth().height(400.dp).graphicsLayer {
-            translationY = -scrollState.firstVisibleItemScrollOffset * 0.4f
-            alpha = 1f - (scrollState.firstVisibleItemScrollOffset / 800f).coerceIn(0f, 1f)
-        }) {
-            AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)), startY = 600f)))
-            Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 48.dp, end = 120.dp)) {
-                Text(text = coffee.marca, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
-                Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
-            }
-            Surface(modifier = Modifier.padding(end = 24.dp, bottom = 48.dp).align(Alignment.BottomEnd), color = Color.White.copy(alpha = 0.95f), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Nota Media", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // CABECERA INMERSIVA ESTILO EXPLORAR
+            Box(modifier = Modifier.fillMaxWidth().height(400.dp).graphicsLayer {
+                translationY = -scrollState.firstVisibleItemScrollOffset * 0.4f
+                alpha = 1f - (scrollState.firstVisibleItemScrollOffset / 800f).coerceIn(0f, 1f)
+            }) {
+                AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)), startY = 600f)))
+                Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 48.dp, end = 120.dp)) {
+                    Text(text = coffee.marca, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
+                    Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
                 }
-            }
-        }
-
-        LazyColumn(state = scrollState, modifier = Modifier.fillMaxSize()) {
-            item { Spacer(Modifier.height(360.dp)) }
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(), 
-                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), 
-                    color = Color.White,
-                    tonalElevation = 1.dp
-                ) {
-                    Column(modifier = Modifier.padding(24.dp)) {
-                        // SECCIÓN DE EDICIÓN DE STOCK (PREMIUM)
-                        Text("Mi Stock", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(16.dp))
-                        OutlinedTextField(
-                            value = gramsRemaining,
-                            onValueChange = { if (it.all { c -> c.isDigit() }) gramsRemaining = it },
-                            label = { Text("Gramos restantes en la bolsa (g)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            trailingIcon = { Icon(Icons.Default.Scale, null, tint = CoffeeBrown) },
-                            singleLine = true
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = {
-                                viewModel.addToPantry(coffeeId, gramsRemaining.toIntOrNull() ?: 0)
-                                onBackClick()
-                            },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CoffeeBrown)
-                        ) {
-                            Text("ACTUALIZAR STOCK", fontWeight = FontWeight.ExtraBold)
-                        }
-
-                        Spacer(Modifier.height(32.dp))
-                        HorizontalDivider(thickness = 0.5.dp)
-                        Spacer(Modifier.height(32.dp))
-
-                        // DESCRIPCIÓN
-                        Text("Descripción", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = coffee.descripcion, 
-                            style = MaterialTheme.typography.bodyMedium, 
-                            color = Color.Gray,
-                            maxLines = if (isDescExpanded) Int.MAX_VALUE else 3,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.animateContentSize()
-                        )
-                        Text(
-                            text = if (isDescExpanded) "Leer menos" else "Leer más",
-                            color = CoffeeBrown,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp).clickable { isDescExpanded = !isDescExpanded }
-                        )
-
-                        Spacer(Modifier.height(32.dp))
-
-                        // CARACTERÍSTICAS
-                        Text("Características", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(16.dp))
-                        listOf("Aroma" to coffee.aroma, "Sabor" to coffee.sabor, "Cuerpo" to coffee.cuerpo, "Acidez" to coffee.acidez).forEach { (label, value) ->
-                            Column {
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(label, style = MaterialTheme.typography.bodyMedium)
-                                    Text("${value.toInt()}/10", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                }
-                                LinearProgressIndicator(
-                                    progress = { value / 10f },
-                                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                                    color = CoffeeBrown,
-                                    trackColor = Color(0xFFF5F5F5)
-                                )
-                                Spacer(Modifier.height(12.dp))
-                            }
-                        }
-                        
-                        Spacer(Modifier.height(100.dp))
+                Surface(modifier = Modifier.padding(end = 24.dp, bottom = 48.dp).align(Alignment.BottomEnd), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), shape = RoundedCornerShape(16.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Nota Media", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
-        }
 
-        // Botón atrás
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier.statusBarsPadding().padding(16.dp).size(44.dp).background(Color.White.copy(alpha = 0.9f), CircleShape)
-        ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+            LazyColumn(state = scrollState, modifier = Modifier.fillMaxSize()) {
+                item { Spacer(Modifier.height(360.dp)) }
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(), 
+                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), 
+                        color = MaterialTheme.colorScheme.background,
+                        tonalElevation = 1.dp
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            // SECCIÓN DE EDICIÓN DE STOCK (PREMIUM)
+                            Text("Mi Stock", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.height(16.dp))
+                            OutlinedTextField(
+                                value = gramsRemaining,
+                                onValueChange = { if (it.all { c -> c.isDigit() } || it.isEmpty()) gramsRemaining = it },
+                                label = { Text("Gramos restantes en la bolsa (g)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                trailingIcon = { Icon(Icons.Default.Scale, null, tint = MaterialTheme.colorScheme.primary) },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(
+                                onClick = {
+                                    viewModel.addToPantry(coffeeId, gramsRemaining.toIntOrNull() ?: 0)
+                                    onBackClick()
+                                },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Text("ACTUALIZAR STOCK", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimary)
+                            }
+
+                            Spacer(Modifier.height(32.dp))
+                            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+                            Spacer(Modifier.height(32.dp))
+
+                            // DESCRIPCIÓN
+                            Text("Descripción", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = coffee.descripcion, 
+                                style = MaterialTheme.typography.bodyMedium, 
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = if (isDescExpanded) Int.MAX_VALUE else 3,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.animateContentSize()
+                            )
+                            Text(
+                                text = if (isDescExpanded) "Leer menos" else "Leer más",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 8.dp).clickable { isDescExpanded = !isDescExpanded }
+                            )
+
+                            Spacer(Modifier.height(32.dp))
+
+                            // CARACTERÍSTICAS
+                            Text("Características", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.height(16.dp))
+                            listOf("Aroma" to coffee.aroma, "Sabor" to coffee.sabor, "Cuerpo" to coffee.cuerpo, "Acidez" to coffee.acidez).forEach { (label, value) ->
+                                Column {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                                        Text("${value.toInt()}/10", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    LinearProgressIndicator(
+                                        progress = { value / 10f },
+                                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.outline
+                                    )
+                                    Spacer(Modifier.height(12.dp))
+                                }
+                            }
+                            
+                            Spacer(Modifier.height(100.dp))
+                        }
+                    }
+                }
+            }
+
+            // Botón atrás
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.statusBarsPadding().padding(16.dp).size(44.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), CircleShape)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
+            }
         }
     }
 }
