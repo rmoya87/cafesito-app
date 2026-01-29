@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.cafesito.app.domain.User
+import com.cafesito.shared.domain.User
 import com.cafesito.app.ui.components.GlassyTopBar
 import com.cafesito.app.ui.components.ModernAvatar
 import com.cafesito.app.ui.theme.*
