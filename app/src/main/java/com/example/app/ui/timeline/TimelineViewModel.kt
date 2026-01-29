@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
 import com.cafesito.shared.domain.SuggestedUserInfo
 import com.cafesito.shared.domain.User
+import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,6 +18,7 @@ class TimelineViewModel @Inject constructor(
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository
 ) : ViewModel() {
+    private val validateReviewInput = ValidateReviewInputUseCase()
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
@@ -170,6 +172,8 @@ class TimelineViewModel @Inject constructor(
 
     fun updateReview(coffeeId: String, rating: Float, comment: String, imageUrl: String?) {
         viewModelScope.launch {
+            val validation = validateReviewInput(rating, comment)
+            if (validation.isFailure) return@launch
             val user = userRepository.getActiveUser() ?: return@launch
             coffeeRepository.upsertReview(ReviewEntity(
                 coffeeId = coffeeId,

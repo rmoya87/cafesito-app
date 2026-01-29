@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -22,6 +23,7 @@ class DetailViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+    private val validateReviewInput = ValidateReviewInputUseCase()
 
     private val coffeeId: String = checkNotNull(savedStateHandle["coffeeId"])
 
@@ -94,6 +96,8 @@ class DetailViewModel @Inject constructor(
 
     fun submitReview(rating: Float, comment: String, imageUri: Uri? = null) {
         viewModelScope.launch {
+            val validation = validateReviewInput(rating, comment)
+            if (validation.isFailure) return@launch
             val user = userRepository.getActiveUser() ?: return@launch
             val currentState = uiState.value as? DetailUiState.Success
             val existingReview = currentState?.userReview
