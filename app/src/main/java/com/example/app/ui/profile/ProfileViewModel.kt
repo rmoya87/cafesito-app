@@ -8,6 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import com.cafesito.app.health.HealthConnectRepository
+import com.cafesito.shared.domain.Review
+import com.cafesito.shared.domain.User
+import com.cafesito.shared.domain.repository.ReviewRepository
+import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.exceptions.HttpRequestException
 import kotlinx.coroutines.Dispatchers
@@ -44,9 +48,11 @@ class ProfileViewModel @Inject constructor(
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
     private val diaryRepository: DiaryRepository,
+    private val reviewRepository: ReviewRepository,
     private val connectivityObserver: ConnectivityObserver,
     val healthConnectRepository: HealthConnectRepository
 ) : ViewModel() {
+    private val validateReviewInput = ValidateReviewInputUseCase()
 
     private val requestedUserId: Int = savedStateHandle["userId"] ?: 0
     private val _isEditing = MutableStateFlow(false)
@@ -277,8 +283,21 @@ class ProfileViewModel @Inject constructor(
 
     fun updateReview(coffeeId: String, rating: Float, comment: String, imageUrl: String?) {
         viewModelScope.launch(Dispatchers.IO) {
+            val validation = validateReviewInput(rating, comment)
+            if (validation.isFailure) return@launch
             val me = userRepository.getActiveUser() ?: return@launch
-            coffeeRepository.upsertReview(ReviewEntity(coffeeId = coffeeId, userId = me.id, rating = rating, comment = comment, imageUrl = imageUrl, timestamp = System.currentTimeMillis()))
+            val result = reviewRepository.updateReview(
+                Review(
+                    user = me.toDomainUser(),
+                    coffeeId = coffeeId,
+                    rating = rating,
+                    comment = comment,
+                    imageUrl = imageUrl,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+            if (result.isFailure) return@launch
+            coffeeRepository.triggerRefresh()
         }
     }
 
@@ -289,3 +308,12 @@ class ProfileViewModel @Inject constructor(
         }
     }
 }
+
+private fun UserEntity.toDomainUser(): User = User(
+    id = id,
+    username = username,
+    fullName = fullName,
+    avatarUrl = avatarUrl,
+    email = email,
+    bio = bio
+)

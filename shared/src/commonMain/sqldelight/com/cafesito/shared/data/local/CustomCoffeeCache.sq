@@ -1,0 +1,27 @@
+CREATE TABLE custom_coffee_cache (
+    id TEXT NOT NULL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    brand TEXT NOT NULL,
+    specialty TEXT NOT NULL,
+    roast TEXT,
+    variety TEXT,
+    country TEXT NOT NULL,
+    has_caffeine INTEGER NOT NULL,
+    format TEXT NOT NULL,
+    image_url TEXT NOT NULL,
+    total_grams INTEGER NOT NULL
+);
+
+selectByUser:
+SELECT * FROM custom_coffee_cache
+WHERE user_id = ?;
+
+upsert:
+INSERT OR REPLACE INTO custom_coffee_cache(
+    id, user_id, name, brand, specialty, roast, variety, country,
+    has_caffeine, format, image_url, total_grams
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+clearByUser:
+DELETE FROM custom_coffee_cache WHERE user_id = ?;

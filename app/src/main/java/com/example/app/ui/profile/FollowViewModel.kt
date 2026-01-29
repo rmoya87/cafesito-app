@@ -3,8 +3,8 @@ package com.cafesito.app.ui.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.UserRepository
-import com.cafesito.app.domain.User
-import com.cafesito.app.domain.SuggestedUserInfo
+import com.cafesito.shared.domain.User
+import com.cafesito.shared.domain.SuggestedUserInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
