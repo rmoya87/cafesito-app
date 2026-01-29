@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -25,17 +26,20 @@ kotlin {
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.content.negotiation)
                 implementation(libs.ktor.serialization.kotlinx.json)
+                implementation(libs.sqldelight.runtime)
             }
         }
         val androidMain by getting {
             dependencies {
                 implementation(libs.ktor.client.android)
+                implementation(libs.sqldelight.android.driver)
             }
         }
         val iosMain by creating {
             dependsOn(commonMain)
             dependencies {
                 implementation(libs.ktor.client.darwin)
+                implementation(libs.sqldelight.native.driver)
             }
         }
         val iosX64Main by getting {
@@ -51,6 +55,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.sqldelight.sqlite.driver)
             }
         }
     }
@@ -73,5 +78,13 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+sqldelight {
+    databases {
+        create("CafesitoDatabase") {
+            packageName.set("com.cafesito.shared.data.local")
+        }
     }
 }
