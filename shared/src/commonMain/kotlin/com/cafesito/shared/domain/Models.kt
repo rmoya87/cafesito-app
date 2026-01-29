@@ -1,17 +1,19 @@
-package com.cafesito.app.domain
+package com.cafesito.shared.domain
 
-// --- Data Models ---
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class User(
     val id: Int,
     val username: String,
     val fullName: String,
     val avatarUrl: String,
-    val email: String, 
+    val email: String,
     val bio: String?,
-    val favoriteCoffeeIds: List<String> = emptyList() // Changed to String
+    val favoriteCoffeeIds: List<String> = emptyList()
 )
 
+@Serializable
 data class Post(
     val id: String,
     val user: User,
@@ -22,16 +24,19 @@ data class Post(
     val comments: List<Comment>
 )
 
+@Serializable
 data class Comment(val user: User, val text: String)
 
+@Serializable
 data class Review(
-    val user: User, 
-    val coffeeId: String, // Changed to String
-    val rating: Float, 
+    val user: User,
+    val coffeeId: String,
+    val rating: Float,
     val comment: String,
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Serializable
 data class SuggestedUserInfo(
     val user: User,
     val followersCount: Int,

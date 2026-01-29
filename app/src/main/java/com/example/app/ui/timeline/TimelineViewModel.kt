@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
-import com.cafesito.app.domain.SuggestedUserInfo
-import com.cafesito.app.domain.User
+import com.cafesito.shared.domain.SuggestedUserInfo
+import com.cafesito.shared.domain.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
