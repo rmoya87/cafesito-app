@@ -33,6 +33,7 @@ data class Review(
     val coffeeId: String,
     val rating: Float,
     val comment: String,
+    val imageUrl: String? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
 

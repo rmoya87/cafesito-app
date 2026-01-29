@@ -66,6 +66,7 @@ class ModelsSerializationTest {
             coffeeId = "coffee-3",
             rating = 4.5f,
             comment = "Excelente",
+            imageUrl = "https://example.com/review.png",
             timestamp = 1_700_000_000_100
         )
 

@@ -7,6 +7,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.shared.domain.Review
+import com.cafesito.shared.domain.User
+import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,6 +24,7 @@ class DetailViewModel @Inject constructor(
     private val socialRepository: SocialRepository,
     private val userRepository: UserRepository,
     private val diaryRepository: DiaryRepository,
+    private val reviewRepository: ReviewRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
@@ -118,10 +122,9 @@ class DetailViewModel @Inject constructor(
             }
 
             // 2. Construcción de la entidad incluyendo el ID existente para evitar duplicados
-            val review = ReviewEntity(
-                id = existingReview?.id ?: 0,
+            val review = Review(
+                user = user.toDomainUser(),
                 coffeeId = coffeeId,
-                userId = user.id,
                 rating = rating,
                 comment = comment,
                 imageUrl = uploadedImageUrl ?: existingReview?.imageUrl,
@@ -129,7 +132,8 @@ class DetailViewModel @Inject constructor(
             )
 
             try {
-                coffeeRepository.upsertReview(review)
+                val result = reviewRepository.updateReview(review)
+                if (result.isFailure) return@launch
                 // Es crucial refrescar AMBOS repositorios para que la UI se actualice al instante
                 socialRepository.triggerRefresh()
                 coffeeRepository.triggerRefresh()
@@ -151,3 +155,12 @@ sealed interface DetailUiState {
     ) : DetailUiState
     data class Error(val message: String) : DetailUiState
 }
+
+private fun UserEntity.toDomainUser(): User = User(
+    id = id,
+    username = username,
+    fullName = fullName,
+    avatarUrl = avatarUrl,
+    email = email,
+    bio = bio
+)

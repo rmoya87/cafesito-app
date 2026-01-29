@@ -4,8 +4,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.shared.domain.Review
 import com.cafesito.shared.domain.SuggestedUserInfo
 import com.cafesito.shared.domain.User
+import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -16,7 +18,8 @@ import javax.inject.Inject
 class TimelineViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
-    private val socialRepository: SocialRepository
+    private val socialRepository: SocialRepository,
+    private val reviewRepository: ReviewRepository
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -175,17 +178,30 @@ class TimelineViewModel @Inject constructor(
             val validation = validateReviewInput(rating, comment)
             if (validation.isFailure) return@launch
             val user = userRepository.getActiveUser() ?: return@launch
-            coffeeRepository.upsertReview(ReviewEntity(
-                coffeeId = coffeeId,
-                userId = user.id,
-                rating = rating,
-                comment = comment,
-                imageUrl = imageUrl,
-                timestamp = System.currentTimeMillis()
-            ))
+            val result = reviewRepository.updateReview(
+                Review(
+                    user = user.toDomainUser(),
+                    coffeeId = coffeeId,
+                    rating = rating,
+                    comment = comment,
+                    imageUrl = imageUrl,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+            if (result.isFailure) return@launch
+            coffeeRepository.triggerRefresh()
         }
     }
 }
+
+private fun UserEntity.toDomainUser(): User = User(
+    id = id,
+    username = username,
+    fullName = fullName,
+    avatarUrl = avatarUrl,
+    email = email,
+    bio = bio
+)
 
 private data class TimelineStaticData(
     val activeUser: UserEntity?,

@@ -5,6 +5,9 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.shared.domain.Review
+import com.cafesito.shared.domain.User
+import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -18,7 +21,8 @@ enum class PostType { PUBLICATION, OPINION }
 class AddPostViewModel @Inject constructor(
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val reviewRepository: ReviewRepository
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -100,8 +104,28 @@ class AddPostViewModel @Inject constructor(
                 is Bitmap -> "https://picsum.photos/seed/rev_${System.currentTimeMillis()}/800/800"
                 else -> null
             }
-            coffeeRepository.upsertReview(ReviewEntity(coffeeId = coffeeId, userId = activeUser.id, rating = rating, comment = comment, imageUrl = imageUrl, timestamp = System.currentTimeMillis()))
+            val reviewResult = reviewRepository.submitReview(
+                Review(
+                    user = activeUser.toDomainUser(),
+                    coffeeId = coffeeId,
+                    rating = rating,
+                    comment = comment,
+                    imageUrl = imageUrl,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+            if (reviewResult.isFailure) return@launch
+            coffeeRepository.triggerRefresh()
             onSuccess()
         }
     }
+
+    private fun UserEntity.toDomainUser(): User = User(
+        id = id,
+        username = username,
+        fullName = fullName,
+        avatarUrl = avatarUrl,
+        email = email,
+        bio = bio
+    )
 }
