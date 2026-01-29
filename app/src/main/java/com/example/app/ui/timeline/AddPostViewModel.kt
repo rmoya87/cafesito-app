@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,6 +20,7 @@ class AddPostViewModel @Inject constructor(
     private val socialRepository: SocialRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
+    private val validateReviewInput = ValidateReviewInputUseCase()
 
     private val _currentStep = MutableStateFlow(0)
     val currentStep: StateFlow<Int> = _currentStep.asStateFlow()
@@ -88,6 +90,8 @@ class AddPostViewModel @Inject constructor(
 
     fun submitReview(rating: Float, comment: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            val validation = validateReviewInput(rating, comment)
+            if (validation.isFailure) return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch
             val coffeeId = _selectedCoffee.value?.coffee?.id ?: return@launch
             val source = _imageSource.value
