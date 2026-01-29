@@ -7,6 +7,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.shared.core.Result
+import com.cafesito.shared.domain.model.ReviewInput
+import com.cafesito.shared.domain.usecase.SubmitReviewUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -20,6 +23,7 @@ class DetailViewModel @Inject constructor(
     private val socialRepository: SocialRepository,
     private val userRepository: UserRepository,
     private val diaryRepository: DiaryRepository,
+    private val submitReviewUseCase: SubmitReviewUseCase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -97,9 +101,9 @@ class DetailViewModel @Inject constructor(
             val user = userRepository.getActiveUser() ?: return@launch
             val currentState = uiState.value as? DetailUiState.Success
             val existingReview = currentState?.userReview
-            
+
             var uploadedImageUrl: String? = null
-            
+
             // 1. Subida de imagen si se selecciona una nueva
             imageUri?.let { uri ->
                 try {
@@ -114,26 +118,27 @@ class DetailViewModel @Inject constructor(
             }
 
             // 2. Construcción de la entidad incluyendo el ID existente para evitar duplicados
-            val review = ReviewEntity(
-                id = existingReview?.id ?: 0,
-                coffeeId = coffeeId,
-                userId = user.id,
-                rating = rating,
-                comment = comment,
-                imageUrl = uploadedImageUrl ?: existingReview?.imageUrl,
-                timestamp = System.currentTimeMillis()
+            val result = submitReviewUseCase(
+                ReviewInput(
+                    coffeeId = coffeeId,
+                    rating = rating,
+                    comment = comment,
+                    timestampMs = System.currentTimeMillis(),
+                    imageUrl = uploadedImageUrl ?: existingReview?.imageUrl,
+                    reviewId = existingReview?.id
+                )
             )
 
-            try {
-                coffeeRepository.upsertReview(review)
+            if (result is Result.Success) {
                 // Es crucial refrescar AMBOS repositorios para que la UI se actualice al instante
                 socialRepository.triggerRefresh()
                 coffeeRepository.triggerRefresh()
-            } catch (e: Exception) {
-                Log.e("DETAIL_VM", "Error al guardar reseña: ${e.message}")
+            } else if (result is Result.Failure) {
+                Log.e("DETAIL_VM", "Error al guardar reseña: ${result.error}")
             }
         }
     }
+
 }
 
 sealed interface DetailUiState {

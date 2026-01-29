@@ -3,8 +3,14 @@ package com.cafesito.app.di
 import android.content.Context
 import androidx.room.Room
 import com.cafesito.app.data.*
+import com.cafesito.app.shared.AndroidReviewRepositoryAdapter
+import com.cafesito.app.shared.AndroidUserSessionRepository
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import com.cafesito.app.ui.utils.NetworkConnectivityObserver
+import com.cafesito.shared.domain.repository.ReviewRepository
+import com.cafesito.shared.domain.repository.UserSessionRepository
+import com.cafesito.shared.domain.usecase.SubmitReviewUseCase
+import com.cafesito.shared.domain.validation.ReviewValidator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -63,4 +69,20 @@ object AppModule {
     fun provideSharedPreferences(@ApplicationContext context: Context): android.content.SharedPreferences {
         return context.getSharedPreferences("cafesito_prefs", Context.MODE_PRIVATE)
     }
+
+    @Provides
+    fun provideReviewValidator(): ReviewValidator = ReviewValidator()
+
+    @Provides
+    fun provideReviewRepository(adapter: AndroidReviewRepositoryAdapter): ReviewRepository = adapter
+
+    @Provides
+    fun provideUserSessionRepository(adapter: AndroidUserSessionRepository): UserSessionRepository = adapter
+
+    @Provides
+    fun provideSubmitReviewUseCase(
+        reviewRepository: ReviewRepository,
+        userSessionRepository: UserSessionRepository,
+        reviewValidator: ReviewValidator
+    ): SubmitReviewUseCase = SubmitReviewUseCase(reviewRepository, userSessionRepository, reviewValidator)
 }

@@ -8,6 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import com.cafesito.app.health.HealthConnectRepository
+import com.cafesito.shared.core.Result
+import com.cafesito.shared.domain.model.ReviewInput
+import com.cafesito.shared.domain.usecase.SubmitReviewUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.exceptions.HttpRequestException
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +48,7 @@ class ProfileViewModel @Inject constructor(
     private val socialRepository: SocialRepository,
     private val diaryRepository: DiaryRepository,
     private val connectivityObserver: ConnectivityObserver,
+    private val submitReviewUseCase: SubmitReviewUseCase,
     val healthConnectRepository: HealthConnectRepository
 ) : ViewModel() {
 
@@ -277,8 +281,18 @@ class ProfileViewModel @Inject constructor(
 
     fun updateReview(coffeeId: String, rating: Float, comment: String, imageUrl: String?) {
         viewModelScope.launch(Dispatchers.IO) {
-            val me = userRepository.getActiveUser() ?: return@launch
-            coffeeRepository.upsertReview(ReviewEntity(coffeeId = coffeeId, userId = me.id, rating = rating, comment = comment, imageUrl = imageUrl, timestamp = System.currentTimeMillis()))
+            val result = submitReviewUseCase(
+                ReviewInput(
+                    coffeeId = coffeeId,
+                    rating = rating,
+                    comment = comment,
+                    timestampMs = System.currentTimeMillis(),
+                    imageUrl = imageUrl
+                )
+            )
+            if (result is Result.Failure) {
+                // No-op: UI can react to shared domain errors if needed.
+            }
         }
     }
 

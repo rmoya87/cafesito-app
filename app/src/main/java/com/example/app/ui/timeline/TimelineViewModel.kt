@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
 import com.cafesito.app.domain.SuggestedUserInfo
 import com.cafesito.app.domain.User
+import com.cafesito.shared.core.Result
+import com.cafesito.shared.domain.model.ReviewInput
+import com.cafesito.shared.domain.usecase.SubmitReviewUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -15,7 +18,8 @@ import javax.inject.Inject
 class TimelineViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
-    private val socialRepository: SocialRepository
+    private val socialRepository: SocialRepository,
+    private val submitReviewUseCase: SubmitReviewUseCase
 ) : ViewModel() {
 
     private val _isRefreshing = MutableStateFlow(false)
@@ -170,15 +174,18 @@ class TimelineViewModel @Inject constructor(
 
     fun updateReview(coffeeId: String, rating: Float, comment: String, imageUrl: String?) {
         viewModelScope.launch {
-            val user = userRepository.getActiveUser() ?: return@launch
-            coffeeRepository.upsertReview(ReviewEntity(
-                coffeeId = coffeeId,
-                userId = user.id,
-                rating = rating,
-                comment = comment,
-                imageUrl = imageUrl,
-                timestamp = System.currentTimeMillis()
-            ))
+            val result = submitReviewUseCase(
+                ReviewInput(
+                    coffeeId = coffeeId,
+                    rating = rating,
+                    comment = comment,
+                    timestampMs = System.currentTimeMillis(),
+                    imageUrl = imageUrl
+                )
+            )
+            if (result is Result.Failure) {
+                Log.w("TimelineVM", "Review update failed: ${result.error}")
+            }
         }
     }
 }

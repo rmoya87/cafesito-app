@@ -5,6 +5,9 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.shared.core.Result
+import com.cafesito.shared.domain.model.ReviewInput
+import com.cafesito.shared.domain.usecase.SubmitReviewUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,7 +20,8 @@ enum class PostType { PUBLICATION, OPINION }
 class AddPostViewModel @Inject constructor(
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val submitReviewUseCase: SubmitReviewUseCase
 ) : ViewModel() {
 
     private val _currentStep = MutableStateFlow(0)
@@ -88,7 +92,6 @@ class AddPostViewModel @Inject constructor(
 
     fun submitReview(rating: Float, comment: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val activeUser = userRepository.getActiveUser() ?: return@launch
             val coffeeId = _selectedCoffee.value?.coffee?.id ?: return@launch
             val source = _imageSource.value
             val imageUrl = when (source) {
@@ -96,8 +99,18 @@ class AddPostViewModel @Inject constructor(
                 is Bitmap -> "https://picsum.photos/seed/rev_${System.currentTimeMillis()}/800/800"
                 else -> null
             }
-            coffeeRepository.upsertReview(ReviewEntity(coffeeId = coffeeId, userId = activeUser.id, rating = rating, comment = comment, imageUrl = imageUrl, timestamp = System.currentTimeMillis()))
-            onSuccess()
+            val result = submitReviewUseCase(
+                ReviewInput(
+                    coffeeId = coffeeId,
+                    rating = rating,
+                    comment = comment,
+                    timestampMs = System.currentTimeMillis(),
+                    imageUrl = imageUrl
+                )
+            )
+            if (result is Result.Success) {
+                onSuccess()
+            }
         }
     }
 }
