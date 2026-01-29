@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.cafesito.app.domain.SuggestedUserInfo
+import com.cafesito.shared.domain.SuggestedUserInfo
 import com.cafesito.app.ui.theme.CoffeeBrown
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

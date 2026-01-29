@@ -1,6 +1,6 @@
 package com.cafesito.app.ui.timeline
 
-import com.cafesito.app.domain.User
+import com.cafesito.shared.domain.User
 
 // Mock current user
 val currentUser = User(1, "rmoya", "Ricardo Moya", "https://rmoya.dev/assets/images/profile.jpg", "ricardo.moya@example.com", "Desarrollador Android y creador de contenido.")
