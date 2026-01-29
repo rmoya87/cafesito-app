@@ -1,0 +1,19 @@
+CREATE TABLE coffee_cache (
+  id TEXT NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM coffee_cache;
+
+selectLastUpdatedAt:
+SELECT MAX(updated_at) FROM coffee_cache;
+
+upsert:
+INSERT OR REPLACE INTO coffee_cache(id, name, origin, updated_at)
+VALUES (?, ?, ?, ?);
+
+deleteAll:
+DELETE FROM coffee_cache;
