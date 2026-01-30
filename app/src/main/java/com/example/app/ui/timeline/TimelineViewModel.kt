@@ -83,15 +83,16 @@ class TimelineViewModel @Inject constructor(
         val reviews = dynamic.reviews
         val myFollowing = dynamic.following[activeUser.id] ?: emptySet()
         
-        // FILTRO: Solo yo y a los que sigo
-        val visibleUserIds = myFollowing + activeUser.id
+        // REGLA: Si no sigue a nadie, mostramos todo. Si sigue a alguien, solo sus publicaciones y las de seguidos.
+        val isFollowingAnyone = myFollowing.isNotEmpty()
+        val visibleUserIds = if (isFollowingAnyone) myFollowing + activeUser.id else emptySet()
 
         val postItems = posts
-            .filter { visibleUserIds.contains(it.post.userId) }
+            .filter { !isFollowingAnyone || visibleUserIds.contains(it.post.userId) }
             .map { TimelineItem.PostItem(it) }
 
         val reviewItems = reviews
-            .filter { visibleUserIds.contains(it.review.userId) }
+            .filter { !isFollowingAnyone || visibleUserIds.contains(it.review.userId) }
             .mapNotNull { reviewWithAuthor ->
                 val coffeeDetails = static.allCoffees.find { it.coffee.id == reviewWithAuthor.review.coffeeId }
                 coffeeDetails?.let {
