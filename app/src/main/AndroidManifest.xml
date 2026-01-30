@@ -26,6 +26,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Cafesito"
         android:usesCleartextTraffic="true">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -33,23 +34,25 @@
             android:theme="@style/Theme.Cafesito">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
 
-            <!-- Health Connect Permissions Rationale -->
+        <!-- Health Connect Rationale Activity - CRITICAL: Must use full class name in name and meta-data -->
+        <activity
+            android:name="com.cafesito.app.HealthConnectRationaleActivity"
+            android:exported="true"
+            android:enabled="true"
+            android:label="Privacidad de Salud">
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
         </activity>
 
-        <!-- Health Connect metadata -->
-        <activity
-            android:name=".HealthConnectRationaleActivity"
-            android:exported="true"
-            android:enabled="true" />
+        <meta-data
+            android:name="health_permissions_rationale"
+            android:value="com.cafesito.app.HealthConnectRationaleActivity" />
         
-        <meta-data android:name="health_permissions_rationale" android:value=".HealthConnectRationaleActivity" />
     </application>
 
 </manifest>

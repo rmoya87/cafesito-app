@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +8,13 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+}
+
+// Cargar propiedades de firma
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -15,14 +25,30 @@ android {
         applicationId = "com.cafesito.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "2026.1.1"
+        versionCode = 3 // Incrementamos a 3 para asegurar nueva subida
+        versionName = "2026.1.3"
 
         testInstrumentationRunner = "com.cafesito.app.HiltTestRunner"
     }
 
+    signingConfigs {
+        if (keystoreProperties.isNotEmpty()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // Aplicar firma de release si las propiedades existen
+            if (keystoreProperties.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            
             // ✅ OPTIMIZACIÓN: R8 Full Mode + Resource Shrinking
             isMinifyEnabled = true
             isShrinkResources = true // Elimina recursos no usados
@@ -38,9 +64,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    
-    // ✅ FIX: Migración de kotlinOptions a configuración de tareas (Kotlin 2.0)
-    // Se elimina el bloque 'kotlinOptions' deprecado y 'composeOptions' obsoleto.
     
     buildFeatures {
         compose = true

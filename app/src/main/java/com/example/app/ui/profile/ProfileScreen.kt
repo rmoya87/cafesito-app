@@ -258,6 +258,7 @@ fun ProfileScreen(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
                         onLogoutClick = { viewModel.logout() },
+                        isHealthConnectAvailable = state.isHealthConnectAvailable,
                         healthConnectEnabled = state.healthConnectEnabled,
                         onHealthConnectToggle = { enabled ->
                             if (enabled) {

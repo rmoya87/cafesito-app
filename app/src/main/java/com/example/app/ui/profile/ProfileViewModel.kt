@@ -37,7 +37,8 @@ sealed interface ProfileUiState {
         val myFavoriteIds: Set<String>,
         val activeUser: UserEntity?,
         val sensoryProfile: Map<String, Float>,
-        val healthConnectEnabled: Boolean
+        val healthConnectEnabled: Boolean,
+        val isHealthConnectAvailable: Boolean
     ) : ProfileUiState
     data object LoggedOut : ProfileUiState
 }
@@ -60,7 +61,7 @@ class ProfileViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     private val _usernameError = MutableStateFlow<String?>(null)
     private val _temporaryAvatarUri = MutableStateFlow<Uri?>(null)
-    private val _healthConnectEnabled = MutableStateFlow(healthConnectRepository.isEnabled())
+    private val _healthConnectEnabled = MutableStateFlow(false)
     private val _loggedOut = MutableStateFlow(false)
 
     private val activeUserFlow = userRepository.getActiveUserFlow()
@@ -171,7 +172,8 @@ class ProfileViewModel @Inject constructor(
             myFavoriteIds = myFavorites.map { it.coffeeId }.toSet(),
             activeUser = activeUser,
             sensoryProfile = sensoryProfile,
-            healthConnectEnabled = healthConnectEnabled
+            healthConnectEnabled = healthConnectEnabled,
+            isHealthConnectAvailable = healthConnectRepository.isAvailable()
         )
     }
     .catch { e -> 
@@ -188,6 +190,10 @@ class ProfileViewModel @Inject constructor(
                     refreshData()
                 }
             }
+        }
+        viewModelScope.launch {
+            // Sincronizar estado inicial
+            _healthConnectEnabled.value = healthConnectRepository.isEnabled() && healthConnectRepository.hasPermissions()
         }
     }
 
