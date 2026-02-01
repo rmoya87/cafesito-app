@@ -8,13 +8,15 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.components.*
@@ -26,6 +28,7 @@ fun TimelineScreen(
     onUserClick: (Int) -> Unit,
     onCoffeeClick: (String) -> Unit,
     onAddPostClick: () -> Unit,
+    onSearchUsersClick: () -> Unit,
     viewModel: TimelineViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -59,7 +62,28 @@ fun TimelineScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { GlassyTopBar(title = "Cafesito", scrollBehavior = scrollBehavior) },
+        topBar = { 
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "CAFESITO",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onSearchUsersClick) {
+                        Icon(Icons.Default.Search, contentDescription = "Buscar Usuarios", modifier = Modifier.size(24.dp))
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
+                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                )
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddPostClick,
@@ -111,7 +135,10 @@ fun TimelineScreen(
                             UserSuggestionCarousel(
                                 users = state.suggestedUsers,
                                 followingIds = state.myFollowingIds,
-                                onUserClick = onUserClick,
+                                onUserClick = { userId ->
+                                    if (userId == state.activeUser.id) onUserClick(0)
+                                    else onUserClick(userId)
+                                },
                                 onFollowClick = { viewModel.toggleFollowSuggestion(it) }
                             )
                             Spacer(Modifier.height(32.dp))
@@ -127,7 +154,11 @@ fun TimelineScreen(
                                     is TimelineItem.PostItem -> PostCard(
                                         details = item.details,
                                         isLiked = item.details.likes.any { it.userId == state.activeUser.id },
-                                        onUserClick = { onUserClick(item.details.author.id) },
+                                        onUserClick = {
+                                            val userId = item.details.post.userId
+                                            if (userId == state.activeUser.id) onUserClick(0)
+                                            else onUserClick(userId)
+                                        },
                                         onCommentClick = { showCommentSheetId = item.details.post.id },
                                         onLikeClick = { viewModel.toggleLike(item.details.post.id) },
                                         isOwnPost = item.details.post.userId == state.activeUser.id,
@@ -167,7 +198,10 @@ fun TimelineScreen(
                         postId = id,
                         onDismiss = { showCommentSheetId = null },
                         onAddComment = { viewModel.onAddComment(id, it) },
-                        onNavigateToProfile = onUserClick
+                        onNavigateToProfile = { userId ->
+                            if (userId == state.activeUser.id) onUserClick(0)
+                            else onUserClick(userId)
+                        }
                     )
                 }
 

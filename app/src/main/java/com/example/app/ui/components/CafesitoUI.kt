@@ -147,7 +147,11 @@ fun GlassyTopBar(
         navigationIcon = {
             if (onBackClick != null) {
                 IconButton(onClick = onBackClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBackIos, contentDescription = "Back", modifier = Modifier.size(20.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBackIos, 
+                        contentDescription = "Back", 
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         },
@@ -338,7 +342,7 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
     PremiumCard(modifier = modifier) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(32.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column {
@@ -395,7 +399,7 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
                     if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, 
                     null, 
                     tint = if (entry.type == "WATER") Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurface, 
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
             Spacer(Modifier.width(16.dp))

@@ -181,7 +181,7 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
         val mainScreens = listOf("timeline", "search", "brewlab", "diary", "profile")
         val userIdArg = navBackStackEntry?.arguments?.getInt("userId") ?: 0
         val isOther = currentRoute.startsWith("profile/") && userIdArg != 0
-        val isFollow = currentRoute.contains("/followers") || currentRoute.contains("/following")
+        val isFollow = currentRoute.contains("/followers") || currentRoute.contains("/following") || currentRoute == "searchUsers"
         val showBottom = mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow
         Triple(showBottom, isOther, isFollow)
     }
@@ -251,16 +251,54 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
 
             composable("timeline") {
                 TimelineScreen(
-                    onUserClick = { id -> navController.navigate("profile/$id") },
+                    onUserClick = { id -> 
+                        if (id == 0) {
+                            navController.navigate("profile/0") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            navController.navigate("profile/$id")
+                        }
+                    },
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onAddPostClick = { navController.navigate("addPost") }
+                    onAddPostClick = { navController.navigate("addPost") },
+                    onSearchUsersClick = { navController.navigate("searchUsers") }
+                )
+            }
+
+            composable("searchUsers") {
+                SearchUsersScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onUserClick = { id -> 
+                        if (id == 0) {
+                            navController.navigate("profile/0") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            navController.navigate("profile/$id")
+                        }
+                    }
                 )
             }
 
             composable("search") {
                 SearchScreen(
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onProfileClick = { id -> navController.navigate("profile/$id") }
+                    onProfileClick = { id -> 
+                        if (id == 0) {
+                            navController.navigate("profile/0") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            navController.navigate("profile/$id")
+                        }
+                    }
                 )
             }
 
@@ -270,7 +308,8 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                         navController.navigate("diary") {
                             popUpTo("brewlab") { inclusive = false }
                         }
-                    }
+                    },
+                    onAddCoffeeClick = { navController.navigate("addStock?origin=brewlab") }
                 )
             }
 
@@ -292,13 +331,21 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 )
             }
 
-            composable("addStock") {
+            composable(
+                route = "addStock?origin={origin}",
+                arguments = listOf(navArgument("origin") { defaultValue = "" })
+            ) { backStackEntry ->
+                val origin = backStackEntry.arguments?.getString("origin") ?: ""
                 AddStockScreen(
                     onBackClick = { navController.popBackStack() },
-                    onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") },
+                    onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=$origin") },
                     onSuccess = {
-                        navController.navigate("diary?navigateTo=pantry") {
-                            popUpTo("diary") { inclusive = true }
+                        if (origin == "brewlab") {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate("diary?navigateTo=pantry") {
+                                popUpTo("diary") { inclusive = true }
+                            }
                         }
                     }
                 )
@@ -347,14 +394,20 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
             }
 
             composable(
-                route = "addPantryItem?onlyActivity={onlyActivity}",
-                arguments = listOf(navArgument("onlyActivity") { type = NavType.BoolType; defaultValue = false })
+                route = "addPantryItem?onlyActivity={onlyActivity}&origin={origin}",
+                arguments = listOf(
+                    navArgument("onlyActivity") { type = NavType.BoolType; defaultValue = false },
+                    navArgument("origin") { defaultValue = "" }
+                )
             ) { backStackEntry ->
                 val onlyActivity = backStackEntry.arguments?.getBoolean("onlyActivity") ?: false
+                val origin = backStackEntry.arguments?.getString("origin") ?: ""
                 AddPantryItemScreen(
                     onlyActivity = onlyActivity,
                     onBackClick = { navigateTo ->
-                        if (navigateTo != null) {
+                        if (origin == "brewlab" && navigateTo != null) {
+                            navController.popBackStack("brewlab", inclusive = false)
+                        } else if (navigateTo != null) {
                             navController.navigate("diary?navigateTo=$navigateTo") {
                                 popUpTo("diary") { inclusive = true }
                             }
@@ -372,7 +425,17 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 val userId = backStackEntry.arguments?.getInt("userId") ?: 0
                 ProfileScreen(
                     onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> navController.navigate("profile/$id") },
+                    onUserClick = { id -> 
+                        if (id == 0) {
+                            navController.navigate("profile/0") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            navController.navigate("profile/$id")
+                        }
+                    },
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
                     onFollowingClick = { id -> navController.navigate("profile/$id/following") }
@@ -387,7 +450,17 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 FollowersScreen(
                     userId = userId,
                     onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> navController.navigate("profile/$id") }
+                    onUserClick = { id -> 
+                        if (id == 0) {
+                            navController.navigate("profile/0") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            navController.navigate("profile/$id")
+                        }
+                    }
                 )
             }
 
@@ -399,7 +472,17 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 FollowingScreen(
                     userId = userId,
                     onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> navController.navigate("profile/$id") }
+                    onUserClick = { id -> 
+                        if (id == 0) {
+                            navController.navigate("profile/0") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        } else {
+                            navController.navigate("profile/$id")
+                        }
+                    }
                 )
             }
 

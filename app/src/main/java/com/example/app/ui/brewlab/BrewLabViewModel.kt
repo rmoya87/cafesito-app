@@ -46,15 +46,15 @@ class BrewLabViewModel @Inject constructor(
 
     // --- 1. CHOOSE METHOD ---
     val brewMethods = listOf(
-        BrewMethod("Aeropress", "Fina/Media", "85-90°C", defaultRatio = 14f, iconResName = "maq_aeropress"),
-        BrewMethod("Chemex", "Media-Gruesa", "92-96°C", iconResName = "maq_chemex"),
-        BrewMethod("Espresso", "Fina", "90-94°C", hasWaterAdjustment = false, defaultRatio = 18f, iconResName = "maq_espresso"),
+        BrewMethod("Aeropress", "Fina/Media", "80-85°C", defaultRatio = 14f, iconResName = "maq_aeropress"),
+        BrewMethod("Chemex", "Media-Gruesa", "92-94°C", iconResName = "maq_chemex"),
+        BrewMethod("Espresso", "Fina (Talco)", "90-94°C", hasWaterAdjustment = false, defaultRatio = 18f, iconResName = "maq_espresso"),
         BrewMethod("Goteo", "Media", "92-96°C", iconResName = "maq_goteo"),
-        BrewMethod("Hario V60", "Media-Fina", "92-96°C", iconResName = "maq_hario_v60"),
+        BrewMethod("Hario V60", "Media-Fina", "91-93°C", iconResName = "maq_hario_v60"),
         BrewMethod("Italiana", "Media-Fina", "95°C", hasWaterAdjustment = false, defaultRatio = 20f, iconResName = "maq_italiana"),
         BrewMethod("Manual", "Media", "92-96°C", iconResName = "maq_manual"),
-        BrewMethod("Prensa francesa", "Gruesa", "92-96°C", defaultRatio = 15f, iconResName = "maq_prensa_francesa"),
-        BrewMethod("Sifón", "Media", "92-96°C", iconResName = "maq_sifon"),
+        BrewMethod("Prensa francesa", "Gruesa (Sal)", "94-96°C", defaultRatio = 15f, iconResName = "maq_prensa_francesa"),
+        BrewMethod("Sifón", "Media", "91-94°C", iconResName = "maq_sifon"),
         BrewMethod("Turco", "Extrafina", "95°C", iconResName = "maq_turco")
     )
 
@@ -73,6 +73,10 @@ class BrewLabViewModel @Inject constructor(
 
     private val _selectedPantryItem = MutableStateFlow<PantryItemWithDetails?>(null)
     val selectedPantryItem = _selectedPantryItem.asStateFlow()
+
+    fun refreshPantry() {
+        diaryRepository.triggerRefresh()
+    }
 
     fun selectPantryItem(item: PantryItemWithDetails) {
         _selectedPantryItem.value = item
@@ -94,20 +98,57 @@ class BrewLabViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 15.6f)
 
+    // VALORACIÓN DINÁMICA MEJORADA (Frase eliminada y lógica optimizada)
+    val brewValuation = combine(_selectedMethod, _ratio, _waterAmount) { method, rat, water ->
+        if (method == null) return@combine ""
+        
+        val intensity = when (method.name) {
+            "Espresso" -> when {
+                rat < 16f -> "Perfil sedoso y cuerpo ligero"
+                rat < 20f -> "Equilibrio perfecto de dulzor"
+                else -> "Cuerpo intenso y textura densa"
+            }
+            "Italiana" -> when {
+                rat < 18f -> "Sabor suave y retrogusto limpio"
+                rat < 21f -> "Intensidad clásica con mucho cuerpo"
+                else -> "Textura muy robusta y concentrada"
+            }
+            else -> when {
+                rat < 13f -> "Cuerpo muy pesado y sabores potentes"
+                rat < 15f -> "Notas dulces muy marcadas y untuosas"
+                rat < 17.5f -> "Extracción equilibrada y balanceada"
+                rat < 19f -> "Mayor claridad aromática y cuerpo sutil"
+                else -> "Perfil muy ligero con notas acuosas"
+            }
+        }
+
+        val volumeDesc = when {
+            water < 150f -> "en formato de taza corta e intensa."
+            water < 300f -> "en una taza estándar ideal para el día a día."
+            else -> "en formato diseñado para compartir."
+        }
+
+        "$intensity $volumeDesc"
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     fun setWaterAmount(value: Float) { _waterAmount.value = value }
     fun setRatio(value: Float) { _ratio.value = value }
 
     fun startBrewing() {
         _timerSeconds.value = 0
+        _hasTimerStarted.value = false
         _currentStep.value = BrewStep.BREWING
     }
 
-    // --- 4. BREWING LOGIC (Precise Phasing) ---
+    // --- 4. BREWING LOGIC ---
     private val _timerSeconds = MutableStateFlow(0)
     val timerSeconds = _timerSeconds.asStateFlow()
 
     private val _isTimerRunning = MutableStateFlow(false)
     val isTimerRunning = _isTimerRunning.asStateFlow()
+
+    private val _hasTimerStarted = MutableStateFlow(false)
+    val hasTimerStarted = _hasTimerStarted.asStateFlow()
 
     private val _phaseEvent = MutableSharedFlow<Unit>()
     val phaseEvent = _phaseEvent.asSharedFlow()
@@ -143,7 +184,7 @@ class BrewLabViewModel @Inject constructor(
                 BrewPhaseInfo("Mezcla Dinámica", "Añade el café molido y remueve en círculos suavemente. Asegúrate de que todo el café esté sumergido.", 60),
                 BrewPhaseInfo("Efecto Vacío", "Retira la fuente de calor. El enfriamiento creará un vacío que filtrará el café hacia abajo a través del filtro.", 45)
             )
-            else -> { // Pour-overs (V60, Chemex, Goteo, Manual)
+            else -> { // Pour-overs
                 val totalPourTime = (120 + (water - 250) * 0.18).toInt().coerceIn(90, 300)
                 listOf(
                     BrewPhaseInfo("Pre-infusión (Bloom)", "Vierte unos ${(water/10).toInt()}ml. Verás burbujas: es el CO2 liberándose para que el agua penetre mejor.", 30),
@@ -183,6 +224,7 @@ class BrewLabViewModel @Inject constructor(
     private var timerJob: Job? = null
 
     fun toggleTimer() {
+        if (!_hasTimerStarted.value) _hasTimerStarted.value = true
         if (_isTimerRunning.value) {
             timerJob?.cancel()
             _isTimerRunning.value = false
@@ -212,6 +254,13 @@ class BrewLabViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun resetTimer() {
+        timerJob?.cancel()
+        _isTimerRunning.value = false
+        _timerSeconds.value = 0
+        _hasTimerStarted.value = false
     }
 
     fun saveToDiary(onSuccess: () -> Unit) {

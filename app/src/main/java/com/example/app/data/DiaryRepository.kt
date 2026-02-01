@@ -53,7 +53,6 @@ class DiaryRepository @Inject constructor(
                 ensureConnected()
                 val pantryEntities = supabaseDataSource.getPantryItems(user.id)
                 
-                // ✅ OPTIMIZACIÓN: Solo descargar los cafés necesarios (by IDs)
                 val coffeeIds = pantryEntities.map { it.coffeeId }.distinct()
                 val publicCoffees = try { 
                     if (coffeeIds.isNotEmpty()) supabaseDataSource.getCoffeesByIds(coffeeIds) else emptyList()
@@ -106,7 +105,6 @@ class DiaryRepository @Inject constructor(
                 )
                 val insertedEntry = supabaseDataSource.insertDiaryEntry(entry)
                 
-                // Sync with Health Connect if enabled
                 healthConnectRepository.syncDiaryEntry(
                     mg = if (type == "WATER") 0 else caffeineAmount,
                     ml = if (type == "WATER") amountMl else 0,
@@ -230,7 +228,10 @@ class DiaryRepository @Inject constructor(
             )
             supabaseDataSource.upsertPantryItem(item)
             triggerRefresh()
-        } catch (e: Exception) { throw e }
+        } catch (e: Exception) { 
+            Log.e("DIARY_REPO", "Error updatePantryStockFull", e)
+            throw e 
+        }
     }
 
     suspend fun addToPantry(coffeeId: String, totalGrams: Int) {
@@ -244,7 +245,10 @@ class DiaryRepository @Inject constructor(
         try {
             supabaseDataSource.deletePantryItem(coffeeId, user.id)
             triggerRefresh()
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            Log.e("DIARY_REPO", "Error deletePantryItem", e)
+            throw e
+        }
     }
 
     suspend fun deleteDiaryEntry(entryId: Long) {
@@ -265,7 +269,7 @@ class DiaryRepository @Inject constructor(
             val existingExternalIds = currentEntries.mapNotNull { it.externalId }.toSet()
             
             externalRecords.forEach { (mg, ts) ->
-                val externalId = "hc_$ts" // Unique for HC records based on timestamp
+                val externalId = "hc_$ts"
                 if (!existingExternalIds.contains(externalId)) {
                     val entry = DiaryEntryEntity(
                         userId = user.id,

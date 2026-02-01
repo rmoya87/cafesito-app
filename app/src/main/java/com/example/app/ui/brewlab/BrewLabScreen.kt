@@ -49,6 +49,7 @@ import kotlin.math.sin
 fun BrewLabScreen(
     onNavigateToDiary: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
+    onAddCoffeeClick: () -> Unit = {},
     viewModel: BrewLabViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -59,11 +60,13 @@ fun BrewLabScreen(
     val water by viewModel.waterAmount.collectAsState()
     val ratio by viewModel.ratio.collectAsState()
     val coffeeGrams by viewModel.coffeeGrams.collectAsState()
+    val valuation by viewModel.brewValuation.collectAsState()
     
     val timerSeconds by viewModel.timerSeconds.collectAsState()
     val phasesTimeline by viewModel.phasesTimeline.collectAsState()
     val currentPhaseIndex by viewModel.currentPhaseIndex.collectAsState()
     val isTimerRunning by viewModel.isTimerRunning.collectAsState()
+    val hasTimerStarted by viewModel.hasTimerStarted.collectAsState()
     val remainingSeconds by viewModel.secondsRemainingInPhase.collectAsState()
     
     val recommendation by viewModel.dialInRecommendation.collectAsState()
@@ -85,7 +88,28 @@ fun BrewLabScreen(
             GlassyTopBar(
                 title = step.title,
                 onBackClick = if (step != BrewStep.CHOOSE_METHOD) { { viewModel.backStep() } } else null,
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                actions = {
+                    if (step == BrewStep.CHOOSE_COFFEE) {
+                        IconButton(
+                            onClick = onAddCoffeeClick,
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(32.dp),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                shape = CircleShape
+                            ) {
+                                Icon(
+                                    Icons.Default.Add, 
+                                    contentDescription = "Añadir café", 
+                                    tint = MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier.padding(6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             ) 
         }
     ) { padding ->
@@ -98,9 +122,12 @@ fun BrewLabScreen(
             ) { currentStep ->
                 when (currentStep) {
                     BrewStep.CHOOSE_METHOD -> ChooseMethodStep(viewModel.brewMethods) { viewModel.selectMethod(it) }
-                    BrewStep.CHOOSE_COFFEE -> ChooseCoffeeStep(pantryItems) { viewModel.selectPantryItem(it) }
-                    BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, viewModel) { viewModel.startBrewing() }
-                    BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, isTimerRunning, viewModel)
+                    BrewStep.CHOOSE_COFFEE -> {
+                        LaunchedEffect(Unit) { viewModel.refreshPantry() }
+                        ChooseCoffeeStep(pantryItems) { viewModel.selectPantryItem(it) }
+                    }
+                    BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, viewModel) { viewModel.startBrewing() }
+                    BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, isTimerRunning, hasTimerStarted, viewModel)
                     BrewStep.RESULT -> ResultStep(selectedTaste, recommendation, selectedItem, viewModel, onNavigateToDiary)
                 }
             }
@@ -188,7 +215,7 @@ fun ChooseCoffeeStep(items: List<PantryItemWithDetails>, onSelect: (PantryItemWi
 }
 
 @Composable
-fun ConfigStep(method: BrewMethod?, water: Float, ratio: Float, coffeeGrams: Float, viewModel: BrewLabViewModel, onNext: () -> Unit) {
+fun ConfigStep(method: BrewMethod?, water: Float, ratio: Float, coffeeGrams: Float, valuation: String, viewModel: BrewLabViewModel, onNext: () -> Unit) {
     val waterBlue = Color(0xFF2196F3)
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
@@ -222,6 +249,30 @@ fun ConfigStep(method: BrewMethod?, water: Float, ratio: Float, coffeeGrams: Flo
                         value = ratio, onValueChange = { viewModel.setRatio(it) }, valueRange = range,
                         colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary, activeTrackColor = MaterialTheme.colorScheme.primary, inactiveTrackColor = MaterialTheme.colorScheme.outline)
                     )
+
+                    if (valuation.isNotEmpty()) {
+                        Spacer(Modifier.height(24.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                Spacer(Modifier.width(16.dp))
+                                Text(
+                                    text = valuation,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    lineHeight = 22.sp
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -256,60 +307,73 @@ fun PreparationStep(
     timeline: List<BrewPhaseInfo>, 
     currentPhaseIndex: Int, 
     isTimerRunning: Boolean, 
+    hasTimerStarted: Boolean,
     viewModel: BrewLabViewModel
 ) {
     val currentPhase = timeline.getOrNull(currentPhaseIndex) ?: BrewPhaseInfo("Listo", "Proceso completado.", 0)
-    val hasNextPhase = currentPhaseIndex < timeline.size - 1
     
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).padding(horizontal = 24.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(24.dp))
             
-            PremiumCard {
-                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.fillMaxWidth().size(280.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), CircleShape), contentAlignment = Alignment.Center) {
-                        WaterWaveAnimation(progress = if (isTimerRunning) (timerSeconds % 180) / 180f else 0f, modifier = Modifier.fillMaxSize())
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-                            Text(currentPhase.label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                        }
-                    }
+            // Círculo del cronómetro con info interna
+            Box(Modifier.size(280.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), CircleShape), contentAlignment = Alignment.Center) {
+                WaterWaveAnimation(progress = if (isTimerRunning) (timerSeconds % 180) / 180f else 0f, modifier = Modifier.fillMaxSize())
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                    Text(currentPhase.label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     
-                    if (isTimerRunning && hasNextPhase) {
-                        Spacer(Modifier.height(16.dp))
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = "PRÓXIMO PASO EN ${remainingSeconds}S",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                        }
+                    if (isTimerRunning && currentPhaseIndex < timeline.size - 1) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "PRÓXIMO PASO EN ${remainingSeconds}S",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        )
                     }
+                }
+            }
+            
+            Spacer(Modifier.height(40.dp))
+            
+            // Línea de tiempo ALTERNA
+            BrewTimeline(timeline, timerSeconds)
 
-                    Spacer(Modifier.height(24.dp))
-                    Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
-                        Text(text = currentPhase.instruction, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(20.dp), textAlign = TextAlign.Center, lineHeight = 24.sp)
-                    }
+            Spacer(Modifier.height(40.dp))
+
+            // Instrucciones
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f), 
+                shape = RoundedCornerShape(24.dp), 
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            ) {
+                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = currentPhase.instruction, 
+                        style = MaterialTheme.typography.bodyLarge, 
+                        color = MaterialTheme.colorScheme.onSurface, 
+                        textAlign = TextAlign.Center, 
+                        lineHeight = 24.sp
+                    )
                 }
             }
         }
 
         BottomActionContainer {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedButton(
-                    onClick = { viewModel.resetAll() }, 
-                    modifier = Modifier.weight(1f).height(56.dp), 
-                    shape = RoundedCornerShape(28.dp), 
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                if (hasTimerStarted) {
+                    OutlinedButton(
+                        onClick = { viewModel.resetTimer() }, 
+                        modifier = Modifier.weight(1f).height(56.dp), 
+                        shape = RoundedCornerShape(28.dp), 
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("REINICIAR", fontWeight = FontWeight.Bold)
+                    }
                 }
+                
                 Button(
                     onClick = { viewModel.toggleTimer() }, 
                     modifier = Modifier.weight(1f).height(56.dp), 
@@ -319,6 +383,102 @@ fun PreparationStep(
                     Icon(if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
                     Spacer(Modifier.width(8.dp))
                     Text(if (isTimerRunning) "PAUSAR" else "INICIAR", fontWeight = FontWeight.Bold, color = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PhaseLabel(phase: BrewPhaseInfo) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(IntrinsicSize.Min)
+            .wrapContentWidth(unbounded = true)
+    ) {
+        Text(
+            text = phase.label.uppercase(),
+            style = MaterialTheme.typography.labelLarge,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            lineHeight = 14.sp,
+            maxLines = 2
+        )
+        Text(
+            text = "${phase.durationSeconds}s",
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
+    val totalSeconds = phases.sumOf { it.durationSeconds }.coerceAtLeast(1)
+    val coffeeBrown = Color(0xFF6F4E37)
+    val softGray = MaterialTheme.colorScheme.surfaceVariant
+
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        // Filas de etiquetas ARRIBA (Pares: 0, 2, 4...)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            phases.forEachIndexed { index, phase ->
+                val weight = (phase.durationSeconds.toFloat() / totalSeconds).coerceAtLeast(0.05f)
+                Box(
+                    modifier = Modifier.weight(weight).height(45.dp),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    if (index % 2 == 0) PhaseLabel(phase)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Barra de progreso con fondo gris
+        Row(Modifier.fillMaxWidth().height(12.dp)) {
+            phases.forEach { phase ->
+                val weight = (phase.durationSeconds.toFloat() / totalSeconds).coerceAtLeast(0.05f)
+                Box(
+                    Modifier
+                        .weight(weight)
+                        .fillMaxHeight()
+                        .padding(horizontal = 2.dp)
+                        .clip(CircleShape)
+                        .background(softGray) // Fondo gris suave
+                ) {
+                    var previousDuration = 0
+                    for (p in phases) {
+                        if (p == phase) break
+                        previousDuration += p.durationSeconds
+                    }
+                    val phaseProgress = ((elapsedTotalSeconds - previousDuration).toFloat() / phase.durationSeconds).coerceIn(0f, 1f)
+                    Box(
+                        Modifier
+                            .fillMaxWidth(phaseProgress)
+                            .fillMaxHeight()
+                            .background(coffeeBrown) // Progreso marrón café
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Filas de etiquetas ABAJO (Impares: 1, 3, 5...)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            phases.forEachIndexed { index, phase ->
+                val weight = (phase.durationSeconds.toFloat() / totalSeconds).coerceAtLeast(0.05f)
+                Box(
+                    modifier = Modifier.weight(weight).height(45.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    if (index % 2 != 0) PhaseLabel(phase)
                 }
             }
         }

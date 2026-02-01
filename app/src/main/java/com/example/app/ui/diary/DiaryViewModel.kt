@@ -171,6 +171,11 @@ class DiaryViewModel @Inject constructor(
 
     fun setPeriod(period: DiaryPeriod) { _selectedPeriod.value = period }
     
+    fun refreshData() {
+        _isLoading.value = true
+        diaryRepository.triggerRefresh()
+    }
+
     suspend fun addCoffeeConsumption(
         coffeeId: String?, 
         coffeeName: String, 
@@ -187,8 +192,22 @@ class DiaryViewModel @Inject constructor(
         diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None")
     }
     
-    fun deleteEntry(entryId: Long) { viewModelScope.launch { diaryRepository.deleteDiaryEntry(entryId) } }
-    fun addToPantry(coffeeId: String, grams: Int) { viewModelScope.launch { diaryRepository.addToPantry(coffeeId, grams) } }
+    fun deleteEntry(entryId: Long) { 
+        viewModelScope.launch { 
+            diaryRepository.deleteDiaryEntry(entryId) 
+        } 
+    }
+    
+    fun addToPantry(coffeeId: String, grams: Int, onSuccess: () -> Unit = {}) { 
+        viewModelScope.launch { 
+            try {
+                diaryRepository.addToPantry(coffeeId, grams)
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("DIARY_VIEWMODEL", "Error adding to pantry", e)
+            }
+        } 
+    }
     
     fun updateStock(coffeeId: String, total: Int, remaining: Int) {
         viewModelScope.launch {
@@ -196,9 +215,14 @@ class DiaryViewModel @Inject constructor(
         }
     }
 
-    fun removeFromPantry(coffeeId: String) { 
+    fun removeFromPantry(coffeeId: String, onSuccess: () -> Unit = {}) { 
         viewModelScope.launch { 
-            diaryRepository.deletePantryItem(coffeeId) 
+            try {
+                diaryRepository.deletePantryItem(coffeeId)
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("DIARY_VIEWMODEL", "Error removing from pantry", e)
+            }
         } 
     }
     

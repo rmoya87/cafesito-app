@@ -58,7 +58,7 @@ class FollowViewModel @Inject constructor(
         dbUsers.filter { followingIds.contains(it.id) }.map { userEntity ->
             SuggestedUserInfo(
                 user = User(
-                    id = entityIdToUserId(userEntity.id), // Just map the id directly if they match
+                    id = userEntity.id,
                     username = userEntity.username,
                     fullName = userEntity.fullName,
                     avatarUrl = userEntity.avatarUrl,
@@ -70,8 +70,26 @@ class FollowViewModel @Inject constructor(
             )
         }
     }
-    
-    private fun entityIdToUserId(id: Int) = id // Assuming they are the same for now
+
+    fun allUsersState(): Flow<List<SuggestedUserInfo>> = combine(
+        userRepository.followingMap,
+        userRepository.getAllUsersFlow()
+    ) { map, dbUsers ->
+        dbUsers.map { userEntity ->
+            SuggestedUserInfo(
+                user = User(
+                    id = userEntity.id,
+                    username = userEntity.username,
+                    fullName = userEntity.fullName,
+                    avatarUrl = userEntity.avatarUrl,
+                    email = userEntity.email,
+                    bio = userEntity.bio
+                ),
+                followersCount = map.values.count { it.contains(userEntity.id) },
+                followingCount = map[userEntity.id]?.size ?: 0
+            )
+        }
+    }
 
     fun toggleFollow(targetId: Int) {
         viewModelScope.launch {

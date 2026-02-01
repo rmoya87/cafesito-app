@@ -36,7 +36,6 @@ fun AddStockScreen(
     var searchQuery by remember { mutableStateOf("") }
     
     val filteredSuggestions = remember(coffees, searchQuery) {
-        // Filtrar solo cafés oficiales (no personalizados) y por búsqueda
         coffees.filter { 
             !it.coffee.isCustom && (
                 it.coffee.nombre.contains(searchQuery, ignoreCase = true) || 
@@ -47,10 +46,11 @@ fun AddStockScreen(
     
     var selectedCoffeeId by remember { mutableStateOf<String?>(null) }
     var grams by remember { mutableStateOf("250") }
+    var isSaving by remember { mutableStateOf(false) }
 
     if (selectedCoffeeId != null) {
         ModalBottomSheet(
-            onDismissRequest = { selectedCoffeeId = null },
+            onDismissRequest = { if (!isSaving) selectedCoffeeId = null },
             containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
@@ -72,6 +72,7 @@ fun AddStockScreen(
                     shape = RoundedCornerShape(16.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
+                    enabled = !isSaving,
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                 )
                 
@@ -80,15 +81,24 @@ fun AddStockScreen(
                 Button(
                     onClick = {
                         val g = grams.toIntOrNull() ?: 250
-                        viewModel.addToPantry(selectedCoffeeId!!, g)
-                        selectedCoffeeId = null
-                        onSuccess()
+                        isSaving = true
+                        viewModel.addToPantry(selectedCoffeeId!!, g) {
+                            // Este callback se ejecuta SOLO tras el éxito en Supabase
+                            isSaving = false
+                            selectedCoffeeId = null
+                            onSuccess()
+                        }
                     }, 
                     modifier = Modifier.fillMaxWidth().height(56.dp),
+                    enabled = !isSaving && grams.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Text("GUARDAR EN DESPENSA", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    if (isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                    } else {
+                        Text("GUARDAR EN DESPENSA", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    }
                 }
             }
         }

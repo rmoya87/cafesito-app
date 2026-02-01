@@ -23,31 +23,28 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.cafesito.app.ui.theme.*
+import com.cafesito.app.ui.components.GlassyTopBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FollowingScreen(
-    userId: Int,
+fun SearchUsersScreen(
     onBackClick: () -> Unit,
     onUserClick: (Int) -> Unit,
     viewModel: FollowViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.followingState(userId).collectAsState(initial = emptyList())
+    val allUsers by viewModel.allUsersState().collectAsState(initial = emptyList())
     val myFollowingIds by viewModel.myFollowingIds.collectAsState(initial = emptySet())
     val activeUser by viewModel.activeUser.collectAsState(initial = null)
     
-    var currentQuery by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val filteredFollowing = remember(uiState, currentQuery) {
-        uiState.filter {
-            it.user.username.contains(currentQuery, ignoreCase = true) || 
-            it.user.fullName.contains(currentQuery, ignoreCase = true)
-        }
-    }
+    val filteredUsers = allUsers.filter {
+        it.user.username.contains(searchQuery, ignoreCase = true) || 
+        it.user.fullName.contains(searchQuery, ignoreCase = true)
+    }.filter { it.user.id != activeUser?.id }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -65,8 +62,8 @@ fun FollowingScreen(
                     }
                     
                     BasicTextField(
-                        value = currentQuery,
-                        onValueChange = { currentQuery = it },
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         interactionSource = interactionSource,
@@ -74,14 +71,14 @@ fun FollowingScreen(
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         decorationBox = { innerTextField ->
                             OutlinedTextFieldDefaults.DecorationBox(
-                                value = currentQuery,
+                                value = searchQuery,
                                 innerTextField = innerTextField,
                                 enabled = true,
                                 singleLine = true,
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
                                 leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                placeholder = { Text("Buscar en seguidos...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                placeholder = { Text("Buscar usuarios...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 contentPadding = PaddingValues(0.dp),
                                 container = {
                                     OutlinedTextFieldDefaults.Container(
@@ -102,13 +99,13 @@ fun FollowingScreen(
                     )
 
                     AnimatedVisibility(
-                        visible = currentQuery.isNotBlank() || isFocused,
+                        visible = searchQuery.isNotBlank() || isFocused,
                         enter = fadeIn() + expandHorizontally(),
                         exit = fadeOut() + shrinkHorizontally()
                     ) {
                         TextButton(
                             onClick = {
-                                currentQuery = ""
+                                searchQuery = ""
                                 focusManager.clearFocus()
                             },
                             contentPadding = PaddingValues(start = 12.dp, end = 4.dp)
@@ -126,25 +123,24 @@ fun FollowingScreen(
                 .padding(paddingValues),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            if (filteredFollowing.isEmpty()) {
+            if (filteredUsers.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier.fillParentMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (currentQuery.isEmpty()) "No sigue a nadie todavía" else "No se encontraron resultados",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium
+                            text = if (searchQuery.isEmpty()) "Busca amigos para seguir" else "No se encontraron usuarios",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             } else {
-                items(filteredFollowing, key = { it.user.id }) { info ->
+                items(filteredUsers, key = { it.user.id }) { info ->
                     FollowItemModern(
                         user = info.user,
                         isFollowing = myFollowingIds.contains(info.user.id),
-                        isMe = activeUser?.id == info.user.id,
+                        isMe = false,
                         onFollowClick = { viewModel.toggleFollow(info.user.id) },
                         onClick = { onUserClick(info.user.id) }
                     )

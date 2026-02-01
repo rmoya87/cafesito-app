@@ -80,6 +80,10 @@ fun DiaryScreen(
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
 
+    LaunchedEffect(Unit) {
+        viewModel.refreshData()
+    }
+
     LaunchedEffect(navigateTo) {
         if (navigateTo == "pantry") {
             pagerState.scrollToPage(1)
@@ -152,7 +156,10 @@ fun DiaryScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.removeFromPantry(itemToDeleteId!!)
+                        val id = itemToDeleteId!!
+                        viewModel.removeFromPantry(id) {
+                            viewModel.refreshData()
+                        }
                         itemToDeleteId = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
@@ -174,9 +181,20 @@ fun DiaryScreen(
                 title = "MI DIARIO",
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
-                        IconButton(onClick = { showQuickActions = true }) {
-                            Icon(Icons.Default.AddCircle, contentDescription = "Añadir", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically, 
+                        modifier = Modifier.padding(end = 16.dp)
+                    ) {
+                        IconButton(
+                            onClick = { showQuickActions = true },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.AddCircle, 
+                                contentDescription = "Añadir", 
+                                tint = MaterialTheme.colorScheme.onSurface, 
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
                         Spacer(Modifier.width(8.dp))
                         PeriodSelectorPremium(selectedPeriod) { showPeriodMenu = true }
@@ -404,7 +422,7 @@ fun PantryPremiumCard(
             AsyncImage(
                 model = item.coffee.imageUrl,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = Color.Transparent.let { ContentScale.Crop },
                 modifier = Modifier.fillMaxSize()
             )
             Box(
@@ -452,11 +470,25 @@ fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        modifier = Modifier.height(40.dp) // Explicit height to match IconButton
     ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(period.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp)
-            Icon(Icons.Default.ExpandMore, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                period.name, 
+                style = MaterialTheme.typography.labelLarge, 
+                color = MaterialTheme.colorScheme.onSurface, 
+                fontSize = 11.sp
+            )
+            Icon(
+                Icons.Default.ExpandMore, 
+                null, 
+                tint = MaterialTheme.colorScheme.onSurface, 
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
