@@ -10,6 +10,7 @@ import com.cafesito.shared.domain.User
 import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -50,7 +51,7 @@ class TimelineViewModel @Inject constructor(
         }
     }
 
-    // ✅ Mejorado: staticData con logs y mayor tolerancia
+    // staticData
     private val staticData = combine(
         userRepository.getActiveUserFlow().onEach { Log.d("TimelineVM", "ActiveUser emitted: ${it?.username}") },
         coffeeRepository.allCoffees.onStart { emit(emptyList()) },
@@ -60,7 +61,7 @@ class TimelineViewModel @Inject constructor(
         TimelineStaticData(me, coffees, users, reco)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // ✅ Mejorado: dynamicData con logs
+    // dynamicData
     private val dynamicData = combine(
         socialRepository.getAllPostsWithDetails().onEach { Log.d("TimelineVM", "Posts emitted: ${it.size}") },
         socialRepository.getAllReviewsWithAuthor().onEach { Log.d("TimelineVM", "Reviews emitted: ${it.size}") },
@@ -85,7 +86,6 @@ class TimelineViewModel @Inject constructor(
         val reviews = dynamic.reviews
         val myFollowing = dynamic.following[activeUser.id] ?: emptySet()
         
-        // REGLA: Si no sigue a nadie, mostramos todo. Si sigue a alguien, solo sus publicaciones y las de seguidos.
         val isFollowingAnyone = myFollowing.isNotEmpty()
         val visibleUserIds = if (isFollowingAnyone) myFollowing + activeUser.id else emptySet()
 
@@ -110,7 +110,6 @@ class TimelineViewModel @Inject constructor(
             }
 
         val combinedItems = (postItems + reviewItems).sortedByDescending { it.timestamp }
-        Log.d("TimelineVM", "Final Items Count: ${combinedItems.size}")
 
         val suggestedUsers = static.allUsers
             .filter { it.id != activeUser.id && !myFollowing.contains(it.id) }
@@ -142,10 +141,11 @@ class TimelineViewModel @Inject constructor(
     private val localReadNotificationIds = MutableStateFlow<Set<Int>>(emptySet())
     private val notifiedNotificationIds = MutableStateFlow(notificationStore.getNotifiedIds())
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val notifications: StateFlow<List<TimelineNotification>> = staticData
         .filterNotNull()
         .flatMapLatest { static ->
-            val userId = static.activeUser?.id ?: return@flatMapLatest emptyFlow<List<NotificationEntity>>()
+            val userId = static.activeUser?.id ?: return@flatMapLatest flowOf(emptyList<TimelineNotification>())
             userRepository.getNotificationsForUser(userId)
                 .map { entities ->
                     entities.mapNotNull { it.toTimelineNotification(static.allUsers) }
@@ -176,7 +176,6 @@ class TimelineViewModel @Inject constructor(
         notifications.filter { it.id in unreadIds && it.id !in notifiedIds }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ... Resto de funciones (toggleLike, deletePost, etc) permanecen igual
     fun toggleFollowSuggestion(userId: Int) {
         viewModelScope.launch {
             val me = userRepository.getActiveUser() ?: return@launch
