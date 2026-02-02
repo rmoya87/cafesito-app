@@ -121,7 +121,7 @@ fun DiaryScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                     ModalMenuOption(
-                        title = "Editar Stock",
+                        title = "Editar stock",
                         icon = Icons.Default.Edit,
                         color = MaterialTheme.colorScheme.onSurface,
                         onClick = { 
@@ -135,7 +135,7 @@ fun DiaryScreen(
                         }
                     )
                     ModalMenuOption(
-                        title = "Eliminar de la Despensa",
+                        title = "Eliminar de la despensa",
                         icon = Icons.Default.Delete,
                         color = ErrorRed,
                         onClick = { 
@@ -149,27 +149,17 @@ fun DiaryScreen(
     }
 
     if (itemToDeleteId != null) {
-        AlertDialog(
+        DeleteConfirmationDialog(
             onDismissRequest = { itemToDeleteId = null },
-            title = { Text("Eliminar de la Despensa", fontWeight = FontWeight.Bold) },
-            text = { Text("¿Estás seguro de que deseas eliminar este café? Se borrará tu stock actual.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val id = itemToDeleteId!!
-                        viewModel.removeFromPantry(id) {
-                            viewModel.refreshData()
-                        }
-                        itemToDeleteId = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
-                ) { Text("ELIMINAR") }
-            },
-            dismissButton = {
-                TextButton(onClick = { itemToDeleteId = null }) { Text("CANCELAR", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            },
-            shape = RoundedCornerShape(28.dp),
-            containerColor = MaterialTheme.colorScheme.surface
+            title = "Eliminar de la despensa",
+            text = "¿Estás seguro de eliminar este café? Se borrará tu stock actual.",
+            onConfirm = {
+                val id = itemToDeleteId!!
+                viewModel.removeFromPantry(id) {
+                    viewModel.refreshData()
+                }
+                itemToDeleteId = null
+            }
         )
     }
 

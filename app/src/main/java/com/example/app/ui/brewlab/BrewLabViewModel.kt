@@ -98,7 +98,7 @@ class BrewLabViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 15.6f)
 
-    // VALORACIÓN DINÁMICA MEJORADA (Frase eliminada y lógica optimizada)
+    // VALORACIÓN DINÁMICA MEJORADA
     val brewValuation = combine(_selectedMethod, _ratio, _waterAmount) { method, rat, water ->
         if (method == null) return@combine ""
         
@@ -159,10 +159,10 @@ class BrewLabViewModel @Inject constructor(
                 BrewPhaseInfo("Extracción", "Aplica presión constante. Vigila el flujo: debe ser como un hilo de miel. Busca obtener unos 36-40g de líquido final.", 25)
             )
             "Prensa francesa" -> listOf(
-                BrewPhaseInfo("Inmersión total", "Vierte todo el agua caliente uniformemente sobre el café. Coloca la tapa sin presionar para mantener el calor.", 240)
+                BrewPhaseInfo("Inmersión", "Vierte todo el agua caliente uniformemente sobre el café. Coloca la tapa sin presionar para mantener el calor.", 240)
             )
             "Aeropress" -> listOf(
-                BrewPhaseInfo("Blooming", "Vierte unos 50ml de agua para humedecer todo el café. Remueve suavemente 3 veces para asegurar una extracción uniforme.", 30),
+                BrewPhaseInfo("Pre-infusión", "Vierte unos 50ml de agua para humedecer todo el café. Remueve suavemente 3 veces para asegurar una extracción uniforme.", 30),
                 BrewPhaseInfo("Infusión", "Añade el resto del agua. Deja que el café repose e interactúe con el agua para extraer todos sus sabores.", 90),
                 BrewPhaseInfo("Presión", "Presiona el émbolo hacia abajo con una fuerza firme y constante. Escucha el 'sssh' final y detente.", 30)
             )
@@ -174,20 +174,20 @@ class BrewLabViewModel @Inject constructor(
                 )
             }
             "Turco" -> listOf(
-                BrewPhaseInfo("Infusión lenta", "Calienta a fuego muy lento hasta que veas que se forma una espuma densa y oscura en la superficie (crema).", 120),
+                BrewPhaseInfo("Infusión", "Calienta a fuego muy lento hasta que veas que se forma una espuma densa y oscura en la superficie (crema).", 120),
                 BrewPhaseInfo("Levantamiento 1", "Retira el cezve del fuego justo antes de que hierva. Deja que la espuma baje un poco y vuelve al fuego.", 20),
                 BrewPhaseInfo("Levantamiento 2", "Repite el proceso: deja que suba la espuma por segunda vez para intensificar el cuerpo y sabor.", 20),
                 BrewPhaseInfo("Toque Final", "Último ciclo de espuma. El café turco se caracteriza por su densidad y su sedimento único.", 20)
             )
             "Sifón" -> listOf(
-                BrewPhaseInfo("Ascenso Físico", "La presión enviará el agua a la cámara superior. Espera a que se estabilice antes de añadir el café.", 90),
-                BrewPhaseInfo("Mezcla Dinámica", "Añade el café molido y remueve en círculos suavemente. Asegúrate de que todo el café esté sumergido.", 60),
+                BrewPhaseInfo("Ascenso", "La presión enviará el agua a la cámara superior. Espera a que se estabilice antes de añadir el café.", 90),
+                BrewPhaseInfo("Mezcla", "Añade el café molido y remueve en círculos suavemente. Asegúrate de que todo el café esté sumergido.", 60),
                 BrewPhaseInfo("Efecto Vacío", "Retira la fuente de calor. El enfriamiento creará un vacío que filtrará el café hacia abajo a través del filtro.", 45)
             )
             else -> { // Pour-overs
                 val totalPourTime = (120 + (water - 250) * 0.18).toInt().coerceIn(90, 300)
                 listOf(
-                    BrewPhaseInfo("Pre-infusión (Bloom)", "Vierte unos ${(water/10).toInt()}ml. Verás burbujas: es el CO2 liberándose para que el agua penetre mejor.", 30),
+                    BrewPhaseInfo("Pre-infusión", "Vierte unos ${(water/10).toInt()}ml. Verás burbujas: es el CO2 liberándose para que el agua penetre mejor.", 30),
                     BrewPhaseInfo("Desarrollo de Sabor", "Vierte en espiral desde el centro hacia afuera hasta los ${(water * 0.6).toInt()}ml. Mantén un flujo constante.", (totalPourTime * 0.4).toInt()),
                     BrewPhaseInfo("Cuerpo y Dulzor", "Añade el agua restante hasta los ${water.toInt()}ml. Hazlo con suavidad para finalizar la extracción limpiamente.", (totalPourTime * 0.6).toInt())
                 )
@@ -295,9 +295,13 @@ class BrewLabViewModel @Inject constructor(
     fun onTasteFeedback(taste: String) {
         _selectedTaste.value = taste
         _dialInRecommendation.value = when (taste) {
-            "Amargo" -> "Muele más grueso o baja la temperatura 2°C."
-            "Ácido" -> "Muele más fino o vierte más lento."
-            "Equilibrado" -> "¡Excelente receta!"
+            "Amargo" -> "Sobre-extracción: Muele más grueso o baja la temperatura 2°C para reducir el amargor."
+            "Ácido" -> "Sub-extracción: Muele más fino o vierte más lento para aumentar el contacto con el agua."
+            "Equilibrado" -> "¡Perfil perfecto! Has logrado un equilibrio ideal entre dulzor, acidez y cuerpo."
+            "Salado" -> "Muy sub-extraído: Muele mucho más fino. Indica que el agua no ha extraído los azúcares."
+            "Acuoso" -> "Poca intensidad: Usa un ratio de café más alto o intenta una molienda un punto más fina."
+            "Aspero" -> "Astringencia: Evita remover en exceso y asegúrate de que el filtro esté bien lavado."
+            "Dulce" -> "¡Extraordinario! Has resaltado los azúcares naturales del grano. Mantén estos ajustes."
             else -> null
         }
     }

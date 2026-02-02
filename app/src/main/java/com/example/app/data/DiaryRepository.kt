@@ -3,6 +3,7 @@ package com.cafesito.app.data
 import android.util.Log
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import com.cafesito.app.health.HealthConnectRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
@@ -39,6 +40,7 @@ class DiaryRepository @Inject constructor(
                 ensureConnected()
                 emit(supabaseDataSource.getDiaryEntries(user.id))
             } catch (e: Exception) { 
+                if (e is CancellationException) throw e
                 Log.e("DIARY_REPO", "Error cargando entradas", e)
                 emit(emptyList()) 
             }
@@ -71,6 +73,7 @@ class DiaryRepository @Inject constructor(
                 
                 emit(itemsWithStock.sortedByDescending { it.pantryItem.lastUpdated })
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Log.e("DIARY_REPO", "Error al cargar despensa", e)
                 emit(emptyList())
             }
@@ -88,39 +91,35 @@ class DiaryRepository @Inject constructor(
         preparationType: String = "Espresso"
     ) {
         ensureConnected()
-        val user = userRepository.getActiveUser() ?: return
-        withContext(NonCancellable) {
-            try {
-                val entry = DiaryEntryEntity(
-                    userId = user.id, 
-                    coffeeId = coffeeId, 
-                    coffeeName = coffeeName, 
-                    coffeeBrand = coffeeBrand,
-                    caffeineAmount = caffeineAmount, 
-                    amountMl = amountMl, 
-                    coffeeGrams = coffeeGrams,
-                    preparationType = preparationType,
-                    timestamp = System.currentTimeMillis(), 
-                    type = type
-                )
-                val insertedEntry = supabaseDataSource.insertDiaryEntry(entry)
-                
-                healthConnectRepository.syncDiaryEntry(
-                    mg = if (type == "WATER") 0 else caffeineAmount,
-                    ml = if (type == "WATER") amountMl else 0,
-                    timestamp = entry.timestamp,
-                    entryId = insertedEntry.id.toString()
-                )
-                
-                if (coffeeId != null && type == "CUP") {
-                    updatePantryStockDelta(coffeeId, -coffeeGrams)
-                }
-                
-                triggerRefresh()
-            } catch (e: Exception) { 
-                Log.e("DIARY_REPO", "Error al añadir entrada", e)
-            }
+        val user = userRepository.getActiveUser() ?: throw IllegalStateException("User not available")
+        
+        val entry = DiaryEntryEntity(
+            userId = user.id, 
+            coffeeId = coffeeId, 
+            coffeeName = coffeeName, 
+            coffeeBrand = coffeeBrand,
+            caffeineAmount = caffeineAmount, 
+            amountMl = amountMl, 
+            coffeeGrams = coffeeGrams,
+            preparationType = preparationType,
+            timestamp = System.currentTimeMillis(), 
+            type = type
+        )
+        
+        val insertedEntry = supabaseDataSource.insertDiaryEntry(entry)
+        
+        healthConnectRepository.syncDiaryEntry(
+            mg = if (type == "WATER") 0 else caffeineAmount,
+            ml = if (type == "WATER") amountMl else 0,
+            timestamp = entry.timestamp,
+            entryId = insertedEntry.id.toString()
+        )
+        
+        if (coffeeId != null && type == "CUP") {
+            updatePantryStockDelta(coffeeId, -coffeeGrams)
         }
+        
+        triggerRefresh()
     }
 
     private suspend fun updatePantryStockDelta(coffeeId: String, deltaGrams: Int) {
@@ -138,6 +137,7 @@ class DiaryRepository @Inject constructor(
                 supabaseDataSource.upsertPantryItem(updated)
             }
         } catch (e: Exception) { 
+            if (e is CancellationException) throw e
             Log.e("DIARY_REPO", "Error actualizando stock", e)
         }
     }
@@ -170,6 +170,7 @@ class DiaryRepository @Inject constructor(
                 updatePantryStockFull(coffeeId, totalGrams, totalGrams) 
                 triggerRefresh()
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Log.e("DIARY_REPO", "Error al crear café", e)
                 throw e
             }
@@ -209,6 +210,7 @@ class DiaryRepository @Inject constructor(
                 
                 triggerRefresh()
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Log.e("DIARY_REPO", "Error al actualizar café", e)
                 throw e
             }
@@ -229,6 +231,7 @@ class DiaryRepository @Inject constructor(
             supabaseDataSource.upsertPantryItem(item)
             triggerRefresh()
         } catch (e: Exception) { 
+            if (e is CancellationException) throw e
             Log.e("DIARY_REPO", "Error updatePantryStockFull", e)
             throw e 
         }
@@ -246,6 +249,7 @@ class DiaryRepository @Inject constructor(
             supabaseDataSource.deletePantryItem(coffeeId, user.id)
             triggerRefresh()
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e("DIARY_REPO", "Error deletePantryItem", e)
             throw e
         }
@@ -256,7 +260,9 @@ class DiaryRepository @Inject constructor(
             ensureConnected()
             supabaseDataSource.deleteDiaryEntry(entryId)
             triggerRefresh()
-        } catch (e: Exception) { }
+        } catch (e: Exception) { 
+            if (e is CancellationException) throw e
+        }
     }
 
     suspend fun syncExternalHealthData() {
@@ -285,6 +291,7 @@ class DiaryRepository @Inject constructor(
             }
             triggerRefresh()
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e("DIARY_REPO", "Error syncing HC", e)
         }
     }

@@ -8,7 +8,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +28,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -310,52 +312,119 @@ fun PreparationStep(
     hasTimerStarted: Boolean,
     viewModel: BrewLabViewModel
 ) {
+    val haptic = LocalHapticFeedback.current
     val currentPhase = timeline.getOrNull(currentPhaseIndex) ?: BrewPhaseInfo("Listo", "Proceso completado.", 0)
-    
+    val nextPhase = timeline.getOrNull(currentPhaseIndex + 1)
+    val totalSeconds = timeline.sumOf { it.durationSeconds }.coerceAtLeast(1)
+    val totalProgress = (timerSeconds.toFloat() / totalSeconds).coerceIn(0f, 1f)
+
+    val timerScale by animateFloatAsState(
+        targetValue = if (remainingSeconds <= 5 && isTimerRunning) 1.1f else 1f,
+        animationSpec = if (remainingSeconds <= 5 && isTimerRunning) {
+            infiniteRepeatable(
+                animation = tween(500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        } else {
+            tween(300)
+        },
+        label = "timerScale"
+    )
+
+    // Efecto háptico al cambiar de fase
+    LaunchedEffect(currentPhaseIndex) {
+        if (hasTimerStarted) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).padding(horizontal = 24.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(Modifier.height(24.dp))
-            
-            // Círculo del cronómetro con info interna
-            Box(Modifier.size(280.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), CircleShape), contentAlignment = Alignment.Center) {
-                WaterWaveAnimation(progress = if (isTimerRunning) (timerSeconds % 180) / 180f else 0f, modifier = Modifier.fillMaxSize())
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-                    Text(currentPhase.label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    
-                    if (isTimerRunning && currentPhaseIndex < timeline.size - 1) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "PRÓXIMO PASO EN ${remainingSeconds}S",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-            }
-            
-            Spacer(Modifier.height(40.dp))
-            
-            // Línea de tiempo ALTERNA
-            BrewTimeline(timeline, timerSeconds)
-
-            Spacer(Modifier.height(40.dp))
-
-            // Instrucciones
-            Surface(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f), 
-                shape = RoundedCornerShape(24.dp), 
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            PremiumCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(32.dp)
             ) {
-                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = currentPhase.instruction, 
-                        style = MaterialTheme.typography.bodyLarge, 
-                        color = MaterialTheme.colorScheme.onSurface, 
-                        textAlign = TextAlign.Center, 
-                        lineHeight = 24.sp
+                Box {
+                    // Fondo de ola sutil
+                    WaterWaveAnimation(
+                        progress = totalProgress,
+                        color = CaramelAccent.copy(alpha = 0.05f),
+                        modifier = Modifier.matchParentSize()
                     )
+
+                    Column {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            Text(
+                                text = currentPhase.label,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            Text(
+                                text = String.format("%02d:%02d", remainingSeconds / 60, remainingSeconds % 60),
+                                style = MaterialTheme.typography.displayLarge.copy(fontSize = 120.sp),
+                                fontWeight = FontWeight.Black,
+                                color = if (remainingSeconds <= 5 && isTimerRunning) ElectricRed else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .padding(vertical = 4.dp)
+                                    .graphicsLayer(scaleX = timerScale, scaleY = timerScale)
+                            )
+                            
+                            val nextLabel = nextPhase?.label ?: "Finalizar"
+                            Text(
+                                text = "Siguiente: $nextLabel",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            Spacer(Modifier.height(24.dp))
+                            
+                            // Barra de progreso segmentada rica en información
+                            BrewTimeline(phases = timeline, elapsedTotalSeconds = timerSeconds)
+                            
+                            Spacer(Modifier.height(12.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = String.format("TOTAL %02d:%02d", totalSeconds / 60, totalSeconds % 60),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        
+                        // Footer con instrucciones (Gris suave adaptable a modo noche)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                                .padding(24.dp)
+                        ) {
+                            Text(
+                                text = currentPhase.instruction,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -390,96 +459,72 @@ fun PreparationStep(
 }
 
 @Composable
-fun PhaseLabel(phase: BrewPhaseInfo) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(IntrinsicSize.Min)
-            .wrapContentWidth(unbounded = true)
-    ) {
-        Text(
-            text = phase.label.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            lineHeight = 14.sp,
-            maxLines = 2
-        )
-        Text(
-            text = "${phase.durationSeconds}s",
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-    }
+fun PhaseDurationLabel(phase: BrewPhaseInfo) {
+    Text(
+        text = "${phase.durationSeconds}s",
+        style = MaterialTheme.typography.labelSmall,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.ExtraBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center
+    )
 }
 
 @Composable
 fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
     val totalSeconds = phases.sumOf { it.durationSeconds }.coerceAtLeast(1)
-    val coffeeBrown = Color(0xFF6F4E37)
-    val softGray = MaterialTheme.colorScheme.surfaceVariant
+    val coffeeBrown = CaramelAccent
+    val softGray = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
 
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        // Filas de etiquetas ARRIBA (Pares: 0, 2, 4...)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-            phases.forEachIndexed { index, phase ->
+        // Tiempos por fase ENCIMA de la barra (con el mismo espaciado que la barra)
+        Row(
+            modifier = Modifier.fillMaxWidth(), 
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            phases.forEach { phase ->
                 val weight = (phase.durationSeconds.toFloat() / totalSeconds).coerceAtLeast(0.05f)
                 Box(
-                    modifier = Modifier.weight(weight).height(45.dp),
+                    modifier = Modifier.weight(weight),
                     contentAlignment = Alignment.BottomCenter
                 ) {
-                    if (index % 2 == 0) PhaseLabel(phase)
+                    PhaseDurationLabel(phase)
                 }
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
 
-        // Barra de progreso con fondo gris
-        Row(Modifier.fillMaxWidth().height(12.dp)) {
+        // Barra de progreso segmentada
+        Row(Modifier.fillMaxWidth().height(12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            var elapsedBeforeThisPhase = 0
             phases.forEach { phase ->
                 val weight = (phase.durationSeconds.toFloat() / totalSeconds).coerceAtLeast(0.05f)
+                val phaseProgress = if (elapsedTotalSeconds <= elapsedBeforeThisPhase) {
+                    0f
+                } else if (elapsedTotalSeconds >= elapsedBeforeThisPhase + phase.durationSeconds) {
+                    1f
+                } else {
+                    (elapsedTotalSeconds - elapsedBeforeThisPhase).toFloat() / phase.durationSeconds
+                }
+                
                 Box(
                     Modifier
                         .weight(weight)
                         .fillMaxHeight()
-                        .padding(horizontal = 2.dp)
                         .clip(CircleShape)
-                        .background(softGray) // Fondo gris suave
+                        .background(softGray)
                 ) {
-                    var previousDuration = 0
-                    for (p in phases) {
-                        if (p == phase) break
-                        previousDuration += p.durationSeconds
-                    }
-                    val phaseProgress = ((elapsedTotalSeconds - previousDuration).toFloat() / phase.durationSeconds).coerceIn(0f, 1f)
                     Box(
                         Modifier
                             .fillMaxWidth(phaseProgress)
                             .fillMaxHeight()
-                            .background(coffeeBrown) // Progreso marrón café
+                            .background(coffeeBrown)
                     )
                 }
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // Filas de etiquetas ABAJO (Impares: 1, 3, 5...)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            phases.forEachIndexed { index, phase ->
-                val weight = (phase.durationSeconds.toFloat() / totalSeconds).coerceAtLeast(0.05f)
-                Box(
-                    modifier = Modifier.weight(weight).height(45.dp),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    if (index % 2 != 0) PhaseLabel(phase)
-                }
+                elapsedBeforeThisPhase += phase.durationSeconds
             }
         }
     }
@@ -487,53 +532,160 @@ fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
 
 @Composable
 fun ResultStep(selectedTaste: String?, recommendation: String?, selectedItem: PantryItemWithDetails?, viewModel: BrewLabViewModel, onNavigateToDiary: () -> Unit) {
+    val tastes = listOf(
+        "Amargo" to Icons.Default.LocalFireDepartment,
+        "Ácido" to Icons.Default.Science,
+        "Equilibrado" to Icons.Default.Verified,
+        "Salado" to Icons.Default.Waves,
+        "Acuoso" to Icons.Default.WaterDrop,
+        "Aspero" to Icons.Default.Grain,
+        "Dulce" to Icons.Default.Favorite
+    )
+
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
             Spacer(Modifier.height(24.dp))
             
             PremiumCard {
                 Column(Modifier.padding(24.dp)) {
-                    Text("¿QUÉ SABOR HAS OBTENIDO?", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                    Text(
+                        text = "¿QUÉ SABOR HAS OBTENIDO?", 
+                        style = MaterialTheme.typography.titleMedium, 
+                        color = MaterialTheme.colorScheme.onSurface, 
+                        fontWeight = FontWeight.Black, 
+                        modifier = Modifier.fillMaxWidth(), 
+                        textAlign = TextAlign.Center
+                    )
                     Spacer(Modifier.height(24.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TasteOption("AMARGO", isSelected = selectedTaste == "Amargo", Modifier.weight(1f)) { viewModel.onTasteFeedback("Amargo") }
-                        TasteOption("ÓPTIMO", isSelected = selectedTaste == "Equilibrado", Modifier.weight(1f)) { viewModel.onTasteFeedback("Equilibrado") }
-                        TasteOption("ÁCIDO", isSelected = selectedTaste == "Ácido", Modifier.weight(1f)) { viewModel.onTasteFeedback("Ácido") }
-                    }
                     
-                    AnimatedVisibility(visible = recommendation != null) {
-                        Column {
-                            Spacer(Modifier.height(24.dp))
-                            Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f), shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))) {
-                                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                    Spacer(Modifier.width(16.dp))
-                                    Text(recommendation ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, lineHeight = 20.sp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        tastes.chunked(2).forEach { rowTastes ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                rowTastes.forEach { (label, icon) ->
+                                    TasteChip(
+                                        label = label.uppercase(),
+                                        icon = icon,
+                                        isSelected = selectedTaste == label,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        viewModel.onTasteFeedback(label)
+                                    }
+                                }
+                                if (rowTastes.size == 1) {
+                                    Spacer(Modifier.weight(1f))
                                 }
                             }
-                            
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                text = "Consejo: Deja reposar tu café 5 minutos antes de la primera cata para percibir mejor su dulzura natural.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
+                        }
+                    }
+                    
+                    AnimatedVisibility(
+                        visible = recommendation != null,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Column {
+                            Spacer(Modifier.height(32.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), 
+                                shape = RoundedCornerShape(24.dp), 
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                            ) {
+                                Column(Modifier.padding(24.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(
+                                            "Recomendación",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Black,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    Spacer(Modifier.height(16.dp))
+                                    Text(
+                                        text = recommendation ?: "", 
+                                        style = MaterialTheme.typography.bodyLarge, 
+                                        color = MaterialTheme.colorScheme.onSurface, 
+                                        lineHeight = 24.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
+            Spacer(Modifier.height(40.dp))
         }
 
         BottomActionContainer {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = { viewModel.resetAll() }, Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(28.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)) {
+                OutlinedButton(
+                    onClick = { viewModel.resetAll() }, 
+                    Modifier.weight(1f).height(56.dp), 
+                    shape = RoundedCornerShape(28.dp), 
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                ) {
                     Text("REINICIAR", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
-                Button(onClick = { viewModel.saveToDiary { onNavigateToDiary() } }, enabled = selectedItem != null && selectedTaste != null, modifier = Modifier.weight(1.2f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, disabledContainerColor = MaterialTheme.colorScheme.outline), shape = RoundedCornerShape(28.dp)) {
-                    Text("GUARDAR EN MI DIARIO", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary)
+                Button(
+                    onClick = { viewModel.saveToDiary { onNavigateToDiary() } }, 
+                    enabled = selectedItem != null && selectedTaste != null, 
+                    modifier = Modifier.weight(1.3f).height(56.dp), 
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, disabledContainerColor = MaterialTheme.colorScheme.outline), 
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("GUARDAR EN DIARIO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun TasteChip(
+    label: String, 
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isSelected: Boolean, 
+    modifier: Modifier = Modifier, 
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        shadowElevation = if (isSelected) 3.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Icon(
+                icon, 
+                null, 
+                modifier = Modifier.size(20.dp),
+                tint = if (isSelected) Color.White else MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = label, 
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -627,7 +779,11 @@ fun TasteOption(label: String, isSelected: Boolean, modifier: Modifier = Modifie
 }
 
 @Composable
-fun WaterWaveAnimation(progress: Float, modifier: Modifier = Modifier) {
+fun WaterWaveAnimation(
+    progress: Float, 
+    modifier: Modifier = Modifier,
+    color: Color = Color(0xFF2196F3).copy(alpha = 0.15f)
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "wave")
     val waveOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -658,7 +814,7 @@ fun WaterWaveAnimation(progress: Float, modifier: Modifier = Modifier) {
         path.close()
 
         clipRect {
-            drawPath(path, color = Color(0xFF2196F3).copy(alpha = 0.15f))
+            drawPath(path, color = color)
         }
     }
 }

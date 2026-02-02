@@ -84,8 +84,10 @@ fun PostCard(
                         }
                     }
 
-                    IconButton(onClick = { showOptionsSheet = true }) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface)
+                    if (isOwnPost) {
+                        IconButton(onClick = { showOptionsSheet = true }) {
+                            Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
                 }
             }

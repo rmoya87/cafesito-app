@@ -67,9 +67,6 @@ fun ProfileScreen(
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
     var showSensoryDetail by remember { mutableStateOf(false) }
 
-    var showPostOptions by remember { mutableStateOf<PostWithDetails?>(null) }
-    var showReviewOptions by remember { mutableStateOf<UserReviewInfo?>(null) }
-
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
     var reviewToEdit by remember { mutableStateOf<UserReviewInfo?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
@@ -226,7 +223,7 @@ fun ProfileScreen(
                                         onUserClick = onUserClick,
                                         listState = postsListState,
                                         onCommentClick = { c -> showCommentSheetId = c },
-                                        onEditClick = { post -> showPostOptions = post },
+                                        onEditClick = { post -> postToEdit = post },
                                         onDeleteClick = { post -> itemToDelete = post }
                                     )
                                     1 -> ProfileAdn(state, listState = adnListState) { showSensoryDetail = true }
@@ -236,7 +233,7 @@ fun ProfileScreen(
                                         isCurrentUser = state.isCurrentUser,
                                         onCoffeeClick = onCoffeeClick,
                                         listState = reviewsListState,
-                                        onEditClick = { review -> showReviewOptions = review },
+                                        onEditClick = { review -> reviewToEdit = review },
                                         onDeleteClick = { review -> itemToDelete = review }
                                     )
                                 }
@@ -276,52 +273,16 @@ fun ProfileScreen(
                     )
                 }
 
-                showPostOptions?.let { post ->
-                    PostOptionsBottomSheet(
-                        onDismiss = { showPostOptions = null },
-                        onEditClick = { 
-                            showPostOptions = null
-                            postToEdit = post 
-                        },
-                        onDeleteClick = { 
-                            showPostOptions = null
-                            itemToDelete = post 
-                        }
-                    )
-                }
-
-                showReviewOptions?.let { review ->
-                    ReviewOptionsBottomSheet(
-                        onDismiss = { showReviewOptions = null },
-                        onEditClick = { 
-                            showReviewOptions = null
-                            reviewToEdit = review 
-                        },
-                        onDeleteClick = { 
-                            showReviewOptions = null
-                            itemToDelete = review 
-                        }
-                    )
-                }
-
                 itemToDelete?.let { item ->
-                    AlertDialog(
+                    DeleteConfirmationDialog(
                         onDismissRequest = { itemToDelete = null },
-                        title = { Text("Eliminar permanentemente", fontWeight = FontWeight.Bold) },
-                        text = { Text("¿Estás seguro de que deseas borrar este contenido? No se podrá recuperar.") },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                                    else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
-                                    itemToDelete = null
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
-                            ) { Text("ELIMINAR") }
-                        },
-                        dismissButton = { TextButton(onClick = { itemToDelete = null }) { Text("CANCELAR", color = MaterialTheme.colorScheme.onSurfaceVariant) } },
-                        shape = RoundedCornerShape(28.dp),
-                        containerColor = MaterialTheme.colorScheme.surface
+                        title = "Borrar",
+                        text = "Una vez borrado no se puede recuperar. ¿Estás seguro?",
+                        onConfirm = {
+                            if (item is PostWithDetails) viewModel.deletePost(item.post.id)
+                            else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                            itemToDelete = null
+                        }
                     )
                 }
 

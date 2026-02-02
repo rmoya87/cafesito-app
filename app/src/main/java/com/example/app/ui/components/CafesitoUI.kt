@@ -448,8 +448,8 @@ fun InfoRow(label: String, value: String, desc: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onSave: (Int, Int) -> Unit) {
-    var total by remember { mutableFloatStateOf(item.pantryItem.totalGrams.toFloat()) }
-    var rem by remember { mutableFloatStateOf(item.pantryItem.gramsRemaining.toFloat()) }
+    var total by remember { mutableStateOf(item.pantryItem.totalGrams.toFloat()) }
+    var rem by remember { mutableStateOf(item.pantryItem.gramsRemaining.toFloat()) }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
         Column(
             Modifier
@@ -559,13 +559,13 @@ fun PostOptionsBottomSheet(
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
             ModalMenuOption(
-                title = "Editar publicación",
+                title = "Editar",
                 icon = Icons.Default.Edit,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onEditClick
             )
             ModalMenuOption(
-                title = "Borrar publicación",
+                title = "Borrar",
                 icon = Icons.Default.Delete,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onDeleteClick
@@ -588,13 +588,13 @@ fun ReviewOptionsBottomSheet(
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
             ModalMenuOption(
-                title = "Editar opinión",
+                title = "Editar",
                 icon = Icons.Default.Edit,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onEditClick
             )
             ModalMenuOption(
-                title = "Borrar opinión",
+                title = "Borrar",
                 icon = Icons.Default.Delete,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onDeleteClick
@@ -722,7 +722,7 @@ fun EditPostBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Editar Publicación",
+                text = "Editar",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -809,7 +809,7 @@ fun EditReviewBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Editar Opinión",
+                text = "Editar",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
