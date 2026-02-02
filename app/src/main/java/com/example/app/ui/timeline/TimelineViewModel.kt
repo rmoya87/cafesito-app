@@ -145,7 +145,8 @@ class TimelineViewModel @Inject constructor(
     val notifications: StateFlow<List<TimelineNotification>> = staticData
         .filterNotNull()
         .flatMapLatest { static ->
-            userRepository.getNotificationsForUser(static.activeUser.id)
+            val userId = static.activeUser?.id ?: return@flatMapLatest emptyFlow<List<NotificationEntity>>()
+            userRepository.getNotificationsForUser(userId)
                 .map { entities ->
                     entities.mapNotNull { it.toTimelineNotification(static.allUsers) }
                         .sortedByDescending { it.timestamp }

@@ -2,8 +2,14 @@ package com.cafesito.app.ui.components
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateFloatAsState
+import androidx.compose.animation.core.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -86,6 +92,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -1599,7 +1606,8 @@ fun WaterWaveAnimation(
         path.moveTo(0f, baseFillHeight)
 
         for (x in 0..width.toInt()) {
-            val y = baseFillHeight + waveHeight * sin(x / width * 2 * Math.PI + waveOffset).toFloat()
+            val progressX = x.toFloat() / width
+            val y = baseFillHeight + waveHeight * sin((progressX * 2.0 * PI + waveOffset.toDouble())).toFloat()
             path.lineTo(x.toFloat(), y)
         }
 
