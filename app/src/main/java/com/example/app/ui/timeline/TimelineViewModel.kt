@@ -11,6 +11,7 @@ import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,7 +20,8 @@ class TimelineViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
-    private val reviewRepository: ReviewRepository
+    private val reviewRepository: ReviewRepository,
+    private val notificationStore: TimelineNotificationStore
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -137,12 +139,61 @@ class TimelineViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
 
+    private val localReadNotificationIds = MutableStateFlow<Set<Int>>(emptySet())
+    private val notifiedNotificationIds = MutableStateFlow(notificationStore.getNotifiedIds())
+
+    val notifications: StateFlow<List<TimelineNotification>> = staticData
+        .filterNotNull()
+        .flatMapLatest { static ->
+            userRepository.getNotificationsForUser(static.activeUser.id)
+                .map { entities ->
+                    entities.mapNotNull { it.toTimelineNotification(static.allUsers) }
+                        .sortedByDescending { it.timestamp }
+                }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val unreadNotificationIds: StateFlow<Set<String>> = combine(
+        notifications,
+        localReadNotificationIds
+    ) { notifications, localReadIds ->
+        notifications
+            .filter { !it.isRead && it.notificationId !in localReadIds }
+            .map { it.id }
+            .toSet()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    val unreadCount: StateFlow<Int> = unreadNotificationIds
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val newUnreadNotifications: StateFlow<List<TimelineNotification>> = combine(
+        notifications,
+        unreadNotificationIds,
+        notifiedNotificationIds
+    ) { notifications, unreadIds, notifiedIds ->
+        notifications.filter { it.id in unreadIds && it.id !in notifiedIds }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // ... Resto de funciones (toggleLike, deletePost, etc) permanecen igual
     fun toggleFollowSuggestion(userId: Int) {
         viewModelScope.launch {
             val me = userRepository.getActiveUser() ?: return@launch
             userRepository.toggleFollow(me.id, userId)
         }
+    }
+
+    fun markNotificationRead(notification: TimelineNotification) {
+        localReadNotificationIds.update { it + notification.notificationId }
+        viewModelScope.launch {
+            userRepository.markNotificationRead(notification.notificationId)
+        }
+    }
+
+    fun markNotificationsNotified(notificationIds: Set<String>) {
+        if (notificationIds.isEmpty()) return
+        notifiedNotificationIds.update { it + notificationIds }
+        notificationStore.addNotifiedIds(notificationIds)
     }
 
     fun onAddComment(postId: String, text: String) {

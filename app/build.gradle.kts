@@ -132,7 +132,10 @@ dependencies {
     // Hilt (DI)
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
     ksp(libs.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
 
     // Hilt Testing
     androidTestImplementation(libs.hilt.android.testing)

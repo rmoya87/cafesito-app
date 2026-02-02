@@ -166,7 +166,9 @@ class SupabaseDataSource @Inject constructor(
     // --- COMENTARIOS ---
     suspend fun getAllComments(): List<CommentEntity> = client.postgrest["comments_db"].select().decodeList<CommentEntity>()
     suspend fun getCommentsForPost(postId: String): List<CommentEntity> = client.postgrest["comments_db"].select { filter { eq("post_id", postId) }; order("timestamp", Order.ASCENDING) }.decodeList<CommentEntity>()
-    suspend fun insertComment(comment: CommentEntity) = client.postgrest["comments_db"].insert(comment)
+    suspend fun insertComment(comment: CommentEntity): CommentEntity {
+        return client.postgrest["comments_db"].insert(comment) { select() }.decodeSingle()
+    }
     suspend fun upsertComment(comment: CommentEntity) = client.postgrest["comments_db"].upsert(comment)
     suspend fun deleteComment(commentId: Int) {
         client.postgrest["comments_db"].delete { filter { eq("id", commentId) } }
@@ -281,5 +283,20 @@ class SupabaseDataSource @Inject constructor(
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
         client.postgrest["notifications_db"].insert(notification)
+    }
+
+    suspend fun getNotificationsForUser(userId: Int): List<NotificationEntity> {
+        return client.postgrest["notifications_db"].select {
+            filter { eq("user_id", userId) }
+            order("timestamp", Order.DESCENDING)
+        }.decodeList()
+    }
+
+    suspend fun markNotificationRead(notificationId: Int) {
+        client.postgrest["notifications_db"].update({
+            set("is_read", true)
+        }) {
+            filter { eq("id", notificationId) }
+        }
     }
 }
