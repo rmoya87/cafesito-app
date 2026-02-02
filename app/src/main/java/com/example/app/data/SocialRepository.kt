@@ -187,9 +187,9 @@ class SocialRepository @Inject constructor(
 
     suspend fun addComment(comment: CommentEntity) {
         ensureConnected()
-        supabaseDataSource.insertComment(comment)
+        val insertedComment = supabaseDataSource.insertComment(comment)
         triggerRefresh()
-        
+
         val currentUser = userRepository.getActiveUser()
         val postOwnerId = supabaseDataSource.getAllPosts().find { it.id == comment.postId }?.userId
         if (postOwnerId != null && currentUser != null && postOwnerId != currentUser.id) {
@@ -202,7 +202,31 @@ class SocialRepository @Inject constructor(
                     timestamp = System.currentTimeMillis(),
                     relatedId = comment.postId
                 ))
-            } catch (e: Exception) { }
+            } catch (_: Exception) { }
+        }
+
+        if (currentUser != null) {
+            val mentionTargets = userRepository.getAllUsersList()
+                .filter { it.username.isNotBlank() }
+                .filter { it.id != currentUser.id }
+                .filter { comment.text.contains("@${it.username}", ignoreCase = true) }
+                .distinctBy { it.id }
+
+            mentionTargets.forEach { mentionedUser ->
+                try {
+                    supabaseDataSource.insertNotification(NotificationEntity(
+                        userId = mentionedUser.id,
+                        type = "MENTION",
+                        fromUsername = currentUser.username,
+                        message = insertedComment.text,
+                        timestamp = insertedComment.timestamp,
+                        relatedId = "${insertedComment.postId}:${insertedComment.id}"
+                    ))
+                } catch (_: Exception) { }
+            }
+            if (mentionTargets.isNotEmpty()) {
+                userRepository.triggerRefresh()
+            }
         }
     }
 

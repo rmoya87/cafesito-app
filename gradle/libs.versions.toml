@@ -36,6 +36,8 @@ paging = "3.3.5"
 health-connect = "1.1.0-alpha11"
 coroutines = "1.9.0"
 serialization = "1.7.3"
+work = "2.9.0"
+hilt-work = "1.2.0"
 
 
 [libraries]
@@ -98,6 +100,9 @@ coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
 # Health Connect
 androidx-health-connect = { group = "androidx.health.connect", name = "connect-client", version.ref = "health-connect" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt-work" }
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hilt-work" }
 
 # Kotlin Multiplatform
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

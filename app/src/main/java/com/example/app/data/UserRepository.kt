@@ -114,6 +114,21 @@ class UserRepository @Inject constructor(
             }
         }.flowOn(Dispatchers.IO)
 
+    fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>> = _refreshTrigger
+        .debounce(300)
+        .flatMapLatest {
+            flow<List<NotificationEntity>> {
+                try {
+                    ensureConnected()
+                    emit(supabaseDataSource.getNotificationsForUser(userId))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    emit(emptyList())
+                }
+            }
+        }.flowOn(Dispatchers.IO)
+
     /**
      * ✅ OPTIMIZACIÓN: Obtener un flujo de un usuario específico por ID
      */
@@ -264,6 +279,16 @@ class UserRepository @Inject constructor(
             triggerRefresh()
         } catch (e: Exception) {
             Log.e("USER_REPO", "Error en toggleFollow: ${e.message}")
+        }
+    }
+
+    suspend fun markNotificationRead(notificationId: Int) {
+        try {
+            ensureConnected()
+            supabaseDataSource.markNotificationRead(notificationId)
+            triggerRefresh()
+        } catch (e: Exception) {
+            Log.e("USER_REPO", "Error marcando notificación como leída: ${e.message}")
         }
     }
 

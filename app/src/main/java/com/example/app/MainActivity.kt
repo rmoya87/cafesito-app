@@ -53,6 +53,7 @@ import com.cafesito.app.ui.search.SearchScreen
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.AddPostScreen
 import com.cafesito.app.ui.timeline.TimelineScreen
+import com.cafesito.app.ui.timeline.TimelineNotificationSystem
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -62,6 +63,7 @@ import coil.Coil
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import android.content.Intent
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -70,6 +72,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var syncManager: SyncManager
+    private val notificationNavigation = mutableStateOf<NotificationNavigation?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -108,6 +111,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         super.onCreate(savedInstanceState)
+        notificationNavigation.value = NotificationNavigation.fromIntent(intent)
 
         setContent {
             CafesitoTheme {
@@ -145,18 +149,31 @@ class MainActivity : ComponentActivity() {
                             startRoute = startRoute,
                             onProfileFinished = {
                                 sessionViewModel.refreshSession()
-                            }
+                            },
+                            notificationNavigation = notificationNavigation.value,
+                            onNotificationConsumed = { notificationNavigation.value = null }
                         )
                     }
                 }
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        notificationNavigation.value = NotificationNavigation.fromIntent(intent)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
+fun AppNavigation(
+    startRoute: String,
+    onProfileFinished: () -> Unit,
+    notificationNavigation: NotificationNavigation?,
+    onNotificationConsumed: () -> Unit
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -175,6 +192,26 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 }
             }
         }
+    }
+
+    LaunchedEffect(notificationNavigation) {
+        val nav = notificationNavigation ?: return@LaunchedEffect
+        when (nav.type) {
+            TimelineNotificationSystem.TYPE_FOLLOW -> {
+                val userId = nav.userId ?: return@LaunchedEffect
+                navController.navigate("profile/$userId") {
+                    launchSingleTop = true
+                }
+            }
+            TimelineNotificationSystem.TYPE_MENTION -> {
+                val postId = nav.postId ?: return@LaunchedEffect
+                val commentId = nav.commentId ?: -1
+                navController.navigate("timeline?postId=$postId&commentId=$commentId") {
+                    launchSingleTop = true
+                }
+            }
+        }
+        onNotificationConsumed()
     }
 
     val state = remember(currentRoute) {
@@ -249,7 +286,15 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                 )
             }
 
-            composable("timeline") {
+            composable(
+                route = "timeline?postId={postId}&commentId={commentId}",
+                arguments = listOf(
+                    navArgument("postId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("commentId") { type = NavType.IntType; defaultValue = -1 }
+                )
+            ) { backStackEntry ->
+                val postId = backStackEntry.arguments?.getString("postId")
+                val commentId = backStackEntry.arguments?.getInt("commentId") ?: -1
                 TimelineScreen(
                     onUserClick = { id -> 
                         if (id == 0) {
@@ -264,7 +309,9 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                     },
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onAddPostClick = { navController.navigate("addPost") },
-                    onSearchUsersClick = { navController.navigate("searchUsers") }
+                    onSearchUsersClick = { navController.navigate("searchUsers") },
+                    initialPostId = postId,
+                    initialCommentId = commentId.takeIf { it >= 0 }
                 )
             }
 
@@ -562,6 +609,32 @@ fun AppNavigation(startRoute: String, onProfileFinished: () -> Unit) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+data class NotificationNavigation(
+    val type: String,
+    val userId: Int? = null,
+    val postId: String? = null,
+    val commentId: Int? = null
+) {
+    companion object {
+        fun fromIntent(intent: Intent?): NotificationNavigation? {
+            if (intent == null) return null
+            val type = intent.getStringExtra(TimelineNotificationSystem.EXTRA_TYPE) ?: return null
+            return when (type) {
+                TimelineNotificationSystem.TYPE_FOLLOW -> NotificationNavigation(
+                    type = type,
+                    userId = intent.getIntExtra(TimelineNotificationSystem.EXTRA_USER_ID, 0).takeIf { it != 0 }
+                )
+                TimelineNotificationSystem.TYPE_MENTION -> NotificationNavigation(
+                    type = type,
+                    postId = intent.getStringExtra(TimelineNotificationSystem.EXTRA_POST_ID),
+                    commentId = intent.getIntExtra(TimelineNotificationSystem.EXTRA_COMMENT_ID, -1).takeIf { it >= 0 }
+                )
+                else -> null
             }
         }
     }

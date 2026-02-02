@@ -7,7 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import android.Manifest
+import android.os.Build
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +20,11 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.components.*
@@ -29,11 +37,20 @@ fun TimelineScreen(
     onCoffeeClick: (String) -> Unit,
     onAddPostClick: () -> Unit,
     onSearchUsersClick: () -> Unit,
+    initialPostId: String? = null,
+    initialCommentId: Int? = null,
     viewModel: TimelineViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
+    var highlightedCommentId by remember { mutableStateOf<Int?>(null) }
+    var showNotificationsSheet by remember { mutableStateOf(false) }
+    val notifications by viewModel.notifications.collectAsState()
+    val unreadCount by viewModel.unreadCount.collectAsState()
+    val unreadIds by viewModel.unreadNotificationIds.collectAsState()
+    val newDeviceNotifications by viewModel.newUnreadNotifications.collectAsState()
+    val context = LocalContext.current
     
     var showReviewOptions by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
 
@@ -57,7 +74,38 @@ fun TimelineScreen(
         } else listOf(0, 1)
     }
 
-    LaunchedEffect(Unit) { viewModel.refreshData() }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {}
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshData()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            if (ContextCompat.checkSelfPermission(context, permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(permission)
+            }
+        }
+    }
+
+    LaunchedEffect(initialPostId, initialCommentId) {
+        if (initialPostId == null) return@LaunchedEffect
+        showCommentSheetId = initialPostId
+        highlightedCommentId = initialCommentId
+    }
+
+    LaunchedEffect(newDeviceNotifications) {
+        if (newDeviceNotifications.isEmpty()) return@LaunchedEffect
+        TimelineNotificationSystem.ensureChannel(context)
+        val manager = NotificationManagerCompat.from(context)
+        newDeviceNotifications.forEach { notification ->
+            val systemNotification = TimelineNotificationSystem
+                .buildSystemNotification(context, notification)
+                .build()
+            manager.notify(notification.id.hashCode(), systemNotification)
+        }
+        viewModel.markNotificationsNotified(newDeviceNotifications.map { it.id }.toSet())
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -75,6 +123,19 @@ fun TimelineScreen(
                 navigationIcon = {
                     IconButton(onClick = onSearchUsersClick) {
                         Icon(Icons.Default.Search, contentDescription = "Buscar Usuarios", modifier = Modifier.size(24.dp))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showNotificationsSheet = true }) {
+                        BadgedBox(
+                            badge = {
+                                if (unreadCount > 0) {
+                                    Badge { Text(unreadCount.toString()) }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", modifier = Modifier.size(24.dp))
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -159,7 +220,10 @@ fun TimelineScreen(
                                             if (userId == state.activeUser.id) onUserClick(0)
                                             else onUserClick(userId)
                                         },
-                                        onCommentClick = { showCommentSheetId = item.details.post.id },
+                                        onCommentClick = {
+                                            highlightedCommentId = null
+                                            showCommentSheetId = item.details.post.id
+                                        },
                                         onLikeClick = { viewModel.toggleLike(item.details.post.id) },
                                         isOwnPost = item.details.post.userId == state.activeUser.id,
                                         onEditClick = { postToEdit = item.details },
@@ -196,12 +260,16 @@ fun TimelineScreen(
                 showCommentSheetId?.let { id ->
                     CommentsSheet(
                         postId = id,
-                        onDismiss = { showCommentSheetId = null },
+                        onDismiss = {
+                            showCommentSheetId = null
+                            highlightedCommentId = null
+                        },
                         onAddComment = { viewModel.onAddComment(id, it) },
                         onNavigateToProfile = { userId ->
                             if (userId == state.activeUser.id) onUserClick(0)
                             else onUserClick(userId)
-                        }
+                        },
+                        highlightedCommentId = highlightedCommentId
                     )
                 }
 
@@ -245,5 +313,30 @@ fun TimelineScreen(
                 }
             }
         }
+    }
+
+    if (showNotificationsSheet) {
+        val state = uiState as? TimelineUiState.Success
+        NotificationsBottomSheet(
+            notifications = notifications,
+            unreadIds = unreadIds,
+            followingIds = state?.myFollowingIds ?: emptySet(),
+            onDismiss = { showNotificationsSheet = false },
+            onFollowToggle = { userId -> viewModel.toggleFollowSuggestion(userId) },
+            onNotificationClick = { notification ->
+                viewModel.markNotificationRead(notification)
+                when (notification) {
+                    is TimelineNotification.Follow -> {
+                        showNotificationsSheet = false
+                        onUserClick(notification.user.id)
+                    }
+                    is TimelineNotification.Mention -> {
+                        showNotificationsSheet = false
+                        showCommentSheetId = notification.postId
+                        highlightedCommentId = notification.commentId
+                    }
+                }
+            }
+        )
     }
 }
