@@ -29,6 +29,8 @@ class TimelineViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
 
+    private val deletedNotificationIds = MutableStateFlow<Set<String>>(emptySet())
+
     init {
         Log.d("TimelineVM", "Initializing TimelineViewModel")
         refreshData()
@@ -42,7 +44,6 @@ class TimelineViewModel @Inject constructor(
             try {
                 userRepository.syncUsers()
                 socialRepository.syncSocialData()
-                Log.d("TimelineVM", "Refresh trigger sent successfully")
             } catch (e: Exception) {
                 Log.e("TimelineVM", "Error in refreshData", e)
             } finally {
@@ -70,16 +71,12 @@ class TimelineViewModel @Inject constructor(
         TimelineDynamicData(posts, reviews, following)
     }
 
-    @Suppress("UNCHECKED_CAST")
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TimelineUiState> = combine(
         staticData,
         dynamicData
     ) { static, dynamic ->
-        Log.d("TimelineVM", "Combining UI State... staticUserPresent=${static?.activeUser != null}")
-        
-        if (static?.activeUser == null) {
-            return@combine TimelineUiState.Loading
-        }
+        if (static?.activeUser == null) return@combine TimelineUiState.Loading
 
         val activeUser = static.activeUser
         val posts = dynamic.posts
@@ -146,18 +143,19 @@ class TimelineViewModel @Inject constructor(
         .filterNotNull()
         .flatMapLatest { static ->
             val userId = static.activeUser?.id ?: return@flatMapLatest flowOf(emptyList<TimelineNotification>())
-            userRepository.getNotificationsForUser(userId)
-                .map { entities ->
-                    entities.mapNotNull { it.toTimelineNotification(static.allUsers) }
-                        .sortedByDescending { it.timestamp }
-                }
+            userRepository.getNotificationsForUser(userId).map { entities ->
+                entities.mapNotNull { it.toTimelineNotification(static.allUsers) }
+            }
+        }
+        .combine(deletedNotificationIds) { list: List<TimelineNotification>, deletedIds: Set<String> ->
+            list.filter { it.id !in deletedIds }.sortedByDescending { it.timestamp }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val unreadNotificationIds: StateFlow<Set<String>> = combine(
         notifications,
         localReadNotificationIds
-    ) { notifications, localReadIds ->
+    ) { notifications: List<TimelineNotification>, localReadIds: Set<Int> ->
         notifications
             .filter { !it.isRead && it.notificationId !in localReadIds }
             .map { it.id }
@@ -172,7 +170,7 @@ class TimelineViewModel @Inject constructor(
         notifications,
         unreadNotificationIds,
         notifiedNotificationIds
-    ) { notifications, unreadIds, notifiedIds ->
+    ) { notifications: List<TimelineNotification>, unreadIds: Set<String>, notifiedIds: Set<String> ->
         notifications.filter { it.id in unreadIds && it.id !in notifiedIds }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -198,6 +196,7 @@ class TimelineViewModel @Inject constructor(
     }
 
     fun deleteNotification(notification: TimelineNotification) {
+        deletedNotificationIds.update { it + notification.id }
         viewModelScope.launch {
             userRepository.deleteNotification(notification.notificationId)
         }

@@ -128,8 +128,8 @@ private fun NotificationItemRow(
     val (avatarUrl, title, subtitle) = when (notification) {
         is TimelineNotification.Follow -> Triple(
             notification.user.avatarUrl,
-            "${notification.user.fullName} empezó a seguirte.",
-            "@${notification.user.username}"
+            notification.user.fullName,
+            "Empezó a seguirte."
         )
         is TimelineNotification.Mention -> Triple(
             notification.user.avatarUrl,
