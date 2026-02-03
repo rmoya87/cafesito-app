@@ -46,6 +46,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cafesito.app.data.SyncManager
+import com.cafesito.app.data.UserRepository
 import com.cafesito.app.ui.access.*
 import com.cafesito.app.ui.brewlab.*
 import com.cafesito.app.ui.detail.DetailScreen
@@ -64,7 +65,12 @@ import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import android.content.Intent
+import android.util.Log
+import androidx.lifecycle.lifecycleScope
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -72,89 +78,51 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var syncManager: SyncManager
+    
+    @Inject
+    lateinit var userRepository: UserRepository
+    
     private val notificationNavigation = mutableStateOf<NotificationNavigation?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
-        // ✅ OPTIMIZACIÓN: Configuración Global de Coil
-        val imageLoader = ImageLoader.Builder(this)
-            .memoryCache {
-                MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)
-                    .build()
-            }
-            .diskCache {
-                DiskCache.Builder()
-                    .directory(cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(50 * 1024 * 1024)
-                    .build()
-            }
-            .respectCacheHeaders(false)
-            .build()
-        Coil.setImageLoader(imageLoader)
-
-        // ✅ Edge-to-edge REAL: barras del sistema transparentes
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(
-                AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.auto(
-                AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT
-            )
-        )
-
-        // ✅ Fallback (algunas ROMs/phones lo requieren)
-        @Suppress("DEPRECATION")
-        window.statusBarColor = AndroidColor.TRANSPARENT
-        @Suppress("DEPRECATION")
-        window.navigationBarColor = AndroidColor.TRANSPARENT
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-
         super.onCreate(savedInstanceState)
+        
+        setupCoil()
+        enableEdgeToEdgeConfig()
+
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
 
         setContent {
             CafesitoTheme {
                 val sessionState by sessionViewModel.sessionState.collectAsState()
 
-                LaunchedEffect(sessionState.userId) {
+                LaunchedEffect(sessionState) {
                     if (sessionState is SessionState.Authenticated) {
                         syncManager.syncAll()
+                        updateFcmToken()
                     }
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    var initialLoadDone by rememberSaveable { mutableStateOf(false) }
-                    
-                    if (sessionState !is SessionState.Loading) {
-                        initialLoadDone = true
-                    }
-
-                    if (!initialLoadDone) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    } else {
-                        val startRoute = rememberSaveable {
-                            when (sessionState) {
-                                is SessionState.Authenticated -> "timeline"
-                                else -> "onboarding"
-                            }
-                        }
-
-                        AppNavigation(
-                            startRoute = startRoute,
-                            onProfileFinished = {
-                                sessionViewModel.refreshSession()
-                            },
-                            notificationNavigation = notificationNavigation.value,
-                            onNotificationConsumed = { notificationNavigation.value = null }
-                        )
-                    }
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    AppNavigation(
+                        sessionState = sessionState,
+                        notificationNavigation = notificationNavigation.value,
+                        onNotificationConsumed = { notificationNavigation.value = null }
+                    )
                 }
+            }
+        }
+    }
+
+    private fun updateFcmToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w("FCM", "Fetching FCM registration token failed", task.exception)
+                return@addOnCompleteListener
+            }
+            val token = task.result
+            lifecycleScope.launch {
+                userRepository.updateFcmToken(token)
             }
         }
     }
@@ -164,54 +132,73 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
     }
+
+    private fun setupCoil() {
+        val imageLoader = ImageLoader.Builder(this)
+            .memoryCache { MemoryCache.Builder(this).maxSizePercent(0.25).build() }
+            .diskCache { DiskCache.Builder().directory(cacheDir.resolve("image_cache")).maxSizeBytes(50 * 1024 * 1024).build() }
+            .respectCacheHeaders(false)
+            .build()
+        Coil.setImageLoader(imageLoader)
+    }
+
+    private fun enableEdgeToEdgeConfig() {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+        )
+        @Suppress("DEPRECATION")
+        window.statusBarColor = AndroidColor.TRANSPARENT
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = AndroidColor.TRANSPARENT
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
-    startRoute: String,
-    onProfileFinished: () -> Unit,
+    sessionState: SessionState,
     notificationNavigation: NotificationNavigation?,
     onNotificationConsumed: () -> Unit
 ) {
     val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val currentRoute = currentDestination?.route ?: ""
 
-    // ✅ Redirección global por estado de sesión
-    val sessionViewModel: SessionViewModel = hiltViewModel()
-    val sessionState by sessionViewModel.sessionState.collectAsState()
-
-    LaunchedEffect(sessionState) {
-        if (sessionState is SessionState.NotAuthenticated) {
-            val route = navController.currentDestination?.route ?: ""
-            if (route != "login" && route != "onboarding" && !route.startsWith("completeProfile")) {
-                navController.navigate("login") {
-                    popUpTo(0) { inclusive = true }
-                }
-            }
+    var initialLoadDone by rememberSaveable { mutableStateOf(false) }
+    if (sessionState !is SessionState.Loading) {
+        initialLoadDone = true
+    }
+    
+    if (!initialLoadDone) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
+        return
+    }
+
+    val startRoute = remember(sessionState) {
+        if (sessionState is SessionState.Authenticated) "timeline" else "onboarding"
     }
 
     LaunchedEffect(notificationNavigation) {
         val nav = notificationNavigation ?: return@LaunchedEffect
         when (nav.type) {
-            TimelineNotificationSystem.TYPE_FOLLOW -> {
-                val userId = nav.userId ?: return@LaunchedEffect
-                navController.navigate("profile/$userId") {
-                    launchSingleTop = true
-                }
-            }
-            TimelineNotificationSystem.TYPE_MENTION -> {
-                val postId = nav.postId ?: return@LaunchedEffect
-                val commentId = nav.commentId ?: -1
-                navController.navigate("timeline?postId=$postId&commentId=$commentId") {
-                    launchSingleTop = true
-                }
-            }
+            "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
+            "MENTION", "COMMENT" -> nav.targetId?.let { navController.navigate("timeline?postId=$it") }
         }
         onNotificationConsumed()
+    }
+    
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: ""
+    val navItems = remember {
+        listOf(
+            Triple("timeline", "Inicio", Icons.Filled.Home),
+            Triple("search", "Explorar", Icons.Filled.Explore),
+            Triple("brewlab", "Elabora", Icons.Filled.Science),
+            Triple("diary", "Diario", Icons.Filled.Book),
+            Triple("profile", "Perfil", Icons.Filled.Person)
+        )
     }
 
     val state = remember(currentRoute) {
@@ -225,16 +212,6 @@ fun AppNavigation(
     }
 
     val shouldShowBottomBar = state.first
-
-    val navItems = remember {
-        listOf(
-            Triple("timeline", "Inicio", Icons.Filled.Home),
-            Triple("search", "Explorar", Icons.Filled.Explore),
-            Triple("brewlab", "Elabora", Icons.Filled.Science),
-            Triple("diary", "Diario", Icons.Filled.Book),
-            Triple("profile", "Perfil", Icons.Filled.Person)
-        )
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -258,7 +235,6 @@ fun AppNavigation(
                             popUpTo("login") { inclusive = true }
                         }
                     } else {
-                        onProfileFinished()
                         navController.navigate("timeline") {
                             popUpTo("login") { inclusive = true }
                         }
@@ -281,21 +257,18 @@ fun AppNavigation(
                     initialName = backStackEntry.arguments?.getString("name") ?: "",
                     initialPhoto = backStackEntry.arguments?.getString("photoUrl") ?: "",
                     onSuccess = {
-                        onProfileFinished()
                         navController.navigate("timeline") { popUpTo("completeProfile") { inclusive = true } }
                     }
                 )
             }
 
             composable(
-                route = "timeline?postId={postId}&commentId={commentId}",
+                route = "timeline?postId={postId}",
                 arguments = listOf(
-                    navArgument("postId") { type = NavType.StringType; nullable = true; defaultValue = null },
-                    navArgument("commentId") { type = NavType.IntType; defaultValue = -1 }
+                    navArgument("postId") { type = NavType.StringType; nullable = true; defaultValue = null }
                 )
             ) { backStackEntry ->
                 val postId = backStackEntry.arguments?.getString("postId")
-                val commentId = backStackEntry.arguments?.getInt("commentId") ?: -1
                 TimelineScreen(
                     onUserClick = { id -> 
                         if (id == 0) {
@@ -312,16 +285,11 @@ fun AppNavigation(
                     onAddPostClick = { navController.navigate("addPost") },
                     onSearchUsersClick = { navController.navigate("searchUsers") },
                     onNotificationsClick = { navController.navigate("notifications") },
-                    initialPostId = postId,
-                    initialCommentId = commentId.takeIf { it >= 0 }
+                    initialPostId = postId
                 )
             }
 
-            composable(
-                route = "notifications",
-                enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(400)) },
-                exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(400)) }
-            ) {
+            composable("notifications") {
                 val viewModel: TimelineViewModel = hiltViewModel()
                 val notifications by viewModel.notifications.collectAsState()
                 val unreadIds by viewModel.unreadNotificationIds.collectAsState()
@@ -343,7 +311,7 @@ fun AppNavigation(
                                 navController.navigate("profile/${notification.user.id}")
                             }
                             is TimelineNotification.Mention -> {
-                                navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                navController.navigate("timeline?postId=${notification.postId}")
                             }
                         }
                     }
@@ -651,26 +619,13 @@ fun AppNavigation(
 
 data class NotificationNavigation(
     val type: String,
-    val userId: Int? = null,
-    val postId: String? = null,
-    val commentId: Int? = null
+    val targetId: String?
 ) {
     companion object {
         fun fromIntent(intent: Intent?): NotificationNavigation? {
-            if (intent == null) return null
-            val type = intent.getStringExtra(TimelineNotificationSystem.EXTRA_TYPE) ?: return null
-            return when (type) {
-                TimelineNotificationSystem.TYPE_FOLLOW -> NotificationNavigation(
-                    type = type,
-                    userId = intent.getIntExtra(TimelineNotificationSystem.EXTRA_USER_ID, 0).takeIf { it != 0 }
-                )
-                TimelineNotificationSystem.TYPE_MENTION -> NotificationNavigation(
-                    type = type,
-                    postId = intent.getStringExtra(TimelineNotificationSystem.EXTRA_POST_ID),
-                    commentId = intent.getIntExtra(TimelineNotificationSystem.EXTRA_COMMENT_ID, -1).takeIf { it >= 0 }
-                )
-                else -> null
-            }
+            val type = intent?.getStringExtra("nav_type") ?: return null
+            val targetId = intent?.getStringExtra("nav_id")
+            return NotificationNavigation(type, targetId)
         }
     }
 }

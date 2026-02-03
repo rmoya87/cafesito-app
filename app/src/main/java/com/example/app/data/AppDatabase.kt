@@ -17,9 +17,10 @@ import androidx.room.RoomDatabase
         NotificationEntity::class,
         DiaryEntryEntity::class,
         PantryItemEntity::class,
-        CustomCoffeeEntity::class
+        CustomCoffeeEntity::class,
+        UserTokenEntity::class
     ],
-    version = 25, // INCREMENTADO DE 24 A 25
+    version = 26, // INCREMENTADO DE 25 A 26 para incluir UserTokenEntity
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -45,6 +45,10 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getUserByUsername(username: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("username", username) } }.decodeSingleOrNull<UserEntity>()
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
+    
+    suspend fun insertUserToken(token: UserTokenEntity) { 
+        client.postgrest["user_fcm_tokens"].upsert(token)
+    }
 
     // --- SEGUIMIENTOS ---
     suspend fun getAllFollows(): List<FollowEntity> = client.postgrest["follows"].select().decodeList<FollowEntity>()
@@ -80,7 +84,6 @@ class SupabaseDataSource @Inject constructor(
         formats: Set<String> = emptySet(),
         minRating: Float = 0f
     ): List<Coffee> = client.postgrest["coffees"].select {
-        // ✅ OPTIMIZACIÓN: Filtros en servidor
         filter {
             if (!query.isNullOrBlank()) {
                 or {
@@ -100,10 +103,6 @@ class SupabaseDataSource @Inject constructor(
 
     suspend fun upsertCoffees(coffees: List<Coffee>) { client.postgrest["coffees"].upsert(coffees) }
     
-    /**
-     * ✅ OPTIMIZACIÓN: Obtener solo cafés específicos por IDs
-     * Usado para la despensa (evita descargar 1000 cafés para mostrar 5)
-     */
     suspend fun getCoffeesByIds(coffeeIds: List<String>): List<Coffee> {
         if (coffeeIds.isEmpty()) return emptyList()
         return client.postgrest["coffees"].select {
@@ -120,7 +119,7 @@ class SupabaseDataSource @Inject constructor(
 
     // --- CAFÉS PERSONALIZADOS ---
     suspend fun getCustomCoffees(userId: Int): List<CustomCoffeeEntity> = client.postgrest["custom_coffees"].select { filter { eq("user_id", userId) } }.decodeList<CustomCoffeeEntity>()
-    suspend fun insertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].insert(coffee)
+    suspend fun insertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].upsert(coffee)
     suspend fun upsertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].upsert(coffee)
     
     suspend fun updateCustomCoffee(id: String, userId: Int, coffee: CustomCoffeeEntity) {
@@ -143,22 +142,33 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
+    // --- FAVORITOS PERSONALIZADOS (RESTAURADOS) ---
+    suspend fun getAllFavoritesCustom(): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select().decodeList<LocalFavoriteCustom>()
+    
+    suspend fun getFavoritesCustomByUserId(userId: Int): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select {
+        filter { eq("user_id", userId) }
+    }.decodeList<LocalFavoriteCustom>()
+
+    suspend fun insertFavoriteCustom(favorite: LocalFavoriteCustom) { client.postgrest["local_favorites_custom"].upsert(favorite) }
+    
+    suspend fun deleteFavoriteCustom(coffeeId: String, userId: Int) {
+        client.postgrest["local_favorites_custom"].delete {
+            filter { eq("coffee_id", coffeeId); eq("user_id", userId) }
+        }
+    }
+
     // --- PUBLICACIONES ---
     suspend fun getAllPosts(): List<PostEntity> = client.postgrest["posts_db"].select { order("timestamp", Order.DESCENDING) }.decodeList<PostEntity>()
     
-    /**
-     * ✅ OPTIMIZACIÓN: Filtrar posts por usuario en el servidor
-     * Evita descargar 2000 posts para quedarse con 10
-     */
     suspend fun getPostsByUserId(userId: Int): List<PostEntity> = client.postgrest["posts_db"].select {
         filter {
             eq("user_id", userId)
         }
         order("timestamp", Order.DESCENDING)
-        limit(50) // Límite razonable por usuario
+        limit(50) 
     }.decodeList<PostEntity>()
     
-    suspend fun insertPost(post: PostEntity) = client.postgrest["posts_db"].insert(post)
+    suspend fun insertPost(post: PostEntity) = client.postgrest["posts_db"].upsert(post)
     suspend fun deletePost(postId: String) {
         client.postgrest["posts_db"].delete { filter { eq("id", postId) } }
     }
@@ -176,16 +186,12 @@ class SupabaseDataSource @Inject constructor(
 
     // --- LIKES ---
     suspend fun getAllLikes(): List<LikeEntity> = client.postgrest["likes_db"].select().decodeList<LikeEntity>()
-    suspend fun insertLike(like: LikeEntity) = client.postgrest["likes_db"].insert(like)
+    suspend fun insertLike(like: LikeEntity) = client.postgrest["likes_db"].upsert(like)
     suspend fun deleteLike(postId: String, userId: Int) { client.postgrest["likes_db"].delete { filter { eq("post_id", postId); eq("user_id", userId) } } }
 
     // --- RESEÑAS ---
     suspend fun getAllReviews(): List<ReviewEntity> = client.postgrest["reviews_db"].select().decodeList<ReviewEntity>()
 
-    /**
-     * ✅ OPTIMIZACIÓN: Obtener reviews de un café específico
-     * Evita descargar 5000 reviews para ver las de un solo café
-     */
     suspend fun getReviewsByCoffeeId(coffeeId: String): List<ReviewEntity> = client.postgrest["reviews_db"].select {
         filter {
             eq("coffee_id", coffeeId)
@@ -206,7 +212,7 @@ class SupabaseDataSource @Inject constructor(
             extractionTime = review.extractionTime,
             grindSize = review.grindSize
         )
-        client.postgrest["reviews_db"].upsert(insertData, onConflict = "coffee_id,user_id")
+        client.postgrest["reviews_db"].upsert(insertData)
     }
 
     suspend fun deleteReview(coffeeId: String, userId: Int) {
@@ -218,9 +224,6 @@ class SupabaseDataSource @Inject constructor(
     // --- FAVORITOS (OFICIALES) ---
     suspend fun getAllFavorites(): List<LocalFavorite> = client.postgrest["local_favorites"].select().decodeList<LocalFavorite>()
     
-    /**
-     * ✅ OPTIMIZACIÓN: Solo favoritos del usuario
-     */
     suspend fun getFavoritesByUserId(userId: Int): List<LocalFavorite> = client.postgrest["local_favorites"].select {
         filter { eq("user_id", userId) }
     }.decodeList<LocalFavorite>()
@@ -228,23 +231,6 @@ class SupabaseDataSource @Inject constructor(
     suspend fun insertFavorite(favorite: LocalFavorite) { client.postgrest["local_favorites"].upsert(favorite) }
     suspend fun deleteFavorite(coffeeId: String, userId: Int) {
         client.postgrest["local_favorites"].delete {
-            filter { eq("coffee_id", coffeeId); eq("user_id", userId) }
-        }
-    }
-
-    // --- FAVORITOS (CUSTOM) ---
-    suspend fun getAllFavoritesCustom(): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select().decodeList<LocalFavoriteCustom>()
-
-    /**
-     * ✅ OPTIMIZACIÓN: Solo favoritos custom del usuario
-     */
-    suspend fun getFavoritesCustomByUserId(userId: Int): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select {
-        filter { eq("user_id", userId) }
-    }.decodeList<LocalFavoriteCustom>()
-
-    suspend fun insertFavoriteCustom(favorite: LocalFavoriteCustom) { client.postgrest["local_favorites_custom"].upsert(favorite) }
-    suspend fun deleteFavoriteCustom(coffeeId: String, userId: Int) {
-        client.postgrest["local_favorites_custom"].delete {
             filter { eq("coffee_id", coffeeId); eq("user_id", userId) }
         }
     }
@@ -282,7 +268,7 @@ class SupabaseDataSource @Inject constructor(
 
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
-        client.postgrest["notifications_db"].insert(notification)
+        client.postgrest["notifications_db"].upsert(notification)
     }
 
     suspend fun getNotificationsForUser(userId: Int): List<NotificationEntity> {
@@ -304,7 +290,7 @@ class SupabaseDataSource @Inject constructor(
         client.postgrest["notifications_db"].update({
             set("is_read", true)
         }) {
-            filter { eq("user_id", userId) }
+            filter { eq("id", userId) }
         }
     }
 

@@ -245,6 +245,26 @@ class UserRepository @Inject constructor(
         userDao.upsertUser(user)
     }
 
+    /**
+     * ✅ SOPORTE MULTIDISPOSITIVO: Registra el token en la tabla user_fcm_tokens
+     */
+    suspend fun updateFcmToken(token: String) {
+        val currentUser = getActiveUser()
+        if (currentUser != null) {
+            try {
+                ensureConnected()
+                val tokenEntity = UserTokenEntity(
+                    userId = currentUser.id,
+                    fcmToken = token
+                )
+                supabaseDataSource.insertUserToken(tokenEntity)
+                Log.d("USER_REPO", "FCM Token registrado para múltiples dispositivos")
+            } catch (e: Exception) {
+                Log.e("USER_REPO", "Error registrando FCM Token: ${e.message}")
+            }
+        }
+    }
+
     suspend fun isFollowing(followerId: Int, targetId: Int): Boolean {
         return try {
             ensureConnected()

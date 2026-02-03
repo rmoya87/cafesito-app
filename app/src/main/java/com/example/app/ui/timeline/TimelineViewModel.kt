@@ -12,7 +12,6 @@ import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -52,14 +51,13 @@ class TimelineViewModel @Inject constructor(
         }
     }
 
-    // staticData
+    // staticData - Consolidado con flujos de repositorios
     private val staticData = combine(
         userRepository.getActiveUserFlow().onEach { Log.d("TimelineVM", "ActiveUser emitted: ${it?.username}") },
         coffeeRepository.allCoffees.onStart { emit(emptyList()) },
-        userRepository.getAllUsersFlow().onStart { emit(emptyList()) },
-        coffeeRepository.getRecommendations().onStart { emit(emptyList()) }
-    ) { me, coffees, users, reco -> 
-        TimelineStaticData(me, coffees, users, reco)
+        userRepository.getAllUsersFlow().onStart { emit(emptyList()) }
+    ) { me, coffees, users -> 
+        TimelineStaticData(me, coffees, users, emptyList()) // Recommendations se cargan por separado si es necesario
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // dynamicData
@@ -131,7 +129,7 @@ class TimelineViewModel @Inject constructor(
             suggestedUsers = suggestedUsers,
             myFollowingIds = myFollowing,
             activeUser = activeUser,
-            recommendations = static.recommendations
+            recommendations = emptyList()
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineUiState.Loading)
 

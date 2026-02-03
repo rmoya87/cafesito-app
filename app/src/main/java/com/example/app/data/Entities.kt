@@ -10,6 +10,8 @@ import androidx.room.Relation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+// --- ENTIDADES PRINCIPALES ---
+
 @Immutable
 @Serializable
 @Entity(tableName = "coffees")
@@ -41,7 +43,6 @@ data class Coffee(
     @SerialName("codigo_barras") val codigoBarras: String? = null,
     @SerialName("image_url") val imageUrl: String = "",
     @SerialName("product_url") val productUrl: String = "",
-    // Campos para control local
     val isCustom: Boolean = false,
     val userId: Int? = null
 )
@@ -79,54 +80,6 @@ data class CustomCoffeeEntity(
 }
 
 @Serializable
-@Entity(
-    tableName = "diary_entries",
-    foreignKeys = [
-        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
-    ],
-    indices = [Index(value = ["userId"])]
-)
-data class DiaryEntryEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @SerialName("user_id") val userId: Int,
-    @SerialName("coffee_id") val coffeeId: String? = null,
-    @SerialName("coffee_name") val coffeeName: String,
-    @SerialName("coffee_brand") val coffeeBrand: String = "",
-    @SerialName("caffeine_mg") val caffeineAmount: Int,
-    @SerialName("amount_ml") val amountMl: Int = 250,
-    @SerialName("coffee_grams") val coffeeGrams: Int = 15,
-    @SerialName("preparation_type") val preparationType: String = "Espresso",
-    val timestamp: Long = System.currentTimeMillis(),
-    val type: String = "CUP",
-    @SerialName("external_id") val externalId: String? = null
-)
-
-@Serializable
-data class DiaryEntryInsert(
-    @SerialName("user_id") val userId: Int,
-    @SerialName("coffee_id") val coffeeId: String? = null,
-    @SerialName("coffee_name") val coffeeName: String,
-    @SerialName("coffee_brand") val coffeeBrand: String = "",
-    @SerialName("caffeine_mg") val caffeineAmount: Int,
-    @SerialName("amount_ml") val amountMl: Int,
-    @SerialName("coffee_grams") val coffeeGrams: Int,
-    @SerialName("preparation_type") val preparationType: String,
-    @SerialName("timestamp") val timestamp: Long,
-    @SerialName("type") val type: String,
-    @SerialName("external_id") val externalId: String? = null
-)
-
-@Serializable
-@Entity(tableName = "pantry_items", primaryKeys = ["coffeeId", "userId"])
-data class PantryItemEntity(
-    @SerialName("coffee_id") val coffeeId: String,
-    @SerialName("user_id") val userId: Int,
-    @SerialName("grams_remaining") val gramsRemaining: Int,
-    @SerialName("total_grams") val totalGrams: Int,
-    @SerialName("last_updated") val lastUpdated: Long = System.currentTimeMillis()
-)
-
-@Serializable
 @Entity(tableName = "users_db")
 data class UserEntity(
     @PrimaryKey val id: Int,
@@ -136,6 +89,20 @@ data class UserEntity(
     @SerialName("avatar_url") val avatarUrl: String,
     val email: String,
     val bio: String?
+)
+
+@Serializable
+@Entity(
+    tableName = "user_fcm_tokens",
+    foreignKeys = [
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["userId"])]
+)
+data class UserTokenEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("fcm_token") val fcmToken: String
 )
 
 @Serializable
@@ -165,79 +132,6 @@ data class CommentEntity(
     val timestamp: Long
 )
 
-@Immutable
-data class PostWithDetails(
-    @Embedded val post: PostEntity,
-    @Relation(parentColumn = "userId", entityColumn = "id")
-    val author: UserEntity,
-    @Relation(parentColumn = "id", entityColumn = "postId")
-    val likes: List<LikeEntity> = emptyList(),
-    @Relation(parentColumn = "id", entityColumn = "postId")
-    val comments: List<CommentEntity> = emptyList()
-)
-
-@Immutable
-data class CoffeeWithDetails(
-    @Embedded val coffee: Coffee,
-    @Relation(parentColumn = "id", entityColumn = "coffeeId")
-    val favorite: LocalFavorite? = null,
-    @Relation(parentColumn = "id", entityColumn = "coffeeId")
-    val reviews: List<ReviewEntity> = emptyList()
-) {
-    val isFavorite: Boolean get() = favorite != null
-    val averageRating: Float get() = if (reviews.isEmpty()) 0.0f else reviews.map { it.rating }.average().toFloat()
-}
-
-@Serializable
-@Entity(tableName = "local_favorites", primaryKeys = ["coffeeId", "userId"])
-data class LocalFavorite(
-    @SerialName("coffee_id") val coffeeId: String,
-    @SerialName("user_id") val userId: Int,
-    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
-)
-
-@Serializable
-@Entity(tableName = "local_favorites_custom", primaryKeys = ["coffeeId", "userId"])
-data class LocalFavoriteCustom(
-    @SerialName("coffee_id") val coffeeId: String,
-    @SerialName("user_id") val userId: Int,
-    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
-) {
-    fun toLocalFavorite(): LocalFavorite = LocalFavorite(coffeeId, userId, savedAt)
-}
-
-@Serializable
-@Entity(tableName = "reviews_db")
-data class ReviewEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @SerialName("coffee_id") val coffeeId: String,
-    @SerialName("user_id") val userId: Int,
-    val rating: Float,
-    val comment: String,
-    @SerialName("image_url") val imageUrl: String? = null,
-    val timestamp: Long,
-    val method: String? = null,
-    val ratio: String? = null,
-    @SerialName("water_temp") val waterTemp: Int? = null,
-    @SerialName("extraction_time") val extractionTime: String? = null,
-    @SerialName("grind_size") val grindSize: String? = null
-)
-
-@Serializable
-data class ReviewInsert(
-    @SerialName("coffee_id") val coffeeId: String,
-    @SerialName("user_id") val userId: Int,
-    val rating: Float,
-    val comment: String,
-    @SerialName("image_url") val imageUrl: String? = null,
-    val timestamp: Long,
-    val method: String? = null,
-    val ratio: String? = null,
-    @SerialName("water_temp") val waterTemp: Int? = null,
-    @SerialName("extraction_time") val extractionTime: String? = null,
-    @SerialName("grind_size") val grindSize: String? = null
-)
-
 @Serializable
 @Entity(tableName = "notifications_db")
 data class NotificationEntity(
@@ -259,6 +153,108 @@ data class FollowEntity(
     @SerialName("created_at") val createdAt: Long = System.currentTimeMillis()
 )
 
+@Serializable
+@Entity(tableName = "reviews_db")
+data class ReviewEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    val rating: Float,
+    val comment: String,
+    @SerialName("image_url") val imageUrl: String? = null,
+    val timestamp: Long,
+    val method: String? = null,
+    val ratio: String? = null,
+    @SerialName("water_temp") val waterTemp: Int? = null,
+    @SerialName("extraction_time") val extractionTime: String? = null,
+    @SerialName("grind_size") val grindSize: String? = null
+)
+
+@Serializable
+@Entity(tableName = "local_favorites", primaryKeys = ["coffeeId", "userId"])
+data class LocalFavorite(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
+)
+
+@Serializable
+@Entity(tableName = "local_favorites_custom", primaryKeys = ["coffeeId", "userId"])
+data class LocalFavoriteCustom(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
+) {
+    fun toLocalFavorite(): LocalFavorite = LocalFavorite(coffeeId, userId, savedAt)
+}
+
+@Serializable
+@Entity(
+    tableName = "diary_entries",
+    foreignKeys = [
+        ForeignKey(entity = UserEntity::class, parentColumns = ["id"], childColumns = ["userId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["userId"])]
+)
+data class DiaryEntryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("coffee_id") val coffeeId: String? = null,
+    @SerialName("coffee_name") val coffeeName: String,
+    @SerialName("coffee_brand") val coffeeBrand: String = "",
+    @SerialName("caffeine_mg") val caffeineAmount: Int,
+    @SerialName("amount_ml") val amountMl: Int = 250,
+    @SerialName("coffee_grams") val coffeeGrams: Int = 15,
+    @SerialName("preparation_type") val preparationType: String = "Espresso",
+    val timestamp: Long = System.currentTimeMillis(),
+    val type: String = "CUP",
+    @SerialName("external_id") val externalId: String? = null
+)
+
+@Serializable
+@Entity(tableName = "pantry_items", primaryKeys = ["coffeeId", "userId"])
+data class PantryItemEntity(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("grams_remaining") val gramsRemaining: Int,
+    @SerialName("total_grams") val totalGrams: Int,
+    @SerialName("last_updated") val lastUpdated: Long = System.currentTimeMillis()
+)
+
+// --- CLASES AUXILIARES PARA INSERCIÓN (NO SON ENTIDADES) ---
+
+@Serializable
+data class ReviewInsert(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    val rating: Float,
+    val comment: String,
+    @SerialName("image_url") val imageUrl: String? = null,
+    val timestamp: Long,
+    val method: String? = null,
+    val ratio: String? = null,
+    @SerialName("water_temp") val waterTemp: Int? = null,
+    @SerialName("extraction_time") val extractionTime: String? = null,
+    @SerialName("grind_size") val grindSize: String? = null
+)
+
+@Serializable
+data class DiaryEntryInsert(
+    @SerialName("user_id") val userId: Int,
+    @SerialName("coffee_id") val coffeeId: String? = null,
+    @SerialName("coffee_name") val coffeeName: String,
+    @SerialName("coffee_brand") val coffeeBrand: String = "",
+    @SerialName("caffeine_mg") val caffeineAmount: Int,
+    @SerialName("amount_ml") val amountMl: Int,
+    @SerialName("coffee_grams") val coffeeGrams: Int,
+    @SerialName("preparation_type") val preparationType: String,
+    @SerialName("timestamp") val timestamp: Long,
+    @SerialName("type") val type: String,
+    @SerialName("external_id") val externalId: String? = null
+)
+
+// --- CLASES DE RELACIÓN (POJOs para UI y Repositorios) ---
+
 @Immutable
 data class PantryItemWithDetails(
     val pantryItem: PantryItemEntity,
@@ -272,6 +268,29 @@ data class UserReviewInfo(
     val review: ReviewEntity, 
     val authorName: String?, 
     val authorAvatarUrl: String?
+)
+
+@Immutable
+data class CoffeeWithDetails(
+    @Embedded val coffee: Coffee,
+    @Relation(parentColumn = "id", entityColumn = "coffeeId")
+    val favorite: LocalFavorite? = null,
+    @Relation(parentColumn = "id", entityColumn = "coffeeId")
+    val reviews: List<ReviewEntity> = emptyList()
+) {
+    val isFavorite: Boolean get() = favorite != null
+    val averageRating: Float get() = if (reviews.isEmpty()) 0.0f else reviews.map { it.rating }.average().toFloat()
+}
+
+@Immutable
+data class PostWithDetails(
+    @Embedded val post: PostEntity,
+    @Relation(parentColumn = "userId", entityColumn = "id")
+    val author: UserEntity,
+    @Relation(parentColumn = "id", entityColumn = "postId")
+    val likes: List<LikeEntity> = emptyList(),
+    @Relation(parentColumn = "id", entityColumn = "postId")
+    val comments: List<CommentEntity> = emptyList()
 )
 
 @Immutable
