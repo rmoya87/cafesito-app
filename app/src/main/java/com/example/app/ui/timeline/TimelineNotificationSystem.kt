@@ -5,9 +5,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.cafesito.app.MainActivity
+import com.cafesito.app.R
 
 object TimelineNotificationSystem {
     const val CHANNEL_ID = "cafesito_notifications"
@@ -53,16 +55,22 @@ object TimelineNotificationSystem {
         )
     }
 
-    fun buildSystemNotification(context: Context, notification: TimelineNotification): NotificationCompat.Builder {
+    fun buildSystemNotification(
+        context: Context,
+        notification: TimelineNotification,
+        largeIcon: Bitmap? = null
+    ): NotificationCompat.Builder {
         val (title, message) = when (notification) {
-            is TimelineNotification.Follow -> "Nuevo seguidor" to "${notification.user.fullName} empezó a seguirte."
-            is TimelineNotification.Mention -> "Te mencionaron" to "${notification.user.fullName} te mencionó en un comentario."
+            is TimelineNotification.Follow -> notification.user.username to "ha empezado a seguirte"
+            is TimelineNotification.Mention -> notification.user.username to "te ha mencionado en un comentario"
         }
         return NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(com.cafesito.app.R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(message)
             .setAutoCancel(true)
             .setContentIntent(buildPendingIntent(context, notification))
+            .setLargeIcon(largeIcon)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
     }
 }

@@ -299,4 +299,18 @@ class SupabaseDataSource @Inject constructor(
             filter { eq("id", notificationId) }
         }
     }
+
+    suspend fun markAllNotificationsRead(userId: Int) {
+        client.postgrest["notifications_db"].update({
+            set("is_read", true)
+        }) {
+            filter { eq("user_id", userId) }
+        }
+    }
+
+    suspend fun deleteNotification(notificationId: Int) {
+        client.postgrest["notifications_db"].delete {
+            filter { eq("id", notificationId) }
+        }
+    }
 }

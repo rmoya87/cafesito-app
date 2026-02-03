@@ -190,6 +190,19 @@ class TimelineViewModel @Inject constructor(
         }
     }
 
+    fun markAllAsRead() {
+        viewModelScope.launch {
+            val user = userRepository.getActiveUser() ?: return@launch
+            userRepository.markAllNotificationsRead(user.id)
+        }
+    }
+
+    fun deleteNotification(notification: TimelineNotification) {
+        viewModelScope.launch {
+            userRepository.deleteNotification(notification.notificationId)
+        }
+    }
+
     fun markNotificationsNotified(notificationIds: Set<String>) {
         if (notificationIds.isEmpty()) return
         notifiedNotificationIds.update { it + notificationIds }

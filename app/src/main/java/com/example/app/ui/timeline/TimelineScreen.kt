@@ -37,6 +37,7 @@ fun TimelineScreen(
     onCoffeeClick: (String) -> Unit,
     onAddPostClick: () -> Unit,
     onSearchUsersClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     initialPostId: String? = null,
     initialCommentId: Int? = null,
     viewModel: TimelineViewModel = hiltViewModel()
@@ -45,10 +46,8 @@ fun TimelineScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var highlightedCommentId by remember { mutableStateOf<Int?>(null) }
-    var showNotificationsSheet by remember { mutableStateOf(false) }
-    val notifications by viewModel.notifications.collectAsState()
+    
     val unreadCount by viewModel.unreadCount.collectAsState()
-    val unreadIds by viewModel.unreadNotificationIds.collectAsState()
     val newDeviceNotifications by viewModel.newUnreadNotifications.collectAsState()
     val context = LocalContext.current
     
@@ -126,7 +125,7 @@ fun TimelineScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showNotificationsSheet = true }) {
+                    IconButton(onClick = onNotificationsClick) {
                         BadgedBox(
                             badge = {
                                 if (unreadCount > 0) {
@@ -313,30 +312,5 @@ fun TimelineScreen(
                 }
             }
         }
-    }
-
-    if (showNotificationsSheet) {
-        val state = uiState as? TimelineUiState.Success
-        NotificationsBottomSheet(
-            notifications = notifications,
-            unreadIds = unreadIds,
-            followingIds = state?.myFollowingIds ?: emptySet(),
-            onDismiss = { showNotificationsSheet = false },
-            onFollowToggle = { userId -> viewModel.toggleFollowSuggestion(userId) },
-            onNotificationClick = { notification ->
-                viewModel.markNotificationRead(notification)
-                when (notification) {
-                    is TimelineNotification.Follow -> {
-                        showNotificationsSheet = false
-                        onUserClick(notification.user.id)
-                    }
-                    is TimelineNotification.Mention -> {
-                        showNotificationsSheet = false
-                        showCommentSheetId = notification.postId
-                        highlightedCommentId = notification.commentId
-                    }
-                }
-            }
-        )
     }
 }

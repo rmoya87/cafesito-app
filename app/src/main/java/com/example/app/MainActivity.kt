@@ -7,6 +7,8 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -51,9 +53,7 @@ import com.cafesito.app.ui.diary.*
 import com.cafesito.app.ui.profile.*
 import com.cafesito.app.ui.search.SearchScreen
 import com.cafesito.app.ui.theme.*
-import com.cafesito.app.ui.timeline.AddPostScreen
-import com.cafesito.app.ui.timeline.TimelineScreen
-import com.cafesito.app.ui.timeline.TimelineNotificationSystem
+import com.cafesito.app.ui.timeline.*
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -219,7 +219,8 @@ fun AppNavigation(
         val userIdArg = navBackStackEntry?.arguments?.getInt("userId") ?: 0
         val isOther = currentRoute.startsWith("profile/") && userIdArg != 0
         val isFollow = currentRoute.contains("/followers") || currentRoute.contains("/following") || currentRoute == "searchUsers"
-        val showBottom = mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow
+        val isNotifications = currentRoute == "notifications"
+        val showBottom = mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow && !isNotifications
         Triple(showBottom, isOther, isFollow)
     }
 
@@ -310,8 +311,42 @@ fun AppNavigation(
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onAddPostClick = { navController.navigate("addPost") },
                     onSearchUsersClick = { navController.navigate("searchUsers") },
+                    onNotificationsClick = { navController.navigate("notifications") },
                     initialPostId = postId,
                     initialCommentId = commentId.takeIf { it >= 0 }
+                )
+            }
+
+            composable(
+                route = "notifications",
+                enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(400)) },
+                exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(400)) }
+            ) {
+                val viewModel: TimelineViewModel = hiltViewModel()
+                val notifications by viewModel.notifications.collectAsState()
+                val unreadIds by viewModel.unreadNotificationIds.collectAsState()
+                val uiState by viewModel.uiState.collectAsState()
+                val followingIds = (uiState as? TimelineUiState.Success)?.myFollowingIds ?: emptySet()
+
+                NotificationsScreen(
+                    notifications = notifications,
+                    unreadIds = unreadIds,
+                    followingIds = followingIds,
+                    onBackClick = { navController.popBackStack() },
+                    onMarkAllAsRead = { viewModel.markAllAsRead() },
+                    onFollowToggle = { userId -> viewModel.toggleFollowSuggestion(userId) },
+                    onDeleteNotification = { notification -> viewModel.deleteNotification(notification) },
+                    onNotificationClick = { notification ->
+                        viewModel.markNotificationRead(notification)
+                        when (notification) {
+                            is TimelineNotification.Follow -> {
+                                navController.navigate("profile/${notification.user.id}")
+                            }
+                            is TimelineNotification.Mention -> {
+                                navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                            }
+                        }
+                    }
                 )
             }
 

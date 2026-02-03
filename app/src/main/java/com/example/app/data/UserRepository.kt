@@ -292,6 +292,26 @@ class UserRepository @Inject constructor(
         }
     }
 
+    suspend fun markAllNotificationsRead(userId: Int) {
+        try {
+            ensureConnected()
+            supabaseDataSource.markAllNotificationsRead(userId)
+            triggerRefresh()
+        } catch (e: Exception) {
+            Log.e("USER_REPO", "Error marcando todas las notificaciones como leídas: ${e.message}")
+        }
+    }
+
+    suspend fun deleteNotification(notificationId: Int) {
+        try {
+            ensureConnected()
+            supabaseDataSource.deleteNotification(notificationId)
+            triggerRefresh()
+        } catch (e: Exception) {
+            Log.e("USER_REPO", "Error eliminando notificación: ${e.message}")
+        }
+    }
+
     fun syncUsers() {
         triggerRefresh()
     }
