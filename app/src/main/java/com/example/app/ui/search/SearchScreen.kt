@@ -392,7 +392,12 @@ fun SearchScreen(
                     is SearchUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
                     is SearchUiState.Success -> {
                         if (state.coffees.isEmpty() && !isRefreshing) {
-                            EmptySearchResults(Modifier.align(Alignment.CenterHorizontally).padding(top = 64.dp))
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                EmptySearchResults(Modifier.padding(top = 64.dp))
+                            }
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
