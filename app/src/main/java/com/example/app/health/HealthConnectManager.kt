@@ -5,6 +5,7 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HydrationRecord
 import androidx.health.connect.client.records.NutritionRecord
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Mass
@@ -52,7 +53,7 @@ class HealthConnectManager @Inject constructor(
             endTime = timestamp.plusSeconds(1),
             endZoneOffset = ZonedDateTime.now().offset,
             caffeine = Mass.milligrams(mg),
-            metadata = androidx.health.connect.client.records.metadata.Metadata(clientRecordId = "cafesito_$entryId")
+            metadata = Metadata(clientRecordId = "cafesito_$entryId")
         )
 
         try {
@@ -72,7 +73,7 @@ class HealthConnectManager @Inject constructor(
             endTime = timestamp.plusSeconds(1),
             endZoneOffset = ZonedDateTime.now().offset,
             volume = Volume.milliliters(ml),
-            metadata = androidx.health.connect.client.records.metadata.Metadata(clientRecordId = "cafesito_$entryId")
+            metadata = Metadata(clientRecordId = "cafesito_$entryId")
         )
 
         try {

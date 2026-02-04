@@ -3,12 +3,14 @@ package com.cafesito.app.data
 import android.util.Log
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,296 +21,137 @@ class SocialRepository @Inject constructor(
     private val socialDao: SocialDao,
     private val supabaseDataSource: SupabaseDataSource,
     private val userRepository: UserRepository,
-    private val connectivityObserver: ConnectivityObserver
+    private val connectivityObserver: ConnectivityObserver,
+    private val externalScope: CoroutineScope
 ) {
-    private val _refreshTrigger = MutableStateFlow(0L)
-
-    // --- CACHÉ EN MEMORIA ---
-    private var _cachedPosts: List<PostWithDetails>? = null
-    private var _cachedReviews: List<ReviewWithAuthor>? = null
-
-    private suspend fun ensureConnected() {
-        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
-            throw NoConnectivityException("No hay conexión a internet.")
-        }
-    }
+    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
     fun triggerRefresh() {
-        _cachedPosts = null
-        _cachedReviews = null
-        _refreshTrigger.value++
+        _refreshTrigger.tryEmit(Unit)
     }
 
-    /**
-     * Flujo reactivo que combina la carga inicial con actualizaciones Realtime de Supabase.
-     * Implementa paralelización y caché.
-     */
-    fun getAllPostsWithDetails(forceRefresh: Boolean = false): Flow<List<PostWithDetails>> {
-        if (forceRefresh) _cachedPosts = null
+    fun getAllPostsWithDetails(): Flow<List<PostWithDetails>> = _refreshTrigger
+        .flatMapLatest {
+            networkBoundResource(
+                resourceKey = "all_posts",
+                query = { socialDao.getAllPostsWithDetails() },
+                fetch = {
+                    supervisorScope {
+                        val posts = supabaseDataSource.getAllPosts()
+                        val likes = supabaseDataSource.getAllLikes()
+                        val comments = supabaseDataSource.getAllComments()
+                        val users = userRepository.getAllUsersList()
+                        Triple(posts, Pair(likes, comments), users)
+                    }
+                },
+                saveFetchResult = { (posts, interactions, users) ->
+                    withContext(Dispatchers.IO) {
+                        socialDao.insertPosts(posts)
+                        socialDao.insertLikes(interactions.first)
+                        socialDao.insertComments(interactions.second)
+                        userRepository.insertUsers(users)
+                    }
+                },
+                shouldFetch = { true },
+                scope = externalScope,
+                connectivityObserver = connectivityObserver
+            )
+        }.flowOn(Dispatchers.IO)
 
-        val realtimeUpdates = merge(
-            supabaseDataSource.subscribeToLikes(),
-            supabaseDataSource.subscribeToComments()
-        ).map { Unit }
-
-        return merge(_refreshTrigger.map { Unit }, realtimeUpdates)
-            .debounce(300)
-            .flatMapLatest {
-                flow {
-                    _cachedPosts?.let { emit(it); if (!forceRefresh) return@flow }
-
+    fun getPostsByUserId(userId: Int): Flow<List<PostWithDetails>> = socialDao.getPostsByUserIdWithDetails(userId)
+        .onStart {
+            if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                externalScope.launch {
                     try {
-                        ensureConnected()
-                        supervisorScope {
-                            val postsDef = async { supabaseDataSource.getAllPosts() }
-                            val likesDef = async { supabaseDataSource.getAllLikes() }
-                            val commentsDef = async { supabaseDataSource.getAllComments() }
-                            val usersDef = async { userRepository.getAllUsersList() }
-
-                            val remotePosts = postsDef.await()
-                            val remoteLikes = likesDef.await()
-                            val remoteComments = commentsDef.await()
-                            val users = usersDef.await()
-
-                            val details = withContext(Dispatchers.Default) {
-                                remotePosts.map { post ->
-                                    val author = users.find { it.id == post.userId } ?: UserEntity(post.userId, null, "Usuario", "Usuario", "", "", "")
-                                    PostWithDetails(
-                                        post = post,
-                                        author = author,
-                                        likes = remoteLikes.filter { it.postId == post.id },
-                                        comments = remoteComments.filter { it.postId == post.id }
-                                    )
-                                }
-                            }
-                            _cachedPosts = details
-                            emit(details)
-                        }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Log.e("SOCIAL_REPO", "Error fetching social data", e)
-                        emit(_cachedPosts ?: emptyList())
-                    }
+                        val posts = supabaseDataSource.getPostsByUserId(userId)
+                        socialDao.insertPosts(posts)
+                    } catch (e: Exception) { }
                 }
-            }.flowOn(Dispatchers.IO)
-    }
+            }
+        }.flowOn(Dispatchers.IO)
 
-    fun getPostsByUserId(userId: Int): Flow<List<PostWithDetails>> {
-        return merge(_refreshTrigger.map { Unit }, supabaseDataSource.subscribeToLikes().map { Unit })
-            .debounce(300)
-            .flatMapLatest {
-                flow {
-                    try {
-                        ensureConnected()
-                        supervisorScope {
-                            // ✅ OPTIMIZACIÓN: Filtrado en servidor
-                            val postsDef = async { supabaseDataSource.getPostsByUserId(userId) }
-                            val likesDef = async { supabaseDataSource.getAllLikes() }
-                            val commentsDef = async { supabaseDataSource.getAllComments() }
-                            val authorDef = async { userRepository.getUserById(userId) }
+    fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>> = socialDao.getAllReviewsWithAuthor()
 
-                            val filteredPosts = postsDef.await()
-                            val remoteLikes = likesDef.await()
-                            val remoteComments = commentsDef.await()
-                            val author = authorDef.await() ?: UserEntity(userId, null, "Usuario", "Usuario", "", "", "")
-
-                            val details = withContext(Dispatchers.Default) {
-                                filteredPosts.map { post ->
-                                    PostWithDetails(
-                                        post = post,
-                                        author = author,
-                                        likes = remoteLikes.filter { it.postId == post.id },
-                                        comments = remoteComments.filter { it.postId == post.id }
-                                    )
-                                }
-                            }
-                            emit(details)
-                        }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        emit(emptyList())
-                    }
-                }
-            }.flowOn(Dispatchers.IO)
-    }
-
-    fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>> = _refreshTrigger.debounce(300).flatMapLatest {
-        flow {
-            _cachedReviews?.let { emit(it); return@flow }
-            try {
-                ensureConnected()
-                supervisorScope {
-                    val reviewsDef = async { supabaseDataSource.getAllReviews() }
-                    val usersDef = async { userRepository.getAllUsersList() }
-
-                    val reviews = reviewsDef.await()
-                    val users = usersDef.await()
-
-                    val result = withContext(Dispatchers.Default) {
-                        reviews.mapNotNull { review ->
-                            users.find { it.id == review.userId }?.let { author ->
-                                ReviewWithAuthor(review, author)
-                            }
-                        }
-                    }
-                    _cachedReviews = result
-                    emit(result)
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                emit(_cachedReviews ?: emptyList())
+    suspend fun createPost(post: PostEntity) = withContext(Dispatchers.IO) {
+        socialDao.insertPost(post)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch {
+                try { supabaseDataSource.insertPost(post) } catch (e: Exception) { }
             }
         }
-    }
-
-    suspend fun createPost(post: PostEntity) {
-        ensureConnected()
-        supabaseDataSource.insertPost(post)
-        triggerRefresh()
-    }
-
-    suspend fun deletePost(postId: String) {
-        ensureConnected()
-        supabaseDataSource.deletePost(postId)
-        triggerRefresh()
-    }
-
-    suspend fun updatePost(postId: String, newComment: String, newImageUrl: String) {
-        ensureConnected()
-        val posts = supabaseDataSource.getAllPosts()
-        val existing = posts.find { it.id == postId } ?: return
-        val updated = existing.copy(comment = newComment, imageUrl = newImageUrl)
-        supabaseDataSource.insertPost(updated)
-        triggerRefresh()
-    }
-
-    suspend fun addComment(comment: CommentEntity) {
-        ensureConnected()
-        val insertedComment = supabaseDataSource.insertComment(comment)
-        triggerRefresh()
-
-        val currentUser = userRepository.getActiveUser()
-        val postOwnerId = supabaseDataSource.getAllPosts().find { it.id == comment.postId }?.userId
-        if (postOwnerId != null && currentUser != null && postOwnerId != currentUser.id) {
-            try {
-                supabaseDataSource.insertNotification(NotificationEntity(
-                    userId = postOwnerId,
-                    type = "COMMENT",
-                    fromUsername = currentUser.username,
-                    message = "ha comentado tu publicación.",
-                    timestamp = System.currentTimeMillis(),
-                    relatedId = comment.postId
-                ))
-            } catch (_: Exception) { }
-        }
-
-        if (currentUser != null) {
-            val mentionTargets = userRepository.getAllUsersList()
-                .filter { it.username.isNotBlank() }
-                .filter { it.id != currentUser.id }
-                .filter { comment.text.contains("@${it.username}", ignoreCase = true) }
-                .distinctBy { it.id }
-
-            mentionTargets.forEach { mentionedUser ->
-                try {
-                    supabaseDataSource.insertNotification(NotificationEntity(
-                        userId = mentionedUser.id,
-                        type = "MENTION",
-                        fromUsername = currentUser.username,
-                        message = insertedComment.text,
-                        timestamp = insertedComment.timestamp,
-                        relatedId = "${insertedComment.postId}:${insertedComment.id}"
-                    ))
-                } catch (_: Exception) { }
-            }
-            if (mentionTargets.isNotEmpty()) {
-                userRepository.triggerRefresh()
-            }
-        }
-    }
-
-    suspend fun deleteComment(commentId: Int) {
-        try {
-            ensureConnected()
-            supabaseDataSource.deleteComment(commentId)
-            triggerRefresh()
-        } catch (e: Exception) { }
-    }
-
-    suspend fun updateComment(commentId: Int, newText: String) {
-        try {
-            ensureConnected()
-            val comments = supabaseDataSource.getAllComments()
-            val existing = comments.find { it.id == commentId } ?: return
-            val updated = existing.copy(text = newText)
-            supabaseDataSource.upsertComment(updated)
-            triggerRefresh()
-        } catch (e: Exception) { }
-    }
-
-    suspend fun toggleLike(postId: String, userId: Int) {
-        ensureConnected()
-        val likes = supabaseDataSource.getAllLikes()
-        val isLiked = likes.any { it.postId == postId && it.userId == userId }
-
-        if (isLiked) {
-            supabaseDataSource.deleteLike(postId, userId)
-        } else {
-            supabaseDataSource.insertLike(LikeEntity(postId, userId))
-            val post = supabaseDataSource.getAllPosts().find { it.id == postId }
-            val currentUser = userRepository.getActiveUser()
-            if (post != null && currentUser != null && post.userId != currentUser.id) {
-                try {
-                    supabaseDataSource.insertNotification(NotificationEntity(
-                        userId = post.userId,
-                        type = "LIKE",
-                        fromUsername = currentUser.username,
-                        message = "le ha dado me gusta a tu publicación.",
-                        timestamp = System.currentTimeMillis(),
-                        relatedId = postId
-                    ))
-                } catch (e: Exception) { }
-            }
-        }
-        triggerRefresh()
     }
 
     suspend fun uploadImage(bucket: String, path: String, bytes: ByteArray): String {
-        ensureConnected()
         return supabaseDataSource.uploadImage(bucket, path, bytes)
     }
 
-    fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> {
-        val realtimeComments = supabaseDataSource.subscribeToComments().map { Unit }
+    suspend fun updatePost(postId: String, newComment: String, newImageUrl: String) = withContext(Dispatchers.IO) {
+        val currentPosts = socialDao.getAllPostsWithDetails().first()
+        val existing = currentPosts.find { it.post.id == postId }?.post ?: return@withContext
+        val updated = existing.copy(comment = newComment, imageUrl = newImageUrl)
+        socialDao.insertPost(updated)
         
-        return merge(_refreshTrigger.map { Unit }, realtimeComments)
-            .debounce(300)
-            .flatMapLatest {
-                flow {
-                    try {
-                        ensureConnected()
-                        val comments = supabaseDataSource.getCommentsForPost(postId)
-                        val users = userRepository.getAllUsersList()
-                        val result = withContext(Dispatchers.Default) {
-                            comments.map { comment ->
-                                val author = users.find { it.id == comment.userId } ?: UserEntity(comment.userId, null, "Usuario", "", "", "", "")
-                                CommentWithAuthor(comment, author)
-                            }
-                        }
-                        emit(result)
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        emit(emptyList())
-                    }
-                }
-            }.flowOn(Dispatchers.IO)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch {
+                try { supabaseDataSource.insertPost(updated) } catch (e: Exception) { }
+            }
+        }
     }
 
+    suspend fun toggleLike(postId: String, userId: Int) = withContext(Dispatchers.IO) {
+        val like = LikeEntity(postId, userId)
+        val isLiked = socialDao.isPostLikedByUser(postId, userId).first()
+        
+        if (isLiked) socialDao.deleteLike(like) else socialDao.insertLike(like)
+
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch {
+                try {
+                    if (isLiked) supabaseDataSource.deleteLike(postId, userId)
+                    else supabaseDataSource.insertLike(like)
+                } catch (e: Exception) { }
+            }
+        }
+    }
+
+    suspend fun addComment(comment: CommentEntity) = withContext(Dispatchers.IO) {
+        socialDao.insertComment(comment)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch {
+                try { supabaseDataSource.insertComment(comment) } catch (e: Exception) { }
+            }
+        }
+    }
+
+    suspend fun updateComment(commentId: Int, newText: String) = withContext(Dispatchers.IO) {
+        // Implementación futura si es necesaria
+    }
+
+    suspend fun deleteComment(commentId: Int) = withContext(Dispatchers.IO) {
+        socialDao.deleteComment(commentId)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch { try { supabaseDataSource.deleteComment(commentId) } catch (e: Exception) { } }
+        }
+    }
+
+    fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> = socialDao.getCommentsWithAuthorForPost(postId)
+
+    suspend fun deletePost(postId: String) = withContext(Dispatchers.IO) {
+        val post = socialDao.getAllPostsWithDetails().first().find { it.post.id == postId }?.post
+        if (post != null) socialDao.deletePost(post)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch { try { supabaseDataSource.deletePost(postId) } catch (e: Exception) { } }
+        }
+    }
+
+    suspend fun getUserByUsername(username: String): UserEntity? = userRepository.getUserByUsername(username)
+
     suspend fun syncSocialData() {
-        triggerRefresh()
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                val posts = supabaseDataSource.getAllPosts()
+                socialDao.insertPosts(posts)
+            } catch (e: Exception) { }
+        }
     }
 }

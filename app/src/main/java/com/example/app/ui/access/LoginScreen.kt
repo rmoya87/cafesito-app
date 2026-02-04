@@ -33,6 +33,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.cafesito.app.BuildConfig
+import com.cafesito.app.R
 import com.cafesito.app.ui.theme.*
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -45,28 +46,16 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val credentialManager = CredentialManager.create(context)
+    val credentialManager = remember { CredentialManager.create(context) }
     val scope = rememberCoroutineScope()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    fun isPreLaunchDevice(): Boolean {
-        return android.os.Build.MODEL.contains("Emulator", ignoreCase = true) ||
-                android.os.Build.DEVICE.contains("generic", ignoreCase = true) ||
-                android.os.Build.PRODUCT.contains("sdk", ignoreCase = true) ||
-                android.provider.Settings.Secure.getString(context.contentResolver, "firebase.test.lab") == "true"
-    }
-
-    //LaunchedEffect(Unit) {
-    //    if (BuildConfig.DEBUG || isPreLaunchDevice()) {
-    //        onLoginSuccess("test-uuid-001", "alex@cafesito.test", "Alex Barista", "", false)
-    //    }
-    //}
-
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-            val videoUri = Uri.parse("android.resource://${context.packageName}/raw/login_bg")
+            // Usamos una ruta más robusta para el recurso raw
+            val videoUri = Uri.parse("android.resource://${context.packageName}/${R.raw.login_bg}")
             setMediaItem(MediaItem.fromUri(videoUri))
-            repeatMode = Player.REPEAT_MODE_OFF 
+            repeatMode = Player.REPEAT_MODE_ALL // Cambiado a ALL para que el vídeo no se detenga
             volume = 0f
             prepare()
             playWhenReady = true
@@ -77,6 +66,7 @@ fun LoginScreen(
         onDispose { exoPlayer.release() }
     }
 
+    // Asegúrate de que este ID sea el "ID de cliente web" en tu consola de Google Cloud
     val webClientId = "789398399906-468mj79uf2t4e485n7ilufv4eiouk3sm.apps.googleusercontent.com"
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -92,7 +82,6 @@ fun LoginScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
-                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
                     }
                 },
                 modifier = Modifier.fillMaxSize()
@@ -211,9 +200,10 @@ fun LoginScreen(
                                 } catch (e: GetCredentialCancellationException) {
                                     Log.d("LoginScreen", "Cerrado")
                                 } catch (e: NoCredentialException) {
-                                    Toast.makeText(context, "Inicia sesión en Google primero", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "No se encontraron cuentas de Google configuradas", Toast.LENGTH_LONG).show()
                                 } catch (e: Exception) {
                                     Log.e("LoginScreen", "Error: ${e.message}", e)
+                                    Toast.makeText(context, "Error de conexión: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                                 }
                             }
                         },

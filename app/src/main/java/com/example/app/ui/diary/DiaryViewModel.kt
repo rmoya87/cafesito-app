@@ -59,10 +59,10 @@ class DiaryViewModel @Inject constructor(
                 calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
             }
             DiaryPeriod.SEMANA -> {
-                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek); calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek); calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
             }
             DiaryPeriod.MES -> {
-                calendar.set(Calendar.DAY_OF_MONTH, 1); calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.DAY_OF_MONTH, 1); calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
             }
         }
         val startTime = calendar.timeInMillis
@@ -81,15 +81,13 @@ class DiaryViewModel @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val analytics: StateFlow<DiaryAnalytics?> = combine(allEntriesFlow, _selectedPeriod) { entries, period ->
-        if (entries.isEmpty()) return@combine DiaryAnalytics(emptyList(), 0, 0, 0, 0, 0, 0, period)
-        
         val calendar = Calendar.getInstance()
         val now = System.currentTimeMillis()
         
         val (currentEntries, previousEntries, averageValue) = when (period) {
             DiaryPeriod.HOY -> {
                 calendar.timeInMillis = now
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
                 val startOfToday = calendar.timeInMillis
                 val dailySums = entries.groupBy { 
                     val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
@@ -99,14 +97,14 @@ class DiaryViewModel @Inject constructor(
             }
             DiaryPeriod.SEMANA -> {
                 calendar.timeInMillis = now
-                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek); calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek); calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
                 val startOfWeek = calendar.timeInMillis
                 val weeklySums = entries.groupBy { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; "${c.get(Calendar.YEAR)}-${c.get(Calendar.WEEK_OF_YEAR)}" }.values.map { it.filter { e -> e.type == "CUP" }.sumOf { e -> e.caffeineAmount } }
                 Triple(entries.filter { it.timestamp >= startOfWeek }, entries.filter { it.timestamp in (startOfWeek - 604800000) until startOfWeek }, if(weeklySums.isEmpty()) 0 else weeklySums.average().toInt())
             }
             DiaryPeriod.MES -> {
                 calendar.timeInMillis = now
-                calendar.set(Calendar.DAY_OF_MONTH, 1); calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.DAY_OF_MONTH, 1); calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
                 val startOfMonth = calendar.timeInMillis
                 val monthlySums = entries.groupBy { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; "${c.get(Calendar.YEAR)}-${c.get(Calendar.MONTH)}" }.values.map { it.filter { e -> e.type == "CUP" }.sumOf { e -> e.caffeineAmount } }
                 Triple(entries.filter { it.timestamp >= startOfMonth }, emptyList<DiaryEntryEntity>(), if(monthlySums.isEmpty()) 0 else monthlySums.average().toInt())
@@ -142,7 +140,8 @@ class DiaryViewModel @Inject constructor(
                 }
             }
             DiaryPeriod.MES -> {
-                val maxDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val currentCalendar = Calendar.getInstance()
+                val maxDays = currentCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
                 val monthlyData = currentEntries.groupBy { 
                     Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_MONTH)
                 }

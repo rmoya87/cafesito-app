@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +45,8 @@ fun TimelineScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var highlightedCommentId by remember { mutableStateOf<Int?>(null) }
     
@@ -57,7 +60,6 @@ fun TimelineScreen(
     var reviewToEdit by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
 
-    // Posiciones aleatorias para sugerencias (se calculan una vez al entrar)
     val suggestionIndices = remember(uiState) {
         if (uiState is TimelineUiState.Success) {
             val itemsCount = (uiState as TimelineUiState.Success).items.size
@@ -67,7 +69,6 @@ fun TimelineScreen(
                 val second = (mid until itemsCount).random()
                 listOf(first, second)
             } else {
-                // Si hay pocos items, usar posiciones fijas o no mostrar si es 0
                 listOf(0, 1)
             }
         } else listOf(0, 1)
@@ -78,32 +79,13 @@ fun TimelineScreen(
     ) {}
 
     LaunchedEffect(Unit) {
-        viewModel.refreshData()
+        // ELIMINADO: viewModel.refreshData() - Dejamos que el repositorio maneje la caché
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permission = Manifest.permission.POST_NOTIFICATIONS
             if (ContextCompat.checkSelfPermission(context, permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 notificationPermissionLauncher.launch(permission)
             }
         }
-    }
-
-    LaunchedEffect(initialPostId, initialCommentId) {
-        if (initialPostId == null) return@LaunchedEffect
-        showCommentSheetId = initialPostId
-        highlightedCommentId = initialCommentId
-    }
-
-    LaunchedEffect(newDeviceNotifications) {
-        if (newDeviceNotifications.isEmpty()) return@LaunchedEffect
-        TimelineNotificationSystem.ensureChannel(context)
-        val manager = NotificationManagerCompat.from(context)
-        newDeviceNotifications.forEach { notification ->
-            val systemNotification = TimelineNotificationSystem
-                .buildSystemNotification(context, notification)
-                .build()
-            manager.notify(notification.id.hashCode(), systemNotification)
-        }
-        viewModel.markNotificationsNotified(newDeviceNotifications.map { it.id }.toSet())
     }
 
     Scaffold(
@@ -156,161 +138,171 @@ fun TimelineScreen(
             ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(24.dp)) }
         }
     ) { padding ->
-        when (val state = uiState) {
-            is TimelineUiState.Loading -> {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    items(5) { ShimmerItem(Modifier.fillMaxWidth().height(400.dp).padding(16.dp)) }
+        
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                viewModel.refreshData()
+                isRefreshing = false
+            },
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            when (val state = uiState) {
+                is TimelineUiState.Loading -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(5) { ShimmerItem(Modifier.fillMaxWidth().height(400.dp).padding(16.dp)) }
+                    }
                 }
-            }
-            is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
-            is TimelineUiState.Success -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(bottom = 120.dp)
-                ) {
-                    itemsIndexed(
-                        items = state.items,
-                        key = { _, item ->
-                            when(item) {
-                                is TimelineItem.PostItem -> "post_${item.details.post.id}"
-                                is TimelineItem.ReviewItem -> "review_${item.reviewInfo.review.id}"
-                                is TimelineItem.FavoriteActionItem -> "fav_${item.timestamp}"
+                is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+                is TimelineUiState.Success -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 120.dp)
+                    ) {
+                        itemsIndexed(
+                            items = state.items,
+                            key = { _, item ->
+                                when(item) {
+                                    is TimelineItem.PostItem -> "post_${item.details.post.id}"
+                                    is TimelineItem.ReviewItem -> "review_${item.reviewInfo.review.id}"
+                                    is TimelineItem.FavoriteActionItem -> "fav_${item.timestamp}"
+                                }
                             }
-                        }
-                    ) { index, item ->
+                        ) { index, item ->
 
-                        // Insertar Carrusel de Recomendaciones
-                        if (index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
-                            Column {
-                                RecommendationCarousel(
-                                    recommendations = state.recommendations,
-                                    onCoffeeClick = onCoffeeClick
+                            if (index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
+                                Column {
+                                    RecommendationCarousel(
+                                        recommendations = state.recommendations,
+                                        onCoffeeClick = onCoffeeClick
+                                    )
+                                    Spacer(Modifier.height(24.dp))
+                                }
+                            }
+
+                            if (index == suggestionIndices[1] && state.suggestedUsers.isNotEmpty()) {
+                                UserSuggestionCarousel(
+                                    users = state.suggestedUsers,
+                                    followingIds = state.myFollowingIds,
+                                    onUserClick = { userId ->
+                                        if (userId == state.activeUser.id) onUserClick(0)
+                                        else onUserClick(userId)
+                                    },
+                                    onFollowClick = { viewModel.toggleFollowSuggestion(it) }
                                 )
-                                Spacer(Modifier.height(24.dp))
+                                Spacer(Modifier.height(32.dp))
                             }
-                        }
 
-                        // Insertar Sugerencias de Usuarios
-                        if (index == suggestionIndices[1] && state.suggestedUsers.isNotEmpty()) {
-                            UserSuggestionCarousel(
-                                users = state.suggestedUsers,
-                                followingIds = state.myFollowingIds,
-                                onUserClick = { userId ->
-                                    if (userId == state.activeUser.id) onUserClick(0)
-                                    else onUserClick(userId)
-                                },
-                                onFollowClick = { viewModel.toggleFollowSuggestion(it) }
-                            )
-                            Spacer(Modifier.height(32.dp))
-                        }
-
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) +
-                                    slideInVertically(initialOffsetY = { 20 })
-                        ) {
-                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                                when (item) {
-                                    is TimelineItem.PostItem -> PostCard(
-                                        details = item.details,
-                                        isLiked = item.details.likes.any { it.userId == state.activeUser.id },
-                                        onUserClick = {
-                                            val userId = item.details.post.userId
-                                            if (userId == state.activeUser.id) onUserClick(0)
-                                            else onUserClick(userId)
-                                        },
-                                        onCommentClick = {
-                                            highlightedCommentId = null
-                                            showCommentSheetId = item.details.post.id
-                                        },
-                                        onLikeClick = { viewModel.toggleLike(item.details.post.id) },
-                                        isOwnPost = item.details.post.userId == state.activeUser.id,
-                                        onEditClick = { postToEdit = item.details },
-                                        onDeleteClick = { itemToDelete = item.details }
-                                    )
-                                    is TimelineItem.ReviewItem -> UserReviewCard(
-                                        info = item.reviewInfo,
-                                        isOwnReview = item.reviewInfo.review.userId == state.activeUser.id,
-                                        onEditClick = { reviewToEdit = item },
-                                        onDeleteClick = { itemToDelete = item },
-                                        onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
-                                    )
-                                    else -> {}
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) +
+                                        slideInVertically(initialOffsetY = { 20 })
+                            ) {
+                                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                    when (item) {
+                                        is TimelineItem.PostItem -> PostCard(
+                                            details = item.details,
+                                            isLiked = item.details.likes.any { it.userId == state.activeUser.id },
+                                            onUserClick = {
+                                                val userId = item.details.post.userId
+                                                if (userId == state.activeUser.id) onUserClick(0)
+                                                else onUserClick(userId)
+                                            },
+                                            onCommentClick = {
+                                                highlightedCommentId = null
+                                                showCommentSheetId = item.details.post.id
+                                            },
+                                            onLikeClick = { viewModel.toggleLike(item.details.post.id) },
+                                            isOwnPost = item.details.post.userId == state.activeUser.id,
+                                            onEditClick = { postToEdit = item.details },
+                                            onDeleteClick = { itemToDelete = item.details }
+                                        )
+                                        is TimelineItem.ReviewItem -> UserReviewCard(
+                                            info = item.reviewInfo,
+                                            isOwnReview = item.reviewInfo.review.userId == state.activeUser.id,
+                                            onEditClick = { reviewToEdit = item },
+                                            onDeleteClick = { itemToDelete = item },
+                                            onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
+                                        )
+                                        else -> {}
+                                    }
                                 }
                             }
                         }
                     }
                 }
-
-                if (itemToDelete != null) {
-                    DeleteConfirmationDialog(
-                        onDismissRequest = { itemToDelete = null },
-                        onConfirm = {
-                            val item = itemToDelete
-                            if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                            else if (item is TimelineItem.ReviewItem) viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
-                            itemToDelete = null
-                        },
-                        title = "Borrar",
-                        text = "Una vez borrado no se puede recuperar. ¿Estás seguro?"
-                    )
-                }
-
-                showCommentSheetId?.let { id ->
-                    CommentsSheet(
-                        postId = id,
-                        onDismiss = {
-                            showCommentSheetId = null
-                            highlightedCommentId = null
-                        },
-                        onAddComment = { viewModel.onAddComment(id, it) },
-                        onNavigateToProfile = { userId ->
-                            if (userId == state.activeUser.id) onUserClick(0)
-                            else onUserClick(userId)
-                        },
-                        highlightedCommentId = highlightedCommentId
-                    )
-                }
-
-                showReviewOptions?.let { review ->
-                    ReviewOptionsBottomSheet(
-                        onDismiss = { showReviewOptions = null },
-                        onEditClick = { 
-                            showReviewOptions = null
-                            reviewToEdit = review 
-                        },
-                        onDeleteClick = { 
-                            showReviewOptions = null
-                            itemToDelete = review 
-                        }
-                    )
-                }
-
-                postToEdit?.let { details ->
-                    EditPostBottomSheet(
-                        initialText = details.post.comment,
-                        initialImage = details.post.imageUrl,
-                        onDismiss = { postToEdit = null },
-                        onConfirm = { newText, newImageUrl ->
-                            viewModel.updatePost(details.post.id, newText, newImageUrl)
-                            postToEdit = null
-                        }
-                    )
-                }
-                
-                reviewToEdit?.let { item ->
-                    EditReviewBottomSheet(
-                        initialRating = item.reviewInfo.review.rating,
-                        initialComment = item.reviewInfo.review.comment,
-                        initialImage = item.reviewInfo.review.imageUrl,
-                        onDismiss = { reviewToEdit = null },
-                        onConfirm = { rating, comment, imageUrl ->
-                            viewModel.updateReview(item.reviewInfo.coffeeDetails.coffee.id, rating, comment, imageUrl)
-                            reviewToEdit = null
-                        }
-                    )
-                }
             }
+        }
+
+        if (itemToDelete != null) {
+            DeleteConfirmationDialog(
+                onDismissRequest = { itemToDelete = null },
+                onConfirm = {
+                    val item = itemToDelete
+                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
+                    else if (item is TimelineItem.ReviewItem) viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
+                    itemToDelete = null
+                },
+                title = "Borrar",
+                text = "Una vez borrado no se puede recuperar. ¿Estás seguro?"
+            )
+        }
+
+        showCommentSheetId?.let { id ->
+            CommentsSheet(
+                postId = id,
+                onDismiss = {
+                    showCommentSheetId = null
+                    highlightedCommentId = null
+                },
+                onAddComment = { viewModel.onAddComment(id, it) },
+                onNavigateToProfile = { userId ->
+                    val activeId = (uiState as? TimelineUiState.Success)?.activeUser?.id
+                    if (userId == activeId) onUserClick(0)
+                    else onUserClick(userId)
+                },
+                highlightedCommentId = highlightedCommentId
+            )
+        }
+
+        showReviewOptions?.let { review ->
+            ReviewOptionsBottomSheet(
+                onDismiss = { showReviewOptions = null },
+                onEditClick = { 
+                    showReviewOptions = null
+                    reviewToEdit = review 
+                },
+                onDeleteClick = { 
+                    showReviewOptions = null
+                    itemToDelete = review 
+                }
+            )
+        }
+
+        postToEdit?.let { details ->
+            EditPostBottomSheet(
+                initialText = details.post.comment,
+                initialImage = details.post.imageUrl,
+                onDismiss = { postToEdit = null },
+                onConfirm = { newText, newImageUrl ->
+                    viewModel.updatePost(details.post.id, newText, newImageUrl)
+                    postToEdit = null
+                }
+            )
+        }
+        
+        reviewToEdit?.let { item ->
+            EditReviewBottomSheet(
+                initialRating = item.reviewInfo.review.rating,
+                initialComment = item.reviewInfo.review.comment,
+                initialImage = item.reviewInfo.review.imageUrl,
+                onDismiss = { reviewToEdit = null },
+                onConfirm = { rating, comment, imageUrl ->
+                    viewModel.updateReview(item.reviewInfo.coffeeDetails.coffee.id, rating, comment, imageUrl)
+                    reviewToEdit = null
+                }
+            )
         }
     }
 }

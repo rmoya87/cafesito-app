@@ -5,7 +5,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    
+
+    <!-- Eliminar explícitamente el ID de publicidad para evitar la declaración en Play Console -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+
     <!-- Health Connect Permissions -->
     <uses-permission android:name="android.permission.health.READ_NUTRITION" />
     <uses-permission android:name="android.permission.health.WRITE_NUTRITION" />
@@ -48,11 +51,10 @@
             </intent-filter>
         </service>
 
-        <!-- Health Connect Rationale Activity -->
+        <!-- Health Connect Rationale Activity - OBLIGATORIO PARA PERMISOS -->
         <activity
             android:name="com.cafesito.app.HealthConnectRationaleActivity"
             android:exported="true"
-            android:enabled="true"
             android:label="Privacidad de Salud">
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
@@ -62,7 +64,29 @@
         <meta-data
             android:name="health_permissions_rationale"
             android:value="com.cafesito.app.HealthConnectRationaleActivity" />
-        
+
+        <!-- Para que aparezca el botón de solicitar permisos -->
+        <activity-alias
+            android:name="com.cafesito.app.HealthConnectPermissionsLauncher"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="androidx.health.connect.client.HealthConnectClient.ACTION_REQUEST_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Disable default WorkManager initializer -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
     </application>
 
 </manifest>

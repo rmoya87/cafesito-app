@@ -147,11 +147,6 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
         )
-        @Suppress("DEPRECATION")
-        window.statusBarColor = AndroidColor.TRANSPARENT
-        @Suppress("DEPRECATION")
-        window.navigationBarColor = AndroidColor.TRANSPARENT
-        WindowCompat.setDecorFitsSystemWindows(window, false)
     }
 }
 
@@ -217,7 +212,11 @@ fun AppNavigation(
         NavHost(
             navController = navController,
             startDestination = startRoute,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
         ) {
             composable("onboarding") {
                 OnboardingScreen(onFinished = {
@@ -289,7 +288,21 @@ fun AppNavigation(
                 )
             }
 
-            composable("notifications") {
+            composable(
+                route = "notifications",
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = tween(300)
+                    )
+                },
+                popExitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
                 val viewModel: TimelineViewModel = hiltViewModel()
                 val notifications by viewModel.notifications.collectAsState()
                 val unreadIds by viewModel.unreadNotificationIds.collectAsState()

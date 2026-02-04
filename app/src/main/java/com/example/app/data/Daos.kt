@@ -17,29 +17,6 @@ interface CoffeeDao {
     @Query("SELECT * FROM coffees WHERE id = :id")
     fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?>
 
-    @Transaction
-    @Query("""
-        SELECT * FROM coffees 
-        WHERE isCustom = 0
-        AND (:query IS NULL OR nombre LIKE '%' || :query || '%' OR marca LIKE '%' || :query || '%')
-        AND (:origin IS NULL OR paisOrigen = :origin)
-        AND (:roast IS NULL OR tueste = :roast)
-        AND (:specialty IS NULL OR especialidad = :specialty)
-        AND (:variety IS NULL OR variedadTipo LIKE '%' || :variety || '%')
-        AND (:format IS NULL OR formato = :format)
-        AND (:grind IS NULL OR moliendaRecomendada LIKE '%' || :grind || '%')
-        ORDER BY nombre ASC
-    """)
-    fun getFilteredPublicCoffees(
-        query: String?, 
-        origin: String?,
-        roast: String?,
-        specialty: String?,
-        variety: String?,
-        format: String?,
-        grind: String?
-    ): Flow<List<CoffeeWithDetails>>
-
     @Query("SELECT * FROM coffees WHERE id = :id")
     suspend fun getCoffeeById(id: String): Coffee?
 
@@ -55,7 +32,6 @@ interface CoffeeDao {
     @Delete
     suspend fun deleteFavorite(favorite: LocalFavorite): Int
 
-    // FAVORITOS CUSTOM
     @Query("SELECT * FROM local_favorites_custom")
     fun getLocalFavoritesCustom(): Flow<List<LocalFavoriteCustom>>
 
@@ -104,6 +80,9 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFollow(follow: FollowEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFollows(follows: List<FollowEntity>): List<Long>
+
     @Delete
     suspend fun deleteFollow(follow: FollowEntity): Int
 
@@ -133,10 +112,6 @@ interface SocialDao {
     @Transaction
     @Query("SELECT * FROM reviews_db ORDER BY timestamp DESC")
     fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>>
-
-    @Transaction
-    @Query("SELECT * FROM reviews_db WHERE userId = :userId ORDER BY timestamp DESC")
-    fun getReviewsByUserIdWithAuthor(userId: Int): Flow<List<ReviewWithAuthor>>
 
     @Transaction
     @Query("SELECT * FROM comments_db WHERE postId = :postId ORDER BY timestamp ASC")
@@ -171,6 +146,12 @@ interface SocialDao {
 
     @Query("UPDATE notifications_db SET isRead = 1 WHERE userId = :userId")
     suspend fun markAllAsRead(userId: Int): Int
+
+    @Query("UPDATE notifications_db SET isRead = 1 WHERE id = :notificationId")
+    suspend fun markAsRead(notificationId: Int): Int
+
+    @Query("DELETE FROM notifications_db WHERE id = :notificationId")
+    suspend fun deleteNotification(notificationId: Int): Int
 }
 
 @Dao

@@ -1,41 +1,17 @@
-# --- REGLAS BASE ---
--keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
--dontwarn javax.annotation.**
--dontwarn org.jetbrains.annotations.**
+# Credential Manager
+-keep class androidx.credentials.** { *; }
+-keep class com.google.android.libraries.identity.googleid.** { *; }
 
-# --- KOTLIN SERIALIZATION (Crítico para Supabase) ---
-# Mantiene los serializadores generados y evita que se eliminen campos de tus modelos
--keepclassmembers class com.cafesito.app.data.** {
-    *** Companion;
-    *** $serializer;
+# Mantener nombres de métodos para la interoperabilidad con servicios de Google
+-keepclassmembers class * {
+    @androidx.annotation.Keep *;
 }
--keep,allowobfuscation,allowoptimization class com.cafesito.app.data.** { *; }
--keep class kotlinx.serialization.json.** { *; }
--dontwarn kotlinx.serialization.**
 
-# --- SUPABASE & KTOR ---
--keep class io.github.jan.supabase.** { *; }
--keep class io.ktor.** { *; }
--dontwarn io.ktor.**
--dontwarn io.github.jan.supabase.**
+# Prevención de eliminación de recursos necesarios por ID de Google
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-keep class com.google.android.gms.common.api.ApiException { *; }
 
-# --- SLF4J ---
+# ✅ SOLUCIÓN AL ERROR DE SLF4J (Ktor / Supabase)
+# Ignorar advertencias de clases faltantes de SLF4J que no se usan en Android
 -dontwarn org.slf4j.**
-
-# --- HILT / DAGGER ---
--keep class dagger.hilt.android.internal.** { *; }
--keep class * extends dagger.hilt.internal.GeneratedComponent { *; }
--keep class * extends dagger.hilt.internal.ComponentEntryPoint { *; }
-
-# --- ROOM ---
--keep class * extends androidx.room.RoomDatabase
--dontwarn androidx.room.**
-
-# --- COIL (Carga de imágenes) ---
--keep class coil.** { *; }
--dontwarn coil.**
-
-# --- OPTIMIZACIÓN AGRESIVA ---
--repackageclasses ''
--allowaccessmodification
--mergeinterfacesaggressively
+-dontwarn javax.annotation.**

@@ -7,9 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -42,13 +39,8 @@ fun ProfileScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
     val tabs = listOf("POSTS", "ADN", "FAVORITOS", "RESEÑAS")
-    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
-
-    val postsListState = rememberLazyListState()
-    val adnListState = rememberLazyListState()
-    val favoritesListState = rememberLazyListState()
-    val reviewsListState = rememberLazyListState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
@@ -59,7 +51,7 @@ fun ProfileScreen(
     var reviewToEdit by remember { mutableStateOf<UserReviewInfo?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
 
-    LaunchedEffect(Unit) { viewModel.refreshData() }
+    // ELIMINADO: viewModel.refreshData() - La caché se gestiona en el repositorio
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -90,7 +82,6 @@ fun ProfileScreen(
             }
             is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
             ProfileUiState.LoggedOut -> {
-                // Dejamos que la redirección global en MainActivity maneje la navegación a Login
                 Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             }
             is ProfileUiState.Success -> {
@@ -111,131 +102,139 @@ fun ProfileScreen(
                     }
                 }
 
-                Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = 24.dp)
-                    ) {
-                        item {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                ModernAvatar(imageUrl = state.user.avatarUrl, size = 110.dp)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(bottom = 100.dp)
+                ) {
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            ModernAvatar(imageUrl = state.user.avatarUrl, size = 110.dp)
 
-                                if (state.isEditing) {
-                                    TextButton(onClick = { launcher.launch("image/*") }) {
-                                        Text("CAMBIAR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                                    }
+                            if (state.isEditing) {
+                                TextButton(onClick = { launcher.launch("image/*") }) {
+                                    Text("CAMBIAR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                 }
+                            }
 
-                                Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(16.dp))
 
-                                if (state.isEditing) {
-                                    EditProfileFields(
-                                        username = username,
-                                        fullName = fullName,
-                                        bio = bio,
-                                        onUsernameChange = { username = it },
-                                        onFullNameChange = { fullName = it },
-                                        onBioChange = { bio = it },
-                                        onSave = { viewModel.onSaveProfile(username, fullName, bio, email) },
-                                        usernameError = state.usernameError
-                                    )
-                                } else {
-                                    Text(
-                                        text = state.user.fullName,
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "@${state.user.username}",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    if (bio.isNotBlank()) {
-                                        Spacer(Modifier.height(8.dp))
-                                        Text(
-                                            text = bio,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            textAlign = TextAlign.Center,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(horizontal = 16.dp)
+                            if (state.isEditing) {
+                                EditProfileFields(
+                                    username = username, fullName = fullName, bio = bio,
+                                    onUsernameChange = { username = it }, onFullNameChange = { fullName = it },
+                                    onBioChange = { bio = it }, onSave = { viewModel.onSaveProfile(username, fullName, bio, email) },
+                                    usernameError = state.usernameError
+                                )
+                            } else {
+                                Text(text = state.user.fullName, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+                                Text(text = "@${state.user.username}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                                if (bio.isNotBlank()) {
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(text = bio, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                                }
+                            }
+
+                            Spacer(Modifier.height(24.dp))
+
+                            ProfileStatsRow(
+                                posts = state.posts.size, followers = state.followers, following = state.following,
+                                onFollowersClick = { onFollowersClick(state.user.id) },
+                                onFollowingClick = { onFollowingClick(state.user.id) }
+                            )
+
+                            if (!state.isCurrentUser) {
+                                Spacer(Modifier.height(24.dp))
+                                FollowButton(isFollowing = state.isFollowing, onClick = { viewModel.toggleFollow() })
+                            }
+                        }
+                    }
+
+                    stickyHeader {
+                        PremiumTabRow(
+                            selectedTabIndex = selectedTabIndex,
+                            tabs = tabs,
+                            onTabSelected = { selectedTabIndex = it }
+                        )
+                    }
+
+                    when (selectedTabIndex) {
+                        0 -> {
+                            if (state.posts.isEmpty()) {
+                                item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("Aún no hay publicaciones", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+                            } else {
+                                items(state.posts, key = { it.post.id }) { post ->
+                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                        PostCard(
+                                            details = post,
+                                            isLiked = post.likes.any { it.userId == (state.activeUser?.id ?: -1) },
+                                            onLikeClick = { viewModel.onToggleLike(post.post.id) },
+                                            onCommentClick = { showCommentSheetId = post.post.id },
+                                            onUserClick = { onUserClick(post.post.userId) },
+                                            onEditClick = { postToEdit = post },
+                                            onDeleteClick = { itemToDelete = post },
+                                            isOwnPost = state.isCurrentUser
                                         )
                                     }
                                 }
-
-                                Spacer(Modifier.height(24.dp))
-
-                                ProfileStatsRow(
-                                    posts = state.posts.size,
-                                    followers = state.followers,
-                                    following = state.following,
-                                    onFollowersClick = { onFollowersClick(state.user.id) },
-                                    onFollowingClick = { onFollowingClick(state.user.id) }
-                                )
-
-                                if (!state.isCurrentUser) {
-                                    Spacer(Modifier.height(24.dp))
-                                    FollowButton(
-                                        isFollowing = state.isFollowing,
-                                        onClick = { viewModel.toggleFollow() }
-                                    )
+                            }
+                        }
+                        1 -> {
+                            item {
+                                Column(Modifier.padding(24.dp)) {
+                                    Box(Modifier.clickable { showSensoryDetail = true }) {
+                                        PremiumCard {
+                                            Column(Modifier.padding(24.dp)) {
+                                                Text("PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                                Spacer(Modifier.height(16.dp))
+                                                SensoryRadarChart(data = state.sensoryProfile, modifier = Modifier.fillMaxWidth().height(200.dp))
+                                                Spacer(Modifier.height(16.dp))
+                                                Text("Tus gustos basados en tus cafés favoritos y reseñas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-
-                        stickyHeader {
-                            PremiumTabRow(
-                                selectedTabIndex = pagerState.currentPage,
-                                tabs = tabs,
-                                onTabSelected = {
-                                    coroutineScope.launch { pagerState.animateScrollToPage(it) }
+                        2 -> {
+                            if (state.favoriteCoffees.isEmpty()) {
+                                item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("No hay cafés favoritos", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+                            } else {
+                                items(state.favoriteCoffees, key = { it.coffee.id }) { coffee ->
+                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                        CoffeeCard(
+                                            coffeeDetails = coffee,
+                                            onClick = { onCoffeeClick(coffee.coffee.id) }
+                                        )
+                                    }
                                 }
-                            )
+                            }
                         }
-
-                        item {
-                            HorizontalPager(
-                                state = pagerState,
-                                modifier = Modifier.fillParentMaxHeight(),
-                                verticalAlignment = Alignment.Top,
-                            ) {
-                                when (it) {
-                                    0 -> ProfilePosts(
-                                        posts = state.posts,
-                                        isCurrentUser = state.isCurrentUser,
-                                        activeUser = state.activeUser,
-                                        viewModel = viewModel,
-                                        onUserClick = onUserClick,
-                                        listState = postsListState,
-                                        onCommentClick = { c -> showCommentSheetId = c },
-                                        onEditClick = { post -> postToEdit = post },
-                                        onDeleteClick = { post -> itemToDelete = post }
-                                    )
-                                    1 -> ProfileAdn(state, listState = adnListState) { showSensoryDetail = true }
-                                    2 -> ProfileFavorites(state.favoriteCoffees, viewModel, onCoffeeClick, listState = favoritesListState)
-                                    3 -> ProfileReviews(
-                                        userReviews = state.userReviews,
-                                        isCurrentUser = state.isCurrentUser,
-                                        onCoffeeClick = onCoffeeClick,
-                                        listState = reviewsListState,
-                                        onEditClick = { review -> reviewToEdit = review },
-                                        onDeleteClick = { review -> itemToDelete = review }
-                                    )
+                        3 -> {
+                            if (state.userReviews.isEmpty()) {
+                                item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("No has escrito reseñas aún", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+                            } else {
+                                items(state.userReviews, key = { it.review.id }) { review ->
+                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                        UserReviewCard(
+                                            info = review,
+                                            isOwnReview = state.isCurrentUser,
+                                            onEditClick = { reviewToEdit = review },
+                                            onDeleteClick = { itemToDelete = review },
+                                            onClick = { onCoffeeClick(review.coffeeDetails.coffee.id) }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // Modals & Dialogs
+                // Modals
                 if (showSensoryDetail) {
-                    SensoryDetailBottomSheet(
-                        profile = state.sensoryProfile,
-                        onDismiss = { showSensoryDetail = false }
-                    )
+                    SensoryDetailBottomSheet(profile = state.sensoryProfile, onDismiss = { showSensoryDetail = false })
                 }
 
                 if (showSettingsSheet) {
@@ -246,17 +245,8 @@ fun ProfileScreen(
                         isHealthConnectAvailable = state.isHealthConnectAvailable,
                         healthConnectEnabled = state.healthConnectEnabled,
                         onHealthConnectToggle = { enabled ->
-                            if (enabled) {
-                                coroutineScope.launch {
-                                    if (viewModel.healthConnectRepository.hasPermissions()) {
-                                        viewModel.onToggleHealthConnect(true)
-                                    } else {
-                                        requestPermissionLauncher.launch(viewModel.healthConnectRepository.permissions)
-                                    }
-                                }
-                            } else {
-                                viewModel.onToggleHealthConnect(false)
-                            }
+                            if (enabled) requestPermissionLauncher.launch(viewModel.healthConnectRepository.permissions)
+                            else viewModel.onToggleHealthConnect(false)
                         }
                     )
                 }
@@ -276,8 +266,7 @@ fun ProfileScreen(
 
                 postToEdit?.let { details ->
                     EditPostBottomSheet(
-                        initialText = details.post.comment,
-                        initialImage = details.post.imageUrl,
+                        initialText = details.post.comment, initialImage = details.post.imageUrl,
                         onDismiss = { postToEdit = null },
                         onConfirm = { newText, newImageUrl ->
                             viewModel.updatePost(details.post.id, newText, newImageUrl)
@@ -288,9 +277,7 @@ fun ProfileScreen(
 
                 reviewToEdit?.let { info ->
                     EditReviewBottomSheet(
-                        initialRating = info.review.rating,
-                        initialComment = info.review.comment,
-                        initialImage = info.review.imageUrl,
+                        initialRating = info.review.rating, initialComment = info.review.comment, initialImage = info.review.imageUrl,
                         onDismiss = { reviewToEdit = null },
                         onConfirm = { rating, comment, imageUrl ->
                             viewModel.updateReview(info.coffeeDetails.coffee.id, rating, comment, imageUrl)
@@ -301,13 +288,9 @@ fun ProfileScreen(
 
                 showCommentSheetId?.let { id ->
                     CommentsSheet(
-                        postId = id,
-                        onDismiss = { showCommentSheetId = null },
+                        postId = id, onDismiss = { showCommentSheetId = null },
                         onAddComment = { text -> viewModel.onAddComment(id, text) },
-                        onNavigateToProfile = { userId ->
-                            showCommentSheetId = null
-                            onUserClick(userId)
-                        }
+                        onNavigateToProfile = { userId -> showCommentSheetId = null; onUserClick(userId) }
                     )
                 }
             }

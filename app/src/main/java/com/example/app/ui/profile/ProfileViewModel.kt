@@ -74,12 +74,10 @@ class ProfileViewModel @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val userPostsFlow = targetUserFlow.flatMapLatest { user ->
-        if (user != null) {
-            socialRepository.getPostsByUserId(user.id)
-        } else flowOf(emptyList())
+        if (user != null) socialRepository.getPostsByUserId(user.id)
+        else flowOf(emptyList())
     }
 
-    @Suppress("UNCHECKED_CAST")
     val uiState: StateFlow<ProfileUiState> = combine(
         activeUserFlow,
         targetUserFlow,
@@ -88,13 +86,7 @@ class ProfileViewModel @Inject constructor(
         coffeeRepository.allReviews,
         userRepository.followingMap,
         coffeeRepository.favorites,
-        _isEditing,
-        _error,
-        _usernameError,
-        _temporaryAvatarUri,
-        connectivityObserver.observe(),
-        _healthConnectEnabled,
-        _loggedOut
+        combine(_isEditing, _error, _usernameError, _temporaryAvatarUri, _healthConnectEnabled, _loggedOut) { it }
     ) { args ->
         val activeUser = args[0] as? UserEntity
         val targetUser = args[1] as? UserEntity
@@ -103,23 +95,17 @@ class ProfileViewModel @Inject constructor(
         val allReviews = args[4] as List<ReviewEntity>
         val followingMap = args[5] as Map<Int, Set<Int>>
         val myFavorites = args[6] as List<LocalFavorite>
-        val isEditing = args[7] as Boolean
-        val generalError = args[8] as? String
-        val usernameError = args[9] as? String
-        val tempAvatar = args[10] as? Uri
-        val connectivityStatus = args[11] as ConnectivityObserver.Status
-        val healthConnectEnabled = args[12] as Boolean
-        val loggedOut = args[13] as Boolean
+        
+        val internalState = args[7] as Array<*>
+        val isEditing = internalState[0] as Boolean
+        val generalError = internalState[1] as? String
+        val usernameError = internalState[2] as? String
+        val tempAvatar = internalState[3] as? Uri
+        val healthConnectEnabled = internalState[4] as Boolean
+        val loggedOut = internalState[5] as Boolean
 
         if (loggedOut) return@combine ProfileUiState.LoggedOut
-
-        if (connectivityStatus != ConnectivityObserver.Status.Available) {
-            return@combine ProfileUiState.Error("No hay conexión a Internet. Por favor, revisa tu conexión.")
-        }
-
-        if (generalError != null) {
-            return@combine ProfileUiState.Error(generalError)
-        }
+        if (generalError != null) return@combine ProfileUiState.Error(generalError)
         if (targetUser == null) return@combine ProfileUiState.Loading
 
         val displayUser = if (isEditing && tempAvatar != null) {
@@ -185,14 +171,11 @@ class ProfileViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            connectivityObserver.observe().drop(1).collect { 
-                if (it == ConnectivityObserver.Status.Available) {
-                    refreshData()
-                }
+            connectivityObserver.observe().collect { 
+                if (it == ConnectivityObserver.Status.Available) refreshData()
             }
         }
         viewModelScope.launch {
-            // Sincronizar estado inicial
             _healthConnectEnabled.value = healthConnectRepository.isEnabled() && healthConnectRepository.hasPermissions()
         }
     }
@@ -200,17 +183,9 @@ class ProfileViewModel @Inject constructor(
     fun refreshData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                _error.value = null 
                 userRepository.triggerRefresh()
                 socialRepository.triggerRefresh()
-                diaryRepository.syncExternalHealthData()
-            } catch (e: HttpRequestException) {
-                Log.e("ProfileViewModel", "Error de red al sincronizar", e)
-                _error.value = "No hay conexión a Internet. Por favor, revisa tu conexión."
-            } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error sincronizando datos del perfil", e)
-                _error.value = "Ha ocurrido un error inesperado al cargar el perfil."
-            }
+            } catch (e: Exception) { }
         }
     }
 
@@ -253,11 +228,7 @@ class ProfileViewModel @Inject constructor(
 
     fun onToggleFavorite(coffeeId: String, isFavorite: Boolean) {
         viewModelScope.launch(Dispatchers.IO) { 
-            try {
-                coffeeRepository.toggleFavorite(coffeeId, isFavorite)
-            } catch (e: Exception) {
-                _error.value = "Error al actualizar favorito"
-            }
+            try { coffeeRepository.toggleFavorite(coffeeId, isFavorite) } catch (e: Exception) { }
         }
     }
 
@@ -292,20 +263,13 @@ class ProfileViewModel @Inject constructor(
 
     fun updateReview(coffeeId: String, rating: Float, comment: String, imageUrl: String?) {
         viewModelScope.launch(Dispatchers.IO) {
-            val validation = validateReviewInput(rating, comment)
-            if (validation.isFailure) return@launch
             val me = userRepository.getActiveUser() ?: return@launch
-            val result = reviewRepository.updateReview(
+            reviewRepository.updateReview(
                 Review(
-                    user = me.toDomainUser(),
-                    coffeeId = coffeeId,
-                    rating = rating,
-                    comment = comment,
-                    imageUrl = imageUrl,
-                    timestamp = System.currentTimeMillis()
+                    user = me.toDomainUser(), coffeeId = coffeeId, rating = rating,
+                    comment = comment, imageUrl = imageUrl, timestamp = System.currentTimeMillis()
                 )
             )
-            if (result.isFailure) return@launch
             coffeeRepository.triggerRefresh()
         }
     }
@@ -319,10 +283,5 @@ class ProfileViewModel @Inject constructor(
 }
 
 private fun UserEntity.toDomainUser(): User = User(
-    id = id,
-    username = username,
-    fullName = fullName,
-    avatarUrl = avatarUrl,
-    email = email,
-    bio = bio
+    id = id, username = username, fullName = fullName, avatarUrl = avatarUrl, email = email, bio = bio
 )

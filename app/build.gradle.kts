@@ -26,8 +26,8 @@ android {
         applicationId = "com.cafesito.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3 // Incrementamos a 3 para asegurar nueva subida
-        versionName = "2026.1.3"
+        versionCode = 7
+        versionName = "2026.2.4"
 
         testInstrumentationRunner = "com.cafesito.app.HiltTestRunner"
     }
@@ -45,14 +45,12 @@ android {
 
     buildTypes {
         release {
-            // Aplicar firma de release si las propiedades existen
             if (keystoreProperties.isNotEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
             }
             
-            // ✅ OPTIMIZACIÓN: R8 Full Mode + Resource Shrinking
             isMinifyEnabled = true
-            isShrinkResources = true // Elimina recursos no usados
+            isShrinkResources = true
             
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -72,7 +70,6 @@ android {
     }
 }
 
-// Configuración de compilación para Kotlin
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -88,7 +85,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
-    // Activity / Compose
+    // UI & Material Components
+    implementation("com.google.android.material:material:1.12.0")
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -97,6 +95,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.browser)
+    
+    // Accompanist Permissions
+    implementation(libs.accompanist.permissions)
 
     // Paging 3
     implementation(libs.androidx.paging.runtime)
@@ -143,15 +144,10 @@ dependencies {
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.hilt.compiler)
 
-    // Hilt Testing
-    androidTestImplementation(libs.hilt.android.testing)
-    kspAndroidTest(libs.hilt.compiler)
-    kspTest(libs.hilt.compiler)
-
     // Coil
     implementation(libs.coil.compose)
 
-    // Health Connect
+    // Health Connect (Usando el alias del TOML)
     implementation(libs.androidx.health.connect)
 
     // Tests

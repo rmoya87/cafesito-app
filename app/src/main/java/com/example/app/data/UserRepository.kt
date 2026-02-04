@@ -7,10 +7,13 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,15 +23,13 @@ class UserRepository @Inject constructor(
     private val userDao: UserDao,
     private val supabaseDataSource: SupabaseDataSource,
     private val supabaseClient: SupabaseClient,
-    private val connectivityObserver: ConnectivityObserver
+    private val connectivityObserver: ConnectivityObserver,
+    private val externalScope: CoroutineScope
 ) {
-    private val _refreshTrigger = MutableStateFlow(0L)
-    
-    // ✅ OPTIMIZACIÓN: Caché de usuarios en memoria
-    private var _usersCache: List<UserEntity>? = null
-    private var _lastUsersCacheTime: Long = 0
-    private companion object {
-        const val UsersCacheDuration = 5 * 60 * 1000L // 5 minutos
+    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+
+    fun triggerRefresh() {
+        _refreshTrigger.tryEmit(Unit)
     }
 
     private suspend fun ensureConnected() {
@@ -38,29 +39,23 @@ class UserRepository @Inject constructor(
     }
 
     val followingMap: Flow<Map<Int, Set<Int>>> = _refreshTrigger
-        .debounce(300)
         .flatMapLatest {
-            flow<Map<Int, Set<Int>>> {
-                try {
-                    ensureConnected()
-                    val follows = supabaseDataSource.getAllFollows()
-                    val map = follows.groupBy { it.followerId }
-                        .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
-                    emit(map)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (_: Exception) {
-                    emit(emptyMap())
-                }
-            }
+            networkBoundResource(
+                resourceKey = "following_map",
+                query = { 
+                    userDao.getAllFollows().map { follows ->
+                        follows.groupBy { it.followerId }
+                            .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
+                    }
+                },
+                fetch = { supabaseDataSource.getAllFollows() },
+                saveFetchResult = { follows ->
+                    withContext(Dispatchers.IO) { userDao.insertFollows(follows) }
+                },
+                scope = externalScope,
+                connectivityObserver = connectivityObserver
+            )
         }.flowOn(Dispatchers.IO)
-
-    fun triggerRefresh() {
-        // ✅ Invalidar caché al refrescar
-        _usersCache = null
-        _lastUsersCacheTime = 0
-        _refreshTrigger.value++
-    }
 
     suspend fun signInWithSupabase(token: String): String? {
         ensureConnected()
@@ -78,21 +73,11 @@ class UserRepository @Inject constructor(
 
     suspend fun logout() {
         try {
-            // Intentar cerrar sesión en el servidor
-            try {
-                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-                    supabaseClient.auth.signOut()
-                }
-            } catch (e: Exception) {
-                Log.e("UserRepository", "Remote logout failed", e)
+            if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                supabaseClient.auth.signOut()
             }
-            
-            // ✅ Siempre limpiar localmente para asegurar el cierre de sesión
             userDao.deleteAllUsers()
-            _usersCache = null
-            _lastUsersCacheTime = 0
-            
-            // Forzar actualización de flujos reactivos
+            lastSyncMap.clear()
             triggerRefresh()
         } catch (e: Exception) {
             Log.e("UserRepository", "Logout failed", e)
@@ -100,144 +85,90 @@ class UserRepository @Inject constructor(
     }
 
     fun getAllUsersFlow(): Flow<List<UserEntity>> = _refreshTrigger
-        .debounce(300)
         .flatMapLatest {
-            flow<List<UserEntity>> {
-                try {
-                    ensureConnected()
-                    emit(supabaseDataSource.getAllUsers())
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (_: Exception) {
-                    emit(emptyList())
-                }
-            }
+            networkBoundResource(
+                resourceKey = "all_users",
+                query = { userDao.getAllUsers() },
+                fetch = { supabaseDataSource.getAllUsers() },
+                saveFetchResult = { users ->
+                    withContext(Dispatchers.IO) { userDao.insertUsers(users) }
+                },
+                scope = externalScope,
+                connectivityObserver = connectivityObserver
+            )
         }.flowOn(Dispatchers.IO)
 
     fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>> = _refreshTrigger
-        .debounce(300)
         .flatMapLatest {
-            flow<List<NotificationEntity>> {
-                try {
-                    ensureConnected()
-                    emit(supabaseDataSource.getNotificationsForUser(userId))
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (_: Exception) {
-                    emit(emptyList())
-                }
-            }
+             flow {
+                 val notifications = try {
+                     supabaseDataSource.getNotificationsForUser(userId)
+                 } catch (e: Exception) {
+                     emptyList()
+                 }
+                 emit(notifications)
+             }
         }.flowOn(Dispatchers.IO)
 
-    /**
-     * ✅ OPTIMIZACIÓN: Obtener un flujo de un usuario específico por ID
-     */
     fun getUserByIdFlow(userId: Int): Flow<UserEntity?> = _refreshTrigger
-        .debounce(300)
         .flatMapLatest {
-            flow<UserEntity?> {
-                try {
-                    ensureConnected()
-                    emit(supabaseDataSource.getUserById(userId))
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (_: Exception) {
-                    emit(null)
-                }
-            }
+            networkBoundResource(
+                resourceKey = "profile_user_$userId",
+                query = { flow { emit(userDao.getUserById(userId)) } },
+                fetch = { supabaseDataSource.getUserById(userId) },
+                saveFetchResult = { remote ->
+                    if (remote != null) withContext(Dispatchers.IO) { userDao.upsertUser(remote) }
+                },
+                shouldFetch = { it == null },
+                scope = externalScope,
+                connectivityObserver = connectivityObserver
+            )
         }.flowOn(Dispatchers.IO)
 
-    /**
-     * ✅ OPTIMIZACIÓN: Caché con TTL para usuarios
-     */
-    suspend fun getAllUsersList(): List<UserEntity> {
-        val now = System.currentTimeMillis()
-        
-        if (_usersCache != null && (now - _lastUsersCacheTime) < UsersCacheDuration) {
-            return _usersCache!!
-        }
-        
-        return try {
-            ensureConnected()
-            val users = supabaseDataSource.getAllUsers()
-            _usersCache = users
-            _lastUsersCacheTime = now
-            users
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            _usersCache ?: emptyList()
-        }
-    }
+    suspend fun getAllUsersList(): List<UserEntity> = userDao.getAllUsers().first()
 
-    fun getActiveUserFlow(): Flow<UserEntity?> {
-        return combine(supabaseClient.auth.sessionStatus, _refreshTrigger) { _, _ -> }
-            .debounce(100)
-            .flatMapLatest {
-                val uid = supabaseClient.auth.currentUserOrNull()?.id
-                if (uid != null) {
-                    flow<UserEntity?> {
+    fun getActiveUserFlow(): Flow<UserEntity?> = combine(
+        supabaseClient.auth.sessionStatus,
+        _refreshTrigger
+    ) { _, _ -> }.flatMapLatest {
+        val uid = supabaseClient.auth.currentUserOrNull()?.id
+        if (uid != null) {
+            userDao.getUserByGoogleIdFlow(uid).onStart {
+                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                    externalScope.launch {
                         try {
-                            ensureConnected()
-                            emit(supabaseDataSource.getUserByGoogleId(uid))
-                        } catch (_: NoConnectivityException) {
-                            emit(userDao.getUserByGoogleId(uid))
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (_: Exception) {
-                            emit(null)
-                        }
+                            val remote = supabaseDataSource.getUserByGoogleId(uid)
+                            if (remote != null) userDao.upsertUser(remote)
+                        } catch (e: Exception) { }
                     }
-                } else {
-                    flowOf<UserEntity?>(null)
                 }
-            }.flowOn(Dispatchers.IO)
-    }
+            }
+        } else flowOf(null)
+    }.flowOn(Dispatchers.IO)
 
     suspend fun getActiveUser(): UserEntity? {
         val currentUid = supabaseClient.auth.currentUserOrNull()?.id ?: return null
-        return try {
-            ensureConnected()
-            supabaseDataSource.getUserByGoogleId(currentUid)
-        } catch (_: Exception) {
-            userDao.getUserByGoogleId(currentUid)
+        val local = userDao.getUserByGoogleId(currentUid)
+        if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                val remote = supabaseDataSource.getUserByGoogleId(currentUid)
+                if (remote != null) {
+                    userDao.upsertUser(remote)
+                    return remote
+                }
+            } catch (e: Exception) { }
         }
+        return local
     }
 
-    suspend fun getUserById(userId: Int): UserEntity? {
-        return try {
-            ensureConnected()
-            supabaseDataSource.getUserById(userId)
-        } catch (_: Exception) {
-            null
-        }
-    }
+    suspend fun getUserById(userId: Int): UserEntity? = userDao.getUserById(userId)
+    suspend fun getUserByGoogleId(googleId: String): UserEntity? = userDao.getUserByGoogleId(googleId)
+    suspend fun getUserByUsername(username: String): UserEntity? = userDao.getUserByUsername(username)
 
-    suspend fun getUserByGoogleId(googleId: String): UserEntity? {
-        return try {
-            ensureConnected()
-            supabaseDataSource.getUserByGoogleId(googleId)
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    suspend fun getUserByUsername(username: String): UserEntity? {
-        return try {
-            ensureConnected()
-            supabaseDataSource.getUserByUsername(username)
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    suspend fun upsertUser(user: UserEntity) {
-        try {
-            ensureConnected()
-            supabaseDataSource.upsertUser(user)
-            triggerRefresh()
-        } catch (e: Exception) {
-            Log.e("USER_REPO", "Error upserting user: ${e.message}")
+    suspend fun upsertUser(user: UserEntity) = withContext(Dispatchers.IO) {
+        userDao.upsertUser(user)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch { try { supabaseDataSource.upsertUser(user) } catch (e: Exception) { } }
         }
     }
 
@@ -245,98 +176,62 @@ class UserRepository @Inject constructor(
         userDao.upsertUser(user)
     }
 
-    /**
-     * ✅ SOPORTE MULTIDISPOSITIVO: Registra el token en la tabla user_fcm_tokens
-     */
     suspend fun updateFcmToken(token: String) {
-        val currentUser = getActiveUser()
-        if (currentUser != null) {
-            try {
-                ensureConnected()
-                val tokenEntity = UserTokenEntity(
-                    userId = currentUser.id,
-                    fcmToken = token
-                )
-                supabaseDataSource.insertUserToken(tokenEntity)
-                Log.d("USER_REPO", "FCM Token registrado para múltiples dispositivos")
-            } catch (e: Exception) {
-                Log.e("USER_REPO", "Error registrando FCM Token: ${e.message}")
+        val currentUser = getActiveUser() ?: return
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch {
+                try {
+                    supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
+                } catch (e: Exception) { }
             }
         }
     }
 
-    suspend fun isFollowing(followerId: Int, targetId: Int): Boolean {
-        return try {
-            ensureConnected()
-            val follows = supabaseDataSource.getAllFollows()
-            follows.any { it.followerId == followerId && it.followedId == targetId }
-        } catch (_: Exception) {
-            false
+    suspend fun toggleFollow(followerId: Int, targetId: Int) = withContext(Dispatchers.IO) {
+        val follow = FollowEntity(followerId, targetId)
+        val isFollowing = userDao.getAllFollows().first().any { it.followerId == followerId && it.followedId == targetId }
+        
+        if (isFollowing) userDao.deleteFollow(follow) else userDao.insertFollow(follow)
+
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch {
+                try {
+                    if (isFollowing) supabaseDataSource.deleteFollow(followerId, targetId)
+                    else supabaseDataSource.insertFollow(follow)
+                } catch (e: Exception) { }
+            }
         }
     }
 
-    suspend fun toggleFollow(followerId: Int, targetId: Int) {
-        try {
-            ensureConnected()
-            val currentlyFollowing = isFollowing(followerId, targetId)
-            if (currentlyFollowing) {
-                supabaseDataSource.deleteFollow(followerId, targetId)
-            } else {
-                supabaseDataSource.insertFollow(FollowEntity(followerId, targetId))
-                getActiveUser()?.let { me ->
-                    try {
-                        supabaseDataSource.insertNotification(NotificationEntity(
-                            userId = targetId,
-                            type = "FOLLOW",
-                            fromUsername = me.username,
-                            message = "ha empezado a seguirte.",
-                            timestamp = System.currentTimeMillis(),
-                            relatedId = me.id.toString()
-                        ))
-                    } catch (_: Exception) { }
-                }
-            }
-            triggerRefresh()
-        } catch (e: Exception) {
-            Log.e("USER_REPO", "Error en toggleFollow: ${e.message}")
-        }
+    suspend fun syncUsers() {
+        val users = supabaseDataSource.getAllUsers()
+        userDao.insertUsers(users)
+    }
+
+    suspend fun syncFollows() {
+        val follows = supabaseDataSource.getAllFollows()
+        userDao.insertFollows(follows)
     }
 
     suspend fun markNotificationRead(notificationId: Int) {
-        try {
-            ensureConnected()
-            supabaseDataSource.markNotificationRead(notificationId)
-            triggerRefresh()
-        } catch (e: Exception) {
-            Log.e("USER_REPO", "Error marcando notificación como leída: ${e.message}")
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch { try { supabaseDataSource.markNotificationRead(notificationId) } catch (e: Exception) { } }
         }
     }
 
     suspend fun markAllNotificationsRead(userId: Int) {
-        try {
-            ensureConnected()
-            supabaseDataSource.markAllNotificationsRead(userId)
-            triggerRefresh()
-        } catch (e: Exception) {
-            Log.e("USER_REPO", "Error marcando todas las notificaciones como leídas: ${e.message}")
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch { try { supabaseDataSource.markAllNotificationsRead(userId) } catch (e: Exception) { } }
         }
     }
 
     suspend fun deleteNotification(notificationId: Int) {
-        try {
-            ensureConnected()
-            supabaseDataSource.deleteNotification(notificationId)
-            triggerRefresh()
-        } catch (e: Exception) {
-            Log.e("USER_REPO", "Error eliminando notificación: ${e.message}")
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch { try { supabaseDataSource.deleteNotification(notificationId) } catch (e: Exception) { } }
         }
     }
 
-    fun syncUsers() {
-        triggerRefresh()
-    }
-
-    fun syncFollows() {
-        triggerRefresh()
+    suspend fun insertUsers(users: List<UserEntity>) {
+        userDao.insertUsers(users)
     }
 }
