@@ -308,6 +308,7 @@ fun AppNavigation(
                 val unreadIds by viewModel.unreadNotificationIds.collectAsState()
                 val uiState by viewModel.uiState.collectAsState()
                 val followingIds = (uiState as? TimelineUiState.Success)?.myFollowingIds ?: emptySet()
+                val isRefreshing by viewModel.isRefreshing.collectAsState()
 
                 NotificationsScreen(
                     notifications = notifications,
@@ -327,7 +328,9 @@ fun AppNavigation(
                                 navController.navigate("timeline?postId=${notification.postId}")
                             }
                         }
-                    }
+                    },
+                    isRefreshing = isRefreshing,
+                    onRefresh = { viewModel.refreshData() }
                 )
             }
 

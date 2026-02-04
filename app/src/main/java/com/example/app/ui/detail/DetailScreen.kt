@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +44,8 @@ import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.utils.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -53,23 +56,38 @@ fun DetailScreen(
     viewModel: DetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        when (val state = uiState) {
-            is DetailUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-            is DetailUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
-            is DetailUiState.Success -> {
-                DetailContent(
-                    coffeeDetails = state.coffee,
-                    userReview = state.userReview,
-                    reviews = state.reviews,
-                    isCustom = state.isCustom,
-                    currentStock = state.currentPantryItem,
-                    onBackClick = onBackClick,
-                    onFavoriteToggle = { viewModel.toggleFavorite(it) },
-                    onUpdateStock = { t, r, n, b -> viewModel.updateStock(t, r, n, b) },
-                    onReviewSubmit = { r, c, i -> viewModel.submitReview(r, c, i) }
-                )
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                viewModel.loadInitialIfNeeded()
+                scope.launch {
+                    delay(400)
+                    isRefreshing = false
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when (val state = uiState) {
+                is DetailUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+                is DetailUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+                is DetailUiState.Success -> {
+                    DetailContent(
+                        coffeeDetails = state.coffee,
+                        userReview = state.userReview,
+                        reviews = state.reviews,
+                        isCustom = state.isCustom,
+                        currentStock = state.currentPantryItem,
+                        onBackClick = onBackClick,
+                        onFavoriteToggle = { viewModel.toggleFavorite(it) },
+                        onUpdateStock = { t, r, n, b -> viewModel.updateStock(t, r, n, b) },
+                        onReviewSubmit = { r, c, i -> viewModel.submitReview(r, c, i) }
+                    )
+                }
             }
         }
     }

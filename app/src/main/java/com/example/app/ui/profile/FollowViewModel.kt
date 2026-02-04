@@ -91,6 +91,10 @@ class FollowViewModel @Inject constructor(
         }
     }
 
+    fun loadInitialIfNeeded() {
+        userRepository.triggerRefresh()
+    }
+
     fun toggleFollow(targetId: Int) {
         viewModelScope.launch {
             val me = userRepository.getActiveUser() ?: return@launch

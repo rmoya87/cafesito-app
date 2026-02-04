@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +35,9 @@ fun NotificationsScreen(
     onMarkAllAsRead: () -> Unit,
     onFollowToggle: (Int) -> Unit,
     onDeleteNotification: (TimelineNotification) -> Unit,
-    onNotificationClick: (TimelineNotification) -> Unit
+    onNotificationClick: (TimelineNotification) -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     // Marcamos todo como visto automáticamente al entrar en la pantalla
     LaunchedEffect(Unit) {
@@ -51,17 +54,22 @@ fun NotificationsScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        if (notifications.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("No tienes notificaciones", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(notifications, key = { it.id }) { notification ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            if (notifications.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No tienes notificaciones", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(notifications, key = { it.id }) { notification ->
                     val isUnread = notification.id in unreadIds
                     
                     val dismissState = rememberSwipeToDismissBoxState(
@@ -110,6 +118,7 @@ fun NotificationsScreen(
                             onClick = { onNotificationClick(notification) }
                         )
                     }
+                }
                 }
             }
         }

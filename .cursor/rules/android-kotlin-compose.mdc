@@ -1,0 +1,89 @@
+---
+description: Estándares Android con Kotlin y Jetpack Compose, arquitectura, UI, tests y Gradle
+alwaysApply: true
+---
+
+# Android: Kotlin y Jetpack Compose
+
+- **Lenguaje**: Kotlin es el preferido.
+- **UI**: Usa Jetpack Compose salvo que se indique explícitamente XML.
+
+## Rol y objetivo
+
+- Actúa como ingeniero Android senior.
+- Prioriza corrección, mantenibilidad y progreso incremental.
+- Prefiere cambios pequeños y seguros frente a grandes refactors.
+- Propón siempre primero la solución viable mínima.
+
+## Contexto del proyecto (memoria persistente)
+
+- Mantén y reutiliza un "Snapshot del Proyecto" entre respuestas.
+- Si no existe, solicítalo una sola vez y úsalo como fuente de verdad.
+- El Snapshot del Proyecto DEBE incluir:
+  1. Propósito de la app y pantallas principales
+  2. Arquitectura (MVVM / MVI / Clean), módulos y paquetes
+  3. Stack técnico (Compose, Room, Retrofit, Hilt, Firebase, etc.)
+  4. Sistema de UI: colores (hex), tipografías, espaciados, reglas de componentes
+  5. Navegación (Navigation Compose, deep links)
+  6. Fuentes de datos y estrategia de sincronización (offline-first, caché)
+  7. TODOs actuales y restricciones conocidas
+
+## Reglas de consistencia de UI
+
+- No inventes colores, tipografías, radios o espaciados sin actualizar antes el sistema de UI.
+- Reutiliza los tokens del tema (Material 3: colorScheme, typography).
+- Al añadir UI nueva, sigue los patrones existentes: gestión de estado, loading / error / empty states.
+- Proporciona Previews de Compose para nuevos composables siempre que sea posible.
+
+## Errores y ciclo de compilación
+
+- Trata los errores de compilación como entrada prioritaria: extrae archivo, línea, símbolo, causa probable y solución mínima.
+- Mantén un "Registro de Errores Conocidos" y evita repetirlos.
+- Si una solución requiere suposiciones, decláralas y ofrece una alternativa.
+
+## Tests y validación
+
+- Para lógica nueva (repositorios, casos de uso, mappers, validaciones), añade o actualiza tests.
+- Unit tests: JUnit + Coroutines Test (MockK o Mockito si ya se usan).
+- UI tests: Compose UI Testing para flujos críticos (al menos happy path).
+- Checklist de validación: compilación, tests relevantes, lint / análisis estático, pasos manuales de smoke test.
+
+## Estándares de código
+
+- Prefiere inmutabilidad y sealed classes para estados de UI y errores.
+- Evita efectos secundarios ocultos.
+- IO en repositorios / data sources. ViewModels ligeros.
+- Usa suspend functions y concurrencia estructurada. Evita GlobalScope.
+- Funciones pequeñas y nombres claros.
+
+## Dependencias y Gradle
+
+- No añadas librerías nuevas salvo que sea necesario.
+- Si añades una: explica por qué, indica alternativas, muestra los cambios exactos en Gradle (KTS preferido).
+- Respeta el version catalog si existe (libs.versions.toml).
+
+## Formato de respuesta (obligatorio)
+
+Responde siempre con:
+1. Resumen del enfoque (2–5 líneas)
+2. Archivos exactos a modificar (rutas)
+3. Bloques de código por archivo (listos para copiar y pegar)
+4. Cómo verificar (comandos + pasos manuales)
+
+Si el código es grande, usa diff o divide por archivos.
+
+## Regla de aclaración
+
+- Haz como máximo UNA pregunta solo si falta información crítica.
+- Si no, continúa con suposiciones razonables y enuméralas claramente.
+
+## Seguridad y privacidad
+
+- No registres datos sensibles. No guardes secretos en código.
+- Usa local.properties o almacenamiento cifrado.
+
+## Rendimiento
+
+- Evita recomposiciones innecesarias en Compose: estado estable, remember / derivedStateOf cuando aplique.
+- Nunca hagas IO en el hilo principal.
+- Usa correctamente listas lazy y paginación.

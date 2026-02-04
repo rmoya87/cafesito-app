@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +24,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.cafesito.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +51,10 @@ fun FollowingScreen(
             it.user.fullName.contains(currentQuery, ignoreCase = true)
         }
     }
+
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) { viewModel.loadInitialIfNeeded() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -120,34 +127,45 @@ fun FollowingScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 16.dp)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                viewModel.loadInitialIfNeeded()
+                scope.launch {
+                    delay(400)
+                    isRefreshing = false
+                }
+            },
+            modifier = Modifier.fillMaxSize().padding(paddingValues)
         ) {
-            if (filteredFollowing.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier.fillParentMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (currentQuery.isEmpty()) "No sigue a nadie todavía" else "No se encontraron resultados",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                if (filteredFollowing.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (currentQuery.isEmpty()) "No sigue a nadie todavía" else "No se encontraron resultados",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                } else {
+                    items(filteredFollowing, key = { it.user.id }) { info ->
+                        FollowItemModern(
+                            user = info.user,
+                            isFollowing = myFollowingIds.contains(info.user.id),
+                            isMe = activeUser?.id == info.user.id,
+                            onFollowClick = { viewModel.toggleFollow(info.user.id) },
+                            onClick = { onUserClick(info.user.id) }
                         )
                     }
-                }
-            } else {
-                items(filteredFollowing, key = { it.user.id }) { info ->
-                    FollowItemModern(
-                        user = info.user,
-                        isFollowing = myFollowingIds.contains(info.user.id),
-                        isMe = activeUser?.id == info.user.id,
-                        onFollowClick = { viewModel.toggleFollow(info.user.id) },
-                        onClick = { onUserClick(info.user.id) }
-                    )
                 }
             }
         }

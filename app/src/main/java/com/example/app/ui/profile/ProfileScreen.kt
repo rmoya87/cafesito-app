@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -51,7 +53,8 @@ fun ProfileScreen(
     var reviewToEdit by remember { mutableStateOf<UserReviewInfo?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
 
-    // ELIMINADO: viewModel.refreshData() - La caché se gestiona en el repositorio
+    var isRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { viewModel.refreshData() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -73,9 +76,21 @@ fun ProfileScreen(
             )
         }
     ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                viewModel.refreshData()
+                coroutineScope.launch {
+                    delay(400)
+                    isRefreshing = false
+                }
+            },
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
         when (val state = uiState) {
             is ProfileUiState.Loading -> {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
                     item { ProfileHeaderShimmer() }
                     items(3) { PostCardShimmer() }
                 }
@@ -103,7 +118,7 @@ fun ProfileScreen(
                 }
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 100.dp)
                 ) {
                     item {
@@ -294,6 +309,7 @@ fun ProfileScreen(
                     )
                 }
             }
+        }
         }
     }
 }

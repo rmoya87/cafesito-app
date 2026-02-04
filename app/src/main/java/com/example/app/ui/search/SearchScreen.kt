@@ -62,6 +62,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -377,29 +378,35 @@ fun SearchScreen(
                 )
             }
 
-            when (val state = uiState) {
-                is SearchUiState.Loading -> {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(3) { ShimmerItem(Modifier.fillMaxWidth().height(350.dp).padding(16.dp)) }
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refreshData() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (val state = uiState) {
+                    is SearchUiState.Loading -> {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(3) { ShimmerItem(Modifier.fillMaxWidth().height(350.dp).padding(16.dp)) }
+                        }
                     }
-                }
-                is SearchUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
-                is SearchUiState.Success -> {
-                    if (state.coffees.isEmpty() && !isRefreshing) {
-                        EmptySearchResults(Modifier.align(Alignment.CenterHorizontally).padding(top = 64.dp))
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 32.dp)
-                        ) {
-                            itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
-                                LaunchedEffect(index) { viewModel.onItemDisplayed(index) }
-                                Box(modifier = Modifier.padding(vertical = 10.dp)) {
-                                    CoffeePremiumListItem(
-                                        coffeeDetails = coffeeDetails,
-                                        onCoffeeClick = onCoffeeClick,
-                                        onFavoriteClick = { viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) }
-                                    )
+                    is SearchUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+                    is SearchUiState.Success -> {
+                        if (state.coffees.isEmpty() && !isRefreshing) {
+                            EmptySearchResults(Modifier.align(Alignment.CenterHorizontally).padding(top = 64.dp))
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 32.dp)
+                            ) {
+                                itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
+                                    LaunchedEffect(index) { viewModel.onItemDisplayed(index) }
+                                    Box(modifier = Modifier.padding(vertical = 10.dp)) {
+                                        CoffeePremiumListItem(
+                                            coffeeDetails = coffeeDetails,
+                                            onCoffeeClick = onCoffeeClick,
+                                            onFavoriteClick = { viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) }
+                                        )
+                                    }
                                 }
                             }
                         }

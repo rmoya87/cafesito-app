@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.utils.formatRelativeTime
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -67,6 +69,7 @@ fun DiaryScreen(
     
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
+    var isRefreshing by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.refreshData()
@@ -181,8 +184,20 @@ fun DiaryScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                viewModel.refreshData()
+                coroutineScope.launch {
+                    delay(400)
+                    isRefreshing = false
+                }
+            },
             modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
         ) {
             item {
                 val currentAnalytics = analytics
@@ -274,6 +289,7 @@ fun DiaryScreen(
                     }
                 }
             }
+        }
         }
 
         if (showPeriodMenu) {

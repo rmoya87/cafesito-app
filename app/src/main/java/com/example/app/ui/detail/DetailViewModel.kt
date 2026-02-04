@@ -70,6 +70,11 @@ class DetailViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
 
+    fun loadInitialIfNeeded() {
+        coffeeRepository.triggerRefresh()
+        socialRepository.triggerRefresh()
+    }
+
     fun toggleFavorite(shouldBeFavorite: Boolean) {
         viewModelScope.launch {
             coffeeRepository.toggleFavorite(coffeeId, shouldBeFavorite)
