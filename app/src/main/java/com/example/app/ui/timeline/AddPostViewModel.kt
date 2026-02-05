@@ -58,6 +58,20 @@ class AddPostViewModel @Inject constructor(
     private val _selectedCoffee = MutableStateFlow<CoffeeWithDetails?>(null)
     val selectedCoffee: StateFlow<CoffeeWithDetails?> = _selectedCoffee.asStateFlow()
 
+    init {
+        // Restaurar café seleccionado si existe en SavedStateHandle
+        savedStateHandle.get<String>("selectedCoffeeId")?.let { id ->
+            viewModelScope.launch {
+                coffeeRepository.allCoffees.collectLatest { list ->
+                    val coffee = list.find { it.coffee.id == id }
+                    if (coffee != null) {
+                        _selectedCoffee.value = coffee
+                    }
+                }
+            }
+        }
+    }
+
     private val _comment = MutableStateFlow(savedStateHandle.get<String>("comment") ?: "")
     val comment: StateFlow<String> = _comment.asStateFlow()
 
@@ -116,8 +130,11 @@ class AddPostViewModel @Inject constructor(
     fun selectCoffee(coffee: CoffeeWithDetails?) {
         _selectedCoffee.value = coffee
         if (coffee != null) {
+            savedStateHandle.set("selectedCoffeeId", coffee.coffee.id)
             _currentStep.value = 1
             savedStateHandle.set("currentStep", 1)
+        } else {
+            savedStateHandle.remove<String>("selectedCoffeeId")
         }
     }
 

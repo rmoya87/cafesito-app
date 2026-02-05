@@ -92,25 +92,11 @@ fun AddPostScreen(
                     }
                 }
             )
-        }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            
-            AnimatedContent(
-                targetState = currentStep, 
-                transitionSpec = { fadeIn() + slideInHorizontally { it } togetherWith fadeOut() + slideOutHorizontally { -it } },
-                label = "FlowTransition"
-            ) { step ->
-                when {
-                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel, permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
-                    postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
-                    postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
-                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel, hasPermission = permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
-                }
-            }
-            
+        bottomBar = {
             Box(
-                modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(bottom = 32.dp), 
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp), 
                 contentAlignment = Alignment.Center
             ) {
                 val comment by viewModel.comment.collectAsState()
@@ -128,18 +114,37 @@ fun AddPostScreen(
                             if (postType == PostType.PUBLICATION) viewModel.createPost(onBackClick)
                             else viewModel.submitReview(onBackClick)
                         }, 
-                        modifier = Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 24.dp), 
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .padding(horizontal = 24.dp), 
                         enabled = if (postType == PostType.PUBLICATION) comment.isNotBlank() else (rating > 0 && comment.isNotBlank()), 
                         shape = RoundedCornerShape(30.dp), 
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(
-                            text = if (postType == PostType.PUBLICATION) "PUBLICAR" else "PUBLICAR",
+                            text = if (postType == PostType.PUBLICATION) "PUBLICAR" else "GUARDAR RESEÑA",
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp,
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
+                }
+            }
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            
+            AnimatedContent(
+                targetState = currentStep, 
+                transitionSpec = { fadeIn() + slideInHorizontally { it } togetherWith fadeOut() + slideOutHorizontally { -it } },
+                label = "FlowTransition"
+            ) { step ->
+                when {
+                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel, permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
+                    postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
+                    postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
+                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel, hasPermission = permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
                 }
             }
         }
@@ -282,7 +287,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         Text("CAFÉ SELECCIONADO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(16.dp))
         
-        PremiumCard {
+        PremiumCard(modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(model = selectedCoffee?.coffee?.imageUrl, contentDescription = null, modifier = Modifier.size(60.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
                 Spacer(Modifier.width(16.dp))
@@ -312,7 +317,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "AÑADIR FOTO (OPCIONAL)", 
+                        "SELECCIONA UNA FOTO", 
                         style = MaterialTheme.typography.labelSmall, 
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
@@ -359,7 +364,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         
         Spacer(Modifier.height(32.dp))
         OutlinedTextField(
-            value = comment, onValueChange = viewModel::onCommentChanged, label = { Text("Nota de cata...") },
+            value = comment, onValueChange = viewModel::onCommentChanged, label = { Text("Añade tu opinión sobre este café") },
             modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), shape = RoundedCornerShape(24.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
