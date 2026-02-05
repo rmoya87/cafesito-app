@@ -54,6 +54,7 @@ fun TimelineScreen(
     val newDeviceNotifications by viewModel.newUnreadNotifications.collectAsState()
     val context = LocalContext.current
     
+    val listState = rememberLazyListState()
     var showReviewOptions by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
 
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
@@ -79,12 +80,31 @@ fun TimelineScreen(
     ) {}
 
     LaunchedEffect(Unit) {
-        // ELIMINADO: viewModel.refreshData() - Dejamos que el repositorio maneje la caché
+        viewModel.refreshData()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permission = Manifest.permission.POST_NOTIFICATIONS
             if (ContextCompat.checkSelfPermission(context, permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 notificationPermissionLauncher.launch(permission)
             }
+        }
+    }
+
+    // Auto-scroll al inicio cuando cambia isRefreshing de true a false (termina un refresco)
+    // O cuando el tamaño de la lista aumenta (nueva publicación detectada)
+    var lastItemCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(uiState) {
+        if (uiState is TimelineUiState.Success) {
+            val currentCount = uiState.items.size
+            if (currentCount > lastItemCount && lastItemCount != 0) {
+                listState.animateScrollToItem(0)
+            }
+            lastItemCount = currentCount
+        }
+    }
+
+    LaunchedEffect(isRefreshing) {
+        if (!isRefreshing && lastItemCount > 0) {
+            listState.animateScrollToItem(0)
         }
     }
 
@@ -153,6 +173,7 @@ fun TimelineScreen(
                 is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
                 is TimelineUiState.Success -> {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 120.dp)
                     ) {

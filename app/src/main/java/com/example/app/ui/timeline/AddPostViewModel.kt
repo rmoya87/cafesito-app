@@ -18,6 +18,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
 import javax.inject.Inject
 
 enum class PostType { PUBLICATION, OPINION }
@@ -49,6 +52,12 @@ class AddPostViewModel @Inject constructor(
 
     private val _selectedCoffee = MutableStateFlow<CoffeeWithDetails?>(null)
     val selectedCoffee: StateFlow<CoffeeWithDetails?> = _selectedCoffee.asStateFlow()
+
+    private val _comment = MutableStateFlow("")
+    val comment: StateFlow<String> = _comment.asStateFlow()
+
+    private val _rating = MutableStateFlow(0f)
+    val rating: StateFlow<Float> = _rating.asStateFlow()
 
     val coffeeList: StateFlow<List<CoffeeWithDetails>> = combine(
         _searchQuery,
@@ -105,6 +114,9 @@ class AddPostViewModel @Inject constructor(
         if (coffee != null) _currentStep.value = 1
     }
 
+    fun onCommentChanged(text: String) { _comment.value = text }
+    fun onRatingChanged(value: Float) { _rating.value = value }
+
     fun setImage(uri: Uri?) { _imageSource.value = uri }
     
     fun setCapturedImage(bitmap: Bitmap?) { 
@@ -117,44 +129,63 @@ class AddPostViewModel @Inject constructor(
     
     fun goToStep(step: Int) { _currentStep.value = step }
 
-    fun createPost(comment: String, onSuccess: () -> Unit) {
+    private suspend fun saveBitmapToLocal(bitmap: Bitmap): String = withContext(Dispatchers.IO) {
+        val filename = "shot_${UUID.randomUUID()}.jpg"
+        val file = File(context.cacheDir, filename)
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+        }
+        file.absolutePath
+    }
+
+    fun createPost(onSuccess: () -> Unit) {
         viewModelScope.launch {
             val source = _imageSource.value ?: return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch
+            val commentText = _comment.value
             
-            // Simulación de subida: en una app real aquí subiríamos 'source' (Uri o Bitmap)
-            val imageUrl = "https://picsum.photos/seed/${System.currentTimeMillis()}/800/800"
+            // Usamos la URI real si está disponible, si es Bitmap (de cámara) la guardamos temporalmente
+            val imageUrl = when (source) {
+                is Uri -> source.toString()
+                is Bitmap -> saveBitmapToLocal(source)
+                else -> "https://picsum.photos/seed/${System.currentTimeMillis()}/800/800"
+            }
             
             socialRepository.createPost(PostEntity(
                 id = "post_${System.currentTimeMillis()}", 
                 userId = activeUser.id, 
                 imageUrl = imageUrl, 
-                comment = comment, 
+                comment = commentText, 
                 timestamp = System.currentTimeMillis()
             ))
             socialRepository.syncSocialData() // Forzar refresco
+            _comment.value = "" // Reset
             onSuccess()
         }
     }
 
-    fun submitReview(rating: Float, comment: String, onSuccess: () -> Unit) {
+    fun submitReview(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val validation = validateReviewInput(rating, comment)
+            val ratingValue = _rating.value
+            val commentText = _comment.value
+            val validation = validateReviewInput(ratingValue, commentText)
             if (validation.isFailure) return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch
             val coffeeId = _selectedCoffee.value?.coffee?.id ?: return@launch
             
-            // Usar la imagen seleccionada si existe
-            val imageUrl = if (_imageSource.value != null) {
-                "https://picsum.photos/seed/${System.currentTimeMillis()}/800/800"
-            } else null
+            val source = _imageSource.value
+            val imageUrl = when (source) {
+                is Uri -> source.toString()
+                is Bitmap -> saveBitmapToLocal(source)
+                else -> null
+            }
 
             val reviewResult = reviewRepository.submitReview(
                 Review(
                     user = activeUser.toDomainUser(),
                     coffeeId = coffeeId,
-                    rating = rating,
-                    comment = comment,
+                    rating = ratingValue,
+                    comment = commentText,
                     imageUrl = imageUrl,
                     timestamp = System.currentTimeMillis()
                 )
@@ -162,6 +193,8 @@ class AddPostViewModel @Inject constructor(
             if (reviewResult.isSuccess) {
                 coffeeRepository.syncCoffees()
                 socialRepository.syncSocialData() // Forzar refresco
+                _comment.value = "" // Reset
+                _rating.value = 0f // Reset
                 onSuccess()
             }
         }

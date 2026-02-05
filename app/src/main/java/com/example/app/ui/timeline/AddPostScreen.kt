@@ -106,16 +106,37 @@ fun AddPostScreen(
                 }
             }
             
-            if (currentStep == 0) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(bottom = 32.dp), 
-                    contentAlignment = Alignment.Center
-                ) {
+            Box(
+                modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(bottom = 32.dp), 
+                contentAlignment = Alignment.Center
+            ) {
+                val comment by viewModel.comment.collectAsState()
+                val rating by viewModel.rating.collectAsState()
+
+                if (currentStep == 0) {
                     PremiumTabRow(
                         selectedTabIndex = if(postType == PostType.PUBLICATION) 0 else 1,
                         tabs = listOf("POST", "OPINIÓN"),
                         onTabSelected = { viewModel.setPostType(if(it == 0) PostType.PUBLICATION else PostType.OPINION) }
                     )
+                } else {
+                    Button(
+                        onClick = { 
+                            if (postType == PostType.PUBLICATION) viewModel.createPost(onBackClick)
+                            else viewModel.submitReview(onBackClick)
+                        }, 
+                        modifier = Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 24.dp), 
+                        enabled = if (postType == PostType.PUBLICATION) comment.isNotBlank() else (rating > 0 && comment.isNotBlank()), 
+                        shape = RoundedCornerShape(30.dp), 
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text(
+                            text = if (postType == PostType.PUBLICATION) "PUBLICAR" else "GUARDAR RESEÑA",
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
         }
@@ -170,7 +191,7 @@ private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission
 @Composable
 private fun PostDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostViewModel) {
     val imageSource by viewModel.imageSource.collectAsState()
-    var comment by remember { mutableStateOf("") }
+    val comment by viewModel.comment.collectAsState()
     
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         PremiumCard {
@@ -191,24 +212,14 @@ private fun PostDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostView
         
         OutlinedTextField(
             value = comment, 
-            onValueChange = { comment = it }, 
+            onValueChange = viewModel::onCommentChanged, 
             placeholder = { Text("Comparte tu experiencia...") }, 
             modifier = Modifier.fillMaxWidth().heightIn(min = 150.dp), 
             shape = RoundedCornerShape(24.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         
-        Spacer(Modifier.height(32.dp))
-        
-        Button(
-            onClick = { viewModel.createPost(comment, onSuccess) }, 
-            modifier = Modifier.fillMaxWidth().height(60.dp), 
-            enabled = comment.isNotBlank(), 
-            shape = RoundedCornerShape(30.dp), 
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) {
-            Text("PUBLICAR", fontWeight = FontWeight.Bold, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onPrimary)
-        }
+        Spacer(Modifier.height(100.dp))
     }
 }
 
@@ -254,9 +265,9 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
 private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostViewModel, hasPermission: Boolean) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
+    val comment by viewModel.comment.collectAsState()
+    val rating by viewModel.rating.collectAsState()
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
-    var rating by remember { mutableFloatStateOf(0f) }
-    var comment by remember { mutableStateOf("") }
     
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         Text("CAFÉ SELECCIONADO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
@@ -323,25 +334,15 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         Spacer(Modifier.height(32.dp))
         Text("CALIFICACIÓN", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(Modifier.height(16.dp))
-        SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
+        SemicircleRatingBar(rating = rating, onRatingChanged = viewModel::onRatingChanged)
         
         Spacer(Modifier.height(32.dp))
         OutlinedTextField(
-            value = comment, onValueChange = { comment = it }, label = { Text("Nota de cata...") },
+            value = comment, onValueChange = viewModel::onCommentChanged, label = { Text("Nota de cata...") },
             modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), shape = RoundedCornerShape(24.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         
-        Spacer(Modifier.height(32.dp))
-        Button(
-            onClick = { viewModel.submitReview(rating, comment, onSuccess) }, 
-            modifier = Modifier.fillMaxWidth().height(60.dp), 
-            enabled = rating > 0 && comment.isNotBlank(), 
-            shape = RoundedCornerShape(30.dp), 
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) {
-            Text("GUARDAR RESEÑA", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, letterSpacing = 1.sp)
-        }
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(100.dp))
     }
 }
