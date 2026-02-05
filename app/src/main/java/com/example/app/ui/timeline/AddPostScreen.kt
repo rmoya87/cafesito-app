@@ -159,7 +159,16 @@ private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission
     val galleryImages by viewModel.galleryImages.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(MaterialTheme.colorScheme.background)
+                // En el paso de selección, el click en el previo no hace nada especial 
+                // ya que la galería está justo debajo, pero lo dejamos preparado
+                .clickable(enabled = imageSource == null) { /* Opcional: focalizar galería */ }, 
+            contentAlignment = Alignment.Center
+        ) {
             if (imageSource != null) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
@@ -303,7 +312,13 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         
         // Imagen principal de la reseña
         Box(
-            modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+                .clip(RoundedCornerShape(32.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp))
+                .clickable { showGallerySheet = true },
             contentAlignment = Alignment.Center
         ) {
             if (imageSource != null) {

@@ -212,23 +212,49 @@ class AddPostViewModel @Inject constructor(
                 timestamp = System.currentTimeMillis()
             ))
             socialRepository.syncSocialData() // Forzar refresco
-            _comment.value = "" // Reset
+            
+            // Limpiar estado
+            _comment.value = ""
+            _imageSource.value = null
+            _currentStep.value = 0
+            savedStateHandle.remove<String>("comment")
+            savedStateHandle.remove<String>("imageUri")
+            savedStateHandle.remove<Int>("currentStep")
+            
             onSuccess()
         }
     }
 
     fun submitReview(onSuccess: () -> Unit) {
         viewModelScope.launch {
+            Log.d("AddPostVM", "Iniciando submitReview")
             val ratingValue = _rating.value
             val commentText = _comment.value
             
-            // Validación local antes de llamar al UseCase si es necesario
-            if (ratingValue == 0f) return@launch
+            if (ratingValue == 0f) {
+                Log.w("AddPostVM", "Intento de enviar reseña sin puntuación")
+                return@launch
+            }
             
             val validation = validateReviewInput(ratingValue, commentText)
-            if (validation.isFailure) return@launch
-            val activeUser = userRepository.getActiveUser() ?: return@launch
-            val coffeeId = _selectedCoffee.value?.coffee?.id ?: return@launch
+            if (validation.isFailure) {
+                Log.w("AddPostVM", "Validación de reseña fallida")
+                return@launch
+            }
+
+            val activeUser = userRepository.getActiveUser()
+            if (activeUser == null) {
+                Log.e("AddPostVM", "Usuario activo no encontrado")
+                return@launch
+            }
+
+            val coffeeId = _selectedCoffee.value?.coffee?.id
+            if (coffeeId == null) {
+                Log.e("AddPostVM", "No hay café seleccionado")
+                return@launch
+            }
+            
+            Log.d("AddPostVM", "Enviando reseña para café: $coffeeId")
             
             val source = _imageSource.value
             val imageUrl = when (source) {
@@ -237,22 +263,42 @@ class AddPostViewModel @Inject constructor(
                 else -> null
             }
 
-            val reviewResult = reviewRepository.submitReview(
-                Review(
-                    user = activeUser.toDomainUser(),
-                    coffeeId = coffeeId,
-                    rating = ratingValue,
-                    comment = commentText,
-                    imageUrl = imageUrl,
-                    timestamp = System.currentTimeMillis()
+            try {
+                val reviewResult = reviewRepository.submitReview(
+                    Review(
+                        user = activeUser.toDomainUser(),
+                        coffeeId = coffeeId,
+                        rating = ratingValue,
+                        comment = commentText,
+                        imageUrl = imageUrl,
+                        timestamp = System.currentTimeMillis()
+                    )
                 )
-            )
-            if (reviewResult.isSuccess) {
-                coffeeRepository.syncCoffees()
-                socialRepository.syncSocialData() // Forzar refresco
-                _comment.value = "" // Reset
-                _rating.value = 0f // Reset
-                onSuccess()
+                
+                if (reviewResult.isSuccess) {
+                    Log.d("AddPostVM", "Reseña guardada con éxito")
+                    coffeeRepository.syncCoffees()
+                    socialRepository.syncSocialData()
+                    
+                    // Limpiar todo el estado tras éxito
+                    _comment.value = ""
+                    _rating.value = 0f
+                    _imageSource.value = null
+                    _selectedCoffee.value = null
+                    _currentStep.value = 0
+                    
+                    savedStateHandle.remove<String>("comment")
+                    savedStateHandle.remove<Float>("rating")
+                    savedStateHandle.remove<String>("imageUri")
+                    savedStateHandle.remove<String>("selectedCoffeeId")
+                    savedStateHandle.remove<Int>("currentStep")
+                    
+                    onSuccess()
+                } else {
+                    Log.e("AddPostVM", "Error en el repositorio al guardar reseña: ${reviewResult.exceptionOrNull()?.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("AddPostVM", "Excepción al guardar reseña", e)
             }
         }
     }
