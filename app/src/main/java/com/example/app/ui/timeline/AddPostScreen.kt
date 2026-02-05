@@ -92,6 +92,7 @@ fun AddPostScreen(
                     }
                 }
             )
+        },
         bottomBar = {
             Box(
                 modifier = Modifier
