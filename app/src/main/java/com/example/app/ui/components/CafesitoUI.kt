@@ -925,7 +925,7 @@ fun EditProfileFields(
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = onSave, modifier = Modifier.fillMaxWidth().height(54.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), shape = RoundedCornerShape(28.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent), shape = RoundedCornerShape(28.dp)
         ) { Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold, color = Color.White) }
     }
 }

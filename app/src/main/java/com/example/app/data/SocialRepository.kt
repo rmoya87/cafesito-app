@@ -191,8 +191,17 @@ class SocialRepository @Inject constructor(
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try {
                 val posts = supabaseDataSource.getAllPosts()
+                val likes = supabaseDataSource.getAllLikes()
+                val comments = supabaseDataSource.getAllComments()
+                
                 socialDao.insertPosts(posts)
-            } catch (e: Exception) { }
+                socialDao.insertLikes(likes)
+                socialDao.insertComments(comments)
+                
+                triggerRefresh()
+            } catch (e: Exception) {
+                Log.e("SocialRepository", "Error in syncSocialData", e)
+            }
         }
     }
 }

@@ -122,8 +122,7 @@ class AddPostViewModel @Inject constructor(
             val source = _imageSource.value ?: return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch
             
-            // Aquí deberías subir la imagen a Supabase Storage realmente,
-            // pero para este fix mantenemos la lógica de guardado
+            // Simulación de subida: en una app real aquí subiríamos 'source' (Uri o Bitmap)
             val imageUrl = "https://picsum.photos/seed/${System.currentTimeMillis()}/800/800"
             
             socialRepository.createPost(PostEntity(
@@ -133,6 +132,7 @@ class AddPostViewModel @Inject constructor(
                 comment = comment, 
                 timestamp = System.currentTimeMillis()
             ))
+            socialRepository.syncSocialData() // Forzar refresco
             onSuccess()
         }
     }
@@ -144,18 +144,24 @@ class AddPostViewModel @Inject constructor(
             val activeUser = userRepository.getActiveUser() ?: return@launch
             val coffeeId = _selectedCoffee.value?.coffee?.id ?: return@launch
             
+            // Usar la imagen seleccionada si existe
+            val imageUrl = if (_imageSource.value != null) {
+                "https://picsum.photos/seed/${System.currentTimeMillis()}/800/800"
+            } else null
+
             val reviewResult = reviewRepository.submitReview(
                 Review(
                     user = activeUser.toDomainUser(),
                     coffeeId = coffeeId,
                     rating = rating,
                     comment = comment,
-                    imageUrl = null,
+                    imageUrl = imageUrl,
                     timestamp = System.currentTimeMillis()
                 )
             )
             if (reviewResult.isSuccess) {
                 coffeeRepository.syncCoffees()
+                socialRepository.syncSocialData() // Forzar refresco
                 onSuccess()
             }
         }

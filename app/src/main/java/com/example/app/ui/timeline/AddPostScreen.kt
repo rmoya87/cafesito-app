@@ -97,7 +97,7 @@ fun AddPostScreen(
                 ) {
                     PremiumTabRow(
                         selectedTabIndex = if(postType == PostType.PUBLICATION) 0 else 1,
-                        tabs = listOf("MOMENTO", "RESEÑA"),
+                        tabs = listOf("POST", "OPINIÓN"),
                         onTabSelected = { viewModel.setPostType(if(it == 0) PostType.PUBLICATION else PostType.OPINION) }
                     )
                 }
@@ -134,7 +134,11 @@ private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel) {
             if (imageSource != null) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
-                Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.height(16.dp))
+                    Text("CARGANDO GALERÍA...", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         
@@ -269,16 +273,44 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         Spacer(Modifier.height(32.dp))
         
         Box(
-            modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) }.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp)),
+            modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp)),
             contentAlignment = Alignment.Center
         ) {
-            if (imageSource != null && !imageSource.toString().contains("picsum")) {
+            if (imageSource != null) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(8.dp))
-                    Text("AÑADIR FOTO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(16.dp))
+        
+        // Carrusel de fotos para Review
+        val galleryImages by viewModel.galleryImages.collectAsState()
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item {
+                Box(
+                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+            items(galleryImages) { uri ->
+                val isSelected = imageSource == uri
+                Box(
+                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(16.dp)).clickable { viewModel.setImage(uri) }
+                ) {
+                    AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.3f)).border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)))
                 }
             }
         }

@@ -45,7 +45,7 @@ fun TimelineScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
-    var isRefreshing by remember { mutableStateOf(false) }
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var highlightedCommentId by remember { mutableStateOf<Int?>(null) }
@@ -141,11 +141,7 @@ fun TimelineScreen(
         
         PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = {
-                isRefreshing = true
-                viewModel.refreshData()
-                isRefreshing = false
-            },
+            onRefresh = { viewModel.refreshData() },
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             when (val state = uiState) {
