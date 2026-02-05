@@ -100,10 +100,7 @@ class AddPostViewModel @Inject constructor(
                 list
             }
             _galleryImages.value = images
-            // Si no hay imagen seleccionada, ponemos la primera de la galería
-            if (_imageSource.value == null && images.isNotEmpty()) {
-                _imageSource.value = images.first()
-            }
+            // Ya no ponemos la primera imagen por defecto para que el usuario elija
         }
     }
 
@@ -207,6 +204,10 @@ class AddPostViewModel @Inject constructor(
         viewModelScope.launch {
             val ratingValue = _rating.value
             val commentText = _comment.value
+            
+            // Validación local antes de llamar al UseCase si es necesario
+            if (ratingValue == 0f) return@launch
+            
             val validation = validateReviewInput(ratingValue, commentText)
             if (validation.isFailure) return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch

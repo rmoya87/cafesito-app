@@ -134,7 +134,7 @@ fun AddPostScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(
-                            text = if (postType == PostType.PUBLICATION) "PUBLICAR" else "GUARDAR RESEÑA",
+                            text = if (postType == PostType.PUBLICATION) "PUBLICAR" else "PUBLICAR",
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp,
                             color = MaterialTheme.colorScheme.onPrimary
@@ -156,13 +156,20 @@ private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission
         Box(modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
             if (imageSource != null) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else if (!hasPermission) {
-                Text("SIN PERMISO PARA LA GALERÍA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.height(16.dp))
-                    Text("CARGANDO GALERÍA...", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(
+                        Icons.Default.AddPhotoAlternate, 
+                        null, 
+                        modifier = Modifier.size(48.dp), 
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "SELECCIONA UNA FOTO", 
+                        style = MaterialTheme.typography.labelMedium, 
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
                 }
             }
         }
@@ -295,13 +302,20 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         ) {
             if (imageSource != null) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else if (!hasPermission) {
-                Text("SIN PERMISO DE GALERÍA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.AddPhotoAlternate, 
+                        null, 
+                        modifier = Modifier.size(40.dp), 
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
                     Spacer(Modifier.height(8.dp))
-                    Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "AÑADIR FOTO (OPCIONAL)", 
+                        style = MaterialTheme.typography.labelSmall, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
                 }
             }
         }
