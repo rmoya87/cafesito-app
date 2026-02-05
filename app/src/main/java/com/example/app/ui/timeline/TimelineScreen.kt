@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import android.Manifest
@@ -93,8 +94,9 @@ fun TimelineScreen(
     // O cuando el tamaño de la lista aumenta (nueva publicación detectada)
     var lastItemCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(uiState) {
-        if (uiState is TimelineUiState.Success) {
-            val currentCount = uiState.items.size
+        val currentState = uiState
+        if (currentState is TimelineUiState.Success) {
+            val currentCount = currentState.items.size
             if (currentCount > lastItemCount && lastItemCount != 0) {
                 listState.animateScrollToItem(0)
             }
