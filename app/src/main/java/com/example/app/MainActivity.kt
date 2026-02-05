@@ -233,19 +233,16 @@ fun AppNavigation(
 
             composable("login") {
                 LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
-                    scope.launch {
-                        val user = userRepository.getUserByGoogleId(googleId) 
-                        if (user != null && user.username.isNotBlank()) {
-                            navController.navigate("timeline") {
-                                popUpTo("login") { inclusive = true }
-                            }
-                        } else {
-                            val encodedEmail = Uri.encode(email)
-                            val encodedName = Uri.encode(name)
-                            val encodedPhoto = Uri.encode(photo)
-                            navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
-                                popUpTo("login") { inclusive = true }
-                            }
+                    if (!isNewUser) {
+                        navController.navigate("timeline") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    } else {
+                        val encodedEmail = Uri.encode(email)
+                        val encodedName = Uri.encode(name)
+                        val encodedPhoto = Uri.encode(photo)
+                        navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
+                            popUpTo("login") { inclusive = true }
                         }
                     }
                 })

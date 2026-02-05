@@ -11,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.seconds
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -23,7 +24,10 @@ object SupabaseModule {
             supabaseUrl = "https://ubcxjmagimjhpsehqync.supabase.co",
             supabaseKey = "sb_publishable_M2cY8wb50_I_pfnv_ZcukA_AIvnk66z"
         ) {
-            install(Postgrest)
+            install(Postgrest) {
+                // Aumentamos el timeout para evitar errores de red lenta
+                httpTimeout = 30.seconds
+            }
             install(Auth)
             install(Realtime)
             install(Storage)

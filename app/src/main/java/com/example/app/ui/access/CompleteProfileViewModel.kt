@@ -2,7 +2,6 @@ package com.cafesito.app.ui.access
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cafesito.app.data.UserDao
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.data.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +15,6 @@ import javax.inject.Inject
 @HiltViewModel
 class CompleteProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val userDao: UserDao,
     private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
@@ -24,7 +22,7 @@ class CompleteProfileViewModel @Inject constructor(
     val usernameError = _usernameError.asStateFlow()
 
     fun saveUserProfile(
-        googleId: String, // Este es el ID de Google (numérico)
+        googleId: String, // UUID de Supabase o fallback
         email: String,
         username: String,
         bio: String,
@@ -37,23 +35,29 @@ class CompleteProfileViewModel @Inject constructor(
                 return@launch
             }
 
-            val existingUser = userDao.getUserByUsername(username.trim())
-            if (existingUser != null) {
+            val trimmedUsername = username.trim()
+            
+            // OBTENEMOS EL ID REAL DE SUPABASE AUTH (UUID)
+            val supabaseAuthId = supabaseClient.auth.currentUserOrNull()?.id ?: googleId
+
+            // Verificamos si el username ya existe (en local o remoto)
+            val existingUserByUsername = userRepository.getUserByUsername(trimmedUsername)
+            if (existingUserByUsername != null && existingUserByUsername.googleId != supabaseAuthId) {
                 _usernameError.value = "Este nombre de usuario ya está en uso"
                 return@launch
             }
 
             _usernameError.value = null
 
-            // OBTENEMOS EL ID REAL DE SUPABASE AUTH (UUID)
-            // Este es el que necesitamos para que las políticas RLS funcionen.
-            val supabaseAuthId = supabaseClient.auth.currentUserOrNull()?.id ?: googleId
+            // Intentamos recuperar el usuario existente por UUID para mantener el ID entero si ya existía
+            val existingUser = userRepository.getUserByGoogleId(supabaseAuthId)
+            val userId = existingUser?.id ?: googleId.hashCode()
 
             val newUser = UserEntity(
-                id = googleId.hashCode(), // Mantenemos el hashCode para el ID primario de Room
-                googleId = supabaseAuthId, // USAMOS EL UUID DE SUPABASE PARA LA SEGURIDAD
-                username = username.trim(),
-                fullName = username.trim(), 
+                id = userId,
+                googleId = supabaseAuthId,
+                username = trimmedUsername,
+                fullName = trimmedUsername,
                 avatarUrl = avatarUrl,
                 email = email,
                 bio = bio

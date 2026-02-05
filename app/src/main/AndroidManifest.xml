@@ -16,11 +16,17 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
 
-    <!-- Health Connect Permissions -->
+    <!-- Health Connect Permissions (Android 14+) -->
     <uses-permission android:name="android.permission.health.READ_NUTRITION" />
     <uses-permission android:name="android.permission.health.WRITE_NUTRITION" />
     <uses-permission android:name="android.permission.health.READ_HYDRATION" />
     <uses-permission android:name="android.permission.health.WRITE_HYDRATION" />
+
+    <!-- Health Connect Permissions (Android 13 and below) -->
+    <uses-permission android:name="androidx.health.permission.Nutrition.READ" />
+    <uses-permission android:name="androidx.health.permission.Nutrition.WRITE" />
+    <uses-permission android:name="androidx.health.permission.Hydration.READ" />
+    <uses-permission android:name="androidx.health.permission.Hydration.WRITE" />
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />

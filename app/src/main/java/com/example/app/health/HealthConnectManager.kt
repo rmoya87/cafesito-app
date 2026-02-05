@@ -52,8 +52,8 @@ class HealthConnectManager @Inject constructor(
             startZoneOffset = ZonedDateTime.now().offset,
             endTime = timestamp.plusSeconds(1),
             endZoneOffset = ZonedDateTime.now().offset,
-            caffeine = Mass.milligrams(mg),
-            metadata = Metadata(clientRecordId = "cafesito_$entryId")
+            metadata = Metadata.manualEntry(),
+            caffeine = Mass.milligrams(mg)
         )
 
         try {
@@ -72,8 +72,8 @@ class HealthConnectManager @Inject constructor(
             startZoneOffset = ZonedDateTime.now().offset,
             endTime = timestamp.plusSeconds(1),
             endZoneOffset = ZonedDateTime.now().offset,
-            volume = Volume.milliliters(ml),
-            metadata = Metadata(clientRecordId = "cafesito_$entryId")
+            metadata = Metadata.manualEntry(),
+            volume = Volume.milliliters(ml)
         )
 
         try {

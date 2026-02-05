@@ -135,7 +135,12 @@ fun ModernAvatar(
                 .fillMaxSize()
                 .border(
                     width = 1.5.dp,
-                    brush = Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)),
+                    brush = Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary
+                        )
+                    ),
                     shape = CircleShape
                 )
         )
@@ -230,19 +235,33 @@ fun ProfileHeaderShimmer() {
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ShimmerItem(modifier = Modifier.size(110.dp).clip(CircleShape))
+        ShimmerItem(modifier = Modifier
+            .size(110.dp)
+            .clip(CircleShape))
         Spacer(Modifier.height(16.dp))
-        ShimmerItem(modifier = Modifier.height(30.dp).width(200.dp))
+        ShimmerItem(modifier = Modifier
+            .height(30.dp)
+            .width(200.dp))
         Spacer(Modifier.height(8.dp))
-        ShimmerItem(modifier = Modifier.height(20.dp).width(120.dp))
+        ShimmerItem(modifier = Modifier
+            .height(20.dp)
+            .width(120.dp))
         Spacer(Modifier.height(24.dp))
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ShimmerItem(modifier = Modifier.height(50.dp).width(80.dp))
-            ShimmerItem(modifier = Modifier.height(50.dp).width(80.dp))
-            ShimmerItem(modifier = Modifier.height(50.dp).width(80.dp))
+            ShimmerItem(modifier = Modifier
+                .height(50.dp)
+                .width(80.dp))
+            ShimmerItem(modifier = Modifier
+                .height(50.dp)
+                .width(80.dp))
+            ShimmerItem(modifier = Modifier
+                .height(50.dp)
+                .width(80.dp))
         }
     }
 }
@@ -257,9 +276,13 @@ fun PostCardShimmer() {
                 .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)))
             Spacer(Modifier.height(16.dp))
             Column(Modifier.padding(horizontal = 16.dp)) {
-                ShimmerItem(modifier = Modifier.height(20.dp).fillMaxWidth(0.7f))
+                ShimmerItem(modifier = Modifier
+                    .height(20.dp)
+                    .fillMaxWidth(0.7f))
                 Spacer(Modifier.height(8.dp))
-                ShimmerItem(modifier = Modifier.height(16.dp).fillMaxWidth(0.9f))
+                ShimmerItem(modifier = Modifier
+                    .height(16.dp)
+                    .fillMaxWidth(0.9f))
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -274,25 +297,45 @@ fun CaffeinePremiumCardShimmer() {
         Column(modifier = Modifier.padding(24.dp)) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ShimmerItem(modifier = Modifier.height(10.dp).width(120.dp))
-                    ShimmerItem(modifier = Modifier.height(30.dp).width(100.dp))
-                    ShimmerItem(modifier = Modifier.height(20.dp).width(50.dp))
+                    ShimmerItem(modifier = Modifier
+                        .height(10.dp)
+                        .width(120.dp))
+                    ShimmerItem(modifier = Modifier
+                        .height(30.dp)
+                        .width(100.dp))
+                    ShimmerItem(modifier = Modifier
+                        .height(20.dp)
+                        .width(50.dp))
                 }
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                     ShimmerItem(modifier = Modifier.height(10.dp).width(80.dp))
-                     ShimmerItem(modifier = Modifier.height(24.dp).width(90.dp))
-                     ShimmerItem(modifier = Modifier.height(20.dp).width(50.dp))
+                     ShimmerItem(modifier = Modifier
+                         .height(10.dp)
+                         .width(80.dp))
+                     ShimmerItem(modifier = Modifier
+                         .height(24.dp)
+                         .width(90.dp))
+                     ShimmerItem(modifier = Modifier
+                         .height(20.dp)
+                         .width(50.dp))
                 }
             }
 
             Spacer(Modifier.height(24.dp))
-            ShimmerItem(modifier = Modifier.fillMaxWidth().height(120.dp))
+            ShimmerItem(modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp))
             Spacer(Modifier.height(24.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ShimmerItem(modifier = Modifier.weight(1f).height(60.dp))
-                ShimmerItem(modifier = Modifier.weight(1f).height(60.dp))
-                ShimmerItem(modifier = Modifier.weight(1f).height(60.dp))
+                ShimmerItem(modifier = Modifier
+                    .weight(1f)
+                    .height(60.dp))
+                ShimmerItem(modifier = Modifier
+                    .weight(1f)
+                    .height(60.dp))
+                ShimmerItem(modifier = Modifier
+                    .weight(1f)
+                    .height(60.dp))
             }
         }
     }
@@ -307,12 +350,18 @@ fun DiaryItemShimmer() {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            ShimmerItem(modifier = Modifier.size(40.dp).clip(CircleShape))
+            ShimmerItem(modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape))
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                ShimmerItem(modifier = Modifier.height(20.dp).fillMaxWidth(0.7f))
+                ShimmerItem(modifier = Modifier
+                    .height(20.dp)
+                    .fillMaxWidth(0.7f))
                 Spacer(Modifier.height(4.dp))
-                ShimmerItem(modifier = Modifier.height(16.dp).fillMaxWidth(0.9f))
+                ShimmerItem(modifier = Modifier
+                    .height(16.dp)
+                    .fillMaxWidth(0.9f))
             }
         }
     }
@@ -322,14 +371,24 @@ fun DiaryItemShimmer() {
 fun PantryItemShimmer() {
     PremiumCard(shape = RoundedCornerShape(28.dp)) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(130.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)))
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)))
             Column(Modifier.padding(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    ShimmerItem(modifier = Modifier.height(16.dp).width(50.dp))
-                    ShimmerItem(modifier = Modifier.height(16.dp).width(40.dp))
+                    ShimmerItem(modifier = Modifier
+                        .height(16.dp)
+                        .width(50.dp))
+                    ShimmerItem(modifier = Modifier
+                        .height(16.dp)
+                        .width(40.dp))
                 }
                 Spacer(Modifier.height(6.dp))
-                ShimmerItem(modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape))
+                ShimmerItem(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(CircleShape))
             }
         }
     }
@@ -440,7 +499,9 @@ fun PantryPremiumCard(
         modifier = Modifier.clickable { onClick(item.coffee.id) },
         shape = RoundedCornerShape(28.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth().height(130.dp)) {
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .height(130.dp)) {
             AsyncImage(
                 model = item.coffee.imageUrl,
                 contentDescription = null,
@@ -448,7 +509,16 @@ fun PantryPremiumCard(
                 modifier = Modifier.fillMaxSize()
             )
             Box(
-                Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))))
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.8f)
+                            )
+                        )
+                    )
             )
 
             if (onOptionsClick != null) {
@@ -464,7 +534,9 @@ fun PantryPremiumCard(
                 }
             }
 
-            Column(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
+            Column(Modifier
+                .align(Alignment.BottomStart)
+                .padding(12.dp)) {
                 Text(item.coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
                 Text(item.coffee.nombre, color = Color.White, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -477,7 +549,10 @@ fun PantryPremiumCard(
             Spacer(Modifier.height(6.dp))
             LinearProgressIndicator(
                 progress = { progress },
-                modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(CircleShape),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.outline
             )
@@ -487,7 +562,9 @@ fun PantryPremiumCard(
 
 @Composable
 fun EmptyStateMessage(message: String) {
-    Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier
+        .fillMaxWidth()
+        .padding(48.dp), contentAlignment = Alignment.Center) {
         Text(message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }
@@ -542,7 +619,9 @@ fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoff
 fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
@@ -564,7 +643,10 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
     LaunchedEffect(analytics.chartData) { scrollState.animateScrollTo(scrollState.maxValue) }
 
     Row(
-        modifier = Modifier.fillMaxWidth().height(120.dp).horizontalScroll(scrollState),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .horizontalScroll(scrollState),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Bottom
     ) {
@@ -574,9 +656,17 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
 
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
                 Row(modifier = Modifier.height(80.dp), verticalAlignment = Alignment.Bottom) {
-                    Box(Modifier.width(10.dp).fillMaxHeight(caffeineHeight).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                    Box(Modifier
+                        .width(10.dp)
+                        .fillMaxHeight(caffeineHeight)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary))
                     Spacer(Modifier.width(4.dp))
-                    Box(Modifier.width(10.dp).fillMaxHeight(waterHeight).clip(CircleShape).background(Color(0xFF2196F3).copy(alpha = 0.4f)))
+                    Box(Modifier
+                        .width(10.dp)
+                        .fillMaxHeight(waterHeight)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2196F3).copy(alpha = 0.4f)))
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(entry.label, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
@@ -596,7 +686,9 @@ fun PeriodBottomSheet(selectedPeriod: DiaryPeriod, onDismiss: () -> Unit, onPeri
                 val isSelected = period == selectedPeriod
                 Surface(
                     onClick = { onPeriodSelected(period); onDismiss() },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                     border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
@@ -738,7 +830,9 @@ fun ProfileReviews(
 @Composable
 fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.padding(24.dp).padding(bottom = 48.dp)) {
+        Column(Modifier
+            .padding(24.dp)
+            .padding(bottom = 48.dp)) {
             Text(
                 text = "ANÁLISIS DE PREFERENCIAS",
                 style = MaterialTheme.typography.titleLarge,
@@ -811,7 +905,9 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
             Spacer(Modifier.height(32.dp))
             Button(
                 onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(28.dp)
             ) { Text("CONTINUAR EXPLORANDO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary) }
@@ -828,7 +924,9 @@ fun ProfileStatsRow(
     onFollowingClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         StatItem("Posts", posts.toString())
@@ -841,9 +939,12 @@ fun ProfileStatsRow(
 fun StatItem(label: String, value: String, onClick: (() -> Unit)? = null) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clip(RoundedCornerShape(12.dp)).let {
-            if (onClick != null) it.clickable(onClick = onClick) else it
-        }.padding(8.dp)
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .let {
+                if (onClick != null) it.clickable(onClick = onClick) else it
+            }
+            .padding(8.dp)
     ) {
         Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(text = label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, letterSpacing = 1.sp)
@@ -862,7 +963,9 @@ fun CoffeeFavoritePremiumItem(
                 model = coffeeDetails.coffee.imageUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(70.dp).clip(RoundedCornerShape(20.dp))
+                modifier = Modifier
+                    .size(70.dp)
+                    .clip(RoundedCornerShape(20.dp))
             )
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -882,13 +985,20 @@ fun CoffeeFavoriteListItem(
     coffeeDetails: CoffeeWithDetails,
     onClick: () -> Unit
 ) {
-    PremiumCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    PremiumCard(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffeeDetails.coffee.imageUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(70.dp).clip(RoundedCornerShape(20.dp))
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(12.dp))
             )
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -942,7 +1052,9 @@ fun SwipeableFavoriteItem(
 fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(0.7f).height(48.dp),
+        modifier = Modifier
+            .fillMaxWidth(0.7f)
+            .height(48.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isFollowing) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
             contentColor = if (isFollowing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
@@ -965,7 +1077,9 @@ fun EditProfileFields(
     onSave: () -> Unit,
     usernameError: String?
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 8.dp)) {
         OutlinedTextField(
             value = username, onValueChange = onUsernameChange, label = { Text("Usuario") },
             modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
@@ -986,7 +1100,9 @@ fun EditProfileFields(
         )
         Spacer(Modifier.height(24.dp))
         Button(
-            onClick = onSave, modifier = Modifier.fillMaxWidth().height(54.dp),
+            onClick = onSave, modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
             colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent), shape = RoundedCornerShape(28.dp)
         ) { Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold, color = Color.White) }
     }
@@ -1021,11 +1137,15 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
     }
 
     PremiumCard(
-        modifier = modifier.height(140.dp).clickable(onClick = onClick),
+        modifier = modifier
+            .height(140.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -1085,7 +1205,10 @@ fun ConfigStep(
 ) {
     val waterBlue = Color(0xFF2196F3)
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
+        Column(Modifier
+            .weight(1f)
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState())) {
             Spacer(Modifier.height(24.dp))
             SectionHeader("AJUSTES TÉCNICOS")
 
@@ -1125,7 +1248,9 @@ fun ConfigStep(
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
@@ -1157,7 +1282,9 @@ fun ConfigStep(
         BottomActionContainer {
             Button(
                 onClick = onNext,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(28.dp)
             ) {
@@ -1295,7 +1422,9 @@ fun PreparationStep(
                 if (hasTimerStarted) {
                     OutlinedButton(
                         onClick = { viewModel.resetTimer() },
-                        modifier = Modifier.weight(1f).height(56.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
                         shape = RoundedCornerShape(28.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -1306,7 +1435,9 @@ fun PreparationStep(
 
                 Button(
                     onClick = { viewModel.toggleTimer() },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = if (isTimerRunning) ElectricRed else MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
@@ -1338,7 +1469,9 @@ fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
     val coffeeBrown = CaramelAccent
     val softGray = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
 
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    Column(Modifier
+        .fillMaxWidth()
+        .padding(vertical = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom,
@@ -1357,7 +1490,9 @@ fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
 
         Spacer(Modifier.height(8.dp))
 
-        Row(Modifier.fillMaxWidth().height(12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier
+            .fillMaxWidth()
+            .height(12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             var elapsedBeforeThisPhase = 0
             phases.forEach { phase ->
                 val weight = (phase.durationSeconds.toFloat() / totalSeconds).coerceAtLeast(0.05f)
@@ -1408,7 +1543,10 @@ fun ResultStep(
     )
 
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
+        Column(Modifier
+            .weight(1f)
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState())) {
             Spacer(Modifier.height(24.dp))
 
             PremiumCard {
@@ -1493,7 +1631,9 @@ fun ResultStep(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = { viewModel.resetAll() },
-                    Modifier.weight(1f).height(56.dp),
+                    Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     shape = RoundedCornerShape(28.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                 ) {
@@ -1502,7 +1642,9 @@ fun ResultStep(
                 Button(
                     onClick = { viewModel.saveToDiary { onNavigateToDiary() } },
                     enabled = selectedItem != null && selectedTaste != null,
-                    modifier = Modifier.weight(1.3f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, disabledContainerColor = MaterialTheme.colorScheme.outline),
                     shape = RoundedCornerShape(28.dp)
                 ) {
@@ -1570,7 +1712,9 @@ fun PantrySelectionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                 model = item.coffee.imageUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(70.dp).clip(RoundedCornerShape(16.dp))
+                modifier = Modifier
+                    .size(70.dp)
+                    .clip(RoundedCornerShape(16.dp))
             )
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
@@ -1579,7 +1723,10 @@ fun PantrySelectionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.outline
                 )
@@ -1687,7 +1834,9 @@ fun WaterWaveAnimation(
 fun LocalDetailBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
     PremiumCard(modifier = modifier) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+            Box(Modifier
+                .size(32.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(12.dp))
@@ -1738,7 +1887,9 @@ fun CommentsSheet(
                 .imePadding()
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -1750,12 +1901,16 @@ fun CommentsSheet(
             }
 
             if (comments.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
                     Text("No hay comentarios todavía", color = Color.Gray)
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false),
                     state = listState,
                     contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp)
                 ) {
@@ -1784,7 +1939,10 @@ fun CommentsSheet(
 
             if (suggestions.isNotEmpty()) {
                 LazyRow(
-                    modifier = Modifier.fillMaxWidth().background(Color(0xFFF8F8F8)).padding(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF8F8F8))
+                        .padding(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(suggestions) { user ->
@@ -1804,7 +1962,10 @@ fun CommentsSheet(
                 Column {
                     if (editingCommentId != null) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().background(CoffeeBrown.copy(alpha = 0.1f)).padding(horizontal = 16.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(CoffeeBrown.copy(alpha = 0.1f))
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -1881,7 +2042,9 @@ fun NotificationsBottomSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
-        Column(Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+        Column(Modifier
+            .fillMaxWidth()
+            .padding(bottom = 32.dp)) {
             Text(
                 text = "NOTIFICACIONES",
                 style = MaterialTheme.typography.labelLarge,
@@ -1891,7 +2054,9 @@ fun NotificationsBottomSheet(
             )
 
             if (notifications.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 48.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 48.dp), contentAlignment = Alignment.Center) {
                     Text("No tienes notificaciones", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
@@ -1985,7 +2150,10 @@ private fun NotificationRow(
                 AsyncImage(
                     model = avatarUrl,
                     contentDescription = null,
-                    modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
                 if (isUnread) {
                     Box(
@@ -2028,7 +2196,10 @@ private fun CommentRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .background(if (isHighlighted) highlightColor else Color.Transparent, RoundedCornerShape(12.dp))
+            .background(
+                if (isHighlighted) highlightColor else Color.Transparent,
+                RoundedCornerShape(12.dp)
+            )
             .padding(8.dp)
     ) {
         AsyncImage(
@@ -2122,7 +2293,9 @@ private fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
         border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier.size(20.dp).clip(CircleShape))
+            AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier
+                .size(20.dp)
+                .clip(CircleShape))
             Spacer(Modifier.width(8.dp))
             Text(user.username, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
@@ -2152,7 +2325,11 @@ fun PremiumTabRow(
                     val isSelected = selectedTabIndex == index
                     val contentColor by animateColorAsState(if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
                     Box(
-                        modifier = Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(24.dp)).clickable { onTabSelected(index) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(24.dp))
+                            .clickable { onTabSelected(index) },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(text = title, style = MaterialTheme.typography.labelLarge, color = contentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -2185,7 +2362,9 @@ fun StockSliderSection(label: String, value: Float, maxValue: Float, onValueChan
 fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
     PremiumCard(modifier = modifier) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+            Box(Modifier
+                .size(32.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(12.dp))
@@ -2209,7 +2388,7 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, onDelete: () -> Unit) {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp)) 
+                    .clip(RoundedCornerShape(16.dp))
                     .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
             ) { 
@@ -2234,7 +2413,9 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        if (entry.type == "WATER") Color(0xFFE3F2FD).copy(alpha = if (isSystemInDarkTheme()) 0.2f else 1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        if (entry.type == "WATER") Color(0xFFE3F2FD).copy(alpha = if (isSystemInDarkTheme()) 0.2f else 1f) else MaterialTheme.colorScheme.primary.copy(
+                            alpha = 0.15f
+                        ),
                         CircleShape
                     ), 
                 contentAlignment = Alignment.Center
@@ -2259,7 +2440,9 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
 @Composable
 fun InfoBottomSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp)) {
+        Column(Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 32.dp)) {
             Text(
                 text = "Recomendaciones OMS",
                 style = MaterialTheme.typography.titleLarge,
@@ -2322,7 +2505,9 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2332,7 +2517,9 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 
                 Button(
                     onClick = { onSave(total.roundToInt(), rem.roundToInt()) }, 
-                    Modifier.weight(1f).height(56.dp), 
+                    Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) { 
@@ -2496,7 +2683,9 @@ fun SettingsBottomSheet(
                 )
                 
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
                     shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
@@ -2604,7 +2793,9 @@ fun EditPostBottomSheet(
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2613,7 +2804,9 @@ fun EditPostBottomSheet(
                 }
                 Button(
                     onClick = { onConfirm(text, imageUrl) },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -2713,7 +2906,9 @@ fun EditReviewBottomSheet(
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2722,7 +2917,9 @@ fun EditReviewBottomSheet(
                 }
                 Button(
                     onClick = { onConfirm(rating, comment, imageUrl) },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -2773,7 +2970,9 @@ fun DeleteConfirmationDialog(
             ) {
                 OutlinedButton(
                     onClick = onDismissRequest,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2785,7 +2984,9 @@ fun DeleteConfirmationDialog(
                         onConfirm()
                         onDismissRequest()
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) {

@@ -206,7 +206,9 @@ class DiaryRepository @Inject constructor(
 
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {
-                try { supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee) } catch (e: Exception) { }
+                try { 
+                    supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee) 
+                } catch (e: Exception) { }
             }
         }
     }

@@ -161,9 +161,43 @@ class UserRepository @Inject constructor(
         return local
     }
 
-    suspend fun getUserById(userId: Int): UserEntity? = userDao.getUserById(userId)
-    suspend fun getUserByGoogleId(googleId: String): UserEntity? = userDao.getUserByGoogleId(googleId)
-    suspend fun getUserByUsername(username: String): UserEntity? = userDao.getUserByUsername(username)
+    suspend fun getUserById(userId: Int): UserEntity? {
+        val local = userDao.getUserById(userId)
+        if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                val remote = supabaseDataSource.getUserById(userId)
+                if (remote != null) userDao.upsertUser(remote)
+                return remote
+            } catch (e: Exception) { }
+        }
+        return local
+    }
+
+    suspend fun getUserByGoogleId(googleId: String): UserEntity? {
+        val local = userDao.getUserByGoogleId(googleId)
+        if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                val remote = supabaseDataSource.getUserByGoogleId(googleId)
+                if (remote != null) {
+                    userDao.upsertUser(remote)
+                    return remote
+                }
+            } catch (e: Exception) { }
+        }
+        return local
+    }
+
+    suspend fun getUserByUsername(username: String): UserEntity? {
+        val local = userDao.getUserByUsername(username)
+        if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                val remote = supabaseDataSource.getUserByUsername(username)
+                if (remote != null) userDao.upsertUser(remote)
+                return remote
+            } catch (e: Exception) { }
+        }
+        return local
+    }
 
     suspend fun upsertUser(user: UserEntity) = withContext(Dispatchers.IO) {
         userDao.upsertUser(user)

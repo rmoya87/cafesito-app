@@ -1,7 +1,6 @@
 package com.cafesito.app.health
 
 import android.content.SharedPreferences
-import com.cafesito.app.health.HealthConnectManager
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton

@@ -4,6 +4,7 @@ import android.Manifest
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -59,8 +60,15 @@ fun AddPostScreen(
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
     val permissionState = rememberPermissionState(permission)
+    
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap -> 
         viewModel.setCapturedImage(bitmap)
+    }
+
+    val pickMediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            viewModel.setImage(uri)
+        }
     }
 
     LaunchedEffect(permissionState.status) {
@@ -147,6 +155,7 @@ fun AddPostScreen(
                     postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(
                         viewModel = viewModel, 
                         onCameraClick = { cameraLauncher.launch(null) },
+                        onGalleryClick = { pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                         onShowGalleryManual = { showMainGallerySheet = true }
                     )
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel)
@@ -155,6 +164,7 @@ fun AddPostScreen(
                     postType == PostType.OPINION && step == 1 -> ReviewPhotoSelectionStep(
                         viewModel = viewModel,
                         onCameraClick = { cameraLauncher.launch(null) },
+                        onGalleryClick = { pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                         onShowGalleryManual = { showMainGallerySheet = true }
                     )
                     postType == PostType.OPINION && step == 2 -> ReviewDetailsStepPremium(viewModel = viewModel)
@@ -200,6 +210,7 @@ fun AddPostScreen(
 private fun PhotoSelectionStepPremium(
     viewModel: AddPostViewModel, 
     onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
     onShowGalleryManual: () -> Unit
 ) {
     val imageSource by viewModel.imageSource.collectAsState()
@@ -237,6 +248,11 @@ private fun PhotoSelectionStepPremium(
                     Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
+            item {
+                Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onGalleryClick() }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Collections, null, tint = MaterialTheme.colorScheme.onSurface)
+                }
+            }
             items(galleryImages) { uri: Uri ->
                 val isSelected = imageSource == uri
                 Box(modifier = Modifier.aspectRatio(1f).clickable { viewModel.setImage(uri) }) {
@@ -252,6 +268,7 @@ private fun PhotoSelectionStepPremium(
 private fun ReviewPhotoSelectionStep(
     viewModel: AddPostViewModel, 
     onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
     onShowGalleryManual: () -> Unit
 ) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
@@ -299,6 +316,11 @@ private fun ReviewPhotoSelectionStep(
             item {
                 Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onCameraClick() }, contentAlignment = Alignment.Center) {
                     Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+            item {
+                Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onGalleryClick() }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Collections, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
             items(galleryImages) { uri: Uri ->
