@@ -44,7 +44,9 @@ class AddPostViewModel @Inject constructor(
     private val _postType = MutableStateFlow(savedStateHandle.get<PostType>("postType") ?: PostType.PUBLICATION)
     val postType: StateFlow<PostType> = _postType.asStateFlow()
 
-    private val _imageSource = MutableStateFlow<Any?>(null)
+    private val _imageSource = MutableStateFlow<Any?>(
+        savedStateHandle.get<String>("imageUri")?.let { Uri.parse(it) }
+    )
     val imageSource: StateFlow<Any?> = _imageSource.asStateFlow()
 
     private val _galleryImages = MutableStateFlow<List<Uri>>(emptyList())
@@ -127,41 +129,29 @@ class AddPostViewModel @Inject constructor(
 
     fun setImage(uri: Uri?) { 
         _imageSource.value = uri 
+        savedStateHandle.set("imageUri", uri?.toString())
         if (_postType.value == PostType.PUBLICATION && uri != null) {
             _currentStep.value = 1
             savedStateHandle.set("currentStep", 1)
         }
     }
 
-    private var tempImageUri: Uri? = null
-
-    fun getCameraImageUri(): Uri {
-        val file = File(context.cacheDir, "camera_capture_${System.currentTimeMillis()}.jpg")
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        tempImageUri = uri
-        return uri
-    }
-
-    fun onCameraResult(success: Boolean) {
-        if (success) {
-            val uri = tempImageUri ?: return
-            _imageSource.value = uri
-            if (_postType.value == PostType.PUBLICATION) {
-                _currentStep.value = 1
-                savedStateHandle.set("currentStep", 1)
-            }
-        }
-    }
     
     fun setCapturedImage(bitmap: Bitmap?) { 
         if (bitmap != null) {
-            _imageSource.value = bitmap
-            if (_postType.value == PostType.PUBLICATION) {
-                _currentStep.value = 1
-                savedStateHandle.set("currentStep", 1)
-            } else {
-                _currentStep.value = 0 
-                savedStateHandle.set("currentStep", 0)
+            viewModelScope.launch {
+                val path = saveBitmapToLocal(bitmap)
+                val fileUri = Uri.fromFile(File(path))
+                _imageSource.value = fileUri
+                savedStateHandle.set("imageUri", fileUri.toString())
+
+                if (_postType.value == PostType.PUBLICATION) {
+                    _currentStep.value = 1
+                    savedStateHandle.set("currentStep", 1)
+                } else {
+                    _currentStep.value = 0 
+                    savedStateHandle.set("currentStep", 0)
+                }
             }
         }
     }
