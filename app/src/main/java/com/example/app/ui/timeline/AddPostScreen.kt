@@ -58,7 +58,9 @@ fun AddPostScreen(
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
     val permissionState = rememberPermissionState(permission)
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success -> 
+        viewModel.onCameraResult(success)
+    }
 
     // Solo pedimos permisos al inicio si vamos a publicar post.
     // Si es opinión, podemos esperar a llegar al paso de detalles (opcional).
@@ -100,10 +102,10 @@ fun AddPostScreen(
                 label = "FlowTransition"
             ) { step ->
                 when {
-                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel, permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
+                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel, permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(viewModel.getCameraImageUri()) })
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
                     postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
-                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel, hasPermission = permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
+                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel, hasPermission = permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(viewModel.getCameraImageUri()) })
                 }
             }
             

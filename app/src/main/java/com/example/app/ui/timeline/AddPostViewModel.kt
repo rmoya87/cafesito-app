@@ -5,6 +5,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
@@ -31,14 +33,15 @@ class AddPostViewModel @Inject constructor(
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
     private val userRepository: UserRepository,
-    private val reviewRepository: ReviewRepository
+    private val reviewRepository: ReviewRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
-    private val _currentStep = MutableStateFlow(0)
+    private val _currentStep = MutableStateFlow(savedStateHandle.get<Int>("currentStep") ?: 0)
     val currentStep: StateFlow<Int> = _currentStep.asStateFlow()
 
-    private val _postType = MutableStateFlow(PostType.PUBLICATION)
+    private val _postType = MutableStateFlow(savedStateHandle.get<PostType>("postType") ?: PostType.PUBLICATION)
     val postType: StateFlow<PostType> = _postType.asStateFlow()
 
     private val _imageSource = MutableStateFlow<Any?>(null)
@@ -104,14 +107,19 @@ class AddPostViewModel @Inject constructor(
 
     fun setPostType(type: PostType) {
         _postType.value = type
+        savedStateHandle.set("postType", type)
         _currentStep.value = 0
+        savedStateHandle.set("currentStep", 0)
     }
 
     fun onSearchQueryChanged(query: String) { _searchQuery.value = query }
 
     fun selectCoffee(coffee: CoffeeWithDetails?) {
         _selectedCoffee.value = coffee
-        if (coffee != null) _currentStep.value = 1
+        if (coffee != null) {
+            _currentStep.value = 1
+            savedStateHandle.set("currentStep", 1)
+        }
     }
 
     fun onCommentChanged(text: String) { _comment.value = text }
@@ -121,6 +129,27 @@ class AddPostViewModel @Inject constructor(
         _imageSource.value = uri 
         if (_postType.value == PostType.PUBLICATION && uri != null) {
             _currentStep.value = 1
+            savedStateHandle.set("currentStep", 1)
+        }
+    }
+
+    private var tempImageUri: Uri? = null
+
+    fun getCameraImageUri(): Uri {
+        val file = File(context.cacheDir, "camera_capture_${System.currentTimeMillis()}.jpg")
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        tempImageUri = uri
+        return uri
+    }
+
+    fun onCameraResult(success: Boolean) {
+        if (success) {
+            val uri = tempImageUri ?: return
+            _imageSource.value = uri
+            if (_postType.value == PostType.PUBLICATION) {
+                _currentStep.value = 1
+                savedStateHandle.set("currentStep", 1)
+            }
         }
     }
     
@@ -129,13 +158,18 @@ class AddPostViewModel @Inject constructor(
             _imageSource.value = bitmap
             if (_postType.value == PostType.PUBLICATION) {
                 _currentStep.value = 1
+                savedStateHandle.set("currentStep", 1)
             } else {
                 _currentStep.value = 0 
+                savedStateHandle.set("currentStep", 0)
             }
         }
     }
     
-    fun goToStep(step: Int) { _currentStep.value = step }
+    fun goToStep(step: Int) { 
+        _currentStep.value = step 
+        savedStateHandle.set("currentStep", step)
+    }
 
     private suspend fun saveBitmapToLocal(bitmap: Bitmap): String = withContext(Dispatchers.IO) {
         val filename = "shot_${UUID.randomUUID()}.jpg"
