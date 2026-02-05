@@ -63,7 +63,7 @@ class CoffeeRepository @Inject constructor(
         saveFetchResult = { (public, custom, reviews) ->
             withContext(Dispatchers.IO) {
                 coffeeDao.insertCoffees(public + custom)
-                // reviews.forEach { coffeeDao.upsertReview(it) } // Eliminado para ir directo a Supabase
+                coffeeDao.upsertReviews(reviews)
             }
         },
         scope = externalScope,

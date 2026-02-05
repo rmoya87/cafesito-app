@@ -47,6 +47,9 @@ interface CoffeeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertReview(review: ReviewEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertReviews(reviews: List<ReviewEntity>): List<Long>
+
     @Query("DELETE FROM reviews_db WHERE coffeeId = :coffeeId AND userId = :userId")
     suspend fun deleteReviewByUser(coffeeId: String, userId: Int): Int
 }

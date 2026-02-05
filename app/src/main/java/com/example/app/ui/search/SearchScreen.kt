@@ -371,12 +371,18 @@ fun SearchScreen(
                 .padding(top = padding.calculateTopPadding())
                 .layout { measurable, constraints ->
                     val offset = actualScrollBehavior.state.heightOffset.roundToInt()
-                    // Medimos el contenido con una altura mayor para compensar el desplazamiento hacia arriba
-                    // así el "fondo" o el final del contenido sigue llegando hasta abajo de la pantalla.
+                    val extraHeight = actualScrollBehavior.state.heightOffsetLimit.roundToInt().coerceAtMost(0).absoluteValue
+                    
+                    val newMaxHeight = if (constraints.hasBoundedHeight) {
+                        // Evitar desbordamiento de Int y asegurar que maxHeight >= minHeight
+                        val sum = constraints.maxHeight.toLong() + extraHeight
+                        if (sum > Int.MAX_VALUE) Int.MAX_VALUE else sum.toInt()
+                    } else {
+                        constraints.maxHeight
+                    }
+
                     val placeable = measurable.measure(
-                        constraints.copy(
-                            maxHeight = constraints.maxHeight + actualScrollBehavior.state.heightOffsetLimit.roundToInt().coerceAtMost(0).absoluteValue
-                        )
+                        constraints.copy(maxHeight = newMaxHeight.coerceAtLeast(constraints.minHeight))
                     )
                     layout(placeable.width, constraints.maxHeight) {
                         placeable.placeRelative(0, offset)

@@ -193,10 +193,12 @@ class SocialRepository @Inject constructor(
                 val posts = supabaseDataSource.getAllPosts()
                 val likes = supabaseDataSource.getAllLikes()
                 val comments = supabaseDataSource.getAllComments()
+                val reviews = supabaseDataSource.getAllReviews()
                 
                 socialDao.insertPosts(posts)
                 socialDao.insertLikes(likes)
                 socialDao.insertComments(comments)
+                socialDao.upsertReviews(reviews)
                 
                 triggerRefresh()
             } catch (e: Exception) {

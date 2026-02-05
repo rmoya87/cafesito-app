@@ -59,10 +59,14 @@ fun AddPostScreen(
     }
     val permissionState = rememberPermissionState(permission)
 
-    LaunchedEffect(permissionState.status.isGranted) {
+    // Solo pedimos permisos al inicio si vamos a publicar post.
+    // Si es opinión, podemos esperar a llegar al paso de detalles (opcional).
+    // Pero por simplicidad y para asegurar que la galería cargue, los pedimos al entrar.
+    LaunchedEffect(permissionState.status) {
         if (permissionState.status.isGranted) {
             viewModel.loadGalleryImages()
         } else {
+            // Intentamos pedir permiso si no se ha denegado permanentemente
             permissionState.launchPermissionRequest()
         }
     }
