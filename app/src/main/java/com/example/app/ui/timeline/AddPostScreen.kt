@@ -58,6 +58,7 @@ fun AddPostScreen(
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
     val permissionState = rememberPermissionState(permission)
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
 
     // Solo pedimos permisos al inicio si vamos a publicar post.
     // Si es opinión, podemos esperar a llegar al paso de detalles (opcional).
@@ -99,10 +100,10 @@ fun AddPostScreen(
                 label = "FlowTransition"
             ) { step ->
                 when {
-                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel, permissionState.status.isGranted)
+                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel, permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
                     postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
-                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel, hasPermission = permissionState.status.isGranted)
+                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel, hasPermission = permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
                 }
             }
             
@@ -145,10 +146,9 @@ fun AddPostScreen(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission: Boolean) {
+private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission: Boolean, onCameraClick: () -> Unit) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
@@ -173,7 +173,7 @@ private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission
             verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
             item {
-                Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) }, contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onCameraClick() }, contentAlignment = Alignment.Center) {
                     Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
@@ -262,12 +262,11 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostViewModel, hasPermission: Boolean) {
+private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostViewModel, hasPermission: Boolean, onCameraClick: () -> Unit) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val comment by viewModel.comment.collectAsState()
     val rating by viewModel.rating.collectAsState()
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
     var showGallerySheet by remember { mutableStateOf(false) }
     
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
@@ -314,7 +313,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         ) {
             // Botón Cámara
             Box(
-                modifier = Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) },
+                modifier = Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onCameraClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
