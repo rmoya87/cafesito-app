@@ -120,6 +120,26 @@ class CoffeeRepository @Inject constructor(
             }
         } catch (e: Exception) { }
     }
+
+    /**
+     * Sincroniza favoritos desde Supabase al almacenamiento local.
+     * Debe llamarse al entrar en Buscar o Perfil > Favoritos para que, tras borrar caché,
+     * se muestren correctamente los favoritos del usuario.
+     */
+    suspend fun syncFavoritesFromRemote() = withContext(Dispatchers.IO) {
+        val currentUser = userRepository.getActiveUser() ?: return@withContext
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext
+        try {
+            val remoteFavorites = supabaseDataSource.getFavoritesByUserId(currentUser.id)
+            val remoteFavoritesCustom = supabaseDataSource.getFavoritesCustomByUserId(currentUser.id)
+            coffeeDao.deleteFavoritesByUserId(currentUser.id)
+            coffeeDao.deleteFavoritesCustomByUserId(currentUser.id)
+            if (remoteFavorites.isNotEmpty()) coffeeDao.insertFavorites(remoteFavorites)
+            if (remoteFavoritesCustom.isNotEmpty()) coffeeDao.insertFavoritesCustom(remoteFavoritesCustom)
+        } catch (e: Exception) {
+            Log.w("CoffeeRepository", "syncFavoritesFromRemote failed", e)
+        }
+    }
     
     suspend fun upsertReview(review: ReviewEntity) = withContext(Dispatchers.IO) {
         // coffeeDao.upsertReview(review) // Eliminado para ir directo a Supabase

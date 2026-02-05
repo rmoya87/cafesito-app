@@ -183,6 +183,7 @@ class ProfileViewModel @Inject constructor(
     fun refreshData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                coffeeRepository.syncFavoritesFromRemote()
                 userRepository.triggerRefresh()
                 socialRepository.triggerRefresh()
             } catch (e: Exception) { }

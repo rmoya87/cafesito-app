@@ -876,6 +876,68 @@ fun CoffeeFavoritePremiumItem(
     }
 }
 
+/** Fila de café en listado de favoritos (sin corazón). Para quitar de favoritos usar swipe. */
+@Composable
+fun CoffeeFavoriteListItem(
+    coffeeDetails: CoffeeWithDetails,
+    onClick: () -> Unit
+) {
+    PremiumCard(modifier = Modifier.clickable(onClick = onClick)) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(
+                model = coffeeDetails.coffee.imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(70.dp).clip(RoundedCornerShape(20.dp))
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = coffeeDetails.coffee.marca, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeableFavoriteItem(
+    coffeeDetails: CoffeeWithDetails,
+    onRemoveFromFavorites: () -> Unit,
+    onClick: () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = {
+            if (it == SwipeToDismissBoxValue.EndToStart) {
+                onRemoveFromFavorites()
+                true
+            } else false
+        }
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(ElectricRed),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Quitar de favoritos",
+                    tint = Color.White,
+                    modifier = Modifier.padding(end = 16.dp)
+                )
+            }
+        }
+    ) {
+        CoffeeFavoriteListItem(coffeeDetails = coffeeDetails, onClick = onClick)
+    }
+}
+
 @Composable
 fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
     Button(

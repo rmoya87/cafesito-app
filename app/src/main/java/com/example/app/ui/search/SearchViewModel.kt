@@ -49,7 +49,10 @@ class SearchViewModel @Inject constructor(
     fun refreshData() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            try { repository.triggerRefresh() } catch (e: Exception) { Log.e("SEARCH_VM", "Refresh error", e) }
+            try {
+                repository.syncFavoritesFromRemote()
+                repository.triggerRefresh()
+            } catch (e: Exception) { Log.e("SEARCH_VM", "Refresh error", e) }
             finally { _isRefreshing.value = false }
         }
     }
