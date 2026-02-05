@@ -1,5 +1,7 @@
 package com.cafesito.app.ui.timeline
 
+@file:OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 import android.Manifest
 import android.net.Uri
 import android.os.Build
@@ -41,7 +43,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.isGranted
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPostScreen(
     onBackClick: () -> Unit = {},
@@ -118,7 +119,6 @@ fun AddPostScreen(
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission: Boolean) {
     val imageSource by viewModel.imageSource.collectAsState()
