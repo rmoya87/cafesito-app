@@ -70,7 +70,6 @@ class DiaryRepository @Inject constructor(
         try {
             val remoteItems = supabaseDataSource.getPantryItems(user.id)
             remoteItems.forEach {
-                // Asegurarnos de tener el café localmente si no existe
                 if (coffeeDao.getCoffeeById(it.coffeeId) == null) {
                     val coffeeIds = listOf(it.coffeeId)
                     val remoteCoffee = supabaseDataSource.getCoffeesByIds(coffeeIds).firstOrNull()
@@ -103,7 +102,8 @@ class DiaryRepository @Inject constructor(
             preparationType = preparationType, timestamp = System.currentTimeMillis(), type = type
         )
         
-        diaryDao.insertDiaryEntry(entry)
+        val rowId = diaryDao.insertDiaryEntry(entry)
+        val entryWithId = entry.copy(id = rowId)
         
         if (coffeeId != null && type == "CUP") {
             val pantryItems = diaryDao.getPantryItems(user.id).first()
@@ -120,18 +120,33 @@ class DiaryRepository @Inject constructor(
             }
         }
 
+        // Sincronización con Health Connect si está habilitado y tenemos permisos
+        if (healthConnectRepository.isEnabled()) {
+            externalScope.launch {
+                try {
+                    if (healthConnectRepository.hasPermissions()) {
+                        healthConnectRepository.syncDiaryEntry(
+                            mg = if (type == "CUP") caffeineAmount else 0,
+                            ml = if (type == "WATER") amountMl else 0,
+                            timestamp = entryWithId.timestamp,
+                            entryId = entryWithId.id.toString()
+                        )
+                        Log.d("DiaryRepository", "Sincronizado con Health Connect exitosamente")
+                    } else {
+                        Log.w("DiaryRepository", "Health Connect habilitado pero sin permisos")
+                    }
+                } catch (e: Exception) {
+                    Log.e("DiaryRepository", "Error al sincronizar con Health Connect", e)
+                }
+            }
+        }
+
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {
                 try {
-                    val inserted = supabaseDataSource.insertDiaryEntry(entry)
-                    healthConnectRepository.syncDiaryEntry(
-                        mg = if (type == "WATER") 0 else caffeineAmount,
-                        ml = if (type == "WATER") amountMl else 0,
-                        timestamp = entry.timestamp,
-                        entryId = inserted.id.toString()
-                    )
+                    supabaseDataSource.insertDiaryEntry(entryWithId)
                 } catch (e: Exception) {
-                    Log.e("DiaryRepository", "Error syncing diary entry to Supabase/HealthConnect", e)
+                    Log.e("DiaryRepository", "Error syncing diary entry to Supabase", e)
                 }
             }
         }
@@ -161,13 +176,11 @@ class DiaryRepository @Inject constructor(
             imageUrl = imageUrl, totalGrams = totalGrams
         )
         
-        // 1. Guardar café local y remoto
         coffeeDao.insertCoffees(listOf(customCoffee.toCoffee()))
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try { supabaseDataSource.upsertCustomCoffee(customCoffee) } catch (e: Exception) { }
         }
 
-        // 2. Añadir a la despensa
         addToPantry(coffeeId, totalGrams)
     }
 
@@ -194,7 +207,6 @@ class DiaryRepository @Inject constructor(
 
         coffeeDao.insertCoffees(listOf(customCoffee.toCoffee()))
         
-        // Actualizar item en despensa si existe para reflejar nuevo total si es necesario
         val pantryItem = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == id }
         if (pantryItem != null) {
              val updatedItem = pantryItem.copy(totalGrams = totalGrams, lastUpdated = System.currentTimeMillis())
@@ -208,7 +220,7 @@ class DiaryRepository @Inject constructor(
             externalScope.launch {
                 try { 
                     supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee) 
-                } catch (e: Exception) { }
+                } catch (e: Exception) { } 
             }
         }
     }
@@ -242,6 +254,31 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun syncExternalHealthData() {
-        // Implementar sincronización
+        if (!healthConnectRepository.isEnabled() || !healthConnectRepository.hasPermissions()) return
+        
+        try {
+            val externalData = healthConnectRepository.readAndSyncExternalData()
+            val user = userRepository.getActiveUser() ?: return
+            
+            externalData.forEach { (mg, timestamp) ->
+                // Evitar duplicados simples (esto podría mejorarse con una clave única)
+                val existing = diaryDao.getDiaryEntries(user.id).first().any { 
+                    it.timestamp == timestamp && it.caffeineAmount == mg 
+                }
+                
+                if (!existing) {
+                    val entry = DiaryEntryEntity(
+                        userId = user.id,
+                        coffeeName = "Importado de Health Connect",
+                        caffeineAmount = mg,
+                        timestamp = timestamp,
+                        type = if (mg > 0) "CUP" else "WATER"
+                    )
+                    diaryDao.insertDiaryEntry(entry)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("DiaryRepository", "Error al importar datos de Health Connect", e)
+        }
     }
 }

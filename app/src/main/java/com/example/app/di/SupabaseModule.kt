@@ -6,6 +6,8 @@ import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.annotations.SupabaseInternal
+import io.ktor.client.plugins.HttpTimeout
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,6 +19,7 @@ import kotlin.time.Duration.Companion.seconds
 @InstallIn(SingletonComponent::class)
 object SupabaseModule {
 
+    @OptIn(SupabaseInternal::class)
     @Provides
     @Singleton
     fun provideSupabaseClient(): SupabaseClient {
@@ -24,13 +27,19 @@ object SupabaseModule {
             supabaseUrl = "https://ubcxjmagimjhpsehqync.supabase.co",
             supabaseKey = "sb_publishable_M2cY8wb50_I_pfnv_ZcukA_AIvnk66z"
         ) {
-            install(Postgrest) {
-                // Aumentamos el timeout para evitar errores de red lenta
-                httpTimeout = 30.seconds
-            }
+            install(Postgrest)
             install(Auth)
             install(Realtime)
             install(Storage)
+
+            // Configuración global de HTTP usando el plugin de Ktor
+            httpConfig {
+                install(HttpTimeout) {
+                    requestTimeoutMillis = 30.seconds.inWholeMilliseconds
+                    connectTimeoutMillis = 30.seconds.inWholeMilliseconds
+                    socketTimeoutMillis = 30.seconds.inWholeMilliseconds
+                }
+            }
         }
     }
 }

@@ -35,7 +35,7 @@ class HealthConnectRepository @Inject constructor(
     }
 
     suspend fun hasPermissions(): Boolean {
-        return healthConnectManager.hasAllPermissions()
+        return healthConnectManager.hasPermissions()
     }
 
     fun isAvailable(): Boolean {
