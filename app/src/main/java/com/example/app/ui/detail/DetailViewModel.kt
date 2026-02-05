@@ -35,7 +35,7 @@ class DetailViewModel @Inject constructor(
     val uiState: StateFlow<DetailUiState> = combine(
         userRepository.getActiveUserFlow(),
         coffeeRepository.getCoffeeWithDetailsById(coffeeId),
-        socialRepository.getAllReviewsWithAuthor(),
+        socialRepository.getReviewsForCoffee(coffeeId),
         diaryRepository.getPantryItems(),
         coffeeRepository.favorites
     ) { activeUser, coffee, allReviews, pantryItems, favorites ->
@@ -44,20 +44,16 @@ class DetailViewModel @Inject constructor(
         val isFavoriteLocally = favorites.any { it.coffeeId == coffeeId && it.userId == activeUser?.id }
         val updatedCoffee = coffee.copy(favorite = if (isFavoriteLocally) LocalFavorite(coffeeId, activeUser?.id ?: 0) else null)
 
-        val reviewsForThisCoffee = allReviews
-            .filter { it.review.coffeeId == coffeeId }
-            .map { reviewWithAuthor ->
-                UserReviewInfo(
-                    coffeeDetails = updatedCoffee,
-                    review = reviewWithAuthor.review,
-                    authorName = reviewWithAuthor.author.fullName,
-                    authorAvatarUrl = reviewWithAuthor.author.avatarUrl
-                )
-            }
+        val reviewsForThisCoffee = allReviews.map { reviewWithAuthor ->
+            UserReviewInfo(
+                coffeeDetails = updatedCoffee,
+                review = reviewWithAuthor.review,
+                authorName = reviewWithAuthor.author.fullName,
+                authorAvatarUrl = reviewWithAuthor.author.avatarUrl
+            )
+        }
 
-        val userReview = allReviews.find { 
-            it.review.coffeeId == coffeeId && it.review.userId == activeUser?.id 
-        }?.review
+        val userReview = allReviews.find { it.review.userId == activeUser?.id }?.review
 
         val pantryDetails = pantryItems.find { it.coffee.id == coffeeId }
 

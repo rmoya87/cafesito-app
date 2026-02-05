@@ -72,6 +72,43 @@ class SocialRepository @Inject constructor(
 
     fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>> = socialDao.getAllReviewsWithAuthor()
 
+    fun getReviewsForCoffee(coffeeId: String): Flow<List<ReviewWithAuthor>> = _refreshTrigger
+        .flatMapLatest {
+            networkBoundResource(
+                resourceKey = "reviews_$coffeeId",
+                query = { socialDao.getReviewsWithAuthorForCoffee(coffeeId) },
+                fetch = { 
+                    val reviews = supabaseDataSource.getReviewsByCoffeeId(coffeeId)
+                    val userIds = reviews.map { it.userId }.distinct()
+                    val users = userIds.mapNotNull { supabaseDataSource.getUserById(it) }
+                    Pair(reviews, users)
+                },
+                saveFetchResult = { (reviews, users) ->
+                    withContext(Dispatchers.IO) {
+                        userRepository.insertUsers(users)
+                        socialDao.upsertReviews(reviews)
+                    }
+                },
+                shouldFetch = { true },
+                scope = externalScope,
+                connectivityObserver = connectivityObserver
+            )
+        }.flowOn(Dispatchers.IO)
+
+    suspend fun refreshReviews(coffeeId: String) = withContext(Dispatchers.IO) {
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                val reviews = supabaseDataSource.getReviewsByCoffeeId(coffeeId)
+                val userIds = reviews.map { it.userId }.distinct()
+                val users = userIds.mapNotNull { supabaseDataSource.getUserById(it) }
+                userRepository.insertUsers(users)
+                socialDao.upsertReviews(reviews)
+            } catch (e: Exception) {
+                Log.e("SocialRepository", "Error refreshing reviews: ${e.message}")
+            }
+        }
+    }
+
     suspend fun createPost(post: PostEntity) = withContext(Dispatchers.IO) {
         socialDao.insertPost(post)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {

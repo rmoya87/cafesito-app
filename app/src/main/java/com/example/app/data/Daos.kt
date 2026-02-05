@@ -114,6 +114,10 @@ interface SocialDao {
     fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>>
 
     @Transaction
+    @Query("SELECT * FROM reviews_db WHERE coffeeId = :coffeeId ORDER BY timestamp DESC")
+    fun getReviewsWithAuthorForCoffee(coffeeId: String): Flow<List<ReviewWithAuthor>>
+
+    @Transaction
     @Query("SELECT * FROM comments_db WHERE postId = :postId ORDER BY timestamp ASC")
     fun getCommentsWithAuthorForPost(postId: String): Flow<List<CommentWithAuthor>>
 
@@ -137,6 +141,12 @@ interface SocialDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM likes_db WHERE postId = :postId AND userId = :userId)")
     fun isPostLikedByUser(postId: String, userId: Int): Flow<Boolean>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertReview(review: ReviewEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertReviews(reviews: List<ReviewEntity>): List<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNotification(notification: NotificationEntity): Long

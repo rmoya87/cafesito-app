@@ -25,6 +25,12 @@ class CoffeeRepository @Inject constructor(
     private val connectivityObserver: ConnectivityObserver,
     private val externalScope: CoroutineScope
 ) {
+    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+
+    fun triggerRefresh() {
+        _refreshTrigger.tryEmit(Unit)
+    }
+
     val favorites: Flow<List<LocalFavorite>> = coffeeDao.getLocalFavorites()
     val allReviews: Flow<List<ReviewEntity>> = coffeeDao.getAllReviews()
 
@@ -64,26 +70,29 @@ class CoffeeRepository @Inject constructor(
         connectivityObserver = connectivityObserver
     ).flowOn(Dispatchers.IO)
 
-    fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = networkBoundResource(
-        resourceKey = "coffee_detail_$id",
-        query = { coffeeDao.getCoffeeWithDetailsById(id) },
-        fetch = {
-            val user = userRepository.getActiveUser()
-            val coffee = supabaseDataSource.getCoffeesByIds(listOf(id)).firstOrNull()
-                ?: user?.let { u -> supabaseDataSource.getCustomCoffees(u.id).find { it.id == id }?.toCoffee() }
-            val reviews = supabaseDataSource.getReviewsByCoffeeId(id)
-            Pair(coffee, reviews)
-        },
-        saveFetchResult = { (coffee, reviews) ->
-            withContext(Dispatchers.IO) {
-                coffee?.let { coffeeDao.insertCoffees(listOf(it)) }
-                reviews.forEach { coffeeDao.upsertReview(it) }
-            }
-        },
-        shouldFetch = { it == null },
-        scope = externalScope,
-        connectivityObserver = connectivityObserver
-    ).flowOn(Dispatchers.IO)
+    fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = _refreshTrigger
+        .flatMapLatest {
+            networkBoundResource(
+                resourceKey = "coffee_detail_$id",
+                query = { coffeeDao.getCoffeeWithDetailsById(id) },
+                fetch = {
+                    val user = userRepository.getActiveUser()
+                    val coffee = supabaseDataSource.getCoffeesByIds(listOf(id)).firstOrNull()
+                        ?: user?.let { u -> supabaseDataSource.getCustomCoffees(u.id).find { it.id == id }?.toCoffee() }
+                    val reviews = supabaseDataSource.getReviewsByCoffeeId(id)
+                    Pair(coffee, reviews)
+                },
+                saveFetchResult = { (coffee, reviews) ->
+                    withContext(Dispatchers.IO) {
+                        coffee?.let { coffeeDao.insertCoffees(listOf(it)) }
+                        reviews.forEach { coffeeDao.upsertReview(it) }
+                    }
+                },
+                shouldFetch = { true },
+                scope = externalScope,
+                connectivityObserver = connectivityObserver
+            )
+        }.flowOn(Dispatchers.IO)
 
     suspend fun toggleFavorite(coffeeId: String, shouldBeFavorite: Boolean) = withContext(Dispatchers.IO) {
         val currentUser = userRepository.getActiveUser() ?: return@withContext
@@ -131,7 +140,5 @@ class CoffeeRepository @Inject constructor(
         coffeeDao.insertCoffees(public)
     }
 
-    fun triggerRefresh() {
-        // Implementación opcional
-    }
+    // Ya implementado arriba con _refreshTrigger
 }
