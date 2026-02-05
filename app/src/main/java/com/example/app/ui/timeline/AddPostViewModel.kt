@@ -265,8 +265,15 @@ class AddPostViewModel @Inject constructor(
             }
 
             try {
+                // Check if review already exists
+                val existingReviewResult = reviewRepository.getReviewByUserAndCoffee(activeUser.id, coffeeId)
+                val existingReviewId = existingReviewResult.getOrNull()?.id
+                
+                Log.d("AddPostVM", "Reseña existente ID: $existingReviewId")
+                
                 val reviewResult = reviewRepository.submitReview(
                     Review(
+                        id = existingReviewId, // Use existing ID if found, null for new review
                         user = activeUser.toDomainUser(),
                         coffeeId = coffeeId,
                         rating = ratingValue,

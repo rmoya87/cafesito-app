@@ -74,4 +74,12 @@ class SupabaseRemoteDataSourceImpl(
     override suspend fun upsertReview(review: ReviewDto) {
         client.postgrest["reviews_db"].upsert(review)
     }
+
+    override suspend fun getReviewByUserAndCoffee(userId: Int, coffeeId: String): ReviewDto? =
+        client.postgrest["reviews_db"].select {
+            filter {
+                eq("user_id", userId)
+                eq("coffee_id", coffeeId)
+            }
+        }.decodeSingleOrNull()
 }

@@ -51,6 +51,7 @@ fun AddPostScreen(
     val postType by viewModel.postType.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
+    var showMainGallerySheet by remember { mutableStateOf(false) }
 
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_IMAGES
@@ -142,10 +143,47 @@ fun AddPostScreen(
                 label = "FlowTransition"
             ) { step ->
                 when {
-                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel, permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
+                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(
+                        viewModel = viewModel, 
+                        hasPermission = permissionState.status.isGranted, 
+                        onCameraClick = { cameraLauncher.launch(null) },
+                        onShowGalleryManual = { showMainGallerySheet = true }
+                    )
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
                     postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
                     postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel, hasPermission = permissionState.status.isGranted, onCameraClick = { cameraLauncher.launch(null) })
+                }
+            }
+        }
+    }
+
+    if (showMainGallerySheet) {
+        val galleryImages by viewModel.galleryImages.collectAsState()
+        ModalBottomSheet(
+            onDismissRequest = { showMainGallerySheet = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) }
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().height(600.dp).padding(16.dp)) {
+                Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(16.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(galleryImages) { uri ->
+                        Box(
+                            modifier = Modifier.aspectRatio(1f).clip(RoundedCornerShape(8.dp)).clickable { 
+                                viewModel.setImage(uri)
+                                showMainGallerySheet = false
+                            }
+                        ) {
+                            AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        }
+                    }
                 }
             }
         }
@@ -154,7 +192,12 @@ fun AddPostScreen(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission: Boolean, onCameraClick: () -> Unit) {
+private fun PhotoSelectionStepPremium(
+    viewModel: AddPostViewModel, 
+    hasPermission: Boolean, 
+    onCameraClick: () -> Unit,
+    onShowGalleryManual: () -> Unit
+) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
 
@@ -164,9 +207,7 @@ private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission
                 .fillMaxWidth()
                 .weight(1f)
                 .background(MaterialTheme.colorScheme.background)
-                // En el paso de selección, el click en el previo no hace nada especial 
-                // ya que la galería está justo debajo, pero lo dejamos preparado
-                .clickable(enabled = imageSource == null) { /* Opcional: focalizar galería */ }, 
+                .clickable(enabled = imageSource == null) { onShowGalleryManual() }, 
             contentAlignment = Alignment.Center
         ) {
             if (imageSource != null) {

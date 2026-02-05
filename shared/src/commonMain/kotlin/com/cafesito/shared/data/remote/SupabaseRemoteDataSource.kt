@@ -24,4 +24,5 @@ interface SupabaseRemoteDataSource {
     suspend fun deleteFavorite(coffeeId: String, userId: Int)
 
     suspend fun upsertReview(review: ReviewDto)
+    suspend fun getReviewByUserAndCoffee(userId: Int, coffeeId: String): ReviewDto?
 }

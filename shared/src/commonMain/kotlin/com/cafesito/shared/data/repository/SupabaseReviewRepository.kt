@@ -21,12 +21,35 @@ class SupabaseReviewRepository(
             remote.upsertReview(review.toDto())
         }
     }
+
+    override suspend fun getReviewByUserAndCoffee(userId: Int, coffeeId: String): Result<Review?> = withContext(Dispatchers.Default) {
+        runCatching {
+            remote.getReviewByUserAndCoffee(userId, coffeeId)?.toDomain()
+        }
+    }
 }
 
 private fun Review.toDto(): ReviewDto = ReviewDto(
     id = id,
     coffeeId = coffeeId,
     userId = user.id,
+    rating = rating,
+    comment = comment,
+    imageUrl = imageUrl,
+    timestamp = timestamp
+)
+
+private fun ReviewDto.toDomain(): Review = Review(
+    id = id,
+    user = User(
+        id = userId,
+        username = "",
+        fullName = "",
+        avatarUrl = "",
+        email = "",
+        bio = null
+    ),
+    coffeeId = coffeeId,
     rating = rating,
     comment = comment,
     imageUrl = imageUrl,
