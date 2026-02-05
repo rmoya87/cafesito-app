@@ -174,7 +174,8 @@ fun AppNavigation(
         }
     }
 
-    if (startRoute == null) {
+    val finalStartRoute = startRoute
+    if (finalStartRoute == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -217,7 +218,7 @@ fun AppNavigation(
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = startRoute,
+            startDestination = finalStartRoute,
             modifier = Modifier.fillMaxSize(),
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
