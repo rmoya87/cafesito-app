@@ -268,6 +268,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
     val comment by viewModel.comment.collectAsState()
     val rating by viewModel.rating.collectAsState()
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
+    var showGallerySheet by remember { mutableStateOf(false) }
     
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         Text("CAFÉ SELECCIONADO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
@@ -286,6 +287,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         
         Spacer(Modifier.height(32.dp))
         
+        // Imagen principal de la reseña
         Box(
             modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp)),
             contentAlignment = Alignment.Center
@@ -303,30 +305,34 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
             }
         }
         
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
         
-        // Carrusel de fotos para Review
-        val galleryImages by viewModel.galleryImages.collectAsState()
-        LazyRow(
+        // Acciones: Cámara y Galería
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
-                Box(
-                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) },
-                    contentAlignment = Alignment.Center
-                ) {
+            // Botón Cámara
+            Box(
+                modifier = Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { cameraLauncher.launch(null) },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("CÁMARA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
-            items(galleryImages) { uri: Uri ->
-                val isSelected = imageSource == uri
-                Box(
-                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(16.dp)).clickable { viewModel.setImage(uri) }
-                ) {
-                    AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.3f)).border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)))
+            
+            // Botón Galería (Abre Modal)
+            Box(
+                modifier = Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { showGallerySheet = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.PhotoLibrary, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("GALERÍA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -344,5 +350,39 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         )
         
         Spacer(Modifier.height(100.dp))
+    }
+
+    if (showGallerySheet) {
+        val galleryImages by viewModel.galleryImages.collectAsState()
+        ModalBottomSheet(
+            onDismissRequest = { showGallerySheet = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) }
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().height(600.dp).padding(16.dp)) {
+                Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(16.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(galleryImages) { uri ->
+                        val isSelected = imageSource == uri
+                        Box(
+                            modifier = Modifier.aspectRatio(1f).clip(RoundedCornerShape(8.dp)).clickable { 
+                                viewModel.setImage(uri)
+                                showGallerySheet = false
+                            }
+                        ) {
+                            AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.3f)).border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)))
+                        }
+                    }
+                }
+            }
+        }
     }
 }

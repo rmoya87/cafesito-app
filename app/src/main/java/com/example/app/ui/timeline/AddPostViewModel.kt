@@ -117,13 +117,21 @@ class AddPostViewModel @Inject constructor(
     fun onCommentChanged(text: String) { _comment.value = text }
     fun onRatingChanged(value: Float) { _rating.value = value }
 
-    fun setImage(uri: Uri?) { _imageSource.value = uri }
+    fun setImage(uri: Uri?) { 
+        _imageSource.value = uri 
+        if (_postType.value == PostType.PUBLICATION && uri != null) {
+            _currentStep.value = 1
+        }
+    }
     
     fun setCapturedImage(bitmap: Bitmap?) { 
         if (bitmap != null) {
             _imageSource.value = bitmap
-            // Nos aseguramos de estar en el paso 0 para ver la preview
-            _currentStep.value = 0 
+            if (_postType.value == PostType.PUBLICATION) {
+                _currentStep.value = 1
+            } else {
+                _currentStep.value = 0 
+            }
         }
     }
     
