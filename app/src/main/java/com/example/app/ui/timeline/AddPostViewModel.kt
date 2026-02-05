@@ -6,7 +6,6 @@ import android.util.Log
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
-import androidx.core.content.FileProvider
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -60,7 +59,6 @@ class AddPostViewModel @Inject constructor(
     val selectedCoffee: StateFlow<CoffeeWithDetails?> = _selectedCoffee.asStateFlow()
 
     init {
-        // Restaurar café seleccionado si existe en SavedStateHandle
         savedStateHandle.get<String>("selectedCoffeeId")?.let { id ->
             viewModelScope.launch {
                 coffeeRepository.allCoffees.collectLatest { list ->
@@ -115,7 +113,6 @@ class AddPostViewModel @Inject constructor(
                 list
             }
             _galleryImages.value = images
-            // Ya no ponemos la primera imagen por defecto para que el usuario elija
         }
     }
 
@@ -124,6 +121,7 @@ class AddPostViewModel @Inject constructor(
         savedStateHandle.set("postType", type)
         _currentStep.value = 0
         savedStateHandle.set("currentStep", 0)
+        // Limpiar imágenes al cambiar de tipo si es necesario
     }
 
     fun onSearchQueryChanged(query: String) { _searchQuery.value = query }
@@ -152,26 +150,29 @@ class AddPostViewModel @Inject constructor(
     fun setImage(uri: Uri?) { 
         _imageSource.value = uri 
         savedStateHandle.set("imageUri", uri?.toString())
-        if (_postType.value == PostType.PUBLICATION && uri != null) {
-            _currentStep.value = 1
-            savedStateHandle.set("currentStep", 1)
+        
+        // Navegación automática al siguiente paso tras elegir imagen
+        if (uri != null) {
+            if (_postType.value == PostType.PUBLICATION && _currentStep.value == 0) {
+                _currentStep.value = 1
+                savedStateHandle.set("currentStep", 1)
+            } else if (_postType.value == PostType.OPINION && _currentStep.value == 1) {
+                _currentStep.value = 2
+                savedStateHandle.set("currentStep", 2)
+            }
         }
     }
 
-    
     fun setCapturedImage(bitmap: Bitmap?) { 
         if (bitmap != null) {
-            // Actualización instantánea de la UI
             _imageSource.value = bitmap
-            if (_postType.value == PostType.PUBLICATION) {
-                _currentStep.value = 1
-                savedStateHandle.set("currentStep", 1)
-            }
+            val nextStep = if (_postType.value == PostType.PUBLICATION) 1 else 2
+            _currentStep.value = nextStep
+            savedStateHandle.set("currentStep", nextStep)
 
             viewModelScope.launch {
                 val path = saveBitmapToLocal(bitmap)
                 val fileUri = Uri.fromFile(File(path))
-                // Actualizamos a la URI persistente una vez guardada
                 _imageSource.value = fileUri
                 savedStateHandle.set("imageUri", fileUri.toString())
             }
@@ -198,7 +199,6 @@ class AddPostViewModel @Inject constructor(
             val activeUser = userRepository.getActiveUser() ?: return@launch
             val commentText = _comment.value
             
-            // Usamos la URI real si está disponible, si es Bitmap (de cámara) la guardamos temporalmente
             val imageUrl = when (source) {
                 is Uri -> source.toString()
                 is Bitmap -> saveBitmapToLocal(source)
@@ -212,50 +212,22 @@ class AddPostViewModel @Inject constructor(
                 comment = commentText, 
                 timestamp = System.currentTimeMillis()
             ))
-            socialRepository.syncSocialData() // Forzar refresco
+            socialRepository.syncSocialData()
             
-            // Limpiar estado
-            _comment.value = ""
-            _imageSource.value = null
-            _currentStep.value = 0
-            savedStateHandle.remove<String>("comment")
-            savedStateHandle.remove<String>("imageUri")
-            savedStateHandle.remove<Int>("currentStep")
-            
+            clearState()
             onSuccess()
         }
     }
 
     fun submitReview(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            Log.d("AddPostVM", "Iniciando submitReview")
             val ratingValue = _rating.value
             val commentText = _comment.value
             
-            if (ratingValue == 0f) {
-                Log.w("AddPostVM", "Intento de enviar reseña sin puntuación")
-                return@launch
-            }
+            if (ratingValue == 0f) return@launch
             
-            val validation = validateReviewInput(ratingValue, commentText)
-            if (validation.isFailure) {
-                Log.w("AddPostVM", "Validación de reseña fallida")
-                return@launch
-            }
-
-            val activeUser = userRepository.getActiveUser()
-            if (activeUser == null) {
-                Log.e("AddPostVM", "Usuario activo no encontrado")
-                return@launch
-            }
-
-            val coffeeId = _selectedCoffee.value?.coffee?.id
-            if (coffeeId == null) {
-                Log.e("AddPostVM", "No hay café seleccionado")
-                return@launch
-            }
-            
-            Log.d("AddPostVM", "Enviando reseña para café: $coffeeId")
+            val activeUser = userRepository.getActiveUser() ?: return@launch
+            val coffeeId = _selectedCoffee.value?.coffee?.id ?: return@launch
             
             val source = _imageSource.value
             val imageUrl = when (source) {
@@ -265,15 +237,12 @@ class AddPostViewModel @Inject constructor(
             }
 
             try {
-                // Check if review already exists
                 val existingReviewResult = reviewRepository.getReviewByUserAndCoffee(activeUser.id, coffeeId)
                 val existingReviewId = existingReviewResult.getOrNull()?.id
                 
-                Log.d("AddPostVM", "Reseña existente ID: $existingReviewId")
-                
                 val reviewResult = reviewRepository.submitReview(
                     Review(
-                        id = existingReviewId, // Use existing ID if found, null for new review
+                        id = existingReviewId,
                         user = activeUser.toDomainUser(),
                         coffeeId = coffeeId,
                         rating = ratingValue,
@@ -284,31 +253,29 @@ class AddPostViewModel @Inject constructor(
                 )
                 
                 if (reviewResult.isSuccess) {
-                    Log.d("AddPostVM", "Reseña guardada con éxito")
                     coffeeRepository.syncCoffees()
                     socialRepository.syncSocialData()
-                    
-                    // Limpiar todo el estado tras éxito
-                    _comment.value = ""
-                    _rating.value = 0f
-                    _imageSource.value = null
-                    _selectedCoffee.value = null
-                    _currentStep.value = 0
-                    
-                    savedStateHandle.remove<String>("comment")
-                    savedStateHandle.remove<Float>("rating")
-                    savedStateHandle.remove<String>("imageUri")
-                    savedStateHandle.remove<String>("selectedCoffeeId")
-                    savedStateHandle.remove<Int>("currentStep")
-                    
+                    clearState()
                     onSuccess()
-                } else {
-                    Log.e("AddPostVM", "Error en el repositorio al guardar reseña: ${reviewResult.exceptionOrNull()?.message}")
                 }
             } catch (e: Exception) {
                 Log.e("AddPostVM", "Excepción al guardar reseña", e)
             }
         }
+    }
+
+    private fun clearState() {
+        _comment.value = ""
+        _rating.value = 0f
+        _imageSource.value = null
+        _selectedCoffee.value = null
+        _currentStep.value = 0
+        
+        savedStateHandle.remove<String>("comment")
+        savedStateHandle.remove<Float>("rating")
+        savedStateHandle.remove<String>("imageUri")
+        savedStateHandle.remove<String>("selectedCoffeeId")
+        savedStateHandle.remove<Int>("currentStep")
     }
 
     private fun UserEntity.toDomainUser(): User = User(

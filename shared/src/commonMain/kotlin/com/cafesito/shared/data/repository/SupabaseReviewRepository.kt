@@ -3,6 +3,7 @@ package com.cafesito.shared.data.repository
 import com.cafesito.shared.data.model.ReviewDto
 import com.cafesito.shared.data.remote.SupabaseRemoteDataSource
 import com.cafesito.shared.domain.Review
+import com.cafesito.shared.domain.User
 import com.cafesito.shared.domain.repository.ReviewRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -47,7 +48,8 @@ private fun ReviewDto.toDomain(): Review = Review(
         fullName = "",
         avatarUrl = "",
         email = "",
-        bio = null
+        bio = null,
+        favoriteCoffeeIds = emptyList()
     ),
     coffeeId = coffeeId,
     rating = rating,
