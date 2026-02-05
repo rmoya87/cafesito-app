@@ -86,9 +86,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -107,6 +109,7 @@ import com.cafesito.app.ui.components.TagChip
 import com.cafesito.app.ui.theme.*
 import kotlinx.coroutines.delay
 import java.util.Locale
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 @Composable
@@ -340,6 +343,7 @@ fun SearchScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         modifier = Modifier.nestedScroll(actualScrollBehavior.nestedScrollConnection),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             SearchTopBar(
                 query = searchQuery,
@@ -364,8 +368,20 @@ fun SearchScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .offset { IntOffset(0, actualScrollBehavior.state.heightOffset.roundToInt()) }
                 .padding(top = padding.calculateTopPadding())
+                .layout { measurable, constraints ->
+                    val offset = actualScrollBehavior.state.heightOffset.roundToInt()
+                    // Medimos el contenido con una altura mayor para compensar el desplazamiento hacia arriba
+                    // así el "fondo" o el final del contenido sigue llegando hasta abajo de la pantalla.
+                    val placeable = measurable.measure(
+                        constraints.copy(
+                            maxHeight = constraints.maxHeight + actualScrollBehavior.state.heightOffsetLimit.roundToInt().coerceAtMost(0).absoluteValue
+                        )
+                    )
+                    layout(placeable.width, constraints.maxHeight) {
+                        placeable.placeRelative(0, offset)
+                    }
+                }
         ) {
             AnimatedVisibility(visible = (isFocused || searchQuery.isNotBlank()) && recentSearches.isNotEmpty() && !isLoading) {
                 RecentSearches(
@@ -385,7 +401,10 @@ fun SearchScreen(
             ) {
                 when (val state = uiState) {
                     is SearchUiState.Loading -> {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 100.dp)
+                        ) {
                             items(3) { ShimmerItem(Modifier.fillMaxWidth().height(350.dp).padding(16.dp)) }
                         }
                     }
@@ -401,7 +420,7 @@ fun SearchScreen(
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 32.dp)
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 100.dp)
                             ) {
                                 itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
                                     LaunchedEffect(index) { viewModel.onItemDisplayed(index) }

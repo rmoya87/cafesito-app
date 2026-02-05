@@ -13,7 +13,8 @@ import javax.inject.Singleton
 class SyncManager @Inject constructor(
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
-    private val socialRepository: SocialRepository
+    private val socialRepository: SocialRepository,
+    private val diaryRepository: DiaryRepository
 ) {
     // ✅ OPTIMIZACIÓN: Control de intervalo mínimo entre sincronizaciones
     private var _lastSyncTime: Long = 0
@@ -46,7 +47,8 @@ class SyncManager @Inject constructor(
                         async { coffeeRepository.syncCoffees() },
                         async { userRepository.syncUsers() },
                         async { userRepository.syncFollows() },
-                        async { socialRepository.syncSocialData() }
+                        async { socialRepository.syncSocialData() },
+                        async { diaryRepository.syncPantryItems() }
                     )
                 }
                 

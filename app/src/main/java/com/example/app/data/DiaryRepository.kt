@@ -18,6 +18,7 @@ import javax.inject.Singleton
 @Singleton
 class DiaryRepository @Inject constructor(
     private val diaryDao: DiaryDao,
+    private val coffeeDao: CoffeeDao,
     private val supabaseDataSource: SupabaseDataSource,
     private val userRepository: UserRepository,
     private val connectivityObserver: ConnectivityObserver,
@@ -38,7 +39,9 @@ class DiaryRepository @Inject constructor(
                     try {
                         val entries = supabaseDataSource.getDiaryEntries(user.id)
                         entries.forEach { diaryDao.insertDiaryEntry(it) }
-                    } catch (e: Exception) { }
+                    } catch (e: Exception) {
+                        Log.e("DiaryRepository", "Error fetching diary entries", e)
+                    }
                 }
             }
         }
@@ -48,18 +51,39 @@ class DiaryRepository @Inject constructor(
         val user = userRepository.getActiveUserFlow().first() ?: return@flatMapLatest flowOf(emptyList())
         combine(
             diaryDao.getPantryItems(user.id),
-            userDaoQueryForCoffees() // Necesitaríamos coffeeDao aquí o a través de coffeeRepository
-        ) { items, coffees ->
+            coffeeDao.getAllCoffeesWithDetails()
+        ) { items, coffeesWithDetails ->
             items.mapNotNull { item ->
-                coffees.find { it.coffee.id == item.coffeeId }?.let { details ->
+                coffeesWithDetails.find { it.coffee.id == item.coffeeId }?.let { details ->
                     PantryItemWithDetails(item, details.coffee, details.coffee.isCustom)
                 }
+            }
+        }.onStart {
+            if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                externalScope.launch { syncPantryItems() }
             }
         }
     }.flowOn(Dispatchers.IO)
 
-    // Helper ficticio para simplificar, idealmente usaría CoffeeRepository
-    private fun userDaoQueryForCoffees(): Flow<List<CoffeeWithDetails>> = flowOf(emptyList())
+    suspend fun syncPantryItems() {
+        val user = userRepository.getActiveUser() ?: return
+        try {
+            val remoteItems = supabaseDataSource.getPantryItems(user.id)
+            remoteItems.forEach {
+                // Asegurarnos de tener el café localmente si no existe
+                if (coffeeDao.getCoffeeById(it.coffeeId) == null) {
+                    val coffeeIds = listOf(it.coffeeId)
+                    val remoteCoffee = supabaseDataSource.getCoffeesByIds(coffeeIds).firstOrNull()
+                        ?: supabaseDataSource.getCustomCoffees(user.id).find { c -> c.id == it.coffeeId }?.toCoffee()
+                    remoteCoffee?.let { c -> coffeeDao.insertCoffees(listOf(c)) }
+                }
+                diaryDao.upsertPantryItem(it)
+            }
+            Log.d("DiaryRepository", "Pantry items synced: ${remoteItems.size}")
+        } catch (e: Exception) {
+            Log.e("DiaryRepository", "Error syncing pantry items", e)
+        }
+    }
 
     suspend fun addDiaryEntry(
         coffeeId: String?, 
@@ -82,12 +106,17 @@ class DiaryRepository @Inject constructor(
         diaryDao.insertDiaryEntry(entry)
         
         if (coffeeId != null && type == "CUP") {
-            val pantryItem = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == coffeeId }
+            val pantryItems = diaryDao.getPantryItems(user.id).first()
+            val pantryItem = pantryItems.find { it.coffeeId == coffeeId }
             if (pantryItem != null) {
-                diaryDao.upsertPantryItem(pantryItem.copy(
+                val updatedItem = pantryItem.copy(
                     gramsRemaining = (pantryItem.gramsRemaining - coffeeGrams).coerceAtLeast(0),
                     lastUpdated = System.currentTimeMillis()
-                ))
+                )
+                diaryDao.upsertPantryItem(updatedItem)
+                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                    externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
+                }
             }
         }
 
@@ -101,7 +130,9 @@ class DiaryRepository @Inject constructor(
                         timestamp = entry.timestamp,
                         entryId = inserted.id.toString()
                     )
-                } catch (e: Exception) { }
+                } catch (e: Exception) {
+                    Log.e("DiaryRepository", "Error syncing diary entry to Supabase/HealthConnect", e)
+                }
             }
         }
     }
@@ -110,18 +141,74 @@ class DiaryRepository @Inject constructor(
         name: String, brand: String, specialty: String, roast: String?, variety: String?, 
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
         totalGrams: Int = 250
-    ) {
-        val user = userRepository.getActiveUser() ?: return
+    ) = withContext(Dispatchers.IO) {
+        val user = userRepository.getActiveUser() ?: return@withContext
         val coffeeId = UUID.randomUUID().toString()
-        // Lógica de inserción local y remota aquí...
+        
+        var imageUrl = ""
+        if (imageBytes != null) {
+            try {
+                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$coffeeId.jpg", imageBytes)
+            } catch (e: Exception) {
+                Log.e("DiaryRepository", "Error uploading custom coffee image", e)
+            }
+        }
+
+        val customCoffee = CustomCoffeeEntity(
+            id = coffeeId, userId = user.id, name = name, brand = brand,
+            specialty = specialty, roast = roast, variety = variety,
+            country = country, hasCaffeine = hasCaffeine, format = format,
+            imageUrl = imageUrl, totalGrams = totalGrams
+        )
+        
+        // 1. Guardar café local y remoto
+        coffeeDao.insertCoffees(listOf(customCoffee.toCoffee()))
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try { supabaseDataSource.upsertCustomCoffee(customCoffee) } catch (e: Exception) { }
+        }
+
+        // 2. Añadir a la despensa
+        addToPantry(coffeeId, totalGrams)
     }
 
     suspend fun updateCustomCoffee(
         id: String, name: String, brand: String, specialty: String, roast: String?, 
         variety: String?, country: String, hasCaffeine: Boolean, format: String, 
         imageBytes: ByteArray?, totalGrams: Int
-    ) {
-        // Lógica de actualización
+    ) = withContext(Dispatchers.IO) {
+        val user = userRepository.getActiveUser() ?: return@withContext
+        
+        var imageUrl = coffeeDao.getCoffeeById(id)?.imageUrl ?: ""
+        if (imageBytes != null) {
+            try {
+                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$id.jpg", imageBytes)
+            } catch (e: Exception) { }
+        }
+
+        val customCoffee = CustomCoffeeEntity(
+            id = id, userId = user.id, name = name, brand = brand,
+            specialty = specialty, roast = roast, variety = variety,
+            country = country, hasCaffeine = hasCaffeine, format = format,
+            imageUrl = imageUrl, totalGrams = totalGrams
+        )
+
+        coffeeDao.insertCoffees(listOf(customCoffee.toCoffee()))
+        
+        // Actualizar item en despensa si existe para reflejar nuevo total si es necesario
+        val pantryItem = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == id }
+        if (pantryItem != null) {
+             val updatedItem = pantryItem.copy(totalGrams = totalGrams, lastUpdated = System.currentTimeMillis())
+             diaryDao.upsertPantryItem(updatedItem)
+             if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                 externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
+             }
+        }
+
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch {
+                try { supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee) } catch (e: Exception) { }
+            }
+        }
     }
 
     suspend fun updatePantryStockFull(coffeeId: String, totalGrams: Int, gramsRemaining: Int) {
