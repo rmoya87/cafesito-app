@@ -11,11 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -55,6 +52,21 @@ fun AddPostScreen(
     val imageSource by viewModel.imageSource.collectAsState()
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
 
+    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+    val permissionState = rememberPermissionState(permission)
+
+    LaunchedEffect(permissionState.status.isGranted) {
+        if (permissionState.status.isGranted) {
+            viewModel.loadGalleryImages()
+        } else {
+            permissionState.launchPermissionRequest()
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -83,10 +95,10 @@ fun AddPostScreen(
                 label = "FlowTransition"
             ) { step ->
                 when {
-                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel)
+                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(viewModel, permissionState.status.isGranted)
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
                     postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
-                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel)
+                    postType == PostType.OPINION && step == 1 -> ReviewDetailsStepPremium(onSuccess = onBackClick, viewModel = viewModel, hasPermission = permissionState.status.isGranted)
                 }
             }
             
@@ -108,31 +120,17 @@ fun AddPostScreen(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel) {
+private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel, hasPermission: Boolean) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
-
-    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_IMAGES
-    } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
-    }
-    val permissionState = rememberPermissionState(permission)
-
-    // CORRECCIÓN: Usamos status.isGranted y cargamos siempre que tengamos el permiso
-    LaunchedEffect(permissionState.status.isGranted) {
-        if (permissionState.status.isGranted) {
-            viewModel.loadGalleryImages()
-        } else {
-            permissionState.launchPermissionRequest()
-        }
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
             if (imageSource != null) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else if (!hasPermission) {
+                Text("SIN PERMISO PARA LA GALERÍA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -154,7 +152,7 @@ private fun PhotoSelectionStepPremium(viewModel: AddPostViewModel) {
                     Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
-            items(galleryImages) { uri ->
+            items(galleryImages) { uri: Uri ->
                 val isSelected = imageSource == uri
                 Box(modifier = Modifier.aspectRatio(1f).clickable { viewModel.setImage(uri) }) {
                     AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -248,7 +246,7 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
 }
 
 @Composable
-private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostViewModel) {
+private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostViewModel, hasPermission: Boolean) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { if (it != null) viewModel.setCapturedImage(it) }
@@ -278,6 +276,8 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
         ) {
             if (imageSource != null) {
                 AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else if (!hasPermission) {
+                Text("SIN PERMISO DE GALERÍA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
@@ -304,7 +304,7 @@ private fun ReviewDetailsStepPremium(onSuccess: () -> Unit, viewModel: AddPostVi
                     Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.primary)
                 }
             }
-            items(galleryImages) { uri ->
+            items(galleryImages) { uri: Uri ->
                 val isSelected = imageSource == uri
                 Box(
                     modifier = Modifier.size(80.dp).clip(RoundedCornerShape(16.dp)).clickable { viewModel.setImage(uri) }
