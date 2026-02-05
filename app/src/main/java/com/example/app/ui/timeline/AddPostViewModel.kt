@@ -146,19 +146,19 @@ class AddPostViewModel @Inject constructor(
     
     fun setCapturedImage(bitmap: Bitmap?) { 
         if (bitmap != null) {
+            // Actualización instantánea de la UI
+            _imageSource.value = bitmap
+            if (_postType.value == PostType.PUBLICATION) {
+                _currentStep.value = 1
+                savedStateHandle.set("currentStep", 1)
+            }
+
             viewModelScope.launch {
                 val path = saveBitmapToLocal(bitmap)
                 val fileUri = Uri.fromFile(File(path))
+                // Actualizamos a la URI persistente una vez guardada
                 _imageSource.value = fileUri
                 savedStateHandle.set("imageUri", fileUri.toString())
-
-                if (_postType.value == PostType.PUBLICATION) {
-                    _currentStep.value = 1
-                    savedStateHandle.set("currentStep", 1)
-                } else {
-                    _currentStep.value = 0 
-                    savedStateHandle.set("currentStep", 0)
-                }
             }
         }
     }
