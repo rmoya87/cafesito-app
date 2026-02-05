@@ -225,6 +225,7 @@ data class PantryItemEntity(
 
 @Serializable
 data class ReviewInsert(
+    val id: Long? = null,
     @SerialName("coffee_id") val coffeeId: String,
     @SerialName("user_id") val userId: Int,
     val rating: Float,

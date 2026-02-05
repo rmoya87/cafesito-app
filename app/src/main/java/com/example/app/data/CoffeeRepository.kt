@@ -63,7 +63,7 @@ class CoffeeRepository @Inject constructor(
         saveFetchResult = { (public, custom, reviews) ->
             withContext(Dispatchers.IO) {
                 coffeeDao.insertCoffees(public + custom)
-                reviews.forEach { coffeeDao.upsertReview(it) }
+                // reviews.forEach { coffeeDao.upsertReview(it) } // Eliminado para ir directo a Supabase
             }
         },
         scope = externalScope,
@@ -85,7 +85,7 @@ class CoffeeRepository @Inject constructor(
                 saveFetchResult = { (coffee, reviews) ->
                     withContext(Dispatchers.IO) {
                         coffee?.let { coffeeDao.insertCoffees(listOf(it)) }
-                        reviews.forEach { coffeeDao.upsertReview(it) }
+                        // reviews.forEach { coffeeDao.upsertReview(it) } // Eliminado para ir directo a Supabase
                     }
                 },
                 shouldFetch = { true },
@@ -122,14 +122,14 @@ class CoffeeRepository @Inject constructor(
     }
     
     suspend fun upsertReview(review: ReviewEntity) = withContext(Dispatchers.IO) {
-        coffeeDao.upsertReview(review)
+        // coffeeDao.upsertReview(review) // Eliminado para ir directo a Supabase
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.upsertReview(review) } catch (e: Exception) { } }
         }
     }
 
     suspend fun deleteReview(coffeeId: String, userId: Int) = withContext(Dispatchers.IO) {
-        coffeeDao.deleteReviewByUser(coffeeId, userId)
+        // coffeeDao.deleteReviewByUser(coffeeId, userId) // Eliminado para ir directo a Supabase
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
              externalScope.launch { try { supabaseDataSource.deleteReview(coffeeId, userId) } catch (e: Exception) { } }
         }

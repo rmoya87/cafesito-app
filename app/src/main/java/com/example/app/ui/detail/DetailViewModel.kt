@@ -124,6 +124,7 @@ class DetailViewModel @Inject constructor(
 
             // 2. Construcción de la entidad incluyendo el ID existente para evitar duplicados
             val review = Review(
+                id = existingReview?.id,
                 user = user.toDomainUser(),
                 coffeeId = coffeeId,
                 rating = rating,
@@ -134,12 +135,15 @@ class DetailViewModel @Inject constructor(
 
             try {
                 val result = reviewRepository.updateReview(review)
-                if (result.isFailure) return@launch
+                if (result.isFailure) {
+                    Log.e("DETAIL_VM", "Error al guardar reseña: ${result.exceptionOrNull()?.message}")
+                    return@launch
+                }
                 // Es crucial refrescar AMBOS repositorios para que la UI se actualice al instante
                 socialRepository.triggerRefresh()
                 coffeeRepository.triggerRefresh()
             } catch (e: Exception) {
-                Log.e("DETAIL_VM", "Error al guardar reseña: ${e.message}")
+                Log.e("DETAIL_VM", "Error fatal al guardar reseña: ${e.message}")
             }
         }
     }

@@ -29,6 +29,7 @@ data class Comment(val user: User, val text: String)
 
 @Serializable
 data class Review(
+    val id: Long? = null,
     val user: User,
     val coffeeId: String,
     val rating: Float,

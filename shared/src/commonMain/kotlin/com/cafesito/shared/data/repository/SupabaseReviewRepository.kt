@@ -24,6 +24,7 @@ class SupabaseReviewRepository(
 }
 
 private fun Review.toDto(): ReviewDto = ReviewDto(
+    id = id,
     coffeeId = coffeeId,
     userId = user.id,
     rating = rating,

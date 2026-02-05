@@ -74,25 +74,29 @@ class SocialRepository @Inject constructor(
 
     fun getReviewsForCoffee(coffeeId: String): Flow<List<ReviewWithAuthor>> = _refreshTrigger
         .flatMapLatest {
-            networkBoundResource(
-                resourceKey = "reviews_$coffeeId",
-                query = { socialDao.getReviewsWithAuthorForCoffee(coffeeId) },
-                fetch = { 
-                    val reviews = supabaseDataSource.getReviewsByCoffeeId(coffeeId)
-                    val userIds = reviews.map { it.userId }.distinct()
-                    val users = userIds.mapNotNull { supabaseDataSource.getUserById(it) }
-                    Pair(reviews, users)
-                },
-                saveFetchResult = { (reviews, users) ->
-                    withContext(Dispatchers.IO) {
-                        userRepository.insertUsers(users)
-                        socialDao.upsertReviews(reviews)
+            flow {
+                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                    try {
+                        val reviews = supabaseDataSource.getReviewsByCoffeeId(coffeeId)
+                        val userIds = reviews.map { it.userId }.distinct()
+                        val users = userIds.mapNotNull { supabaseDataSource.getUserById(it) }
+                        val userMap = users.associateBy { it.id }
+                        
+                        val result = reviews.mapNotNull { review ->
+                            userMap[review.userId]?.let { user ->
+                                ReviewWithAuthor(review, user)
+                            }
+                        }
+                        emit(result)
+                    } catch (e: Exception) {
+                        Log.e("SocialRepository", "Error fetching reviews from Supabase: ${e.message}")
+                        emit(emptyList())
                     }
-                },
-                shouldFetch = { true },
-                scope = externalScope,
-                connectivityObserver = connectivityObserver
-            )
+                } else {
+                    // Si no hay conexión y queremos "directo", no mostramos nada o error
+                    emit(emptyList())
+                }
+            }
         }.flowOn(Dispatchers.IO)
 
     suspend fun refreshReviews(coffeeId: String) = withContext(Dispatchers.IO) {
@@ -102,7 +106,7 @@ class SocialRepository @Inject constructor(
                 val userIds = reviews.map { it.userId }.distinct()
                 val users = userIds.mapNotNull { supabaseDataSource.getUserById(it) }
                 userRepository.insertUsers(users)
-                socialDao.upsertReviews(reviews)
+                // socialDao.upsertReviews(reviews) // Eliminado para ir directo a Supabase
             } catch (e: Exception) {
                 Log.e("SocialRepository", "Error refreshing reviews: ${e.message}")
             }

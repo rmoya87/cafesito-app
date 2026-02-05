@@ -200,6 +200,7 @@ class SupabaseDataSource @Inject constructor(
     
     suspend fun upsertReview(review: ReviewEntity) {
         val insertData = ReviewInsert(
+            id = if (review.id == 0L) null else review.id,
             coffeeId = review.coffeeId,
             userId = review.userId,
             rating = review.rating,
