@@ -159,7 +159,7 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
 
-    var initialLoadDone by rememberSaveable { mutableStateOf(false) }
+    var initialLoadDone by remember { mutableStateOf(false) }
     if (sessionState !is SessionState.Loading) {
         initialLoadDone = true
     }
