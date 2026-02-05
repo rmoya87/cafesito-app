@@ -58,10 +58,10 @@ class AddPostViewModel @Inject constructor(
     private val _selectedCoffee = MutableStateFlow<CoffeeWithDetails?>(null)
     val selectedCoffee: StateFlow<CoffeeWithDetails?> = _selectedCoffee.asStateFlow()
 
-    private val _comment = MutableStateFlow("")
+    private val _comment = MutableStateFlow(savedStateHandle.get<String>("comment") ?: "")
     val comment: StateFlow<String> = _comment.asStateFlow()
 
-    private val _rating = MutableStateFlow(0f)
+    private val _rating = MutableStateFlow(savedStateHandle.get<Float>("rating") ?: 0f)
     val rating: StateFlow<Float> = _rating.asStateFlow()
 
     val coffeeList: StateFlow<List<CoffeeWithDetails>> = combine(
@@ -124,8 +124,15 @@ class AddPostViewModel @Inject constructor(
         }
     }
 
-    fun onCommentChanged(text: String) { _comment.value = text }
-    fun onRatingChanged(value: Float) { _rating.value = value }
+    fun onCommentChanged(text: String) { 
+        _comment.value = text 
+        savedStateHandle.set("comment", text)
+    }
+    
+    fun onRatingChanged(value: Float) { 
+        _rating.value = value 
+        savedStateHandle.set("rating", value)
+    }
 
     fun setImage(uri: Uri?) { 
         _imageSource.value = uri 

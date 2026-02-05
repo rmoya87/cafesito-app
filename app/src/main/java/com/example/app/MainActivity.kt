@@ -159,20 +159,26 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
 
-    var initialLoadDone by remember { mutableStateOf(false) }
-    if (sessionState !is SessionState.Loading) {
-        initialLoadDone = true
+    // Usamos rememberSaveable para que el punto de entrada sea estable tras recreación de proceso.
+    // Si el sistema mata la app mientras estamos en la cámara, al volver debemos inicializar
+    // el NavHost exactamente con el mismo startDestination que tenía para que el backstack se restaure.
+    var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(sessionState) {
+        if (startRoute == null) {
+            when (sessionState) {
+                is SessionState.Authenticated -> startRoute = "timeline"
+                is SessionState.NotAuthenticated -> startRoute = "onboarding"
+                else -> {} // Esperamos a que cargue
+            }
+        }
     }
-    
-    if (!initialLoadDone) {
+
+    if (startRoute == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
-    }
-
-    val startRoute = remember(sessionState) {
-        if (sessionState is SessionState.Authenticated) "timeline" else "onboarding"
     }
 
     LaunchedEffect(notificationNavigation) {
