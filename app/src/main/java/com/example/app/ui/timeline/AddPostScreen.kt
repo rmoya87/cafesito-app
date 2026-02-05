@@ -395,7 +395,12 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel) {
         if (imageSource != null) {
             Spacer(Modifier.height(24.dp))
             PremiumCard {
-                AsyncImage(model = imageSource, contentDescription = null, modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(24.dp)), contentScale = ContentScale.Crop)
+                AsyncImage(
+                    model = imageSource, 
+                    contentDescription = null, 
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(RoundedCornerShape(24.dp)), 
+                    contentScale = ContentScale.FillWidth
+                )
             }
         }
         

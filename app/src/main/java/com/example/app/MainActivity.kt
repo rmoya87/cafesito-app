@@ -106,6 +106,7 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     AppNavigation(
                         sessionState = sessionState,
+                        userRepository = userRepository,
                         notificationNavigation = notificationNavigation.value,
                         onNotificationConsumed = { notificationNavigation.value = null }
                     )
@@ -154,14 +155,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation(
     sessionState: SessionState,
+    userRepository: UserRepository,
     notificationNavigation: NotificationNavigation?,
     onNotificationConsumed: () -> Unit
 ) {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
 
-    // Usamos rememberSaveable para que el punto de entrada sea estable tras recreación de proceso.
-    // Si el sistema mata la app mientras estamos en la cámara, al volver debemos inicializar
-    // el NavHost exactamente con el mismo startDestination que tenía para que el backstack se restaure.
     var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(sessionState) {
@@ -233,16 +233,19 @@ fun AppNavigation(
 
             composable("login") {
                 LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
-                    if (isNewUser) {
-                        val encodedEmail = Uri.encode(email)
-                        val encodedName = Uri.encode(name)
-                        val encodedPhoto = Uri.encode(photo)
-                        navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
-                            popUpTo("login") { inclusive = true }
-                        }
-                    } else {
-                        navController.navigate("timeline") {
-                            popUpTo("login") { inclusive = true }
+                    scope.launch {
+                        val user = userRepository.getUserByGoogleId(googleId) 
+                        if (user != null && user.username.isNotBlank()) {
+                            navController.navigate("timeline") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        } else {
+                            val encodedEmail = Uri.encode(email)
+                            val encodedName = Uri.encode(name)
+                            val encodedPhoto = Uri.encode(photo)
+                            navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
+                                popUpTo("login") { inclusive = true }
+                            }
                         }
                     }
                 })

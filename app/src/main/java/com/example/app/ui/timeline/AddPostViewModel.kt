@@ -34,6 +34,7 @@ class AddPostViewModel @Inject constructor(
     private val socialRepository: SocialRepository,
     private val userRepository: UserRepository,
     private val reviewRepository: ReviewRepository,
+    private val supabaseDataSource: SupabaseDataSource,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
@@ -121,7 +122,6 @@ class AddPostViewModel @Inject constructor(
         savedStateHandle.set("postType", type)
         _currentStep.value = 0
         savedStateHandle.set("currentStep", 0)
-        // Limpiar imágenes al cambiar de tipo si es necesario
     }
 
     fun onSearchQueryChanged(query: String) { _searchQuery.value = query }
@@ -151,7 +151,6 @@ class AddPostViewModel @Inject constructor(
         _imageSource.value = uri 
         savedStateHandle.set("imageUri", uri?.toString())
         
-        // Navegación automática al siguiente paso tras elegir imagen
         if (uri != null) {
             if (_postType.value == PostType.PUBLICATION && _currentStep.value == 0) {
                 _currentStep.value = 1
@@ -171,10 +170,9 @@ class AddPostViewModel @Inject constructor(
             savedStateHandle.set("currentStep", nextStep)
 
             viewModelScope.launch {
-                val path = saveBitmapToLocal(bitmap)
-                val fileUri = Uri.fromFile(File(path))
-                _imageSource.value = fileUri
-                savedStateHandle.set("imageUri", fileUri.toString())
+                val uri = saveBitmapToLocalUri(bitmap)
+                _imageSource.value = uri
+                savedStateHandle.set("imageUri", uri.toString())
             }
         }
     }
@@ -184,32 +182,60 @@ class AddPostViewModel @Inject constructor(
         savedStateHandle.set("currentStep", step)
     }
 
-    private suspend fun saveBitmapToLocal(bitmap: Bitmap): String = withContext(Dispatchers.IO) {
+    private suspend fun saveBitmapToLocalUri(bitmap: Bitmap): Uri = withContext(Dispatchers.IO) {
         val filename = "shot_${UUID.randomUUID()}.jpg"
         val file = File(context.cacheDir, filename)
         FileOutputStream(file).use { out ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
         }
-        file.absolutePath
+        Uri.fromFile(file)
+    }
+
+    private suspend fun uploadImageAndGetUrl(source: Any, bucket: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val imageBytes = when (source) {
+                is Uri -> context.contentResolver.openInputStream(source)?.use { it.readBytes() }
+                is Bitmap -> {
+                    val tempFile = File(context.cacheDir, "temp_${UUID.randomUUID()}.jpg")
+                    FileOutputStream(tempFile).use { out ->
+                        source.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                    }
+                    val bytes = tempFile.readBytes()
+                    tempFile.delete()
+                    bytes
+                }
+                else -> null
+            } ?: return@withContext null
+
+            // CORRECCIÓN: Nombre de archivo sin prefijo de bucket, ya que el SDK lo maneja.
+            val fileName = "${System.currentTimeMillis()}_${UUID.randomUUID()}.jpg"
+            
+            // Llamamos a la función de subida. 
+            // IMPORTANTE: Verifica en Supabase SQL Editor que las políticas RLS permitan INSERT en el bucket correspondiente.
+            supabaseDataSource.uploadImage(bucket, fileName, imageBytes)
+        } catch (e: Exception) {
+            Log.e("AddPostVM", "Error uploading image", e)
+            null
+        }
     }
 
     fun createPost(onSuccess: () -> Unit) {
         viewModelScope.launch {
             val source = _imageSource.value ?: return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch
-            val commentText = _comment.value
             
-            val imageUrl = when (source) {
-                is Uri -> source.toString()
-                is Bitmap -> saveBitmapToLocal(source)
-                else -> "https://picsum.photos/seed/${System.currentTimeMillis()}/800/800"
+            // Subimos al bucket 'posts'
+            val imageUrl = uploadImageAndGetUrl(source, "posts")
+            if (imageUrl == null) {
+                Log.e("AddPostVM", "Failed to upload post image")
+                return@launch
             }
             
             socialRepository.createPost(PostEntity(
                 id = "post_${System.currentTimeMillis()}", 
                 userId = activeUser.id, 
                 imageUrl = imageUrl, 
-                comment = commentText, 
+                comment = _comment.value, 
                 timestamp = System.currentTimeMillis()
             ))
             socialRepository.syncSocialData()
@@ -221,20 +247,12 @@ class AddPostViewModel @Inject constructor(
 
     fun submitReview(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val ratingValue = _rating.value
-            val commentText = _comment.value
-            
-            if (ratingValue == 0f) return@launch
-            
+            if (_rating.value == 0f) return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch
             val coffeeId = _selectedCoffee.value?.coffee?.id ?: return@launch
             
-            val source = _imageSource.value
-            val imageUrl = when (source) {
-                is Uri -> source.toString()
-                is Bitmap -> saveBitmapToLocal(source)
-                else -> null
-            }
+            // Subimos al bucket 'reviews'
+            val imageUrl = _imageSource.value?.let { uploadImageAndGetUrl(it, "reviews") }
 
             try {
                 val existingReviewResult = reviewRepository.getReviewByUserAndCoffee(activeUser.id, coffeeId)
@@ -245,8 +263,8 @@ class AddPostViewModel @Inject constructor(
                         id = existingReviewId,
                         user = activeUser.toDomainUser(),
                         coffeeId = coffeeId,
-                        rating = ratingValue,
-                        comment = commentText,
+                        rating = _rating.value,
+                        comment = _comment.value,
                         imageUrl = imageUrl,
                         timestamp = System.currentTimeMillis()
                     )
@@ -279,6 +297,6 @@ class AddPostViewModel @Inject constructor(
     }
 
     private fun UserEntity.toDomainUser(): User = User(
-        id = id, username = username, fullName = fullName, avatarUrl = avatarUrl, email = email, bio = bio
+        id = id, username = username, fullName = fullName, avatarUrl = avatarUrl, email = email, bio = bio, favoriteCoffeeIds = emptyList()
     )
 }

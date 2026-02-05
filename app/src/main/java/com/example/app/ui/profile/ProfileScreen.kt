@@ -217,12 +217,24 @@ fun ProfileScreen(
                             if (state.favoriteCoffees.isEmpty()) {
                                 item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("No hay cafés favoritos", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                             } else {
-                                items(state.favoriteCoffees, key = { it.coffee.id }) { coffee ->
-                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                        CoffeeCard(
-                                            coffeeDetails = coffee,
-                                            onClick = { onCoffeeClick(coffee.coffee.id) }
-                                        )
+                                // Restaurado: Cuadrícula de 2 columnas usando CoffeeCard
+                                val rows = state.favoriteCoffees.chunked(2)
+                                items(rows) { rowItems ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        rowItems.forEach { coffee ->
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                CoffeeCard(
+                                                    coffeeDetails = coffee,
+                                                    onClick = { onCoffeeClick(coffee.coffee.id) }
+                                                )
+                                            }
+                                        }
+                                        if (rowItems.size == 1) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
                                     }
                                 }
                             }
