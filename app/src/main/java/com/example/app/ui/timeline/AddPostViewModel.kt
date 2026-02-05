@@ -2,6 +2,7 @@ package com.cafesito.app.ui.timeline
 
 import android.content.ContentUris
 import android.content.Context
+import android.util.Log
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
