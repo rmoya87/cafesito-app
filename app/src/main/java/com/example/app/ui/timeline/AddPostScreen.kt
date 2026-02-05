@@ -1,6 +1,5 @@
-package com.cafesito.app.ui.timeline
-
 @file:OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
+package com.cafesito.app.ui.timeline
 
 import android.Manifest
 import android.net.Uri
