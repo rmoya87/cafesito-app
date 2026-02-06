@@ -15,23 +15,6 @@
     <!-- Android 14+ Partial access -->
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
-
-    <!-- Health Connect Permissions (Android 14+) -->
-    <uses-permission android:name="android.permission.health.READ_NUTRITION" />
-    <uses-permission android:name="android.permission.health.WRITE_NUTRITION" />
-    <uses-permission android:name="android.permission.health.READ_HYDRATION" />
-    <uses-permission android:name="android.permission.health.WRITE_HYDRATION" />
-
-    <!-- Health Connect Permissions (Android 13 and below) -->
-    <uses-permission android:name="androidx.health.permission.Nutrition.READ" />
-    <uses-permission android:name="androidx.health.permission.Nutrition.WRITE" />
-    <uses-permission android:name="androidx.health.permission.Hydration.READ" />
-    <uses-permission android:name="androidx.health.permission.Hydration.WRITE" />
-
-    <queries>
-        <package android:name="com.google.android.apps.healthdata" />
-    </queries>
-
     <application
         android:name=".CafesitoApp"
         android:allowBackup="true"
@@ -63,30 +46,6 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
-        <!-- Health Connect Rationale Activity - OBLIGATORIO PARA PERMISOS -->
-        <activity
-            android:name="com.cafesito.app.HealthConnectRationaleActivity"
-            android:exported="true"
-            android:label="Privacidad de Salud">
-            <intent-filter>
-                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-            </intent-filter>
-        </activity>
-
-        <meta-data
-            android:name="health_permissions_rationale"
-            android:value="com.cafesito.app.HealthConnectRationaleActivity" />
-
-        <!-- Para que aparezca el botón de solicitar permisos -->
-        <activity-alias
-            android:name="com.cafesito.app.HealthConnectPermissionsLauncher"
-            android:exported="true"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="androidx.health.connect.client.HealthConnectClient.ACTION_REQUEST_PERMISSIONS" />
-            </intent-filter>
-        </activity-alias>
 
         <!-- Disable default WorkManager initializer -->
         <provider

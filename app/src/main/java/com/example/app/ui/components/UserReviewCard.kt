@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,7 +87,20 @@ fun UserReviewCard(
                 }
             }
 
-            // IMAGEN: Ancho completo, completa (sin recortes), sin bordes internos
+            // TEXTO DE LA OPINIÓN: Antes de la imagen, color negro
+            if (info.review.comment.isNotBlank()) {
+                Text(
+                    text = info.review.comment,
+                    style = MaterialTheme.typography.bodyLarge,
+                    lineHeight = 24.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = if (showHeader) 0.dp else 20.dp)
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
+            // IMAGEN: Después del texto, ancho completo
             if (info.review.imageUrl != null) {
                 AsyncImage(
                     model = info.review.imageUrl,
@@ -98,19 +112,8 @@ fun UserReviewCard(
                 )
             }
 
+            // Bloque de Café y Rating
             Column(modifier = Modifier.padding(20.dp)) {
-                if (info.review.comment.isNotBlank()) {
-                    Text(
-                        text = info.review.comment,
-                        style = MaterialTheme.typography.bodyLarge,
-                        lineHeight = 24.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Light
-                    )
-                    Spacer(Modifier.height(16.dp))
-                }
-
-                // Bloque de Café: Estilo Minimalista
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.surfaceVariant,

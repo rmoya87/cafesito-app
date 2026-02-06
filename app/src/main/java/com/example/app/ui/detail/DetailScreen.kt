@@ -2,6 +2,7 @@ package com.cafesito.app.ui.detail
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -10,9 +11,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -40,9 +45,11 @@ import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.PantryItemEntity
 import com.cafesito.app.data.ReviewEntity
+import com.cafesito.app.data.UserEntity
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
+import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.utils.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -124,7 +131,7 @@ private fun DetailContent(
     }
 
     if (showStockDialog) {
-        StockEditBottomSheet(
+        DetailStockEditBottomSheet(
             coffeeDetails = coffeeDetails,
             isCustom = isCustom,
             currentStock = currentStock,
@@ -157,7 +164,7 @@ private fun DetailContent(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("NOTA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = "NOTA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val ratingStr = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating)
                         Text(text = ratingStr, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                     }
@@ -177,7 +184,7 @@ private fun DetailContent(
                     Column(modifier = Modifier.padding(24.dp)) {
                         
                         if (!isCustom && coffee.descripcion.isNotBlank()) {
-                            Text("HISTORIA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                            Text(text = "HISTORIA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(12.dp))
                             Text(
                                 text = coffee.descripcion, 
@@ -188,7 +195,7 @@ private fun DetailContent(
                             Spacer(Modifier.height(24.dp))
                         }
 
-                        Text("DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                        Text(text = "DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(20.dp))
                         
                         val detailsItems = listOfNotNull(
@@ -213,7 +220,7 @@ private fun DetailContent(
 
                         if (!isCustom) {
                             Spacer(Modifier.height(40.dp))
-                            Text("PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                            Text(text = "PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(20.dp))
                             val characteristics = listOf(
                                 "Aroma" to coffee.aroma,
@@ -229,14 +236,14 @@ private fun DetailContent(
 
                             if (!coffee.productUrl.isNullOrBlank()) {
                                 Spacer(Modifier.height(40.dp))
-                                Text("ADQUIRIR", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Text(text = "ADQUIRIR", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(16.dp))
                                 BuyPremiumCard(coffee.productUrl) { openCustomTab(context, it) }
                             }
 
                             Spacer(Modifier.height(40.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("OPINIONES", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Text(text = "OPINIONES", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 Button(
                                     onClick = { showAddReviewDialog = true }, 
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -244,7 +251,7 @@ private fun DetailContent(
                                 ) {
                                     Icon(Icons.Default.Add, null, Modifier.size(16.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text(if (userReview != null) "EDITAR" else "AÑADIR")
+                                    Text(text = if (userReview != null) "EDITAR" else "AÑADIR")
                                 }
                             }
                             
@@ -295,17 +302,29 @@ fun GlassyIconButton(icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
 }
 
 @Composable
-fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
-    PremiumCard(modifier = modifier) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-            }
+fun DetailReviewPremiumItem(info: UserReviewInfo) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ModernAvatar(imageUrl = info.authorAvatarUrl, size = 40.dp)
             Spacer(Modifier.width(12.dp))
             Column {
-                Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
-                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = info.authorName ?: "Usuario", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = formatRelativeTime(info.review.timestamp).uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Spacer(Modifier.weight(1f))
+            val ratingStr = String.format(Locale.getDefault(), "%.1f", info.review.rating)
+            Text(text = ratingStr, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(text = info.review.comment, style = MaterialTheme.typography.bodyMedium, lineHeight = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+        if (!info.review.imageUrl.isNullOrBlank()) {
+            Spacer(Modifier.height(12.dp))
+            AsyncImage(
+                model = info.review.imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.FillWidth, // IMAGEN COMPLETA
+                modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(RoundedCornerShape(24.dp))
+            )
         }
     }
 }
@@ -335,52 +354,34 @@ fun BuyPremiumCard(url: String, onClick: (String) -> Unit) {
             Icon(Icons.Default.Storefront, null, tint = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.width(16.dp))
             val domain = url.removePrefix("https://").removePrefix("www.").substringBefore("/")
-            Text(domain.uppercase(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
+            Text(text = domain.uppercase(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-@Composable
-fun DetailReviewPremiumItem(info: UserReviewInfo) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ModernAvatar(imageUrl = info.authorAvatarUrl, size = 40.dp)
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(info.authorName ?: "Usuario", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text(formatRelativeTime(info.review.timestamp).uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Spacer(Modifier.weight(1f))
-            val ratingStr = String.format(Locale.getDefault(), "%.1f", info.review.rating)
-            Text(text = ratingStr, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-        }
-        Spacer(Modifier.height(12.dp))
-        Text(info.review.comment, style = MaterialTheme.typography.bodyMedium, lineHeight = 20.sp, color = MaterialTheme.colorScheme.onSurface)
-        if (!info.review.imageUrl.isNullOrBlank()) {
-            Spacer(Modifier.height(12.dp))
-            AsyncImage(
-                model = info.review.imageUrl,
-                contentDescription = null,
-                contentScale = ContentScale.FillWidth, // IMAGEN COMPLETA
-                modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(RoundedCornerShape(24.dp))
-            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Unit, onSaveReview: (Float, String, Uri?) -> Unit) {
+fun ReviewBottomSheet(
+    existingReview: ReviewEntity?, 
+    onDismissRequest: () -> Unit, 
+    onSaveReview: (Float, String, Uri?) -> Unit,
+    commentsViewModel: CommentsViewModel = hiltViewModel()
+) {
     var rating by remember { mutableFloatStateOf(existingReview?.rating ?: 0f) }
     var comment by remember { mutableStateOf(existingReview?.comment ?: "") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var isSaving by remember { mutableStateOf(false) }
+    var showPickerSheet by remember { mutableStateOf(false) }
+
+    val mentionSuggestions by commentsViewModel.mentionSuggestions.collectAsState()
     
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        selectedImageUri = uri
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        // Necesitaríamos guardar el bitmap localmente para obtener un Uri si queremos el mismo comportamiento
+    }
+    
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) selectedImageUri = uri
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -398,48 +399,70 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                 .padding(bottom = 48.dp), 
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("TU OPINIÓN", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+            Text(text = "TU RESEÑA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
             
             SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
             
             Spacer(Modifier.height(24.dp))
             
-            // Área de carga de foto opcional
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable(enabled = !isSaving) { launcher.launch("image/*") }
-                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), RoundedCornerShape(24.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (selectedImageUri != null) {
-                    AsyncImage(model = selectedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) // IMAGEN COMPLETA PREVISUALIZACIÓN
-                } else if (!existingReview?.imageUrl.isNullOrBlank()) {
-                    AsyncImage(model = existingReview?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("AÑADIR FOTO (OPCIONAL)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = comment, 
+                    onValueChange = { 
+                        comment = it 
+                        commentsViewModel.onTextChanged(it)
+                    }, 
+                    placeholder = { Text(text = "¿Qué te ha parecido?") },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), 
+                    shape = RoundedCornerShape(16.dp), 
+                    enabled = !isSaving,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                        .fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(44.dp).clickable { showPickerSheet = true },
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            if (selectedImageUri != null) {
+                                AsyncImage(model = selectedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            } else if (!existingReview?.imageUrl.isNullOrBlank()) {
+                                AsyncImage(model = existingReview?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            } else {
+                                Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            }
+                        }
+
+                        Spacer(Modifier.width(12.dp))
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(mentionSuggestions) { user ->
+                                SuggestionChip(user) {
+                                    val parts = comment.split(" ").toMutableList()
+                                    parts[parts.size - 1] = "@${user.username} "
+                                    comment = parts.joinToString(" ")
+                                    commentsViewModel.onTextChanged(comment)
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-            
-            OutlinedTextField(
-                value = comment, 
-                onValueChange = { comment = it }, 
-                label = { Text("¿Qué te ha parecido?") },
-                modifier = Modifier.fillMaxWidth(), 
-                shape = RoundedCornerShape(16.dp), 
-                minLines = 3,
-                enabled = !isSaving,
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-            )
             Spacer(Modifier.height(32.dp))
             
             Row(
@@ -454,7 +477,7 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text(text = "CANCELAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
 
                 Button(
@@ -470,17 +493,49 @@ fun ReviewBottomSheet(existingReview: ReviewEntity?, onDismissRequest: () -> Uni
                     if (isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                     } else {
-                        Text("PUBLICAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp) 
+                        Text(text = "PUBLICAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp) 
                     }
+                }
+            }
+        }
+    }
+
+    if (showPickerSheet) {
+        ModalBottomSheet(onDismissRequest = { showPickerSheet = false }) {
+            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Text(text = "AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
+                ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
+                    cameraLauncher.launch(null)
+                    showPickerSheet = false
+                }
+                ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
+                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    showPickerSheet = false
                 }
             }
         }
     }
 }
 
+@Composable
+private fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+    ) {
+        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier.size(20.dp).clip(CircleShape))
+            Spacer(Modifier.width(8.dp))
+            Text(text = user.username, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, currentStock: PantryItemEntity?, onDismiss: () -> Unit, onSave: (Int, Int, String?, String?) -> Unit) {
+fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, currentStock: PantryItemEntity?, onDismiss: () -> Unit, onSave: (Int, Int, String?, String?) -> Unit) {
     var total by remember { mutableFloatStateOf(currentStock?.totalGrams?.toFloat() ?: 600f) }
     var rem by remember { mutableFloatStateOf(currentStock?.gramsRemaining?.toFloat() ?: total) }
     var name by remember { mutableStateOf(coffeeDetails.coffee.nombre) }
@@ -488,17 +543,17 @@ fun StockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, cu
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("GESTIÓN DE STOCK", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+            Text(text = "GESTIÓN DE STOCK", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
             if (isCustom) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(text = "Nombre") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(value = brand, onValueChange = { brand = it }, label = { Text("Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
+                OutlinedTextField(value = brand, onValueChange = { brand = it }, label = { Text(text = "Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(24.dp))
             }
-            StockSliderSection("TOTAL BOLSA", total, 1000f) { total = it; if (rem > it) rem = it }
+            StockSliderSection(label = "TOTAL BOLSA", value = total, maxValue = 1000f) { total = it; if (rem > it) rem = it }
             Spacer(Modifier.height(24.dp))
-            StockSliderSection("RESTANTE", rem, total) { rem = it }
+            StockSliderSection(label = "RESTANTE", value = rem, maxValue = total) { rem = it }
             Spacer(Modifier.height(40.dp))
             
             Row(
@@ -512,7 +567,7 @@ fun StockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, cu
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text(text = "CANCELAR", fontWeight = FontWeight.Bold)
                 }
                 
                 Button(
@@ -521,7 +576,7 @@ fun StockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, cu
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
                 ) { 
-                    Text("ACTUALIZAR", fontWeight = FontWeight.Bold) 
+                    Text(text = "ACTUALIZAR", fontWeight = FontWeight.Bold) 
                 }
             }
         }

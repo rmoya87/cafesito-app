@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
 import com.cafesito.app.ui.utils.ConnectivityObserver
-import com.cafesito.app.health.HealthConnectRepository
 import com.cafesito.shared.domain.Review
 import com.cafesito.shared.domain.User
 import com.cafesito.shared.domain.repository.ReviewRepository
@@ -36,9 +35,7 @@ sealed interface ProfileUiState {
         val usernameError: String?,
         val myFavoriteIds: Set<String>,
         val activeUser: UserEntity?,
-        val sensoryProfile: Map<String, Float>,
-        val healthConnectEnabled: Boolean,
-        val isHealthConnectAvailable: Boolean
+        val sensoryProfile: Map<String, Float>
     ) : ProfileUiState
     data object LoggedOut : ProfileUiState
 }
@@ -51,8 +48,7 @@ class ProfileViewModel @Inject constructor(
     private val socialRepository: SocialRepository,
     private val diaryRepository: DiaryRepository,
     private val reviewRepository: ReviewRepository,
-    private val connectivityObserver: ConnectivityObserver,
-    val healthConnectRepository: HealthConnectRepository
+    private val connectivityObserver: ConnectivityObserver
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -61,7 +57,6 @@ class ProfileViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     private val _usernameError = MutableStateFlow<String?>(null)
     private val _temporaryAvatarUri = MutableStateFlow<Uri?>(null)
-    private val _healthConnectEnabled = MutableStateFlow(false)
     private val _loggedOut = MutableStateFlow(false)
 
     private val activeUserFlow = userRepository.getActiveUserFlow()
@@ -86,7 +81,7 @@ class ProfileViewModel @Inject constructor(
         coffeeRepository.allReviews,
         userRepository.followingMap,
         coffeeRepository.favorites,
-        combine(_isEditing, _error, _usernameError, _temporaryAvatarUri, _healthConnectEnabled, _loggedOut) { it }
+        combine(_isEditing, _error, _usernameError, _temporaryAvatarUri, _loggedOut) { it }
     ) { args ->
         val activeUser = args[0] as? UserEntity
         val targetUser = args[1] as? UserEntity
@@ -101,8 +96,7 @@ class ProfileViewModel @Inject constructor(
         val generalError = internalState[1] as? String
         val usernameError = internalState[2] as? String
         val tempAvatar = internalState[3] as? Uri
-        val healthConnectEnabled = internalState[4] as Boolean
-        val loggedOut = internalState[5] as Boolean
+        val loggedOut = internalState[4] as Boolean
 
         if (loggedOut) return@combine ProfileUiState.LoggedOut
         if (generalError != null) return@combine ProfileUiState.Error(generalError)
@@ -157,9 +151,7 @@ class ProfileViewModel @Inject constructor(
             usernameError = usernameError,
             myFavoriteIds = myFavorites.map { it.coffeeId }.toSet(),
             activeUser = activeUser,
-            sensoryProfile = sensoryProfile,
-            healthConnectEnabled = healthConnectEnabled,
-            isHealthConnectAvailable = healthConnectRepository.isAvailable()
+            sensoryProfile = sensoryProfile
         )
     }
     .catch { e -> 
@@ -174,9 +166,6 @@ class ProfileViewModel @Inject constructor(
             connectivityObserver.observe().collect { 
                 if (it == ConnectivityObserver.Status.Available) refreshData()
             }
-        }
-        viewModelScope.launch {
-            _healthConnectEnabled.value = healthConnectRepository.isEnabled() && healthConnectRepository.hasPermissions()
         }
     }
 
@@ -272,13 +261,6 @@ class ProfileViewModel @Inject constructor(
                 )
             )
             coffeeRepository.triggerRefresh()
-        }
-    }
-
-    fun onToggleHealthConnect(enabled: Boolean) {
-        viewModelScope.launch {
-            healthConnectRepository.setEnabled(enabled)
-            _healthConnectEnabled.value = enabled
         }
     }
 }

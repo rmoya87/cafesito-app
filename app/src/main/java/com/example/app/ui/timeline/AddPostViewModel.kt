@@ -59,6 +59,9 @@ class AddPostViewModel @Inject constructor(
     private val _selectedCoffee = MutableStateFlow<CoffeeWithDetails?>(null)
     val selectedCoffee: StateFlow<CoffeeWithDetails?> = _selectedCoffee.asStateFlow()
 
+    val activeUser: StateFlow<UserEntity?> = userRepository.getActiveUserFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         savedStateHandle.get<String>("selectedCoffeeId")?.let { id ->
             viewModelScope.launch {
@@ -116,7 +119,7 @@ class AddPostViewModel @Inject constructor(
             _galleryImages.value = images
             
             // Set first image as default if none selected
-            if (_imageSource.value == null && images.isNotEmpty()) {
+            if (_imageSource.value == null && images.isNotEmpty() && _postType.value == PostType.PUBLICATION) {
                 _imageSource.value = images[0]
                 savedStateHandle.set("imageUri", images[0].toString())
             }
@@ -128,6 +131,10 @@ class AddPostViewModel @Inject constructor(
         savedStateHandle.set("postType", type)
         _currentStep.value = 0
         savedStateHandle.set("currentStep", 0)
+        if (type == PostType.OPINION) {
+            _imageSource.value = null
+            savedStateHandle.remove<String>("imageUri")
+        }
     }
 
     fun onSearchQueryChanged(query: String) { _searchQuery.value = query }
@@ -136,8 +143,13 @@ class AddPostViewModel @Inject constructor(
         _selectedCoffee.value = coffee
         if (coffee != null) {
             savedStateHandle.set("selectedCoffeeId", coffee.coffee.id)
-            _currentStep.value = 1
-            savedStateHandle.set("currentStep", 1)
+            if (_postType.value == PostType.OPINION) {
+                _currentStep.value = 2 // Jump directly to ReviewDetailsStepPremium
+                savedStateHandle.set("currentStep", 2)
+            } else {
+                _currentStep.value = 1
+                savedStateHandle.set("currentStep", 1)
+            }
         } else {
             savedStateHandle.remove<String>("selectedCoffeeId")
         }
@@ -156,15 +168,11 @@ class AddPostViewModel @Inject constructor(
     fun setImage(uri: Uri?) { 
         _imageSource.value = uri 
         savedStateHandle.set("imageUri", uri?.toString())
-        
-        // Don't auto-advance anymore as per redesign requirements for "vuelve a la misma pagina"
     }
 
     fun setCapturedImage(bitmap: Bitmap?) { 
         if (bitmap != null) {
             _imageSource.value = bitmap
-            // Don't auto-advance anymore
-
             viewModelScope.launch {
                 val uri = saveBitmapToLocalUri(bitmap)
                 _imageSource.value = uri

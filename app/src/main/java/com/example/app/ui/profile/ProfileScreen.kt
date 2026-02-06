@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.health.connect.client.PermissionController
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.UserReviewInfo
@@ -107,16 +106,6 @@ fun ProfileScreen(
 
                 val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { viewModel.onAvatarChange(it) }
                 
-                val requestPermissionLauncher = rememberLauncherForActivityResult(
-                    PermissionController.createRequestPermissionResultContract()
-                ) { granted ->
-                    if (granted.containsAll(viewModel.healthConnectRepository.permissions)) {
-                        viewModel.onToggleHealthConnect(true)
-                    } else {
-                        viewModel.onToggleHealthConnect(false)
-                    }
-                }
-
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 100.dp)
@@ -258,13 +247,7 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
-                        onLogoutClick = { viewModel.logout() },
-                        isHealthConnectAvailable = state.isHealthConnectAvailable,
-                        healthConnectEnabled = state.healthConnectEnabled,
-                        onHealthConnectToggle = { enabled ->
-                            if (enabled) requestPermissionLauncher.launch(viewModel.healthConnectRepository.permissions)
-                            else viewModel.onToggleHealthConnect(false)
-                        }
+                        onLogoutClick = { viewModel.logout() }
                     )
                 }
 

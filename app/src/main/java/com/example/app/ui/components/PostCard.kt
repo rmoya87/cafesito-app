@@ -92,7 +92,19 @@ fun PostCard(
                 }
             }
 
-            // Imagen Ancho Completo sin bordes redondeados internos
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = if (showHeader) 0.dp else 20.dp)) {
+                if (post.comment.isNotBlank()) {
+                    Text(
+                        text = post.comment,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Black, // Texto negro como se solicitó
+                        lineHeight = 22.sp
+                    )
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+
+            // Imagen Ancho Completo
             SubcomposeAsyncImage(
                 model = post.imageUrl,
                 loading = { ShimmerItem(Modifier.fillMaxWidth().height(350.dp)) },
@@ -130,16 +142,6 @@ fun PostCard(
                             Icon(Icons.Default.MoreHoriz, null, tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
-                }
-
-                if (post.comment.isNotBlank()) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = post.comment,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 22.sp
-                    )
                 }
             }
         }

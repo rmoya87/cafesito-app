@@ -2,7 +2,6 @@ package com.cafesito.app.data
 
 import android.util.Log
 import com.cafesito.app.ui.utils.ConnectivityObserver
-import com.cafesito.app.health.HealthConnectRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +21,6 @@ class DiaryRepository @Inject constructor(
     private val supabaseDataSource: SupabaseDataSource,
     private val userRepository: UserRepository,
     private val connectivityObserver: ConnectivityObserver,
-    private val healthConnectRepository: HealthConnectRepository,
     private val externalScope: CoroutineScope
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
@@ -116,27 +114,6 @@ class DiaryRepository @Inject constructor(
                 diaryDao.upsertPantryItem(updatedItem)
                 if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
                     externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
-                }
-            }
-        }
-
-        // Sincronización con Health Connect si está habilitado y tenemos permisos
-        if (healthConnectRepository.isEnabled()) {
-            externalScope.launch {
-                try {
-                    if (healthConnectRepository.hasPermissions()) {
-                        healthConnectRepository.syncDiaryEntry(
-                            mg = if (type == "CUP") caffeineAmount else 0,
-                            ml = if (type == "WATER") amountMl else 0,
-                            timestamp = entryWithId.timestamp,
-                            entryId = entryWithId.id.toString()
-                        )
-                        Log.d("DiaryRepository", "Sincronizado con Health Connect exitosamente")
-                    } else {
-                        Log.w("DiaryRepository", "Health Connect habilitado pero sin permisos")
-                    }
-                } catch (e: Exception) {
-                    Log.e("DiaryRepository", "Error al sincronizar con Health Connect", e)
                 }
             }
         }
@@ -250,35 +227,6 @@ class DiaryRepository @Inject constructor(
         diaryDao.deletePantryItem(coffeeId, user.id)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.deletePantryItem(coffeeId, user.id) } catch (e: Exception) { } }
-        }
-    }
-
-    suspend fun syncExternalHealthData() {
-        if (!healthConnectRepository.isEnabled() || !healthConnectRepository.hasPermissions()) return
-        
-        try {
-            val externalData = healthConnectRepository.readAndSyncExternalData()
-            val user = userRepository.getActiveUser() ?: return
-            
-            externalData.forEach { (mg, timestamp) ->
-                // Evitar duplicados simples (esto podría mejorarse con una clave única)
-                val existing = diaryDao.getDiaryEntries(user.id).first().any { 
-                    it.timestamp == timestamp && it.caffeineAmount == mg 
-                }
-                
-                if (!existing) {
-                    val entry = DiaryEntryEntity(
-                        userId = user.id,
-                        coffeeName = "Importado de Health Connect",
-                        caffeineAmount = mg,
-                        timestamp = timestamp,
-                        type = if (mg > 0) "CUP" else "WATER"
-                    )
-                    diaryDao.insertDiaryEntry(entry)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("DiaryRepository", "Error al importar datos de Health Connect", e)
         }
     }
 }
