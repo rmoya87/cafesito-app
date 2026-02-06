@@ -340,20 +340,14 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
         Spacer(Modifier.height(16.dp))
         
         // TEXTO ANTES DE LA IMAGEN - COLOR NEGRO
-        TextField(
+        // TEXTO ANTES DE LA IMAGEN - COLOR NEGRO
+        OutlinedTextField(
             value = comment,
             onValueChange = viewModel::onCommentChanged,
             placeholder = { Text("¿Qué estás pensando?") },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black
-            )
+            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         
         Spacer(Modifier.height(16.dp))
@@ -462,20 +456,14 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
         }
         
         // TEXTO ANTES DE LOS CHIPS - COLOR NEGRO
-        TextField(
+        // TEXTO ANTES DE LOS CHIPS - COLOR NEGRO
+        OutlinedTextField(
             value = comment,
             onValueChange = viewModel::onCommentChanged,
             placeholder = { Text("¿Qué te ha parecido este café?") },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black
-            )
+            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
         
         Row(

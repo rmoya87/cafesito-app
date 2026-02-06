@@ -1941,8 +1941,8 @@ fun CommentsSheet(
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFF8F8F8))
-                        .padding(8.dp),
+                        //.background(Color(0xFFF8F8F8)) // Removed gray strip
+                        .padding(horizontal = 16.dp, vertical = 4.dp), // Reduced vertical padding
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(suggestions) { user ->
