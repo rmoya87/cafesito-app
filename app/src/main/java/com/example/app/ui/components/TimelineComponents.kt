@@ -20,7 +20,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,7 +57,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -887,10 +885,7 @@ fun ReviewOptionsBottomSheet(
 fun SettingsBottomSheet(
     onDismiss: () -> Unit, 
     onEditClick: () -> Unit, 
-    onLogoutClick: () -> Unit,
-    isHealthConnectAvailable: Boolean = false,
-    healthConnectEnabled: Boolean = false,
-    onHealthConnectToggle: (Boolean) -> Unit = {}
+    onLogoutClick: () -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
@@ -918,60 +913,6 @@ fun SettingsBottomSheet(
                 color = MaterialTheme.colorScheme.primary,
                 onClick = { onDismiss(); onLogoutClick() }
             )
-            
-            if (isHealthConnectAvailable) {
-                Spacer(Modifier.height(24.dp))
-                
-                // Sección Servicios
-                Text(
-                    "SERVICIOS", 
-                    style = MaterialTheme.typography.labelMedium, 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, 
-                    modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
-                )
-                
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Logo Health Connect PNG
-                        Image(
-                            painter = painterResource(id = R.drawable.health_connect),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("Health Connect", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                            Text("Sincroniza cafeína y agua", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Button(
-                            onClick = { onHealthConnectToggle(!healthConnectEnabled) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (healthConnectEnabled) SuccessGreen else MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(36.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp)
-                        ) {
-                            Text(
-                                text = if (healthConnectEnabled) "CONECTADO" else "CONECTA",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
