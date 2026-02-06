@@ -4,22 +4,19 @@ import android.Manifest
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -27,7 +24,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -35,12 +31,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.ui.components.*
-import com.cafesito.app.ui.theme.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +46,6 @@ fun AddPostScreen(
     val postType by viewModel.postType.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
-    var showMainGallerySheet by remember { mutableStateOf(false) }
 
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_IMAGES
@@ -63,12 +56,6 @@ fun AddPostScreen(
     
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap -> 
         viewModel.setCapturedImage(bitmap)
-    }
-
-    val pickMediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            viewModel.setImage(uri)
-        }
     }
 
     LaunchedEffect(permissionState.status) {
@@ -83,7 +70,7 @@ fun AddPostScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
-                title = if (currentStep == 0) "NUEVA PUBLICACIÓN" else "DETALLES",
+                title = if (currentStep == 0) "NUEVO POST" else "DETALLES",
                 onBackClick = if (currentStep == 0) onBackClick else { { viewModel.goToStep(currentStep - 1) } },
                 actions = {
                     val canNext = when (postType) {
@@ -155,8 +142,6 @@ fun AddPostScreen(
                     postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(
                         viewModel = viewModel, 
                         onCameraClick = { cameraLauncher.launch(null) },
-                        onGalleryClick = { pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        onShowGalleryManual = { showMainGallerySheet = true }
                     )
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel)
                     
@@ -164,42 +149,8 @@ fun AddPostScreen(
                     postType == PostType.OPINION && step == 1 -> ReviewPhotoSelectionStep(
                         viewModel = viewModel,
                         onCameraClick = { cameraLauncher.launch(null) },
-                        onGalleryClick = { pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        onShowGalleryManual = { showMainGallerySheet = true }
                     )
                     postType == PostType.OPINION && step == 2 -> ReviewDetailsStepPremium(viewModel = viewModel)
-                }
-            }
-        }
-    }
-
-    if (showMainGallerySheet) {
-        val galleryImages by viewModel.galleryImages.collectAsState()
-        ModalBottomSheet(
-            onDismissRequest = { showMainGallerySheet = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) }
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().height(600.dp).padding(16.dp)) {
-                Text("SELECCIONA UNA FOTO", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(16.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(galleryImages) { uri ->
-                        Box(
-                            modifier = Modifier.aspectRatio(1f).clip(RoundedCornerShape(8.dp)).clickable { 
-                                viewModel.setImage(uri)
-                                showMainGallerySheet = false
-                            }
-                        ) {
-                            AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        }
-                    }
                 }
             }
         }
@@ -210,8 +161,6 @@ fun AddPostScreen(
 private fun PhotoSelectionStepPremium(
     viewModel: AddPostViewModel, 
     onCameraClick: () -> Unit,
-    onGalleryClick: () -> Unit,
-    onShowGalleryManual: () -> Unit
 ) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
@@ -221,8 +170,7 @@ private fun PhotoSelectionStepPremium(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .background(MaterialTheme.colorScheme.background)
-                .clickable { onShowGalleryManual() }, 
+                .background(MaterialTheme.colorScheme.surfaceVariant), 
             contentAlignment = Alignment.Center
         ) {
             if (imageSource != null) {
@@ -248,16 +196,11 @@ private fun PhotoSelectionStepPremium(
                     Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
-            item {
-                Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onGalleryClick() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Collections, null, tint = MaterialTheme.colorScheme.onSurface)
-                }
-            }
             items(galleryImages) { uri: Uri ->
                 val isSelected = imageSource == uri
                 Box(modifier = Modifier.aspectRatio(1f).clickable { viewModel.setImage(uri) }) {
                     AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.4f)).border(2.dp, MaterialTheme.colorScheme.primary))
+                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).border(2.dp, MaterialTheme.colorScheme.primary))
                 }
             }
         }
@@ -268,15 +211,12 @@ private fun PhotoSelectionStepPremium(
 private fun ReviewPhotoSelectionStep(
     viewModel: AddPostViewModel, 
     onCameraClick: () -> Unit,
-    onGalleryClick: () -> Unit,
-    onShowGalleryManual: () -> Unit
 ) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Mantenemos el café seleccionado arriba
         PremiumCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(model = selectedCoffee?.coffee?.imageUrl, contentDescription = null, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
@@ -291,8 +231,7 @@ private fun ReviewPhotoSelectionStep(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .clickable { onShowGalleryManual() }, 
+                .weight(1f), 
             contentAlignment = Alignment.Center
         ) {
             if (imageSource != null) {
@@ -318,16 +257,11 @@ private fun ReviewPhotoSelectionStep(
                     Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
-            item {
-                Box(modifier = Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onGalleryClick() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Collections, null, tint = MaterialTheme.colorScheme.onSurface)
-                }
-            }
             items(galleryImages) { uri: Uri ->
                 val isSelected = imageSource == uri
                 Box(modifier = Modifier.aspectRatio(1f).clickable { viewModel.setImage(uri) }) {
                     AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.4f)).border(2.dp, MaterialTheme.colorScheme.primary))
+                    if (isSelected) Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).border(2.dp, MaterialTheme.colorScheme.primary))
                 }
             }
         }

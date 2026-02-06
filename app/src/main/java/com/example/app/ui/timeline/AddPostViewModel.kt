@@ -114,6 +114,12 @@ class AddPostViewModel @Inject constructor(
                 list
             }
             _galleryImages.value = images
+            
+            // Set first image as default if none selected
+            if (_imageSource.value == null && images.isNotEmpty()) {
+                _imageSource.value = images[0]
+                savedStateHandle.set("imageUri", images[0].toString())
+            }
         }
     }
 
@@ -151,23 +157,13 @@ class AddPostViewModel @Inject constructor(
         _imageSource.value = uri 
         savedStateHandle.set("imageUri", uri?.toString())
         
-        if (uri != null) {
-            if (_postType.value == PostType.PUBLICATION && _currentStep.value == 0) {
-                _currentStep.value = 1
-                savedStateHandle.set("currentStep", 1)
-            } else if (_postType.value == PostType.OPINION && _currentStep.value == 1) {
-                _currentStep.value = 2
-                savedStateHandle.set("currentStep", 2)
-            }
-        }
+        // Don't auto-advance anymore as per redesign requirements for "vuelve a la misma pagina"
     }
 
     fun setCapturedImage(bitmap: Bitmap?) { 
         if (bitmap != null) {
             _imageSource.value = bitmap
-            val nextStep = if (_postType.value == PostType.PUBLICATION) 1 else 2
-            _currentStep.value = nextStep
-            savedStateHandle.set("currentStep", nextStep)
+            // Don't auto-advance anymore
 
             viewModelScope.launch {
                 val uri = saveBitmapToLocalUri(bitmap)
@@ -207,11 +203,7 @@ class AddPostViewModel @Inject constructor(
                 else -> null
             } ?: return@withContext null
 
-            // CORRECCIÓN: Nombre de archivo sin prefijo de bucket, ya que el SDK lo maneja.
             val fileName = "${System.currentTimeMillis()}_${UUID.randomUUID()}.jpg"
-            
-            // Llamamos a la función de subida. 
-            // IMPORTANTE: Verifica en Supabase SQL Editor que las políticas RLS permitan INSERT en el bucket correspondiente.
             supabaseDataSource.uploadImage(bucket, fileName, imageBytes)
         } catch (e: Exception) {
             Log.e("AddPostVM", "Error uploading image", e)
@@ -224,7 +216,6 @@ class AddPostViewModel @Inject constructor(
             val source = _imageSource.value ?: return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch
             
-            // Subimos al bucket 'posts'
             val imageUrl = uploadImageAndGetUrl(source, "posts")
             if (imageUrl == null) {
                 Log.e("AddPostVM", "Failed to upload post image")
@@ -251,7 +242,6 @@ class AddPostViewModel @Inject constructor(
             val activeUser = userRepository.getActiveUser() ?: return@launch
             val coffeeId = _selectedCoffee.value?.coffee?.id ?: return@launch
             
-            // Subimos al bucket 'reviews'
             val imageUrl = _imageSource.value?.let { uploadImageAndGetUrl(it, "reviews") }
 
             try {
