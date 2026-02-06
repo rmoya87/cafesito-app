@@ -147,9 +147,6 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
-    // Health Connect (Usando el alias del TOML)
-    implementation(libs.androidx.health.connect)
-
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
