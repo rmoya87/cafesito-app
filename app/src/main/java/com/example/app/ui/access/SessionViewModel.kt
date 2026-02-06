@@ -22,8 +22,7 @@ class SessionViewModel @Inject constructor(
 
     /**
      * Observa el estado de la sesión de forma reactiva.
-     * Si el usuario se desloguea, getActiveUserFlow() emitirá null y
-     * automáticamente pasaremos a NotAuthenticated.
+     * Añadimos onStart para asegurar que el estado inicial siempre sea Loading.
      */
     val sessionState: StateFlow<SessionState> = userRepository.getActiveUserFlow()
         .map { user ->
@@ -33,6 +32,7 @@ class SessionViewModel @Inject constructor(
                 SessionState.NotAuthenticated
             }
         }
+        .onStart { emit(SessionState.Loading) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

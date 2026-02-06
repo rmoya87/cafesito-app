@@ -151,9 +151,6 @@ fun AddPostScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        },
-        bottomBar = {
-            // Se elimina la bottomBar para permitir que el contenido fluya debajo de las tabs flotantes
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
@@ -176,13 +173,14 @@ fun AddPostScreen(
                 }
             }
 
-            // Tabs flotantes sobre el contenido
+            // ✅ ALINEACIÓN EXACTA CON EL MENÚ PRINCIPAL
             if (currentStep == 0) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 64.dp), 
+                        .navigationBarsPadding() // Respeta la barra de sistema igual que el menú principal
+                        .padding(bottom = 12.dp), // Margen vertical idéntico al del menú inferior (Surface horizontal padding)
                     contentAlignment = Alignment.Center
                 ) {
                     PremiumTabRow(
@@ -339,8 +337,6 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
         
         Spacer(Modifier.height(16.dp))
         
-        // TEXTO ANTES DE LA IMAGEN - COLOR NEGRO
-        // TEXTO ANTES DE LA IMAGEN - COLOR NEGRO
         OutlinedTextField(
             value = comment,
             onValueChange = viewModel::onCommentChanged,
@@ -352,7 +348,6 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
         
         Spacer(Modifier.height(16.dp))
         
-        // IMAGEN DESPUÉS DEL TEXTO
         AsyncImage(
             model = imageSource,
             contentDescription = "Selected Photo",
@@ -387,7 +382,7 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
         LazyColumn(
             modifier = Modifier.weight(1f), 
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 140.dp) // Espacio para las tabs flotantes
+            contentPadding = PaddingValues(bottom = 140.dp)
         ) {
             items(coffeeList) { coffee ->
                 PremiumCard(modifier = Modifier.fillMaxWidth().clickable { viewModel.selectCoffee(coffee) }) {
@@ -455,8 +450,6 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
             SemicircleRatingBar(rating = rating, onRatingChanged = viewModel::onRatingChanged)
         }
         
-        // TEXTO ANTES DE LOS CHIPS - COLOR NEGRO
-        // TEXTO ANTES DE LOS CHIPS - COLOR NEGRO
         OutlinedTextField(
             value = comment,
             onValueChange = viewModel::onCommentChanged,

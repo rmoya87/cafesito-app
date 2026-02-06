@@ -157,11 +157,14 @@ fun ProfileScreen(
                     }
 
                     stickyHeader {
-                        PremiumTabRow(
-                            selectedTabIndex = selectedTabIndex,
-                            tabs = tabs,
-                            onTabSelected = { selectedTabIndex = it }
-                        )
+                        // ✅ ALINEACIÓN: El margen vertical ahora es 12.dp para coincidir con la BottomBar
+                        Box(modifier = Modifier.padding(vertical = 12.dp)) {
+                            PremiumTabRow(
+                                selectedTabIndex = selectedTabIndex,
+                                tabs = tabs,
+                                onTabSelected = { selectedTabIndex = it }
+                            )
+                        }
                     }
 
                     when (selectedTabIndex) {
@@ -206,7 +209,6 @@ fun ProfileScreen(
                             if (state.favoriteCoffees.isEmpty()) {
                                 item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("No hay cafés favoritos", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                             } else {
-                                // Listado sin corazón; quitar de favoritos deslizando de derecha a izquierda
                                 items(state.favoriteCoffees, key = { it.coffee.id }) { coffee ->
                                     Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                                         SwipeableFavoriteItem(

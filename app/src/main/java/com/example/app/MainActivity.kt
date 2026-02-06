@@ -163,24 +163,31 @@ fun AppNavigation(
     val scope = rememberCoroutineScope()
 
     var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
+    
+    // IMPORTANTE: Usamos 'remember' (NO saveable). Esto se reseteará a 'false' si el sistema mata la actividad.
+    // Solo redirigiremos al login si el usuario estuvo autenticado EN ESTA EJECUCIÓN ESPECÍFICA y luego deja de estarlo.
+    var wasAuthenticatedInCurrentInstance by remember { mutableStateOf(false) }
 
-    // Determinar la ruta inicial solo una vez al arrancar
     LaunchedEffect(sessionState) {
-        if (startRoute == null) {
-            when (sessionState) {
-                is SessionState.Authenticated -> startRoute = "timeline"
-                is SessionState.NotAuthenticated -> startRoute = "onboarding"
-                else -> {} 
+        when (sessionState) {
+            is SessionState.Authenticated -> {
+                wasAuthenticatedInCurrentInstance = true
+                if (startRoute == null) {
+                    startRoute = "timeline"
+                }
             }
-        }
-    }
-
-    // GESTIÓN DE LOGOUT: Si el estado cambia a NotAuthenticated después de haber iniciado, vamos al login.
-    LaunchedEffect(sessionState) {
-        if (sessionState is SessionState.NotAuthenticated && startRoute != null) {
-            navController.navigate("login") {
-                popUpTo(0) { inclusive = true }
+            is SessionState.NotAuthenticated -> {
+                if (startRoute == null) {
+                    startRoute = "login"
+                } else if (wasAuthenticatedInCurrentInstance) {
+                    // Solo redirigimos al login si ANTES estuvimos autenticados (Logout real o expiración de sesión)
+                    wasAuthenticatedInCurrentInstance = false
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             }
+            else -> {} 
         }
     }
 
@@ -235,12 +242,6 @@ fun AppNavigation(
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            composable("onboarding") {
-                OnboardingScreen(onFinished = {
-                    navController.navigate("login") { popUpTo("onboarding") { inclusive = true } }
-                })
-            }
-
             composable("login") {
                 LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
                     if (!isNewUser) {

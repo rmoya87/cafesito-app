@@ -3,6 +3,7 @@ package com.cafesito.app.data
 import android.util.Log
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
@@ -130,7 +131,12 @@ class UserRepository @Inject constructor(
     fun getActiveUserFlow(): Flow<UserEntity?> = combine(
         supabaseClient.auth.sessionStatus,
         _refreshTrigger
-    ) { _, _ -> }.flatMapLatest {
+    ) { status, _ -> status }.flatMapLatest { status ->
+        // ✅ CORRECCIÓN ROBUSTA: Si el estado es de carga, esperamos para evitar NotAuthenticated falso.
+        if (status::class.simpleName?.contains("Loading", ignoreCase = true) == true) {
+            return@flatMapLatest flow { }
+        }
+        
         val uid = supabaseClient.auth.currentUserOrNull()?.id
         if (uid != null) {
             userDao.getUserByGoogleIdFlow(uid).onStart {
@@ -166,8 +172,10 @@ class UserRepository @Inject constructor(
         if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try {
                 val remote = supabaseDataSource.getUserById(userId)
-                if (remote != null) userDao.upsertUser(remote)
-                return remote
+                if (remote != null) {
+                    userDao.upsertUser(remote)
+                    return remote
+                }
             } catch (e: Exception) { }
         }
         return local
@@ -192,8 +200,10 @@ class UserRepository @Inject constructor(
         if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try {
                 val remote = supabaseDataSource.getUserByUsername(username)
-                if (remote != null) userDao.upsertUser(remote)
-                return remote
+                if (remote != null) {
+                    userDao.upsertUser(remote)
+                    return remote
+                }
             } catch (e: Exception) { }
         }
         return local

@@ -57,6 +57,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -115,7 +116,7 @@ fun CommentsSheet(
 
     var editingCommentId by remember { mutableStateOf<Int?>(null) }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = comments.size > 5)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(postId) {
         viewModel.setPostId(postId)
@@ -130,7 +131,9 @@ fun CommentsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .imePadding()
+                .navigationBarsPadding()
+                .imePadding() // ✅ ANCLAJE AL TECLADO COMPATIBLE
+                .background(Color.White)
         ) {
             Column(
                 modifier = Modifier
@@ -187,8 +190,7 @@ fun CommentsSheet(
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        //.background(Color(0xFFF8F8F8)) // Removed gray strip
-                        .padding(horizontal = 16.dp, vertical = 4.dp), // Reduced vertical padding
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(suggestions) { user ->
@@ -203,7 +205,8 @@ fun CommentsSheet(
             }
 
             Surface(
-                color = Color.White
+                color = Color.White,
+                tonalElevation = 0.dp // ✅ ELIMINADO TINTE GRIS (tonalElevation a 0)
             ) {
                 Column {
                     if (editingCommentId != null) {
@@ -227,8 +230,7 @@ fun CommentsSheet(
                     Row(
                         modifier = Modifier
                             .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .fillMaxWidth()
-                            .navigationBarsPadding(),
+                            .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
@@ -240,7 +242,11 @@ fun CommentsSheet(
                             placeholder = { Text("Añade un comentario...") },
                             modifier = Modifier.weight(1f),
                             shape = CircleShape,
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CoffeeBrown)
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = CoffeeBrown,
+                                unfocusedContainerColor = Color.White,
+                                focusedContainerColor = Color.White
+                            )
                         )
                         Spacer(Modifier.width(8.dp))
                         IconButton(
@@ -272,6 +278,45 @@ fun CommentsSheet(
         }
     }
 }
+
+@Composable
+fun PremiumTabRow(
+    selectedTabIndex: Int,
+    tabs: List<String>,
+    onTabSelected: (Int) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 16.dp) // ✅ ELIMINADO padding vertical interno para control externo exacto
+                .fillMaxWidth()
+                .height(64.dp) // ✅ ALTURA UNIFICADA CON BOTTOMBAR
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(32.dp))
+                .premiumBorder(RoundedCornerShape(32.dp))
+                .padding(4.dp)
+        ) {
+            AnimatedTabIndicator(selectedTabIndex, tabs.size)
+            Row(modifier = Modifier.fillMaxSize()) {
+                tabs.forEachIndexed { index, title ->
+                    val isSelected = selectedTabIndex == index
+                    val contentColor by animateColorAsState(if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(24.dp))
+                            .clickable { onTabSelected(index) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = title, style = MaterialTheme.typography.labelLarge, color = contentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ... (rest of the file remains unchanged)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -460,19 +505,19 @@ private fun CommentRow(
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = author?.username ?: "Usuario",
+                text = author?.username ?: \"Usuario\",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.clickable { author?.id?.let { onNavigateToProfile(it) } }
             )
 
             val annotatedContent = buildAnnotatedStringWithMentions(comment.text)
-            @Suppress("DEPRECATION")
+            @Suppress(\"DEPRECATION\")
             ClickableText(
                 text = annotatedContent,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                 onClick = { offset ->
-                    annotatedContent.getStringAnnotations("MENTION", offset, offset)
+                    annotatedContent.getStringAnnotations(\"MENTION\", offset, offset)
                         .firstOrNull()?.let { annotation ->
                             onMentionClick(annotation.item)
                         }
@@ -483,21 +528,21 @@ private fun CommentRow(
         if (isOwnComment) {
             Box {
                 IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.MoreVert, contentDescription = \"Opciones\", tint = Color.Gray, modifier = Modifier.size(16.dp))
                 }
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Editar") },
+                        text = { Text(\"Editar\") },
                         onClick = {
                             showMenu = false
                             onEditClick()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Borrar", color = ElectricRed) },
+                        text = { Text(\"Borrar\", color = ElectricRed) },
                         onClick = {
                             showMenu = false
                             onDeleteClick()
@@ -511,13 +556,13 @@ private fun CommentRow(
 
 private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
     return buildAnnotatedString {
-        val regex = Regex("@(\\w+)")
+        val regex = Regex(\"@(\\\\w+)\")
         var lastIndex = 0
 
         regex.findAll(text).forEach { matchResult ->
             append(text.substring(lastIndex, matchResult.range.first))
             val username = matchResult.groupValues[1]
-            pushStringAnnotation(tag = "MENTION", annotation = username)
+            pushStringAnnotation(tag = \"MENTION\", annotation = username)
             withStyle(style = SpanStyle(color = CoffeeBrown, fontWeight = FontWeight.Bold)) {
                 append(matchResult.value)
             }
@@ -548,49 +593,11 @@ private fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     }
 }
 
-
-@Composable
-fun PremiumTabRow(
-    selectedTabIndex: Int,
-    tabs: List<String>,
-    onTabSelected: (Int) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .fillMaxWidth()
-                .height(54.dp)
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(28.dp))
-                .premiumBorder(RoundedCornerShape(28.dp))
-                .padding(4.dp)
-        ) {
-            AnimatedTabIndicator(selectedTabIndex, tabs.size)
-            Row(modifier = Modifier.fillMaxSize()) {
-                tabs.forEachIndexed { index, title ->
-                    val isSelected = selectedTabIndex == index
-                    val contentColor by animateColorAsState(if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(24.dp))
-                            .clickable { onTabSelected(index) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = title, style = MaterialTheme.typography.labelLarge, color = contentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 fun StockSliderSection(label: String, value: Float, maxValue: Float, onValueChange: (Float) -> Unit) {
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("${value.roundToInt()} g", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+        Text(\"${value.roundToInt()} g\", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
         Slider(
             value = value, 
             onValueChange = onValueChange, 
@@ -648,7 +655,7 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, onDelete: () -> Unit) {
 
 @Composable
 fun DiaryEntryItem(entry: DiaryEntryEntity) {
-    val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
+    val dateStr = SimpleDateFormat(\"HH:mm\", Locale.getDefault()).format(Date(entry.timestamp))
     Surface(
         modifier = Modifier.fillMaxWidth(), 
         color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp), 
@@ -659,7 +666,7 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        if (entry.type == "WATER") Color(0xFFE3F2FD).copy(alpha = if (isSystemInDarkTheme()) 0.2f else 1f) else MaterialTheme.colorScheme.primary.copy(
+                        if (entry.type == \"WATER\") Color(0xFFE3F2FD).copy(alpha = if (isSystemInDarkTheme()) 0.2f else 1f) else MaterialTheme.colorScheme.primary.copy(
                             alpha = 0.15f
                         ),
                         CircleShape
@@ -667,16 +674,16 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, 
+                    if (entry.type == \"WATER\") Icons.Default.WaterDrop else Icons.Default.Coffee, 
                     null, 
-                    tint = if (entry.type == "WATER") Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurface, 
+                    tint = if (entry.type == \"WATER\") Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurface, 
                     modifier = Modifier.size(24.dp)
                 )
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(entry.coffeeName, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
-                Text("$dateStr • ${if (entry.type == "WATER") "${entry.amountMl}ml" else "${entry.caffeineAmount}mg - ${entry.preparationType}"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(\"$dateStr • ${if (entry.type == \"WATER\") \"${entry.amountMl}ml\" else \"${entry.caffeineAmount}mg - ${entry.preparationType}\"}\", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -690,7 +697,7 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 32.dp)) {
             Text(
-                text = "Recomendaciones OMS",
+                text = \"Recomendaciones OMS\",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -698,11 +705,11 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(24.dp))
-            InfoRow("Máximo Diario", "400 mg", "Aprox. 4 espressos. Límite seguro para adultos sanos.")
+            InfoRow(\"Máximo Diario\", \"400 mg\", \"Aprox. 4 espressos. Límite seguro para adultos sanos.\")
             HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline)
-            InfoRow("Embarazo", "200 mg", "Se recomienda reducir el consumo a la mitad.")
+            InfoRow(\"Embarazo\", \"200 mg\", \"Se recomienda reducir el consumo a la mitad.\")
             HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline)
-            InfoRow("Hidratación", "2.5 L", "El agua es vital. El café deshidrata ligeramente.")
+            InfoRow(\"Hidratación\", \"2.5 L\", \"El agua es vital. El café deshidrata ligeramente.\")
         }
     }
 }
@@ -732,7 +739,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "Editar Stock",
+                text = \"Editar Stock\",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -740,9 +747,9 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(32.dp))
-            StockSliderSection("Bolsa total", total, 1000f) { total = it; if (rem > it) rem = it }
+            StockSliderSection(\"Bolsa total\", total, 1000f) { total = it; if (rem > it) rem = it }
             Spacer(Modifier.height(24.dp))
-            StockSliderSection("Restante", rem, total) { rem = it }
+            StockSliderSection(\"Restante\", rem, total) { rem = it }
             Spacer(Modifier.height(40.dp))
             
             Row(
@@ -758,7 +765,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text(\"CANCELAR\", fontWeight = FontWeight.Bold)
                 }
                 
                 Button(
@@ -769,7 +776,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) { 
-                    Text("GUARDAR", fontWeight = FontWeight.Bold) 
+                    Text(\"GUARDAR\", fontWeight = FontWeight.Bold) 
                 }
             }
         }
@@ -836,13 +843,13 @@ fun PostOptionsBottomSheet(
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
             ModalMenuOption(
-                title = "Editar",
+                title = \"Editar\",
                 icon = Icons.Default.Edit,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onEditClick
             )
             ModalMenuOption(
-                title = "Borrar",
+                title = \"Borrar\",
                 icon = Icons.Default.Delete,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onDeleteClick
@@ -865,13 +872,13 @@ fun ReviewOptionsBottomSheet(
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
             ModalMenuOption(
-                title = "Editar",
+                title = \"Editar\",
                 icon = Icons.Default.Edit,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onEditClick
             )
             ModalMenuOption(
-                title = "Borrar",
+                title = \"Borrar\",
                 icon = Icons.Default.Delete,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = onDeleteClick
@@ -895,20 +902,20 @@ fun SettingsBottomSheet(
         Column(Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp)) {
             // Sección General
             Text(
-                "GENERAL", 
+                \"GENERAL\", 
                 style = MaterialTheme.typography.labelMedium, 
                 color = MaterialTheme.colorScheme.onSurfaceVariant, 
                 modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
             )
             
             ModalMenuOption(
-                title = "Editar Perfil",
+                title = \"Editar Perfil\",
                 icon = Icons.Default.Edit,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = { onDismiss(); onEditClick() }
             )
             ModalMenuOption(
-                title = "Cerrar Sesión",
+                title = \"Cerrar Sesión\",
                 icon = Icons.AutoMirrored.Filled.Logout,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = { onDismiss(); onLogoutClick() }
@@ -944,7 +951,7 @@ fun EditPostBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Editar",
+                text = \"Editar\",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -957,7 +964,7 @@ fun EditPostBottomSheet(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    .clickable { launcher.launch("image/*") },
+                    .clickable { launcher.launch(\"image/*\") },
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
@@ -972,7 +979,7 @@ fun EditPostBottomSheet(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Descripción") },
+                label = { Text(\"Descripción\") },
                 shape = RoundedCornerShape(12.dp)
             )
             Spacer(Modifier.height(24.dp))
@@ -989,7 +996,7 @@ fun EditPostBottomSheet(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text(\"CANCELAR\", fontWeight = FontWeight.Bold)
                 }
                 Button(
                     onClick = { onConfirm(text, imageUrl) },
@@ -999,7 +1006,7 @@ fun EditPostBottomSheet(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("GUARDAR", fontWeight = FontWeight.Bold)
+                    Text(\"GUARDAR\", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1035,7 +1042,7 @@ fun EditReviewBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Editar",
+                text = \"Editar\",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -1048,7 +1055,7 @@ fun EditReviewBottomSheet(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    .clickable { launcher.launch("image/*") },
+                    .clickable { launcher.launch(\"image/*\") },
                 contentAlignment = Alignment.Center
             ) {
                 if (imageUrl != null) {
@@ -1084,7 +1091,7 @@ fun EditReviewBottomSheet(
             OutlinedTextField(
                 value = comment,
                 onValueChange = { comment = it },
-                label = { Text("Tu opinión") },
+                label = { Text(\"Tu opinión\") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
@@ -1102,7 +1109,7 @@ fun EditReviewBottomSheet(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text(\"CANCELAR\", fontWeight = FontWeight.Bold)
                 }
                 Button(
                     onClick = { onConfirm(rating, comment, imageUrl) },
@@ -1112,7 +1119,7 @@ fun EditReviewBottomSheet(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("ACTUALIZAR", fontWeight = FontWeight.Bold)
+                    Text(\"ACTUALIZAR\", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1166,7 +1173,7 @@ fun DeleteConfirmationDialog(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text(\"CANCELAR\", fontWeight = FontWeight.Bold)
                 }
                 Button(
                     onClick = {
@@ -1179,7 +1186,7 @@ fun DeleteConfirmationDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("ELIMINAR", fontWeight = FontWeight.Bold)
+                    Text(\"ELIMINAR\", fontWeight = FontWeight.Bold)
                 }
             }
         }

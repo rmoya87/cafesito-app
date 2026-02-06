@@ -90,8 +90,6 @@ fun TimelineScreen(
         }
     }
 
-    // Auto-scroll al inicio cuando cambia isRefreshing de true a false (termina un refresco)
-    // O cuando el tamaño de la lista aumenta (nueva publicación detectada)
     var lastItemCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(uiState) {
         val currentState = uiState
@@ -155,12 +153,11 @@ fun TimelineScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
                 modifier = Modifier
-                    .padding(bottom = 90.dp, end = 8.dp)
+                    .padding(bottom = 100.dp, end = 8.dp)
                     .size(56.dp) 
             ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(24.dp)) }
         }
     ) { padding ->
-        
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { viewModel.refreshData() },
@@ -189,7 +186,6 @@ fun TimelineScreen(
                                 }
                             }
                         ) { index, item ->
-
                             if (index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
                                 Column {
                                     RecommendationCarousel(
@@ -199,7 +195,6 @@ fun TimelineScreen(
                                     Spacer(Modifier.height(24.dp))
                                 }
                             }
-
                             if (index == suggestionIndices[1] && state.suggestedUsers.isNotEmpty()) {
                                 UserSuggestionCarousel(
                                     users = state.suggestedUsers,
@@ -212,7 +207,6 @@ fun TimelineScreen(
                                 )
                                 Spacer(Modifier.height(32.dp))
                             }
-
                             AnimatedVisibility(
                                 visible = true,
                                 enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) +
@@ -253,7 +247,6 @@ fun TimelineScreen(
                 }
             }
         }
-
         if (itemToDelete != null) {
             DeleteConfirmationDialog(
                 onDismissRequest = { itemToDelete = null },
@@ -267,7 +260,6 @@ fun TimelineScreen(
                 text = "Una vez borrado no se puede recuperar. ¿Estás seguro?"
             )
         }
-
         showCommentSheetId?.let { id ->
             CommentsSheet(
                 postId = id,
@@ -284,7 +276,6 @@ fun TimelineScreen(
                 highlightedCommentId = highlightedCommentId
             )
         }
-
         showReviewOptions?.let { review ->
             ReviewOptionsBottomSheet(
                 onDismiss = { showReviewOptions = null },
@@ -298,7 +289,6 @@ fun TimelineScreen(
                 }
             )
         }
-
         postToEdit?.let { details ->
             EditPostBottomSheet(
                 initialText = details.post.comment,
@@ -310,7 +300,6 @@ fun TimelineScreen(
                 }
             )
         }
-        
         reviewToEdit?.let { item ->
             EditReviewBottomSheet(
                 initialRating = item.reviewInfo.review.rating,
