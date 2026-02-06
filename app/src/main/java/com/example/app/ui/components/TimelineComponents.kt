@@ -163,7 +163,7 @@ fun CommentsSheet(
                     items(comments) { item ->
                         CommentRow(
                             commentWithAuthor = item,
-                            isOwnComment = item.author.id == activeUser?.id,
+                            isOwnComment = item.author?.id == activeUser?.id,
                             isHighlighted = highlightedCommentId == item.comment.id,
                             onNavigateToProfile = onNavigateToProfile,
                             onDeleteClick = { viewModel.deleteComment(item.comment.id) },
@@ -449,21 +449,21 @@ private fun CommentRow(
             .padding(8.dp)
     ) {
         AsyncImage(
-            model = author.avatarUrl,
+            model = author?.avatarUrl ?: "",
             contentDescription = null,
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(Color.LightGray)
-                .clickable { onNavigateToProfile(author.id) }
+                .clickable { author?.id?.let { onNavigateToProfile(it) } }
         )
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = author.username,
+                text = author?.username ?: "Usuario",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.clickable { onNavigateToProfile(author.id) }
+                modifier = Modifier.clickable { author?.id?.let { onNavigateToProfile(it) } }
             )
 
             val annotatedContent = buildAnnotatedStringWithMentions(comment.text)

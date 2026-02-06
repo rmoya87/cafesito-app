@@ -97,8 +97,8 @@ class TimelineViewModel @Inject constructor(
                         UserReviewInfo(
                             coffeeDetails = it,
                             review = reviewWithAuthor.review,
-                            authorName = reviewWithAuthor.author.fullName,
-                            authorAvatarUrl = reviewWithAuthor.author.avatarUrl
+                            authorName = reviewWithAuthor.author?.fullName,
+                            authorAvatarUrl = reviewWithAuthor.author?.avatarUrl
                         )
                     )
                 }

@@ -48,8 +48,8 @@ class DetailViewModel @Inject constructor(
             UserReviewInfo(
                 coffeeDetails = updatedCoffee,
                 review = reviewWithAuthor.review,
-                authorName = reviewWithAuthor.author.fullName,
-                authorAvatarUrl = reviewWithAuthor.author.avatarUrl
+                authorName = reviewWithAuthor.author?.fullName,
+                authorAvatarUrl = reviewWithAuthor.author?.avatarUrl
             )
         }
 

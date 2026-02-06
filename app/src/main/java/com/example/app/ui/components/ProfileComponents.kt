@@ -115,7 +115,7 @@ fun ProfilePosts(
             Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 PostCard(
                     details = item,
-                    onUserClick = { onUserClick(item.author.id) },
+                    onUserClick = { item.author?.id?.let { onUserClick(it) } },
                     onCommentClick = { onCommentClick(item.post.id) },
                     onLikeClick = { viewModel.onToggleLike(item.post.id) },
                     isLiked = activeUser?.let { me -> item.likes.any { it.userId == me.id } } ?: false,

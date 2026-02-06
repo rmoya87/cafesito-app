@@ -67,10 +67,10 @@ fun PostCard(
                         modifier = Modifier.weight(1f).clickable(onClick = onUserClick),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        ModernAvatar(imageUrl = author.avatarUrl, size = 44.dp)
+                        ModernAvatar(imageUrl = author?.avatarUrl ?: "", size = 44.dp)
                         Column(modifier = Modifier.padding(start = 12.dp)) {
                             Text(
-                                text = author.fullName, 
+                                text = author?.fullName ?: "Usuario", 
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -97,14 +97,13 @@ fun PostCard(
                     Text(
                         text = post.comment,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black, // Texto negro como se solicitó
+                        color = Color.Black, 
                         lineHeight = 22.sp
                     )
                     Spacer(Modifier.height(16.dp))
                 }
             }
 
-            // Imagen Ancho Completo
             SubcomposeAsyncImage(
                 model = post.imageUrl,
                 loading = { ShimmerItem(Modifier.fillMaxWidth().height(350.dp)) },

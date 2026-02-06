@@ -287,7 +287,7 @@ data class CoffeeWithDetails(
 data class PostWithDetails(
     @Embedded val post: PostEntity,
     @Relation(parentColumn = "userId", entityColumn = "id")
-    val author: UserEntity,
+    val author: UserEntity?, // CAMBIO: Puede ser null durante logout
     @Relation(parentColumn = "id", entityColumn = "postId")
     val likes: List<LikeEntity> = emptyList(),
     @Relation(parentColumn = "id", entityColumn = "postId")
@@ -298,12 +298,12 @@ data class PostWithDetails(
 data class CommentWithAuthor(
     @Embedded val comment: CommentEntity,
     @Relation(parentColumn = "userId", entityColumn = "id")
-    val author: UserEntity
+    val author: UserEntity? // CAMBIO: Puede ser null
 )
 
 @Immutable
 data class ReviewWithAuthor(
     @Embedded val review: ReviewEntity,
     @Relation(parentColumn = "userId", entityColumn = "id")
-    val author: UserEntity
+    val author: UserEntity? // CAMBIO: Puede ser null
 )

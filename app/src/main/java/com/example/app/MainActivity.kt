@@ -164,12 +164,22 @@ fun AppNavigation(
 
     var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // Determinar la ruta inicial solo una vez al arrancar
     LaunchedEffect(sessionState) {
         if (startRoute == null) {
             when (sessionState) {
                 is SessionState.Authenticated -> startRoute = "timeline"
                 is SessionState.NotAuthenticated -> startRoute = "onboarding"
-                else -> {} // Esperamos a que cargue
+                else -> {} 
+            }
+        }
+    }
+
+    // GESTIÓN DE LOGOUT: Si el estado cambia a NotAuthenticated después de haber iniciado, vamos al login.
+    LaunchedEffect(sessionState) {
+        if (sessionState is SessionState.NotAuthenticated && startRoute != null) {
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
             }
         }
     }
