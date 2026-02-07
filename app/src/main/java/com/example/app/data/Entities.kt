@@ -10,6 +10,15 @@ import androidx.room.Relation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+// --- ENTIDAD DE SESIÓN ---
+
+@Entity(tableName = "active_session")
+data class ActiveSessionEntity(
+    @PrimaryKey val id: Int = 1, // Fila única
+    val userId: Int
+)
+
+
 // --- ENTIDADES PRINCIPALES ---
 
 @Immutable

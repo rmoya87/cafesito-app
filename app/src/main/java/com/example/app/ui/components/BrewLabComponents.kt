@@ -729,9 +729,8 @@ fun BottomActionContainer(content: @Composable BoxScope.() -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
             .navigationBarsPadding()
-            .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 100.dp),
+            .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 80.dp),
         content = content
     )
 }

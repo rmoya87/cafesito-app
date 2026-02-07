@@ -18,9 +18,10 @@ import androidx.room.RoomDatabase
         DiaryEntryEntity::class,
         PantryItemEntity::class,
         CustomCoffeeEntity::class,
-        UserTokenEntity::class
+        UserTokenEntity::class,
+        ActiveSessionEntity::class
     ],
-    version = 26, // INCREMENTADO DE 25 A 26 para incluir UserTokenEntity
+    version = 27, // INCREMENTADO DE 26 A 27 para incluir ActiveSessionEntity
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,4 +29,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun socialDao(): SocialDao
     abstract fun diaryDao(): DiaryDao
+    abstract fun sessionDao(): SessionDao
 }

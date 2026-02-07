@@ -347,7 +347,7 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
+            .height(140.dp) // Aumentado para dar espacio a los números
             .horizontalScroll(scrollState),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Bottom
@@ -357,18 +357,34 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
             val waterHeight = (entry.water.toFloat() / 2000f).coerceIn(0.05f, 1f)
 
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
-                Row(modifier = Modifier.height(80.dp), verticalAlignment = Alignment.Bottom) {
-                    Box(Modifier
-                        .width(10.dp)
-                        .fillMaxHeight(caffeineHeight)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary))
+                Row(
+                    modifier = Modifier.height(100.dp), 
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(12.dp), verticalArrangement = Arrangement.Bottom) {
+                        if (entry.caffeine > 0) {
+                            Text(text = "${entry.caffeine}", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                            Spacer(Modifier.height(2.dp))
+                        }
+                        Box(Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(caffeineHeight)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary))
+                    }
                     Spacer(Modifier.width(4.dp))
-                    Box(Modifier
-                        .width(10.dp)
-                        .fillMaxHeight(waterHeight)
-                        .clip(CircleShape)
-                        .background(Color(0xFF2196F3).copy(alpha = 0.4f)))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(12.dp), verticalArrangement = Arrangement.Bottom) {
+                        if (entry.water > 0) {
+                            Text(text = "${entry.water}", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2196F3), maxLines = 1)
+                            Spacer(Modifier.height(2.dp))
+                        }
+                        Box(Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(waterHeight)
+                            .clip(CircleShape)
+                            .background(Color(0xFF2196F3).copy(alpha = 0.4f)))
+                    }
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(entry.label, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)

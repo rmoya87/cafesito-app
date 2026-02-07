@@ -4,6 +4,18 @@ import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao
+interface SessionDao {
+    @Query("SELECT * FROM active_session LIMIT 1")
+    fun getActiveSession(): Flow<ActiveSessionEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun setSession(session: ActiveSessionEntity)
+
+    @Query("DELETE FROM active_session")
+    suspend fun clearSession()
+}
+
+@Dao
 interface CoffeeDao {
     @Transaction
     @Query("SELECT * FROM coffees ORDER BY nombre ASC")
@@ -79,6 +91,9 @@ interface UserDao {
 
     @Query("SELECT * FROM users_db WHERE id = :userId")
     suspend fun getUserById(userId: Int): UserEntity?
+
+    @Query("SELECT * FROM users_db WHERE id = :userId")
+    fun getUserByIdFlow(userId: Int): Flow<UserEntity?>
 
     @Query("SELECT * FROM users_db WHERE googleId = :googleId LIMIT 1")
     suspend fun getUserByGoogleId(googleId: String): UserEntity?

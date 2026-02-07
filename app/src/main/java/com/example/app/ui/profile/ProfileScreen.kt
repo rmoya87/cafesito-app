@@ -194,9 +194,8 @@ fun ProfileScreen(
                                     Box(Modifier.clickable { showSensoryDetail = true }) {
                                         PremiumCard {
                                             Column(Modifier.padding(24.dp)) {
-                                                Text("PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                                                Spacer(Modifier.height(16.dp))
-                                                SensoryRadarChart(data = state.sensoryProfile, modifier = Modifier.fillMaxWidth().height(200.dp))
+                                                // Se quita el texto "PERFIL SENSORIAL" por petición del usuario
+                                                SensoryRadarChart(data = state.sensoryProfile, modifier = Modifier.fillMaxWidth().height(220.dp))
                                                 Spacer(Modifier.height(16.dp))
                                                 Text("Tus gustos basados en tus cafés favoritos y reseñas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                                             }

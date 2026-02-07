@@ -34,15 +34,15 @@ fun SensoryRadarChart(
     val labels = data.keys.toList()
     val values = data.values.toList()
     val textMeasurer = rememberTextMeasurer()
-    val labelStyle = TextStyle(color = labelColor, fontSize = 11.sp)
+    val labelStyle = TextStyle(color = labelColor, fontSize = 10.sp) // Reducido un poco para que entre mejor
 
     Box(modifier = modifier
         .aspectRatio(1f)
-        .padding(28.dp) // Mayor padding para evitar corte de etiquetas
+        .padding(32.dp) // Aumentado padding para que no se corten etiquetas
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = this.center
-            val radius = min(size.width, size.height) / 2f * 0.85f
+            val radius = min(size.width, size.height) / 2f * 0.75f // Reducido radio del gráfico para dejar espacio a etiquetas
             val angleStep = (2 * PI / labels.size).toFloat()
 
             // 1. Draw Web (Red de fondo)
@@ -80,7 +80,7 @@ fun SensoryRadarChart(
                 )
 
                 // Posicionamiento inteligente de etiquetas
-                val labelRadius = radius + 14.dp.toPx()
+                val labelRadius = radius + 12.dp.toPx()
                 val labelX = center.x + labelRadius * cosA
                 val labelY = center.y + labelRadius * sinA
                 

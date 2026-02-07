@@ -2,6 +2,8 @@ package com.cafesito.app.ui.components
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -220,10 +222,13 @@ fun ProfileReviews(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
-        Column(Modifier
-            .padding(24.dp)
-            .padding(bottom = 48.dp)) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface, sheetState = sheetState) {
+        Column(
+            Modifier
+                .navigationBarsPadding()
+                .padding(24.dp)
+        ) {
             Text(
                 text = "ANÁLISIS DE PREFERENCIAS",
                 style = MaterialTheme.typography.titleLarge,

@@ -22,6 +22,7 @@ import javax.inject.Singleton
 @Singleton
 class UserRepository @Inject constructor(
     private val userDao: UserDao,
+    private val sessionDao: SessionDao, // INYECTADO
     private val supabaseDataSource: SupabaseDataSource,
     private val supabaseClient: SupabaseClient,
     private val connectivityObserver: ConnectivityObserver,
@@ -65,7 +66,14 @@ class UserRepository @Inject constructor(
                 idToken = token
                 provider = Google
             }
-            supabaseClient.auth.currentUserOrNull()?.id
+            val uid = supabaseClient.auth.currentUserOrNull()?.id
+            // Si el usuario ya existe localmente, marcamos la sesión en Room
+            if (uid != null) {
+                userDao.getUserByGoogleId(uid)?.let { localUser ->
+                    sessionDao.setSession(ActiveSessionEntity(userId = localUser.id))
+                }
+            }
+            uid
         } catch (e: Exception) {
             Log.e("UserRepository", "SignIn failed", e)
             null
@@ -77,6 +85,7 @@ class UserRepository @Inject constructor(
             if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
                 supabaseClient.auth.signOut()
             }
+            sessionDao.clearSession() // LIMPIAMOS SESIÓN EN ROOM
             userDao.deleteAllUsers()
             lastSyncMap.clear()
             triggerRefresh()
@@ -128,43 +137,42 @@ class UserRepository @Inject constructor(
 
     suspend fun getAllUsersList(): List<UserEntity> = userDao.getAllUsers().first()
 
-    fun getActiveUserFlow(): Flow<UserEntity?> = combine(
-        supabaseClient.auth.sessionStatus,
-        _refreshTrigger
-    ) { status, _ -> status }.flatMapLatest { status ->
-        // ✅ CORRECCIÓN ROBUSTA: Si el estado es de carga, esperamos para evitar NotAuthenticated falso.
-        if (status::class.simpleName?.contains("Loading", ignoreCase = true) == true) {
-            return@flatMapLatest flow { }
-        }
-        
-        val uid = supabaseClient.auth.currentUserOrNull()?.id
-        if (uid != null) {
-            userDao.getUserByGoogleIdFlow(uid).onStart {
-                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-                    externalScope.launch {
-                        try {
-                            val remote = supabaseDataSource.getUserByGoogleId(uid)
-                            if (remote != null) userDao.upsertUser(remote)
-                        } catch (e: Exception) { }
+    /**
+     * Fuente de verdad de la sesión: Room (ActiveSessionEntity).
+     * Esto asegura que la sesión persista tras bloqueos de pantalla o reinicios,
+     * y solo se pierda al cerrar sesión explícitamente.
+     */
+    fun getActiveUserFlow(): Flow<UserEntity?> = sessionDao.getActiveSession()
+        .flatMapLatest { session ->
+            if (session != null) {
+                // Hay una sesión activa en Room
+                userDao.getUserByIdFlow(session.userId).onStart {
+                    // Intento de refresco opcional si hay internet
+                    if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                        externalScope.launch {
+                            try {
+                                val uid = supabaseClient.auth.currentUserOrNull()?.id
+                                if (uid != null) {
+                                    val remote = supabaseDataSource.getUserByGoogleId(uid)
+                                    if (remote != null) userDao.upsertUser(remote)
+                                }
+                            } catch (e: Exception) { }
+                        }
                     }
                 }
+            } else {
+                // No hay sesión activa en Room
+                flowOf(null)
             }
-        } else flowOf(null)
-    }.flowOn(Dispatchers.IO)
+        }.flowOn(Dispatchers.IO)
 
     suspend fun getActiveUser(): UserEntity? {
-        val currentUid = supabaseClient.auth.currentUserOrNull()?.id ?: return null
-        val local = userDao.getUserByGoogleId(currentUid)
-        if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try {
-                val remote = supabaseDataSource.getUserByGoogleId(currentUid)
-                if (remote != null) {
-                    userDao.upsertUser(remote)
-                    return remote
-                }
-            } catch (e: Exception) { }
-        }
-        return local
+        val session = sessionDao.getActiveSession().first() ?: return null
+        return userDao.getUserById(session.userId)
+    }
+    
+    suspend fun setSession(userId: Int) {
+        sessionDao.setSession(ActiveSessionEntity(userId = userId))
     }
 
     suspend fun getUserById(userId: Int): UserEntity? {
@@ -218,6 +226,8 @@ class UserRepository @Inject constructor(
 
     suspend fun upsertLocalOnly(user: UserEntity) {
         userDao.upsertUser(user)
+        // Al guardar localmente tras el login exitoso, marcamos la sesión
+        sessionDao.setSession(ActiveSessionEntity(userId = user.id))
     }
 
     suspend fun updateFcmToken(token: String) {

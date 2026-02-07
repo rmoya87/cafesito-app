@@ -22,7 +22,8 @@ class SessionViewModel @Inject constructor(
 
     /**
      * Observa el estado de la sesión de forma reactiva.
-     * Añadimos onStart para asegurar que el estado inicial siempre sea Loading.
+     * Usamos WhileSubscribed(5000) para permitir que el estado sobreviva a cambios de configuración
+     * o bloqueos de pantalla, pero evitando ejecuciones costosas en el hilo principal durante el inicio frío.
      */
     val sessionState: StateFlow<SessionState> = userRepository.getActiveUserFlow()
         .map { user ->

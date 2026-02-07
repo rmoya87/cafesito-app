@@ -52,6 +52,12 @@ object AppModule {
     fun provideDiaryDao(appDatabase: AppDatabase): DiaryDao {
         return appDatabase.diaryDao()
     }
+    
+    @Provides
+    @Singleton
+    fun provideSessionDao(appDatabase: AppDatabase): SessionDao {
+        return appDatabase.sessionDao()
+    }
 
     @Provides
     @Singleton
