@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.core.os.bundleOf // ✅ IMPORT AÑADIDO
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -55,6 +56,7 @@ import com.cafesito.app.ui.profile.*
 import com.cafesito.app.ui.search.SearchScreen
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.*
+import com.cafesito.app.analytics.AnalyticsHelper
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -82,6 +84,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var userRepository: UserRepository
     
+    @Inject
+    lateinit var analyticsHelper: AnalyticsHelper
+    
     private val notificationNavigation = mutableStateOf<NotificationNavigation?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,6 +105,9 @@ class MainActivity : ComponentActivity() {
                     if (sessionState is SessionState.Authenticated) {
                         syncManager.syncAll()
                         updateFcmToken()
+                        analyticsHelper.setUserId((sessionState as SessionState.Authenticated).userId.toString())
+                    } else if (sessionState is SessionState.NotAuthenticated) {
+                        analyticsHelper.setUserId(null)
                     }
                 }
 
@@ -108,7 +116,8 @@ class MainActivity : ComponentActivity() {
                         sessionState = sessionState,
                         userRepository = userRepository,
                         notificationNavigation = notificationNavigation.value,
-                        onNotificationConsumed = { notificationNavigation.value = null }
+                        onNotificationConsumed = { notificationNavigation.value = null },
+                        analyticsHelper = analyticsHelper
                     )
                 }
             }
@@ -157,7 +166,8 @@ fun AppNavigation(
     sessionState: SessionState,
     userRepository: UserRepository,
     notificationNavigation: NotificationNavigation?,
-    onNotificationConsumed: () -> Unit
+    onNotificationConsumed: () -> Unit,
+    analyticsHelper: AnalyticsHelper
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
@@ -210,6 +220,14 @@ fun AppNavigation(
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
+    
+    // Registro automático de eventos de vista de pantalla
+    LaunchedEffect(currentRoute) {
+        if (currentRoute.isNotEmpty()) {
+            analyticsHelper.trackScreenView(currentRoute)
+        }
+    }
+    
     val navItems = remember {
         listOf(
             Triple("timeline", "Inicio", Icons.Filled.Home),
@@ -244,6 +262,7 @@ fun AppNavigation(
         ) {
             composable("login") {
                 LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
+                    analyticsHelper.trackEvent("login_success", bundleOf("is_new_user" to isNewUser))
                     if (!isNewUser) {
                         navController.navigate("timeline") {
                             popUpTo("login") { inclusive = true }
@@ -274,6 +293,7 @@ fun AppNavigation(
                     initialName = backStackEntry.arguments?.getString("name") ?: "",
                     initialPhoto = backStackEntry.arguments?.getString("photoUrl") ?: "",
                     onSuccess = {
+                        analyticsHelper.trackEvent("profile_completed")
                         navController.navigate("timeline") { popUpTo("completeProfile") { inclusive = true } }
                     }
                 )
