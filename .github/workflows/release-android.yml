@@ -12,6 +12,10 @@ permissions:
   contents: write
   pull-requests: read
 
+concurrency:
+  group: play-release
+  cancel-in-progress: true
+
 jobs:
   release:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
@@ -155,6 +159,7 @@ jobs:
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal
           status: draft
+          changesNotSentForReview: true
           whatsNewDirectory: release-notes
 
       - name: Upload to Google Play (alpha)
@@ -166,6 +171,7 @@ jobs:
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: alpha
           status: draft
+          changesNotSentForReview: true
           whatsNewDirectory: release-notes
 
       - name: Upload to Google Play (beta)
@@ -177,6 +183,7 @@ jobs:
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: beta
           status: draft
+          changesNotSentForReview: true
           whatsNewDirectory: release-notes
 
       - name: Upload to Google Play (production)
@@ -188,4 +195,5 @@ jobs:
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: production
           status: draft
+          changesNotSentForReview: true
           whatsNewDirectory: release-notes
