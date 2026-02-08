@@ -101,7 +101,7 @@ fun BrewLabScreen(
                 when (currentStep) {
                     BrewStep.CHOOSE_METHOD -> ChooseMethodStep(viewModel.brewMethods) { viewModel.selectMethod(it) }
                     BrewStep.CHOOSE_COFFEE -> {
-                        LaunchedEffect(Unit) { viewModel.refreshPantry() }
+                        LaunchedEffect(step) { viewModel.refreshPantry() }
                         ChooseCoffeeStep(pantryItems) { viewModel.selectPantryItem(it) }
                     }
                     BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, viewModel) { viewModel.startBrewing() }
