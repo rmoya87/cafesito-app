@@ -25,6 +25,7 @@ Configura estos secretos en GitHub (**Settings → Secrets and variables → Act
 - `ANDROID_KEYSTORE_PASSWORD`: password del keystore.
 - `ANDROID_KEY_ALIAS`: alias del key.
 - `ANDROID_KEY_PASSWORD`: password del key.
+- `GOOGLE_SERVICES_JSON`: contenido completo del archivo `google-services.json` (Firebase).
 
 > Para convertir el keystore a base64:
 >
