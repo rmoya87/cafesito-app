@@ -72,10 +72,23 @@ class FollowViewModel @Inject constructor(
     }
 
     fun allUsersState(): Flow<List<SuggestedUserInfo>> = combine(
+        activeUser,
         userRepository.followingMap,
         userRepository.getAllUsersFlow()
-    ) { map, dbUsers ->
-        dbUsers.map { userEntity ->
+    ) { activeUser, map, dbUsers ->
+        val activeUserId = activeUser?.id
+        val myFollowing = activeUserId?.let { map[it] } ?: emptySet()
+        val relatedIds = if (myFollowing.isEmpty()) {
+            emptySet()
+        } else {
+            myFollowing.flatMap { followedId -> map[followedId].orEmpty() }.toSet()
+        }
+
+        dbUsers.filter { userEntity ->
+            val isNotMe = activeUserId == null || userEntity.id != activeUserId
+            val isRelated = myFollowing.isEmpty() || relatedIds.contains(userEntity.id)
+            isNotMe && isRelated
+        }.map { userEntity ->
             SuggestedUserInfo(
                 user = User(
                     id = userEntity.id,

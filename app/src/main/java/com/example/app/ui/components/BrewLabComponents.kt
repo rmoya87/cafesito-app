@@ -344,15 +344,27 @@ fun PreparationStep(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            Text(
-                                text = String.format("%02d:%02d", remainingSeconds / 60, remainingSeconds % 60),
-                                style = MaterialTheme.typography.displayLarge.copy(fontSize = 120.sp),
-                                fontWeight = FontWeight.Black,
-                                color = if (remainingSeconds <= 5 && isTimerRunning) ElectricRed else MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .padding(vertical = 4.dp)
-                                    .graphicsLayer(scaleX = timerScale, scaleY = timerScale)
-                            )
+                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                val maxFontSize = 120.sp
+                                val minFontSize = 84.sp
+                                val fontSize = when {
+                                    maxWidth < 320.dp -> minFontSize
+                                    maxWidth < 360.dp -> 96.sp
+                                    else -> maxFontSize
+                                }
+
+                                Text(
+                                    text = String.format("%02d:%02d", remainingSeconds / 60, remainingSeconds % 60),
+                                    style = MaterialTheme.typography.displayLarge.copy(fontSize = fontSize),
+                                    fontWeight = FontWeight.Black,
+                                    color = if (remainingSeconds <= 5 && isTimerRunning) ElectricRed else MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier
+                                        .padding(vertical = 4.dp)
+                                        .graphicsLayer(scaleX = timerScale, scaleY = timerScale)
+                                )
+                            }
 
                             val nextLabel = nextPhase?.label ?: "Finalizar"
                             Text(
