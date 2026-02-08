@@ -42,5 +42,6 @@ Configura estos secretos en GitHub (**Settings → Secrets and variables → Act
 
 ## Notas
 
-- El workflow agrega el changelog en inglés en `whatsnew-en-US` con el título de los PRs asociados al merge.
+- El workflow sube el release en estado **draft** para que puedas revisarlo y publicarlo manualmente desde Play Console.
+- También agrega un mensaje promocional en español (`whatsnew-es-ES`) que verán los usuarios en Google Play.
 - El commit de bump de versión se hace con `[skip ci]` para evitar loops.

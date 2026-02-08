@@ -111,8 +111,14 @@ jobs:
             } else {
               notes = '- Release automático';
             }
+            const promo = [
+              '¡Nueva versión disponible! ☕️',
+              'Mejoramos el rendimiento y la estabilidad para una experiencia más fluida.',
+              'Nuevas mejoras en la app para que disfrutes más rápido tus funciones favoritas.',
+              '¡Actualiza ahora y descubre lo nuevo en Cafesito!',
+            ].join('\n');
             fs.mkdirSync('release-notes', { recursive: true });
-            fs.writeFileSync('release-notes/whatsnew-en-US', notes);
+            fs.writeFileSync('release-notes/whatsnew-es-ES', promo);
 
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
@@ -121,5 +127,5 @@ jobs:
           packageName: com.cafesito.app
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: ${{ env.PLAY_TRACK || 'beta' }}
-          status: completed
+          status: draft
           whatsNewDirectory: release-notes
