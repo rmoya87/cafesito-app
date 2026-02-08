@@ -31,6 +31,8 @@ Configura estos secretos en GitHub (**Settings → Secrets and variables → Act
 > ```bash
 > base64 -w 0 your-release.keystore
 > ```
+>
+> Si copias el valor manualmente, asegúrate de pegarlo como una sola línea sin espacios ni saltos de línea.
 
 ## Variables opcionales
 

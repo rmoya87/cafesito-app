@@ -44,8 +44,15 @@ jobs:
           data = os.environ.get("KEYSTORE_BASE64", "")
           if not data:
             raise SystemExit("Missing ANDROID_KEYSTORE_BASE64 secret")
+          data = "".join(data.split())
+          padding = (-len(data)) % 4
+          if padding:
+            data = data + ("=" * padding)
           with open("android-release.keystore", "wb") as f:
-            f.write(base64.b64decode(data))
+            try:
+              f.write(base64.b64decode(data))
+            except Exception as exc:
+              raise SystemExit(f"Invalid ANDROID_KEYSTORE_BASE64 content: {exc}") from exc
           PY
           cat > keystore.properties <<EOF
           storeFile=android-release.keystore
