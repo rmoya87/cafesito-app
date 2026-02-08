@@ -38,7 +38,15 @@ jobs:
             echo "Missing ANDROID_KEYSTORE_BASE64 secret" >&2
             exit 1
           fi
-          echo "${KEYSTORE_BASE64}" | base64 -d > android-release.keystore
+          python - <<'PY'
+          import base64
+          import os
+          data = os.environ.get("KEYSTORE_BASE64", "")
+          if not data:
+            raise SystemExit("Missing ANDROID_KEYSTORE_BASE64 secret")
+          with open("android-release.keystore", "wb") as f:
+            f.write(base64.b64decode(data))
+          PY
           cat > keystore.properties <<EOF
           storeFile=android-release.keystore
           storePassword=${KEYSTORE_PASSWORD}
