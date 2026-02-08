@@ -106,8 +106,19 @@ class TimelineViewModel @Inject constructor(
 
         val combinedItems = (postItems + reviewItems).sortedByDescending { it.timestamp }
 
+        val relatedIds = if (myFollowing.isEmpty()) {
+            emptySet()
+        } else {
+            myFollowing.flatMap { followedId -> dynamic.following[followedId].orEmpty() }.toSet()
+        }
+
         val suggestedUsers = static.allUsers
-            .filter { it.id != activeUser.id && !myFollowing.contains(it.id) }
+            .filter { user ->
+                val isNotMe = user.id != activeUser.id
+                val isNotFollowing = !myFollowing.contains(user.id)
+                val isRelated = myFollowing.isEmpty() || relatedIds.contains(user.id)
+                isNotMe && isNotFollowing && isRelated
+            }
             .map { entity ->
                 SuggestedUserInfo(
                     user = User(
