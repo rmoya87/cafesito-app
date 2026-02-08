@@ -2,11 +2,8 @@ name: Release Android to Google Play
 
 on:
   push:
-    tags:
-      - "test*"
-      - "alfa*"
-      - "beta*"
-      - "produccion*"
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -25,6 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: main
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -88,6 +86,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout main
           git add app/build.gradle.kts
           git commit -m "chore(release): bump version [skip ci]"
           git push
@@ -98,23 +97,23 @@ jobs:
       - name: Determine Play tracks
         id: tracks
         run: |
-          TAG_NAME="${GITHUB_REF_NAME}"
+          MESSAGE="${{ github.event.head_commit.message }}"
           TRACKS=""
-          case "${TAG_NAME}" in
-            test*)
+          case "${MESSAGE}" in
+            *"[release:test]"*)
               TRACKS="internal"
               ;;
-            alfa*)
+            *"[release:alfa]"*)
               TRACKS="internal,alpha"
               ;;
-            beta*)
+            *"[release:beta]"*)
               TRACKS="internal,alpha,beta"
               ;;
-            produccion*)
+            *"[release:produccion]"*)
               TRACKS="internal,alpha,beta,production"
               ;;
             *)
-              echo "Tag ${TAG_NAME} not supported" >&2
+              echo "No release marker found in commit message" >&2
               exit 1
               ;;
           esac

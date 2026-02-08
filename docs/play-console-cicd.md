@@ -35,16 +35,22 @@ Configura estos secretos en GitHub (**Settings → Secrets and variables → Act
 >
 > Si copias el valor manualmente, asegúrate de pegarlo como una sola línea sin espacios ni saltos de línea.
 
-## Etiquetas de release
+## Marcadores de release en commits
 
-El workflow se ejecuta al crear tags con estos prefijos:
+El workflow se ejecuta en `main` y detecta el entorno según el mensaje del commit:
 
-- `test*` → sube a **internal testing** (`internal`).
-- `alfa*` → sube a **closed testing** (`alpha`).
-- `beta*` → sube a **open testing** (`beta`).
-- `produccion*` → sube a **production** (`production`).
+- `[release:test]` → sube a **internal testing** (`internal`).
+- `[release:alfa]` → sube a **closed testing** (`alpha`).
+- `[release:beta]` → sube a **open testing** (`beta`).
+- `[release:produccion]` → sube a **production** (`production`).
 
-Cuando usas `beta*` o `produccion*`, el workflow **sube automáticamente también a los tracks anteriores**.
+Cuando usas `[release:beta]` o `[release:produccion]`, el workflow **sube automáticamente también a los tracks anteriores**.
+
+Ejemplo de commit:
+
+```
+git commit -m "feat: nueva pantalla [release:beta]"
+```
 
 ## Notas
 
