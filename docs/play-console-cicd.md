@@ -35,10 +35,16 @@ Configura estos secretos en GitHub (**Settings → Secrets and variables → Act
 >
 > Si copias el valor manualmente, asegúrate de pegarlo como una sola línea sin espacios ni saltos de línea.
 
-## Variables opcionales
+## Etiquetas de release
 
-- `PLAY_TRACK`: define el track de Google Play (por defecto `beta`).
-  - Valores típicos: `beta` (closed testing), `alpha`, `internal`, `production`.
+El workflow se ejecuta al crear tags con estos prefijos:
+
+- `test*` → sube a **internal testing** (`internal`).
+- `alfa*` → sube a **closed testing** (`alpha`).
+- `beta*` → sube a **open testing** (`beta`).
+- `produccion*` → sube a **production** (`production`).
+
+Cuando usas `beta*` o `produccion*`, el workflow **sube automáticamente también a los tracks anteriores**.
 
 ## Notas
 

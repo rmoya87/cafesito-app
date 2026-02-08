@@ -2,19 +2,24 @@ name: Release Android to Google Play
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "test*"
+      - "alfa*"
+      - "beta*"
+      - "produccion*"
 
 permissions:
   contents: write
   pull-requests: read
 
+concurrency:
+  group: play-release
+  cancel-in-progress: true
+
 jobs:
   release:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
-    env:
-      PLAY_TRACK: ${{ vars.PLAY_TRACK }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -90,6 +95,31 @@ jobs:
       - name: Build release bundle
         run: ./gradlew --no-daemon clean bundleRelease
 
+      - name: Determine Play tracks
+        id: tracks
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          TRACKS=""
+          case "${TAG_NAME}" in
+            test*)
+              TRACKS="internal"
+              ;;
+            alfa*)
+              TRACKS="internal,alpha"
+              ;;
+            beta*)
+              TRACKS="internal,alpha,beta"
+              ;;
+            produccion*)
+              TRACKS="internal,alpha,beta,production"
+              ;;
+            *)
+              echo "Tag ${TAG_NAME} not supported" >&2
+              exit 1
+              ;;
+          esac
+          echo "tracks=${TRACKS}" >> "$GITHUB_OUTPUT"
+
       - name: Generate release notes
         uses: actions/github-script@v7
         with:
@@ -120,12 +150,50 @@ jobs:
             fs.mkdirSync('release-notes', { recursive: true });
             fs.writeFileSync('release-notes/whatsnew-es-ES', promo);
 
-      - name: Upload to Google Play
+      - name: Upload to Google Play (internal)
         uses: r0adkll/upload-google-play@v1
+        if: contains(steps.tracks.outputs.tracks, 'internal')
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
           packageName: com.cafesito.app
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          track: ${{ env.PLAY_TRACK || 'beta' }}
+          track: internal
           status: draft
+          changesNotSentForReview: true
+          whatsNewDirectory: release-notes
+
+      - name: Upload to Google Play (alpha)
+        uses: r0adkll/upload-google-play@v1
+        if: contains(steps.tracks.outputs.tracks, 'alpha')
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
+          packageName: com.cafesito.app
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: alpha
+          status: draft
+          changesNotSentForReview: true
+          whatsNewDirectory: release-notes
+
+      - name: Upload to Google Play (beta)
+        uses: r0adkll/upload-google-play@v1
+        if: contains(steps.tracks.outputs.tracks, 'beta')
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
+          packageName: com.cafesito.app
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: beta
+          status: draft
+          changesNotSentForReview: true
+          whatsNewDirectory: release-notes
+
+      - name: Upload to Google Play (production)
+        uses: r0adkll/upload-google-play@v1
+        if: contains(steps.tracks.outputs.tracks, 'production')
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
+          packageName: com.cafesito.app
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: production
+          status: draft
+          changesNotSentForReview: true
           whatsNewDirectory: release-notes
