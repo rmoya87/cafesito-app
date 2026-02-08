@@ -120,6 +120,6 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
           packageName: com.cafesito.app
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          track: ${{ env.PLAY_TRACK || 'closed' }}
-          releaseStatus: completed
+          track: ${{ env.PLAY_TRACK || 'beta' }}
+          status: completed
           whatsNewDirectory: release-notes

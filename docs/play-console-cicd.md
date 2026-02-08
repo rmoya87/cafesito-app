@@ -37,8 +37,8 @@ Configura estos secretos en GitHub (**Settings → Secrets and variables → Act
 
 ## Variables opcionales
 
-- `PLAY_TRACK`: define el track de Google Play (por defecto `closed`).
-  - Valores típicos: `closed`, `open`, `internal`, `production`.
+- `PLAY_TRACK`: define el track de Google Play (por defecto `beta`).
+  - Valores típicos: `beta` (closed testing), `alpha`, `internal`, `production`.
 
 ## Notas
 
