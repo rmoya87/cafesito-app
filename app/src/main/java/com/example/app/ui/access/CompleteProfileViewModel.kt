@@ -64,6 +64,7 @@ class CompleteProfileViewModel @Inject constructor(
             )
             
             userRepository.upsertUser(newUser)
+            userRepository.setSession(userId)
             onSuccess()
         }
     }
