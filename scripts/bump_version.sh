@@ -8,7 +8,7 @@ if [[ ! -f "${file}" ]]; then
   exit 1
 fi
 
-current_code=$(rg -n "versionCode" "${file}" | head -n1 | sed -E 's/.*= ([0-9]+).*/\1/')
+current_code=$(grep -n "versionCode" "${file}" | head -n1 | sed -E 's/.*= ([0-9]+).*/\1/')
 if [[ -z "${current_code}" ]]; then
   echo "No se pudo leer versionCode en ${file}" >&2
   exit 1
