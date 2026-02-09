@@ -182,12 +182,21 @@ class SupabaseDataSource @Inject constructor(
     // --- COMENTARIOS ---
     suspend fun getAllComments(): List<CommentEntity> = client.postgrest["comments_db"].select().decodeList<CommentEntity>()
     suspend fun getCommentsForPost(postId: String): List<CommentEntity> = client.postgrest["comments_db"].select { filter { eq("post_id", postId) }; order("timestamp", Order.ASCENDING) }.decodeList<CommentEntity>()
-    suspend fun insertComment(comment: CommentEntity): CommentEntity {
+    suspend fun insertComment(comment: CommentInsert): CommentEntity {
         return client.postgrest["comments_db"].insert(comment) { select() }.decodeSingle()
     }
     suspend fun upsertComment(comment: CommentEntity) = client.postgrest["comments_db"].upsert(comment)
     suspend fun deleteComment(commentId: Int) {
         client.postgrest["comments_db"].delete { filter { eq("id", commentId) } }
+    }
+    suspend fun updateComment(commentId: Int, newText: String) {
+        client.postgrest["comments_db"].update(
+            {
+                set("text", newText)
+            }
+        ) {
+            filter { eq("id", commentId) }
+        }
     }
 
     // --- LIKES ---

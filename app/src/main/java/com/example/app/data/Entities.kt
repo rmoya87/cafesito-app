@@ -263,6 +263,14 @@ data class DiaryEntryInsert(
     @SerialName("external_id") val externalId: String? = null
 )
 
+@Serializable
+data class CommentInsert(
+    @SerialName("post_id") val postId: String,
+    @SerialName("user_id") val userId: Int,
+    val text: String,
+    val timestamp: Long
+)
+
 // --- CLASES DE RELACIÓN (POJOs para UI y Repositorios) ---
 
 @Immutable

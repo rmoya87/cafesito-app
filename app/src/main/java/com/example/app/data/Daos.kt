@@ -160,6 +160,9 @@ interface SocialDao {
     @Query("DELETE FROM comments_db WHERE id = :commentId")
     suspend fun deleteComment(commentId: Int): Int
 
+    @Query("UPDATE comments_db SET text = :newText WHERE id = :commentId")
+    suspend fun updateComment(commentId: Int, newText: String): Int
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertLike(like: LikeEntity): Long
 
