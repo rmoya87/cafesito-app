@@ -212,6 +212,7 @@ fun AppNavigation(
     LaunchedEffect(notificationNavigation) {
         val nav = notificationNavigation ?: return@LaunchedEffect
         when (nav.type) {
+            "NOTIFICATIONS" -> navController.navigate("notifications")
             "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
             "MENTION", "COMMENT" -> nav.targetId?.let { navController.navigate("timeline?postId=$it") }
         }
@@ -677,9 +678,11 @@ data class NotificationNavigation(
 ) {
     companion object {
         fun fromIntent(intent: Intent?): NotificationNavigation? {
-            val type = intent?.getStringExtra("nav_type") ?: return null
+            val navType = intent?.getStringExtra("nav_type")
+            val timelineType = intent?.getStringExtra(TimelineNotificationSystem.EXTRA_TYPE)
+            val type = navType ?: if (timelineType != null) "NOTIFICATIONS" else null
             val targetId = intent?.getStringExtra("nav_id")
-            return NotificationNavigation(type, targetId)
+            return type?.let { NotificationNavigation(it, targetId) }
         }
     }
 }
