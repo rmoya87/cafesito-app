@@ -93,24 +93,23 @@ class SocialRepository @Inject constructor(
                         emit(emptyList())
                     }
                 } else {
-                    // Si no hay conexión y queremos "directo", no mostramos nada o error
                     emit(emptyList())
                 }
             }
         }.flowOn(Dispatchers.IO)
 
-    suspend fun refreshReviews(coffeeId: String) = withContext(Dispatchers.IO) {
+    suspend fun upsertReview(review: ReviewEntity) = withContext(Dispatchers.IO) {
+        // Guardamos en Supabase primero para asegurar persistencia
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try {
-                val reviews = supabaseDataSource.getReviewsByCoffeeId(coffeeId)
-                val userIds = reviews.map { it.userId }.distinct()
-                val users = userIds.mapNotNull { supabaseDataSource.getUserById(it) }
-                userRepository.insertUsers(users)
-                // socialDao.upsertReviews(reviews) // Eliminado para ir directo a Supabase
+                supabaseDataSource.upsertReview(review)
             } catch (e: Exception) {
-                Log.e("SocialRepository", "Error refreshing reviews: ${e.message}")
+                Log.e("SocialRepository", "Error upserting review to Supabase: ${e.message}")
             }
         }
+        // Actualizamos caché local (Room) si existe la DAO para ello
+        socialDao.upsertReviews(listOf(review))
+        triggerRefresh()
     }
 
     suspend fun createPost(post: PostEntity) = withContext(Dispatchers.IO) {
@@ -131,14 +130,23 @@ class SocialRepository @Inject constructor(
         val currentPosts = socialDao.getAllPostsWithDetails().first()
         val existing = currentPosts.find { it.post.id == postId }?.post ?: return@withContext
         val updated = existing.copy(comment = newComment, imageUrl = newImageUrl)
+        
+        // Actualizar local inmediatamente para UI rápida
         socialDao.insertPost(updated)
         
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try { supabaseDataSource.insertPost(updated) } catch (e: Exception) { }
+            // No usamos externalScope aquí para asegurar que la edición termine antes de refrescar si es posible,
+            // o usamos supervisorScope si queremos paralelismo protegido.
+            try { 
+                supabaseDataSource.insertPost(updated) 
+                // Refrescamos tras éxito en Supabase
+                triggerRefresh()
+            } catch (e: Exception) { 
+                Log.e("SocialRepository", "Error updating post in Supabase", e)
             }
+        } else {
+            triggerRefresh()
         }
-        triggerRefresh()
     }
 
     suspend fun toggleLike(postId: String, userId: Int) = withContext(Dispatchers.IO) {
@@ -168,10 +176,6 @@ class SocialRepository @Inject constructor(
         triggerRefresh()
     }
 
-    suspend fun updateComment(commentId: Int, newText: String) = withContext(Dispatchers.IO) {
-        // Implementación futura si es necesaria
-    }
-
     suspend fun deleteComment(commentId: Int) = withContext(Dispatchers.IO) {
         socialDao.deleteComment(commentId)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
@@ -186,9 +190,13 @@ class SocialRepository @Inject constructor(
         val post = socialDao.getAllPostsWithDetails().first().find { it.post.id == postId }?.post
         if (post != null) socialDao.deletePost(post)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deletePost(postId) } catch (e: Exception) { } }
+            try { 
+                supabaseDataSource.deletePost(postId) 
+                triggerRefresh()
+            } catch (e: Exception) { }
+        } else {
+            triggerRefresh()
         }
-        triggerRefresh()
     }
 
     suspend fun getTimeline(
@@ -211,8 +219,6 @@ class SocialRepository @Inject constructor(
             mode = mode
         )
     }
-
-    suspend fun getUserByUsername(username: String): UserEntity? = userRepository.getUserByUsername(username)
 
     suspend fun syncSocialData() {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {

@@ -11,6 +11,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import android.util.Log
 
 @HiltWorker
 class TimelineNotificationWorker @AssistedInject constructor(
@@ -22,16 +23,18 @@ class TimelineNotificationWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return withContext(Dispatchers.IO) {
-            val activeUser = userRepository.getActiveUser() ?: return@withContext Result.success()
             try {
-                userRepository.syncUsers()
-
+                val activeUser = userRepository.getActiveUser() ?: return@withContext Result.success()
+                
+                // Eliminamos syncUsers() de aquí porque es muy pesado para un worker frecuente
+                // Solo obtenemos notificaciones
                 val allUsers = userRepository.getAllUsersList()
                 val notifications = userRepository.getNotificationsForUser(activeUser.id).first()
                     .mapNotNull { it.toTimelineNotification(allUsers) }
                     .filter { !it.isRead }
+                
                 val notifiedIds = notificationStore.getNotifiedIds()
-                val newNotifications = notifications.filter { it.id !in notifiedIds }.take(5)
+                val newNotifications = notifications.filter { it.id !in notifiedIds }.take(3) // Bajamos a 3 para ser más rápidos
 
                 if (newNotifications.isNotEmpty()) {
                     TimelineNotificationSystem.ensureChannel(context)
@@ -49,8 +52,9 @@ class TimelineNotificationWorker @AssistedInject constructor(
                 }
 
                 Result.success()
-            } catch (_: Exception) {
-                Result.retry()
+            } catch (e: Exception) {
+                Log.e("TimelineWorker", "Error in worker: ${e.message}")
+                Result.failure() // Failure para evitar bucles de reintento que causan ANR
             }
         }
     }

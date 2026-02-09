@@ -12,6 +12,7 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.util.Log
 
 @Singleton
 class SupabaseDataSource @Inject constructor(
@@ -47,7 +48,12 @@ class SupabaseDataSource @Inject constructor(
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
     suspend fun insertUserToken(token: UserTokenEntity) { 
-        client.postgrest["user_fcm_tokens"].upsert(token)
+        try {
+            // Sintaxis correcta para Supabase KT 2.6.x: onConflict se pasa como parámetro
+            client.postgrest["user_fcm_tokens"].upsert(token, onConflict = "fcm_token")
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error inserting FCM token: ${e.message}")
+        }
     }
 
     // --- SEGUIMIENTOS ---
@@ -269,35 +275,56 @@ class SupabaseDataSource @Inject constructor(
 
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
-        client.postgrest["notifications_db"].upsert(notification)
+        try {
+            client.postgrest["notifications_db"].upsert(notification)
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+        }
     }
 
     suspend fun getNotificationsForUser(userId: Int): List<NotificationEntity> {
-        return client.postgrest["notifications_db"].select {
-            filter { eq("user_id", userId) }
-            order("timestamp", Order.DESCENDING)
-        }.decodeList()
+        return try {
+            client.postgrest["notifications_db"].select {
+                filter { eq("user_id", userId) }
+                order("timestamp", Order.DESCENDING)
+            }.decodeList()
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error fetching notifications: ${e.message}")
+            emptyList()
+        }
     }
 
     suspend fun markNotificationRead(notificationId: Int) {
-        client.postgrest["notifications_db"].update({
-            set("is_read", true)
-        }) {
-            filter { eq("id", notificationId) }
+        try {
+            client.postgrest["notifications_db"].update({
+                set("is_read", true)
+            }) {
+                filter { eq("id", notificationId) }
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error marking read: ${e.message}")
         }
     }
 
     suspend fun markAllNotificationsRead(userId: Int) {
-        client.postgrest["notifications_db"].update({
-            set("is_read", true)
-        }) {
-            filter { eq("user_id", userId) }
+        try {
+            client.postgrest["notifications_db"].update({
+                set("is_read", true)
+            }) {
+                filter { eq("user_id", userId) }
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")
         }
     }
 
     suspend fun deleteNotification(notificationId: Int) {
-        client.postgrest["notifications_db"].delete {
-            filter { eq("id", notificationId) }
+        try {
+            client.postgrest["notifications_db"].delete {
+                filter { eq("id", notificationId) }
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error deleting notification: ${e.message}")
         }
     }
 }
