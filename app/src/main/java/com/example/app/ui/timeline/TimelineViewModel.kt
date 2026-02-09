@@ -15,6 +15,7 @@ import com.cafesito.app.data.TimelineMeta
 import com.cafesito.app.data.TimelinePage
 import com.cafesito.app.data.TimelineReasonCode
 import com.cafesito.app.data.UserEntity
+import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.data.UserRepository
 import com.cafesito.shared.domain.Review
 import com.cafesito.shared.domain.SuggestedUserInfo
@@ -242,13 +243,14 @@ class TimelineViewModel @Inject constructor(
         }
 
         val recentActivityCutoff = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
-        val activityScores = buildMap {
-            data.posts.filter { it.post.timestamp >= recentActivityCutoff }.forEach { post ->
-                put(post.post.userId, getOrDefault(post.post.userId, 0) + 1)
-            }
-            data.reviews.filter { it.review.timestamp >= recentActivityCutoff }.forEach { review ->
-                put(review.review.userId, getOrDefault(review.review.userId, 0) + 1)
-            }
+        val activityScores = mutableMapOf<Int, Int>()
+        data.posts.filter { it.post.timestamp >= recentActivityCutoff }.forEach { post ->
+            val key = post.post.userId
+            activityScores[key] = (activityScores[key] ?: 0) + 1
+        }
+        data.reviews.filter { it.review.timestamp >= recentActivityCutoff }.forEach { review ->
+            val key = review.review.userId
+            activityScores[key] = (activityScores[key] ?: 0) + 1
         }
 
         val sortedByActivity = candidates.sortedWith(
