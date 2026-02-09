@@ -50,12 +50,6 @@ class TimelineViewModel @Inject constructor(
 
     private var latestBaseData: TimelineBaseData? = null
 
-    init {
-        Log.d("TimelineVM", "Initializing TimelineViewModel")
-        refreshData()
-        observeBaseData()
-    }
-
     fun refreshData() {
         viewModelScope.launch {
             if (_isRefreshing.value) return@launch
@@ -113,6 +107,12 @@ class TimelineViewModel @Inject constructor(
         userRepository.followingMap.onEach { Log.d("TimelineVM", "FollowingMap emitted: ${it.size} entries") }
     ) { posts, reviews, following ->
         TimelineDynamicData(posts, reviews, following)
+    }
+
+    init {
+        Log.d("TimelineVM", "Initializing TimelineViewModel")
+        refreshData()
+        observeBaseData()
     }
 
     private val _uiState = MutableStateFlow<TimelineUiState>(TimelineUiState.Loading)
