@@ -34,6 +34,10 @@ import androidx.media3.ui.PlayerView
 import com.cafesito.app.R
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoGraph
@@ -53,7 +57,7 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     val credentialManager = remember { CredentialManager.create(context) }
-    val scope = rememberCoroutineScope()
+    val loginScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
     val isLoading by viewModel.isLoading.collectAsState()
     var showLoginModal by remember { mutableStateOf(false) }
 
@@ -69,7 +73,10 @@ fun LoginScreen(
     }
 
     DisposableEffect(Unit) {
-        onDispose { exoPlayer.release() }
+        onDispose {
+            exoPlayer.release()
+            loginScope.cancel()
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
@@ -161,7 +168,7 @@ fun LoginScreen(
                 } else {
                     Button(
                         onClick = {
-                            scope.launch {
+                            loginScope.launch {
                                 try {
                                     val googleIdOption = GetGoogleIdOption.Builder()
                                         .setFilterByAuthorizedAccounts(false)

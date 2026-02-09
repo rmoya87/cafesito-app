@@ -75,7 +75,22 @@ class TimelineViewModel @Inject constructor(
 
     private fun observeBaseData() {
         viewModelScope.launch {
-            baseData.filterNotNull().collectLatest { data ->
+            combine(
+                staticData,
+                dynamicData
+            ) { static, dynamic ->
+                val activeUser = static?.activeUser ?: return@combine null
+                TimelineBaseData(
+                    activeUser = activeUser,
+                    allCoffees = static.allCoffees,
+                    allUsers = static.allUsers,
+                    favorites = static.favorites,
+                    userReviews = static.userReviews,
+                    posts = dynamic.posts,
+                    reviews = dynamic.reviews,
+                    following = dynamic.following
+                )
+            }.filterNotNull().collectLatest { data ->
                 latestBaseData = data
                 loadInitialPage(data)
             }
@@ -98,20 +113,6 @@ class TimelineViewModel @Inject constructor(
         userRepository.followingMap.onEach { Log.d("TimelineVM", "FollowingMap emitted: ${it.size} entries") }
     ) { posts, reviews, following ->
         TimelineDynamicData(posts, reviews, following)
-    }
-
-    private val baseData: Flow<TimelineBaseData?> = combine(staticData, dynamicData) { static, dynamic ->
-        val activeUser = static?.activeUser ?: return@combine null
-        TimelineBaseData(
-            activeUser = activeUser,
-            allCoffees = static.allCoffees,
-            allUsers = static.allUsers,
-            favorites = static.favorites,
-            userReviews = static.userReviews,
-            posts = dynamic.posts,
-            reviews = dynamic.reviews,
-            following = dynamic.following
-        )
     }
 
     private val _uiState = MutableStateFlow<TimelineUiState>(TimelineUiState.Loading)
@@ -232,6 +233,7 @@ class TimelineViewModel @Inject constructor(
         } else {
             myFollowing.flatMap { followedId -> data.following[followedId].orEmpty() }.toSet()
         }
+    }
 
         val excludedIds = myFollowing + data.activeUser.id
         val candidates = data.allUsers.filter { it.id !in excludedIds }
