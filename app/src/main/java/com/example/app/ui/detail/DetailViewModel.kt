@@ -61,7 +61,7 @@ class DetailViewModel @Inject constructor(
             coffee = updatedCoffee,
             reviews = reviewsForThisCoffee,
             userReview = userReview,
-            isCustom = pantryDetails?.isCustom ?: false,
+            isCustom = coffee.coffee.isCustom,
             currentPantryItem = pantryDetails?.pantryItem
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
@@ -79,8 +79,8 @@ class DetailViewModel @Inject constructor(
 
     fun updateStock(total: Int, remaining: Int, name: String? = null, brand: String? = null) {
         viewModelScope.launch {
+            val currentState = uiState.value as? DetailUiState.Success
             if (name != null && brand != null) {
-                val currentState = uiState.value as? DetailUiState.Success
                 diaryRepository.updateCustomCoffee(
                     id = coffeeId,
                     name = name,
