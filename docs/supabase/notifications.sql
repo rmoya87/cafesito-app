@@ -29,7 +29,8 @@ create index if not exists idx_notifications_user_read
 alter table public.notifications_db enable row level security;
 
 -- Ajusta estas políticas si usas otro esquema de autenticación.
--- Se asume que auth.uid() puede mapearse a user_id.
+-- Para permitir notificaciones generadas por otros usuarios (seguimientos/menciones),
+-- se permite insert a cualquier usuario autenticado.
 do $$
 begin
     if not exists (
@@ -50,12 +51,12 @@ begin
         from pg_policies
         where schemaname = 'public'
           and tablename = 'notifications_db'
-          and policyname = 'Notifications are insertable by owner'
+          and policyname = 'Notifications are insertable by authenticated users'
     ) then
-        create policy "Notifications are insertable by owner"
+        create policy "Notifications are insertable by authenticated users"
             on public.notifications_db
             for insert
-            with check (auth.uid()::text = user_id::text);
+            with check (auth.uid() is not null);
     end if;
 
     if not exists (
