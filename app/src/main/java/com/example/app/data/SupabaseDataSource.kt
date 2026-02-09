@@ -285,7 +285,17 @@ class SupabaseDataSource @Inject constructor(
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
         try {
-            client.postgrest["notifications_db"].upsert(notification)
+            client.postgrest.rpc(
+                "create_notification",
+                mapOf(
+                    "p_user_id" to notification.userId,
+                    "p_type" to notification.type,
+                    "p_from_username" to notification.fromUsername,
+                    "p_message" to notification.message,
+                    "p_timestamp" to notification.timestamp,
+                    "p_related_id" to notification.relatedId
+                )
+            )
         } catch (e: Exception) {
             Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
         }
