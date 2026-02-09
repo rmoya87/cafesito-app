@@ -3,6 +3,8 @@ package com.cafesito.app.data
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import io.github.jan.supabase.realtime.realtime
@@ -285,7 +287,17 @@ class SupabaseDataSource @Inject constructor(
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
         try {
-            client.postgrest["notifications_db"].upsert(notification)
+            client.postgrest.rpc(
+                "create_notification",
+                buildJsonObject {
+                    put("p_user_id", notification.userId)
+                    put("p_type", notification.type)
+                    put("p_from_username", notification.fromUsername)
+                    put("p_message", notification.message)
+                    put("p_timestamp", notification.timestamp)
+                    notification.relatedId?.let { put("p_related_id", it) }
+                }
+            )
         } catch (e: Exception) {
             Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
         }
