@@ -135,7 +135,7 @@ fun AddPostScreen(
                         }
                     } else {
                         val canNext = when (postType) {
-                            PostType.PUBLICATION -> imageSource != null && currentStep == 0
+                            PostType.PUBLICATION -> currentStep == 0
                             PostType.OPINION -> (selectedCoffee != null && currentStep == 0)
                         }
                         if (canNext) {
