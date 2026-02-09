@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -26,7 +25,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.cafesito.app.ui.components.GlassyTopBar
+import com.cafesito.shared.domain.SuggestedUserInfo
+import com.cafesito.shared.domain.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +35,8 @@ fun SearchUsersScreen(
     onUserClick: (Int) -> Unit,
     viewModel: FollowViewModel = hiltViewModel()
 ) {
-    val allUsers by viewModel.allUsersState().collectAsState(initial = emptyList())
+    val allUsers by viewModel.allUsers.collectAsState(initial = emptyList())
+    val suggestedUsers by viewModel.suggestedUsers.collectAsState(initial = emptyList())
     val myFollowingIds by viewModel.myFollowingIds.collectAsState(initial = emptySet())
     val activeUser by viewModel.activeUser.collectAsState(initial = null)
     
@@ -44,9 +45,26 @@ fun SearchUsersScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val filteredUsers = allUsers.filter {
-        it.user.username.contains(searchQuery, ignoreCase = true) || 
-        it.user.fullName.contains(searchQuery, ignoreCase = true)
+    val filteredUsers = if (searchQuery.isBlank()) {
+        suggestedUsers
+    } else {
+        allUsers.map { userEntity ->
+            SuggestedUserInfo(
+                user = User(
+                    id = userEntity.id,
+                    username = userEntity.username,
+                    fullName = userEntity.fullName,
+                    avatarUrl = userEntity.avatarUrl,
+                    email = userEntity.email,
+                    bio = userEntity.bio
+                ),
+                followersCount = 0,
+                followingCount = 0
+            )
+        }.filter {
+            it.user.username.contains(searchQuery, ignoreCase = true) ||
+                it.user.fullName.contains(searchQuery, ignoreCase = true)
+        }
     }.filter { it.user.id != activeUser?.id }
 
     var isRefreshing by remember { mutableStateOf(false) }

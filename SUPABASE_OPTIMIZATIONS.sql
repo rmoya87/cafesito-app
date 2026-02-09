@@ -1,6 +1,7 @@
 -- ============================================
 -- OPTIMIZACIONES DE SUPABASE PARA CAFESITO APP
 -- ============================================
+-- Nota: si ves marcadores <<<<<<< HEAD en tu editor, vuelve a descargar este archivo actualizado.
 -- Ejecuta este script en el SQL Editor de Supabase
 -- ============================================
 
@@ -35,12 +36,8 @@ GROUP BY
     c.id;
 
 -- 5. Función RPC para recomendaciones (cálculo en servidor)
-<<<<<<< HEAD
 -- Eliminar función existente si existe (para permitir cambios en signature)
 DROP FUNCTION IF EXISTS get_coffee_recommendations(integer);
-
-=======
->>>>>>> 97236d14357684791cec6b19803d52cb1873f578
 CREATE OR REPLACE FUNCTION get_coffee_recommendations(target_user_id INT)
 RETURNS TABLE (
     id TEXT,
@@ -138,10 +135,31 @@ $$;
 -- 6. Índices en tablas relacionales para mejorar JOINs
 CREATE INDEX IF NOT EXISTS idx_reviews_coffee_id ON reviews_db (coffee_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews_db (user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_timestamp ON reviews_db (user_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_local_favorites_user_id ON local_favorites (user_id);
 CREATE INDEX IF NOT EXISTS idx_local_favorites_coffee_id ON local_favorites (coffee_id);
 CREATE INDEX IF NOT EXISTS idx_local_favorites_custom_user_id ON local_favorites_custom (user_id);
 CREATE INDEX IF NOT EXISTS idx_local_favorites_custom_coffee_id ON local_favorites_custom (coffee_id);
+CREATE INDEX IF NOT EXISTS idx_posts_user_timestamp ON posts_db (user_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_timestamp ON posts_db (timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_follows_follower_followed ON follows (follower_id, followed_id);
+CREATE INDEX IF NOT EXISTS idx_follows_followed ON follows (followed_id);
+
+-- 7. RLS: políticas base para timeline (ajusta según privacidad real)
+ALTER TABLE posts_db ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reviews_db ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "posts_public_select" ON posts_db;
+CREATE POLICY "posts_public_select"
+ON posts_db
+FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "reviews_public_select" ON reviews_db;
+CREATE POLICY "reviews_public_select"
+ON reviews_db
+FOR SELECT
+USING (true);
 
 -- ============================================
 -- FIN DE OPTIMIZACIONES

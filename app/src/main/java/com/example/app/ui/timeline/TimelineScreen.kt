@@ -30,6 +30,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.components.*
+import kotlin.math.max
+import kotlin.random.Random
 import com.cafesito.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,17 +65,14 @@ fun TimelineScreen(
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
 
     val suggestionIndices = remember(uiState) {
-        if (uiState is TimelineUiState.Success) {
-            val itemsCount = (uiState as TimelineUiState.Success).items.size
-            if (itemsCount >= 4) {
-                val mid = itemsCount / 2
-                val first = (1 until mid).random()
-                val second = (mid until itemsCount).random()
-                listOf(first, second)
-            } else {
-                listOf(0, 1)
-            }
-        } else listOf(0, 1)
+        val state = uiState as? TimelineUiState.Success ?: return@remember emptyList()
+        val itemsCount = state.items.size
+        if (itemsCount < 3) return@remember emptyList()
+        val random = Random(max(itemsCount, 1) + state.activeUser.id)
+        val first = random.nextInt(1, itemsCount)
+        var second = random.nextInt(1, itemsCount)
+        if (second == first) second = (second + 1).coerceAtMost(itemsCount - 1)
+        listOf(first, second)
     }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -171,74 +170,92 @@ fun TimelineScreen(
                 }
                 is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
                 is TimelineUiState.Success -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 120.dp)
-                    ) {
-                        itemsIndexed(
-                            items = state.items,
-                            key = { _, item ->
-                                when(item) {
-                                    is TimelineItem.PostItem -> "post_${item.details.post.id}"
-                                    is TimelineItem.ReviewItem -> "review_${item.reviewInfo.review.id}"
-                                    is TimelineItem.FavoriteActionItem -> "fav_${item.timestamp}"
+                    if (state.items.isEmpty()) {
+                        TimelineEmptyState(
+                            suggestedUsers = state.suggestedUsers,
+                            topics = state.recommendedTopics,
+                            onFollowClick = { viewModel.toggleFollowSuggestion(it) },
+                            onUserClick = { userId ->
+                                if (userId == state.activeUser.id) onUserClick(0)
+                                else onUserClick(userId)
+                            },
+                            onAddPostClick = onAddPostClick
+                        )
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 120.dp)
+                        ) {
+                            itemsIndexed(
+                                items = state.items,
+                                key = { _, item -> item.stableKey }
+                            ) { index, item ->
+                                viewModel.loadMoreIfNeeded(index)
+                                if (suggestionIndices.isNotEmpty() && index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
+                                    Column {
+                                        RecommendationCarousel(
+                                            recommendations = state.recommendations,
+                                            onCoffeeClick = onCoffeeClick
+                                        )
+                                        Spacer(Modifier.height(24.dp))
+                                    }
                                 }
-                            }
-                        ) { index, item ->
-                            if (index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
-                                Column {
-                                    RecommendationCarousel(
-                                        recommendations = state.recommendations,
-                                        onCoffeeClick = onCoffeeClick
+                                if (suggestionIndices.size > 1 && index == suggestionIndices[1] && state.suggestedUsers.isNotEmpty()) {
+                                    UserSuggestionCarousel(
+                                        users = state.suggestedUsers,
+                                        followingIds = state.myFollowingIds,
+                                        onUserClick = { userId ->
+                                            if (userId == state.activeUser.id) onUserClick(0)
+                                            else onUserClick(userId)
+                                        },
+                                        onFollowClick = { viewModel.toggleFollowSuggestion(it) }
                                     )
-                                    Spacer(Modifier.height(24.dp))
+                                    Spacer(Modifier.height(32.dp))
+                                }
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) +
+                                            slideInVertically(initialOffsetY = { 20 })
+                                ) {
+                                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                        when (item) {
+                                            is TimelineItem.PostItem -> PostCard(
+                                                details = item.details,
+                                                isLiked = item.details.likes.any { it.userId == state.activeUser.id },
+                                                onUserClick = {
+                                                    val userId = item.details.post.userId
+                                                    if (userId == state.activeUser.id) onUserClick(0)
+                                                    else onUserClick(userId)
+                                                },
+                                                onCommentClick = {
+                                                    highlightedCommentId = null
+                                                    showCommentSheetId = item.details.post.id
+                                                },
+                                                onLikeClick = { viewModel.toggleLike(item.details.post.id) },
+                                                isOwnPost = item.details.post.userId == state.activeUser.id,
+                                                onEditClick = { postToEdit = item.details },
+                                                onDeleteClick = { itemToDelete = item.details }
+                                            )
+                                            is TimelineItem.ReviewItem -> UserReviewCard(
+                                                info = item.reviewInfo,
+                                                isOwnReview = item.reviewInfo.review.userId == state.activeUser.id,
+                                                onEditClick = { reviewToEdit = item },
+                                                onDeleteClick = { itemToDelete = item },
+                                                onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
+                                            )
+                                            else -> {}
+                                        }
+                                    }
                                 }
                             }
-                            if (index == suggestionIndices[1] && state.suggestedUsers.isNotEmpty()) {
-                                UserSuggestionCarousel(
-                                    users = state.suggestedUsers,
-                                    followingIds = state.myFollowingIds,
-                                    onUserClick = { userId ->
-                                        if (userId == state.activeUser.id) onUserClick(0)
-                                        else onUserClick(userId)
-                                    },
-                                    onFollowClick = { viewModel.toggleFollowSuggestion(it) }
-                                )
-                                Spacer(Modifier.height(32.dp))
-                            }
-                            AnimatedVisibility(
-                                visible = true,
-                                enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) +
-                                        slideInVertically(initialOffsetY = { 20 })
-                            ) {
-                                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                                    when (item) {
-                                        is TimelineItem.PostItem -> PostCard(
-                                            details = item.details,
-                                            isLiked = item.details.likes.any { it.userId == state.activeUser.id },
-                                            onUserClick = {
-                                                val userId = item.details.post.userId
-                                                if (userId == state.activeUser.id) onUserClick(0)
-                                                else onUserClick(userId)
-                                            },
-                                            onCommentClick = {
-                                                highlightedCommentId = null
-                                                showCommentSheetId = item.details.post.id
-                                            },
-                                            onLikeClick = { viewModel.toggleLike(item.details.post.id) },
-                                            isOwnPost = item.details.post.userId == state.activeUser.id,
-                                            onEditClick = { postToEdit = item.details },
-                                            onDeleteClick = { itemToDelete = item.details }
-                                        )
-                                        is TimelineItem.ReviewItem -> UserReviewCard(
-                                            info = item.reviewInfo,
-                                            isOwnReview = item.reviewInfo.review.userId == state.activeUser.id,
-                                            onEditClick = { reviewToEdit = item },
-                                            onDeleteClick = { itemToDelete = item },
-                                            onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
-                                        )
-                                        else -> {}
+                            if (state.isLoadingMore) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
                                     }
                                 }
                             }
