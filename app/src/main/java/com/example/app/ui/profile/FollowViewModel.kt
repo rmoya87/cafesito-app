@@ -17,16 +17,65 @@ class FollowViewModel @Inject constructor(
 ) : ViewModel() {
 
     val fullFollowingMap = userRepository.followingMap
-    
-    // Exponemos el usuario activo para la UI
     val activeUser = userRepository.getActiveUserFlow()
-    
-    // Obtenemos dinámicamente el ID del usuario activo
+
     val myFollowingIds = combine(
         activeUser,
         userRepository.followingMap
     ) { activeUser, map ->
         activeUser?.let { map[it.id] } ?: emptySet()
+    }
+
+    val allUsers = userRepository.getAllUsersFlow()
+
+    val suggestedUsers: Flow<List<SuggestedUserInfo>> = combine(
+        activeUser,
+        userRepository.followingMap,
+        allUsers
+    ) { activeUser, map, dbUsers ->
+        val activeUserId = activeUser?.id
+        val myFollowing = activeUserId?.let { map[it] } ?: emptySet()
+        val excludedIds = if (activeUserId != null) myFollowing + activeUserId else myFollowing
+        val candidates = dbUsers.filter { it.id !in excludedIds }
+
+        val relatedIds = if (myFollowing.isEmpty()) {
+            emptySet()
+        } else {
+            myFollowing.flatMap { followedId -> map[followedId].orEmpty() }.toSet()
+        }
+
+        val friendsOfFriends = if (relatedIds.isEmpty()) {
+            emptyList()
+        } else {
+            candidates.filter { relatedIds.contains(it.id) }
+        }
+
+        val sortedByFollowers = candidates.sortedWith(
+            compareByDescending<com.cafesito.app.data.UserEntity> { user ->
+                map.values.count { it.contains(user.id) }
+            }.thenBy { it.username }
+        )
+
+        val selection = if (myFollowing.isEmpty()) {
+            sortedByFollowers
+        } else {
+            friendsOfFriends.ifEmpty { sortedByFollowers }
+        }
+
+        selection.take(20).map { userEntity ->
+            SuggestedUserInfo(
+                user = User(
+                    id = userEntity.id,
+                    username = userEntity.username,
+                    fullName = userEntity.fullName,
+                    avatarUrl = userEntity.avatarUrl,
+                    email = userEntity.email,
+                    bio = userEntity.bio
+                ),
+                followersCount = map.values.count { it.contains(userEntity.id) },
+                followingCount = map[userEntity.id]?.size ?: 0
+            )
+        }
     }
 
     fun followersState(userId: Int): Flow<List<SuggestedUserInfo>> = combine(
@@ -56,39 +105,6 @@ class FollowViewModel @Inject constructor(
     ) { map, dbUsers ->
         val followingIds = map[userId] ?: emptySet()
         dbUsers.filter { followingIds.contains(it.id) }.map { userEntity ->
-            SuggestedUserInfo(
-                user = User(
-                    id = userEntity.id,
-                    username = userEntity.username,
-                    fullName = userEntity.fullName,
-                    avatarUrl = userEntity.avatarUrl,
-                    email = userEntity.email,
-                    bio = userEntity.bio
-                ),
-                followersCount = map.values.count { it.contains(userEntity.id) },
-                followingCount = map[userEntity.id]?.size ?: 0
-            )
-        }
-    }
-
-    fun allUsersState(): Flow<List<SuggestedUserInfo>> = combine(
-        activeUser,
-        userRepository.followingMap,
-        userRepository.getAllUsersFlow()
-    ) { activeUser, map, dbUsers ->
-        val activeUserId = activeUser?.id
-        val myFollowing = activeUserId?.let { map[it] } ?: emptySet()
-        val relatedIds = if (myFollowing.isEmpty()) {
-            emptySet()
-        } else {
-            myFollowing.flatMap { followedId -> map[followedId].orEmpty() }.toSet()
-        }
-
-        dbUsers.filter { userEntity ->
-            val isNotMe = activeUserId == null || userEntity.id != activeUserId
-            val isRelated = myFollowing.isEmpty() || relatedIds.contains(userEntity.id)
-            isNotMe && isRelated
-        }.map { userEntity ->
             SuggestedUserInfo(
                 user = User(
                     id = userEntity.id,
