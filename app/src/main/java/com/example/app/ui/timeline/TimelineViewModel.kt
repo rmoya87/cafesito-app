@@ -88,6 +88,7 @@ class TimelineViewModel @Inject constructor(
             }
                 .filterNotNull()
                 .map { data ->
+                    val interactionsCount = data.posts.sumOf { it.likes.size + it.comments.size }
                     val key = TimelineDataKey(
                         userId = data.activeUser.id,
                         postsCount = data.posts.size,
@@ -95,7 +96,8 @@ class TimelineViewModel @Inject constructor(
                         followingCount = data.following[data.activeUser.id]?.size ?: 0,
                         usersCount = data.allUsers.size,
                         coffeesCount = data.allCoffees.size,
-                        favoritesCount = data.favorites.size
+                        favoritesCount = data.favorites.size,
+                        interactionsCount = interactionsCount
                     )
                     key to data
                 }
@@ -538,7 +540,8 @@ private data class TimelineDataKey(
     val followingCount: Int,
     val usersCount: Int,
     val coffeesCount: Int,
-    val favoritesCount: Int
+    val favoritesCount: Int,
+    val interactionsCount: Int
 )
 
 sealed class TimelineItem {
