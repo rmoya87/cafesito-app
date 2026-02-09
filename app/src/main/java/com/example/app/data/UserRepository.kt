@@ -252,8 +252,25 @@ class UserRepository @Inject constructor(
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {
                 try {
-                    if (isFollowing) supabaseDataSource.deleteFollow(followerId, targetId)
-                    else supabaseDataSource.insertFollow(follow)
+                    if (isFollowing) {
+                        supabaseDataSource.deleteFollow(followerId, targetId)
+                    } else {
+                        supabaseDataSource.insertFollow(follow)
+                        if (followerId != targetId) {
+                            val followerUser = userDao.getUserById(followerId)
+                            val fromUsername = followerUser?.username ?: return@launch
+                            supabaseDataSource.insertNotification(
+                                NotificationEntity(
+                                    userId = targetId,
+                                    type = "FOLLOW",
+                                    fromUsername = fromUsername,
+                                    message = "",
+                                    timestamp = System.currentTimeMillis(),
+                                    relatedId = followerId.toString()
+                                )
+                            )
+                        }
+                    }
                 } catch (e: Exception) { }
             }
         }

@@ -180,6 +180,7 @@ class SocialRepository @Inject constructor(
                         )
                     )
                     socialDao.insertComment(stored)
+                    notifyMentionsIfNeeded(stored)
                 } catch (e: Exception) {
                     socialDao.insertComment(comment)
                 }
@@ -220,6 +221,38 @@ class SocialRepository @Inject constructor(
         } else {
             triggerRefresh()
         }
+    }
+
+    private suspend fun notifyMentionsIfNeeded(comment: CommentEntity) {
+        val mentionUsernames = extractMentions(comment.text)
+        if (mentionUsernames.isEmpty()) return
+        val author = userRepository.getUserById(comment.userId) ?: return
+        val mentions = mentionUsernames.filterNot { it.equals(author.username, ignoreCase = true) }
+        if (mentions.isEmpty()) return
+
+        mentions.forEach { username ->
+            val user = userRepository.getUserByUsername(username) ?: return@forEach
+            if (user.id == author.id) return@forEach
+            supabaseDataSource.insertNotification(
+                NotificationEntity(
+                    userId = user.id,
+                    type = "MENTION",
+                    fromUsername = author.username,
+                    message = comment.text,
+                    timestamp = System.currentTimeMillis(),
+                    relatedId = "${comment.postId}:${comment.id}"
+                )
+            )
+        }
+    }
+
+    private fun extractMentions(text: String): Set<String> {
+        val regex = Regex("@([A-Za-z0-9_]{2,30})")
+        return regex.findAll(text)
+            .map { it.groupValues[1] }
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
     }
 
     suspend fun getTimeline(
