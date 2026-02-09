@@ -120,6 +120,7 @@ class SocialRepository @Inject constructor(
                 try { supabaseDataSource.insertPost(post) } catch (e: Exception) { }
             }
         }
+        triggerRefresh()
     }
 
     suspend fun uploadImage(bucket: String, path: String, bytes: ByteArray): String {
@@ -137,6 +138,7 @@ class SocialRepository @Inject constructor(
                 try { supabaseDataSource.insertPost(updated) } catch (e: Exception) { }
             }
         }
+        triggerRefresh()
     }
 
     suspend fun toggleLike(postId: String, userId: Int) = withContext(Dispatchers.IO) {
@@ -153,6 +155,7 @@ class SocialRepository @Inject constructor(
                 } catch (e: Exception) { }
             }
         }
+        triggerRefresh()
     }
 
     suspend fun addComment(comment: CommentEntity) = withContext(Dispatchers.IO) {
@@ -162,6 +165,7 @@ class SocialRepository @Inject constructor(
                 try { supabaseDataSource.insertComment(comment) } catch (e: Exception) { }
             }
         }
+        triggerRefresh()
     }
 
     suspend fun updateComment(commentId: Int, newText: String) = withContext(Dispatchers.IO) {
@@ -173,6 +177,7 @@ class SocialRepository @Inject constructor(
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.deleteComment(commentId) } catch (e: Exception) { } }
         }
+        triggerRefresh()
     }
 
     fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> = socialDao.getCommentsWithAuthorForPost(postId)
@@ -183,6 +188,28 @@ class SocialRepository @Inject constructor(
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.deletePost(postId) } catch (e: Exception) { } }
         }
+        triggerRefresh()
+    }
+
+    suspend fun getTimeline(
+        viewerId: Int,
+        cursor: Long?,
+        limit: Int,
+        mode: TimelineFeedMode
+    ): TimelinePage = withContext(Dispatchers.IO) {
+        val posts = socialDao.getAllPostsWithDetails().first()
+        val reviews = socialDao.getAllReviewsWithAuthor().first()
+        val following = userRepository.followingMap.first()[viewerId].orEmpty()
+
+        TimelineEngine.getTimeline(
+            posts = posts,
+            reviews = reviews,
+            followingIds = following,
+            viewerId = viewerId,
+            cursor = cursor,
+            limit = limit,
+            mode = mode
+        )
     }
 
     suspend fun getUserByUsername(username: String): UserEntity? = userRepository.getUserByUsername(username)
