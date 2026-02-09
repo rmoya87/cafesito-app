@@ -221,14 +221,9 @@ class AddPostViewModel @Inject constructor(
 
     fun createPost(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val source = _imageSource.value ?: return@launch
             val activeUser = userRepository.getActiveUser() ?: return@launch
             
-            val imageUrl = uploadImageAndGetUrl(source, "posts")
-            if (imageUrl == null) {
-                Log.e("AddPostVM", "Failed to upload post image")
-                return@launch
-            }
+            val imageUrl = _imageSource.value?.let { uploadImageAndGetUrl(it, "posts") } ?: ""
             
             socialRepository.createPost(PostEntity(
                 id = "post_${System.currentTimeMillis()}", 
