@@ -233,6 +233,7 @@ class TimelineViewModel @Inject constructor(
         } else {
             myFollowing.flatMap { followedId -> data.following[followedId].orEmpty() }.toSet()
         }
+    }
 
         val excludedIds = myFollowing + data.activeUser.id
         val candidates = data.allUsers.filter { it.id !in excludedIds }
