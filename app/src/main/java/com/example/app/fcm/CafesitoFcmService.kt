@@ -27,13 +27,10 @@ class CafesitoFcmService : FirebaseMessagingService() {
         val title = message.notification?.title ?: message.data["title"] ?: "Cafesito"
         val body = message.notification?.body ?: message.data["body"] ?: ""
         
-        val type = message.data["type"]
-        val targetId = message.data["targetId"]
-
-        showNotification(title, body, type, targetId)
+        showNotification(title, body)
     }
 
-    private fun showNotification(title: String, message: String, type: String?, targetId: String?) {
+    private fun showNotification(title: String, message: String) {
         val channelId = "fcm_default_channel"
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -50,8 +47,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
 
         val intent = Intent(this, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra("nav_type", type)
-            putExtra("nav_id", targetId)
+            putExtra("nav_type", "NOTIFICATIONS")
         }
         
         val pendingIntent = PendingIntent.getActivity(
