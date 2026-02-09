@@ -49,6 +49,7 @@ class TimelineViewModel @Inject constructor(
     private val loadThreshold = 2
 
     private var latestBaseData: TimelineBaseData? = null
+    private var hasLoadedOnce = false
 
     fun refreshData() {
         viewModelScope.launch {
@@ -84,10 +85,26 @@ class TimelineViewModel @Inject constructor(
                     reviews = dynamic.reviews,
                     following = dynamic.following
                 )
-            }.filterNotNull().collectLatest { data ->
-                latestBaseData = data
-                loadInitialPage(data)
             }
+                .filterNotNull()
+                .map { data ->
+                    val key = TimelineDataKey(
+                        userId = data.activeUser.id,
+                        postsCount = data.posts.size,
+                        reviewsCount = data.reviews.size,
+                        followingCount = data.following[data.activeUser.id]?.size ?: 0,
+                        usersCount = data.allUsers.size,
+                        coffeesCount = data.allCoffees.size,
+                        favoritesCount = data.favorites.size
+                    )
+                    key to data
+                }
+                .distinctUntilChanged { old, new -> old.first == new.first }
+                .debounce(300)
+                .collectLatest { (_, data) ->
+                    latestBaseData = data
+                    loadInitialPage(data)
+                }
         }
     }
 
@@ -119,7 +136,9 @@ class TimelineViewModel @Inject constructor(
     val uiState: StateFlow<TimelineUiState> = _uiState.asStateFlow()
 
     private suspend fun loadInitialPage(data: TimelineBaseData) {
-        _uiState.value = TimelineUiState.Loading
+        if (!hasLoadedOnce) {
+            _uiState.value = TimelineUiState.Loading
+        }
         val mode = determineFeedMode(data)
 
         val page = try {
@@ -155,6 +174,7 @@ class TimelineViewModel @Inject constructor(
             canLoadMore = page.nextCursor != null,
             isLoadingMore = false
         )
+        hasLoadedOnce = true
     }
 
     fun loadMoreIfNeeded(index: Int) {
@@ -506,6 +526,16 @@ private data class TimelineBaseData(
     val posts: List<PostWithDetails>,
     val reviews: List<ReviewWithAuthor>,
     val following: Map<Int, Set<Int>>
+)
+
+private data class TimelineDataKey(
+    val userId: Int,
+    val postsCount: Int,
+    val reviewsCount: Int,
+    val followingCount: Int,
+    val usersCount: Int,
+    val coffeesCount: Int,
+    val favoritesCount: Int
 )
 
 sealed class TimelineItem {
