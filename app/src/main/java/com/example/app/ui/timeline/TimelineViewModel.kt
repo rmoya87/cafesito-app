@@ -285,10 +285,13 @@ class TimelineViewModel @Inject constructor(
         val selection = if (myFollowing.isEmpty()) {
             sortedByActivity
         } else {
-            friendsOfFriends.ifEmpty { sortedByActivity }
+            val fallback = sortedByActivity.filterNot { candidate ->
+                friendsOfFriends.any { it.id == candidate.id }
+            }
+            (friendsOfFriends + fallback)
         }
 
-        return selection.take(10).map { entity ->
+        return selection.distinctBy { it.id }.take(10).map { entity ->
             SuggestedUserInfo(
                 user = User(
                     id = entity.id,

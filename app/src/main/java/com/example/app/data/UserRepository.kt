@@ -57,7 +57,9 @@ class UserRepository @Inject constructor(
                 scope = externalScope,
                 connectivityObserver = connectivityObserver
             )
-        }.flowOn(Dispatchers.IO)
+        }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
 
     suspend fun signInWithSupabase(token: String): String? {
         ensureConnected()
