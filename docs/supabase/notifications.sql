@@ -4,6 +4,8 @@
 -- Ejecuta este script en el SQL Editor de Supabase.
 -- Crea la tabla, índices y políticas necesarias para
 -- persistir notificaciones entre dispositivos y reinstalaciones.
+-- Para push notifications vía Edge Function, usa:
+--   docs/supabase/notifications_push.sql
 -- ==========================================================
 
 create table if not exists public.notifications_db (
