@@ -133,6 +133,7 @@ class SocialRepository @Inject constructor(
         
         // Actualizar local inmediatamente para UI rápida
         socialDao.insertPost(updated)
+        triggerRefresh()
         
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             // No usamos externalScope aquí para asegurar que la edición termine antes de refrescar si es posible,
@@ -167,19 +168,41 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun addComment(comment: CommentEntity) = withContext(Dispatchers.IO) {
-        socialDao.insertComment(comment)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {
-                try { supabaseDataSource.insertComment(comment) } catch (e: Exception) { }
+                try {
+                    val stored = supabaseDataSource.insertComment(
+                        CommentInsert(
+                            postId = comment.postId,
+                            userId = comment.userId,
+                            text = comment.text,
+                            timestamp = comment.timestamp
+                        )
+                    )
+                    socialDao.insertComment(stored)
+                } catch (e: Exception) {
+                    socialDao.insertComment(comment)
+                }
+                triggerRefresh()
             }
+        } else {
+            socialDao.insertComment(comment)
+            triggerRefresh()
         }
-        triggerRefresh()
     }
 
     suspend fun deleteComment(commentId: Int) = withContext(Dispatchers.IO) {
         socialDao.deleteComment(commentId)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.deleteComment(commentId) } catch (e: Exception) { } }
+        }
+        triggerRefresh()
+    }
+
+    suspend fun updateComment(commentId: Int, newText: String) = withContext(Dispatchers.IO) {
+        socialDao.updateComment(commentId, newText)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch { try { supabaseDataSource.updateComment(commentId, newText) } catch (e: Exception) { } }
         }
         triggerRefresh()
     }
