@@ -67,10 +67,10 @@ fun TimelineScreen(
     val suggestionIndices = remember(uiState) {
         val state = uiState as? TimelineUiState.Success ?: return@remember emptyList()
         val itemsCount = state.items.size
-        if (itemsCount < 2) return@remember emptyList()
+        if (itemsCount < 3) return@remember emptyList()
         val random = Random(max(itemsCount, 1) + state.activeUser.id)
-        val first = if (itemsCount >= 3) random.nextInt(1, itemsCount) else 0
-        var second = if (itemsCount >= 4) random.nextInt(1, itemsCount) else minOf(first + 1, itemsCount - 1)
+        val first = random.nextInt(1, itemsCount)
+        var second = random.nextInt(1, itemsCount)
         if (second == first) second = (second + 1).coerceAtMost(itemsCount - 1)
         listOf(first, second)
     }
