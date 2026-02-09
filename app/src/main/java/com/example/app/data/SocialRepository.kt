@@ -133,6 +133,7 @@ class SocialRepository @Inject constructor(
         
         // Actualizar local inmediatamente para UI rápida
         socialDao.insertPost(updated)
+        triggerRefresh()
         
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             // No usamos externalScope aquí para asegurar que la edición termine antes de refrescar si es posible,

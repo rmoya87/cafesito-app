@@ -50,12 +50,12 @@ begin
         from pg_policies
         where schemaname = 'public'
           and tablename = 'notifications_db'
-          and policyname = 'Notifications are insertable by owner'
+          and policyname = 'Notifications are insertable by authenticated users'
     ) then
-        create policy "Notifications are insertable by owner"
+        create policy "Notifications are insertable by authenticated users"
             on public.notifications_db
             for insert
-            with check (auth.uid()::text = user_id::text);
+            with check (auth.uid() is not null);
     end if;
 
     if not exists (
