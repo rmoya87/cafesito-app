@@ -233,7 +233,6 @@ class TimelineViewModel @Inject constructor(
         } else {
             myFollowing.flatMap { followedId -> data.following[followedId].orEmpty() }.toSet()
         }
-    }
 
         val excludedIds = myFollowing + data.activeUser.id
         val candidates = data.allUsers.filter { it.id !in excludedIds }
@@ -246,44 +245,16 @@ class TimelineViewModel @Inject constructor(
 
         val recentActivityCutoff = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
         val activityScores = mutableMapOf<Int, Int>()
-        data.posts.filter { it.post.timestamp >= recentActivityCutoff }.forEach { post ->
-            val key = post.post.userId
-            activityScores[key] = (activityScores[key] ?: 0) + 1
+        val recentPosts = data.posts.filter { it.post.timestamp >= recentActivityCutoff }
+        for (post in recentPosts) {
+            val authorId = post.post.userId
+            activityScores[authorId] = (activityScores[authorId] ?: 0) + 1
         }
-        data.reviews.filter { it.review.timestamp >= recentActivityCutoff }.forEach { review ->
-            val key = review.review.userId
-            activityScores[key] = (activityScores[key] ?: 0) + 1
+        val recentReviews = data.reviews.filter { it.review.timestamp >= recentActivityCutoff }
+        for (review in recentReviews) {
+            val authorId = review.review.userId
+            activityScores[authorId] = (activityScores[authorId] ?: 0) + 1
         }
-
-        val sortedByActivity = candidates.sortedWith(
-            compareByDescending<UserEntity> { activityScores[it.id] ?: 0 }
-                .thenByDescending { data.following.values.count { followers -> followers.contains(it.id) } }
-                .thenBy { it.username }
-        )
-
-        val excludedIds = myFollowing + data.activeUser.id
-        val candidates = data.allUsers.filter { it.id !in excludedIds }
-
-        val friendsOfFriends = if (relatedIds.isEmpty()) {
-            emptyList()
-        } else {
-            candidates.filter { relatedIds.contains(it.id) }
-        }
-
-        val recentActivityCutoff = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
-        val activityScores = mutableMapOf<Int, Int>()
-        data.posts
-            .filter { it.post.timestamp >= recentActivityCutoff }
-            .forEach { post ->
-                val authorId = post.post.userId
-                activityScores[authorId] = (activityScores[authorId] ?: 0) + 1
-            }
-        data.reviews
-            .filter { it.review.timestamp >= recentActivityCutoff }
-            .forEach { review ->
-                val authorId = review.review.userId
-                activityScores[authorId] = (activityScores[authorId] ?: 0) + 1
-            }
 
         val sortedByActivity = candidates.sortedWith(
             compareByDescending<UserEntity> { activityScores[it.id] ?: 0 }
