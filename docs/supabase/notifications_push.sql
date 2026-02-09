@@ -5,6 +5,8 @@
 -- Requiere una Edge Function desplegada llamada:
 --   send-notification
 -- que reciba el payload del trigger y envíe el push vía FCM.
+-- Requiere la extensión pg_net habilitada:
+--   create extension if not exists pg_net;
 --
 -- Configura el endpoint de la Edge Function:
 --   https://<PROJECT_REF>.functions.supabase.co/send-notification
@@ -12,6 +14,8 @@
 -- IMPORTANTE:
 -- - Usa SERVICE_ROLE_KEY como secreto en el header Authorization.
 -- - El cuerpo incluye NEW.* con datos de notifications_db.
+-- - Verifica que existan tokens:
+--   select user_id, count(*) from public.user_fcm_tokens group by user_id;
 -- ==========================================================
 
 -- 1) Función que llama a la Edge Function
@@ -24,13 +28,15 @@ declare
     response json;
 begin
     -- Llama a la Edge Function con el registro insertado.
-    -- Necesita la extensión supabase_functions (habilitada por defecto).
+    -- Usa pg_net para ejecutar la llamada HTTP.
     response := (
-        select supabase_functions.http_request(
-            'POST',
-            'https://<PROJECT_REF>.functions.supabase.co/send-notification',
-            '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_ROLE_KEY>"}',
-            json_build_object(
+        select net.http_post(
+            url := 'https://<PROJECT_REF>.functions.supabase.co/send-notification'::text,
+            headers := jsonb_build_object(
+                'Content-Type', 'application/json',
+                'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+            )::jsonb,
+            body := json_build_object(
                 'record', row_to_json(NEW)
             )::text
         )

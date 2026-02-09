@@ -43,6 +43,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!supabaseUrl || !supabaseServiceKey || !fcmServerKey) {
+      return new Response(
+        JSON.stringify({ error: "Server misconfigured: missing secrets" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const { data: tokens, error } = await supabase
       .from("user_fcm_tokens")
       .select("fcm_token")
@@ -56,9 +66,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const tokenList = (tokens ?? [])
-      .map((row) => row.fcm_token)
-      .filter((token) => typeof token === "string" && token.length > 0);
+    const tokenList = Array.from(
+      new Set(
+        (tokens ?? [])
+          .map((row) => row.fcm_token)
+          .filter((token) => typeof token === "string" && token.length > 0)
+      )
+    );
 
     if (tokenList.length === 0) {
       return new Response(JSON.stringify({ ok: true, sent: 0 }), {
@@ -97,7 +111,24 @@ Deno.serve(async (req) => {
       body: JSON.stringify(fcmPayload),
     });
 
-    const fcmResult = await fcmResponse.json();
+    const fcmText = await fcmResponse.text();
+    let fcmResult: unknown = fcmText;
+    try {
+      fcmResult = JSON.parse(fcmText);
+    } catch {
+      // keep raw text
+    }
+
+    if (!fcmResponse.ok) {
+      console.error("FCM error:", fcmResponse.status, fcmResult);
+      return new Response(
+        JSON.stringify({ ok: false, status: fcmResponse.status, result: fcmResult }),
+        {
+          status: 502,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
     return new Response(JSON.stringify({ ok: true, result: fcmResult }), {
       status: 200,
