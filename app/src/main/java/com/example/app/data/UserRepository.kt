@@ -110,17 +110,22 @@ class UserRepository @Inject constructor(
             )
         }.flowOn(Dispatchers.IO)
 
-    fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>> = _refreshTrigger
-        .flatMapLatest {
-             flow {
-                 val notifications = try {
-                     supabaseDataSource.getNotificationsForUser(userId)
-                 } catch (e: Exception) {
-                     emptyList()
-                 }
-                 emit(notifications)
-             }
-        }.flowOn(Dispatchers.IO)
+    fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>> {
+        val realtimeFlow = supabaseDataSource.subscribeToNotifications(userId)
+            .map { Unit }
+            .catch { emit(Unit) }
+        return merge(_refreshTrigger, realtimeFlow)
+            .flatMapLatest {
+                flow {
+                    val notifications = try {
+                        supabaseDataSource.getNotificationsForUser(userId)
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                    emit(notifications)
+                }
+            }.flowOn(Dispatchers.IO)
+    }
 
     fun getUserByIdFlow(userId: Int): Flow<UserEntity?> = _refreshTrigger
         .flatMapLatest {

@@ -42,6 +42,14 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
+    fun subscribeToNotifications(userId: Int): Flow<PostgresAction> {
+        val channel = client.realtime.channel("notifications-$userId")
+        return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+            table = "notifications_db"
+            filter = "user_id=eq.$userId"
+        }
+    }
+
     // --- USUARIOS ---
     suspend fun getAllUsers(): List<UserEntity> = client.postgrest["users_db"].select().decodeList<UserEntity>()
     suspend fun getUserById(id: Int): UserEntity? = client.postgrest["users_db"].select { filter { eq("id", id) } }.decodeSingleOrNull<UserEntity>()

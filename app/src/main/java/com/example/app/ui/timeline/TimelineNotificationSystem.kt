@@ -19,6 +19,8 @@ object TimelineNotificationSystem {
     const val EXTRA_COMMENT_ID = "timeline_notification_comment_id"
     const val TYPE_FOLLOW = "follow"
     const val TYPE_MENTION = "mention"
+    private const val NAV_TYPE_KEY = "nav_type"
+    private const val NAV_TYPE_NOTIFICATIONS = "NOTIFICATIONS"
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -35,6 +37,7 @@ object TimelineNotificationSystem {
     fun buildPendingIntent(context: Context, notification: TimelineNotification): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(NAV_TYPE_KEY, NAV_TYPE_NOTIFICATIONS)
             when (notification) {
                 is TimelineNotification.Follow -> {
                     putExtra(EXTRA_TYPE, TYPE_FOLLOW)
