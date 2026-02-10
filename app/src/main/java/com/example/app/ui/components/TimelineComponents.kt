@@ -1,6 +1,7 @@
 package com.cafesito.app.ui.components
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -916,7 +917,7 @@ fun EditPostBottomSheet(
     var imageUrl by remember { mutableStateOf(initialImage) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { imageUrl = it.toString() }
     }
 
@@ -929,6 +930,9 @@ fun EditPostBottomSheet(
             modifier = Modifier
                 .padding(24.dp)
                 .padding(bottom = 32.dp)
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .navigationBarsPadding()
         ) {
             Text(
                 text = "Editar",
@@ -944,7 +948,7 @@ fun EditPostBottomSheet(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    .clickable { launcher.launch("image/*") },
+                    .clickable { launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
@@ -1007,7 +1011,7 @@ fun EditReviewBottomSheet(
     var imageUrl by remember { mutableStateOf(initialImage) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { imageUrl = it.toString() }
     }
 
@@ -1020,6 +1024,9 @@ fun EditReviewBottomSheet(
             Modifier
                 .padding(24.dp)
                 .padding(bottom = 32.dp)
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .navigationBarsPadding()
         ) {
             Text(
                 text = "Editar",
@@ -1035,7 +1042,7 @@ fun EditReviewBottomSheet(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    .clickable { launcher.launch("image/*") },
+                    .clickable { launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 contentAlignment = Alignment.Center
             ) {
                 if (imageUrl != null) {
