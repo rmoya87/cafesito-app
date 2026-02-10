@@ -432,7 +432,8 @@ fun AppNavigation(
                     onEditStockClick = { id, isCustom ->
                         if (isCustom) navController.navigate("editCustomCoffee/$id")
                         else navController.navigate("editNormalStock/$id")
-                    }
+                    },
+                    onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
                 )
             }
 

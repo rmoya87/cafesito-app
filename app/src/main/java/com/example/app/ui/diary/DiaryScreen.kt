@@ -53,6 +53,7 @@ fun DiaryScreen(
     onAddCoffeeClick: () -> Unit,
     onAddStockClick: () -> Unit,
     onEditStockClick: (String, Boolean) -> Unit,
+    onEditCoffeeClick: (String) -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -115,14 +116,20 @@ fun DiaryScreen(
                         title = "Editar stock",
                         icon = Icons.Default.Edit,
                         color = MaterialTheme.colorScheme.onSurface,
-                        onClick = { 
+                        onClick = {
+                            itemToEdit = selectedItem
+                            showStockSheet = true
+                            showPantryOptionsId = null
+                        }
+                    )
+                    ModalMenuOption(
+                        title = "Editar café",
+                        icon = Icons.Default.LocalCafe,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        onClick = {
                             val id = showPantryOptionsId!!
                             showPantryOptionsId = null
-                            if (selectedItem.isCustom) onEditStockClick(id, true)
-                            else {
-                                itemToEdit = selectedItem
-                                showStockSheet = true
-                            }
+                            if (selectedItem.isCustom) onEditCoffeeClick(id) else onEditStockClick(id, false)
                         }
                     )
                     ModalMenuOption(
