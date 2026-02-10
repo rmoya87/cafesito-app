@@ -9,6 +9,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -388,7 +389,7 @@ fun ReviewBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest, 
-        containerColor = MaterialTheme.colorScheme.surface, 
+        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         sheetState = sheetState
     ) {
@@ -417,7 +418,11 @@ fun ReviewBottomSheet(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), 
                     shape = RoundedCornerShape(16.dp), 
                     enabled = !isSaving,
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
                 Box(
@@ -501,7 +506,10 @@ fun ReviewBottomSheet(
     }
 
     if (showPickerSheet) {
-        ModalBottomSheet(onDismissRequest = { showPickerSheet = false }) {
+        ModalBottomSheet(
+            onDismissRequest = { showPickerSheet = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text(text = "AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
                 ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
@@ -522,8 +530,8 @@ private fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier.size(20.dp).clip(CircleShape))
@@ -542,7 +550,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
     var brand by remember { mutableStateOf(coffeeDetails.coffee.marca) }
     val isInPantry = currentStock != null
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = "Añadir a mi despensa", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))

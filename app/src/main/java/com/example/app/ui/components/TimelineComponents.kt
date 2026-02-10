@@ -93,10 +93,6 @@ fun CommentsSheet(
     highlightedCommentId: Int? = null,
     viewModel: CommentsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val sheetBackgroundColor = if (isDarkTheme) DarkOutline else Color.White
-    val inputBackgroundColor = if (isDarkTheme) DarkCoffeeBean else Color.White
-
     var text by remember { mutableStateOf("") }
     val comments by viewModel.comments.collectAsState()
     val suggestions by viewModel.mentionSuggestions.collectAsState()
@@ -115,15 +111,14 @@ fun CommentsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = sheetBackgroundColor,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .imePadding() // ✅ ANCLAJE AL TECLADO COMPATIBLE
-                .background(sheetBackgroundColor)
+                .imePadding() 
         ) {
             Column(
                 modifier = Modifier
@@ -195,7 +190,7 @@ fun CommentsSheet(
             }
 
             Surface(
-                color = sheetBackgroundColor,
+                color = MaterialTheme.colorScheme.surfaceContainer,
                 tonalElevation = 0.dp
             ) {
                 Column {
@@ -203,17 +198,17 @@ fun CommentsSheet(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(CoffeeBrown.copy(alpha = 0.1f))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Editando comentario", style = MaterialTheme.typography.labelSmall, color = CoffeeBrown)
+                            Text("Editando comentario", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             IconButton(onClick = {
                                 editingCommentId = null
                                 text = ""
                             }, modifier = Modifier.size(16.dp)) {
-                                Icon(Icons.Default.Close, null, tint = CoffeeBrown)
+                                Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -233,9 +228,9 @@ fun CommentsSheet(
                             modifier = Modifier.weight(1f),
                             shape = CircleShape,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = CoffeeBrown,
-                                unfocusedContainerColor = inputBackgroundColor,
-                                focusedContainerColor = inputBackgroundColor
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface
                             )
                         )
                         Spacer(Modifier.width(8.dp))
@@ -250,7 +245,7 @@ fun CommentsSheet(
                                 text = ""
                             },
                             enabled = text.isNotBlank(),
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = CoffeeBrown)
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
                         }
@@ -278,9 +273,9 @@ fun PremiumTabRow(
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp) // ✅ ALINEACIÓN CON BOTTOMBAR
+                .padding(horizontal = 16.dp, vertical = 12.dp)
                 .fillMaxWidth()
-                .height(64.dp) // ✅ ALTURA UNIFICADA
+                .height(64.dp)
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(32.dp))
                 .premiumBorder(RoundedCornerShape(32.dp))
                 .padding(4.dp)
@@ -318,7 +313,7 @@ fun NotificationsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(Modifier
@@ -542,6 +537,7 @@ private fun CommentRow(
     }
 }
 
+@Composable
 private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
     return buildAnnotatedString {
         val regex = Regex("@(\\w+)")
@@ -551,7 +547,7 @@ private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
             append(text.substring(lastIndex, matchResult.range.first))
             val username = matchResult.groupValues[1]
             pushStringAnnotation(tag = "MENTION", annotation = username)
-            withStyle(style = SpanStyle(color = CoffeeBrown, fontWeight = FontWeight.Bold)) {
+            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
                 append(matchResult.value)
             }
             pop()
@@ -568,8 +564,8 @@ private fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color.LightGray)
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier
@@ -680,7 +676,7 @@ fun DiaryEntryItem(entry: DiaryEntryEntity) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InfoBottomSheet(onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 32.dp)) {
@@ -718,7 +714,7 @@ fun InfoRow(label: String, value: String, desc: String) {
 fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onSave: (Int, Int) -> Unit) {
     var total by remember { mutableStateOf(item.pantryItem.totalGrams.toFloat()) }
     var rem by remember { mutableStateOf(item.pantryItem.gramsRemaining.toFloat()) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -771,9 +767,6 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
     }
 }
 
-/**
- * Componente estandarizado para opciones de menú en modales inferiores.
- */
 @Composable
 fun ModalMenuOption(
     title: String,
@@ -826,7 +819,7 @@ fun PostOptionsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
@@ -855,7 +848,7 @@ fun ReviewOptionsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
@@ -884,11 +877,10 @@ fun SettingsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
-        containerColor = MaterialTheme.colorScheme.surface, 
+        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp)) {
-            // Sección General
             Text(
                 "GENERAL", 
                 style = MaterialTheme.typography.labelMedium, 
@@ -931,7 +923,7 @@ fun EditPostBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState, 
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column(
             modifier = Modifier
@@ -1022,7 +1014,7 @@ fun EditReviewBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column(
             Modifier
@@ -1058,7 +1050,6 @@ fun EditReviewBottomSheet(
                 }
             }
             Spacer(Modifier.height(16.dp))
-            // Simple Rating bar replacement
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
@@ -1124,7 +1115,7 @@ fun DeleteConfirmationDialog(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(

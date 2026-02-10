@@ -52,7 +52,7 @@ fun AddPostScreen(
     viewModel: AddPostViewModel = hiltViewModel()
 ) {
     val isDarkTheme = isSystemInDarkTheme()
-    val modalBackgroundColor = if (isDarkTheme) DarkOutline else MaterialTheme.colorScheme.surface
+    val modalBackgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface
 
     val currentStep by viewModel.currentStep.collectAsState()
     val postType by viewModel.postType.collectAsState()
@@ -175,7 +175,12 @@ fun AddPostScreen(
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
                     
                     postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
-                    postType == PostType.OPINION && step == 2 -> ReviewDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
+                    postType == PostType.OPINION && step == 2 -> ReviewDetailsStepPremium(
+                        viewModel = viewModel, 
+                        activeUser = activeUser,
+                        isDarkTheme = isDarkTheme,
+                        modalBackgroundColor = modalBackgroundColor
+                    )
                 }
             }
 
@@ -408,7 +413,12 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: UserEntity?) {
+private fun ReviewDetailsStepPremium(
+    viewModel: AddPostViewModel, 
+    activeUser: UserEntity?,
+    isDarkTheme: Boolean,
+    modalBackgroundColor: Color
+) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val comment by viewModel.comment.collectAsState()

@@ -305,11 +305,18 @@ fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
 fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoffee: () -> Unit, onAddPantry: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-            Text("NUEVO REGISTRO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
+            Text(
+                text = "NUEVO REGISTRO", 
+                style = MaterialTheme.typography.labelLarge, 
+                color = MaterialTheme.colorScheme.primary, 
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
             ModalMenuOption(title = "Registro de Agua", icon = Icons.Default.WaterDrop, color = Color(0xFF2196F3), onClick = onAddWater)
             ModalMenuOption(title = "Registro de Café", icon = Icons.Default.Coffee, color = MaterialTheme.colorScheme.onSurface, onClick = onAddCoffee)
             ModalMenuOption(title = "Añadir a Despensa", icon = Icons.Default.Inventory, color = MaterialTheme.colorScheme.primary, onClick = onAddPantry)
@@ -396,10 +403,19 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeriodBottomSheet(selectedPeriod: DiaryPeriod, onDismiss: () -> Unit, onPeriodSelected: (DiaryPeriod) -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss, 
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
+    ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-            Text("SELECCIONAR PERIODO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(16.dp))
+            Text(
+                text = "SELECCIONAR PERIODO", 
+                style = MaterialTheme.typography.labelLarge, 
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
             DiaryPeriod.values().forEach { period ->
                 val isSelected = period == selectedPeriod
                 Surface(
