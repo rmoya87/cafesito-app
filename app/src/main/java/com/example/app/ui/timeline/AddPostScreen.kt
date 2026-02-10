@@ -11,6 +11,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,6 +39,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.components.*
+import com.cafesito.app.ui.theme.DarkCoffeeBean
+import com.cafesito.app.ui.theme.DarkOutline
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -48,6 +51,9 @@ fun AddPostScreen(
     onBackClick: () -> Unit = {},
     viewModel: AddPostViewModel = hiltViewModel()
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val modalBackgroundColor = if (isDarkTheme) DarkOutline else MaterialTheme.colorScheme.surface
+
     val currentStep by viewModel.currentStep.collectAsState()
     val postType by viewModel.postType.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
@@ -491,7 +497,7 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
                     modifier = Modifier.height(56.dp).widthIn(max = 220.dp),
                     shape = CircleShape,
                     border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
-                    color = Color.White
+                    color = if (isDarkTheme) DarkCoffeeBean else Color.White
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxHeight()) {
                         AsyncImage(
@@ -509,7 +515,7 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
                             fontWeight = FontWeight.Bold,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(end = 16.dp).weight(1f, fill = false)
                         )
                     }
@@ -521,7 +527,10 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
     }
 
     if (showPickerSheet) {
-        ModalBottomSheet(onDismissRequest = { showPickerSheet = false }) {
+        ModalBottomSheet(
+            onDismissRequest = { showPickerSheet = false },
+            containerColor = modalBackgroundColor
+        ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
                 ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
