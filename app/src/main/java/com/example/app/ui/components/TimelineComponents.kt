@@ -93,6 +93,10 @@ fun CommentsSheet(
     highlightedCommentId: Int? = null,
     viewModel: CommentsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val sheetBackgroundColor = if (isDarkTheme) DarkOutline else Color.White
+    val inputBackgroundColor = if (isDarkTheme) DarkCoffeeBean else Color.White
+
     var text by remember { mutableStateOf("") }
     val comments by viewModel.comments.collectAsState()
     val suggestions by viewModel.mentionSuggestions.collectAsState()
@@ -111,7 +115,7 @@ fun CommentsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White,
+        containerColor = sheetBackgroundColor,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
@@ -119,7 +123,7 @@ fun CommentsSheet(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .imePadding() // ✅ ANCLAJE AL TECLADO COMPATIBLE
-                .background(Color.White)
+                .background(sheetBackgroundColor)
         ) {
             Column(
                 modifier = Modifier
@@ -139,7 +143,7 @@ fun CommentsSheet(
                 Box(Modifier
                     .fillMaxWidth()
                     .padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
-                    Text("No hay comentarios todavía", color = Color.Gray)
+                    Text("No hay comentarios todavía", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 LazyColumn(
@@ -191,8 +195,8 @@ fun CommentsSheet(
             }
 
             Surface(
-                color = Color.White,
-                tonalElevation = 0.dp // ✅ FONDO BLANCO PURO
+                color = sheetBackgroundColor,
+                tonalElevation = 0.dp
             ) {
                 Column {
                     if (editingCommentId != null) {
@@ -230,8 +234,8 @@ fun CommentsSheet(
                             shape = CircleShape,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = CoffeeBrown,
-                                unfocusedContainerColor = Color.White,
-                                focusedContainerColor = Color.White
+                                unfocusedContainerColor = inputBackgroundColor,
+                                focusedContainerColor = inputBackgroundColor
                             )
                         )
                         Spacer(Modifier.width(8.dp))
