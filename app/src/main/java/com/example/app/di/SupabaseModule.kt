@@ -28,7 +28,9 @@ object SupabaseModule {
             supabaseKey = "sb_publishable_M2cY8wb50_I_pfnv_ZcukA_AIvnk66z"
         ) {
             install(Postgrest)
-            install(Auth)
+            install(Auth) {
+                autoRefresh = true
+            }
             install(Realtime)
             install(Storage)
 
