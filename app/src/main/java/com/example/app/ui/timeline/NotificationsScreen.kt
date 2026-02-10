@@ -145,6 +145,11 @@ private fun NotificationItemRow(
             "${notification.user.fullName} te mencionó en un comentario.",
             notification.commentText.replace("\n", " ").take(80)
         )
+        is TimelineNotification.Comment -> Triple(
+            notification.user.avatarUrl,
+            notification.user.fullName,
+            notification.message
+        )
     }
 
     Surface(

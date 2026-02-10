@@ -52,6 +52,7 @@ fun TimelineScreen(
     
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var highlightedCommentId by remember { mutableStateOf<Int?>(null) }
+    var hasHandledInitialDeepLink by rememberSaveable { mutableStateOf(false) }
     
     val unreadCount by viewModel.unreadCount.collectAsState()
     val newDeviceNotifications by viewModel.newUnreadNotifications.collectAsState()
@@ -104,6 +105,22 @@ fun TimelineScreen(
     LaunchedEffect(isRefreshing) {
         if (!isRefreshing && lastItemCount > 0) {
             listState.animateScrollToItem(0)
+        }
+    }
+
+    LaunchedEffect(uiState, initialPostId, initialCommentId) {
+        if (hasHandledInitialDeepLink) return@LaunchedEffect
+        val postId = initialPostId ?: return@LaunchedEffect
+        val successState = uiState as? TimelineUiState.Success ?: return@LaunchedEffect
+
+        val index = successState.composedList.indexOfFirst { item ->
+            (item as? TimelineItem.PostItem)?.details?.post?.id == postId
+        }
+        if (index >= 0) {
+            listState.animateScrollToItem(index)
+            showCommentSheetId = postId
+            highlightedCommentId = initialCommentId
+            hasHandledInitialDeepLink = true
         }
     }
 

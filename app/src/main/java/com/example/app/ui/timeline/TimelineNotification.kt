@@ -26,4 +26,15 @@ sealed class TimelineNotification(
         val commentId: Int,
         val commentText: String
     ) : TimelineNotification(notificationId, id, timestamp, isRead)
+
+    data class Comment(
+        override val notificationId: Int,
+        override val id: String,
+        override val timestamp: Long,
+        override val isRead: Boolean,
+        val user: UserEntity,
+        val postId: String,
+        val commentId: Int,
+        val message: String
+    ) : TimelineNotification(notificationId, id, timestamp, isRead)
 }

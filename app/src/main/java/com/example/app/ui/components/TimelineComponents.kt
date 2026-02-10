@@ -392,6 +392,16 @@ fun NotificationsBottomSheet(
                                     onClick = { onNotificationClick(notification) }
                                 )
                             }
+                            is TimelineNotification.Comment -> {
+                                NotificationRow(
+                                    avatarUrl = notification.user.avatarUrl,
+                                    title = notification.user.fullName,
+                                    subtitle = notification.message,
+                                    isUnread = isUnread,
+                                    trailingContent = null,
+                                    onClick = { onNotificationClick(notification) }
+                                )
+                            }
                         }
                     }
                 }
@@ -464,7 +474,7 @@ private fun CommentRow(
 ) {
     val author = commentWithAuthor.author
     val comment = commentWithAuthor.comment
-    var showMenu by remember { mutableStateOf(false) }
+    var showOptionsSheet by remember { mutableStateOf(false) }
 
     val highlightColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
     Row(
@@ -510,32 +520,26 @@ private fun CommentRow(
         }
 
         if (isOwnComment) {
-            Box {
-                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Editar") },
-                        onClick = {
-                            showMenu = false
-                            onEditClick()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Borrar", color = ElectricRed) },
-                        onClick = {
-                            showMenu = false
-                            onDeleteClick()
-                        }
-                    )
-                }
+            IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(24.dp)) {
+                Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
             }
         }
     }
+
+    if (showOptionsSheet) {
+        PostOptionsBottomSheet(
+            onDismiss = { showOptionsSheet = false },
+            onEditClick = {
+                showOptionsSheet = false
+                onEditClick()
+            },
+            onDeleteClick = {
+                showOptionsSheet = false
+                onDeleteClick()
+            }
+        )
+    }
+
 }
 
 @Composable
