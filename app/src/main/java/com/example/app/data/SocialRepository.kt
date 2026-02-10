@@ -181,6 +181,7 @@ class SocialRepository @Inject constructor(
                     )
                     socialDao.insertComment(stored)
                     notifyMentionsIfNeeded(stored)
+                    notifyPostOwnerIfNeeded(stored)
                 } catch (e: Exception) {
                     socialDao.insertComment(comment)
                 }
@@ -221,6 +222,28 @@ class SocialRepository @Inject constructor(
         } else {
             triggerRefresh()
         }
+    }
+
+    private suspend fun notifyPostOwnerIfNeeded(comment: CommentEntity) {
+        val postOwnerId = socialDao.getAllPostsWithDetails()
+            .first()
+            .firstOrNull { it.post.id == comment.postId }
+            ?.post
+            ?.userId
+            ?: return
+        if (postOwnerId == comment.userId) return
+
+        val author = userRepository.getUserById(comment.userId) ?: return
+        supabaseDataSource.insertNotification(
+            NotificationEntity(
+                userId = postOwnerId,
+                type = "COMMENT",
+                fromUsername = author.username,
+                message = "te ha dejado un comentario",
+                timestamp = System.currentTimeMillis(),
+                relatedId = "${comment.postId}:${comment.id}"
+            )
+        )
     }
 
     private suspend fun notifyMentionsIfNeeded(comment: CommentEntity) {

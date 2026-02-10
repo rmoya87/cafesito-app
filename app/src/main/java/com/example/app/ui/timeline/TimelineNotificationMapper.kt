@@ -34,6 +34,20 @@ fun NotificationEntity.toTimelineNotification(users: List<UserEntity>): Timeline
                 commentText = message
             )
         }
+        "COMMENT" -> {
+            val commentTarget = parseMentionTarget(relatedId) ?: return null
+            val user = users.find { it.username == fromUsername } ?: return null
+            TimelineNotification.Comment(
+                notificationId = notificationId,
+                id = notificationKey,
+                timestamp = timestamp,
+                isRead = isRead,
+                user = user,
+                postId = commentTarget.postId,
+                commentId = commentTarget.commentId,
+                message = message
+            )
+        }
         else -> null
     }
 }
