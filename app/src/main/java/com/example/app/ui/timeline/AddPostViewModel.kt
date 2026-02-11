@@ -81,6 +81,17 @@ class AddPostViewModel @Inject constructor(
     private val _rating = MutableStateFlow(savedStateHandle.get<Float>("rating") ?: 0f)
     val rating: StateFlow<Float> = _rating.asStateFlow()
 
+    private val _mentionQuery = MutableStateFlow("")
+    val mentionSuggestions: StateFlow<List<UserEntity>> = _mentionQuery
+        .debounce(120)
+        .flatMapLatest { query ->
+            if (query.length < 1) flowOf(emptyList())
+            else userRepository.getAllUsersFlow().map { users ->
+                users.filter { it.username.contains(query, ignoreCase = true) }.take(6)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val coffeeList: StateFlow<List<CoffeeWithDetails>> = combine(
         _searchQuery,
         coffeeRepository.allCoffees
@@ -158,6 +169,13 @@ class AddPostViewModel @Inject constructor(
     fun onCommentChanged(text: String) { 
         _comment.value = text 
         savedStateHandle.set("comment", text)
+
+        val lastWord = text.split(" ").lastOrNull().orEmpty()
+        _mentionQuery.value = if (lastWord.startsWith("@") && lastWord.length > 1) {
+            lastWord.removePrefix("@")
+        } else {
+            ""
+        }
     }
     
     fun onRatingChanged(value: Float) { 
