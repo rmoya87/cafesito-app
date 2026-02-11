@@ -435,10 +435,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     keyboardController?.show()
                 },
                 onSelectMention = { user ->
-                    val words = commentValue.text.split(" ").toMutableList()
-                    if (words.isEmpty()) words.add("@${user.username}")
-                    else words[words.lastIndex] = "@${user.username}"
-                    val updated = words.joinToString(" ") + " "
+                    val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
                     commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
                     viewModel.onCommentChanged(updated)
                     focusRequester.requestFocus()
@@ -616,10 +613,7 @@ private fun ReviewDetailsStepPremium(
                     keyboardController?.show()
                 },
                 onSelectMention = { user ->
-                    val words = commentValue.text.split(" ").toMutableList()
-                    if (words.isEmpty()) words.add("@${user.username}")
-                    else words[words.lastIndex] = "@${user.username}"
-                    val updated = words.joinToString(" ") + " "
+                    val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
                     commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
                     viewModel.onCommentChanged(updated)
                     focusRequester.requestFocus()
@@ -759,4 +753,15 @@ private fun ComposerActionRow(
 private fun createTempImageUri(context: Context): Uri {
     val file = File(context.cacheDir, "captured_${UUID.randomUUID()}.jpg")
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+private fun insertOrReplaceMentionToken(currentText: String, username: String): String {
+    val parts = currentText.trimEnd().split(" ").toMutableList()
+    if (parts.isEmpty() || parts.firstOrNull().isNullOrBlank()) {
+        return "@$username "
+    }
+
+    val lastIndex = parts.lastIndex
+    parts[lastIndex] = if (parts[lastIndex].startsWith("@")) "@$username" else "${parts[lastIndex]} @$username"
+    return parts.joinToString(" ") + " "
 }

@@ -124,8 +124,6 @@ fun CommentsSheet(
 
     LaunchedEffect(postId) { viewModel.setPostId(postId) }
 
-    LaunchedEffect(postId) { viewModel.setPostId(postId) }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -230,9 +228,7 @@ fun CommentsSheet(
                         LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(suggestions) { user ->
                                 SuggestionChip(user) {
-                                    val parts = textValue.text.split(" ").toMutableList()
-                                    if (parts.isEmpty()) parts.add("@${user.username}") else parts[parts.lastIndex] = "@${user.username}"
-                                    val updated = parts.joinToString(" ") + " "
+                                    val updated = insertOrReplaceMentionToken(textValue.text, user.username)
                                     textValue = TextFieldValue(updated, selection = TextRange(updated.length))
                                     viewModel.onTextChanged(updated)
                                 }
@@ -308,6 +304,17 @@ fun CommentsSheet(
         val index = comments.indexOfFirst { it.comment.id == highlightedCommentId }
         if (index >= 0) listState.animateScrollToItem(index)
     }
+}
+
+private fun insertOrReplaceMentionToken(currentText: String, username: String): String {
+    val parts = currentText.trimEnd().split(" ").toMutableList()
+    if (parts.isEmpty() || parts.firstOrNull().isNullOrBlank()) {
+        return "@$username "
+    }
+
+    val lastIndex = parts.lastIndex
+    parts[lastIndex] = if (parts[lastIndex].startsWith("@")) "@$username" else "${parts[lastIndex]} @$username"
+    return parts.joinToString(" ") + " "
 }
 
 
