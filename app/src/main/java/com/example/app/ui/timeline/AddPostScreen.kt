@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
@@ -348,6 +349,7 @@ private fun PhotoSelectionStepPremium(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: UserEntity?) {
     val imageSource = viewModel.imageSource.collectAsState().value as? Uri
@@ -399,53 +401,59 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 
         Spacer(Modifier.height(16.dp))
 
-        OutlinedTextField(
-            value = commentValue,
-            onValueChange = {
-                commentValue = it
-                viewModel.onCommentChanged(it.text)
-            },
-            placeholder = { Text("¿Qué estás pensando?") },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp).focusRequester(focusRequester),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = commentValue,
+                onValueChange = {
+                    commentValue = it
+                    viewModel.onCommentChanged(it.text)
+                },
+                placeholder = { Text("¿Qué estás pensando?") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 160.dp)
+                    .focusRequester(focusRequester),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+            )
 
-        ComposerActionRow(
-            mentionSuggestions = mentionSuggestions,
-            currentText = commentValue,
-            selectedImage = imageSource,
-            showEmojiPanel = showEmojiPanel,
-            onToggleEmoji = {
-                showEmojiPanel = !showEmojiPanel
-                if (!showEmojiPanel) keyboardController?.show()
-            },
-            onCameraClick = { showPickerSheet = true },
-            onInsertMention = {
-                val updated = commentValue.text + "@"
-                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                viewModel.onCommentChanged(updated)
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            },
-            onSelectMention = { user ->
-                val words = commentValue.text.split(" ").toMutableList()
-                if (words.isEmpty()) words.add("@${user.username}")
-                else words[words.lastIndex] = "@${user.username}"
-                val updated = words.joinToString(" ") + " "
-                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                viewModel.onCommentChanged(updated)
-                focusRequester.requestFocus()
-            },
-            onAppendEmoji = { emoji ->
-                val updated = commentValue.text + emoji
-                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                viewModel.onCommentChanged(updated)
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            },
-            onRemoveImage = { viewModel.setImage(null) }
-        )
+            ComposerActionRow(
+                mentionSuggestions = mentionSuggestions,
+                currentText = commentValue,
+                selectedImage = imageSource,
+                showEmojiPanel = showEmojiPanel,
+                onToggleEmoji = {
+                    showEmojiPanel = !showEmojiPanel
+                    if (!showEmojiPanel) keyboardController?.show()
+                },
+                onCameraClick = { showPickerSheet = true },
+                onInsertMention = {
+                    val updated = commentValue.text + "@"
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onSelectMention = { user ->
+                    val words = commentValue.text.split(" ").toMutableList()
+                    if (words.isEmpty()) words.add("@${user.username}")
+                    else words[words.lastIndex] = "@${user.username}"
+                    val updated = words.joinToString(" ") + " "
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                },
+                onAppendEmoji = { emoji ->
+                    val updated = commentValue.text + emoji
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onRemoveImage = { viewModel.setImage(null) },
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
+        }
 
         Spacer(Modifier.height(100.dp))
     }
@@ -574,53 +582,59 @@ private fun ReviewDetailsStepPremium(
             SemicircleRatingBar(rating = rating, onRatingChanged = viewModel::onRatingChanged)
         }
 
-        OutlinedTextField(
-            value = commentValue,
-            onValueChange = {
-                commentValue = it
-                viewModel.onCommentChanged(it.text)
-            },
-            placeholder = { Text("¿Qué te ha parecido este café?") },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp).focusRequester(focusRequester),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = commentValue,
+                onValueChange = {
+                    commentValue = it
+                    viewModel.onCommentChanged(it.text)
+                },
+                placeholder = { Text("¿Qué te ha parecido este café?") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 160.dp)
+                    .focusRequester(focusRequester),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+            )
 
-        ComposerActionRow(
-            mentionSuggestions = mentionSuggestions,
-            currentText = commentValue,
-            selectedImage = imageSource,
-            showEmojiPanel = showEmojiPanel,
-            onToggleEmoji = {
-                showEmojiPanel = !showEmojiPanel
-                if (!showEmojiPanel) keyboardController?.show()
-            },
-            onCameraClick = { showPickerSheet = true },
-            onInsertMention = {
-                val updated = commentValue.text + "@"
-                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                viewModel.onCommentChanged(updated)
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            },
-            onSelectMention = { user ->
-                val words = commentValue.text.split(" ").toMutableList()
-                if (words.isEmpty()) words.add("@${user.username}")
-                else words[words.lastIndex] = "@${user.username}"
-                val updated = words.joinToString(" ") + " "
-                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                viewModel.onCommentChanged(updated)
-                focusRequester.requestFocus()
-            },
-            onAppendEmoji = { emoji ->
-                val updated = commentValue.text + emoji
-                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                viewModel.onCommentChanged(updated)
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            },
-            onRemoveImage = { viewModel.setImage(null) }
-        )
+            ComposerActionRow(
+                mentionSuggestions = mentionSuggestions,
+                currentText = commentValue,
+                selectedImage = imageSource,
+                showEmojiPanel = showEmojiPanel,
+                onToggleEmoji = {
+                    showEmojiPanel = !showEmojiPanel
+                    if (!showEmojiPanel) keyboardController?.show()
+                },
+                onCameraClick = { showPickerSheet = true },
+                onInsertMention = {
+                    val updated = commentValue.text + "@"
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onSelectMention = { user ->
+                    val words = commentValue.text.split(" ").toMutableList()
+                    if (words.isEmpty()) words.add("@${user.username}")
+                    else words[words.lastIndex] = "@${user.username}"
+                    val updated = words.joinToString(" ") + " "
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                },
+                onAppendEmoji = { emoji ->
+                    val updated = commentValue.text + emoji
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onRemoveImage = { viewModel.setImage(null) },
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
+        }
 
         selectedCoffee?.let { coffeeDetails ->
             Surface(
@@ -691,8 +705,15 @@ private fun ComposerActionRow(
     onSelectMention: (UserEntity) -> Unit,
     onAppendEmoji: (String) -> Unit,
     onRemoveImage: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),

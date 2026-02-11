@@ -124,6 +124,8 @@ fun CommentsSheet(
 
     LaunchedEffect(postId) { viewModel.setPostId(postId) }
 
+    LaunchedEffect(postId) { viewModel.setPostId(postId) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -185,64 +187,78 @@ fun CommentsSheet(
                 }
             }
 
-            OutlinedTextField(
-                value = textValue,
-                onValueChange = {
-                    textValue = it
-                    viewModel.onTextChanged(it.text)
-                },
-                placeholder = { Text("Añade un comentario...") },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                OutlinedTextField(
+                    value = textValue,
+                    onValueChange = {
+                        textValue = it
+                        viewModel.onTextChanged(it.text)
+                    },
+                    placeholder = { Text("Añade un comentario...") },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
-            )
 
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(onClick = { showImagePickerSheet = true }, contentPadding = PaddingValues(0.dp)) { Text("Cámara") }
-                TextButton(onClick = {
-                    val updated = textValue.text + "@"
-                    textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                    viewModel.onTextChanged(updated)
-                    keyboardController?.show()
-                }, contentPadding = PaddingValues(0.dp)) { Text("@") }
-                TextButton(onClick = { showEmojiPanel = !showEmojiPanel }, contentPadding = PaddingValues(0.dp)) { Text("😊") }
-            }
-
-            if (suggestions.isNotEmpty()) {
-                LazyRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(suggestions) { user ->
-                        SuggestionChip(user) {
-                            val parts = textValue.text.split(" ").toMutableList()
-                            if (parts.isEmpty()) parts.add("@${user.username}") else parts[parts.lastIndex] = "@${user.username}"
-                            val updated = parts.joinToString(" ") + " "
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TextButton(onClick = { showImagePickerSheet = true }, contentPadding = PaddingValues(0.dp)) { Text("Cámara") }
+                        TextButton(onClick = {
+                            val updated = textValue.text + "@"
                             textValue = TextFieldValue(updated, selection = TextRange(updated.length))
                             viewModel.onTextChanged(updated)
+                            keyboardController?.show()
+                        }, contentPadding = PaddingValues(0.dp)) { Text("@") }
+                        TextButton(onClick = { showEmojiPanel = !showEmojiPanel }, contentPadding = PaddingValues(0.dp)) { Text("😊") }
+                    }
+
+                    if (suggestions.isNotEmpty()) {
+                        LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(suggestions) { user ->
+                                SuggestionChip(user) {
+                                    val parts = textValue.text.split(" ").toMutableList()
+                                    if (parts.isEmpty()) parts.add("@${user.username}") else parts[parts.lastIndex] = "@${user.username}"
+                                    val updated = parts.joinToString(" ") + " "
+                                    textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onTextChanged(updated)
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-            if (showEmojiPanel) {
-                LazyRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                        AssistChip(onClick = {
-                            val updated = textValue.text + emoji
-                            textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                            viewModel.onTextChanged(updated)
-                        }, label = { Text(emoji) })
+                    if (showEmojiPanel) {
+                        LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                                AssistChip(onClick = {
+                                    val updated = textValue.text + emoji
+                                    textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onTextChanged(updated)
+                                }, label = { Text(emoji) })
+                            }
+                        }
                     }
-                }
-            }
 
-            selectedImageUri?.let { uri ->
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).size(84.dp).clip(RoundedCornerShape(12.dp))) {
-                    AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    Surface(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable { selectedImageUri = null }, shape = CircleShape, color = Color.Black.copy(alpha = 0.65f)) {
-                        Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                    selectedImageUri?.let { uri ->
+                        Box(modifier = Modifier.padding(top = 4.dp).size(84.dp).clip(RoundedCornerShape(12.dp))) {
+                            AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            Surface(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable { selectedImageUri = null }, shape = CircleShape, color = Color.Black.copy(alpha = 0.65f)) {
+                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                            }
+                        }
                     }
                 }
             }
