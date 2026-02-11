@@ -44,8 +44,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -76,8 +79,12 @@ import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.io.File
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
+import android.net.Uri
+import androidx.core.content.FileProvider
 import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -94,60 +101,52 @@ fun CommentsSheet(
     highlightedCommentId: Int? = null,
     viewModel: CommentsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
-    var text by remember { mutableStateOf("") }
+    var textValue by remember { mutableStateOf(TextFieldValue("")) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showImagePickerSheet by remember { mutableStateOf(false) }
+    var showEmojiPanel by remember { mutableStateOf(false) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val comments by viewModel.comments.collectAsState()
     val suggestions by viewModel.mentionSuggestions.collectAsState()
     val activeUser by viewModel.activeUser.collectAsState()
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-
     var editingCommentId by remember { mutableStateOf<Int?>(null) }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    LaunchedEffect(postId) {
-        viewModel.setPostId(postId)
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) selectedImageUri = pendingCameraUri
     }
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) selectedImageUri = uri
+    }
+
+    LaunchedEffect(postId) { viewModel.setPostId(postId) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .imePadding() 
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Comentarios",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
+        Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().imePadding()) {
+            Text(
+                text = "Comentarios",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp, bottom = 16.dp)
+            )
 
             if (comments.isEmpty()) {
-                Box(Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
                     Text("No hay comentarios todavía", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     state = listState,
-                    contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp)
+                    contentPadding = PaddingValues(bottom = 12.dp, top = 8.dp)
                 ) {
                     items(comments) { item ->
                         CommentRow(
@@ -158,13 +157,11 @@ fun CommentsSheet(
                             onDeleteClick = { viewModel.deleteComment(item.comment.id) },
                             onEditClick = {
                                 editingCommentId = item.comment.id
-                                text = item.comment.text
+                                textValue = TextFieldValue(item.comment.text, selection = TextRange(item.comment.text.length))
                             },
                             onMentionClick = { username ->
                                 scope.launch {
-                                    viewModel.getUserIdByUsername(username)?.let { id ->
-                                        onNavigateToProfile(id)
-                                    }
+                                    viewModel.getUserIdByUsername(username)?.let(onNavigateToProfile)
                                 }
                             }
                         )
@@ -172,85 +169,133 @@ fun CommentsSheet(
                 }
             }
 
-            if (suggestions.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            if (editingCommentId != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    items(suggestions) { user ->
-                        SuggestionChip(user) {
-                            val parts = text.split(" ").toMutableList()
-                            parts[parts.size - 1] = "@${user.username} "
-                            text = parts.joinToString(" ")
-                            viewModel.onTextChanged(text)
+                    Text("Editando comentario", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = {
+                        editingCommentId = null
+                        textValue = TextFieldValue("")
+                    }, modifier = Modifier.size(16.dp)) {
+                        Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                OutlinedTextField(
+                    value = textValue,
+                    onValueChange = {
+                        textValue = it
+                        viewModel.onTextChanged(it.text)
+                    },
+                    placeholder = { Text("Añade un comentario...") },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TextButton(onClick = { showImagePickerSheet = true }, contentPadding = PaddingValues(0.dp)) { Text("Cámara") }
+                        TextButton(onClick = {
+                            val updated = textValue.text + "@"
+                            textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                            viewModel.onTextChanged(updated)
+                            keyboardController?.show()
+                        }, contentPadding = PaddingValues(0.dp)) { Text("@") }
+                        TextButton(onClick = { showEmojiPanel = !showEmojiPanel }, contentPadding = PaddingValues(0.dp)) { Text("😊") }
+                    }
+
+                    if (suggestions.isNotEmpty()) {
+                        LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(suggestions) { user ->
+                                SuggestionChip(user) {
+                                    val parts = textValue.text.split(" ").toMutableList()
+                                    if (parts.isEmpty()) parts.add("@${user.username}") else parts[parts.lastIndex] = "@${user.username}"
+                                    val updated = parts.joinToString(" ") + " "
+                                    textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onTextChanged(updated)
+                                }
+                            }
+                        }
+                    }
+
+                    if (showEmojiPanel) {
+                        LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                                AssistChip(onClick = {
+                                    val updated = textValue.text + emoji
+                                    textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onTextChanged(updated)
+                                }, label = { Text(emoji) })
+                            }
+                        }
+                    }
+
+                    selectedImageUri?.let { uri ->
+                        Box(modifier = Modifier.padding(top = 4.dp).size(84.dp).clip(RoundedCornerShape(12.dp))) {
+                            AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            Surface(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable { selectedImageUri = null }, shape = CircleShape, color = Color.Black.copy(alpha = 0.65f)) {
+                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                            }
                         }
                     }
                 }
             }
 
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 0.dp
-            ) {
-                Column {
-                    if (editingCommentId != null) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Editando comentario", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                            IconButton(onClick = {
-                                editingCommentId = null
-                                text = ""
-                            }, modifier = Modifier.size(16.dp)) {
-                                Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.primary)
-                            }
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.End) {
+                IconButton(
+                    onClick = {
+                        if (editingCommentId != null) {
+                            viewModel.updateComment(editingCommentId!!, textValue.text)
+                            editingCommentId = null
+                        } else {
+                            onAddComment(textValue.text)
                         }
-                    }
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = text,
-                            onValueChange = {
-                                text = it
-                                viewModel.onTextChanged(it)
-                            },
-                            placeholder = { Text("Añade un comentario...") },
-                            modifier = Modifier.weight(1f),
-                            shape = CircleShape,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                focusedContainerColor = MaterialTheme.colorScheme.surface
-                            )
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        IconButton(
-                            onClick = {
-                                if (editingCommentId != null) {
-                                    viewModel.updateComment(editingCommentId!!, text)
-                                    editingCommentId = null
-                                } else {
-                                    onAddComment(text)
-                                }
-                                text = ""
-                            },
-                            enabled = text.isNotBlank(),
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
-                        }
-                    }
+                        textValue = TextFieldValue("")
+                        selectedImageUri = null
+                    },
+                    enabled = textValue.text.isNotBlank(),
+                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
+                }
+            }
+        }
+    }
+
+    if (showImagePickerSheet) {
+        ModalBottomSheet(onDismissRequest = { showImagePickerSheet = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
+                ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
+                    val file = File(context.cacheDir, "captured_${UUID.randomUUID()}.jpg")
+                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                    pendingCameraUri = uri
+                    cameraLauncher.launch(uri)
+                    showImagePickerSheet = false
+                }
+                ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
+                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    showImagePickerSheet = false
                 }
             }
         }
@@ -259,11 +304,10 @@ fun CommentsSheet(
     LaunchedEffect(comments, highlightedCommentId) {
         if (highlightedCommentId == null) return@LaunchedEffect
         val index = comments.indexOfFirst { it.comment.id == highlightedCommentId }
-        if (index >= 0) {
-            listState.animateScrollToItem(index)
-        }
+        if (index >= 0) listState.animateScrollToItem(index)
     }
 }
+
 
 @Composable
 fun PremiumTabRow(
