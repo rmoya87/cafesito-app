@@ -197,8 +197,6 @@ fun CommentsSheet(
                             viewModel.onTextChanged(updated)
                         }
                     }
-                }
-            }
 
             if (showEmojiPanel) {
                 LazyRow(
@@ -277,6 +275,44 @@ fun CommentsSheet(
                             }
                         }
                     }
+                }
+            }
+
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.End) {
+                IconButton(
+                    onClick = {
+                        if (editingCommentId != null) {
+                            viewModel.updateComment(editingCommentId!!, textValue.text)
+                            editingCommentId = null
+                        } else {
+                            onAddComment(textValue.text)
+                        }
+                        textValue = TextFieldValue("")
+                        selectedImageUri = null
+                    },
+                    enabled = textValue.text.isNotBlank(),
+                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
+                }
+            }
+        }
+    }
+
+    if (showImagePickerSheet) {
+        ModalBottomSheet(onDismissRequest = { showImagePickerSheet = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
+                ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
+                    val file = File(context.cacheDir, "captured_${UUID.randomUUID()}.jpg")
+                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                    pendingCameraUri = uri
+                    cameraLauncher.launch(uri)
+                    showImagePickerSheet = false
+                }
+                ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
+                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    showImagePickerSheet = false
                 }
             }
 
