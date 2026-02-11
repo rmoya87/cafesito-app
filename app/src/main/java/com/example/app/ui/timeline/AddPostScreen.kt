@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,10 +33,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -343,11 +349,30 @@ private fun PhotoSelectionStepPremium(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: UserEntity?) {
-    val imageSource by viewModel.imageSource.collectAsState()
+    val imageSource = viewModel.imageSource.collectAsState().value as? Uri
     val comment by viewModel.comment.collectAsState()
-    
+    val mentionSuggestions by viewModel.mentionSuggestions.collectAsState()
+    var commentValue by remember(comment) {
+        mutableStateOf(TextFieldValue(comment, selection = TextRange(comment.length)))
+    }
+    var showPickerSheet by remember { mutableStateOf(false) }
+    var showEmojiPanel by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) pendingCameraUri?.let(viewModel::setImage)
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) viewModel.setImage(uri)
+    }
+
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
@@ -373,31 +398,82 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                 )
             }
         }
-        
+
         Spacer(Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = comment,
-            onValueChange = viewModel::onCommentChanged,
-            placeholder = { Text("¿Qué estás pensando?") },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-        )
-        
-        Spacer(Modifier.height(16.dp))
-        
-        AsyncImage(
-            model = imageSource,
-            contentDescription = "Selected Photo",
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .clip(RoundedCornerShape(24.dp)),
-            contentScale = ContentScale.FillWidth
-        )
+
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = commentValue,
+                onValueChange = {
+                    commentValue = it
+                    viewModel.onCommentChanged(it.text)
+                },
+                placeholder = { Text("¿Qué estás pensando?") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 160.dp)
+                    .focusRequester(focusRequester),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+            )
+
+            ComposerActionRow(
+                mentionSuggestions = mentionSuggestions,
+                currentText = commentValue,
+                selectedImage = imageSource,
+                showEmojiPanel = showEmojiPanel,
+                onToggleEmoji = {
+                    showEmojiPanel = !showEmojiPanel
+                    if (!showEmojiPanel) keyboardController?.show()
+                },
+                onCameraClick = { showPickerSheet = true },
+                onInsertMention = {
+                    val updated = commentValue.text + "@"
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onSelectMention = { user ->
+                    val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                },
+                onAppendEmoji = { emoji ->
+                    val updated = commentValue.text + emoji
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onRemoveImage = { viewModel.setImage(null) },
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
+        }
 
         Spacer(Modifier.height(100.dp))
+    }
+
+    if (showPickerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showPickerSheet = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
+                ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
+                    val uri = createTempImageUri(context)
+                    pendingCameraUri = uri
+                    cameraLauncher.launch(uri)
+                    showPickerSheet = false
+                }
+                ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
+                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    showPickerSheet = false
+                }
+            }
+        }
     }
 }
 
@@ -448,12 +524,19 @@ private fun ReviewDetailsStepPremium(
     modalBackgroundColor: Color
 ) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
-    val imageSource by viewModel.imageSource.collectAsState()
+    val imageSource = viewModel.imageSource.collectAsState().value as? Uri
     val comment by viewModel.comment.collectAsState()
     val rating by viewModel.rating.collectAsState()
-    
+    val mentionSuggestions by viewModel.mentionSuggestions.collectAsState()
+
+    var commentValue by remember(comment) {
+        mutableStateOf(TextFieldValue(comment, selection = TextRange(comment.length)))
+    }
     var showPickerSheet by remember { mutableStateOf(false) }
+    var showEmojiPanel by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) pendingCameraUri?.let(viewModel::setImage)
@@ -464,7 +547,7 @@ private fun ReviewDetailsStepPremium(
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
         Spacer(Modifier.height(16.dp))
-        
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = activeUser?.avatarUrl,
@@ -489,76 +572,90 @@ private fun ReviewDetailsStepPremium(
                 )
             }
         }
-        
+
         Spacer(Modifier.height(12.dp))
 
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
             SemicircleRatingBar(rating = rating, onRatingChanged = viewModel::onRatingChanged)
         }
-        
-        OutlinedTextField(
-            value = comment,
-            onValueChange = viewModel::onCommentChanged,
-            placeholder = { Text("¿Qué te ha parecido este café?") },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-        )
-        
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
-        ) {
+
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = commentValue,
+                onValueChange = {
+                    commentValue = it
+                    viewModel.onCommentChanged(it.text)
+                },
+                placeholder = { Text("¿Qué te ha parecido este café?") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 160.dp)
+                    .focusRequester(focusRequester),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+            )
+
+            ComposerActionRow(
+                mentionSuggestions = mentionSuggestions,
+                currentText = commentValue,
+                selectedImage = imageSource,
+                showEmojiPanel = showEmojiPanel,
+                onToggleEmoji = {
+                    showEmojiPanel = !showEmojiPanel
+                    if (!showEmojiPanel) keyboardController?.show()
+                },
+                onCameraClick = { showPickerSheet = true },
+                onInsertMention = {
+                    val updated = commentValue.text + "@"
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onSelectMention = { user ->
+                    val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                },
+                onAppendEmoji = { emoji ->
+                    val updated = commentValue.text + emoji
+                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                    viewModel.onCommentChanged(updated)
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onRemoveImage = { viewModel.setImage(null) },
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
+        }
+
+        selectedCoffee?.let { coffeeDetails ->
             Surface(
-                modifier = Modifier.size(56.dp).clickable { showPickerSheet = true },
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(56.dp).widthIn(max = 220.dp),
+                shape = CircleShape,
                 border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
-                color = if (imageSource == null) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
+                color = if (isDarkTheme) DarkCoffeeBean else Color.White
             ) {
-                if (imageSource != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxHeight()) {
                     AsyncImage(
-                        model = imageSource,
+                        model = coffeeDetails.coffee.imageUrl,
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)),
                         contentScale = ContentScale.Fit
                     )
-                } else {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            selectedCoffee?.let { coffeeDetails ->
-                Surface(
-                    modifier = Modifier.height(56.dp).widthIn(max = 220.dp),
-                    shape = CircleShape,
-                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
-                    color = if (isDarkTheme) DarkCoffeeBean else Color.White
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxHeight()) {
-                        AsyncImage(
-                            model = coffeeDetails.coffee.imageUrl,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)),
-                            contentScale = ContentScale.Fit
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            text = coffeeDetails.coffee.nombre,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(end = 16.dp).weight(1f, fill = false)
-                        )
-                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = coffeeDetails.coffee.nombre,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(end = 16.dp).weight(1f, fill = false)
+                    )
                 }
             }
         }
@@ -589,7 +686,82 @@ private fun ReviewDetailsStepPremium(
 }
 
 
+
+@Composable
+private fun ComposerActionRow(
+    mentionSuggestions: List<UserEntity>,
+    currentText: TextFieldValue,
+    selectedImage: Uri?,
+    showEmojiPanel: Boolean,
+    onToggleEmoji: () -> Unit,
+    onCameraClick: () -> Unit,
+    onInsertMention: () -> Unit,
+    onSelectMention: (UserEntity) -> Unit,
+    onAppendEmoji: (String) -> Unit,
+    onRemoveImage: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onCameraClick, contentPadding = PaddingValues(0.dp)) { Text("Cámara") }
+            TextButton(onClick = onInsertMention, contentPadding = PaddingValues(0.dp)) { Text("@") }
+            TextButton(onClick = onToggleEmoji, contentPadding = PaddingValues(0.dp)) { Text("😊") }
+        }
+
+        if (mentionSuggestions.isNotEmpty() && currentText.text.trim().endsWith("@").not()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                items(mentionSuggestions) { user ->
+                    AssistChip(onClick = { onSelectMention(user) }, label = { Text("@${user.username}") })
+                }
+            }
+        }
+
+        if (showEmojiPanel) {
+            val emojis = listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
+                items(emojis) { emoji ->
+                    AssistChip(onClick = { onAppendEmoji(emoji) }, label = { Text(emoji) })
+                }
+            }
+        }
+
+        selectedImage?.let { uri ->
+            Box(modifier = Modifier.padding(top = 10.dp).size(88.dp).clip(RoundedCornerShape(12.dp))) {
+                AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable(onClick = onRemoveImage),
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.65f)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Quitar imagen", tint = Color.White, modifier = Modifier.padding(4.dp))
+                }
+            }
+        }
+    }
+}
+
 private fun createTempImageUri(context: Context): Uri {
     val file = File(context.cacheDir, "captured_${UUID.randomUUID()}.jpg")
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+private fun insertOrReplaceMentionToken(currentText: String, username: String): String {
+    val parts = currentText.trimEnd().split(" ").toMutableList()
+    if (parts.isEmpty() || parts.firstOrNull().isNullOrBlank()) {
+        return "@$username "
+    }
+
+    val lastIndex = parts.lastIndex
+    parts[lastIndex] = if (parts[lastIndex].startsWith("@")) "@$username" else "${parts[lastIndex]} @$username"
+    return parts.joinToString(" ") + " "
 }
