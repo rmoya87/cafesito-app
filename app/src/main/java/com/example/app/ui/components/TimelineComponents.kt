@@ -121,6 +121,11 @@ fun CommentsSheet(
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) selectedImageUri = uri
     }
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) selectedImageUri = uri
+    }
+
+    LaunchedEffect(postId) { viewModel.setPostId(postId) }
 
     LaunchedEffect(postId) { viewModel.setPostId(postId) }
 
@@ -217,7 +222,34 @@ fun CommentsSheet(
                 }
             }
 
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            if (showEmojiPanel) {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                        AssistChip(
+                            onClick = {
+                                val updated = textValue.text + emoji
+                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                viewModel.onTextChanged(updated)
+                            },
+                            label = { Text(emoji) },
+                            border = AssistChipDefaults.assistChipBorder(
+                                borderColor = Color.LightGray.copy(alpha = 0.45f)
+                            )
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
                 OutlinedTextField(
                     value = textValue,
                     onValueChange = {
@@ -225,7 +257,9 @@ fun CommentsSheet(
                         viewModel.onTextChanged(it.text)
                     },
                     placeholder = { Text("Añade un comentario...") },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 80.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -239,7 +273,10 @@ fun CommentsSheet(
                         .align(Alignment.BottomStart)
                         .fillMaxWidth()
                         .padding(12.dp)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), RoundedCornerShape(12.dp))
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                            RoundedCornerShape(12.dp)
+                        )
                         .padding(horizontal = 8.dp, vertical = 6.dp)
                 ) {
                     Row(
@@ -252,67 +289,60 @@ fun CommentsSheet(
                             border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
                             color = MaterialTheme.colorScheme.surface
                         ) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = "Cámara", modifier = Modifier.padding(8.dp), tint = MaterialTheme.colorScheme.onSurface)
+                            Icon(
+                                Icons.Default.PhotoCamera,
+                                contentDescription = "Cámara",
+                                modifier = Modifier.padding(8.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                        AssistChip(onClick = {
-                            val updated = textValue.text + "@"
-                            textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                            viewModel.onTextChanged(updated)
-                            keyboardController?.show()
-                        }, label = { Text("@") }, border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f)))
+                        AssistChip(
+                            onClick = {
+                                val updated = textValue.text + "@"
+                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                viewModel.onTextChanged(updated)
+                                keyboardController?.show()
+                            },
+                            label = { Text("@") },
+                            border = AssistChipDefaults.assistChipBorder(
+                                borderColor = Color.LightGray.copy(alpha = 0.45f)
+                            )
+                        )
                         AssistChip(
                             onClick = { showEmojiPanel = !showEmojiPanel },
                             label = { Text("😊") },
-                            border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f))
+                            border = AssistChipDefaults.assistChipBorder(
+                                borderColor = Color.LightGray.copy(alpha = 0.45f)
+                            )
                         )
                     }
 
                     selectedImageUri?.let { uri ->
-                        Box(modifier = Modifier.padding(top = 4.dp).size(84.dp).clip(RoundedCornerShape(12.dp))) {
-                            AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                            Surface(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable { selectedImageUri = null }, shape = CircleShape, color = Color.Black.copy(alpha = 0.65f)) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .size(84.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        ) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = "Miniatura",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            Surface(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .size(22.dp)
+                                    .clickable { selectedImageUri = null },
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.65f)
+                            ) {
                                 Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
                             }
                         }
                     }
-                }
-            }
-
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.End) {
-                IconButton(
-                    onClick = {
-                        if (editingCommentId != null) {
-                            viewModel.updateComment(editingCommentId!!, textValue.text)
-                            editingCommentId = null
-                        } else {
-                            onAddComment(textValue.text)
-                        }
-                        textValue = TextFieldValue("")
-                        selectedImageUri = null
-                    },
-                    enabled = textValue.text.isNotBlank(),
-                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
-                }
-            }
-        }
-    }
-
-    if (showImagePickerSheet) {
-        ModalBottomSheet(onDismissRequest = { showImagePickerSheet = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-                Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
-                ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
-                    val file = File(context.cacheDir, "captured_${UUID.randomUUID()}.jpg")
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                    pendingCameraUri = uri
-                    cameraLauncher.launch(uri)
-                    showImagePickerSheet = false
-                }
-                ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
-                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    showImagePickerSheet = false
                 }
             }
 
