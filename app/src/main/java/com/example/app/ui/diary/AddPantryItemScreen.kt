@@ -1,8 +1,12 @@
 package com.cafesito.app.ui.diary
 
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,7 +31,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.ui.theme.*
+import java.io.File
 import java.util.Locale
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,28 +89,79 @@ fun AddPantryItemScreen(
         Locale.getISOCountries().map { Locale.Builder().setRegion(it).build().getDisplayCountry(Locale.forLanguageTag("es")) }.sorted() 
     }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        imageUri = uri
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val selected = result.data?.data ?: pendingCameraUri
+            imageUri = selected
+        }
     }
 
     val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && grams.isNotEmpty()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (coffeeId != null) "Editar Café" else "Nuevo Café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+            CenterAlignedTopAppBar(
+                title = { Text(if (coffeeId != null) "EDITAR CAFÉ" else "NUEVO CAFÉ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, letterSpacing = 1.sp) },
                 navigationIcon = {
                     IconButton(onClick = { onBackClick(null) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                actions = {
+                    TextButton(
+                        onClick = { 
+                            val onSuccessNavigation = if (onlyActivity) "pantry" else null
+                            if (coffeeId != null) {
+                                viewModel.updateCustomCoffee(
+                                    id = coffeeId,
+                                    name = name,
+                                    brand = brand,
+                                    specialty = specialty,
+                                    roast = roast,
+                                    variety = variety,
+                                    country = country,
+                                    hasCaffeine = hasCaffeine,
+                                    format = format,
+                                    totalGrams = grams.toIntOrNull() ?: 250,
+                                    imageUri = imageUri,
+                                    onSuccess = { onBackClick(onSuccessNavigation) }
+                                )
+                            } else {
+                                viewModel.saveCustomCoffee(
+                                    name = name,
+                                    brand = brand,
+                                    specialty = specialty,
+                                    roast = roast,
+                                    variety = variety,
+                                    country = country,
+                                    hasCaffeine = hasCaffeine,
+                                    format = format,
+                                    totalGrams = grams.toIntOrNull() ?: 250,
+                                    imageUri = imageUri,
+                                    onSuccess = { onBackClick(onSuccessNavigation) }
+                                )
+                            }
+                        },
+                        enabled = isFormValid
+                    ) {
+                        Text(
+                            text = "AÑADIR",
+                            fontWeight = FontWeight.Bold,
+                            color = if (isFormValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -117,13 +174,18 @@ fun AddPantryItemScreen(
                                 .size(130.dp)
                                 .clip(RoundedCornerShape(24.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { launcher.launch("image/*") },
+                                .clickable {
+                                    val cameraUri = createTempImageUri(context)
+                                    pendingCameraUri = cameraUri
+                                    val chooserIntent = createImageChooserIntent(cameraUri)
+                                    launcher.launch(chooserIntent)
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             if (imageUri != null) {
-                                AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                             } else if (existingImageUrl.isNotBlank()) {
-                                AsyncImage(model = existingImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                AsyncImage(model = existingImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                             } else {
                                 Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(44.dp))
                             }
@@ -199,12 +261,14 @@ fun AddPantryItemScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             OutlinedTextField(
-                                value = country,
-                                onValueChange = {},
+                                country,
+                                {},
                                 readOnly = true,
                                 label = { Text("País") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = countryExpanded) },
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
+                                modifier = Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                                    .fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                             )
@@ -251,7 +315,11 @@ fun AddPantryItemScreen(
                             listOf("Grano", "Molido", "Capsula").forEach { option ->
                                 VisualOptionTile(
                                     label = option,
-                                    icon = if(option == "Capsula") Icons.Default.Inventory2 else Icons.Default.BlurOn,
+                                    icon = when(option) {
+                                        "Grano" -> Icons.Default.SportsRugby
+                                        "Molido" -> Icons.Default.Grain
+                                        else -> Icons.Default.AutoMode
+                                    },
                                     isSelected = format == option,
                                     modifier = Modifier.weight(1f),
                                     onClick = { format = option }
@@ -269,59 +337,6 @@ fun AddPantryItemScreen(
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                         )
                     }
-                }
-            }
-
-            // BOTÓN GUARDAR / ACTUALIZAR
-            item {
-                Button(
-                    onClick = { 
-                        val onSuccessNavigation = if (onlyActivity) "pantry" else null
-                        if (coffeeId != null) {
-                            viewModel.updateCustomCoffee(
-                                id = coffeeId,
-                                name = name,
-                                brand = brand,
-                                specialty = specialty,
-                                roast = roast,
-                                variety = variety,
-                                country = country,
-                                hasCaffeine = hasCaffeine,
-                                format = format,
-                                totalGrams = grams.toIntOrNull() ?: 250,
-                                imageUri = imageUri,
-                                onSuccess = { onBackClick(onSuccessNavigation) }
-                            )
-                        } else {
-                            viewModel.saveCustomCoffee(
-                                name = name,
-                                brand = brand,
-                                specialty = specialty,
-                                roast = roast,
-                                variety = variety,
-                                country = country,
-                                hasCaffeine = hasCaffeine,
-                                format = format,
-                                totalGrams = grams.toIntOrNull() ?: 250,
-                                imageUri = imageUri,
-                                onSuccess = { onBackClick(onSuccessNavigation) }
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    enabled = isFormValid,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        disabledContainerColor = MaterialTheme.colorScheme.outline,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        text = if (coffeeId != null) "GUARDAR CAMBIOS" else if (onlyActivity) "AÑADIR A MI DESPENSA" else "DAR DE ALTA CAFÉ",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 16.sp
-                    )
                 }
             }
             item { Spacer(Modifier.height(12.dp)) }
@@ -362,8 +377,31 @@ fun VisualOptionTile(
         border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Icon(icon, null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
-            Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+            Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = tint, textAlign = TextAlign.Center)
         }
+    }
+}
+
+private fun createTempImageUri(context: Context): Uri {
+    val file = File(context.cacheDir, "custom_${UUID.randomUUID()}.jpg")
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+private fun createImageChooserIntent(cameraUri: Uri): Intent {
+    val captureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+        putExtra(MediaStore.EXTRA_OUTPUT, cameraUri)
+        addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
+    val pickIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+        type = "image/*"
+        addCategory(Intent.CATEGORY_OPENABLE)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
+    return Intent.createChooser(pickIntent, "Selecciona imagen").apply {
+        putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(captureIntent))
     }
 }

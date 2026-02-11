@@ -93,24 +93,23 @@ class SocialRepository @Inject constructor(
                         emit(emptyList())
                     }
                 } else {
-                    // Si no hay conexión y queremos "directo", no mostramos nada o error
                     emit(emptyList())
                 }
             }
         }.flowOn(Dispatchers.IO)
 
-    suspend fun refreshReviews(coffeeId: String) = withContext(Dispatchers.IO) {
+    suspend fun upsertReview(review: ReviewEntity) = withContext(Dispatchers.IO) {
+        // Guardamos en Supabase primero para asegurar persistencia
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try {
-                val reviews = supabaseDataSource.getReviewsByCoffeeId(coffeeId)
-                val userIds = reviews.map { it.userId }.distinct()
-                val users = userIds.mapNotNull { supabaseDataSource.getUserById(it) }
-                userRepository.insertUsers(users)
-                // socialDao.upsertReviews(reviews) // Eliminado para ir directo a Supabase
+                supabaseDataSource.upsertReview(review)
             } catch (e: Exception) {
-                Log.e("SocialRepository", "Error refreshing reviews: ${e.message}")
+                Log.e("SocialRepository", "Error upserting review to Supabase: ${e.message}")
             }
         }
+        // Actualizamos caché local (Room) si existe la DAO para ello
+        socialDao.upsertReviews(listOf(review))
+        triggerRefresh()
     }
 
     suspend fun createPost(post: PostEntity) = withContext(Dispatchers.IO) {
@@ -120,6 +119,7 @@ class SocialRepository @Inject constructor(
                 try { supabaseDataSource.insertPost(post) } catch (e: Exception) { }
             }
         }
+        triggerRefresh()
     }
 
     suspend fun uploadImage(bucket: String, path: String, bytes: ByteArray): String {
@@ -130,12 +130,23 @@ class SocialRepository @Inject constructor(
         val currentPosts = socialDao.getAllPostsWithDetails().first()
         val existing = currentPosts.find { it.post.id == postId }?.post ?: return@withContext
         val updated = existing.copy(comment = newComment, imageUrl = newImageUrl)
+        
+        // Actualizar local inmediatamente para UI rápida
         socialDao.insertPost(updated)
+        triggerRefresh()
         
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try { supabaseDataSource.insertPost(updated) } catch (e: Exception) { }
+            // No usamos externalScope aquí para asegurar que la edición termine antes de refrescar si es posible,
+            // o usamos supervisorScope si queremos paralelismo protegido.
+            try { 
+                supabaseDataSource.insertPost(updated) 
+                // Refrescamos tras éxito en Supabase
+                triggerRefresh()
+            } catch (e: Exception) { 
+                Log.e("SocialRepository", "Error updating post in Supabase", e)
             }
+        } else {
+            triggerRefresh()
         }
     }
 
@@ -153,19 +164,33 @@ class SocialRepository @Inject constructor(
                 } catch (e: Exception) { }
             }
         }
+        triggerRefresh()
     }
 
     suspend fun addComment(comment: CommentEntity) = withContext(Dispatchers.IO) {
-        socialDao.insertComment(comment)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {
-                try { supabaseDataSource.insertComment(comment) } catch (e: Exception) { }
+                try {
+                    val stored = supabaseDataSource.insertComment(
+                        CommentInsert(
+                            postId = comment.postId,
+                            userId = comment.userId,
+                            text = comment.text,
+                            timestamp = comment.timestamp
+                        )
+                    )
+                    socialDao.insertComment(stored)
+                    notifyMentionsIfNeeded(stored)
+                    notifyPostOwnerIfNeeded(stored)
+                } catch (e: Exception) {
+                    socialDao.insertComment(comment)
+                }
+                triggerRefresh()
             }
+        } else {
+            socialDao.insertComment(comment)
+            triggerRefresh()
         }
-    }
-
-    suspend fun updateComment(commentId: Int, newText: String) = withContext(Dispatchers.IO) {
-        // Implementación futura si es necesaria
     }
 
     suspend fun deleteComment(commentId: Int) = withContext(Dispatchers.IO) {
@@ -173,6 +198,15 @@ class SocialRepository @Inject constructor(
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.deleteComment(commentId) } catch (e: Exception) { } }
         }
+        triggerRefresh()
+    }
+
+    suspend fun updateComment(commentId: Int, newText: String) = withContext(Dispatchers.IO) {
+        socialDao.updateComment(commentId, newText)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch { try { supabaseDataSource.updateComment(commentId, newText) } catch (e: Exception) { } }
+        }
+        triggerRefresh()
     }
 
     fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> = socialDao.getCommentsWithAuthorForPost(postId)
@@ -181,11 +215,89 @@ class SocialRepository @Inject constructor(
         val post = socialDao.getAllPostsWithDetails().first().find { it.post.id == postId }?.post
         if (post != null) socialDao.deletePost(post)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deletePost(postId) } catch (e: Exception) { } }
+            try { 
+                supabaseDataSource.deletePost(postId) 
+                triggerRefresh()
+            } catch (e: Exception) { }
+        } else {
+            triggerRefresh()
         }
     }
 
-    suspend fun getUserByUsername(username: String): UserEntity? = userRepository.getUserByUsername(username)
+    private suspend fun notifyPostOwnerIfNeeded(comment: CommentEntity) {
+        val postOwnerId = socialDao.getAllPostsWithDetails()
+            .first()
+            .firstOrNull { it.post.id == comment.postId }
+            ?.post
+            ?.userId
+            ?: return
+        if (postOwnerId == comment.userId) return
+
+        val author = userRepository.getUserById(comment.userId) ?: return
+        supabaseDataSource.insertNotification(
+            NotificationEntity(
+                userId = postOwnerId,
+                type = "COMMENT",
+                fromUsername = author.username,
+                message = "te ha dejado un comentario",
+                timestamp = System.currentTimeMillis(),
+                relatedId = "${comment.postId}:${comment.id}"
+            )
+        )
+    }
+
+    private suspend fun notifyMentionsIfNeeded(comment: CommentEntity) {
+        val mentionUsernames = extractMentions(comment.text)
+        if (mentionUsernames.isEmpty()) return
+        val author = userRepository.getUserById(comment.userId) ?: return
+        val mentions = mentionUsernames.filterNot { it.equals(author.username, ignoreCase = true) }
+        if (mentions.isEmpty()) return
+
+        mentions.forEach { username ->
+            val user = userRepository.getUserByUsername(username) ?: return@forEach
+            if (user.id == author.id) return@forEach
+            supabaseDataSource.insertNotification(
+                NotificationEntity(
+                    userId = user.id,
+                    type = "MENTION",
+                    fromUsername = author.username,
+                    message = comment.text,
+                    timestamp = System.currentTimeMillis(),
+                    relatedId = "${comment.postId}:${comment.id}"
+                )
+            )
+        }
+    }
+
+    private fun extractMentions(text: String): Set<String> {
+        val regex = Regex("@([A-Za-z0-9_]{2,30})")
+        return regex.findAll(text)
+            .map { it.groupValues[1] }
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
+    }
+
+    suspend fun getTimeline(
+        viewerId: Int,
+        cursor: Long?,
+        limit: Int,
+        mode: TimelineFeedMode
+    ): TimelinePage = withContext(Dispatchers.IO) {
+        val posts = socialDao.getAllPostsWithDetails().first()
+        val reviews = socialDao.getAllReviewsWithAuthor().first()
+        val following = userRepository.followingMap.first()[viewerId].orEmpty()
+
+        TimelineEngine.getTimeline(
+            posts = posts,
+            reviews = reviews,
+            followingIds = following,
+            viewerId = viewerId,
+            cursor = cursor,
+            limit = limit,
+            mode = mode
+        )
+    }
 
     suspend fun syncSocialData() {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {

@@ -51,7 +51,7 @@ fun AddStockScreen(
     if (selectedCoffeeId != null) {
         ModalBottomSheet(
             onDismissRequest = { if (!isSaving) selectedCoffeeId = null },
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
             Column(
@@ -61,7 +61,14 @@ fun AddStockScreen(
                     .padding(bottom = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("AÑADIR STOCK", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "AÑADIR STOCK", 
+                    style = MaterialTheme.typography.labelLarge, 
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
                 Spacer(Modifier.height(24.dp))
                 
                 OutlinedTextField(
@@ -73,7 +80,11 @@ fun AddStockScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     enabled = !isSaving,
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
                 
                 Spacer(Modifier.height(32.dp))
@@ -83,7 +94,6 @@ fun AddStockScreen(
                         val g = grams.toIntOrNull() ?: 250
                         isSaving = true
                         viewModel.addToPantry(selectedCoffeeId!!, g) {
-                            // Este callback se ejecuta SOLO tras el éxito en Supabase
                             isSaving = false
                             selectedCoffeeId = null
                             onSuccess()

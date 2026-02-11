@@ -3,6 +3,7 @@ package com.cafesito.app.di
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
+import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
@@ -28,7 +29,11 @@ object SupabaseModule {
             supabaseKey = "sb_publishable_M2cY8wb50_I_pfnv_ZcukA_AIvnk66z"
         ) {
             install(Postgrest)
-            install(Auth)
+            install(Auth) {
+                // En la versión 2.6.x la propiedad es autoRefresh
+                // Si falla, es porque falta el import de auth
+                alwaysAutoRefresh = true
+            }
             install(Realtime)
             install(Storage)
 

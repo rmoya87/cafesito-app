@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+      - Alpha
+      - Beta
+      - Interna
 
 permissions:
   contents: write
@@ -97,23 +100,23 @@ jobs:
       - name: Determine Play tracks
         id: tracks
         run: |
-          MESSAGE="${{ github.event.head_commit.message }}"
+          BRANCH="${GITHUB_REF_NAME}"
           TRACKS=""
-          case "${MESSAGE}" in
-            *"[release:test]"*)
+          case "${BRANCH}" in
+            Interna)
               TRACKS="internal"
               ;;
-            *"[release:alfa]"*)
+            Alpha)
               TRACKS="internal,alpha"
               ;;
-            *"[release:beta]"*)
+            Beta)
               TRACKS="internal,alpha,beta"
               ;;
-            *"[release:produccion]"*)
+            main)
               TRACKS="internal,alpha,beta,production"
               ;;
             *)
-              echo "No release marker found in commit message" >&2
+              echo "Branch ${BRANCH} not supported" >&2
               exit 1
               ;;
           esac

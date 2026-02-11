@@ -452,7 +452,7 @@ fun SearchScreen(
             ModalBottomSheet(
                 onDismissRequest = { showFilterSheet = false },
                 sheetState = sheetState,
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
             ) {
                 Box(
                     modifier = Modifier

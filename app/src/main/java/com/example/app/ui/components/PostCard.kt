@@ -108,10 +108,10 @@ fun PostCard(
                 model = post.imageUrl,
                 loading = { ShimmerItem(Modifier.fillMaxWidth().height(350.dp)) },
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.FillWidth,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(400.dp)
+                    .wrapContentHeight()
             )
 
             Column(modifier = Modifier.padding(20.dp)) {

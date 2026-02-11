@@ -212,8 +212,16 @@ fun AppNavigation(
     LaunchedEffect(notificationNavigation) {
         val nav = notificationNavigation ?: return@LaunchedEffect
         when (nav.type) {
+            "NOTIFICATIONS" -> navController.navigate("notifications")
             "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
-            "MENTION", "COMMENT" -> nav.targetId?.let { navController.navigate("timeline?postId=$it") }
+            "MENTION", "COMMENT" -> nav.targetId?.let { postId ->
+                val route = if (nav.commentId != null) {
+                    "timeline?postId=$postId&commentId=${nav.commentId}"
+                } else {
+                    "timeline?postId=$postId"
+                }
+                navController.navigate(route)
+            }
         }
         onNotificationConsumed()
     }
@@ -300,12 +308,15 @@ fun AppNavigation(
             }
 
             composable(
-                route = "timeline?postId={postId}",
+                route = "timeline?postId={postId}&commentId={commentId}",
                 arguments = listOf(
-                    navArgument("postId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                    navArgument("postId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("commentId") { type = NavType.IntType; defaultValue = -1 }
                 )
             ) { backStackEntry ->
                 val postId = backStackEntry.arguments?.getString("postId")
+                val commentIdArg = backStackEntry.arguments?.getInt("commentId") ?: -1
+                val commentId = commentIdArg.takeIf { it >= 0 }
                 TimelineScreen(
                     onUserClick = { id -> 
                         if (id == 0) {
@@ -322,7 +333,8 @@ fun AppNavigation(
                     onAddPostClick = { navController.navigate("addPost") },
                     onSearchUsersClick = { navController.navigate("searchUsers") },
                     onNotificationsClick = { navController.navigate("notifications") },
-                    initialPostId = postId
+                    initialPostId = postId,
+                    initialCommentId = commentId
                 )
             }
 
@@ -363,7 +375,10 @@ fun AppNavigation(
                                 navController.navigate("profile/${notification.user.id}")
                             }
                             is TimelineNotification.Mention -> {
-                                navController.navigate("timeline?postId=${notification.postId}")
+                                navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                            }
+                            is TimelineNotification.Comment -> {
+                                navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
                             }
                         }
                     },
@@ -431,7 +446,8 @@ fun AppNavigation(
                     onEditStockClick = { id, isCustom ->
                         if (isCustom) navController.navigate("editCustomCoffee/$id")
                         else navController.navigate("editNormalStock/$id")
-                    }
+                    },
+                    onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
                 )
             }
 
@@ -673,13 +689,27 @@ fun AppNavigation(
 
 data class NotificationNavigation(
     val type: String,
-    val targetId: String?
+    val targetId: String?,
+    val commentId: Int? = null
 ) {
     companion object {
         fun fromIntent(intent: Intent?): NotificationNavigation? {
-            val type = intent?.getStringExtra("nav_type") ?: return null
-            val targetId = intent?.getStringExtra("nav_id")
-            return NotificationNavigation(type, targetId)
+            val navType = intent?.getStringExtra("nav_type")
+            val timelineType = intent?.getStringExtra(TimelineNotificationSystem.EXTRA_TYPE)?.uppercase()
+            val timelinePostId = intent?.getStringExtra(TimelineNotificationSystem.EXTRA_POST_ID)
+            val timelineCommentId = intent?.getIntExtra(TimelineNotificationSystem.EXTRA_COMMENT_ID, -1)?.takeIf { it >= 0 }
+            val targetId = intent?.getStringExtra("nav_id") ?: timelinePostId
+            val commentId = intent?.getIntExtra("nav_comment_id", -1)?.takeIf { it >= 0 } ?: timelineCommentId
+
+            val type = when {
+                !navType.isNullOrBlank() -> navType.uppercase()
+                timelineType == "FOLLOW" -> "FOLLOW"
+                timelineType == "MENTION" -> "MENTION"
+                timelineType == "COMMENT" -> "COMMENT"
+                timelineType != null -> "NOTIFICATIONS"
+                else -> null
+            }
+            return type?.let { NotificationNavigation(it, targetId, commentId) }
         }
     }
 }

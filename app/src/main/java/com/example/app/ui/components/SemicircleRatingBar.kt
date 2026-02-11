@@ -3,6 +3,7 @@ package com.cafesito.app.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
@@ -23,6 +24,8 @@ fun SemicircleRatingBar(
     onRatingChanged: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isSystemInDarkTheme()
+    
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -46,7 +49,11 @@ fun SemicircleRatingBar(
                 modifier = Modifier
                     .size(48.dp)
                     .clickableWithoutRipple { onRatingChanged(i.toFloat()) },
-                tint = if (isFilled || isHalf) OrangeYellow else MaterialTheme.colorScheme.outline
+                tint = if (isFilled || isHalf) {
+                    OrangeYellow 
+                } else {
+                    if (isDark) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.outline
+                }
             )
         }
     }

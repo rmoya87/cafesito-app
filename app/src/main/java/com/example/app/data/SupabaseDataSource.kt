@@ -3,6 +3,8 @@ package com.cafesito.app.data
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import io.github.jan.supabase.realtime.realtime
@@ -12,6 +14,7 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.util.Log
 
 @Singleton
 class SupabaseDataSource @Inject constructor(
@@ -39,6 +42,14 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
+    fun subscribeToNotifications(userId: Int): Flow<PostgresAction> {
+        val channel = client.realtime.channel("notifications-$userId")
+        return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+            table = "notifications_db"
+            filter = "user_id=eq.$userId"
+        }
+    }
+
     // --- USUARIOS ---
     suspend fun getAllUsers(): List<UserEntity> = client.postgrest["users_db"].select().decodeList<UserEntity>()
     suspend fun getUserById(id: Int): UserEntity? = client.postgrest["users_db"].select { filter { eq("id", id) } }.decodeSingleOrNull<UserEntity>()
@@ -47,7 +58,12 @@ class SupabaseDataSource @Inject constructor(
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
     suspend fun insertUserToken(token: UserTokenEntity) { 
-        client.postgrest["user_fcm_tokens"].upsert(token)
+        try {
+            // Sintaxis correcta para Supabase KT 2.6.x: onConflict se pasa como parámetro
+            client.postgrest["user_fcm_tokens"].upsert(token, onConflict = "fcm_token")
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error inserting FCM token: ${e.message}")
+        }
     }
 
     // --- SEGUIMIENTOS ---
@@ -176,12 +192,21 @@ class SupabaseDataSource @Inject constructor(
     // --- COMENTARIOS ---
     suspend fun getAllComments(): List<CommentEntity> = client.postgrest["comments_db"].select().decodeList<CommentEntity>()
     suspend fun getCommentsForPost(postId: String): List<CommentEntity> = client.postgrest["comments_db"].select { filter { eq("post_id", postId) }; order("timestamp", Order.ASCENDING) }.decodeList<CommentEntity>()
-    suspend fun insertComment(comment: CommentEntity): CommentEntity {
+    suspend fun insertComment(comment: CommentInsert): CommentEntity {
         return client.postgrest["comments_db"].insert(comment) { select() }.decodeSingle()
     }
     suspend fun upsertComment(comment: CommentEntity) = client.postgrest["comments_db"].upsert(comment)
     suspend fun deleteComment(commentId: Int) {
         client.postgrest["comments_db"].delete { filter { eq("id", commentId) } }
+    }
+    suspend fun updateComment(commentId: Int, newText: String) {
+        client.postgrest["comments_db"].update(
+            {
+                set("text", newText)
+            }
+        ) {
+            filter { eq("id", commentId) }
+        }
     }
 
     // --- LIKES ---
@@ -269,35 +294,66 @@ class SupabaseDataSource @Inject constructor(
 
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
-        client.postgrest["notifications_db"].upsert(notification)
+        try {
+            client.postgrest.rpc(
+                "create_notification",
+                buildJsonObject {
+                    put("p_user_id", notification.userId)
+                    put("p_type", notification.type)
+                    put("p_from_username", notification.fromUsername)
+                    put("p_message", notification.message)
+                    put("p_timestamp", notification.timestamp)
+                    notification.relatedId?.let { put("p_related_id", it) }
+                }
+            )
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+        }
     }
 
     suspend fun getNotificationsForUser(userId: Int): List<NotificationEntity> {
-        return client.postgrest["notifications_db"].select {
-            filter { eq("user_id", userId) }
-            order("timestamp", Order.DESCENDING)
-        }.decodeList()
+        return try {
+            client.postgrest["notifications_db"].select {
+                filter { eq("user_id", userId) }
+                order("timestamp", Order.DESCENDING)
+            }.decodeList()
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error fetching notifications: ${e.message}")
+            emptyList()
+        }
     }
 
     suspend fun markNotificationRead(notificationId: Int) {
-        client.postgrest["notifications_db"].update({
-            set("is_read", true)
-        }) {
-            filter { eq("id", notificationId) }
+        try {
+            client.postgrest["notifications_db"].update({
+                set("is_read", true)
+            }) {
+                filter { eq("id", notificationId) }
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error marking read: ${e.message}")
         }
     }
 
     suspend fun markAllNotificationsRead(userId: Int) {
-        client.postgrest["notifications_db"].update({
-            set("is_read", true)
-        }) {
-            filter { eq("id", userId) }
+        try {
+            client.postgrest["notifications_db"].update({
+                set("is_read", true)
+            }) {
+                filter { eq("user_id", userId) }
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")
         }
     }
 
     suspend fun deleteNotification(notificationId: Int) {
-        client.postgrest["notifications_db"].delete {
-            filter { eq("id", notificationId) }
+        try {
+            client.postgrest["notifications_db"].delete {
+                filter { eq("id", notificationId) }
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error deleting notification: ${e.message}")
         }
     }
 }

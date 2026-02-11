@@ -19,6 +19,8 @@ object TimelineNotificationSystem {
     const val EXTRA_COMMENT_ID = "timeline_notification_comment_id"
     const val TYPE_FOLLOW = "follow"
     const val TYPE_MENTION = "mention"
+    const val TYPE_COMMENT = "comment"
+    private const val NAV_TYPE_KEY = "nav_type"
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -37,11 +39,24 @@ object TimelineNotificationSystem {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             when (notification) {
                 is TimelineNotification.Follow -> {
+                    putExtra(NAV_TYPE_KEY, "FOLLOW")
+                    putExtra("nav_id", notification.user.id.toString())
                     putExtra(EXTRA_TYPE, TYPE_FOLLOW)
                     putExtra(EXTRA_USER_ID, notification.user.id)
                 }
                 is TimelineNotification.Mention -> {
+                    putExtra(NAV_TYPE_KEY, "MENTION")
+                    putExtra("nav_id", notification.postId)
+                    putExtra("nav_comment_id", notification.commentId)
                     putExtra(EXTRA_TYPE, TYPE_MENTION)
+                    putExtra(EXTRA_POST_ID, notification.postId)
+                    putExtra(EXTRA_COMMENT_ID, notification.commentId)
+                }
+                is TimelineNotification.Comment -> {
+                    putExtra(NAV_TYPE_KEY, "COMMENT")
+                    putExtra("nav_id", notification.postId)
+                    putExtra("nav_comment_id", notification.commentId)
+                    putExtra(EXTRA_TYPE, TYPE_COMMENT)
                     putExtra(EXTRA_POST_ID, notification.postId)
                     putExtra(EXTRA_COMMENT_ID, notification.commentId)
                 }
@@ -63,6 +78,7 @@ object TimelineNotificationSystem {
         val (title, message) = when (notification) {
             is TimelineNotification.Follow -> notification.user.username to "ha empezado a seguirte"
             is TimelineNotification.Mention -> notification.user.username to "te ha mencionado en un comentario"
+            is TimelineNotification.Comment -> notification.user.username to notification.message
         }
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)

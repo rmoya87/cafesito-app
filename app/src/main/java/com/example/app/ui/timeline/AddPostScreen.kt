@@ -1,6 +1,7 @@
 package com.cafesito.app.ui.timeline
 
 import android.Manifest
+import android.content.Context
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -11,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,13 +36,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.components.*
+import com.cafesito.app.ui.theme.DarkCoffeeBean
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import java.io.File
+import java.util.UUID
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +54,9 @@ fun AddPostScreen(
     onBackClick: () -> Unit = {},
     viewModel: AddPostViewModel = hiltViewModel()
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val modalBackgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface
+
     val currentStep by viewModel.currentStep.collectAsState()
     val postType by viewModel.postType.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
@@ -62,9 +71,15 @@ fun AddPostScreen(
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
     val permissionState = rememberPermissionState(permission)
-    
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap -> 
-        viewModel.setCapturedImage(bitmap)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) pendingCameraUri?.let(viewModel::setImage)
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) viewModel.setImage(uri)
     }
 
     LaunchedEffect(permissionState.status) {
@@ -135,7 +150,7 @@ fun AddPostScreen(
                         }
                     } else {
                         val canNext = when (postType) {
-                            PostType.PUBLICATION -> imageSource != null && currentStep == 0
+                            PostType.PUBLICATION -> currentStep == 0
                             PostType.OPINION -> (selectedCoffee != null && currentStep == 0)
                         }
                         if (canNext) {
@@ -163,13 +178,25 @@ fun AddPostScreen(
             ) { step ->
                 when {
                     postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(
-                        viewModel = viewModel, 
-                        onCameraClick = { cameraLauncher.launch(null) },
+                        viewModel = viewModel,
+                        onCameraClick = {
+                            val uri = createTempImageUri(context)
+                            pendingCameraUri = uri
+                            cameraLauncher.launch(uri)
+                        },
+                        onGalleryClick = {
+                            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }
                     )
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
                     
                     postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
-                    postType == PostType.OPINION && step == 2 -> ReviewDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
+                    postType == PostType.OPINION && step == 2 -> ReviewDetailsStepPremium(
+                        viewModel = viewModel, 
+                        activeUser = activeUser,
+                        isDarkTheme = isDarkTheme,
+                        modalBackgroundColor = modalBackgroundColor
+                    )
                 }
             }
 
@@ -196,8 +223,9 @@ fun AddPostScreen(
 
 @Composable
 private fun PhotoSelectionStepPremium(
-    viewModel: AddPostViewModel, 
+    viewModel: AddPostViewModel,
     onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
 ) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
@@ -217,7 +245,7 @@ private fun PhotoSelectionStepPremium(
                     model = imageSource,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             } else {
                 Icon(Icons.Default.Photo, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -238,14 +266,25 @@ private fun PhotoSelectionStepPremium(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            
-            IconButton(onClick = onCameraClick) {
-                Icon(
-                    imageVector = Icons.Default.PhotoCamera,
-                    contentDescription = "Camera",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(28.dp)
-                )
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onGalleryClick) {
+                    Icon(
+                        imageVector = Icons.Default.Collections,
+                        contentDescription = "Abrir selector de galería",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                IconButton(onClick = onCameraClick) {
+                    Icon(
+                        imageVector = Icons.Default.PhotoCamera,
+                        contentDescription = "Camera",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
         
@@ -271,7 +310,7 @@ private fun PhotoSelectionStepPremium(
                         model = uri,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Fit
                     )
                     
                     if (isSelected) {
@@ -318,7 +357,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
             Spacer(Modifier.width(12.dp))
             Column {
@@ -387,7 +426,7 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
             items(coffeeList) { coffee ->
                 PremiumCard(modifier = Modifier.fillMaxWidth().clickable { viewModel.selectCoffee(coffee) }) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        AsyncImage(model = coffee.coffee.imageUrl, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
+                        AsyncImage(model = coffee.coffee.imageUrl, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Fit)
                         Spacer(Modifier.width(16.dp))
                         Column {
                             Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -402,15 +441,22 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: UserEntity?) {
+private fun ReviewDetailsStepPremium(
+    viewModel: AddPostViewModel, 
+    activeUser: UserEntity?,
+    isDarkTheme: Boolean,
+    modalBackgroundColor: Color
+) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val comment by viewModel.comment.collectAsState()
     val rating by viewModel.rating.collectAsState()
     
     var showPickerSheet by remember { mutableStateOf(false) }
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
-        if (bitmap != null) viewModel.setCapturedImage(bitmap)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) pendingCameraUri?.let(viewModel::setImage)
     }
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) viewModel.setImage(uri)
@@ -427,7 +473,7 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
             Spacer(Modifier.width(12.dp))
             Column {
@@ -475,7 +521,7 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
                         model = imageSource,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Fit
                     )
                 } else {
                     Box(contentAlignment = Alignment.Center) {
@@ -491,7 +537,7 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
                     modifier = Modifier.height(56.dp).widthIn(max = 220.dp),
                     shape = CircleShape,
                     border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
-                    color = Color.White
+                    color = if (isDarkTheme) DarkCoffeeBean else Color.White
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxHeight()) {
                         AsyncImage(
@@ -500,7 +546,7 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
                             modifier = Modifier
                                 .size(56.dp)
                                 .clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Fit
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
@@ -509,7 +555,7 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
                             fontWeight = FontWeight.Bold,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(end = 16.dp).weight(1f, fill = false)
                         )
                     }
@@ -521,11 +567,16 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
     }
 
     if (showPickerSheet) {
-        ModalBottomSheet(onDismissRequest = { showPickerSheet = false }) {
+        ModalBottomSheet(
+            onDismissRequest = { showPickerSheet = false },
+            containerColor = modalBackgroundColor
+        ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
                 ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
-                    cameraLauncher.launch(null)
+                    val uri = createTempImageUri(context)
+                    pendingCameraUri = uri
+                    cameraLauncher.launch(uri)
                     showPickerSheet = false
                 }
                 ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
@@ -535,4 +586,10 @@ private fun ReviewDetailsStepPremium(viewModel: AddPostViewModel, activeUser: Us
             }
         }
     }
+}
+
+
+private fun createTempImageUri(context: Context): Uri {
+    val file = File(context.cacheDir, "captured_${UUID.randomUUID()}.jpg")
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }

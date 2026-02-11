@@ -223,7 +223,11 @@ fun ProfileReviews(
 @Composable
 fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss, 
+        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
+        sheetState = sheetState
+    ) {
         Column(
             Modifier
                 .navigationBarsPadding()

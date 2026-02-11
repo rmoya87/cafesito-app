@@ -57,7 +57,9 @@ class UserRepository @Inject constructor(
                 scope = externalScope,
                 connectivityObserver = connectivityObserver
             )
-        }.flowOn(Dispatchers.IO)
+        }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
 
     suspend fun signInWithSupabase(token: String): String? {
         ensureConnected()
@@ -108,17 +110,22 @@ class UserRepository @Inject constructor(
             )
         }.flowOn(Dispatchers.IO)
 
-    fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>> = _refreshTrigger
-        .flatMapLatest {
-             flow {
-                 val notifications = try {
-                     supabaseDataSource.getNotificationsForUser(userId)
-                 } catch (e: Exception) {
-                     emptyList()
-                 }
-                 emit(notifications)
-             }
-        }.flowOn(Dispatchers.IO)
+    fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>> {
+        val realtimeFlow = supabaseDataSource.subscribeToNotifications(userId)
+            .map { Unit }
+            .catch { emit(Unit) }
+        return merge(_refreshTrigger, realtimeFlow)
+            .flatMapLatest {
+                flow {
+                    val notifications = try {
+                        supabaseDataSource.getNotificationsForUser(userId)
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                    emit(notifications)
+                }
+            }.flowOn(Dispatchers.IO)
+    }
 
     fun getUserByIdFlow(userId: Int): Flow<UserEntity?> = _refreshTrigger
         .flatMapLatest {
@@ -250,8 +257,25 @@ class UserRepository @Inject constructor(
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {
                 try {
-                    if (isFollowing) supabaseDataSource.deleteFollow(followerId, targetId)
-                    else supabaseDataSource.insertFollow(follow)
+                    if (isFollowing) {
+                        supabaseDataSource.deleteFollow(followerId, targetId)
+                    } else {
+                        supabaseDataSource.insertFollow(follow)
+                        if (followerId != targetId) {
+                            val followerUser = userDao.getUserById(followerId)
+                            val fromUsername = followerUser?.username ?: return@launch
+                            supabaseDataSource.insertNotification(
+                                NotificationEntity(
+                                    userId = targetId,
+                                    type = "FOLLOW",
+                                    fromUsername = fromUsername,
+                                    message = "",
+                                    timestamp = System.currentTimeMillis(),
+                                    relatedId = followerId.toString()
+                                )
+                            )
+                        }
+                    }
                 } catch (e: Exception) { }
             }
         }

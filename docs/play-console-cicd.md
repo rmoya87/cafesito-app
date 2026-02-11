@@ -35,22 +35,16 @@ Configura estos secretos en GitHub (**Settings → Secrets and variables → Act
 >
 > Si copias el valor manualmente, asegúrate de pegarlo como una sola línea sin espacios ni saltos de línea.
 
-## Marcadores de release en commits
+## Ramas de release
 
-El workflow se ejecuta en `main` y detecta el entorno según el mensaje del commit:
+El workflow se ejecuta según la rama donde haces push:
 
-- `[release:test]` → sube a **internal testing** (`internal`).
-- `[release:alfa]` → sube a **closed testing** (`alpha`).
-- `[release:beta]` → sube a **open testing** (`beta`).
-- `[release:produccion]` → sube a **production** (`production`).
+- `Interna` → sube a **internal testing** (`internal`).
+- `Alpha` → sube a **closed testing** (`alpha`).
+- `Beta` → sube a **open testing** (`beta`).
+- `main` → sube a **production** (`production`).
 
-Cuando usas `[release:beta]` o `[release:produccion]`, el workflow **sube automáticamente también a los tracks anteriores**.
-
-Ejemplo de commit:
-
-```
-git commit -m "feat: nueva pantalla [release:beta]"
-```
+Cuando despliegas en una rama superior, el workflow **sube automáticamente también a los tracks anteriores** (por ejemplo, `main` sube a `internal`, `alpha`, `beta` y `production`).
 
 ## Notas
 

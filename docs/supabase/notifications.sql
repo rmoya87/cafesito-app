@@ -4,6 +4,8 @@
 -- Ejecuta este script en el SQL Editor de Supabase.
 -- Crea la tabla, índices y políticas necesarias para
 -- persistir notificaciones entre dispositivos y reinstalaciones.
+-- Para push notifications vía Edge Function, usa:
+--   docs/supabase/notifications_push.sql
 -- ==========================================================
 
 create table if not exists public.notifications_db (
@@ -29,7 +31,7 @@ create index if not exists idx_notifications_user_read
 alter table public.notifications_db enable row level security;
 
 -- Ajusta estas políticas si usas otro esquema de autenticación.
--- Se asume que auth.uid() puede mapearse a user_id.
+-- Las notificaciones de follow/mención se insertan mediante una función SECURITY DEFINER.
 do $$
 begin
     if not exists (
@@ -50,12 +52,12 @@ begin
         from pg_policies
         where schemaname = 'public'
           and tablename = 'notifications_db'
-          and policyname = 'Notifications are insertable by owner'
+          and policyname = 'Notifications are insertable by authenticated users'
     ) then
-        create policy "Notifications are insertable by owner"
+        create policy "Notifications are insertable by authenticated users"
             on public.notifications_db
             for insert
-            with check (auth.uid()::text = user_id::text);
+            with check (auth.uid() is not null);
     end if;
 
     if not exists (
@@ -71,3 +73,41 @@ begin
             using (auth.uid()::text = user_id::text);
     end if;
 end $$;
+
+-- ==========================================================
+-- RPC segura para crear notificaciones desde el cliente
+-- ==========================================================
+create or replace function public.create_notification(
+    p_user_id bigint,
+    p_type text,
+    p_from_username text,
+    p_message text,
+    p_timestamp bigint,
+    p_related_id text default null
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    insert into public.notifications_db (
+        user_id,
+        type,
+        from_username,
+        message,
+        timestamp,
+        related_id
+    ) values (
+        p_user_id,
+        p_type,
+        p_from_username,
+        p_message,
+        p_timestamp,
+        p_related_id
+    );
+end;
+$$;
+
+grant execute on function public.create_notification(
+    bigint, text, text, text, bigint, text
+) to authenticated;
