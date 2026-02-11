@@ -121,6 +121,11 @@ fun CommentsSheet(
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) selectedImageUri = uri
     }
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) selectedImageUri = uri
+    }
+
+    LaunchedEffect(postId) { viewModel.setPostId(postId) }
 
     LaunchedEffect(postId) { viewModel.setPostId(postId) }
 
@@ -187,9 +192,7 @@ fun CommentsSheet(
 
             if (suggestions.isNotEmpty() && !textValue.text.trim().endsWith("@")) {
                 LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(suggestions) { user ->
@@ -198,6 +201,23 @@ fun CommentsSheet(
                             textValue = TextFieldValue(updated, selection = TextRange(updated.length))
                             viewModel.onTextChanged(updated)
                         }
+                    }
+
+            if (showEmojiPanel) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                        AssistChip(
+                            onClick = {
+                                val updated = textValue.text + emoji
+                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                viewModel.onTextChanged(updated)
+                            },
+                            label = { Text(emoji) },
+                            border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f))
+                        )
                     }
                 }
             }
