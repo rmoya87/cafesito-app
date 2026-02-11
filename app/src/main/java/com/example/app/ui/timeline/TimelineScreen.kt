@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -113,7 +114,7 @@ fun TimelineScreen(
         val postId = initialPostId ?: return@LaunchedEffect
         val successState = uiState as? TimelineUiState.Success ?: return@LaunchedEffect
 
-        val index = successState.composedList.indexOfFirst { item ->
+        val index = successState.items.indexOfFirst { item ->
             (item as? TimelineItem.PostItem)?.details?.post?.id == postId
         }
         if (index >= 0) {
