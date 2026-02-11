@@ -124,6 +124,8 @@ fun CommentsSheet(
 
     LaunchedEffect(postId) { viewModel.setPostId(postId) }
 
+    LaunchedEffect(postId) { viewModel.setPostId(postId) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
