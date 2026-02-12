@@ -37,6 +37,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -204,10 +207,10 @@ fun CommentsSheet(
                                 .drawWithContent {
                                     drawContent()
                                     drawRect(
-                                        brush = Brush.horizontalGradient(
+                                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                                             listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
                                             startX = 0f,
-                                            endX = size.width
+                                            endX = this.size.width
                                         ),
                                         blendMode = BlendMode.DstIn
                                     )
@@ -237,10 +240,10 @@ fun CommentsSheet(
                                 .drawWithContent {
                                     drawContent()
                                     drawRect(
-                                        brush = Brush.horizontalGradient(
+                                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                                             listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
                                             startX = 0f,
-                                            endX = size.width
+                                            endX = this.size.width
                                         ),
                                         blendMode = BlendMode.DstIn
                                     )
