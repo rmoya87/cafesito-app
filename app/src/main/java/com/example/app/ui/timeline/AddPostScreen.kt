@@ -441,31 +441,18 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
             // Overlay for Suggestions/Emojis
             Column(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-48).dp)
+                    .align(Alignment.BottomCenter)
+                    .offset(y = (-52).dp)
             ) {
                 AnimatedVisibility(
                     visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    LazyRow(
+                    FadingLazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(
-                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                        listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
-                                        startX = 0f,
-                                        endX = this.size.width
-                                    ),
-                                    blendMode = BlendMode.DstIn
-                                )
-                            }
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         items(mentionSuggestions) { user ->
                             Surface(
@@ -495,23 +482,10 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    LazyRow(
+                    FadingLazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(
-                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                        listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
-                                        startX = 0f,
-                                        endX = this.size.width
-                                    ),
-                                    blendMode = BlendMode.DstIn
-                                )
-                            }
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
                             Surface(
@@ -753,23 +727,10 @@ private fun ReviewDetailsStepPremium(
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    LazyRow(
+                    FadingLazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(
-                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                        listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
-                                        startX = 0f,
-                                        endX = this.size.width
-                                    ),
-                                    blendMode = BlendMode.DstIn
-                                )
-                            }
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         items(mentionSuggestions) { user ->
                             Surface(
@@ -799,23 +760,10 @@ private fun ReviewDetailsStepPremium(
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    LazyRow(
+                    FadingLazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(
-                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                        listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
-                                        startX = 0f,
-                                        endX = this.size.width
-                                    ),
-                                    blendMode = BlendMode.DstIn
-                                )
-                            }
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
                             Surface(
