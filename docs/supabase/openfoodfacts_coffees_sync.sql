@@ -9,14 +9,14 @@
 --    create extension if not exists pg_cron;
 --
 -- 3) Configura endpoint y service role:
---    https://<PROJECT_REF>.functions.supabase.co/sync-openfoodfacts-coffees
+--    https://ubcxjmagimjhpsehqync.supabase.co/functions/v1/sync-openfoodfacts-coffees
 --    Bearer <SERVICE_ROLE_KEY>
 -- ==========================================================
 
 -- Llamada manual (opcional) para ejecutar la sync al momento.
 select
   net.http_post(
-    url := 'https://<PROJECT_REF>.functions.supabase.co/sync-openfoodfacts-coffees'::text,
+    url := 'https://ubcxjmagimjhpsehqync.supabase.co/functions/v1/sync-openfoodfacts-coffees'::text,
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
@@ -34,7 +34,7 @@ select cron.schedule(
   $$
   select
     net.http_post(
-      url := 'https://<PROJECT_REF>.functions.supabase.co/sync-openfoodfacts-coffees'::text,
+      url := 'https://ubcxjmagimjhpsehqync.supabase.co/functions/v1/sync-openfoodfacts-coffees'::text,
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
