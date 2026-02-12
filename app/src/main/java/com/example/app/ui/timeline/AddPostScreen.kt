@@ -274,15 +274,6 @@ private fun PhotoSelectionStepPremium(
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onGalleryClick) {
-                    Icon(
-                        imageVector = Icons.Default.Collections,
-                        contentDescription = "Abrir selector de galería",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-
                 IconButton(onClick = onCameraClick) {
                     Icon(
                         imageVector = Icons.Default.PhotoCamera,
@@ -404,7 +395,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(16.dp))
+                .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
                 .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
         ) {
             OutlinedTextField(
@@ -423,11 +414,17 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
                     focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                    unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                 )
             )
 
-            if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
+            AnimatedVisibility(
+                visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -455,7 +452,11 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                 }
             }
 
-            if (showEmojiPanel) {
+            AnimatedVisibility(
+                visible = showEmojiPanel,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -660,7 +661,7 @@ private fun ReviewDetailsStepPremium(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(16.dp))
+                .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
                 .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
         ) {
             OutlinedTextField(
@@ -679,11 +680,17 @@ private fun ReviewDetailsStepPremium(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
                     focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                    unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                 )
             )
 
-            if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
+            AnimatedVisibility(
+                visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -711,7 +718,11 @@ private fun ReviewDetailsStepPremium(
                 }
             }
 
-            if (showEmojiPanel) {
+            AnimatedVisibility(
+                visible = showEmojiPanel,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -790,7 +801,7 @@ private fun ReviewDetailsStepPremium(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = CircleShape,
                 border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
-                color = if (isDarkTheme) DarkCoffeeBean else Color.White
+                color = if (isDarkTheme) Color.Black else Color.White
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxHeight()) {
                     AsyncImage(
