@@ -401,48 +401,12 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 
         Spacer(Modifier.height(16.dp))
 
-        if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(mentionSuggestions) { user ->
-                    AssistChip(
-                        onClick = {
-                            val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
-                            commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                            viewModel.onCommentChanged(updated)
-                            focusRequester.requestFocus()
-                        },
-                        label = { Text("@${user.username}") },
-                        border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f))
-                    )
-                }
-            }
-        }
-
-        if (showEmojiPanel) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                    AssistChip(
-                        onClick = {
-                            val updated = commentValue.text + emoji
-                            commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                            viewModel.onCommentChanged(updated)
-                            focusRequester.requestFocus()
-                            keyboardController?.show()
-                        },
-                        label = { Text(emoji) },
-                        border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f))
-                    )
-                }
-            }
-        }
-
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(16.dp))
+                .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+        ) {
             OutlinedTextField(
                 value = commentValue,
                 onValueChange = {
@@ -452,23 +416,77 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                 placeholder = { Text("¿Qué estás pensando?") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 160.dp)
+                    .heightIn(min = 120.dp)
                     .focusRequester(focusRequester),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
                 )
             )
 
+            if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(mentionSuggestions) { user ->
+                        Surface(
+                            onClick = {
+                                val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
+                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                viewModel.onCommentChanged(updated)
+                                focusRequester.requestFocus()
+                            },
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Text(
+                                text = "@${user.username}",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (showEmojiPanel) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                        Surface(
+                            onClick = {
+                                val updated = commentValue.text + emoji
+                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                viewModel.onCommentChanged(updated)
+                                focusRequester.requestFocus()
+                                keyboardController?.show()
+                            },
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(emoji, fontSize = 16.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
             ComposerActionRow(
-                selectedImage = imageSource,
                 onToggleEmoji = {
                     showEmojiPanel = !showEmojiPanel
                     if (!showEmojiPanel) keyboardController?.show()
                 },
-                onCameraClick = { showPickerSheet = true },
                 onInsertMention = {
                     val updated = commentValue.text + "@"
                     commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
@@ -476,9 +494,38 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     focusRequester.requestFocus()
                     keyboardController?.show()
                 },
-                onRemoveImage = { viewModel.setImage(null) },
-                modifier = Modifier.align(Alignment.BottomStart)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
             )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        imageSource?.let { uri ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            ) {
+                AsyncImage(
+                    model = uri,
+                    contentDescription = "Post Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(28.dp)
+                        .clickable { viewModel.setImage(null) },
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.6f)
+                ) {
+                    Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                }
+            }
         }
 
         Spacer(Modifier.height(100.dp))
@@ -608,48 +655,14 @@ private fun ReviewDetailsStepPremium(
             SemicircleRatingBar(rating = rating, onRatingChanged = viewModel::onRatingChanged)
         }
 
-        if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(mentionSuggestions) { user ->
-                    AssistChip(
-                        onClick = {
-                            val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
-                            commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                            viewModel.onCommentChanged(updated)
-                            focusRequester.requestFocus()
-                        },
-                        label = { Text("@${user.username}") },
-                        border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f))
-                    )
-                }
-            }
-        }
+        Spacer(Modifier.height(12.dp))
 
-        if (showEmojiPanel) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                    AssistChip(
-                        onClick = {
-                            val updated = commentValue.text + emoji
-                            commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                            viewModel.onCommentChanged(updated)
-                            focusRequester.requestFocus()
-                            keyboardController?.show()
-                        },
-                        label = { Text(emoji) },
-                        border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f))
-                    )
-                }
-            }
-        }
-
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(16.dp))
+                .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+        ) {
             OutlinedTextField(
                 value = commentValue,
                 onValueChange = {
@@ -659,23 +672,77 @@ private fun ReviewDetailsStepPremium(
                 placeholder = { Text("¿Qué te ha parecido este café?") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 160.dp)
+                    .heightIn(min = 120.dp)
                     .focusRequester(focusRequester),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
                 )
             )
 
+            if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(mentionSuggestions) { user ->
+                        Surface(
+                            onClick = {
+                                val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
+                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                viewModel.onCommentChanged(updated)
+                                focusRequester.requestFocus()
+                            },
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Text(
+                                text = "@${user.username}",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (showEmojiPanel) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                        Surface(
+                            onClick = {
+                                val updated = commentValue.text + emoji
+                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                viewModel.onCommentChanged(updated)
+                                focusRequester.requestFocus()
+                                keyboardController?.show()
+                            },
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(emoji, fontSize = 16.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
             ComposerActionRow(
-                selectedImage = imageSource,
                 onToggleEmoji = {
                     showEmojiPanel = !showEmojiPanel
                     if (!showEmojiPanel) keyboardController?.show()
                 },
-                onCameraClick = { showPickerSheet = true },
                 onInsertMention = {
                     val updated = commentValue.text + "@"
                     commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
@@ -683,9 +750,39 @@ private fun ReviewDetailsStepPremium(
                     focusRequester.requestFocus()
                     keyboardController?.show()
                 },
-                onRemoveImage = { viewModel.setImage(null) },
-                modifier = Modifier.align(Alignment.BottomStart)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
             )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        imageSource?.let { uri ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            ) {
+                AsyncImage(
+                    model = uri,
+                    contentDescription = "Review Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(28.dp)
+                        .clickable { viewModel.setImage(null) },
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.6f)
+                ) {
+                    Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                }
+            }
+            Spacer(Modifier.height(16.dp))
         }
 
         selectedCoffee?.let { coffeeDetails ->
@@ -745,58 +842,43 @@ private fun ReviewDetailsStepPremium(
 
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ComposerActionRow(
-    selectedImage: Uri?,
     onToggleEmoji: () -> Unit,
-    onCameraClick: () -> Unit,
     onInsertMention: () -> Unit,
-    onRemoveImage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                onClick = onCameraClick,
-                shape = CircleShape,
-                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Icon(Icons.Default.PhotoCamera, contentDescription = "Cámara", modifier = Modifier.padding(8.dp), tint = MaterialTheme.colorScheme.onSurface)
-            }
+        // Camera icon removed as requested
 
-            AssistChip(
-                onClick = onInsertMention,
-                label = { Text("@") },
-                border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f))
-            )
-            AssistChip(
-                onClick = onToggleEmoji,
-                label = { Text("😊") },
-                border = AssistChipDefaults.assistChipBorder(borderColor = Color.LightGray.copy(alpha = 0.45f))
-            )
+        Surface(
+            onClick = onInsertMention,
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text("@", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            }
         }
 
-        selectedImage?.let { uri ->
-            Box(modifier = Modifier.padding(top = 10.dp).size(88.dp).clip(RoundedCornerShape(12.dp))) {
-                AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                Surface(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable(onClick = onRemoveImage),
-                    shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.65f)
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Quitar imagen", tint = Color.White, modifier = Modifier.padding(4.dp))
-                }
+        Surface(
+            onClick = onToggleEmoji,
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text("😊", fontSize = 16.sp)
             }
         }
     }

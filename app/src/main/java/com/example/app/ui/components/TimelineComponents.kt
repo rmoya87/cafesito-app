@@ -208,25 +208,31 @@ fun CommentsSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                        AssistChip(
+                        Surface(
                             onClick = {
                                 val updated = textValue.text + emoji
                                 textValue = TextFieldValue(updated, selection = TextRange(updated.length))
                                 viewModel.onTextChanged(updated)
                             },
-                            label = { Text(emoji) },
-                            border = AssistChipDefaults.assistChipBorder(
-                                borderColor = Color.LightGray.copy(alpha = 0.45f)
-                            )
-                        )
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(emoji, fontSize = 16.sp)
+                            }
+                        }
                     }
                 }
             }
 
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
                 OutlinedTextField(
                     value = textValue,
@@ -235,90 +241,74 @@ fun CommentsSheet(
                         viewModel.onTextChanged(it.text)
                     },
                     placeholder = { Text("Añade un comentario...") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 80.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
                     )
                 )
 
-                Column(
+                Row(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
                         .fillMaxWidth()
-                        .padding(12.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                            RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Surface(
+                        onClick = { showImagePickerSheet = true },
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                        color = MaterialTheme.colorScheme.surface
                     ) {
-                        Surface(
-                            onClick = { showImagePickerSheet = true },
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Icon(
-                                Icons.Default.PhotoCamera,
-                                contentDescription = "Cámara",
-                                modifier = Modifier.padding(8.dp),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
                         }
-                        AssistChip(
-                            onClick = {
-                                val updated = textValue.text + "@"
-                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                viewModel.onTextChanged(updated)
-                                keyboardController?.show()
-                            },
-                            label = { Text("@") },
-                            border = AssistChipDefaults.assistChipBorder(
-                                borderColor = Color.LightGray.copy(alpha = 0.45f)
-                            )
-                        )
-                        AssistChip(
-                            onClick = { showEmojiPanel = !showEmojiPanel },
-                            label = { Text("😊") },
-                            border = AssistChipDefaults.assistChipBorder(
-                                borderColor = Color.LightGray.copy(alpha = 0.45f)
-                            )
-                        )
                     }
 
-                    selectedImageUri?.let { uri ->
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 4.dp)
-                                .size(84.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                    Surface(
+                        onClick = {
+                            val updated = textValue.text + "@"
+                            textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                            viewModel.onTextChanged(updated)
+                            keyboardController?.show()
+                        },
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("@", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    Surface(
+                        onClick = { showEmojiPanel = !showEmojiPanel },
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("😊", fontSize = 16.sp)
+                        }
+                    }
+                }
+
+                selectedImageUri?.let { uri ->
+                    Box(modifier = Modifier.padding(12.dp).size(88.dp).clip(RoundedCornerShape(12.dp))) {
+                        AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        Surface(
+                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable { selectedImageUri = null },
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.65f)
                         ) {
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = "Miniatura",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                            Surface(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(4.dp)
-                                    .size(22.dp)
-                                    .clickable { selectedImageUri = null },
-                                shape = CircleShape,
-                                color = Color.Black.copy(alpha = 0.65f)
-                            ) {
-                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
-                            }
+                            Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
                         }
                     }
                 }
