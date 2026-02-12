@@ -698,7 +698,7 @@ private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
 }
 
 @Composable
-private fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
+fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
