@@ -45,7 +45,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -691,7 +693,6 @@ private fun CommentRow(
     if (showOptionsSheet) {
         PostOptionsBottomSheet(
             onDismiss = { showOptionsSheet = false },
-            scrimColor = Color.Black.copy(alpha = 0.5f),
             onEditClick = {
                 showOptionsSheet = false
                 onEditClick()
