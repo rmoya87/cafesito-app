@@ -18,6 +18,8 @@
 --   '{"max_pages": 2}'::jsonb
 -- Si quieres que falle en vez de devolver éxito parcial ante error OFF:
 --   '{"max_pages": 10, "stop_on_off_error": true}'::jsonb
+-- Importante: pg_net por defecto usa timeout de 5000ms.
+-- Para Edge Functions de sincronización, subimos timeout a 60000ms.
 select
   net.http_post(
     url := 'https://ubcxjmagimjhpsehqync.supabase.co/functions/v1/sync-openfoodfacts-coffees'::text,
@@ -25,7 +27,8 @@ select
       'Content-Type', 'application/json',
       'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
     )::jsonb,
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 60000
   ) as request_id;
 
 -- Programa semanal: lunes a las 03:00 UTC.
@@ -51,7 +54,8 @@ begin
           'Content-Type', 'application/json',
           'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
         )::jsonb,
-        body := '{}'::jsonb
+        body := '{}'::jsonb,
+        timeout_milliseconds := 60000
       )
     $job$;
 
