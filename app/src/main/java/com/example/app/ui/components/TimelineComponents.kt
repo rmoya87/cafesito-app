@@ -185,55 +185,97 @@ fun CommentsSheet(
                 }
             }
 
-            if (suggestions.isNotEmpty() && !textValue.text.trim().endsWith("@")) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                // Overlay for Suggestions
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = (-48).dp) // Adjust based on suggestion height
                 ) {
-                    items(suggestions) { user ->
-                        SuggestionChip(user) {
-                            val updated = insertOrReplaceMentionToken(textValue.text, user.username)
-                            textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                            viewModel.onTextChanged(updated)
+                    AnimatedVisibility(
+                        visible = suggestions.isNotEmpty() && !textValue.text.trim().endsWith("@"),
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                                .drawWithContent {
+                                    drawContent()
+                                    drawRect(
+                                        brush = Brush.horizontalGradient(
+                                            listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
+                                            startX = 0f,
+                                            endX = size.width
+                                        ),
+                                        blendMode = BlendMode.DstIn
+                                    )
+                                }
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(suggestions) { user ->
+                                SuggestionChip(user) {
+                                    val updated = insertOrReplaceMentionToken(textValue.text, user.username)
+                                    textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onTextChanged(updated)
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-            if (showEmojiPanel) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                        Surface(
-                            onClick = {
-                                val updated = textValue.text + emoji
-                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                viewModel.onTextChanged(updated)
-                            },
-                            modifier = Modifier.size(40.dp),
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
+                    AnimatedVisibility(
+                        visible = showEmojiPanel,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                                .drawWithContent {
+                                    drawContent()
+                                    drawRect(
+                                        brush = Brush.horizontalGradient(
+                                            listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
+                                            startX = 0f,
+                                            endX = size.width
+                                        ),
+                                        blendMode = BlendMode.DstIn
+                                    )
+                                }
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(emoji, fontSize = 16.sp)
+                            items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                                Surface(
+                                    onClick = {
+                                        val updated = textValue.text + emoji
+                                        textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                        viewModel.onTextChanged(updated)
+                                    },
+                                    modifier = Modifier.size(40.dp),
+                                    shape = CircleShape,
+                                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                    color = MaterialTheme.colorScheme.surface
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(emoji, fontSize = 16.sp)
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-            ) {
+                // Main Composer Container
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                        .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                ) {
                 OutlinedTextField(
                     value = textValue,
                     onValueChange = {
@@ -335,8 +377,9 @@ fun CommentsSheet(
                         }
                     }
                 }
-            }
+                }
 
+            }
         }
     }
 

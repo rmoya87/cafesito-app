@@ -392,111 +392,149 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 
         Spacer(Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
-                .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-        ) {
-            OutlinedTextField(
-                value = commentValue,
-                onValueChange = {
-                    commentValue = it
-                    viewModel.onCommentChanged(it.text)
-                },
-                placeholder = { Text("¿Qué estás pensando?") },
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Main Composer Container
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 120.dp)
-                    .focusRequester(focusRequester),
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                    unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
-                )
-            )
-
-            AnimatedVisibility(
-                visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                    .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
+                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                OutlinedTextField(
+                    value = commentValue,
+                    onValueChange = {
+                        commentValue = it
+                        viewModel.onCommentChanged(it.text)
+                    },
+                    placeholder = { Text("¿Qué estás pensando?") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp)
+                        .focusRequester(focusRequester),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                        unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                    )
+                )
+
+                ComposerActionRow(
+                    onToggleEmoji = {
+                        showEmojiPanel = !showEmojiPanel
+                        if (!showEmojiPanel) keyboardController?.show()
+                    },
+                    onInsertMention = {
+                        val updated = commentValue.text + "@"
+                        commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                        viewModel.onCommentChanged(updated)
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
+            }
+
+            // Overlay for Suggestions/Emojis
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-48).dp)
+            ) {
+                AnimatedVisibility(
+                    visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
-                    items(mentionSuggestions) { user ->
-                        Surface(
-                            onClick = {
-                                val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
-                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                viewModel.onCommentChanged(updated)
-                                focusRequester.requestFocus()
-                            },
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Text(
-                                text = "@${user.username}",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
+                                        startX = 0f,
+                                        endX = size.width
+                                    ),
+                                    blendMode = BlendMode.DstIn
+                                )
+                            }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(mentionSuggestions) { user ->
+                            Surface(
+                                onClick = {
+                                    val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
+                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onCommentChanged(updated)
+                                    focusRequester.requestFocus()
+                                },
+                                shape = CircleShape,
+                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Text(
+                                    text = "@${user.username}",
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            AnimatedVisibility(
-                visible = showEmojiPanel,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                AnimatedVisibility(
+                    visible = showEmojiPanel,
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
-                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                        Surface(
-                            onClick = {
-                                val updated = commentValue.text + emoji
-                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                viewModel.onCommentChanged(updated)
-                                focusRequester.requestFocus()
-                                keyboardController?.show()
-                            },
-                            modifier = Modifier.size(40.dp),
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(emoji, fontSize = 16.sp)
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
+                                        startX = 0f,
+                                        endX = size.width
+                                    ),
+                                    blendMode = BlendMode.DstIn
+                                )
+                            }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                            Surface(
+                                onClick = {
+                                    val updated = commentValue.text + emoji
+                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onCommentChanged(updated)
+                                    focusRequester.requestFocus()
+                                    keyboardController?.show()
+                                },
+                                modifier = Modifier.size(40.dp),
+                                shape = CircleShape,
+                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(emoji, fontSize = 16.sp)
+                                }
                             }
                         }
                     }
                 }
             }
-
-            ComposerActionRow(
-                onToggleEmoji = {
-                    showEmojiPanel = !showEmojiPanel
-                    if (!showEmojiPanel) keyboardController?.show()
-                },
-                onInsertMention = {
-                    val updated = commentValue.text + "@"
-                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                    viewModel.onCommentChanged(updated)
-                    focusRequester.requestFocus()
-                    keyboardController?.show()
-                },
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-            )
         }
 
         Spacer(Modifier.height(16.dp))
@@ -658,111 +696,149 @@ private fun ReviewDetailsStepPremium(
 
         Spacer(Modifier.height(12.dp))
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
-                .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-        ) {
-            OutlinedTextField(
-                value = commentValue,
-                onValueChange = {
-                    commentValue = it
-                    viewModel.onCommentChanged(it.text)
-                },
-                placeholder = { Text("¿Qué te ha parecido este café?") },
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Main Composer Container
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 120.dp)
-                    .focusRequester(focusRequester),
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                    unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
-                )
-            )
-
-            AnimatedVisibility(
-                visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                    .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
+                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                OutlinedTextField(
+                    value = commentValue,
+                    onValueChange = {
+                        commentValue = it
+                        viewModel.onCommentChanged(it.text)
+                    },
+                    placeholder = { Text("¿Qué te ha parecido este café?") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp)
+                        .focusRequester(focusRequester),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                        unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                    )
+                )
+
+                ComposerActionRow(
+                    onToggleEmoji = {
+                        showEmojiPanel = !showEmojiPanel
+                        if (!showEmojiPanel) keyboardController?.show()
+                    },
+                    onInsertMention = {
+                        val updated = commentValue.text + "@"
+                        commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                        viewModel.onCommentChanged(updated)
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
+            }
+
+            // Overlay for Suggestions/Emojis
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-48).dp)
+            ) {
+                AnimatedVisibility(
+                    visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
-                    items(mentionSuggestions) { user ->
-                        Surface(
-                            onClick = {
-                                val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
-                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                viewModel.onCommentChanged(updated)
-                                focusRequester.requestFocus()
-                            },
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Text(
-                                text = "@${user.username}",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
+                                        startX = 0f,
+                                        endX = size.width
+                                    ),
+                                    blendMode = BlendMode.DstIn
+                                )
+                            }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(mentionSuggestions) { user ->
+                            Surface(
+                                onClick = {
+                                    val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
+                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onCommentChanged(updated)
+                                    focusRequester.requestFocus()
+                                },
+                                shape = CircleShape,
+                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Text(
+                                    text = "@${user.username}",
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            AnimatedVisibility(
-                visible = showEmojiPanel,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                AnimatedVisibility(
+                    visible = showEmojiPanel,
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
-                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                        Surface(
-                            onClick = {
-                                val updated = commentValue.text + emoji
-                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                viewModel.onCommentChanged(updated)
-                                focusRequester.requestFocus()
-                                keyboardController?.show()
-                            },
-                            modifier = Modifier.size(40.dp),
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(emoji, fontSize = 16.sp)
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
+                                        startX = 0f,
+                                        endX = size.width
+                                    ),
+                                    blendMode = BlendMode.DstIn
+                                )
+                            }
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                            Surface(
+                                onClick = {
+                                    val updated = commentValue.text + emoji
+                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    viewModel.onCommentChanged(updated)
+                                    focusRequester.requestFocus()
+                                    keyboardController?.show()
+                                },
+                                modifier = Modifier.size(40.dp),
+                                shape = CircleShape,
+                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(emoji, fontSize = 16.sp)
+                                }
                             }
                         }
                     }
                 }
             }
-
-            ComposerActionRow(
-                onToggleEmoji = {
-                    showEmojiPanel = !showEmojiPanel
-                    if (!showEmojiPanel) keyboardController?.show()
-                },
-                onInsertMention = {
-                    val updated = commentValue.text + "@"
-                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                    viewModel.onCommentChanged(updated)
-                    focusRequester.requestFocus()
-                    keyboardController?.show()
-                },
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-            )
         }
 
         Spacer(Modifier.height(16.dp))

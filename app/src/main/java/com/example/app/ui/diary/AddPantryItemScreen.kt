@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.ui.theme.*
+import com.cafesito.app.ui.components.*
 import java.io.File
 import java.util.Locale
 import java.util.UUID
@@ -91,11 +92,14 @@ fun AddPantryItemScreen(
 
     val context = androidx.compose.ui.platform.LocalContext.current
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            val selected = result.data?.data ?: pendingCameraUri
-            imageUri = selected
-        }
+    var showImagePickerSheet by remember { mutableStateOf(false) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) imageUri = pendingCameraUri
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) imageUri = uri
     }
 
     val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && grams.isNotEmpty()
@@ -174,12 +178,7 @@ fun AddPantryItemScreen(
                                 .size(130.dp)
                                 .clip(RoundedCornerShape(24.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable {
-                                    val cameraUri = createTempImageUri(context)
-                                    pendingCameraUri = cameraUri
-                                    val chooserIntent = createImageChooserIntent(cameraUri)
-                                    launcher.launch(chooserIntent)
-                                },
+                                .clickable { showImagePickerSheet = true },
                             contentAlignment = Alignment.Center
                         ) {
                             if (imageUri != null) {
@@ -341,6 +340,44 @@ fun AddPantryItemScreen(
             }
             item { Spacer(Modifier.height(12.dp)) }
         }
+        }
+    }
+
+    if (showImagePickerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showImagePickerSheet = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Text(
+                    text = "AÑADIR FOTO",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    fontWeight = FontWeight.Bold
+                )
+                ModalMenuOption(
+                    title = "Hacer Foto",
+                    icon = Icons.Default.PhotoCamera,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        val uri = createTempImageUri(context)
+                        pendingCameraUri = uri
+                        cameraLauncher.launch(uri)
+                        showImagePickerSheet = false
+                    }
+                )
+                ModalMenuOption(
+                    title = "Elegir de Galería",
+                    icon = Icons.Default.Collections,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        galleryLauncher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        showImagePickerSheet = false
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -387,21 +424,4 @@ fun VisualOptionTile(
 private fun createTempImageUri(context: Context): Uri {
     val file = File(context.cacheDir, "custom_${UUID.randomUUID()}.jpg")
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-}
-
-private fun createImageChooserIntent(cameraUri: Uri): Intent {
-    val captureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-        putExtra(MediaStore.EXTRA_OUTPUT, cameraUri)
-        addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-
-    val pickIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
-        type = "image/*"
-        addCategory(Intent.CATEGORY_OPENABLE)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-
-    return Intent.createChooser(pickIntent, "Selecciona imagen").apply {
-        putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(captureIntent))
-    }
 }

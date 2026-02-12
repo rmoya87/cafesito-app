@@ -262,7 +262,23 @@ fun CoffeeSelectionStepPremium(
             Spacer(Modifier.height(16.dp))
             if (pantryItems.isEmpty()) {
                 PremiumCard {
-                    Text("Tu despensa está vacía", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(24.dp))
+                    Column(
+                        modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Tu despensa está vacía", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = onAddNotFoundClick,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(20.dp),
+                            modifier = Modifier.height(44.dp)
+                        ) {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                            Spacer(Modifier.width(8.dp))
+                            Text("AÑADIR MI CAFÉ A DESPENSA", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
                 }
             } else {
                 LazyRow(
@@ -284,7 +300,11 @@ fun CoffeeSelectionStepPremium(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Busca un café o marca") },
                 shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White,
+                    focusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+                ),
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
             )
