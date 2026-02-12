@@ -151,7 +151,10 @@ fun LoginScreen(
     }
 
     if (showLoginModal) {
-        ModalBottomSheet(onDismissRequest = { showLoginModal = false }) {
+        ModalBottomSheet(
+            onDismissRequest = { showLoginModal = false },
+            scrimColor = Color.Black.copy(alpha = 0.5f)
+        ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

@@ -103,7 +103,8 @@ fun DiaryScreen(
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
                 containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                scrimColor = Color.Black.copy(alpha = 0.5f)
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                     ModalMenuOption(

@@ -391,7 +391,8 @@ fun ReviewBottomSheet(
         onDismissRequest = onDismissRequest, 
         containerColor = MaterialTheme.colorScheme.surfaceContainer, 
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        sheetState = sheetState
+        sheetState = sheetState,
+        scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
         Column(
             modifier = Modifier
@@ -508,7 +509,8 @@ fun ReviewBottomSheet(
     if (showPickerSheet) {
         ModalBottomSheet(
             onDismissRequest = { showPickerSheet = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            scrimColor = Color.Black.copy(alpha = 0.5f)
         ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text(text = "AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
@@ -550,7 +552,12 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
     var brand by remember { mutableStateOf(coffeeDetails.coffee.marca) }
     val isInPantry = currentStock != null
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss, 
+        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        scrimColor = Color.Black.copy(alpha = 0.5f)
+    ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = "Añadir a mi despensa", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))

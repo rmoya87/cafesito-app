@@ -226,7 +226,8 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
         containerColor = MaterialTheme.colorScheme.surfaceContainer, 
-        sheetState = sheetState
+        sheetState = sheetState,
+        scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
         Column(
             Modifier

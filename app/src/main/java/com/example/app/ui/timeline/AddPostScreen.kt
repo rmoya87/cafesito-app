@@ -392,11 +392,13 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 
         Spacer(Modifier.height(16.dp))
 
+        var composerHeight by remember { mutableStateOf(0) }
         Box(modifier = Modifier.fillMaxWidth()) {
             // Main Composer Container
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onSizeChanged { composerHeight = it.height }
                     .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
                     .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
@@ -441,10 +443,11 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
             }
 
             // Overlay for Suggestions/Emojis
+            val density = LocalDensity.current
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset(y = (-52).dp)
+                    .offset(y = with(density) { -(composerHeight.toDp() + 8.dp) })
             ) {
                 AnimatedVisibility(
                     visible = mentionSuggestions.isNotEmpty() && !showEmojiPanel && !commentValue.text.trim().endsWith("@"),
@@ -560,7 +563,8 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
     if (showPickerSheet) {
         ModalBottomSheet(
             onDismissRequest = { showPickerSheet = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            scrimColor = Color.Black.copy(alpha = 0.5f)
         ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))

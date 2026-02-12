@@ -452,7 +452,8 @@ fun SearchScreen(
             ModalBottomSheet(
                 onDismissRequest = { showFilterSheet = false },
                 sheetState = sheetState,
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                scrimColor = Color.Black.copy(alpha = 0.5f)
             ) {
                 Box(
                     modifier = Modifier
