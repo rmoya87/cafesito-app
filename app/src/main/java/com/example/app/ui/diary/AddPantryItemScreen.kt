@@ -340,42 +340,41 @@ fun AddPantryItemScreen(
             }
             item { Spacer(Modifier.height(12.dp)) }
         }
-        }
-    }
-
-    if (showImagePickerSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showImagePickerSheet = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ) {
-            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-                Text(
-                    text = "AÑADIR FOTO",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp),
-                    fontWeight = FontWeight.Bold
-                )
-                ModalMenuOption(
-                    title = "Hacer Foto",
-                    icon = Icons.Default.PhotoCamera,
-                    color = MaterialTheme.colorScheme.primary,
-                    onClick = {
-                        val uri = createTempImageUri(context)
-                        pendingCameraUri = uri
-                        cameraLauncher.launch(uri)
-                        showImagePickerSheet = false
-                    }
-                )
-                ModalMenuOption(
-                    title = "Elegir de Galería",
-                    icon = Icons.Default.Collections,
-                    color = MaterialTheme.colorScheme.primary,
-                    onClick = {
-                        galleryLauncher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        showImagePickerSheet = false
-                    }
-                )
+        
+        if (showImagePickerSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showImagePickerSheet = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ) {
+                Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                    Text(
+                        text = "AÑADIR FOTO",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                    ModalMenuOption(
+                        title = "Hacer Foto",
+                        icon = Icons.Default.PhotoCamera,
+                        color = MaterialTheme.colorScheme.primary,
+                        onClick = {
+                            val uri = createTempImageUri(context)
+                            pendingCameraUri = uri
+                            cameraLauncher.launch(uri)
+                            showImagePickerSheet = false
+                        }
+                    )
+                    ModalMenuOption(
+                        title = "Elegir de Galería",
+                        icon = Icons.Default.Collections,
+                        color = MaterialTheme.colorScheme.primary,
+                        onClick = {
+                            galleryLauncher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            showImagePickerSheet = false
+                        }
+                    )
+                }
             }
         }
     }
