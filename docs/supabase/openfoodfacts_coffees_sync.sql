@@ -21,12 +21,13 @@ select
       'Content-Type', 'application/json',
       'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
     )::jsonb,
-    body := '{}'::text
+    body := '{}'::jsonb
   ) as request_id;
 
 -- Programa semanal: lunes a las 03:00 UTC.
 -- Cambia el cron si prefieres otro día/hora.
-select cron.unschedule('weekly_openfoodfacts_coffees_sync');
+select cron.unschedule('weekly_openfoodfacts_coffees_sync')
+where exists (select 1 from cron.job where jobname = 'weekly_openfoodfacts_coffees_sync');
 
 select cron.schedule(
   'weekly_openfoodfacts_coffees_sync',
@@ -39,7 +40,7 @@ select cron.schedule(
         'Content-Type', 'application/json',
         'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
       )::jsonb,
-      body := '{}'::text
+      body := '{}'::jsonb
     );
   $$
 );
