@@ -298,6 +298,29 @@ fun CommentsSheet(
                             Text("😊", fontSize = 16.sp)
                         }
                     }
+
+                    Spacer(Modifier.weight(1f))
+
+                    IconButton(
+                        onClick = {
+                            if (editingCommentId != null) {
+                                viewModel.updateComment(editingCommentId!!, textValue.text)
+                                editingCommentId = null
+                            } else {
+                                onAddComment(textValue.text)
+                            }
+                            textValue = TextFieldValue("")
+                            selectedImageUri = null
+                        },
+                        enabled = textValue.text.isNotBlank(),
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        )
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar", modifier = Modifier.size(24.dp))
+                    }
                 }
 
                 selectedImageUri?.let { uri ->
@@ -314,24 +337,6 @@ fun CommentsSheet(
                 }
             }
 
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.End) {
-                IconButton(
-                    onClick = {
-                        if (editingCommentId != null) {
-                            viewModel.updateComment(editingCommentId!!, textValue.text)
-                            editingCommentId = null
-                        } else {
-                            onAddComment(textValue.text)
-                        }
-                        textValue = TextFieldValue("")
-                        selectedImageUri = null
-                    },
-                    enabled = textValue.text.isNotBlank(),
-                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
-                }
-            }
         }
     }
 
