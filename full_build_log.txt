@@ -1,0 +1,68 @@
+﻿Initialized native services in: C:\Users\ramon.demoya\.gradle\native
+Initialized jansi services in: C:\Users\ramon.demoya\.gradle\native
+The client will now receive all logging from the daemon (pid: 9444). The daemon log file: C:\Users\ramon.demoya\.gradle\daemon\9.1.0\daemon-9444.out.log
+Starting 25th build in daemon [uptime: 3 hrs 37 mins 1.042 secs, performance: 99%, GC rate: 0.00/s, heap usage: 0% of 4 GiB]
+Using 16 worker leases.
+Now considering [C:\Users\ramon.demoya\.gemini\antigravity\scratch\cafesito-app-android, C:\Users\ramon.demoya\AndroidStudioProjects\cafesito-app-android] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Resolved plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0']
+Settings evaluated using settings file 'C:\Users\ramon.demoya\.gemini\antigravity\scratch\cafesito-app-android\settings.gradle.kts'.
+Projects loaded. Root project using build file 'C:\Users\ramon.demoya\.gemini\antigravity\scratch\cafesito-app-android\build.gradle.kts'.
+Included projects: [root project 'Cafesito', project ':app', project ':shared']
+
+> Configure project :
+Evaluating root project 'Cafesito' using build file 'C:\Users\ramon.demoya\.gemini\antigravity\scratch\cafesito-app-android\build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '8.13.2', apply: false]
+Resolved plugin [id: 'com.android.library', version: '8.13.2', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.0.0', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.0.0', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.multiplatform', version: '2.0.0', apply: false]
+Resolved plugin [id: 'com.google.devtools.ksp', version: '2.0.0-1.0.21', apply: false]
+Resolved plugin [id: 'com.google.dagger.hilt.android', version: '2.57.1', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.serialization', version: '2.0.0', apply: false]
+Resolved plugin [id: 'com.google.gms.google-services', version: '4.4.2', apply: false]
+
+> Configure project :app
+Evaluating project ':app' using build file 'C:\Users\ramon.demoya\.gemini\antigravity\scratch\cafesito-app-android\app\build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '8.13.2']
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.0.0']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.0.0']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.serialization', version: '2.0.0']
+Resolved plugin [id: 'com.google.dagger.hilt.android', version: '2.57.1']
+Resolved plugin [id: 'com.google.devtools.ksp', version: '2.0.0-1.0.21']
+Resolved plugin [id: 'com.google.gms.google-services', version: '4.4.2']
+Using default execution profile
+Using Kotlin Gradle Plugin gradle85 variant
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+
+> Configure project :shared
+Evaluating project ':shared' using build file 'C:\Users\ramon.demoya\.gemini\antigravity\scratch\cafesito-app-android\shared\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.multiplatform', version: '2.0.0']
+Resolved plugin [id: 'com.android.library', version: '8.13.2']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.serialization', version: '2.0.0']
+Resolved plugin [id: 'app.cash.sqldelight', version: '2.0.2']
+Using Kotlin Gradle Plugin gradle85 variant
+Using default execution profile
+Kotlin/Native distribution: C:\Users\ramon.demoya\.konan\kotlin-native-prebuilt-windows-x86_64-2.0.0
+Kotlin/Native distribution: C:\Users\ramon.demoya\.konan\kotlin-native-prebuilt-windows-x86_64-2.0.0
+Kotlin/Native distribution: C:\Users\ramon.demoya\.konan\kotlin-native-prebuilt-windows-x86_64-2.0.0
+All projects evaluated.
+Task path ':app:compileDebugKotlin' matched project ':app'
+Task name matched 'compileDebugKotlin'
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugKotlin
+Selected primary task 'compileDebugKotlin' from project :app
+
+[Incubating] Problems report is available at: file:///C:/Users/ramon.demoya/.gemini/antigravity/scratch/cafesito-app-android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+Watched directory hierarchies: [C:\Users\ramon.demoya\AndroidStudioProjects\cafesito-app-android]
