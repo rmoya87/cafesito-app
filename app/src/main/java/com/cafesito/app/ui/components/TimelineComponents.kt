@@ -201,6 +201,52 @@ fun CommentsSheet(
                         .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
                         .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
                 ) {
+                    // Suggestions/Emojis moved inside at the top
+                    AnimatedVisibility(
+                        visible = (suggestions.isNotEmpty() && !showEmojiPanel && !textValue.text.trim().endsWith("@")) || showEmojiPanel,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Column {
+                            if (showEmojiPanel) {
+                                FadingLazyRow(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                                        Surface(
+                                            onClick = {
+                                                val updated = textValue.text + emoji
+                                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                                viewModel.onTextChanged(updated)
+                                            },
+                                            modifier = Modifier.size(40.dp),
+                                            shape = CircleShape,
+                                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                            color = MaterialTheme.colorScheme.surface
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(emoji, fontSize = 16.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            } else if (suggestions.isNotEmpty() && !textValue.text.trim().endsWith("@")) {
+                                FadingLazyRow(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    items(suggestions) { user ->
+                                        SuggestionChip(user = user) {
+                                            val updated = insertOrReplaceMentionToken(textValue.text, user.username)
+                                            textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                            viewModel.onTextChanged(updated)
+                                        }
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                        }
+                    }
+
                     OutlinedTextField(
                         value = textValue,
                         onValueChange = {
@@ -301,83 +347,6 @@ fun CommentsSheet(
                                 color = Color.Black.copy(alpha = 0.65f)
                             ) {
                                 Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
-                            }
-                        }
-                    }
-                }
-
-                // Overlay for Suggestions/Emojis - MOVED TO TOP
-                val density = LocalDensity.current
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .offset(y = with(density) { -(composerHeight.toDp() + 8.dp) }) 
-                ) {
-                    AnimatedVisibility(
-                        visible = suggestions.isNotEmpty() && !showEmojiPanel && !textValue.text.trim().endsWith("@"),
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        FadingLazyRow(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        ) {
-                            items(suggestions) { user ->
-                                Surface(
-                                    onClick = {
-                                        val updated = insertOrReplaceMentionToken(textValue.text, user.username)
-                                        textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                        viewModel.onTextChanged(updated)
-                                    },
-                                    shape = CircleShape,
-                                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                                    color = MaterialTheme.colorScheme.surface
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        AsyncImage(
-                                            model = user.avatarUrl,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp).clip(CircleShape),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            text = "@${user.username}",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = showEmojiPanel,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        FadingLazyRow(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        ) {
-                            items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                                Surface(
-                                    onClick = {
-                                        val updated = textValue.text + emoji
-                                        textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                        viewModel.onTextChanged(updated)
-                                    },
-                                    modifier = Modifier.size(40.dp),
-                                    shape = CircleShape,
-                                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                                    color = MaterialTheme.colorScheme.surface
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(emoji, fontSize = 16.sp)
-                                    }
-                                }
                             }
                         }
                     }
