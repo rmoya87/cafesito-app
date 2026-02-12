@@ -189,14 +189,126 @@ fun CommentsSheet(
             }
 
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                // Overlay for Suggestions
+                // Main Composer Container
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                        .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                ) {
+                    OutlinedTextField(
+                        value = textValue,
+                        onValueChange = {
+                            textValue = it
+                            viewModel.onTextChanged(it.text)
+                            if (it.text.endsWith("@")) showEmojiPanel = false
+                        },
+                        placeholder = { Text("Añade un comentario...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent
+                        )
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            onClick = { showImagePickerSheet = true },
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+
+                        Surface(
+                            onClick = {
+                                val updated = textValue.text + "@"
+                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                viewModel.onTextChanged(updated)
+                                showEmojiPanel = false
+                                keyboardController?.show()
+                            },
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("@", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+
+                        Surface(
+                            onClick = { showEmojiPanel = !showEmojiPanel },
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("😊", fontSize = 16.sp)
+                            }
+                        }
+
+                        Spacer(Modifier.weight(1f))
+
+                        IconButton(
+                            onClick = {
+                                if (editingCommentId != null) {
+                                    viewModel.updateComment(editingCommentId!!, textValue.text)
+                                    editingCommentId = null
+                                } else {
+                                    onAddComment(textValue.text)
+                                }
+                                textValue = TextFieldValue("")
+                                selectedImageUri = null
+                            },
+                            enabled = textValue.text.isNotBlank(),
+                            modifier = Modifier.size(40.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary,
+                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar", modifier = Modifier.size(24.dp))
+                        }
+                    }
+
+                    selectedImageUri?.let { uri ->
+                        Box(modifier = Modifier.padding(12.dp).size(88.dp).clip(RoundedCornerShape(12.dp))) {
+                            AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            Surface(
+                                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable { selectedImageUri = null },
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.65f)
+                            ) {
+                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                            }
+                        }
+                    }
+                }
+
+                // Overlay for Suggestions/Emojis - MOVED TO TOP
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .offset(y = (-52).dp) 
+                        .offset(y = (-58).dp) 
                 ) {
                     AnimatedVisibility(
-                        visible = suggestions.isNotEmpty() && !textValue.text.trim().endsWith("@"),
+                        visible = suggestions.isNotEmpty() && !showEmojiPanel && !textValue.text.trim().endsWith("@"),
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
@@ -204,10 +316,33 @@ fun CommentsSheet(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         ) {
                             items(suggestions) { user ->
-                                SuggestionChip(user) {
-                                    val updated = insertOrReplaceMentionToken(textValue.text, user.username)
-                                    textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                    viewModel.onTextChanged(updated)
+                                Surface(
+                                    onClick = {
+                                        val updated = insertOrReplaceMentionToken(textValue.text, user.username)
+                                        textValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                        viewModel.onTextChanged(updated)
+                                    },
+                                    shape = CircleShape,
+                                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                    color = MaterialTheme.colorScheme.surface
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        AsyncImage(
+                                            model = user.avatarUrl,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp).clip(CircleShape),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = "@${user.username}",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -238,115 +373,6 @@ fun CommentsSheet(
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-
-                // Main Composer Container
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                        .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                ) {
-                OutlinedTextField(
-                    value = textValue,
-                    onValueChange = {
-                        textValue = it
-                        viewModel.onTextChanged(it.text)
-                    },
-                    placeholder = { Text("Añade un comentario...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    )
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        onClick = { showImagePickerSheet = true },
-                        modifier = Modifier.size(40.dp),
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-
-                    Surface(
-                        onClick = {
-                            val updated = textValue.text + "@"
-                            textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                            viewModel.onTextChanged(updated)
-                            keyboardController?.show()
-                        },
-                        modifier = Modifier.size(40.dp),
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("@", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-
-                    Surface(
-                        onClick = { showEmojiPanel = !showEmojiPanel },
-                        modifier = Modifier.size(40.dp),
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("😊", fontSize = 16.sp)
-                        }
-                    }
-
-                    Spacer(Modifier.weight(1f))
-
-                    IconButton(
-                        onClick = {
-                            if (editingCommentId != null) {
-                                viewModel.updateComment(editingCommentId!!, textValue.text)
-                                editingCommentId = null
-                            } else {
-                                onAddComment(textValue.text)
-                            }
-                            textValue = TextFieldValue("")
-                            selectedImageUri = null
-                        },
-                        enabled = textValue.text.isNotBlank(),
-                        modifier = Modifier.size(40.dp),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary,
-                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        )
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar", modifier = Modifier.size(24.dp))
-                    }
-                }
-
-                selectedImageUri?.let { uri ->
-                    Box(modifier = Modifier.padding(12.dp).size(88.dp).clip(RoundedCornerShape(12.dp))) {
-                        AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        Surface(
-                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable { selectedImageUri = null },
-                            shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.65f)
-                        ) {
-                            Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
                         }
                     }
                 }

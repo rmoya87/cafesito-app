@@ -67,14 +67,23 @@ class DiaryRepository @Inject constructor(
         val user = userRepository.getActiveUser() ?: return
         try {
             val remoteItems = supabaseDataSource.getPantryItems(user.id)
-            remoteItems.forEach {
-                if (coffeeDao.getCoffeeById(it.coffeeId) == null) {
-                    val coffeeIds = listOf(it.coffeeId)
+            remoteItems.forEach { item ->
+                val localCoffee = coffeeDao.getCoffeeById(item.coffeeId)
+                if (localCoffee == null) {
+                    val coffeeIds = listOf(item.coffeeId)
                     val remoteCoffee = supabaseDataSource.getCoffeesByIds(coffeeIds).firstOrNull()
-                        ?: supabaseDataSource.getCustomCoffees(user.id).find { c -> c.id == it.coffeeId }?.toCoffee()
+                        ?: supabaseDataSource.getCustomCoffees(user.id).find { c -> c.id == item.coffeeId }?.toCoffee()
                     remoteCoffee?.let { c -> coffeeDao.insertCoffees(listOf(c)) }
+                } else if (localCoffee.isCustom && localCoffee.imageUrl.isNotBlank()) {
+                    // Si es custom y ya tiene imagen local, nos aseguramos de no perderla si el remoto viene vacío por delay de sync
+                    val remoteCoffee = supabaseDataSource.getCustomCoffees(user.id).find { it.id == item.coffeeId }?.toCoffee()
+                    if (remoteCoffee != null && remoteCoffee.imageUrl.isBlank()) {
+                        coffeeDao.insertCoffees(listOf(remoteCoffee.copy(imageUrl = localCoffee.imageUrl)))
+                    } else if (remoteCoffee != null) {
+                        coffeeDao.insertCoffees(listOf(remoteCoffee))
+                    }
                 }
-                diaryDao.upsertPantryItem(it)
+                diaryDao.upsertPantryItem(item)
             }
             Log.d("DiaryRepository", "Pantry items synced: ${remoteItems.size}")
         } catch (e: Exception) {
