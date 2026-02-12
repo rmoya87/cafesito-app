@@ -30,8 +30,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
@@ -456,10 +456,10 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                             .drawWithContent {
                                 drawContent()
                                 drawRect(
-                                    brush = Brush.horizontalGradient(
+                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                                         listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
                                         startX = 0f,
-                                        endX = size.width
+                                        endX = this.size.width
                                     ),
                                     blendMode = BlendMode.DstIn
                                 )
@@ -502,10 +502,10 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                             .drawWithContent {
                                 drawContent()
                                 drawRect(
-                                    brush = Brush.horizontalGradient(
+                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                                         listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
                                         startX = 0f,
-                                        endX = size.width
+                                        endX = this.size.width
                                     ),
                                     blendMode = BlendMode.DstIn
                                 )
@@ -760,10 +760,10 @@ private fun ReviewDetailsStepPremium(
                             .drawWithContent {
                                 drawContent()
                                 drawRect(
-                                    brush = Brush.horizontalGradient(
+                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                                         listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
                                         startX = 0f,
-                                        endX = size.width
+                                        endX = this.size.width
                                     ),
                                     blendMode = BlendMode.DstIn
                                 )
@@ -806,10 +806,10 @@ private fun ReviewDetailsStepPremium(
                             .drawWithContent {
                                 drawContent()
                                 drawRect(
-                                    brush = Brush.horizontalGradient(
+                                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                                         listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
                                         startX = 0f,
-                                        endX = size.width
+                                        endX = this.size.width
                                     ),
                                     blendMode = BlendMode.DstIn
                                 )
