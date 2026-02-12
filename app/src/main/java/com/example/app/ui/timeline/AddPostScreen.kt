@@ -405,6 +405,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     onValueChange = {
                         commentValue = it
                         viewModel.onCommentChanged(it.text)
+                        if (it.text.endsWith("@")) showEmojiPanel = false
                     },
                     placeholder = { Text("¿Qué estás pensando?") },
                     modifier = Modifier
@@ -431,6 +432,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                         val updated = commentValue.text + "@"
                         commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
                         viewModel.onCommentChanged(updated)
+                        showEmojiPanel = false
                         focusRequester.requestFocus()
                         keyboardController?.show()
                     },
@@ -445,7 +447,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     .offset(y = (-52).dp)
             ) {
                 AnimatedVisibility(
-                    visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
+                    visible = mentionSuggestions.isNotEmpty() && !showEmojiPanel && !commentValue.text.trim().endsWith("@"),
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
@@ -466,12 +468,23 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                                 border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
                                 color = MaterialTheme.colorScheme.surface
                             ) {
-                                Text(
-                                    text = "@${user.username}",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = user.avatarUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp).clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "@${user.username}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -683,6 +696,7 @@ private fun ReviewDetailsStepPremium(
                     onValueChange = {
                         commentValue = it
                         viewModel.onCommentChanged(it.text)
+                        if (it.text.endsWith("@")) showEmojiPanel = false
                     },
                     placeholder = { Text("¿Qué te ha parecido este café?") },
                     modifier = Modifier
@@ -709,6 +723,7 @@ private fun ReviewDetailsStepPremium(
                         val updated = commentValue.text + "@"
                         commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
                         viewModel.onCommentChanged(updated)
+                        showEmojiPanel = false
                         focusRequester.requestFocus()
                         keyboardController?.show()
                     },
@@ -719,11 +734,11 @@ private fun ReviewDetailsStepPremium(
             // Overlay for Suggestions/Emojis
             Column(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-48).dp)
+                    .align(Alignment.BottomCenter)
+                    .offset(y = (-52).dp)
             ) {
                 AnimatedVisibility(
-                    visible = mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@"),
+                    visible = mentionSuggestions.isNotEmpty() && !showEmojiPanel && !commentValue.text.trim().endsWith("@"),
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
@@ -744,12 +759,23 @@ private fun ReviewDetailsStepPremium(
                                 border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
                                 color = MaterialTheme.colorScheme.surface
                             ) {
-                                Text(
-                                    text = "@${user.username}",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = user.avatarUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp).clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "@${user.username}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
