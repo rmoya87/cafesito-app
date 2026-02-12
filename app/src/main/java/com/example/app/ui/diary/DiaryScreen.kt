@@ -106,12 +106,6 @@ fun DiaryScreen(
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-                    Text(
-                        text = selectedItem.coffee.nombre.uppercase(),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
                     ModalMenuOption(
                         title = "Editar stock",
                         icon = Icons.Default.Edit,
@@ -132,10 +126,11 @@ fun DiaryScreen(
                             if (selectedItem.isCustom) onEditCoffeeClick(id) else onEditStockClick(id, false)
                         }
                     )
+                    val deleteIconColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                     ModalMenuOption(
                         title = "Eliminar de la despensa",
                         icon = Icons.Default.Delete,
-                        color = ErrorRed,
+                        color = deleteIconColor,
                         onClick = { 
                             itemToDeleteId = showPantryOptionsId
                             showPantryOptionsId = null 
