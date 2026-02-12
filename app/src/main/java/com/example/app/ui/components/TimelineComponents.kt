@@ -376,8 +376,6 @@ fun CommentsSheet(
                         }
                     }
                 }
-                }
-
             }
         }
     }
