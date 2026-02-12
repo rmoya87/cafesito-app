@@ -107,12 +107,16 @@ class AddPostViewModel @Inject constructor(
         viewModelScope.launch {
             val images = withContext(Dispatchers.IO) {
                 val list = mutableListOf<Uri>()
-                val projection = arrayOf(MediaStore.Images.Media._ID)
+                val projection = arrayOf(
+                    MediaStore.Images.Media._ID,
+                    MediaStore.Images.Media.DATE_ADDED
+                )
                 val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
                 
                 try {
+                    val queryUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
                     context.contentResolver.query(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        queryUri,
                         projection,
                         null,
                         null,
@@ -121,10 +125,13 @@ class AddPostViewModel @Inject constructor(
                         val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
                         while (cursor.moveToNext()) {
                             val id = cursor.getLong(idColumn)
-                            list.add(ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id))
+                            val contentUri = ContentUris.withAppendedId(queryUri, id)
+                            list.add(contentUri)
                         }
                     }
-                } catch (e: Exception) { e.printStackTrace() }
+                } catch (e: Exception) { 
+                    Log.e("AddPostVM", "Error loading gallery", e)
+                }
                 list
             }
             _galleryImages.value = images
