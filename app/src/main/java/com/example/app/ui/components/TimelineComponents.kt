@@ -192,31 +192,16 @@ fun CommentsSheet(
                 // Overlay for Suggestions
                 Column(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = (-48).dp) // Adjust based on suggestion height
+                        .align(Alignment.BottomCenter)
+                        .offset(y = (-52).dp) 
                 ) {
                     AnimatedVisibility(
                         visible = suggestions.isNotEmpty() && !textValue.text.trim().endsWith("@"),
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
-                        LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                                .drawWithContent {
-                                    drawContent()
-                                    drawRect(
-                                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                            listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
-                                            startX = 0f,
-                                            endX = this.size.width
-                                        ),
-                                        blendMode = BlendMode.DstIn
-                                    )
-                                }
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        FadingLazyRow(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         ) {
                             items(suggestions) { user ->
                                 SuggestionChip(user) {
@@ -233,23 +218,8 @@ fun CommentsSheet(
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
-                        LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                                .drawWithContent {
-                                    drawContent()
-                                    drawRect(
-                                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                            listOf(Color.Transparent, Color.Black, Color.Black, Color.Transparent),
-                                            startX = 0f,
-                                            endX = this.size.width
-                                        ),
-                                        blendMode = BlendMode.DstIn
-                                    )
-                                }
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        FadingLazyRow(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         ) {
                             items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
                                 Surface(
@@ -1340,4 +1310,49 @@ fun DeleteConfirmationDialog(
             }
         }
     }
+}
+
+@Composable
+fun FadingLazyRow(
+    modifier: Modifier = Modifier,
+    content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
+) {
+    val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val showLeftGradient by remember {
+        derivedStateOf { scrollState.firstVisibleItemIndex > 0 || scrollState.firstVisibleItemScrollOffset > 0 }
+    }
+    val showRightGradient by remember {
+        derivedStateOf {
+            val layoutInfo = scrollState.layoutInfo
+            val totalItemsCount = layoutInfo.totalItemsCount
+            if (totalItemsCount == 0) false
+            else {
+                val lastItem = layoutInfo.visibleItemsInfo.lastOrNull()
+                lastItem == null || lastItem.index < totalItemsCount - 1 || lastItem.offset + lastItem.size > layoutInfo.viewportEndOffset
+            }
+        }
+    }
+
+    androidx.compose.foundation.lazy.LazyRow(
+        state = scrollState,
+        modifier = modifier
+            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+            .drawWithContent {
+                drawContent()
+                val leftColor = if (showLeftGradient) Color.Transparent else Color.Black
+                val rightColor = if (showRightGradient) Color.Transparent else Color.Black
+                
+                drawRect(
+                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        0.0f to leftColor,
+                        0.05f to Color.Black,
+                        0.95f to Color.Black,
+                        1.0f to rightColor
+                    ),
+                    blendMode = BlendMode.DstIn
+                )
+            },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        content = content
+    )
 }

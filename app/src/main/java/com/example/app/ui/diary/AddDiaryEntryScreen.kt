@@ -261,7 +261,23 @@ fun CoffeeSelectionStepPremium(
         contentPadding = PaddingValues(24.dp)
     ) {
         item {
-            Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                
+                TextButton(
+                    onClick = onAddNotFoundClick,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Añadir mi café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                }
+            }
             Spacer(Modifier.height(16.dp))
             if (pantryItems.isEmpty()) {
                 PremiumCard {
@@ -270,17 +286,6 @@ fun CoffeeSelectionStepPremium(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("Tu despensa está vacía", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = onAddNotFoundClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier.height(44.dp)
-                        ) {
-                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimary)
-                            Spacer(Modifier.width(8.dp))
-                            Text("AÑADIR MI CAFÉ A DESPENSA", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
-                        }
                     }
                 }
             } else {

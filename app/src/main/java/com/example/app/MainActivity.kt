@@ -509,7 +509,7 @@ fun AppNavigation(
                 AddDiaryEntryScreen(
                     initialType = type,
                     onBackClick = { navController.popBackStack() },
-                    onAddNotFoundClick = { navController.navigate("addPantryItem?onlyActivity=true") }
+                    onAddNotFoundClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=diary_entry") }
                 )
             }
 
@@ -527,6 +527,9 @@ fun AppNavigation(
                     onBackClick = { navigateTo ->
                         if (origin == "brewlab" && navigateTo != null) {
                             navController.popBackStack("brewlab", inclusive = false)
+                        } else if (origin == "diary_entry") {
+                            // Si venimos de registrar café, solo volvemos atrás para que se refresque la lista
+                            navController.popBackStack()
                         } else if (navigateTo != null) {
                             navController.navigate("diary?navigateTo=$navigateTo") {
                                 popUpTo("diary") { inclusive = true }
