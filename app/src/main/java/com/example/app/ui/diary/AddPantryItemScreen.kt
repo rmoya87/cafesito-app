@@ -345,7 +345,8 @@ fun AddPantryItemScreen(
         if (showImagePickerSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showImagePickerSheet = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                scrimColor = Color.Black.copy(alpha = 0.5f)
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                     Text(
