@@ -209,7 +209,7 @@ fun ProfileScreen(
                                 item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("No hay cafés favoritos", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                             } else {
                                 items(state.favoriteCoffees, key = { it.coffee.id }) { coffee ->
-                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                                         SwipeableFavoriteItem(
                                             coffeeDetails = coffee,
                                             onRemoveFromFavorites = { viewModel.onToggleFavorite(coffee.coffee.id, false) },

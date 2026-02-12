@@ -183,7 +183,7 @@ fun ProfileFavorites(
 ) {
     LazyColumn(state = listState, contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
         items(favoriteCoffees) { item ->
-            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                 CoffeeFavoritePremiumItem(
                     coffeeDetails = item,
                     onFavoriteClick = { viewModel.onToggleFavorite(item.coffee.id, false) },
@@ -380,31 +380,71 @@ fun CoffeeFavoritePremiumItem(
     }
 }
 
+
 /** Fila de café en listado de favoritos (sin corazón). Para quitar de favoritos usar swipe. */
 @Composable
 fun CoffeeFavoriteListItem(
     coffeeDetails: CoffeeWithDetails,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit
 ) {
-    PremiumCard(
-        modifier = Modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        shadowElevation = 2.dp
     ) {
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = coffeeDetails.coffee.imageUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+        Box {
+            Row(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(12.dp))
-            )
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text(text = coffeeDetails.coffee.marca, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    .padding(12.dp)
+                    .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = coffeeDetails.coffee.imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
+                
+                Spacer(Modifier.width(16.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = coffeeDetails.coffee.nombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = coffeeDetails.coffee.marca,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onFavoriteClick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(28.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    tint = ElectricRed,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -445,7 +485,11 @@ fun SwipeableFavoriteItem(
             }
         }
     ) {
-        CoffeeFavoriteListItem(coffeeDetails = coffeeDetails, onClick = onClick)
+        CoffeeFavoriteListItem(
+            coffeeDetails = coffeeDetails, 
+            onClick = onClick,
+            onFavoriteClick = onRemoveFromFavorites
+        )
     }
 }
 

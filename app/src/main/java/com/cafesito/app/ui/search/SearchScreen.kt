@@ -430,7 +430,7 @@ fun SearchScreen(
                             ) {
                                 itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
                                     LaunchedEffect(index) { viewModel.onItemDisplayed(index) }
-                                    Box(modifier = Modifier.padding(vertical = 10.dp)) {
+                                    Box(modifier = Modifier.padding(vertical = 4.dp)) {
                                         CoffeePremiumListItem(
                                             coffeeDetails = coffeeDetails,
                                             onCoffeeClick = onCoffeeClick,
@@ -639,39 +639,63 @@ private fun CoffeePremiumListItem(
     onCoffeeClick: (String) -> Unit,
     onFavoriteClick: () -> Unit
 ) {
-    val coffee = coffeeDetails.coffee
-    PremiumCard(modifier = Modifier.clickable { onCoffeeClick(coffee.id) }) {
-        Column {
-            Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
-                AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)), startY = 300f)))
-                Surface(modifier = Modifier.padding(16.dp).align(Alignment.TopEnd).size(36.dp), color = Color.White.copy(alpha = 0.9f), shape = CircleShape) {
-                    IconButton(onClick = onFavoriteClick) {
-                        Icon(imageVector = if (coffeeDetails.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, tint = if (coffeeDetails.isFavorite) ElectricRed else Color.Gray, modifier = Modifier.size(18.dp))
-                    }
-                }
-                Row(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Surface(color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(16.dp)) {
-                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("NOTA", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontSize = 8.sp)
-                            Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = Color.Black)
-                        }
-                    }
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCoffeeClick(coffeeDetails.coffee.id) },
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        shadowElevation = 2.dp
+    ) {
+        Box {
+            Row(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = coffeeDetails.coffee.imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
+                
+                Spacer(Modifier.width(16.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = coffeeDetails.coffee.nombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = coffeeDetails.coffee.marca,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+
+            IconButton(
+                onClick = onFavoriteClick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(28.dp)
             ) {
-                coffeeDetails.coffee.paisOrigen?.let { TagChip("PAÍS", it) }
-                TagChip("ESTILO", coffeeDetails.coffee.especialidad)
-                TagChip("TUESTE", coffeeDetails.coffee.tueste)
+                Icon(
+                    imageVector = if (coffeeDetails.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = null,
+                    tint = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
