@@ -91,6 +91,7 @@ function toCoffeeRow(product: OpenFoodProduct) {
 
   return {
     id: code,
+    // Campos mapeados solicitados
     nombre: (product.product_name_es ?? product.product_name ?? "").trim(),
     marca: mapMarca(product),
     formato: mapFormato(product.categories, product.categories_tags),
@@ -99,6 +100,29 @@ function toCoffeeRow(product: OpenFoodProduct) {
     codigo_barras: code,
     especialidad: mapEspecialidad(product.categories, product.categories_tags),
     product_url: (product.url ?? "").trim(),
+
+    // Campos con valores por defecto para evitar NOT NULL en esquemas estrictos
+    variedad_tipo: null,
+    descripcion: "",
+    fuente_puntuacion: null,
+    puntuacion_oficial: null,
+    notas_cata: "",
+    cafeina: "",
+    tueste: "",
+    proceso: "",
+    ratio_recomendado: null,
+    molienda_recomendada: "",
+    aroma: 0,
+    sabor: 0,
+    retrogusto: 0,
+    acidez: 0,
+    cuerpo: 0,
+    uniformidad: 0,
+    dulzura: 0,
+    puntuacion_total: 0,
+    is_custom: false,
+    user_id: null,
+
     // opcional de trazabilidad (solo si existe columna):
     // off_raw_json: product,
   };
@@ -146,7 +170,7 @@ async function fetchPage(page: number): Promise<OpenFoodResponse> {
   return (await response.json()) as OpenFoodResponse;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return new Response(
       JSON.stringify({ ok: false, error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" }),
@@ -155,6 +179,16 @@ Deno.serve(async () => {
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+  let maxPages: number | null = null;
+  try {
+    const body = await req.json();
+    if (typeof body?.max_pages === "number" && body.max_pages > 0) {
+      maxPages = Math.floor(body.max_pages);
+    }
+  } catch {
+    // body opcional
+  }
 
   let page = 1;
   let totalFetched = 0;
@@ -192,6 +226,9 @@ Deno.serve(async () => {
     }
 
     page += 1;
+    if (maxPages !== null && page > maxPages) {
+      break;
+    }
   }
 
   return new Response(
@@ -199,6 +236,8 @@ Deno.serve(async () => {
       ok: true,
       fetched: totalFetched,
       upserted: totalUpserted,
+      pages_processed: page - 1,
+      max_pages: maxPages,
       filters: {
         categories: "cafe",
         countries: "espana",
