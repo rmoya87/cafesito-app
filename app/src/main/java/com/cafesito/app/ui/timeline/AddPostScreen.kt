@@ -300,81 +300,57 @@ private fun PhotoSelectionStepPremium(
         Spacer(Modifier.height(8.dp))
         
         // Grid
-        if (galleryImages.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No se encontraron fotos locales", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = onGalleryClick,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Abrir Galería del Sistema")
-                    }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentPadding = PaddingValues(bottom = 140.dp, top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (galleryImages.isEmpty()) {
+                item(span = { GridItemSpan(3) }) {
+                   Box(
+                       modifier = Modifier.fillMaxSize().padding(top = 40.dp), 
+                       contentAlignment = Alignment.Center
+                   ) {
+                       Text(
+                           text = "No tienes fotos disponibles en tu dispositivo", 
+                           style = MaterialTheme.typography.bodySmall, 
+                           color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                           textAlign = TextAlign.Center
+                       )
+                   }
                 }
             }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentPadding = PaddingValues(bottom = 140.dp, top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                item {
-                    // "Other Photos" / System Picker Tile
-                    Surface(
-                        onClick = onGalleryClick,
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(12.dp)),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(Icons.Default.Collections, null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.height(4.dp))
-                            Text("Más", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
 
-                items(galleryImages) { uri ->
-                    val isSelected = imageSource == uri
-                    Box(
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { viewModel.setImage(uri) }
-                    ) {
-                        AsyncImage(
-                            model = uri,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                        
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.3f))
-                                    .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(20.dp)
-                                )
-                            }
+            items(galleryImages) { uri ->
+                val isSelected = imageSource == uri
+                Box(
+                    modifier = Modifier
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { viewModel.setImage(uri) }
+                ) {
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    
+                    if (isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.3f))
+                                .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(20.dp)
+                            )
                         }
                     }
                 }
@@ -445,130 +421,95 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
                     .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
-                OutlinedTextField(
-                    value = commentValue,
-                    onValueChange = {
-                        commentValue = it
-                        viewModel.onCommentChanged(it.text)
-                        if (it.text.endsWith("@")) showEmojiPanel = false
-                    },
-                    placeholder = { Text("¿Qué estás pensando?") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 120.dp)
-                        .focusRequester(focusRequester),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                        unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                    OutlinedTextField(
+                        value = commentValue,
+                        onValueChange = {
+                            commentValue = it
+                            viewModel.onCommentChanged(it.text)
+                            if (it.text.endsWith("@")) showEmojiPanel = false
+                        },
+                        placeholder = { Text("¿Qué estás pensando?") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 120.dp)
+                            .focusRequester(focusRequester),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                            unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                        )
                     )
-                )
 
-                ComposerActionRow(
-                    onToggleEmoji = {
-                        showEmojiPanel = !showEmojiPanel
-                        if (!showEmojiPanel) keyboardController?.show()
-                    },
-                    onInsertMention = {
-                        val updated = commentValue.text + "@"
-                        commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                        viewModel.onCommentChanged(updated)
-                        showEmojiPanel = false
-                        focusRequester.requestFocus()
-                        keyboardController?.show()
-                    },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-                )
-            }
-
-            // Overlay for Suggestions/Emojis
-            val density = LocalDensity.current
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset(y = with(density) { -(composerHeight.toDp() + 8.dp) })
-            ) {
-                AnimatedVisibility(
-                    visible = mentionSuggestions.isNotEmpty() && !showEmojiPanel && !commentValue.text.trim().endsWith("@"),
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    FadingLazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    // Suggestions/Emojis moved inside above icons
+                    AnimatedVisibility(
+                        visible = (mentionSuggestions.isNotEmpty() && !showEmojiPanel && !commentValue.text.trim().endsWith("@")) || showEmojiPanel,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
                     ) {
-                        items(mentionSuggestions) { user ->
-                            Surface(
-                                onClick = {
-                                    val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
-                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                    viewModel.onCommentChanged(updated)
-                                    focusRequester.requestFocus()
-                                },
-                                shape = CircleShape,
-                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                                color = MaterialTheme.colorScheme.surface
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        Column {
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                            if (showEmojiPanel) {
+                                FadingLazyRow(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
-                                    AsyncImage(
-                                        model = user.avatarUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp).clip(CircleShape),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        text = "@${user.username}",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                                        Surface(
+                                            onClick = {
+                                                val updated = commentValue.text + emoji
+                                                commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                                viewModel.onCommentChanged(updated)
+                                                focusRequester.requestFocus()
+                                                keyboardController?.show()
+                                            },
+                                            modifier = Modifier.size(40.dp),
+                                            shape = CircleShape,
+                                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                            color = MaterialTheme.colorScheme.surface
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(emoji, fontSize = 16.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            } else if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
+                                FadingLazyRow(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    items(mentionSuggestions) { user ->
+                                        SuggestionChip(user = user) {
+                                            val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
+                                            commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                            viewModel.onCommentChanged(updated)
+                                            focusRequester.requestFocus()
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                AnimatedVisibility(
-                    visible = showEmojiPanel,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    FadingLazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                    ) {
-                        items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                            Surface(
-                                onClick = {
-                                    val updated = commentValue.text + emoji
-                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                    viewModel.onCommentChanged(updated)
-                                    focusRequester.requestFocus()
-                                    keyboardController?.show()
-                                },
-                                modifier = Modifier.size(40.dp),
-                                shape = CircleShape,
-                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                                color = MaterialTheme.colorScheme.surface
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(emoji, fontSize = 16.sp)
-                                }
-                            }
-                        }
-                    }
+                    ComposerActionRow(
+                        onToggleEmoji = {
+                            showEmojiPanel = !showEmojiPanel
+                            if (!showEmojiPanel) keyboardController?.show()
+                        },
+                        onInsertMention = {
+                            val updated = commentValue.text + "@"
+                            commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                            viewModel.onCommentChanged(updated)
+                            showEmojiPanel = false
+                            focusRequester.requestFocus()
+                            keyboardController?.show()
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                    )
                 }
             }
-        }
 
         Spacer(Modifier.height(16.dp))
 
@@ -761,6 +702,55 @@ private fun ReviewDetailsStepPremium(
                     )
                 )
 
+                // Suggestions/Emojis moved inside above icons
+                AnimatedVisibility(
+                    visible = (mentionSuggestions.isNotEmpty() && !showEmojiPanel && !commentValue.text.trim().endsWith("@")) || showEmojiPanel,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column {
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                        if (showEmojiPanel) {
+                            FadingLazyRow(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
+                                    Surface(
+                                        onClick = {
+                                            val updated = commentValue.text + emoji
+                                            commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                            viewModel.onCommentChanged(updated)
+                                            focusRequester.requestFocus()
+                                            keyboardController?.show()
+                                        },
+                                        modifier = Modifier.size(40.dp),
+                                        shape = CircleShape,
+                                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                        color = MaterialTheme.colorScheme.surface
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(emoji, fontSize = 16.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
+                            FadingLazyRow(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                items(mentionSuggestions) { user ->
+                                    SuggestionChip(user = user) {
+                                        val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
+                                        commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                        viewModel.onCommentChanged(updated)
+                                        focusRequester.requestFocus()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 ComposerActionRow(
                     onToggleEmoji = {
                         showEmojiPanel = !showEmojiPanel
@@ -776,89 +766,6 @@ private fun ReviewDetailsStepPremium(
                     },
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                 )
-            }
-
-            // Overlay for Suggestions/Emojis
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset(y = (-52).dp)
-            ) {
-                AnimatedVisibility(
-                    visible = mentionSuggestions.isNotEmpty() && !showEmojiPanel && !commentValue.text.trim().endsWith("@"),
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    FadingLazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                    ) {
-                        items(mentionSuggestions) { user ->
-                            Surface(
-                                onClick = {
-                                    val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
-                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                    viewModel.onCommentChanged(updated)
-                                    focusRequester.requestFocus()
-                                },
-                                shape = CircleShape,
-                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                                color = MaterialTheme.colorScheme.surface
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    AsyncImage(
-                                        model = user.avatarUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp).clip(CircleShape),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        text = "@${user.username}",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                AnimatedVisibility(
-                    visible = showEmojiPanel,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    FadingLazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                    ) {
-                        items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                            Surface(
-                                onClick = {
-                                    val updated = commentValue.text + emoji
-                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                    viewModel.onCommentChanged(updated)
-                                    focusRequester.requestFocus()
-                                    keyboardController?.show()
-                                },
-                                modifier = Modifier.size(40.dp),
-                                shape = CircleShape,
-                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                                color = MaterialTheme.colorScheme.surface
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(emoji, fontSize = 16.sp)
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
 
