@@ -645,8 +645,8 @@ private fun CoffeePremiumListItem(
             .clickable { onCoffeeClick(coffeeDetails.coffee.id) },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-        shadowElevation = 2.dp
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 0.dp
     ) {
         Box {
             Row(
@@ -693,7 +693,7 @@ private fun CoffeePremiumListItem(
                 Icon(
                     imageVector = if (coffeeDetails.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = null,
-                    tint = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.outline,
+                    tint = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp)
                 )
             }
