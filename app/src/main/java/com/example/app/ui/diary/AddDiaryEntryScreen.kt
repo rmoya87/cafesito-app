@@ -6,6 +6,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -104,6 +105,7 @@ fun AddDiaryEntryScreen(
                             allCoffees = allCoffees,
                             searchQuery = searchQuery,
                             onSearchQueryChange = { searchQuery = it },
+                            onAddNotFoundClick = onAddNotFoundClick,
                             onQuickAddClick = {
                                 selectedCoffee = null
                                 isFromPantry = false
@@ -242,6 +244,7 @@ fun CoffeeSelectionStepPremium(
     allCoffees: List<CoffeeWithDetails>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
+    onAddNotFoundClick: () -> Unit,
     onQuickAddClick: () -> Unit,
     onCoffeeSelected: (Coffee, Boolean) -> Unit
 ) {
