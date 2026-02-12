@@ -47,7 +47,10 @@ type OpenFoodResponse = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const PAGE_SIZE = 100;
+// OFF devuelve 500 "operation exceeded time limit" en páginas profundas.
+// Reducimos tamaño y añadimos reintentos para estabilizar la sync.
+const PAGE_SIZE = 50;
+const OFF_MAX_RETRIES = 3;
 
 function normalize(value: string): string {
   return value
@@ -91,7 +94,6 @@ function toCoffeeRow(product: OpenFoodProduct) {
 
   return {
     id: code,
-    // Campos mapeados solicitados
     nombre: (product.product_name_es ?? product.product_name ?? "").trim(),
     marca: mapMarca(product),
     formato: mapFormato(product.categories, product.categories_tags),
@@ -101,7 +103,7 @@ function toCoffeeRow(product: OpenFoodProduct) {
     especialidad: mapEspecialidad(product.categories, product.categories_tags),
     product_url: (product.url ?? "").trim(),
 
-    // Campos con valores por defecto para evitar NOT NULL en esquemas estrictos
+    // Defaults para esquemas con NOT NULL
     variedad_tipo: null,
     descripcion: "",
     fuente_puntuacion: null,
@@ -122,10 +124,20 @@ function toCoffeeRow(product: OpenFoodProduct) {
     puntuacion_total: 0,
     is_custom: false,
     user_id: null,
-
-    // opcional de trazabilidad (solo si existe columna):
-    // off_raw_json: product,
   };
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+function isOffTimeoutError(body: string): boolean {
+  const text = body.toLowerCase();
+  return text.includes("operation exceeded time limit") || text.includes("software error");
+}
+
+async function sleep(ms: number): Promise<void> {
+  return await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function fetchPage(page: number): Promise<OpenFoodResponse> {
@@ -161,13 +173,27 @@ async function fetchPage(page: number): Promise<OpenFoodResponse> {
     ].join(",")
   );
 
-  const response = await fetch(url.toString());
-  if (!response.ok) {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= OFF_MAX_RETRIES; attempt += 1) {
+    const response = await fetch(url.toString());
+    if (response.ok) {
+      return (await response.json()) as OpenFoodResponse;
+    }
+
     const text = await response.text();
-    throw new Error(`OpenFoodFacts request failed (${response.status}): ${text}`);
+    const retryable = isRetryableStatus(response.status) || isOffTimeoutError(text);
+    lastError = new Error(`OpenFoodFacts request failed page=${page} attempt=${attempt} status=${response.status}: ${text}`);
+
+    if (!retryable || attempt === OFF_MAX_RETRIES) {
+      throw lastError;
+    }
+
+    const delayMs = 500 * 2 ** (attempt - 1);
+    await sleep(delayMs);
   }
 
-  return (await response.json()) as OpenFoodResponse;
+  throw lastError ?? new Error(`OpenFoodFacts request failed page=${page}`);
 }
 
 Deno.serve(async (req) => {
@@ -181,10 +207,14 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
   let maxPages: number | null = null;
+  let stopOnOffError = false;
   try {
     const body = await req.json();
     if (typeof body?.max_pages === "number" && body.max_pages > 0) {
       maxPages = Math.floor(body.max_pages);
+    }
+    if (body?.stop_on_off_error === true) {
+      stopOnOffError = true;
     }
   } catch {
     // body opcional
@@ -193,11 +223,28 @@ Deno.serve(async (req) => {
   let page = 1;
   let totalFetched = 0;
   let totalUpserted = 0;
+  let partial = false;
+  let partialReason = "";
 
   while (true) {
-    const payload = await fetchPage(page);
-    const products = payload.products ?? [];
+    let payload: OpenFoodResponse;
+    try {
+      payload = await fetchPage(page);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (stopOnOffError) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "OpenFoodFacts fetch failed", details: message, page }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
 
+      partial = true;
+      partialReason = `OFF error at page ${page}: ${message}`;
+      break;
+    }
+
+    const products = payload.products ?? [];
     if (products.length === 0) break;
 
     const rows = products
@@ -234,10 +281,13 @@ Deno.serve(async (req) => {
   return new Response(
     JSON.stringify({
       ok: true,
+      partial,
+      partial_reason: partialReason,
       fetched: totalFetched,
       upserted: totalUpserted,
       pages_processed: page - 1,
       max_pages: maxPages,
+      page_size: PAGE_SIZE,
       filters: {
         categories: "cafe",
         countries: "espana",

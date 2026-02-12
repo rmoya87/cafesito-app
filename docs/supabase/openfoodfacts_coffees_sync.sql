@@ -16,6 +16,8 @@
 -- Llamada manual (opcional) para ejecutar la sync al momento.
 -- Tip debug: puedes limitar páginas para pruebas cambiando body a:
 --   '{"max_pages": 2}'::jsonb
+-- Si quieres que falle en vez de devolver éxito parcial ante error OFF:
+--   '{"max_pages": 10, "stop_on_off_error": true}'::jsonb
 select
   net.http_post(
     url := 'https://ubcxjmagimjhpsehqync.supabase.co/functions/v1/sync-openfoodfacts-coffees'::text,
