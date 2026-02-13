@@ -226,12 +226,6 @@ fun ChooseCoffeeStep(
         item {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onAddNotFoundClick) {
-                    Icon(Icons.Default.Bolt, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Añadir rápido")
-                }
             }
         }
 

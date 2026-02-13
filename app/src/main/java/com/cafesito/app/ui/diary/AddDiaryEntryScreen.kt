@@ -79,7 +79,7 @@ fun AddDiaryEntryScreen(
                     title = if (step == 1) {
                         if (quickStart) "SELECCIÓN RÁPIDA" else "SELECCIONAR CAFÉ"
                     } else {
-                        "SELECCIONA TU ESTILO"
+                        "REGISTRO RÁPIDO"
                     },
                     onBackClick = if (step == 1) onBackClick else ({ if (quickStart) onBackClick() else step = 1 })
                 )
@@ -415,7 +415,7 @@ fun CoffeeCustomizationStepPremium(
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp) // Espacio para el botón fijo
+            contentPadding = PaddingValues(bottom = 72.dp) // Espacio para el botón fijo
         ) {
             item {
                 Column(Modifier.padding(24.dp)) {
@@ -451,8 +451,7 @@ fun CoffeeCustomizationStepPremium(
                         Spacer(Modifier.height(32.dp))
                     }
 
-                    Text("ESTILO DE PREPARACIÓN", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
             }
 
@@ -508,13 +507,7 @@ fun CoffeeCustomizationStepPremium(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background.copy(alpha = 0.95f)),
-                        startY = 0f
-                    )
-                )
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp)
         ) {
             val calculatedCaffeine = CaffeineCalculator.calculate(
                 type = selectedPrepType,

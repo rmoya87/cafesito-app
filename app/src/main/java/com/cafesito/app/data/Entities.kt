@@ -283,8 +283,7 @@ data class DiaryEntryInsert(
     @SerialName("coffee_grams") val coffeeGrams: Int,
     @SerialName("preparation_type") val preparationType: String,
     @SerialName("timestamp") val timestamp: Long,
-    @SerialName("type") val type: String,
-    @SerialName("external_id") val externalId: String? = null
+    @SerialName("type") val type: String
 )
 
 @Serializable

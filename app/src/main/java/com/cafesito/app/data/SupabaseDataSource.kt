@@ -300,8 +300,7 @@ class SupabaseDataSource @Inject constructor(
             coffeeGrams = entry.coffeeGrams,
             preparationType = entry.preparationType,
             timestamp = entry.timestamp,
-            type = entry.type,
-            externalId = entry.externalId
+            type = entry.type
         )
         return client.postgrest["diary_entries"].insert(insertData) { select() }.decodeSingle<DiaryEntryEntity>()
     }
