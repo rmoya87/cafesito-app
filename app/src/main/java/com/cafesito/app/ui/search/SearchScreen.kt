@@ -88,6 +88,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -188,9 +189,16 @@ private fun SearchTopBar(
                                 singleLine = true,
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
-                                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                leadingIcon = { 
+                                    Box(modifier = Modifier.padding(start = 4.dp)) {
+                                        Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                                    }
+                                },
                                 trailingIcon = {
-                                    IconButton(onClick = onBarcodeClick) {
+                                    IconButton(
+                                        onClick = onBarcodeClick,
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    ) {
                                         BarcodeActionIcon(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -209,7 +217,7 @@ private fun SearchTopBar(
                                         ) { word -> Text(word, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                                     }
                                 },
-                                contentPadding = PaddingValues(top = 0.dp, bottom = 0.dp, start = 0.dp, end = 12.dp),
+                                contentPadding = PaddingValues(top = 0.dp, bottom = 0.dp, start = 0.dp, end = 0.dp),
                                 container = {
                                     OutlinedTextFieldDefaults.Container(
                                         enabled = true,
@@ -254,7 +262,7 @@ private fun SearchTopBar(
 }
 
 @Composable
-private fun BarcodeActionIcon(
+fun BarcodeActionIcon(
     tint: Color,
     modifier: Modifier = Modifier
 ) {
@@ -586,8 +594,7 @@ private fun RatingFilterContent(
                 text = if (displayRating == 0) "Cualquier nota" else "Nota: $displayRating+",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+                color = MaterialTheme.colorScheme.onSurface)
             if (displayRating > 0) {
                 Spacer(Modifier.width(4.dp))
                 Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))

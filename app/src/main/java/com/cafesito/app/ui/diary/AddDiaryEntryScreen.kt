@@ -41,8 +41,12 @@ import com.cafesito.app.data.Coffee
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.components.*
+import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.utils.*
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -62,6 +66,7 @@ fun AddDiaryEntryScreen(
     var isFromPantry by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -115,6 +120,25 @@ fun AddDiaryEntryScreen(
                                 selectedCoffee = coffee
                                 isFromPantry = fromPantry
                                 step = 2 
+                            },
+                            onBarcodeClick = {
+                                val options = GmsBarcodeScannerOptions.Builder()
+                                    .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                                    .build()
+                                GmsBarcodeScanning.getClient(context, options)
+                                    .startScan()
+                                    .addOnSuccessListener { barcode ->
+                                        barcode.rawValue?.let { value ->
+                                            val found = allCoffees.find { it.coffee.codigoBarras == value }
+                                            if (found != null) {
+                                                selectedCoffee = found.coffee
+                                                isFromPantry = false
+                                                step = 2
+                                            } else {
+                                                searchQuery = value
+                                            }
+                                        }
+                                    }
                             }
                         )
                     } else {
@@ -126,7 +150,6 @@ fun AddDiaryEntryScreen(
                             onRegister = { name, caffeine, ml, grams, prepType ->
                                 scope.launch {
                                     isSaving = true
-                                    // Pasamos el ID del café seleccionado para que se registre correctamente en la actividad
                                     viewModel.addCoffeeConsumption(
                                         coffeeId = selectedCoffee?.id, 
                                         coffeeName = name, 
@@ -136,7 +159,6 @@ fun AddDiaryEntryScreen(
                                         coffeeGrams = grams, 
                                         preparationType = prepType
                                     )
-                                    // No desactivamos isSaving aquí para evitar clics extra mientras navegamos atrás
                                     onBackClick()
                                 }
                             }
@@ -246,9 +268,10 @@ fun CoffeeSelectionStepPremium(
     onSearchQueryChange: (String) -> Unit,
     onAddNotFoundClick: () -> Unit,
     onQuickAddClick: () -> Unit,
-    onCoffeeSelected: (Coffee, Boolean) -> Unit
+    onCoffeeSelected: (Coffee, Boolean) -> Unit,
+    onBarcodeClick: () -> Unit
 ) {
-    // Solo mostramos cafés oficiales en sugerencias
+    val isDark = isSystemInDarkTheme()
     val filteredCatalog = allCoffees.filter { 
         !it.coffee.isCustom && (
             it.coffee.nombre.contains(searchQuery, ignoreCase = true) || 
@@ -310,11 +333,25 @@ fun CoffeeSelectionStepPremium(
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White,
-                    focusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+                    unfocusedContainerColor = if (isDark) Color.Black else Color.White,
+                    focusedContainerColor = if (isDark) Color.Black else Color.White
                 ),
                 singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                leadingIcon = { 
+                    Box(modifier = Modifier.padding(start = 4.dp)) {
+                        Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                    }
+                },
+                trailingIcon = {
+                    IconButton(
+                        onClick = onBarcodeClick,
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        BarcodeActionIcon(
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             )
             Spacer(Modifier.height(16.dp))
             
@@ -469,7 +506,6 @@ fun CoffeeCustomizationStepPremium(
             }
         }
 
-        // Botón fijo en la parte inferior
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -498,6 +534,7 @@ fun CoffeeCustomizationStepPremium(
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        @Suppress("DEPRECATION")
                         Text("AÑADIR REGISTRO", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onPrimary)
                         Text("ESTIMACIÓN: $calculatedCaffeine MG CAFEÍNA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
                     }

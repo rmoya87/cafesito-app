@@ -8,6 +8,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.annotations.SupabaseInternal
+import io.github.jan.supabase.serializer.KotlinXSerializer
 import io.ktor.client.plugins.HttpTimeout
 import dagger.Module
 import dagger.Provides
@@ -15,6 +16,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.serialization.json.Json
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -30,12 +32,18 @@ object SupabaseModule {
         ) {
             install(Postgrest)
             install(Auth) {
-                // En la versión 2.6.x la propiedad es autoRefresh
-                // Si falla, es porque falta el import de auth
                 alwaysAutoRefresh = true
             }
             install(Realtime)
             install(Storage)
+
+            // Configurar el serializador para ser más flexible con los datos de la DB
+            defaultSerializer = KotlinXSerializer(Json {
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+                encodeDefaults = true
+                isLenient = true
+            })
 
             // Configuración global de HTTP usando el plugin de Ktor
             httpConfig {

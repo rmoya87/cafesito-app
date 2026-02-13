@@ -3,6 +3,7 @@ package com.cafesito.app.ui.timeline
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -332,6 +333,7 @@ fun TimelineScreen(
                                 strokeWidth = 2.2.dp
                             )
                             Spacer(Modifier.width(10.dp))
+                            @Suppress("DEPRECATION")
                             Text(
                                 text = "Publicando tu contenido...",
                                 style = MaterialTheme.typography.labelLarge,

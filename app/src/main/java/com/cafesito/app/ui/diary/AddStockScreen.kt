@@ -1,6 +1,7 @@
 package com.cafesito.app.ui.diary
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,13 +17,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.ui.components.*
+import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,12 +40,15 @@ fun AddStockScreen(
 ) {
     val coffees by viewModel.availableCoffees.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
     
     val filteredSuggestions = remember(coffees, searchQuery) {
         coffees.filter { 
             !it.coffee.isCustom && (
                 it.coffee.nombre.contains(searchQuery, ignoreCase = true) || 
-                it.coffee.marca.contains(searchQuery, ignoreCase = true)
+                it.coffee.marca.contains(searchQuery, ignoreCase = true) ||
+                it.coffee.codigoBarras == searchQuery
             )
         }.sortedByDescending { it.isFavorite }
     }
@@ -140,9 +149,43 @@ fun AddStockScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Busca un café o marca") },
                     shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedContainerColor = if (isDark) Color.Black else Color.White,
+                        focusedContainerColor = if (isDark) Color.Black else Color.White
+                    ),
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    leadingIcon = { 
+                        Box(modifier = Modifier.padding(start = 4.dp)) {
+                            Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                        }
+                    },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                val options = GmsBarcodeScannerOptions.Builder()
+                                    .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                                    .build()
+                                GmsBarcodeScanning.getClient(context, options)
+                                    .startScan()
+                                    .addOnSuccessListener { barcode ->
+                                        barcode.rawValue?.let { value ->
+                                            searchQuery = value
+                                            // Si hay match directo, seleccionamos
+                                            val found = coffees.find { it.coffee.codigoBarras == value }
+                                            if (found != null) {
+                                                selectedCoffeeId = found.coffee.id
+                                            }
+                                        }
+                                    }
+                            },
+                            modifier = Modifier.padding(end = 4.dp)
+                        ) {
+                            BarcodeActionIcon(
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 )
                 Spacer(Modifier.height(8.dp))
             }
