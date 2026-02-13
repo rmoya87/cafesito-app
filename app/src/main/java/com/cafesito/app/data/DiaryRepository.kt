@@ -99,7 +99,8 @@ class DiaryRepository @Inject constructor(
         type: String = "CUP", 
         amountMl: Int = 250,
         coffeeGrams: Int = 15,
-        preparationType: String = "Espresso"
+        preparationType: String = "Espresso",
+        reduceFromPantry: Boolean = true
     ) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
         val entry = DiaryEntryEntity(
@@ -112,7 +113,7 @@ class DiaryRepository @Inject constructor(
         val rowId = diaryDao.insertDiaryEntry(entry)
         val entryWithId = entry.copy(id = rowId)
         
-        if (coffeeId != null && type == "CUP") {
+        if (coffeeId != null && type == "CUP" && reduceFromPantry) {
             val pantryItems = diaryDao.getPantryItems(user.id).first()
             val pantryItem = pantryItems.find { it.coffeeId == coffeeId }
             if (pantryItem != null) {
