@@ -555,7 +555,6 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
         ModalBottomSheet(
             onDismissRequest = { showPickerSheet = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
             // scrimColor removed
         ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {

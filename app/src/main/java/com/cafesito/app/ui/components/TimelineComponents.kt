@@ -130,8 +130,6 @@ fun CommentsSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         // scrimColor removed as it caused compilation error
     ) {
         Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
@@ -357,7 +355,6 @@ fun CommentsSheet(
         ModalBottomSheet(
             onDismissRequest = { showImagePickerSheet = false }, 
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
             // scrimColor removed
         ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
@@ -446,8 +443,6 @@ fun NotificationsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         // scrimColor removed
     ) {
         Column(Modifier
