@@ -19,6 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -296,28 +298,53 @@ fun TimelineScreen(
 
             AnimatedVisibility(
                 visible = isPublishingContent,
-                enter = fadeIn(),
-                exit = fadeOut(),
+                enter = fadeIn(tween(220)) + slideInVertically(initialOffsetY = { -it / 2 }),
+                exit = fadeOut(tween(180)) + slideOutVertically(targetOffsetY = { -it / 2 }),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 12.dp)
                     .padding(horizontal = 16.dp)
             ) {
+                val premiumGradient = Brush.horizontalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f)
+                    )
+                )
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 4.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    tonalElevation = 10.dp,
+                    shadowElevation = 8.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
                 ) {
-                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                        Text(
-                            text = "Publicando tu contenido...",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                    Column(
+                        modifier = Modifier
+                            .background(premiumGradient)
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.2.dp
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = "Publicando tu contenido...",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(50)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
                         )
-                        Spacer(Modifier.height(8.dp))
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
                 }
             }

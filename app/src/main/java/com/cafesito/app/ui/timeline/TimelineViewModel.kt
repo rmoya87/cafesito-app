@@ -27,7 +27,9 @@ import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,6 +57,7 @@ class TimelineViewModel @Inject constructor(
     private val _isPublishingContent = MutableStateFlow(false)
     val isPublishingContent: StateFlow<Boolean> = _isPublishingContent.asStateFlow()
     private var publishingStartedAt: Long? = null
+    private var publishingAutoHideJob: Job? = null
 
     private val pageSize = 10
     private val loadThreshold = 2
@@ -64,8 +67,22 @@ class TimelineViewModel @Inject constructor(
 
 
     fun startPublishingContent() {
+        publishingAutoHideJob?.cancel()
         publishingStartedAt = System.currentTimeMillis()
         _isPublishingContent.value = true
+        publishingAutoHideJob = viewModelScope.launch {
+            delay(8_000)
+            if (_isPublishingContent.value) {
+                stopPublishingContent()
+            }
+        }
+    }
+
+    private fun stopPublishingContent() {
+        _isPublishingContent.value = false
+        publishingStartedAt = null
+        publishingAutoHideJob?.cancel()
+        publishingAutoHideJob = null
     }
 
     private fun maybeFinishPublishing(data: TimelineBaseData) {
@@ -79,8 +96,7 @@ class TimelineViewModel @Inject constructor(
         }
         val isTimedOut = System.currentTimeMillis() - startedAt > 45_000
         if (hasOwnRecentContent || isTimedOut) {
-            _isPublishingContent.value = false
-            publishingStartedAt = null
+            stopPublishingContent()
         }
     }
 
@@ -93,6 +109,9 @@ class TimelineViewModel @Inject constructor(
                 userRepository.syncUsers()
                 socialRepository.syncSocialData()
                 coffeeRepository.syncCoffees()
+                if (_isPublishingContent.value) {
+                    stopPublishingContent()
+                }
             } catch (e: Exception) {
                 Log.e("TimelineVM", "Error in refreshData", e)
             } finally {

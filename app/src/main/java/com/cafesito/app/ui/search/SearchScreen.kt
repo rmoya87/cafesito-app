@@ -85,8 +85,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -189,9 +191,7 @@ private fun SearchTopBar(
                                 leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 trailingIcon = {
                                     IconButton(onClick = onBarcodeClick) {
-                                        Icon(
-                                            imageVector = Icons.Default.QrCodeScanner,
-                                            contentDescription = "Escanear código de barras",
+                                        BarcodeActionIcon(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
@@ -249,6 +249,31 @@ private fun SearchTopBar(
                 onFilterClick = onFilterClick,
                 isLoading = isLoading
             )
+        }
+    }
+}
+
+@Composable
+private fun BarcodeActionIcon(
+    tint: Color,
+    modifier: Modifier = Modifier
+) {
+    androidx.compose.foundation.Canvas(
+        modifier = modifier.size(22.dp)
+    ) {
+        val bars = listOf(1.5f, 3f, 1.5f, 2f, 1.2f, 2.8f, 1.4f, 2.2f, 1f, 2.8f)
+        val spacing = 1.6.dp.toPx()
+        var x = 0f
+        bars.forEach { wDp ->
+            val width = wDp.dp.toPx()
+            drawRoundRect(
+                color = tint,
+                topLeft = androidx.compose.ui.geometry.Offset(x, size.height * 0.12f),
+                size = Size(width, size.height * 0.76f),
+                cornerRadius = CornerRadius(width / 2f, width / 2f),
+                style = Fill
+            )
+            x += width + spacing
         }
     }
 }
