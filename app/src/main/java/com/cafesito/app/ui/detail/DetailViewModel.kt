@@ -33,12 +33,23 @@ class DetailViewModel @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DetailUiState> = combine(
-        userRepository.getActiveUserFlow(),
-        coffeeRepository.getCoffeeWithDetailsById(coffeeId),
-        socialRepository.getReviewsForCoffee(coffeeId),
-        diaryRepository.getPantryItems(),
+        combine(
+            userRepository.getActiveUserFlow(),
+            coffeeRepository.getCoffeeWithDetailsById(coffeeId),
+            socialRepository.getReviewsForCoffee(coffeeId),
+            socialRepository.getSensoryProfilesForCoffee(coffeeId),
+            diaryRepository.getPantryItems()
+        ) { activeUser, coffee, allReviews, sensoryProfiles, pantryItems ->
+            PentaState(activeUser, coffee, allReviews, sensoryProfiles, pantryItems)
+        },
         coffeeRepository.favorites
-    ) { activeUser, coffee, allReviews, pantryItems, favorites ->
+    ) { penta, favorites ->
+        val activeUser = penta.activeUser
+        val coffee = penta.coffee
+        val allReviews = penta.allReviews
+        val sensoryProfiles = penta.sensoryProfiles
+        val pantryItems = penta.pantryItems
+
         if (coffee == null) return@combine DetailUiState.Error("Café no encontrado")
 
         val isFavoriteLocally = favorites.any { it.coffeeId == coffeeId && it.userId == activeUser?.id }
@@ -55,6 +66,21 @@ class DetailViewModel @Inject constructor(
 
         val userReview = allReviews.find { it.review.userId == activeUser?.id }?.review
 
+
+        val sensoryByUsers = sensoryProfiles.distinctBy { it.userId }
+        val sensoryEditorsCount = sensoryByUsers.size
+        fun avgOrDefault(selector: (CoffeeSensoryProfileEntity) -> Float, defaultValue: Float): Float {
+            val values = sensoryByUsers.map(selector)
+            return if (values.isEmpty()) defaultValue else values.average().toFloat()
+        }
+        val sensoryAverages = mapOf(
+            "Aroma" to avgOrDefault({ it.aroma }, coffee.coffee.aroma),
+            "Sabor" to avgOrDefault({ it.sabor }, coffee.coffee.sabor),
+            "Cuerpo" to avgOrDefault({ it.cuerpo }, coffee.coffee.cuerpo),
+            "Acidez" to avgOrDefault({ it.acidez }, coffee.coffee.acidez),
+            "Dulzura" to avgOrDefault({ it.dulzura }, coffee.coffee.dulzura)
+        )
+
         val pantryDetails = pantryItems.find { it.coffee.id == coffeeId }
 
         DetailUiState.Success(
@@ -62,9 +88,19 @@ class DetailViewModel @Inject constructor(
             reviews = reviewsForThisCoffee,
             userReview = userReview,
             isCustom = coffee.coffee.isCustom,
-            currentPantryItem = pantryDetails?.pantryItem
+            currentPantryItem = pantryDetails?.pantryItem,
+            sensoryAverages = sensoryAverages,
+            sensoryEditorsCount = sensoryEditorsCount
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
+
+    private data class PentaState(
+        val activeUser: UserEntity?,
+        val coffee: CoffeeWithDetails?,
+        val allReviews: List<ReviewWithAuthor>,
+        val sensoryProfiles: List<CoffeeSensoryProfileEntity>,
+        val pantryItems: List<PantryItemWithDetails>
+    )
 
     fun loadInitialIfNeeded() {
         coffeeRepository.triggerRefresh()
@@ -96,6 +132,25 @@ class DetailViewModel @Inject constructor(
                 )
             }
             diaryRepository.updatePantryStockFull(coffeeId, total, remaining)
+        }
+    }
+
+
+    fun submitSensoryProfile(aroma: Float, sabor: Float, cuerpo: Float, acidez: Float, dulzura: Float) {
+        viewModelScope.launch {
+            val user = userRepository.getActiveUser() ?: return@launch
+            socialRepository.upsertSensoryProfile(
+                CoffeeSensoryProfileEntity(
+                    coffeeId = coffeeId,
+                    userId = user.id,
+                    aroma = aroma,
+                    sabor = sabor,
+                    cuerpo = cuerpo,
+                    acidez = acidez,
+                    dulzura = dulzura,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
         }
     }
 
@@ -156,7 +211,9 @@ sealed interface DetailUiState {
         val reviews: List<UserReviewInfo>,
         val userReview: ReviewEntity?,
         val isCustom: Boolean,
-        val currentPantryItem: PantryItemEntity?
+        val currentPantryItem: PantryItemEntity?,
+        val sensoryAverages: Map<String, Float>,
+        val sensoryEditorsCount: Int
     ) : DetailUiState
     data class Error(val message: String) : DetailUiState
 }

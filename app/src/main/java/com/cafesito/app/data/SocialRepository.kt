@@ -98,6 +98,35 @@ class SocialRepository @Inject constructor(
             }
         }.flowOn(Dispatchers.IO)
 
+    fun getSensoryProfilesForCoffee(coffeeId: String): Flow<List<CoffeeSensoryProfileEntity>> = _refreshTrigger
+        .flatMapLatest {
+            flow {
+                val local = socialDao.getSensoryProfilesForCoffee(coffeeId).first()
+                emit(local)
+                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                    try {
+                        val remote = supabaseDataSource.getSensoryProfilesByCoffeeId(coffeeId)
+                        socialDao.upsertSensoryProfiles(remote)
+                        emit(remote)
+                    } catch (e: Exception) {
+                        Log.e("SocialRepository", "Error fetching sensory profiles: ${e.message}")
+                    }
+                }
+            }
+        }.flowOn(Dispatchers.IO)
+
+    suspend fun upsertSensoryProfile(profile: CoffeeSensoryProfileEntity) = withContext(Dispatchers.IO) {
+        socialDao.upsertSensoryProfile(profile)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                supabaseDataSource.upsertSensoryProfile(profile)
+            } catch (e: Exception) {
+                Log.e("SocialRepository", "Error upserting sensory profile: ${e.message}")
+            }
+        }
+        triggerRefresh()
+    }
+
     suspend fun upsertReview(review: ReviewEntity) = withContext(Dispatchers.IO) {
         // Guardamos en Supabase primero para asegurar persistencia
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {

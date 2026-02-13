@@ -37,6 +37,11 @@ private fun Review.toDto(): ReviewDto = ReviewDto(
     rating = rating,
     comment = comment,
     imageUrl = imageUrl,
+    aroma = aroma,
+    sabor = sabor,
+    cuerpo = cuerpo,
+    acidez = acidez,
+    dulzura = dulzura,
     timestamp = timestamp
 )
 
@@ -55,5 +60,10 @@ private fun ReviewDto.toDomain(): Review = Review(
     rating = rating,
     comment = comment,
     imageUrl = imageUrl,
+    aroma = aroma,
+    sabor = sabor,
+    cuerpo = cuerpo,
+    acidez = acidez,
+    dulzura = dulzura,
     timestamp = timestamp
 )

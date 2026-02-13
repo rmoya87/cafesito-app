@@ -9,6 +9,7 @@ import androidx.room.RoomDatabase
         LocalFavorite::class,
         LocalFavoriteCustom::class,
         ReviewEntity::class,
+        CoffeeSensoryProfileEntity::class,
         UserEntity::class,
         FollowEntity::class,
         PostEntity::class,
@@ -21,7 +22,7 @@ import androidx.room.RoomDatabase
         UserTokenEntity::class,
         ActiveSessionEntity::class
     ],
-    version = 28, // INCREMENTADO DE 27 A 28 para resolver conflictos de integridad de datos
+    version = 29, // INCREMENTADO DE 28 A 29 para añadir perfiles sensoriales persistentes
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
