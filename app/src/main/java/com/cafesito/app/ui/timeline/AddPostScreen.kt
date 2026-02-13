@@ -61,6 +61,7 @@ import java.util.UUID
 @Composable
 fun AddPostScreen(
     onBackClick: () -> Unit = {},
+    onPublishSuccess: () -> Unit = {},
     viewModel: AddPostViewModel = hiltViewModel()
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -147,8 +148,14 @@ fun AddPostScreen(
                     if (isLastStep) {
                         TextButton(
                             onClick = { 
-                                if (postType == PostType.PUBLICATION) viewModel.createPost(onBackClick)
-                                else viewModel.submitReview(onBackClick)
+                                if (postType == PostType.PUBLICATION) viewModel.createPost {
+                                    onPublishSuccess()
+                                    onBackClick()
+                                }
+                                else viewModel.submitReview {
+                                    onPublishSuccess()
+                                    onBackClick()
+                                }
                             },
                             enabled = if (postType == PostType.PUBLICATION) true else (rating > 0 && comment.isNotBlank())
                         ) {

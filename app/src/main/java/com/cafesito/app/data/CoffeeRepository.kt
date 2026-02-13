@@ -160,5 +160,27 @@ class CoffeeRepository @Inject constructor(
         coffeeDao.insertCoffees(public)
     }
 
+    suspend fun findCoffeeIdByBarcode(rawBarcode: String): String? = withContext(Dispatchers.IO) {
+        val normalized = rawBarcode.filter { it.isDigit() }
+        if (normalized.isBlank()) return@withContext null
+
+        val remoteId = try {
+            if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                supabaseDataSource.getCoffeeByBarcode(normalized)?.id
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+
+        if (remoteId != null) return@withContext remoteId
+
+        coffeeDao.getAllCoffeesWithDetails().first()
+            .firstOrNull { it.coffee.codigoBarras?.filter { ch -> ch.isDigit() } == normalized }
+            ?.coffee
+            ?.id
+    }
+
     // Ya implementado arriba con _refreshTrigger
 }
