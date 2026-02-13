@@ -38,7 +38,8 @@ data class BrewPhaseInfo(
 
 @HiltViewModel
 class BrewLabViewModel @Inject constructor(
-    private val diaryRepository: DiaryRepository
+    private val diaryRepository: DiaryRepository,
+    coffeeRepository: CoffeeRepository
 ) : ViewModel() {
 
     private val _currentStep = MutableStateFlow(BrewStep.CHOOSE_METHOD)
@@ -71,8 +72,17 @@ class BrewLabViewModel @Inject constructor(
     val pantryItems = diaryRepository.getPantryItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val availableCoffees = coffeeRepository.allCoffees
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _selectedPantryItem = MutableStateFlow<PantryItemWithDetails?>(null)
     val selectedPantryItem = _selectedPantryItem.asStateFlow()
+
+    private val _selectedCoffee = MutableStateFlow<Coffee?>(null)
+    val selectedCoffee = _selectedCoffee.asStateFlow()
+
+    private val _isCoffeeFromPantry = MutableStateFlow(false)
+    val isCoffeeFromPantry = _isCoffeeFromPantry.asStateFlow()
 
     fun refreshPantry() {
         diaryRepository.triggerRefresh()
@@ -80,6 +90,19 @@ class BrewLabViewModel @Inject constructor(
 
     fun selectPantryItem(item: PantryItemWithDetails) {
         _selectedPantryItem.value = item
+        _selectedCoffee.value = item.coffee
+        _isCoffeeFromPantry.value = true
+        _waterAmount.value = 250f
+        _hasTimerStarted.value = false
+        _currentStep.value = BrewStep.CONFIGURATION
+    }
+
+    fun selectCoffeeFromCatalog(coffee: Coffee) {
+        _selectedPantryItem.value = null
+        _selectedCoffee.value = coffee
+        _isCoffeeFromPantry.value = false
+        _waterAmount.value = 250f
+        _hasTimerStarted.value = false
         _currentStep.value = BrewStep.CONFIGURATION
     }
 
@@ -264,18 +287,20 @@ class BrewLabViewModel @Inject constructor(
     }
 
     fun saveToDiary(onSuccess: () -> Unit) {
-        val item = _selectedPantryItem.value ?: return
+        val coffee = _selectedCoffee.value ?: return
+        val isFromPantry = _isCoffeeFromPantry.value
         viewModelScope.launch {
             try {
                 val grams = coffeeGrams.value.toInt()
                 diaryRepository.addDiaryEntry(
-                    coffeeId = item.coffee.id,
-                    coffeeName = item.coffee.nombre,
-                    coffeeBrand = item.coffee.marca,
+                    coffeeId = coffee.id,
+                    coffeeName = coffee.nombre,
+                    coffeeBrand = coffee.marca,
                     caffeineAmount = CaffeineCalculator.calculate("Americano", grams, true),
                     amountMl = _waterAmount.value.toInt(),
                     coffeeGrams = grams,
-                    preparationType = "Lab: ${_selectedMethod.value?.name} (${_selectedTaste.value})"
+                    preparationType = "Lab: ${_selectedMethod.value?.name} (${_selectedTaste.value})",
+                    reduceFromPantry = isFromPantry
                 )
                 onSuccess()
                 resetAll()
@@ -312,6 +337,9 @@ class BrewLabViewModel @Inject constructor(
         _timerSeconds.value = 0
         _selectedTaste.value = null
         _dialInRecommendation.value = null
+        _selectedPantryItem.value = null
+        _selectedCoffee.value = null
+        _isCoffeeFromPantry.value = false
         _currentStep.value = BrewStep.CHOOSE_METHOD
     }
 
