@@ -317,6 +317,9 @@ fun AppNavigation(
                 val postId = backStackEntry.arguments?.getString("postId")
                 val commentIdArg = backStackEntry.arguments?.getInt("commentId") ?: -1
                 val commentId = commentIdArg.takeIf { it >= 0 }
+                val publishingPending by backStackEntry.savedStateHandle
+                    .getStateFlow("publishing_pending", false)
+                    .collectAsState()
                 TimelineScreen(
                     onUserClick = { id -> 
                         if (id == 0) {
@@ -334,7 +337,11 @@ fun AppNavigation(
                     onSearchUsersClick = { navController.navigate("searchUsers") },
                     onNotificationsClick = { navController.navigate("notifications") },
                     initialPostId = postId,
-                    initialCommentId = commentId
+                    initialCommentId = commentId,
+                    publishingPending = publishingPending,
+                    onPublishingPendingConsumed = {
+                        backStackEntry.savedStateHandle["publishing_pending"] = false
+                    }
                 )
             }
 
@@ -617,7 +624,14 @@ fun AppNavigation(
             }
 
             composable("addPost") {
-                AddPostScreen(onBackClick = { navController.popBackStack() })
+                AddPostScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onPublishSuccess = {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("publishing_pending", true)
+                    }
+                )
             }
         }
 

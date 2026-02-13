@@ -139,7 +139,10 @@ class SearchViewModel @Inject constructor(
 
         val filtered = coffees.filter { item ->
             val c = item.coffee
-            val matchQuery = q.isBlank() || c.nombre.contains(q, true) || c.marca.contains(q, true)
+            val matchQuery = q.isBlank() ||
+                c.nombre.contains(q, true) ||
+                c.marca.contains(q, true) ||
+                (c.codigoBarras?.contains(q, true) == true)
             val matchOrigin = origins.isEmpty() || c.paisOrigen.toAtomizedList().any { it in origins }
             val matchRoast = roasts.isEmpty() || c.tueste.toAtomizedList().any { it in roasts }
             val matchSpecialty = specialties.isEmpty() || c.especialidad.toAtomizedList().any { it in specialties }
@@ -175,6 +178,19 @@ class SearchViewModel @Inject constructor(
     }
 
     fun toggleFavorite(id: String, isFav: Boolean) { viewModelScope.launch { repository.toggleFavorite(id, !isFav) } }
+
+    fun onBarcodeScanned(rawValue: String, onCoffeeFound: (String) -> Unit) {
+        val normalizedCode = rawValue.filter { it.isDigit() }
+        if (normalizedCode.isBlank()) return
+
+        viewModelScope.launch {
+            _searchQuery.value = normalizedCode
+            clearFilters()
+
+            val matchedCoffeeId = repository.findCoffeeIdByBarcode(normalizedCode)
+            if (matchedCoffeeId != null) onCoffeeFound(matchedCoffeeId)
+        }
+    }
 }
 
 data class FilterOptions(val origins: List<String> = emptyList(), val roasts: List<String> = emptyList(), val specialties: List<String> = emptyList(), val formats: List<String> = emptyList())

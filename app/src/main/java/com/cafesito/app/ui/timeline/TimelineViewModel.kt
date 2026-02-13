@@ -1,5 +1,7 @@
 package com.cafesito.app.ui.timeline
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,15 +25,22 @@ import com.cafesito.shared.domain.User
 import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.max
 import kotlin.random.Random
 
 @HiltViewModel
 class TimelineViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
@@ -45,11 +54,51 @@ class TimelineViewModel @Inject constructor(
 
     private val deletedNotificationIds = MutableStateFlow<Set<String>>(emptySet())
 
+    private val _isPublishingContent = MutableStateFlow(false)
+    val isPublishingContent: StateFlow<Boolean> = _isPublishingContent.asStateFlow()
+    private var publishingStartedAt: Long? = null
+    private var publishingAutoHideJob: Job? = null
+
     private val pageSize = 10
     private val loadThreshold = 2
 
     private var latestBaseData: TimelineBaseData? = null
     private var hasLoadedOnce = false
+
+
+    fun startPublishingContent() {
+        publishingAutoHideJob?.cancel()
+        publishingStartedAt = System.currentTimeMillis()
+        _isPublishingContent.value = true
+        publishingAutoHideJob = viewModelScope.launch {
+            delay(8_000)
+            if (_isPublishingContent.value) {
+                stopPublishingContent()
+            }
+        }
+    }
+
+    private fun stopPublishingContent() {
+        _isPublishingContent.value = false
+        publishingStartedAt = null
+        publishingAutoHideJob?.cancel()
+        publishingAutoHideJob = null
+    }
+
+    private fun maybeFinishPublishing(data: TimelineBaseData) {
+        if (!_isPublishingContent.value) return
+        val startedAt = publishingStartedAt ?: return
+        val lowerBound = startedAt - 10_000
+        val hasOwnRecentContent = data.posts.any {
+            it.post.userId == data.activeUser.id && it.post.timestamp >= lowerBound
+        } || data.reviews.any {
+            it.review.userId == data.activeUser.id && it.review.timestamp >= lowerBound
+        }
+        val isTimedOut = System.currentTimeMillis() - startedAt > 45_000
+        if (hasOwnRecentContent || isTimedOut) {
+            stopPublishingContent()
+        }
+    }
 
     fun refreshData() {
         viewModelScope.launch {
@@ -60,6 +109,9 @@ class TimelineViewModel @Inject constructor(
                 userRepository.syncUsers()
                 socialRepository.syncSocialData()
                 coffeeRepository.syncCoffees()
+                if (_isPublishingContent.value) {
+                    stopPublishingContent()
+                }
             } catch (e: Exception) {
                 Log.e("TimelineVM", "Error in refreshData", e)
             } finally {
@@ -178,6 +230,7 @@ class TimelineViewModel @Inject constructor(
             canLoadMore = page.nextCursor != null,
             isLoadingMore = false
         )
+        maybeFinishPublishing(data)
         hasLoadedOnce = true
     }
 
@@ -468,7 +521,10 @@ class TimelineViewModel @Inject constructor(
     }
 
     fun updatePost(postId: String, newText: String, newImageUrl: String) {
-        viewModelScope.launch { socialRepository.updatePost(postId, newText, newImageUrl) }
+        viewModelScope.launch {
+            val imageToPersist = resolvePersistableImageUrl(newImageUrl, "posts") ?: newImageUrl
+            socialRepository.updatePost(postId, newText, imageToPersist)
+        }
     }
 
     fun deleteReview(coffeeId: String) {
@@ -484,19 +540,37 @@ class TimelineViewModel @Inject constructor(
             val validation = validateReviewInput(rating, comment)
             if (validation.isFailure) return@launch
             val user = userRepository.getActiveUser() ?: return@launch
+            val imageToPersist = resolvePersistableImageUrl(imageUrl, "reviews")
             val result = reviewRepository.updateReview(
                 Review(
                     user = user.toDomainUser(),
                     coffeeId = coffeeId,
                     rating = rating,
                     comment = comment,
-                    imageUrl = imageUrl,
+                    imageUrl = imageToPersist,
                     timestamp = System.currentTimeMillis()
                 )
             )
             if (result.isFailure) return@launch
             coffeeRepository.triggerRefresh()
             socialRepository.syncSocialData()
+        }
+    }
+
+    private suspend fun resolvePersistableImageUrl(rawUrl: String?, bucket: String): String? {
+        if (rawUrl.isNullOrBlank()) return rawUrl
+        if (!rawUrl.startsWith("content://") && !rawUrl.startsWith("file://")) return rawUrl
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val bytes = context.contentResolver.openInputStream(Uri.parse(rawUrl))?.use { it.readBytes() }
+                    ?: return@withContext rawUrl
+                val path = "${System.currentTimeMillis()}_${UUID.randomUUID()}.jpg"
+                socialRepository.uploadImage(bucket, path, bytes)
+            } catch (e: Exception) {
+                Log.e("TimelineVM", "No se pudo subir imagen local", e)
+                rawUrl
+            }
         }
     }
 }

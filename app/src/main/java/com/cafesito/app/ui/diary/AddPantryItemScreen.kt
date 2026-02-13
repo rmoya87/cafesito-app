@@ -71,7 +71,7 @@ fun AddPantryItemScreen(
                 val c = d.coffee
                 name = c.nombre
                 brand = c.marca
-                specialty = c.especialidad
+                specialty = c.especialidad ?: ""
                 roast = c.tueste
                 variety = c.variedadTipo ?: ""
                 country = c.paisOrigen ?: "España"

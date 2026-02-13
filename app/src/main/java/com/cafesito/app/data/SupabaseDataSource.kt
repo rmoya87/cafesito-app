@@ -128,6 +128,13 @@ class SupabaseDataSource @Inject constructor(
         }.decodeList<Coffee>()
     }
 
+    suspend fun getCoffeeByBarcode(barcode: String): Coffee? = client.postgrest["coffees"].select {
+        filter {
+            eq("codigo_barras", barcode)
+        }
+        limit(1)
+    }.decodeSingleOrNull<Coffee>()
+
     // --- RECOMENDACIONES (RPC) ---
     suspend fun getRecommendationsRpc(userId: Int): List<Coffee> {
         return client.postgrest.rpc("get_coffee_recommendations", mapOf("target_user_id" to userId)).decodeList<Coffee>()

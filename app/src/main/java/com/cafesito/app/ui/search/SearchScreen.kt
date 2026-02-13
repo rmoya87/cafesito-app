@@ -2,6 +2,9 @@
 
 package com.cafesito.app.ui.search
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -81,14 +84,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.PlatformTextStyle
@@ -107,6 +113,10 @@ import com.cafesito.app.ui.components.PremiumCard
 import com.cafesito.app.ui.components.ShimmerItem
 import com.cafesito.app.ui.components.TagChip
 import com.cafesito.app.ui.theme.*
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.google.android.gms.mlkit.barcode.GmsBarcodeScannerOptions
+import com.google.android.gms.mlkit.barcode.GmsBarcodeScanning
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.absoluteValue
@@ -121,6 +131,7 @@ private fun SearchTopBar(
     filterCounts: Map<String, Int>,
     availableFilters: List<String>,
     onFilterClick: (String) -> Unit,
+    onBarcodeClick: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     isLoading: Boolean
 ) {
@@ -177,6 +188,13 @@ private fun SearchTopBar(
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
                                 leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                trailingIcon = {
+                                    IconButton(onClick = onBarcodeClick) {
+                                        BarcodeActionIcon(
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
                                 placeholder = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text("Busca ", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -230,6 +248,31 @@ private fun SearchTopBar(
                 onFilterClick = onFilterClick,
                 isLoading = isLoading
             )
+        }
+    }
+}
+
+@Composable
+private fun BarcodeActionIcon(
+    tint: Color,
+    modifier: Modifier = Modifier
+) {
+    androidx.compose.foundation.Canvas(
+        modifier = modifier.size(22.dp)
+    ) {
+        val bars = listOf(1.5f, 3f, 1.5f, 2f, 1.2f, 2.8f, 1.4f, 2.2f, 1f, 2.8f)
+        val spacing = 1.6.dp.toPx()
+        var x = 0f
+        bars.forEach { wDp ->
+            val width = wDp.dp.toPx()
+            drawRoundRect(
+                color = tint,
+                topLeft = androidx.compose.ui.geometry.Offset(x, size.height * 0.12f),
+                size = Size(width, size.height * 0.76f),
+                cornerRadius = CornerRadius(width / 2f, width / 2f),
+                style = Fill
+            )
+            x += width + spacing
         }
     }
 }
@@ -296,6 +339,7 @@ fun SearchScreen(
     scrollBehavior: TopAppBarScrollBehavior? = null,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -359,6 +403,25 @@ fun SearchScreen(
                 onFilterClick = { type ->
                     activeFilterType = type
                     showFilterSheet = true
+                },
+                onBarcodeClick = {
+                    context.findActivity()?.let { activity ->
+                        val options = GmsBarcodeScannerOptions.Builder()
+                            .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                            .build()
+                        GmsBarcodeScanning.getClient(activity, options)
+                            .startScan()
+                            .addOnSuccessListener { barcode ->
+                                barcode.rawValue?.let { value ->
+                                    viewModel.onBarcodeScanned(value, onCoffeeClick)
+                                }
+                            }
+                            .addOnFailureListener { error ->
+                                if ((error as? com.google.android.gms.common.api.ApiException)?.statusCode != CommonStatusCodes.CANCELED) {
+                                    // Sin UX adicional: mantenemos comportamiento silencioso para no romper flujo.
+                                }
+                            }
+                    }
                 },
                 scrollBehavior = actualScrollBehavior,
                 isLoading = isLoading
@@ -497,6 +560,12 @@ fun SearchScreen(
             }
         }
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 @Composable

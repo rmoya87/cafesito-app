@@ -26,7 +26,7 @@ data class ActiveSessionEntity(
 @Entity(tableName = "coffees")
 data class Coffee(
     @PrimaryKey val id: String,
-    val especialidad: String = "",
+    val especialidad: String? = null,
     val marca: String = "",
     @SerialName("pais_origen") val paisOrigen: String? = null,
     @SerialName("variedad_tipo") val variedadTipo: String? = null,

@@ -115,7 +115,7 @@ class DetailViewModel @Inject constructor(
                     val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     if (bytes != null) {
                         val fileName = "review_${user.id}_${System.currentTimeMillis()}.jpg"
-                        uploadedImageUrl = socialRepository.uploadImage("coffees", fileName, bytes)
+                        uploadedImageUrl = socialRepository.uploadImage("reviews", fileName, bytes)
                     }
                 } catch (e: Exception) {
                     Log.e("DETAIL_VM", "Error subiendo imagen: ${e.message}")
