@@ -116,6 +116,8 @@ import com.cafesito.app.ui.components.ShimmerItem
 import com.cafesito.app.ui.components.TagChip
 import com.cafesito.app.ui.theme.*
 import com.google.mlkit.vision.barcode.common.Barcode
+import com.cafesito.app.ui.components.toCoffeeBrandFormat
+import com.cafesito.app.ui.components.toCoffeeNameFormat
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
@@ -197,7 +199,7 @@ private fun SearchTopBar(
                                 trailingIcon = {
                                     IconButton(
                                         onClick = onBarcodeClick,
-                                        modifier = Modifier.padding(end = 4.dp)
+                                        modifier = Modifier.padding(end = 12.dp)
                                     ) {
                                         BarcodeActionIcon(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -725,7 +727,7 @@ private fun CoffeePremiumListItem(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
-        Box {
+        Box(modifier = Modifier.height(86.dp)) {
             Row(
                 modifier = Modifier
                     .padding(12.dp)
@@ -743,17 +745,17 @@ private fun CoffeePremiumListItem(
                 
                 Spacer(Modifier.width(16.dp))
                 
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).padding(end = 36.dp)) {
                     Text(
-                        text = coffeeDetails.coffee.nombre,
+                        text = coffeeDetails.coffee.nombre.toCoffeeNameFormat(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = coffeeDetails.coffee.marca,
+                        text = coffeeDetails.coffee.marca.toCoffeeBrandFormat(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

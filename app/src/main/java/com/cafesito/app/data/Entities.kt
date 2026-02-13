@@ -171,12 +171,31 @@ data class ReviewEntity(
     val rating: Float,
     val comment: String,
     @SerialName("image_url") val imageUrl: String? = null,
+    val aroma: Float? = null,
+    val sabor: Float? = null,
+    val cuerpo: Float? = null,
+    val acidez: Float? = null,
+    val dulzura: Float? = null,
     val timestamp: Long,
     val method: String? = null,
     val ratio: String? = null,
     @SerialName("water_temp") val waterTemp: Int? = null,
     @SerialName("extraction_time") val extractionTime: String? = null,
     @SerialName("grind_size") val grindSize: String? = null
+)
+
+
+@Serializable
+@Entity(tableName = "coffee_sensory_profiles", primaryKeys = ["coffeeId", "userId"])
+data class CoffeeSensoryProfileEntity(
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("user_id") val userId: Int,
+    val aroma: Float,
+    val sabor: Float,
+    val cuerpo: Float,
+    val acidez: Float,
+    val dulzura: Float,
+    @SerialName("updated_at") val updatedAt: Long = System.currentTimeMillis()
 )
 
 @Serializable
@@ -240,6 +259,11 @@ data class ReviewInsert(
     val rating: Float,
     val comment: String,
     @SerialName("image_url") val imageUrl: String? = null,
+    val aroma: Float? = null,
+    val sabor: Float? = null,
+    val cuerpo: Float? = null,
+    val acidez: Float? = null,
+    val dulzura: Float? = null,
     val timestamp: Long,
     val method: String? = null,
     val ratio: String? = null,
@@ -259,8 +283,7 @@ data class DiaryEntryInsert(
     @SerialName("coffee_grams") val coffeeGrams: Int,
     @SerialName("preparation_type") val preparationType: String,
     @SerialName("timestamp") val timestamp: Long,
-    @SerialName("type") val type: String,
-    @SerialName("external_id") val externalId: String? = null
+    @SerialName("type") val type: String
 )
 
 @Serializable
