@@ -33,13 +33,23 @@ class DetailViewModel @Inject constructor(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DetailUiState> = combine(
-        userRepository.getActiveUserFlow(),
-        coffeeRepository.getCoffeeWithDetailsById(coffeeId),
-        socialRepository.getReviewsForCoffee(coffeeId),
-        socialRepository.getSensoryProfilesForCoffee(coffeeId),
-        diaryRepository.getPantryItems(),
+        combine(
+            userRepository.getActiveUserFlow(),
+            coffeeRepository.getCoffeeWithDetailsById(coffeeId),
+            socialRepository.getReviewsForCoffee(coffeeId),
+            socialRepository.getSensoryProfilesForCoffee(coffeeId),
+            diaryRepository.getPantryItems()
+        ) { activeUser, coffee, allReviews, sensoryProfiles, pantryItems ->
+            PentaState(activeUser, coffee, allReviews, sensoryProfiles, pantryItems)
+        },
         coffeeRepository.favorites
-    ) { activeUser, coffee, allReviews, sensoryProfiles, pantryItems, favorites ->
+    ) { penta, favorites ->
+        val activeUser = penta.activeUser
+        val coffee = penta.coffee
+        val allReviews = penta.allReviews
+        val sensoryProfiles = penta.sensoryProfiles
+        val pantryItems = penta.pantryItems
+
         if (coffee == null) return@combine DetailUiState.Error("Café no encontrado")
 
         val isFavoriteLocally = favorites.any { it.coffeeId == coffeeId && it.userId == activeUser?.id }
@@ -83,6 +93,14 @@ class DetailViewModel @Inject constructor(
             sensoryEditorsCount = sensoryEditorsCount
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
+
+    private data class PentaState(
+        val activeUser: UserEntity?,
+        val coffee: CoffeeWithDetails?,
+        val allReviews: List<ReviewWithAuthor>,
+        val sensoryProfiles: List<CoffeeSensoryProfileEntity>,
+        val pantryItems: List<PantryItemWithDetails>
+    )
 
     fun loadInitialIfNeeded() {
         coffeeRepository.triggerRefresh()

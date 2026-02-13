@@ -13,14 +13,16 @@ create table if not exists public.coffee_sensory_profiles (
 
 alter table public.coffee_sensory_profiles enable row level security;
 
--- Lectura pública para mostrar medias de perfil sensorial en detalle de café
-create policy if not exists "coffee_sensory_profiles_select_public"
+-- Nota: PostgreSQL/Supabase no soporta CREATE POLICY IF NOT EXISTS.
+-- Para que sea idempotente, eliminamos y recreamos.
+drop policy if exists coffee_sensory_profiles_select_public on public.coffee_sensory_profiles;
+create policy coffee_sensory_profiles_select_public
 on public.coffee_sensory_profiles
 for select
 using (true);
 
--- Escritura sólo del propio usuario
-create policy if not exists "coffee_sensory_profiles_upsert_own"
+drop policy if exists coffee_sensory_profiles_upsert_own on public.coffee_sensory_profiles;
+create policy coffee_sensory_profiles_upsert_own
 on public.coffee_sensory_profiles
 for all
 using (auth.role() = 'authenticated')
