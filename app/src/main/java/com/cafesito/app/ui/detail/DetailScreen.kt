@@ -414,8 +414,18 @@ private fun SensoryProfileBottomSheet(
     onConfirm: (List<Pair<String, Float>>) -> Unit
 ) {
     val values = remember(initialValues) { initialValues.toMutableStateList() }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.background,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .navigationBarsPadding()
+        ) {
             Text("Perfil sensorial", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text(
@@ -426,10 +436,23 @@ private fun SensoryProfileBottomSheet(
             Spacer(Modifier.height(20.dp))
             values.forEachIndexed { index, (label, score) ->
                 Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                Slider(
-                    value = score.coerceIn(0f, 5f),
-                    onValueChange = { updated -> values[index] = label to updated },
-                    valueRange = 0f..5f
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("0", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Slider(
+                        value = score.coerceIn(0f, 5f),
+                        onValueChange = { updated -> values[index] = label to updated },
+                        valueRange = 0f..5f,
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                    )
+                    Text("5", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(
+                    text = String.format(Locale.getDefault(), "%.1f", score.coerceIn(0f, 5f)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(6.dp))
             }

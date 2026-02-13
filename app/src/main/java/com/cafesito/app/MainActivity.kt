@@ -435,7 +435,7 @@ fun AppNavigation(
                             popUpTo("brewlab") { inclusive = false }
                         }
                     },
-                    onAddCoffeeClick = { navController.navigate("addStock?origin=brewlab") }
+                    onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE&quick=true") }
                 )
             }
 
@@ -465,7 +465,7 @@ fun AppNavigation(
                 val origin = backStackEntry.arguments?.getString("origin") ?: ""
                 AddStockScreen(
                     onBackClick = { navController.popBackStack() },
-                    onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=$origin") },
+                    onAddCustomClick = { navController.navigate("addDiaryEntry?type=COFFEE&quick=true") },
                     onSuccess = {
                         if (origin == "brewlab") {
                             navController.popBackStack()
@@ -509,12 +509,17 @@ fun AppNavigation(
             }
 
             composable(
-                route = "addDiaryEntry?type={type}",
-                arguments = listOf(navArgument("type") { defaultValue = "" })
+                route = "addDiaryEntry?type={type}&quick={quick}",
+                arguments = listOf(
+                    navArgument("type") { defaultValue = "" },
+                    navArgument("quick") { type = NavType.BoolType; defaultValue = false }
+                )
             ) { backStackEntry ->
                 val type = backStackEntry.arguments?.getString("type") ?: ""
+                val quick = backStackEntry.arguments?.getBoolean("quick") ?: false
                 AddDiaryEntryScreen(
                     initialType = type,
+                    quickStart = quick,
                     onBackClick = { navController.popBackStack() },
                     onAddNotFoundClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=diary_entry") }
                 )

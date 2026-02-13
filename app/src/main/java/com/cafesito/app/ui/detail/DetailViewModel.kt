@@ -69,16 +69,16 @@ class DetailViewModel @Inject constructor(
 
         val sensoryByUsers = sensoryProfiles.distinctBy { it.userId }
         val sensoryEditorsCount = sensoryByUsers.size
-        fun avgOrDefault(selector: (CoffeeSensoryProfileEntity) -> Float, defaultValue: Float): Float {
-            val values = sensoryByUsers.map(selector)
-            return if (values.isEmpty()) defaultValue else values.average().toFloat()
+        fun avgIncludingBase(selector: (CoffeeSensoryProfileEntity) -> Float, baseValue: Float): Float {
+            val values = listOf(baseValue.toDouble()) + sensoryByUsers.map { selector(it).toDouble() }
+            return values.average().toFloat()
         }
         val sensoryAverages = mapOf(
-            "Aroma" to avgOrDefault({ it.aroma }, coffee.coffee.aroma),
-            "Sabor" to avgOrDefault({ it.sabor }, coffee.coffee.sabor),
-            "Cuerpo" to avgOrDefault({ it.cuerpo }, coffee.coffee.cuerpo),
-            "Acidez" to avgOrDefault({ it.acidez }, coffee.coffee.acidez),
-            "Dulzura" to avgOrDefault({ it.dulzura }, coffee.coffee.dulzura)
+            "Aroma" to avgIncludingBase({ it.aroma }, coffee.coffee.aroma),
+            "Sabor" to avgIncludingBase({ it.sabor }, coffee.coffee.sabor),
+            "Cuerpo" to avgIncludingBase({ it.cuerpo }, coffee.coffee.cuerpo),
+            "Acidez" to avgIncludingBase({ it.acidez }, coffee.coffee.acidez),
+            "Dulzura" to avgIncludingBase({ it.dulzura }, coffee.coffee.dulzura)
         )
 
         val pantryDetails = pantryItems.find { it.coffee.id == coffeeId }

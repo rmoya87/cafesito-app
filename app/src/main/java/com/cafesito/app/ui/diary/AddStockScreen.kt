@@ -127,7 +127,7 @@ fun AddStockScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
-                title = "SUGERENCIAS",
+                title = "SELECCIÓN RÁPIDA",
                 onBackClick = onBackClick,
                 actions = {
                     IconButton(onClick = onAddCustomClick) {
