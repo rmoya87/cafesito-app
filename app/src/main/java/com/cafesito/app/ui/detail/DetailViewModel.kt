@@ -143,11 +143,11 @@ class DetailViewModel @Inject constructor(
                 CoffeeSensoryProfileEntity(
                     coffeeId = coffeeId,
                     userId = user.id,
-                    aroma = aroma,
-                    sabor = sabor,
-                    cuerpo = cuerpo,
-                    acidez = acidez,
-                    dulzura = dulzura,
+                    aroma = aroma.coerceIn(0f, 10f),
+                    sabor = sabor.coerceIn(0f, 10f),
+                    cuerpo = cuerpo.coerceIn(0f, 10f),
+                    acidez = acidez.coerceIn(0f, 10f),
+                    dulzura = dulzura.coerceIn(0f, 10f),
                     updatedAt = System.currentTimeMillis()
                 )
             )
