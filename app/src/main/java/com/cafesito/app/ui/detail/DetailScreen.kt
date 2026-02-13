@@ -49,6 +49,8 @@ import com.cafesito.app.data.ReviewEntity
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.components.*
+import com.cafesito.app.ui.components.toCoffeeBrandFormat
+import com.cafesito.app.ui.components.toCoffeeNameFormat
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.utils.*
@@ -93,7 +95,10 @@ fun DetailScreen(
                         onBackClick = onBackClick,
                         onFavoriteToggle = { viewModel.toggleFavorite(it) },
                         onUpdateStock = { t, r, n, b -> viewModel.updateStock(t, r, n, b) },
-                        onReviewSubmit = { r, c, i -> viewModel.submitReview(r, c, i) }
+                        onReviewSubmit = { r, c, i -> viewModel.submitReview(r, c, i) },
+                        onSensorySubmit = { a, sa, cu, ac, du -> viewModel.submitSensoryProfile(a, sa, cu, ac, du) },
+                        sensoryAverages = state.sensoryAverages,
+                        sensoryEditorsCount = state.sensoryEditorsCount
                     )
                 }
             }
@@ -112,13 +117,17 @@ private fun DetailContent(
     onBackClick: () -> Unit,
     onFavoriteToggle: (Boolean) -> Unit,
     onUpdateStock: (Int, Int, String?, String?) -> Unit,
-    onReviewSubmit: (Float, String, Uri?) -> Unit
+    onReviewSubmit: (Float, String, Uri?) -> Unit,
+    onSensorySubmit: (Float, Float, Float, Float, Float) -> Unit,
+    sensoryAverages: Map<String, Float>,
+    sensoryEditorsCount: Int
 ) {
     val scrollState = rememberLazyListState()
     val coffee = coffeeDetails.coffee
     val context = LocalContext.current
     var showAddReviewDialog by remember { mutableStateOf(false) }
     var showStockDialog by remember { mutableStateOf(false) }
+    var showSensoryEditor by remember { mutableStateOf(false) }
 
     if (showAddReviewDialog) {
         ReviewBottomSheet(
@@ -141,6 +150,30 @@ private fun DetailContent(
         )
     }
 
+    if (showSensoryEditor) {
+        SensoryProfileBottomSheet(
+            initialValues = listOf(
+                "Aroma" to (sensoryAverages["Aroma"] ?: coffee.aroma),
+                "Sabor" to (sensoryAverages["Sabor"] ?: coffee.sabor),
+                "Cuerpo" to (sensoryAverages["Cuerpo"] ?: coffee.cuerpo),
+                "Acidez" to (sensoryAverages["Acidez"] ?: coffee.acidez),
+                "Dulzura" to (sensoryAverages["Dulzura"] ?: coffee.dulzura)
+            ),
+            onDismiss = { showSensoryEditor = false },
+            onConfirm = { updatedValues ->
+                val map = updatedValues.toMap()
+                onSensorySubmit(
+                    map["Aroma"] ?: 0f,
+                    map["Sabor"] ?: 0f,
+                    map["Cuerpo"] ?: 0f,
+                    map["Acidez"] ?: 0f,
+                    map["Dulzura"] ?: 0f
+                )
+                showSensoryEditor = false
+            }
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // --- HERO IMAGE ---
         Box(modifier = Modifier.fillMaxWidth().height(450.dp).graphicsLayer {
@@ -158,7 +191,7 @@ private fun DetailContent(
                 Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.headlineLarge, lineHeight = 38.sp)
             }
 
-            if (!isCustom) {
+            if (!isCustom && reviews.isNotEmpty()) {
                 Surface(
                     modifier = Modifier.padding(end = 24.dp, bottom = 60.dp).align(Alignment.BottomEnd),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
@@ -215,22 +248,34 @@ private fun DetailContent(
                             maxItemsInEachRow = 2
                         ) {
                             detailsItems.forEach { (label, value, icon) ->
-                                DetailPremiumBlock(label, value, icon, Modifier.weight(1f))
+                                DetailPremiumBlock(label, value, icon, Modifier.fillMaxWidth(0.48f))
                             }
                         }
 
                         if (!isCustom) {
                             Spacer(Modifier.height(40.dp))
-                            Text(text = "PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(20.dp))
-                            val characteristics = listOf(
-                                "Aroma" to coffee.aroma,
-                                "Sabor" to coffee.sabor,
-                                "Cuerpo" to coffee.cuerpo,
-                                "Acidez" to coffee.acidez,
-                                "Dulzura" to coffee.dulzura
-                            )
-                            characteristics.forEach { (label, value) ->
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.weight(1f))
+                                TextButton(onClick = { showSensoryEditor = true }) { Text("Editar") }
+                            }
+                            if (sensoryEditorsCount > 0) {
+                                Text(
+                                    text = "Basado en los comentarios de $sensoryEditorsCount usuarios. $sensoryEditorsCount son las personas que lo han editado.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(12.dp))
+                            } else {
+                                Spacer(Modifier.height(8.dp))
+                            }
+                            listOf(
+                                "Aroma" to (sensoryAverages["Aroma"] ?: coffee.aroma),
+                                "Sabor" to (sensoryAverages["Sabor"] ?: coffee.sabor),
+                                "Cuerpo" to (sensoryAverages["Cuerpo"] ?: coffee.cuerpo),
+                                "Acidez" to (sensoryAverages["Acidez"] ?: coffee.acidez),
+                                "Dulzura" to (sensoryAverages["Dulzura"] ?: coffee.dulzura)
+                            ).forEach { (label, value) ->
                                 PremiumCharacteristicBar(label, value)
                                 Spacer(Modifier.height(16.dp))
                             }
@@ -357,6 +402,74 @@ fun BuyPremiumCard(url: String, onClick: (String) -> Unit) {
             val domain = url.removePrefix("https://").removePrefix("www.").substringBefore("/")
             Text(text = domain.uppercase(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SensoryProfileBottomSheet(
+    initialValues: List<Pair<String, Float>>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<Pair<String, Float>>) -> Unit
+) {
+    val values = remember(initialValues) { initialValues.toMutableStateList() }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.background,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .navigationBarsPadding()
+        ) {
+            Text("Perfil sensorial", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Tu opinión se unirá a la media de todas las valoraciones",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(20.dp))
+            values.forEachIndexed { index, (label, score) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = String.format(Locale.getDefault(), "%.1f", score.coerceIn(0f, 10f)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("0", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Slider(
+                        value = score.coerceIn(0f, 10f),
+                        onValueChange = { updated -> values[index] = label to updated },
+                        valueRange = 0f..10f,
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                    )
+                    Text("10", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(6.dp))
+            }
+            Button(
+                onClick = { onConfirm(values.toList()) },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Listo")
+            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -548,8 +661,8 @@ private fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
 fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boolean, currentStock: PantryItemEntity?, onDismiss: () -> Unit, onSave: (Int, Int, String?, String?) -> Unit) {
     var total by remember { mutableFloatStateOf(currentStock?.totalGrams?.toFloat() ?: 600f) }
     var rem by remember { mutableFloatStateOf(currentStock?.gramsRemaining?.toFloat() ?: total) }
-    var name by remember { mutableStateOf(coffeeDetails.coffee.nombre) }
-    var brand by remember { mutableStateOf(coffeeDetails.coffee.marca) }
+    var name by remember { mutableStateOf(coffeeDetails.coffee.nombre.toCoffeeNameFormat()) }
+    var brand by remember { mutableStateOf(coffeeDetails.coffee.marca.toCoffeeBrandFormat()) }
     val isInPantry = currentStock != null
 
     ModalBottomSheet(
@@ -562,9 +675,9 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
             Text(text = "Añadir a mi despensa", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
             if (isCustom) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(text = "Nombre") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
+                OutlinedTextField(value = name, onValueChange = { name = it.toCoffeeNameFormat() }, label = { Text(text = "Nombre") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(value = brand, onValueChange = { brand = it }, label = { Text(text = "Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
+                OutlinedTextField(value = brand, onValueChange = { brand = it.toCoffeeBrandFormat() }, label = { Text(text = "Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(24.dp))
             }
             StockSliderSection(label = "TOTAL BOLSA", value = total, maxValue = 1000f) { total = it; if (rem > it) rem = it }

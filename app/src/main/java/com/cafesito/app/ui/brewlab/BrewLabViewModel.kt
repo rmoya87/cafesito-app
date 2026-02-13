@@ -303,7 +303,12 @@ class BrewLabViewModel @Inject constructor(
                     coffeeId = coffee.id,
                     coffeeName = coffee.nombre,
                     coffeeBrand = coffee.marca,
-                    caffeineAmount = CaffeineCalculator.calculate("Americano", grams, true),
+                    caffeineAmount = CaffeineCalculator.calculate(
+                        type = "Americano",
+                        grams = grams,
+                        isFromPantry = true,
+                        isDecaf = coffee.cafeina.equals("No", ignoreCase = true)
+                    ),
                     amountMl = _waterAmount.value.toInt(),
                     coffeeGrams = grams,
                     preparationType = "Lab: ${_selectedMethod.value?.name} (${_selectedTaste.value})",

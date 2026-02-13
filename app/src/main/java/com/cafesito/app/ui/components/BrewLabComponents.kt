@@ -174,88 +174,77 @@ fun ChooseCoffeeStep(
     onAddNotFoundClick: () -> Unit,
     onCoffeeSelected: (Coffee, Boolean) -> Unit
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Mi Despensa", "Catálogo")
+    val filteredPantry = if (searchQuery.isBlank()) pantryItems else pantryItems.filter {
+        it.coffee.nombre.contains(searchQuery, true) || it.coffee.marca.contains(searchQuery, true)
+    }
+    val filteredSuggestions = if (searchQuery.isBlank()) allCoffees.take(10) else allCoffees.filter {
+        it.coffee.nombre.contains(searchQuery, true) || it.coffee.marca.contains(searchQuery, true)
+    }.take(10)
 
-    Column(Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            placeholder = { Text("Buscar café...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            shape = RoundedCornerShape(16.dp),
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            )
-        )
-
-        PremiumTabRow(selectedTabIndex, tabs) { selectedTabIndex = it }
-
-        Spacer(Modifier.height(16.dp))
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (selectedTabIndex == 0) {
-                // DESPENSA
-                val filteredPantry = if (searchQuery.isBlank()) pantryItems else pantryItems.filter {
-                    it.coffee.nombre.contains(searchQuery, true) ||
-                            it.coffee.marca.contains(searchQuery, true)
-                }
-
-                if (filteredPantry.isEmpty()) {
-                    item {
-                        Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                if (searchQuery.isBlank()) "Tu despensa está vacía." else "No hay coincidencias en tu despensa.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                } else {
-                    items(filteredPantry, key = { it.coffee.id + "_pantry" }) { item ->
-                        PantrySelectionCard(item) { onCoffeeSelected(item.coffee, true) }
-                    }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(12.dp))
+            if (filteredPantry.isEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        if (searchQuery.isBlank()) "Tu despensa está vacía." else "No hay coincidencias en tu despensa.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
                 }
             } else {
-                // CATÁLOGO COMPLETO
-                val filteredCoffees = if (searchQuery.isBlank()) allCoffees else allCoffees.filter {
-                    it.coffee.nombre.contains(searchQuery, true) ||
-                            it.coffee.marca.contains(searchQuery, true)
-                }
-
-                if (filteredCoffees.isEmpty()) {
-                    item {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth().padding(32.dp)
-                        ) {
-                            Text("No encontrado en el catálogo global.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(16.dp))
-                            Button(onClick = onAddNotFoundClick) {
-                                Text("Añadir Nuevo Café")
-                            }
-                        }
-                    }
-                } else {
-                    items(filteredCoffees, key = { it.coffee.id }) { item ->
-                        SimpleCoffeeSelectionCard(item.coffee) { onCoffeeSelected(item.coffee, false) }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(filteredPantry, key = { it.coffee.id + "_pantry" }) { item ->
+                        PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
                     }
                 }
             }
-            item { Spacer(Modifier.height(80.dp)) }
         }
+
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text("Buscar café...") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
+            )
+        }
+
+        item {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onAddNotFoundClick) {
+                    Icon(Icons.Default.Bolt, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Añadir rápido")
+                }
+            }
+        }
+
+        if (filteredSuggestions.isEmpty()) {
+            item {
+                Text("No hay sugerencias disponibles.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            items(filteredSuggestions, key = { it.coffee.id }) { item ->
+                SimpleCoffeeSelectionCard(item.coffee) { onCoffeeSelected(item.coffee, false) }
+            }
+        }
+        item { Spacer(Modifier.height(80.dp)) }
     }
 }
 
@@ -280,14 +269,14 @@ fun SimpleCoffeeSelectionCard(coffee: Coffee, onClick: () -> Unit) {
             Spacer(Modifier.width(16.dp))
             Column {
                 Text(
-                    text = coffee.nombre,
+                    text = coffee.nombre.toCoffeeNameFormat(),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 @Suppress("DEPRECATION")
                 Text(
-                    text = coffee.marca.uppercase(),
+                    text = coffee.marca.toCoffeeBrandFormat(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -994,7 +983,7 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(100.dp)
             )
             Column(Modifier.padding(12.dp)) {
-                Text(item.coffee.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                Text(item.coffee.nombre.toCoffeeNameFormat(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
                 @Suppress("DEPRECATION")
                 Text("${item.pantryItem.gramsRemaining}G REST.", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 8.sp)
             }
@@ -1014,9 +1003,9 @@ fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
             )
             Spacer(Modifier.width(16.dp))
             Column {
-                Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(coffee.coffee.nombre.toCoffeeNameFormat(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 @Suppress("DEPRECATION")
-                Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontSize = 9.sp)
+                Text(coffee.coffee.marca.toCoffeeBrandFormat(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontSize = 9.sp)
             }
         }
     }
