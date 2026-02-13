@@ -90,6 +90,9 @@ import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -163,21 +166,126 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
 }
 
 @Composable
-fun ChooseCoffeeStep(items: List<PantryItemWithDetails>, onSelect: (PantryItemWithDetails) -> Unit) {
+fun ChooseCoffeeStep(
+    pantryItems: List<PantryItemWithDetails>,
+    allCoffees: List<CoffeeWithDetails>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onAddNotFoundClick: () -> Unit,
+    onCoffeeSelected: (Coffee, Boolean) -> Unit
+) {
+    val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
+    val filteredCatalog = allCoffees.filter {
+        !it.coffee.isCustom && (
+            it.coffee.nombre.contains(searchQuery, ignoreCase = true) ||
+                it.coffee.marca.contains(searchQuery, ignoreCase = true)
+            )
+    }.take(10)
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (items.isEmpty()) {
-            item {
-                Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No tienes café en tu despensa", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+
+                TextButton(
+                    onClick = onAddNotFoundClick,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Añadir mi café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                 }
             }
-        } else {
-            items(items, key = { it.coffee.id }) { item ->
-                PantrySelectionCard(item) { onSelect(item) }
+
+            Spacer(Modifier.height(16.dp))
+            if (pantryItems.isEmpty()) {
+                PremiumCard {
+                    Column(
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Tu despensa está vacía", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(pantryItems, key = { it.coffee.id }) { item ->
+                        PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
+                    }
+                }
+            }
+        }
+
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Busca un café o marca") },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedContainerColor = if (isDark) Color.Black else Color.White,
+                    focusedContainerColor = if (isDark) Color.Black else Color.White
+                ),
+                singleLine = true,
+                leadingIcon = {
+                    Box(modifier = Modifier.padding(start = 4.dp)) {
+                        Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            val options = GmsBarcodeScannerOptions.Builder()
+                                .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                                .build()
+                            GmsBarcodeScanning.getClient(context, options)
+                                .startScan()
+                                .addOnSuccessListener { barcode ->
+                                    barcode.rawValue?.let { value ->
+                                        val found = allCoffees.find { it.coffee.codigoBarras == value }
+                                        if (found != null) {
+                                            onCoffeeSelected(found.coffee, false)
+                                        } else {
+                                            onSearchQueryChange(value)
+                                        }
+                                    }
+                                }
+                        },
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        BarcodeActionIcon(
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            )
+            Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        }
+
+        items(filteredCatalog, key = { it.coffee.id }) { coffee ->
+            CoffeePremiumRowItem(coffee) { onCoffeeSelected(coffee.coffee, false) }
+        }
+
+        if (filteredCatalog.isEmpty()) {
+            item {
+                Text("Sin sugerencias con esa búsqueda", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
