@@ -28,10 +28,11 @@ object CaffeineCalculator {
         "Capuchino" to 95, "Latte" to 95, "Macchiato" to 95, "Moca" to 105,
         "Vienés" to 80, "Irlandés" to 96, "Corretto" to 63, "Frappuccino" to 80
     )
-    fun calculate(type: String, grams: Int?, isFromPantry: Boolean): Int {
+    fun calculate(type: String, grams: Int?, isFromPantry: Boolean, isDecaf: Boolean = false): Int {
         val base = baseCaffeineMap[type] ?: 80
-        if (!isFromPantry || grams == null) return base
-        return (base * (grams.toFloat() / 15f)).roundToInt()
+        val adjustedBase = if (isDecaf) (base * 0.1f).roundToInt() else base
+        if (!isFromPantry || grams == null) return adjustedBase
+        return (adjustedBase * (grams.toFloat() / 15f)).roundToInt()
     }
 }
 
