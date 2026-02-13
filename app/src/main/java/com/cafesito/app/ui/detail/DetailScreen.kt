@@ -459,7 +459,7 @@ private fun SensoryProfileBottomSheet(
                         modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                     )
                     Text("10", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                )
+                }
                 Spacer(Modifier.height(6.dp))
             }
             Button(
