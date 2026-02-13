@@ -17,6 +17,8 @@ import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -82,6 +84,7 @@ class AddPostViewModel @Inject constructor(
     val rating: StateFlow<Float> = _rating.asStateFlow()
 
     private val _mentionQuery = MutableStateFlow("")
+    @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     val mentionSuggestions: StateFlow<List<UserEntity>> = _mentionQuery
         .debounce(120)
         .flatMapLatest { query ->

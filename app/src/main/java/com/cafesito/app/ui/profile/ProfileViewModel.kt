@@ -83,6 +83,7 @@ class ProfileViewModel @Inject constructor(
         coffeeRepository.favorites,
         combine(_isEditing, _error, _usernameError, _temporaryAvatarUri, _loggedOut) { it }
     ) { args ->
+        @Suppress("UNCHECKED_CAST")
         val activeUser = args[0] as? UserEntity
         val targetUser = args[1] as? UserEntity
         val userPosts = args[2] as List<PostWithDetails>
