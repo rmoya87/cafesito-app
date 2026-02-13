@@ -419,6 +419,15 @@ fun CoffeeCustomizationStepPremium(
         ) {
             item {
                 Column(Modifier.padding(24.dp)) {
+                    Text(
+                        text = coffee?.nombre ?: "Selecciona tu estilo",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(20.dp))
                     if (isFromPantry) {
                         Text("DOSIS DE CAFÉ", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(16.dp))
