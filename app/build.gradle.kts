@@ -95,7 +95,11 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.browser)
+    
+    // ML Kit & Barcode Scanning
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
     
     // Accompanist Permissions
     implementation(libs.accompanist.permissions)

@@ -116,8 +116,8 @@ import com.cafesito.app.ui.components.TagChip
 import com.cafesito.app.ui.theme.*
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.android.gms.common.api.CommonStatusCodes
-import com.google.android.gms.mlkit.barcode.GmsBarcodeScannerOptions
-import com.google.android.gms.mlkit.barcode.GmsBarcodeScanning
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.absoluteValue
