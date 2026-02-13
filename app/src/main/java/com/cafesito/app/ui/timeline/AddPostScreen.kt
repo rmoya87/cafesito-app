@@ -33,9 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.layout.*
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontWeight
@@ -556,7 +555,8 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
         ModalBottomSheet(
             onDismissRequest = { showPickerSheet = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            scrimColor = Color.Black.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            // scrimColor removed
         ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))

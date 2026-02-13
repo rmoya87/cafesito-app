@@ -45,11 +45,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.layout.*
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
@@ -134,7 +131,8 @@ fun CommentsSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        // scrimColor removed as it caused compilation error
     ) {
         Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
             Text(
@@ -359,7 +357,8 @@ fun CommentsSheet(
         ModalBottomSheet(
             onDismissRequest = { showImagePickerSheet = false }, 
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            scrimColor = Color.Black.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            // scrimColor removed
         ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
@@ -448,7 +447,8 @@ fun NotificationsBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        // scrimColor removed
     ) {
         Column(Modifier
             .fillMaxWidth()
