@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.browser)
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
     
     // Accompanist Permissions
     implementation(libs.accompanist.permissions)

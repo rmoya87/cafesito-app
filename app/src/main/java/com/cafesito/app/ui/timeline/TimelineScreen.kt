@@ -45,11 +45,14 @@ fun TimelineScreen(
     onNotificationsClick: () -> Unit,
     initialPostId: String? = null,
     initialCommentId: Int? = null,
+    publishingPending: Boolean = false,
+    onPublishingPendingConsumed: () -> Unit = {},
     viewModel: TimelineViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isPublishingContent by viewModel.isPublishingContent.collectAsState()
     
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var highlightedCommentId by remember { mutableStateOf<Int?>(null) }
@@ -88,6 +91,13 @@ fun TimelineScreen(
             if (ContextCompat.checkSelfPermission(context, permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 notificationPermissionLauncher.launch(permission)
             }
+        }
+    }
+
+    LaunchedEffect(publishingPending) {
+        if (publishingPending) {
+            viewModel.startPublishingContent()
+            onPublishingPendingConsumed()
         }
     }
 
@@ -175,12 +185,13 @@ fun TimelineScreen(
             ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(24.dp)) }
         }
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshData() },
-            modifier = Modifier.fillMaxSize().padding(padding)
-        ) {
-            when (val state = uiState) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refreshData() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (val state = uiState) {
                 is TimelineUiState.Loading -> {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(5) { ShimmerItem(Modifier.fillMaxWidth().height(400.dp).padding(16.dp)) }
@@ -280,8 +291,38 @@ fun TimelineScreen(
                         }
                     }
                 }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isPublishingContent,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp)
+                    .padding(horizontal = 16.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 4.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        Text(
+                            text = "Publicando tu contenido...",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                }
             }
         }
+
         if (itemToDelete != null) {
             DeleteConfirmationDialog(
                 onDismissRequest = { itemToDelete = null },
