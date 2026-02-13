@@ -36,6 +36,8 @@ import com.cafesito.app.ui.components.*
 import java.io.File
 import java.util.Locale
 import java.util.UUID
+import com.cafesito.app.ui.components.toCoffeeBrandFormat
+import com.cafesito.app.ui.components.toCoffeeNameFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,8 +71,8 @@ fun AddPantryItemScreen(
             
             details?.let { d ->
                 val c = d.coffee
-                name = c.nombre
-                brand = c.marca
+                name = c.nombre.toCoffeeNameFormat()
+                brand = c.marca.toCoffeeBrandFormat()
                 specialty = c.especialidad ?: ""
                 roast = c.tueste
                 variety = c.variedadTipo ?: ""
@@ -195,7 +197,7 @@ fun AddPantryItemScreen(
                         
                         OutlinedTextField(
                             value = name,
-                            onValueChange = { name = it },
+                            onValueChange = { name = it.toCoffeeNameFormat() },
                             label = { Text("Nombre del café") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
@@ -205,7 +207,7 @@ fun AddPantryItemScreen(
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
                             value = brand,
-                            onValueChange = { brand = it },
+                            onValueChange = { brand = it.toCoffeeBrandFormat() },
                             label = { Text("Marca") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),

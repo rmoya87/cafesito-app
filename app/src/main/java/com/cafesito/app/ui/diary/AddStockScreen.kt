@@ -179,7 +179,7 @@ fun AddStockScreen(
                                         }
                                     }
                             },
-                            modifier = Modifier.padding(end = 4.dp)
+                            modifier = Modifier.padding(end = 12.dp)
                         ) {
                             BarcodeActionIcon(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant

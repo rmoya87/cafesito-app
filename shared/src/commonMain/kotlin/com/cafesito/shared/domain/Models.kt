@@ -35,6 +35,11 @@ data class Review(
     val rating: Float,
     val comment: String,
     val imageUrl: String? = null,
+    val aroma: Float? = null,
+    val sabor: Float? = null,
+    val cuerpo: Float? = null,
+    val acidez: Float? = null,
+    val dulzura: Float? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
 

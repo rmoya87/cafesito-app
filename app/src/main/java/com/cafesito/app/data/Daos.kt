@@ -68,6 +68,16 @@ interface CoffeeDao {
     @Query("SELECT * FROM reviews_db ORDER BY timestamp DESC")
     fun getAllReviews(): Flow<List<ReviewEntity>>
 
+
+    @Query("SELECT * FROM coffee_sensory_profiles WHERE coffeeId = :coffeeId")
+    fun getSensoryProfilesForCoffee(coffeeId: String): Flow<List<CoffeeSensoryProfileEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSensoryProfile(profile: CoffeeSensoryProfileEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSensoryProfiles(profiles: List<CoffeeSensoryProfileEntity>): List<Long>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertReview(review: ReviewEntity): Long
 
@@ -174,6 +184,16 @@ interface SocialDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM likes_db WHERE postId = :postId AND userId = :userId)")
     fun isPostLikedByUser(postId: String, userId: Int): Flow<Boolean>
+
+
+    @Query("SELECT * FROM coffee_sensory_profiles WHERE coffeeId = :coffeeId")
+    fun getSensoryProfilesForCoffee(coffeeId: String): Flow<List<CoffeeSensoryProfileEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSensoryProfile(profile: CoffeeSensoryProfileEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSensoryProfiles(profiles: List<CoffeeSensoryProfileEntity>): List<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertReview(review: ReviewEntity): Long

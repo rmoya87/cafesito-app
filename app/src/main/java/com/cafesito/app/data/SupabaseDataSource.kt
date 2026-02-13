@@ -238,6 +238,11 @@ class SupabaseDataSource @Inject constructor(
             rating = review.rating,
             comment = review.comment,
             imageUrl = review.imageUrl,
+            aroma = review.aroma,
+            sabor = review.sabor,
+            cuerpo = review.cuerpo,
+            acidez = review.acidez,
+            dulzura = review.dulzura,
             timestamp = review.timestamp,
             method = review.method,
             ratio = review.ratio,
@@ -252,6 +257,16 @@ class SupabaseDataSource @Inject constructor(
         client.postgrest["reviews_db"].delete {
             filter { eq("coffee_id", coffeeId); eq("user_id", userId) }
         }
+    }
+
+
+    // --- PERFIL SENSORIAL ---
+    suspend fun getSensoryProfilesByCoffeeId(coffeeId: String): List<CoffeeSensoryProfileEntity> = client.postgrest["coffee_sensory_profiles"].select {
+        filter { eq("coffee_id", coffeeId) }
+    }.decodeList<CoffeeSensoryProfileEntity>()
+
+    suspend fun upsertSensoryProfile(profile: CoffeeSensoryProfileEntity) {
+        client.postgrest["coffee_sensory_profiles"].upsert(profile)
     }
 
     // --- FAVORITOS (OFICIALES) ---
