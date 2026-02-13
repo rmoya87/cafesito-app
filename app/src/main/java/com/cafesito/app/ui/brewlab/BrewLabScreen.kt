@@ -50,6 +50,8 @@ fun BrewLabScreen(
     val recommendation by viewModel.dialInRecommendation.collectAsState()
     val selectedTaste by viewModel.selectedTaste.collectAsState()
     val pantryItems by viewModel.pantryItems.collectAsState()
+    val availableCoffees by viewModel.availableCoffees.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
     val toneGenerator = remember { ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100) }
 
@@ -101,8 +103,20 @@ fun BrewLabScreen(
                 when (currentStep) {
                     BrewStep.CHOOSE_METHOD -> ChooseMethodStep(viewModel.brewMethods) { viewModel.selectMethod(it) }
                     BrewStep.CHOOSE_COFFEE -> {
-                        LaunchedEffect(step) { viewModel.refreshPantry() }
-                        ChooseCoffeeStep(pantryItems) { viewModel.selectPantryItem(it) }
+                        ChooseCoffeeStep(
+                            pantryItems = pantryItems,
+                            allCoffees = availableCoffees,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = viewModel::onSearchQueryChanged,
+                            onAddNotFoundClick = onAddCoffeeClick,
+                            onCoffeeSelected = { coffee, fromPantry ->
+                                if (fromPantry) {
+                                    pantryItems.find { it.coffee.id == coffee.id }?.let(viewModel::selectPantryItem)
+                                } else {
+                                    viewModel.selectCoffeeFromCatalog(coffee)
+                                }
+                            }
+                        )
                     }
                     BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, viewModel) { viewModel.startBrewing() }
                     BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, isTimerRunning, hasTimerStarted, viewModel)
