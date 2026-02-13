@@ -39,11 +39,18 @@ data class BrewPhaseInfo(
 @HiltViewModel
 class BrewLabViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
-    coffeeRepository: CoffeeRepository
+    private val coffeeRepository: CoffeeRepository
 ) : ViewModel() {
 
     private val _currentStep = MutableStateFlow(BrewStep.CHOOSE_METHOD)
     val currentStep = _currentStep.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
+    }
 
     // --- 1. CHOOSE METHOD ---
     val brewMethods = listOf(

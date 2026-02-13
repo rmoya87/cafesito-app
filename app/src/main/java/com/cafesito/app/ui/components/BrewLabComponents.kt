@@ -86,6 +86,7 @@ import com.cafesito.app.ui.diary.DiaryAnalytics
 import com.cafesito.app.ui.diary.DiaryPeriod
 import com.cafesito.app.ui.profile.ProfileUiState
 import com.cafesito.app.ui.profile.ProfileViewModel
+import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
@@ -162,99 +163,21 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
 }
 
 @Composable
-fun ChooseCoffeeStep(
-    pantryItems: List<PantryItemWithDetails>,
-    allCoffees: List<CoffeeWithDetails>,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onAddNotFoundClick: () -> Unit,
-    onSelectPantryItem: (PantryItemWithDetails) -> Unit,
-    onSelectCatalogCoffee: (Coffee) -> Unit
-) {
-    val filteredCatalog = allCoffees.filter {
-        !it.coffee.isCustom && (
-            it.coffee.nombre.contains(searchQuery, ignoreCase = true) ||
-            it.coffee.marca.contains(searchQuery, ignoreCase = true)
-        )
-    }.take(10)
-
+fun ChooseCoffeeStep(items: List<PantryItemWithDetails>, onSelect: (PantryItemWithDetails) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp)
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                TextButton(
-                    onClick = onAddNotFoundClick,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Añadir mi café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-
-            if (pantryItems.isEmpty()) {
-                PremiumCard {
-                    Column(
-                        modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Tu despensa está vacía", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            } else {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(pantryItems, key = { it.coffee.id }) { item ->
-                        PantryMiniCard(item) { onSelectPantryItem(item) }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Busca un café o marca") },
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White,
-                    focusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White
-                ),
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-            )
-            Spacer(Modifier.height(16.dp))
-            Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(16.dp))
-        }
-
-        if (filteredCatalog.isEmpty()) {
+        if (items.isEmpty()) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("No se encontraron resultados", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No tienes café en tu despensa", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
-            items(filteredCatalog, key = { it.coffee.id }) { coffee ->
-                CoffeeSuggestionCard(coffee) { onSelectCatalogCoffee(coffee.coffee) }
+            items(items, key = { it.coffee.id }) { item ->
+                PantrySelectionCard(item) { onSelect(item) }
             }
         }
     }
@@ -355,6 +278,7 @@ fun ConfigStep(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(28.dp)
             ) {
+                @Suppress("DEPRECATION")
                 Text("EMPEZAR PREPARACIÓN", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onPrimary)
             }
         }
@@ -531,6 +455,7 @@ fun PreparationStep(
 
 @Composable
 fun PhaseDurationLabel(phase: BrewPhaseInfo) {
+    @Suppress("DEPRECATION")
     Text(
         text = "${phase.durationSeconds}s",
         style = MaterialTheme.typography.labelSmall,
@@ -765,6 +690,7 @@ fun TasteChip(
                 tint = if (isSelected) Color.White else MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.width(12.dp))
+            @Suppress("DEPRECATION")
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
@@ -799,6 +725,7 @@ fun PantrySelectionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(text = item.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                @Suppress("DEPRECATION")
                 Text(text = item.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
@@ -829,6 +756,7 @@ fun BottomActionContainer(content: @Composable BoxScope.() -> Unit) {
 
 @Composable
 fun SectionHeader(title: String) {
+    @Suppress("DEPRECATION")
     Text(
         text = title,
         style = MaterialTheme.typography.labelLarge,
@@ -842,6 +770,7 @@ fun SectionHeader(title: String) {
 @Composable
 fun DataBlock(label: String, value: String, valueColor: Color) {
     Column {
+        @Suppress("DEPRECATION")
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = valueColor)
     }
@@ -856,6 +785,7 @@ fun TasteOption(label: String, isSelected: Boolean, modifier: Modifier = Modifie
         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
     ) {
+        @Suppress("DEPRECATION")
         Text(
             text = label,
             modifier = Modifier.padding(vertical = 14.dp),
@@ -920,7 +850,9 @@ fun LocalDetailBlock(label: String, value: String, icon: ImageVector, modifier: 
             }
             Spacer(Modifier.width(12.dp))
             Column {
+                @Suppress("DEPRECATION")
                 Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
+                @Suppress("DEPRECATION")
                 Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
             }
         }

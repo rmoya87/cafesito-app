@@ -50,8 +50,6 @@ fun BrewLabScreen(
     val recommendation by viewModel.dialInRecommendation.collectAsState()
     val selectedTaste by viewModel.selectedTaste.collectAsState()
     val pantryItems by viewModel.pantryItems.collectAsState()
-    val allCoffees by viewModel.availableCoffees.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
 
     val toneGenerator = remember { ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100) }
 
@@ -104,15 +102,7 @@ fun BrewLabScreen(
                     BrewStep.CHOOSE_METHOD -> ChooseMethodStep(viewModel.brewMethods) { viewModel.selectMethod(it) }
                     BrewStep.CHOOSE_COFFEE -> {
                         LaunchedEffect(step) { viewModel.refreshPantry() }
-                        ChooseCoffeeStep(
-                            pantryItems = pantryItems,
-                            allCoffees = allCoffees,
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = { searchQuery = it },
-                            onAddNotFoundClick = onAddCoffeeClick,
-                            onSelectPantryItem = { viewModel.selectPantryItem(it) },
-                            onSelectCatalogCoffee = { viewModel.selectCoffeeFromCatalog(it) }
-                        )
+                        ChooseCoffeeStep(pantryItems) { viewModel.selectPantryItem(it) }
                     }
                     BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, viewModel) { viewModel.startBrewing() }
                     BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, isTimerRunning, hasTimerStarted, viewModel)
