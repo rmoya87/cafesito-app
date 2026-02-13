@@ -166,126 +166,21 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
 }
 
 @Composable
-fun ChooseCoffeeStep(
-    pantryItems: List<PantryItemWithDetails>,
-    allCoffees: List<CoffeeWithDetails>,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onAddNotFoundClick: () -> Unit,
-    onCoffeeSelected: (Coffee, Boolean) -> Unit
-) {
-    val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
-    val filteredCatalog = allCoffees.filter {
-        !it.coffee.isCustom && (
-            it.coffee.nombre.contains(searchQuery, ignoreCase = true) ||
-                it.coffee.marca.contains(searchQuery, ignoreCase = true)
-            )
-    }.take(10)
-
+fun ChooseCoffeeStep(items: List<PantryItemWithDetails>, onSelect: (PantryItemWithDetails) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-
-                TextButton(
-                    onClick = onAddNotFoundClick,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Icon(Icons.Default.Bolt, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Añadir mi café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-            if (pantryItems.isEmpty()) {
-                PremiumCard {
-                    Column(
-                        modifier = Modifier
-                            .padding(24.dp)
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Tu despensa está vacía", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            } else {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(pantryItems, key = { it.coffee.id }) { item ->
-                        PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
-                    }
-                }
-            }
-        }
-
-        item {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Busca un café o marca") },
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = if (isDark) Color.Black else Color.White,
-                    focusedContainerColor = if (isDark) Color.Black else Color.White
-                ),
-                singleLine = true,
-                leadingIcon = {
-                    Box(modifier = Modifier.padding(start = 4.dp)) {
-                        Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            val options = GmsBarcodeScannerOptions.Builder()
-                                .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
-                                .build()
-                            GmsBarcodeScanning.getClient(context, options)
-                                .startScan()
-                                .addOnSuccessListener { barcode ->
-                                    barcode.rawValue?.let { value ->
-                                        val found = allCoffees.find { it.coffee.codigoBarras == value }
-                                        if (found != null) {
-                                            onCoffeeSelected(found.coffee, false)
-                                        } else {
-                                            onSearchQueryChange(value)
-                                        }
-                                    }
-                                }
-                        },
-                        modifier = Modifier.padding(end = 4.dp)
-                    ) {
-                        BarcodeActionIcon(
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            )
-            Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-        }
-
-        items(filteredCatalog, key = { it.coffee.id }) { coffee ->
-            CoffeePremiumRowItem(coffee) { onCoffeeSelected(coffee.coffee, false) }
-        }
-
-        if (filteredCatalog.isEmpty()) {
+        if (items.isEmpty()) {
             item {
-                Text("Sin sugerencias con esa búsqueda", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No tienes café en tu despensa", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
+            items(items, key = { it.coffee.id }) { item ->
+                PantryPremiumMiniCard(item) { onSelect(item) }
             }
         }
     }
@@ -321,6 +216,7 @@ fun ConfigStep(
 
                     if (method?.hasWaterAdjustment == true) {
                         Spacer(Modifier.height(32.dp))
+                        @Suppress("DEPRECATION")
                         Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Slider(
                             value = water, onValueChange = { viewModel.setWaterAmount(it) }, valueRange = 50f..1000f,
@@ -332,6 +228,7 @@ fun ConfigStep(
                     val label = if (method?.hasWaterAdjustment == true) "RATIO (INTENSIDAD)" else "DOSIS DE CAFÉ"
                     val range = if (method?.hasWaterAdjustment == true) 10f..20f else 14f..22f
 
+                    @Suppress("DEPRECATION")
                     Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Slider(
                         value = ratio, onValueChange = { viewModel.setRatio(it) }, valueRange = range,
@@ -368,6 +265,7 @@ fun ConfigStep(
 
             Spacer(Modifier.height(24.dp))
 
+            @Suppress("DEPRECATION")
             Text("CONSEJOS DEL BARISTA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -494,12 +392,14 @@ fun PreparationStep(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
+                                @Suppress("DEPRECATION")
                                 Text(
                                     text = String.format("TOTAL %02d:%02d", totalSeconds / 60, totalSeconds % 60),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                @Suppress("DEPRECATION")
                                 Text(
                                     text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60),
                                     style = MaterialTheme.typography.labelLarge,
@@ -640,7 +540,7 @@ fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
 fun ResultStep(
     selectedTaste: String?,
     recommendation: String?,
-    selectedItem: Coffee?,
+    selectedCoffee: Coffee?,
     viewModel: BrewLabViewModel,
     onNavigateToDiary: () -> Unit
 ) {
@@ -655,6 +555,7 @@ fun ResultStep(
     )
 
     Column(Modifier.fillMaxSize()) {
+        @Suppress("DEPRECATION")
         Column(Modifier
             .weight(1f)
             .padding(horizontal = 24.dp)
@@ -754,7 +655,7 @@ fun ResultStep(
                 }
                 Button(
                     onClick = { viewModel.saveToDiary { onNavigateToDiary() } },
-                    enabled = selectedItem != null && selectedTaste != null,
+                    enabled = selectedCoffee != null && selectedTaste != null,
                     modifier = Modifier
                         .weight(1.3f)
                         .height(56.dp),
@@ -962,6 +863,48 @@ fun LocalDetailBlock(label: String, value: String, icon: ImageVector, modifier: 
                 Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
                 @Suppress("DEPRECATION")
                 Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+    }
+}
+
+@Composable
+fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
+    PremiumCard(
+        modifier = Modifier.width(160.dp).clickable { onClick() },
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column {
+            AsyncImage(
+                model = item.coffee.imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().height(100.dp)
+            )
+            Column(Modifier.padding(12.dp)) {
+                Text(item.coffee.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                @Suppress("DEPRECATION")
+                Text("${item.pantryItem.gramsRemaining}G REST.", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 8.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(20.dp)) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(
+                model = coffee.coffee.imageUrl,
+                contentDescription = null,
+                modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                @Suppress("DEPRECATION")
+                Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontSize = 9.sp)
             }
         }
     }
