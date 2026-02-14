@@ -312,11 +312,16 @@ class SupabaseDataSource @Inject constructor(
             amountMl = entry.amountMl,
             coffeeGrams = entry.coffeeGrams,
             preparationType = entry.preparationType,
+            sizeLabel = entry.sizeLabel,
             timestamp = entry.timestamp,
             type = entry.type
         )
         return client.postgrest["diary_entries"].insert(insertData) { select() }.decodeSingle<DiaryEntryEntity>()
     }
+    suspend fun upsertDiaryEntry(entry: DiaryEntryEntity) {
+        client.postgrest["diary_entries"].upsert(entry)
+    }
+
     suspend fun deleteDiaryEntry(entryId: Long) { client.postgrest["diary_entries"].delete { filter { eq("id", entryId) } } }
 
     // --- DESPENSA ---

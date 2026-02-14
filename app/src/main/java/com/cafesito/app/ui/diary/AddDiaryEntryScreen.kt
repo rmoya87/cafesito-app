@@ -65,6 +65,9 @@ fun AddDiaryEntryScreen(
     var selectedCoffee by remember { mutableStateOf<Coffee?>(null) }
     var step by remember(quickStart, initialType) { mutableIntStateOf(if (quickStart && initialType != "WATER") 2 else 1) }
     var isFromPantry by remember { mutableStateOf(false) }
+    var selectedDoseGrams by remember { mutableFloatStateOf(15f) }
+    var selectedPrepType by remember { mutableStateOf("Espresso") }
+    var selectedSize by remember { mutableStateOf(CoffeeSizeOption.default()) }
     var isSaving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -76,12 +79,26 @@ fun AddDiaryEntryScreen(
         topBar = {
             if (initialType != "WATER") {
                 GlassyTopBar(
-                    title = if (step == 1) {
-                        if (quickStart) "SELECCIÓN RÁPIDA" else "SELECCIONAR CAFÉ"
-                    } else {
-                        "REGISTRO RÁPIDO"
+                    title = when (step) {
+                        1 -> if (quickStart) "SELECCIÓN RÁPIDA" else "SELECCIONAR CAFÉ"
+                        2 -> "DOSIS DE CAFÉ"
+                        3 -> "TIPO DE CAFÉ"
+                        else -> "SELECCIONA TAMAÑO"
                     },
-                    onBackClick = if (step == 1) onBackClick else ({ if (quickStart) onBackClick() else step = 1 })
+                    onBackClick = {
+                        when {
+                            step == 1 -> onBackClick()
+                            quickStart && step == 2 -> onBackClick()
+                            else -> step -= 1
+                        }
+                    },
+                    actions = {
+                        if (step in 2..3) {
+                            IconButton(onClick = { step += 1 }) {
+                                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Siguiente")
+                            }
+                        }
+                    }
                 )
             }
         }
@@ -117,11 +134,17 @@ fun AddDiaryEntryScreen(
                             onQuickAddClick = {
                                 selectedCoffee = null
                                 isFromPantry = false
+                                selectedDoseGrams = 15f
+                                selectedPrepType = "Espresso"
+                                selectedSize = CoffeeSizeOption.default()
                                 step = 2
                             },
                             onCoffeeSelected = { coffee, fromPantry -> 
                                 selectedCoffee = coffee
                                 isFromPantry = fromPantry
+                                selectedDoseGrams = 15f
+                                selectedPrepType = "Espresso"
+                                selectedSize = CoffeeSizeOption.default()
                                 step = 2 
                             },
                             onBarcodeClick = {
@@ -136,6 +159,9 @@ fun AddDiaryEntryScreen(
                                             if (found != null) {
                                                 selectedCoffee = found.coffee
                                                 isFromPantry = false
+                                                selectedDoseGrams = 15f
+                                                selectedPrepType = "Espresso"
+                                                selectedSize = CoffeeSizeOption.default()
                                                 step = 2
                                             } else {
                                                 searchQuery = value
@@ -144,24 +170,41 @@ fun AddDiaryEntryScreen(
                                     }
                             }
                         )
-                    } else {
-                         CoffeeCustomizationStepPremium(
+                    } else when (currentStep) {
+                        2 -> CoffeeDoseStepPremium(
                             coffee = selectedCoffee,
-                            isFromPantry = isFromPantry,
-                            quickStart = quickStart,
+                            doseGrams = selectedDoseGrams,
+                            onDoseChange = { selectedDoseGrams = it }
+                        )
+
+                        3 -> CoffeeTypeStepPremium(
+                            selectedType = selectedPrepType,
+                            onTypeSelected = { selectedPrepType = it }
+                        )
+
+                        else -> CoffeeSizeStepPremium(
+                            selected = selectedSize,
                             isSaving = isSaving,
-                            onRegister = { name, caffeine, ml, grams, prepType ->
+                            onSelected = { selectedSize = it },
+                            onRegister = {
                                 scope.launch {
                                     if (!quickStart) {
                                         isSaving = true
+                                        val caffeine = calculateAverageCaffeine(
+                                            type = selectedPrepType,
+                                            grams = selectedDoseGrams.roundToInt(),
+                                            sizeFactor = selectedSize.multiplier,
+                                            isDecaf = selectedCoffee?.cafeina?.equals("No", ignoreCase = true) == true
+                                        )
                                         viewModel.addCoffeeConsumption(
                                             coffeeId = selectedCoffee?.id,
-                                            coffeeName = name,
+                                            coffeeName = selectedCoffee?.nombre ?: selectedPrepType,
                                             coffeeBrand = selectedCoffee?.marca ?: "Café rápido",
                                             caffeineAmount = caffeine,
-                                            amountMl = ml,
-                                            coffeeGrams = grams,
-                                            preparationType = prepType
+                                            amountMl = selectedSize.defaultMl,
+                                            coffeeGrams = selectedDoseGrams.roundToInt(),
+                                            preparationType = selectedPrepType,
+                                            sizeLabel = selectedSize.label
                                         )
                                     }
                                     onBackClick()
@@ -387,156 +430,208 @@ fun CoffeeSelectionStepPremium(
 }
 
 @Composable
-fun CoffeeCustomizationStepPremium(
+fun CoffeeDoseStepPremium(
     coffee: Coffee?,
-    isFromPantry: Boolean,
-    isSaving: Boolean,
-    quickStart: Boolean = false,
-    onRegister: (String, Int, Int, Int, String) -> Unit
+    doseGrams: Float,
+    onDoseChange: (Float) -> Unit
 ) {
-    var grams by remember { mutableFloatStateOf(15f) }
-    var selectedPrepType by remember { mutableStateOf("Espresso") }
+    val coffeeColor = CaramelAccent
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.weight(0.5f))
+
+        PremiumCard(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier.padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    Icons.Default.LocalCafe,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = coffeeColor
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = coffee?.nombre ?: "Registro rápido",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "${doseGrams.roundToInt()} g",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text("DOSIS DE CAFÉ", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
+            }
+        }
+
+        Spacer(Modifier.height(48.dp))
+
+        Slider(
+            value = doseGrams,
+            onValueChange = onDoseChange,
+            valueRange = 5f..40f,
+            colors = SliderDefaults.colors(
+                thumbColor = coffeeColor,
+                activeTrackColor = coffeeColor,
+                inactiveTrackColor = MaterialTheme.colorScheme.outline
+            ),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+fun CoffeeTypeStepPremium(
+    selectedType: String,
+    onTypeSelected: (String) -> Unit
+) {
     val context = LocalContext.current
-    
     val prepTypes = remember {
         listOf(
-            Triple("Espresso", "espresso", "Corto e intenso"),
-            Triple("Americano", "americano", "Suave y largo"),
-            Triple("Capuchino", "capuchino", "Equilibrado"),
-            Triple("Latte", "latte", "Cremoso"),
-            Triple("Macchiato", "macchiato", "Manchado"),
-            Triple("Moca", "moca", "Con chocolate"),
-            Triple("Vienés", "vienes", "Con nata"),
-            Triple("Irlandés", "irlandes", "Con carácter"),
-            Triple("Frappuccino", "frappuccino", "Refrescante")
+            PrepOptionUi("Espresso", "espresso"),
+            PrepOptionUi("Americano", "americano"),
+            PrepOptionUi("Capuchino", "capuchino"),
+            PrepOptionUi("Latte", "latte"),
+            PrepOptionUi("Macchiato", "macchiato"),
+            PrepOptionUi("Moca", "moca"),
+            PrepOptionUi("Vienés", "vienes"),
+            PrepOptionUi("Irlandés", "irlandes"),
+            PrepOptionUi("Frappuccino", "frappuccino")
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 72.dp) // Espacio para el botón fijo
-        ) {
-            item {
-                Column(Modifier.padding(24.dp)) {
-                    Text(
-                        text = coffee?.nombre ?: "Selecciona tu estilo",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(20.dp))
-                    if (isFromPantry) {
-                        Text("DOSIS DE CAFÉ", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.height(16.dp))
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("${grams.roundToInt()} g", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-                            Slider(
-                                value = grams,
-                                onValueChange = { grams = it },
-                                valueRange = 5f..50f,
-                                enabled = !isSaving,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = MaterialTheme.colorScheme.primary, 
-                                    activeTrackColor = MaterialTheme.colorScheme.primary, 
-                                    inactiveTrackColor = MaterialTheme.colorScheme.outline
-                                )
-                            )
-                        }
-                        Spacer(Modifier.height(32.dp))
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-                }
-            }
-
-            items(prepTypes.chunked(2)) { rowItems ->
-                Row(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    rowItems.forEach { (type, resName, _) ->
-                        val isSelected = selectedPrepType == type
-                        val resId = context.resources.getIdentifier(resName, "drawable", context.packageName)
-                        
-                        Surface(
-                            onClick = { if (!isSaving) selectedPrepType = type },
-                            shape = RoundedCornerShape(24.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                            border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                            modifier = Modifier.weight(1f).height(120.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                if (resId != 0) {
-                                    Image(
-                                        painter = painterResource(id = resId),
-                                        contentDescription = type,
-                                        modifier = Modifier.size(50.dp).padding(bottom = 8.dp),
-                                        contentScale = ContentScale.Fit
-                                    )
-                                }
-                                Text(
-                                    text = type.uppercase(), 
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, 
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-                    if (rowItems.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-        ) {
-            val calculatedCaffeine = CaffeineCalculator.calculate(
-                type = selectedPrepType,
-                grams = if (isFromPantry) grams.roundToInt() else null,
-                isFromPantry = isFromPantry,
-                isDecaf = coffee?.cafeina?.equals("No", ignoreCase = true) == true
-            )
-            Button(
-                onClick = { 
-                    val finalName = if (coffee != null) "${coffee.nombre} ($selectedPrepType)" else selectedPrepType
-                    onRegister(finalName, calculatedCaffeine, 200, grams.roundToInt(), selectedPrepType) 
-                },
-                enabled = !isSaving,
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(30.dp)
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(prepTypes) { option ->
+            val isSelected = selectedType == option.label
+            val resId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
+            Surface(
+                onClick = { onTypeSelected(option.label) },
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(
+                    width = if (isSelected) 2.dp else 1.dp,
+                    color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier.height(120.dp)
             ) {
-                if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        @Suppress("DEPRECATION")
-                        Text("AÑADIR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onPrimary)
-                        Text("ESTIMACIÓN: $calculatedCaffeine MG CAFEÍNA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    if (resId != 0) {
+                        Image(
+                            painter = painterResource(resId),
+                            contentDescription = option.label,
+                            modifier = Modifier.size(46.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Icon(Icons.Default.CoffeeMaker, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
                     }
+                    Spacer(Modifier.height(8.dp))
+                    Text(option.label, fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center)
                 }
             }
         }
     }
+}
+
+@Composable
+fun CoffeeSizeStepPremium(
+    selected: CoffeeSizeOption,
+    isSaving: Boolean,
+    onSelected: (CoffeeSizeOption) -> Unit,
+    onRegister: () -> Unit
+) {
+    val options = remember { CoffeeSizeOption.defaults() }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        options.forEach { option ->
+            val isSelected = option.label == selected.label
+            Surface(
+                onClick = { onSelected(option) },
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(
+                    width = if (isSelected) 2.dp else 1.dp,
+                    color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(option.label, fontWeight = FontWeight.Bold)
+                        Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Icon(Icons.Default.LocalCafe, null, tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Button(
+            onClick = onRegister,
+            enabled = !isSaving,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            if (isSaving) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+            } else {
+                Text("REGISTRAR", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+data class CoffeeSizeOption(
+    val label: String,
+    val rangeLabel: String,
+    val defaultMl: Int,
+    val multiplier: Float
+) {
+    companion object {
+        fun defaults(): List<CoffeeSizeOption> = listOf(
+            CoffeeSizeOption("Espresso", "25–30 ml", 30, 0.35f),
+            CoffeeSizeOption("Pequeño", "150–200 ml", 180, 0.8f),
+            CoffeeSizeOption("Mediano", "250–300 ml", 275, 1.0f),
+            CoffeeSizeOption("Grande", "350–400 ml", 375, 1.25f),
+            CoffeeSizeOption("Tazón XL", "450–500 ml", 475, 1.5f)
+        )
+
+        fun default(): CoffeeSizeOption = defaults()[2]
+    }
+}
+
+data class PrepOptionUi(val label: String, val drawableName: String)
+
+private fun calculateAverageCaffeine(type: String, grams: Int, sizeFactor: Float, isDecaf: Boolean): Int {
+    val base = CaffeineCalculator.calculate(type = type, grams = grams, isFromPantry = true, isDecaf = isDecaf)
+    return (base * sizeFactor).roundToInt().coerceAtLeast(if (isDecaf) 1 else 10)
 }
 
 @Composable

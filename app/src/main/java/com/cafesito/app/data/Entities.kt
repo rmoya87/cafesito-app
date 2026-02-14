@@ -252,6 +252,7 @@ data class DiaryEntryEntity(
     @SerialName("amount_ml") val amountMl: Int = 250,
     @SerialName("coffee_grams") val coffeeGrams: Int = 15,
     @SerialName("preparation_type") val preparationType: String = "Espresso",
+    @SerialName("size_label") val sizeLabel: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
     val type: String = "CUP",
     @SerialName("external_id") val externalId: String? = null
@@ -309,6 +310,7 @@ data class DiaryEntryInsert(
     @SerialName("amount_ml") val amountMl: Int,
     @SerialName("coffee_grams") val coffeeGrams: Int,
     @SerialName("preparation_type") val preparationType: String,
+    @SerialName("size_label") val sizeLabel: String? = null,
     @SerialName("timestamp") val timestamp: Long,
     @SerialName("type") val type: String
 )
