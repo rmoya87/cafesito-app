@@ -95,7 +95,7 @@ fun AddDiaryEntryScreen(
                     actions = {
                         if (step in 2..3) {
                             IconButton(onClick = { step += 1 }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = "Siguiente")
+                                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Siguiente")
                             }
                         }
                     }
