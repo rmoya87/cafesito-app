@@ -748,22 +748,27 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false, onDelete: () -> Unit) {
+fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false, enableDeleteSwipe: Boolean = true, onDelete: () -> Unit) {
+    if (!enableDeleteSwipe) {
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
+        return
+    }
+
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { if (it == SwipeToDismissBoxValue.EndToStart) { onDelete(); true } else false })
-    
+
     SwipeToDismissBox(
-        state = dismissState, 
-        enableDismissFromStartToEnd = false, 
-        backgroundContent = { 
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
-            ) { 
-                Icon(Icons.Default.Delete, null, tint = Color.White, modifier = Modifier.padding(end = 16.dp)) 
-            } 
+            ) {
+                Icon(Icons.Default.Delete, null, tint = Color.White, modifier = Modifier.padding(end = 16.dp))
+            }
         }
     ) {
         DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
@@ -774,7 +779,7 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, 
 fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false) {
     val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
     val cardColor by animateColorAsState(
-        targetValue = if (highlightNew) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
+        targetValue = MaterialTheme.colorScheme.surface,
         animationSpec = tween(320),
         label = "DiaryCardColor"
     )
@@ -783,7 +788,7 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
         modifier = Modifier.fillMaxWidth(),
         color = cardColor,
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, if (highlightNew) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

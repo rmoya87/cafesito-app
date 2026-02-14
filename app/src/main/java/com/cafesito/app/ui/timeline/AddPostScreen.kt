@@ -199,9 +199,6 @@ fun AddPostScreen(
                             val uri = createTempImageUri(context)
                             pendingCameraUri = uri
                             cameraLauncher.launch(uri)
-                        },
-                        onGalleryClick = {
-                            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
                     )
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
@@ -241,7 +238,6 @@ fun AddPostScreen(
 private fun PhotoSelectionStepPremium(
     viewModel: AddPostViewModel,
     onCameraClick: () -> Unit,
-    onGalleryClick: () -> Unit,
 ) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
@@ -282,16 +278,14 @@ private fun PhotoSelectionStepPremium(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onGalleryClick() }.padding(4.dp)
+                modifier = Modifier.padding(4.dp)
             ) {
                 Text(
-                    text = "Galería",
+                    text = "Galería del dispositivo",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(Modifier.width(4.dp))
-                Icon(Icons.Default.ExpandMore, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurface)
             }
 
             IconButton(onClick = onCameraClick) {
