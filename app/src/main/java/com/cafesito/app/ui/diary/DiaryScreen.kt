@@ -3,6 +3,7 @@ package com.cafesito.app.ui.diary
 import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
