@@ -125,6 +125,22 @@ data class PostEntity(
 )
 
 @Serializable
+@Entity(
+    tableName = "post_coffee_tags",
+    foreignKeys = [
+        ForeignKey(entity = PostEntity::class, parentColumns = ["id"], childColumns = ["postId"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [Index(value = ["coffeeId"])]
+)
+data class PostCoffeeTagEntity(
+    @PrimaryKey
+    @SerialName("post_id") val postId: String,
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("coffee_name") val coffeeName: String,
+    @SerialName("coffee_rating") val coffeeRating: Float? = null
+)
+
+@Serializable
 @Entity(tableName = "likes_db", primaryKeys = ["postId", "userId"])
 data class LikeEntity(
     @SerialName("post_id") val postId: String,
@@ -239,6 +255,15 @@ data class DiaryEntryEntity(
     @SerialName("external_id") val externalId: String? = null
 )
 
+@Entity(tableName = "pending_diary_sync")
+data class PendingDiarySyncEntity(
+    @PrimaryKey val localEntryId: Long,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastAttemptAt: Long? = null,
+    val retryCount: Int = 0,
+    val lastError: String? = null
+)
+
 @Serializable
 @Entity(tableName = "pantry_items", primaryKeys = ["coffeeId", "userId"])
 data class PantryItemEntity(
@@ -331,7 +356,9 @@ data class PostWithDetails(
     @Relation(parentColumn = "id", entityColumn = "postId")
     val likes: List<LikeEntity> = emptyList(),
     @Relation(parentColumn = "id", entityColumn = "postId")
-    val comments: List<CommentEntity> = emptyList()
+    val comments: List<CommentEntity> = emptyList(),
+    @Relation(parentColumn = "id", entityColumn = "postId")
+    val coffeeTag: PostCoffeeTagEntity? = null
 )
 
 @Immutable

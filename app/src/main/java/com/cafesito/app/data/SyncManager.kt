@@ -48,7 +48,8 @@ class SyncManager @Inject constructor(
                         async { userRepository.syncUsers() },
                         async { userRepository.syncFollows() },
                         async { socialRepository.syncSocialData() },
-                        async { diaryRepository.syncPantryItems() }
+                        async { diaryRepository.syncPantryItems() },
+                        async { diaryRepository.syncPendingDiaryEntries() }
                     )
                 }
                 

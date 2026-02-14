@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,7 +35,8 @@ fun PostCard(
     showHeader: Boolean = true,
     isOwnPost: Boolean = false,
     onEditClick: () -> Unit = {},
-    onDeleteClick: () -> Unit = {}
+    onDeleteClick: () -> Unit = {},
+    onCoffeeClick: (String) -> Unit = {}
 ) {
     val post = details.post
     val author = details.author
@@ -113,6 +115,31 @@ fun PostCard(
                     .fillMaxWidth()
                     .wrapContentHeight()
             )
+
+            details.coffeeTag?.let { tag ->
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    onClick = { onCoffeeClick(tag.coffeeId) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Coffee, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(8.dp))
+                        Text(tag.coffeeName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        tag.coffeeRating?.takeIf { it > 0f }?.let {
+                            AssistChip(onClick = {}, enabled = false, label = { Text(String.format(java.util.Locale.getDefault(), "%.1f", it)) })
+                        }
+                    }
+                }
+            }
 
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(
