@@ -119,6 +119,7 @@ fun AddDiaryEntryScreen(
                     )
                 },
                 navigationIcon = {
+                    val useCloseIcon = initialType == "WATER" || step <= 2
                     IconButton(
                         onClick = {
                             if (initialType == "WATER") {
@@ -132,7 +133,11 @@ fun AddDiaryEntryScreen(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                        if (useCloseIcon) {
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                        } else {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBackIos, contentDescription = "Volver")
+                        }
                     }
                 },
                 actions = {
@@ -591,12 +596,8 @@ fun CoffeeSizeStepPremium(
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column {
-                        Text(option.label, fontWeight = FontWeight.Bold)
-                        Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
                     val resId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
                     if (resId != 0) {
                         Image(
@@ -607,6 +608,10 @@ fun CoffeeSizeStepPremium(
                         )
                     } else {
                         Icon(Icons.Default.LocalCafe, null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                    Column {
+                        Text(option.label, fontWeight = FontWeight.Bold)
+                        Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Icon(Icons.Default.LocalCafe, null, tint = MaterialTheme.colorScheme.primary)
                 }
