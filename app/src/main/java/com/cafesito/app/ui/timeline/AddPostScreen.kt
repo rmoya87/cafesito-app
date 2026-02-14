@@ -214,7 +214,7 @@ fun AddPostScreen(
                             pendingCameraUri = uri
                             cameraLauncher.launch(uri)
                         },
-                        onGalleryClick = {
+                        onOpenGallery = {
                             galleryMultiLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
                     )
@@ -255,6 +255,7 @@ fun AddPostScreen(
 private fun PhotoSelectionStepPremium(
     viewModel: AddPostViewModel,
     onCameraClick: () -> Unit,
+    onOpenGallery: () -> Unit,
 ) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
@@ -297,7 +298,7 @@ private fun PhotoSelectionStepPremium(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onGalleryClick() }
+                    .clickable { onOpenGallery() }
                     .padding(4.dp)
             ) {
                 Text(
