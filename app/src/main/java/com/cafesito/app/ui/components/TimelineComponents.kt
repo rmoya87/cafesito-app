@@ -748,9 +748,16 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false, enableDeleteSwipe: Boolean = true, onDelete: () -> Unit) {
+fun SwipeableDiaryItem(
+    entry: DiaryEntryEntity,
+    coffeeImageUrl: String? = null,
+    highlightNew: Boolean = false,
+    enableDeleteSwipe: Boolean = true,
+    onDelete: () -> Unit,
+    onClick: (() -> Unit)? = null
+) {
     if (!enableDeleteSwipe) {
-        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, onClick = onClick)
         return
     }
 
@@ -771,12 +778,17 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, 
             }
         }
     ) {
-        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, onClick = onClick)
     }
 }
 
 @Composable
-fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false) {
+fun DiaryEntryItem(
+    entry: DiaryEntryEntity,
+    coffeeImageUrl: String? = null,
+    highlightNew: Boolean = false,
+    onClick: (() -> Unit)? = null
+) {
     val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
     val cardColor by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surface,
@@ -785,7 +797,11 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
     )
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { baseModifier ->
+                if (onClick != null) baseModifier.clickable(onClick = onClick) else baseModifier
+            },
         color = cardColor,
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
@@ -823,18 +839,20 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = if (entry.type == "WATER") "Hidratación" else entry.coffeeName,
+                        text = if (entry.type == "WATER") "Agua" else entry.coffeeName.toCoffeeNameFormat(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = if (entry.type == "WATER") "Registro de agua" else (entry.coffeeBrand.ifBlank { "Café" }),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (entry.type != "WATER") {
+                        Text(
+                            text = entry.coffeeBrand.ifBlank { "Café" }.toCoffeeBrandFormat(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 AssistChip(
@@ -852,13 +870,13 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
                     value = if (entry.type == "WATER") "${entry.amountMl} ml" else "${entry.caffeineAmount} mg",
                     modifier = Modifier.weight(1f)
                 )
-                MetricPill(
-                    icon = if (entry.type == "WATER") Icons.Default.Opacity else Icons.Default.CoffeeMaker,
-                    label = if (entry.type == "WATER") "Tipo" else "Preparación",
-                    value = if (entry.type == "WATER") "Agua" else entry.preparationType,
-                    modifier = Modifier.weight(1f)
-                )
                 if (entry.type == "CUP") {
+                    MetricPill(
+                        icon = Icons.Default.CoffeeMaker,
+                        label = "Preparación",
+                        value = entry.preparationType,
+                        modifier = Modifier.weight(1f)
+                    )
                     MetricPill(
                         icon = Icons.Default.Scale,
                         label = "Dosis",
@@ -869,6 +887,157 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiaryEntryEditBottomSheet(
+    entry: DiaryEntryEntity,
+    onDismiss: () -> Unit,
+    onSave: (DiaryEntryEntity) -> Unit
+) {
+    var amountText by remember(entry.id) { mutableStateOf(entry.amountMl.toString()) }
+    var caffeineText by remember(entry.id) { mutableStateOf(entry.caffeineAmount.toString()) }
+    var doseText by remember(entry.id) { mutableStateOf(entry.coffeeGrams.toString()) }
+    var preparationText by remember(entry.id) { mutableStateOf(entry.preparationType) }
+    var timeText by remember(entry.id) {
+        mutableStateOf(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp)))
+    }
+    var errorText by remember(entry.id) { mutableStateOf<String?>(null) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        scrimColor = Color.Black.copy(alpha = 0.5f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = if (entry.type == "WATER") "Editar registro de agua" else "Editar registro de café",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            if (entry.type == "CUP") {
+                Text(
+                    text = "${entry.coffeeName.toCoffeeNameFormat()} · ${entry.coffeeBrand.toCoffeeBrandFormat()}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            OutlinedTextField(
+                value = if (entry.type == "WATER") amountText else caffeineText,
+                onValueChange = {
+                    if (entry.type == "WATER") amountText = it.filter(Char::isDigit) else caffeineText = it.filter(Char::isDigit)
+                },
+                label = { Text(if (entry.type == "WATER") "Cantidad (ml)" else "Cafeína (mg)") },
+                leadingIcon = { Icon(if (entry.type == "WATER") Icons.Default.LocalDrink else Icons.Default.Bolt, null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (entry.type == "CUP") {
+                OutlinedTextField(
+                    value = preparationText,
+                    onValueChange = { preparationText = it },
+                    label = { Text("Preparación") },
+                    leadingIcon = { Icon(Icons.Default.CoffeeMaker, null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = doseText,
+                    onValueChange = { doseText = it.filter(Char::isDigit) },
+                    label = { Text("Dosis (g)") },
+                    leadingIcon = { Icon(Icons.Default.Scale, null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            OutlinedTextField(
+                value = timeText,
+                onValueChange = { timeText = it.take(5) },
+                label = { Text("Tiempo (HH:mm)") },
+                leadingIcon = { Icon(Icons.Default.Schedule, null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (errorText != null) {
+                Text(
+                    text = errorText!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Button(
+                onClick = {
+                    val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, timeText)
+                    if (updatedTimestamp == null) {
+                        errorText = "Usa un formato de tiempo válido: HH:mm"
+                        return@Button
+                    }
+
+                    val updatedEntry = if (entry.type == "WATER") {
+                        val amount = amountText.toIntOrNull()
+                        if (amount == null || amount <= 0) {
+                            errorText = "Cantidad inválida"
+                            return@Button
+                        }
+                        entry.copy(amountMl = amount, timestamp = updatedTimestamp)
+                    } else {
+                        val caffeine = caffeineText.toIntOrNull()
+                        val grams = doseText.toIntOrNull()
+                        if (caffeine == null || caffeine < 0 || grams == null || grams <= 0 || preparationText.isBlank()) {
+                            errorText = "Completa todos los campos correctamente"
+                            return@Button
+                        }
+                        entry.copy(
+                            caffeineAmount = caffeine,
+                            coffeeGrams = grams,
+                            preparationType = preparationText.trim(),
+                            timestamp = updatedTimestamp
+                        )
+                    }
+
+                    errorText = null
+                    onSave(updatedEntry)
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(Icons.Default.Save, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Guardar cambios")
+            }
+        }
+    }
+}
+
+private fun updateTimestampWithHourMinute(currentTimestamp: Long, hourMinute: String): Long? {
+    val parts = hourMinute.trim().split(":")
+    if (parts.size != 2) return null
+    val hour = parts[0].toIntOrNull() ?: return null
+    val minute = parts[1].toIntOrNull() ?: return null
+    if (hour !in 0..23 || minute !in 0..59) return null
+
+    val calendar = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
+    calendar.set(Calendar.HOUR_OF_DAY, hour)
+    calendar.set(Calendar.MINUTE, minute)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+    return calendar.timeInMillis
 }
 
 @Composable
