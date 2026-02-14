@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,11 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.utils.formatRelativeTime
@@ -34,7 +37,8 @@ fun PostCard(
     showHeader: Boolean = true,
     isOwnPost: Boolean = false,
     onEditClick: () -> Unit = {},
-    onDeleteClick: () -> Unit = {}
+    onDeleteClick: () -> Unit = {},
+    onCoffeeClick: (String) -> Unit = {}
 ) {
     val post = details.post
     val author = details.author
@@ -113,6 +117,45 @@ fun PostCard(
                     .fillMaxWidth()
                     .wrapContentHeight()
             )
+
+            details.coffeeTag?.let { tag ->
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    onClick = { onCoffeeClick(tag.coffeeId) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AsyncImage(
+                            model = tag.coffeeImageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(tag.coffeeName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            Text(tag.coffeeBrand.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                        }
+                        tag.coffeeRating?.takeIf { it > 0f }?.let {
+                            AssistChip(onClick = {}, enabled = false, label = { Text(String.format(java.util.Locale.getDefault(), "%.1f ★", it)) })
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
 
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(

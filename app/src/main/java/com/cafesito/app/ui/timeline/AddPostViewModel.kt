@@ -102,8 +102,9 @@ class AddPostViewModel @Inject constructor(
         if (query.isEmpty()) all.take(10)
         else all.filter {
             it.coffee.nombre.contains(query, ignoreCase = true) ||
-            it.coffee.marca.contains(query, ignoreCase = true)
-        }
+            it.coffee.marca.contains(query, ignoreCase = true) ||
+            it.coffee.codigoBarras.contains(query, ignoreCase = true)
+        }.take(10)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun loadGalleryImages() {
@@ -144,6 +145,17 @@ class AddPostViewModel @Inject constructor(
                 _imageSource.value = images[0]
                 savedStateHandle.set("imageUri", images[0].toString())
             }
+        }
+    }
+
+
+    fun mergeGalleryImages(uris: List<Uri>, selectFirst: Boolean = true) {
+        if (uris.isEmpty()) return
+        val merged = (uris + _galleryImages.value).distinct()
+        _galleryImages.value = merged
+        if (selectFirst) {
+            _imageSource.value = uris.first()
+            savedStateHandle.set("imageUri", uris.first().toString())
         }
     }
 
@@ -253,13 +265,28 @@ class AddPostViewModel @Inject constructor(
             
             val imageUrl = _imageSource.value?.let { uploadImageAndGetUrl(it, "posts") } ?: ""
             
+            val postId = "post_${System.currentTimeMillis()}"
             socialRepository.createPost(PostEntity(
-                id = "post_${System.currentTimeMillis()}", 
-                userId = activeUser.id, 
-                imageUrl = imageUrl, 
-                comment = _comment.value, 
+                id = postId,
+                userId = activeUser.id,
+                imageUrl = imageUrl,
+                comment = _comment.value,
                 timestamp = System.currentTimeMillis()
             ))
+
+            _selectedCoffee.value?.let { selected ->
+                socialRepository.upsertPostCoffeeTag(
+                    PostCoffeeTagEntity(
+                        postId = postId,
+                        coffeeId = selected.coffee.id,
+                        coffeeName = selected.coffee.nombre,
+                        coffeeBrand = selected.coffee.marca,
+                        coffeeImageUrl = selected.coffee.imageUrl,
+                        coffeeRating = selected.averageRating.takeIf { it > 0f }
+                    )
+                )
+            }
+
             socialRepository.syncSocialData()
             
             clearState()
