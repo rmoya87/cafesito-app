@@ -66,7 +66,9 @@ class DiaryViewModel @Inject constructor(
             }
         }
         val startTime = calendar.timeInMillis
-        entries.filter { it.timestamp >= startTime }
+        entries
+            .filter { it.timestamp >= startTime }
+            .sortedByDescending { it.timestamp }
     }
     .onEach { _isLoading.value = false } 
     .flowOn(Dispatchers.Default)
