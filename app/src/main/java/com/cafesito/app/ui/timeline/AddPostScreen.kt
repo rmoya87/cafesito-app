@@ -95,19 +95,20 @@ fun AddPostScreen(
         if (success) pendingCameraUri?.let(viewModel::setImage)
     }
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) viewModel.setImage(uri)
-    }
-
     val galleryMultiLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(maxItems = 200)
     ) { uris ->
         if (uris.isNotEmpty()) viewModel.mergeGalleryImages(uris)
     }
+    var systemPickerLaunched by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(allPermissionsGranted, Build.VERSION.SDK_INT) {
-        if (allPermissionsGranted || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    LaunchedEffect(allPermissionsGranted) {
+        if (allPermissionsGranted) {
             viewModel.loadGalleryImages()
+            if (!systemPickerLaunched) {
+                systemPickerLaunched = true
+                galleryMultiLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
         } else {
             mediaPermissionsState.launchMultiplePermissionRequest()
         }
@@ -213,9 +214,6 @@ fun AddPostScreen(
                             val uri = createTempImageUri(context)
                             pendingCameraUri = uri
                             cameraLauncher.launch(uri)
-                        },
-                        onOpenGallery = {
-                            galleryMultiLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
                     )
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
@@ -255,7 +253,6 @@ fun AddPostScreen(
 private fun PhotoSelectionStepPremium(
     viewModel: AddPostViewModel,
     onCameraClick: () -> Unit,
-    onOpenGallery: () -> Unit,
 ) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
@@ -297,8 +294,6 @@ private fun PhotoSelectionStepPremium(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onOpenGallery() }
                     .padding(4.dp)
             ) {
                 Text(
@@ -336,7 +331,7 @@ private fun PhotoSelectionStepPremium(
                        contentAlignment = Alignment.Center
                    ) {
                        Text(
-                           text = "No hay imágenes para mostrar. Reabre Nuevo Post para volver a importar desde dispositivo/Google Photos", 
+                           text = "No hay imágenes para mostrar. Si cancelaste el selector del sistema, vuelve a entrar en Nuevo Post para elegir fotos", 
                            style = MaterialTheme.typography.bodySmall, 
                            color = MaterialTheme.colorScheme.onSurfaceVariant, 
                            textAlign = TextAlign.Center
@@ -403,10 +398,6 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) pendingCameraUri?.let(viewModel::setImage)
-    }
-
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) viewModel.setImage(uri)
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
@@ -767,10 +758,6 @@ private fun ReviewDetailsStepPremium(
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) pendingCameraUri?.let(viewModel::setImage)
     }
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) viewModel.setImage(uri)
-    }
-
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
         Spacer(Modifier.height(16.dp))
 

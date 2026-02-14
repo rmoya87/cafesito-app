@@ -196,6 +196,19 @@ class SupabaseDataSource @Inject constructor(
         client.postgrest["posts_db"].delete { filter { eq("id", postId) } }
     }
 
+    suspend fun getAllPostCoffeeTags(): List<PostCoffeeTagEntity> =
+        client.postgrest["post_coffee_tags"].select().decodeList<PostCoffeeTagEntity>()
+
+    suspend fun upsertPostCoffeeTag(tag: PostCoffeeTagEntity) {
+        client.postgrest["post_coffee_tags"].upsert(tag)
+    }
+
+    suspend fun deletePostCoffeeTag(postId: String) {
+        client.postgrest["post_coffee_tags"].delete {
+            filter { eq("post_id", postId) }
+        }
+    }
+
     // --- COMENTARIOS ---
     suspend fun getAllComments(): List<CommentEntity> = client.postgrest["comments_db"].select().decodeList<CommentEntity>()
     suspend fun getCommentsForPost(postId: String): List<CommentEntity> = client.postgrest["comments_db"].select { filter { eq("post_id", postId) }; order("timestamp", Order.ASCENDING) }.decodeList<CommentEntity>()

@@ -37,19 +37,28 @@ class SocialRepository @Inject constructor(
                 query = { socialDao.getAllPostsWithDetails() },
                 fetch = {
                     supervisorScope {
-                        val posts = supabaseDataSource.getAllPosts()
-                        val likes = supabaseDataSource.getAllLikes()
-                        val comments = supabaseDataSource.getAllComments()
-                        val users = userRepository.getAllUsersList()
-                        Triple(posts, Pair(likes, comments), users)
+                        val postsDeferred = async { supabaseDataSource.getAllPosts() }
+                        val likesDeferred = async { supabaseDataSource.getAllLikes() }
+                        val commentsDeferred = async { supabaseDataSource.getAllComments() }
+                        val usersDeferred = async { userRepository.getAllUsersList() }
+                        val coffeeTagsDeferred = async { supabaseDataSource.getAllPostCoffeeTags() }
+
+                        SocialSyncPayload(
+                            posts = postsDeferred.await(),
+                            likes = likesDeferred.await(),
+                            comments = commentsDeferred.await(),
+                            users = usersDeferred.await(),
+                            coffeeTags = coffeeTagsDeferred.await()
+                        )
                     }
                 },
-                saveFetchResult = { (posts, interactions, users) ->
+                saveFetchResult = { payload ->
                     withContext(Dispatchers.IO) {
-                        socialDao.insertPosts(posts)
-                        socialDao.insertLikes(interactions.first)
-                        socialDao.insertComments(interactions.second)
-                        userRepository.insertUsers(users)
+                        socialDao.insertPosts(payload.posts)
+                        socialDao.insertLikes(payload.likes)
+                        socialDao.insertComments(payload.comments)
+                        socialDao.upsertPostCoffeeTags(payload.coffeeTags)
+                        userRepository.insertUsers(payload.users)
                     }
                 },
                 shouldFetch = { true },
@@ -144,8 +153,23 @@ class SocialRepository @Inject constructor(
     suspend fun createPost(post: PostEntity) = withContext(Dispatchers.IO) {
         socialDao.insertPost(post)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try { supabaseDataSource.insertPost(post) } catch (e: Exception) { }
+            try {
+                supabaseDataSource.insertPost(post)
+            } catch (e: Exception) {
+                Log.e("SocialRepository", "Error creating post in Supabase", e)
+            }
+        }
+        triggerRefresh()
+    }
+
+    suspend fun upsertPostCoffeeTag(tag: PostCoffeeTagEntity?) = withContext(Dispatchers.IO) {
+        if (tag == null) return@withContext
+        socialDao.upsertPostCoffeeTag(tag)
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                supabaseDataSource.upsertPostCoffeeTag(tag)
+            } catch (e: Exception) {
+                Log.e("SocialRepository", "Error upserting post coffee tag in Supabase", e)
             }
         }
         triggerRefresh()
@@ -246,12 +270,22 @@ class SocialRepository @Inject constructor(
 
     fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> = socialDao.getCommentsWithAuthorForPost(postId)
 
+    private data class SocialSyncPayload(
+        val posts: List<PostEntity>,
+        val likes: List<LikeEntity>,
+        val comments: List<CommentEntity>,
+        val users: List<UserEntity>,
+        val coffeeTags: List<PostCoffeeTagEntity>
+    )
+
     suspend fun deletePost(postId: String) = withContext(Dispatchers.IO) {
         val post = socialDao.getAllPostsWithDetails().first().find { it.post.id == postId }?.post
         if (post != null) socialDao.deletePost(post)
+        socialDao.deletePostCoffeeTag(postId)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try { 
-                supabaseDataSource.deletePost(postId) 
+            try {
+                supabaseDataSource.deletePostCoffeeTag(postId)
+                supabaseDataSource.deletePost(postId)
                 triggerRefresh()
             } catch (e: Exception) { }
         } else {
