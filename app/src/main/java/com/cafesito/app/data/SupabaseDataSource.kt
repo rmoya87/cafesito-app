@@ -42,6 +42,7 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
+    @Suppress("DEPRECATION")
     fun subscribeToNotifications(userId: Int): Flow<PostgresAction> {
         val channel = client.realtime.channel("notifications-$userId")
         return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
