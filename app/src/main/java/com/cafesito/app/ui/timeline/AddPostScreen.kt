@@ -297,7 +297,7 @@ private fun PhotoSelectionStepPremium(
                 modifier = Modifier.padding(4.dp)
             ) {
                 Text(
-                    text = "Galería",
+                    text = "Galería del dispositivo",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
