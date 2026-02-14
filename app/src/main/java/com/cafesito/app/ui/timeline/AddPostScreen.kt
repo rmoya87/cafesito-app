@@ -86,7 +86,7 @@ fun AddPostScreen(
         listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
     
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val mediaPermissionsState = rememberMultiplePermissionsState(permissions)
     val allPermissionsGranted = mediaPermissionsState.allPermissionsGranted
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
@@ -95,20 +95,15 @@ fun AddPostScreen(
         if (success) pendingCameraUri?.let(viewModel::setImage)
     }
 
-    val galleryMultiLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 200)
-    ) { uris ->
-        if (uris.isNotEmpty()) viewModel.mergeGalleryImages(uris)
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { viewModel.setImage(it) }
     }
-    var systemPickerLaunched by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(allPermissionsGranted) {
         if (allPermissionsGranted) {
             viewModel.loadGalleryImages()
-            if (!systemPickerLaunched) {
-                systemPickerLaunched = true
-                galleryMultiLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-            }
         } else {
             mediaPermissionsState.launchMultiplePermissionRequest()
         }
@@ -216,14 +211,21 @@ fun AddPostScreen(
                             cameraLauncher.launch(uri)
                         }
                     )
-                    postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
+                    postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(
+                        viewModel = viewModel, 
+                        activeUser = activeUser,
+                        galleryLauncher = galleryLauncher,
+                        cameraLauncher = cameraLauncher
+                    )
                     
                     postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
                     postType == PostType.OPINION && step == 2 -> ReviewDetailsStepPremium(
                         viewModel = viewModel, 
                         activeUser = activeUser,
                         isDarkTheme = isDarkTheme,
-                        modalBackgroundColor = modalBackgroundColor
+                        modalBackgroundColor = modalBackgroundColor,
+                        galleryLauncher = galleryLauncher,
+                        cameraLauncher = cameraLauncher
                     )
                 }
             }
@@ -297,7 +299,7 @@ private fun PhotoSelectionStepPremium(
                     .padding(4.dp)
             ) {
                 Text(
-                    text = "Galería del dispositivo",
+                    text = "Galería",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -331,7 +333,7 @@ private fun PhotoSelectionStepPremium(
                        contentAlignment = Alignment.Center
                    ) {
                        Text(
-                           text = "No hay imágenes para mostrar. Si cancelaste el selector del sistema, vuelve a entrar en Nuevo Post para elegir fotos", 
+                           text = "No hay imágenes para mostrar.", 
                            style = MaterialTheme.typography.bodySmall, 
                            color = MaterialTheme.colorScheme.onSurfaceVariant, 
                            textAlign = TextAlign.Center
@@ -378,7 +380,12 @@ private fun PhotoSelectionStepPremium(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: UserEntity?) {
+private fun PostDetailsStepPremium(
+    viewModel: AddPostViewModel, 
+    activeUser: UserEntity?,
+    galleryLauncher: androidx.activity.result.ActivityResultLauncher<PickVisualMediaRequest>,
+    cameraLauncher: androidx.activity.result.ActivityResultLauncher<Uri>
+) {
     val imageSource = viewModel.imageSource.collectAsState().value as? Uri
     val comment by viewModel.comment.collectAsState()
     val mentionSuggestions by viewModel.mentionSuggestions.collectAsState()
@@ -391,14 +398,10 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
     var showPickerSheet by remember { mutableStateOf(false) }
     var showCoffeeSelector by remember { mutableStateOf(false) }
     var showEmojiPanel by remember { mutableStateOf(false) }
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
-
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) pendingCameraUri?.let(viewModel::setImage)
-    }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -409,7 +412,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Crop
             )
             Spacer(Modifier.width(12.dp))
             Column {
@@ -428,13 +431,11 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 
         Spacer(Modifier.height(16.dp))
 
-        var composerHeight by remember { mutableStateOf(0) }
         Box(modifier = Modifier.fillMaxWidth()) {
             // Main Composer Container
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onSizeChanged { composerHeight = it.height }
                     .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
                     .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
@@ -560,7 +561,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 
         Spacer(Modifier.height(12.dp))
 
-        imageSource?.let { uri ->
+        if (imageSource != null) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -569,7 +570,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
                 AsyncImage(
-                    model = uri,
+                    model = imageSource,
                     contentDescription = "Post Image",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -584,6 +585,23 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     color = Color.Black.copy(alpha = 0.6f)
                 ) {
                     Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                }
+            }
+        } else {
+             Surface(
+                onClick = { showPickerSheet = true },
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Añadir foto", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -609,24 +627,32 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     placeholder = { Text("Buscar café") },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
-                        IconButton(onClick = {
-                            val options = GmsBarcodeScannerOptions.Builder()
-                                .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
-                                .build()
-                            GmsBarcodeScanning.getClient(context, options)
-                                .startScan()
-                                .addOnSuccessListener { barcode ->
-                                    barcode.rawValue?.let { value ->
-                                        viewModel.onSearchQueryChanged(value)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = {
+                                val options = GmsBarcodeScannerOptions.Builder()
+                                    .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                                    .build()
+                                GmsBarcodeScanning.getClient(context, options)
+                                    .startScan()
+                                    .addOnSuccessListener { barcode ->
+                                        barcode.rawValue?.let { value ->
+                                            viewModel.onSearchQueryChanged(value)
+                                        }
                                     }
-                                }
-                        }) {
-                            BarcodeActionIcon(tint = MaterialTheme.colorScheme.onSurface)
+                            }) {
+                                BarcodeActionIcon(tint = MaterialTheme.colorScheme.onSurface)
+                            }
+                            Spacer(Modifier.width(8.dp))
                         }
                     },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White,
+                        focusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+                    )
                 )
                 Spacer(Modifier.height(12.dp))
                 LazyColumn(
@@ -675,7 +701,6 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
         ModalBottomSheet(
             onDismissRequest = { showPickerSheet = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            // scrimColor removed
         ) {
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
@@ -698,13 +723,40 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val coffeeList by viewModel.coffeeList.collectAsState()
+    val context = LocalContext.current
     
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
         OutlinedTextField(
-            value = searchQuery, onValueChange = viewModel::onSearchQueryChanged, placeholder = { Text("¿Qué café estás catando?") },
+            value = searchQuery, 
+            onValueChange = viewModel::onSearchQueryChanged, 
+            placeholder = { Text("Busca café") },
             leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurface) },
-            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+            trailingIcon = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = {
+                        val options = GmsBarcodeScannerOptions.Builder()
+                            .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                            .build()
+                        GmsBarcodeScanning.getClient(context, options)
+                            .startScan()
+                            .addOnSuccessListener { barcode ->
+                                barcode.rawValue?.let { value ->
+                                    viewModel.onSearchQueryChanged(value)
+                                }
+                            }
+                    }) {
+                        BarcodeActionIcon(tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                }
+            },
+            modifier = Modifier.fillMaxWidth(), 
+            shape = RoundedCornerShape(20.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White,
+                focusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+            )
         )
         
         Spacer(Modifier.height(24.dp))
@@ -738,7 +790,9 @@ private fun ReviewDetailsStepPremium(
     viewModel: AddPostViewModel, 
     activeUser: UserEntity?,
     isDarkTheme: Boolean,
-    modalBackgroundColor: Color
+    modalBackgroundColor: Color,
+    galleryLauncher: androidx.activity.result.ActivityResultLauncher<PickVisualMediaRequest>,
+    cameraLauncher: androidx.activity.result.ActivityResultLauncher<Uri>
 ) {
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val imageSource = viewModel.imageSource.collectAsState().value as? Uri
@@ -751,13 +805,11 @@ private fun ReviewDetailsStepPremium(
     }
     var showPickerSheet by remember { mutableStateOf(false) }
     var showEmojiPanel by remember { mutableStateOf(false) }
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) pendingCameraUri?.let(viewModel::setImage)
-    }
+    
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
         Spacer(Modifier.height(16.dp))
 
@@ -769,7 +821,7 @@ private fun ReviewDetailsStepPremium(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Crop
             )
             Spacer(Modifier.width(12.dp))
             Column {
@@ -795,7 +847,6 @@ private fun ReviewDetailsStepPremium(
         Spacer(Modifier.height(12.dp))
 
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Main Composer Container
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -894,8 +945,7 @@ private fun ReviewDetailsStepPremium(
 
         Spacer(Modifier.height(16.dp))
 
-
-        imageSource?.let { uri ->
+        if (imageSource != null) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -904,7 +954,7 @@ private fun ReviewDetailsStepPremium(
                     .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
                 AsyncImage(
-                    model = uri,
+                    model = imageSource,
                     contentDescription = "Review Image",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -919,6 +969,24 @@ private fun ReviewDetailsStepPremium(
                     color = Color.Black.copy(alpha = 0.6f)
                 ) {
                     Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        } else {
+             Surface(
+                onClick = { showPickerSheet = true },
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Añadir foto", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -979,8 +1047,6 @@ private fun ReviewDetailsStepPremium(
     }
 }
 
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ComposerActionRow(
@@ -995,8 +1061,6 @@ private fun ComposerActionRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Camera icon removed as requested
-
         Surface(
             onClick = onInsertMention,
             modifier = Modifier.size(40.dp),
