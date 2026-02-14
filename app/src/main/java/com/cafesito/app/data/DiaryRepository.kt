@@ -122,6 +122,7 @@ class DiaryRepository @Inject constructor(
         amountMl: Int = 250,
         coffeeGrams: Int = 15,
         preparationType: String = "Espresso",
+        sizeLabel: String? = null,
         reduceFromPantry: Boolean = true
     ) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
@@ -129,7 +130,7 @@ class DiaryRepository @Inject constructor(
             userId = user.id, coffeeId = coffeeId, coffeeName = coffeeName, 
             coffeeBrand = coffeeBrand, caffeineAmount = caffeineAmount, 
             amountMl = amountMl, coffeeGrams = coffeeGrams,
-            preparationType = preparationType, timestamp = System.currentTimeMillis(), type = type
+            preparationType = preparationType, sizeLabel = sizeLabel, timestamp = System.currentTimeMillis(), type = type
         )
         
         val rowId = diaryDao.insertDiaryEntry(entry)

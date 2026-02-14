@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
@@ -51,6 +52,7 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -879,10 +881,20 @@ fun DiaryEntryItem(
                         value = entry.preparationType,
                         modifier = Modifier.weight(1f)
                     )
+                }
+            }
+            if (entry.type == "CUP") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     MetricPill(
                         icon = Icons.Default.Scale,
                         label = "Dosis",
                         value = "${entry.coffeeGrams} g",
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetricPill(
+                        icon = Icons.Default.LocalCafe,
+                        label = "Tamaño",
+                        value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -899,12 +911,24 @@ fun DiaryEntryEditBottomSheet(
     onSave: (DiaryEntryEntity) -> Unit
 ) {
     val context = LocalContext.current
-    val initialCalendar = remember(entry.id) { Calendar.getInstance().apply { timeInMillis = entry.timestamp } }
-    var selectedAmount by remember(entry.id) { mutableIntStateOf(entry.amountMl.coerceIn(50, 1000)) }
-    var selectedCaffeine by remember(entry.id) { mutableIntStateOf(entry.caffeineAmount.coerceIn(0, 500)) }
-    var selectedDose by remember(entry.id) { mutableIntStateOf(entry.coffeeGrams.coerceIn(5, 40)) }
-    var selectedHour by remember(entry.id) { mutableIntStateOf(initialCalendar.get(Calendar.HOUR_OF_DAY)) }
-    var selectedMinute by remember(entry.id) { mutableIntStateOf(initialCalendar.get(Calendar.MINUTE)) }
+    var amountText by remember(entry.id) { mutableStateOf(entry.amountMl.toString()) }
+    var caffeineText by remember(entry.id) { mutableStateOf(entry.caffeineAmount.toString()) }
+    var doseText by remember(entry.id) { mutableStateOf(entry.coffeeGrams.toString()) }
+    var timeText by remember(entry.id) {
+        mutableStateOf(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp)))
+    }
+    val sizeOptions = remember {
+        listOf(
+            SizeOption("Espresso", "25–30 ml", 30),
+            SizeOption("Pequeño", "150–200 ml", 180),
+            SizeOption("Mediano", "250–300 ml", 275),
+            SizeOption("Grande", "350–400 ml", 375),
+            SizeOption("Tazón XL", "450–500 ml", 475)
+        )
+    }
+    var selectedSize by remember(entry.id) {
+        mutableStateOf(entry.sizeLabel ?: inferSizeLabel(entry.amountMl))
+    }
 
     val preparationOptions = remember(entry.id) {
         val base = listOf(
@@ -935,11 +959,9 @@ fun DiaryEntryEditBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 12.dp)
                 .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
                 text = if (entry.type == "WATER") "Editar registro de agua" else "Editar registro de café",
@@ -954,9 +976,7 @@ fun DiaryEntryEditBottomSheet(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
 
-            if (entry.type == "CUP") {
                 Text(
                     text = "Preparación",
                     style = MaterialTheme.typography.labelLarge,
@@ -975,17 +995,17 @@ fun DiaryEntryEditBottomSheet(
                                 color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
                         ) {
-                            Column(
+                            Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
                                 if (resId != 0) {
                                     Image(
                                         painter = painterResource(id = resId),
                                         contentDescription = option.label,
-                                        modifier = Modifier.size(40.dp),
+                                        modifier = Modifier.size(28.dp),
                                         contentScale = ContentScale.Fit
                                     )
                                 } else {
@@ -1002,53 +1022,71 @@ fun DiaryEntryEditBottomSheet(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    NumberCarousel(
-                        label = "Cafeína",
-                        unit = "mg",
-                        values = (0..500 step 5).toList(),
-                        selectedValue = selectedCaffeine,
-                        onValueSelected = { selectedCaffeine = it },
-                        modifier = Modifier.weight(1f)
-                    )
-                    NumberCarousel(
-                        label = "Dosis",
-                        unit = "g",
-                        values = (5..40).toList(),
-                        selectedValue = selectedDose,
-                        onValueSelected = { selectedDose = it },
-                        modifier = Modifier.weight(1f)
-                    )
+                OutlinedTextField(
+                    value = caffeineText,
+                    onValueChange = { caffeineText = it.filter(Char::isDigit) },
+                    label = { Text("Cafeína (mg)") },
+                    leadingIcon = { Icon(Icons.Default.Bolt, null) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = doseText,
+                    onValueChange = { doseText = it.filter(Char::isDigit) },
+                    label = { Text("Dosis (g)") },
+                    leadingIcon = { Icon(Icons.Default.Scale, null) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Tamaño",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(sizeOptions) { option ->
+                        val isSelected = selectedSize == option.label
+                        Surface(
+                            onClick = { selectedSize = option.label },
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                                Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
                 }
             } else {
-                NumberCarousel(
-                    label = "Cantidad",
-                    unit = "ml",
-                    values = (50..1000 step 10).toList(),
-                    selectedValue = selectedAmount,
-                    onValueSelected = { selectedAmount = it },
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { amountText = it.filter(Char::isDigit) },
+                    label = { Text("Cantidad (ml)") },
+                    leadingIcon = { Icon(Icons.Default.LocalDrink, null) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                NumberCarousel(
-                    label = "Hora",
-                    unit = "h",
-                    values = (0..23).toList(),
-                    selectedValue = selectedHour,
-                    onValueSelected = { selectedHour = it },
-                    modifier = Modifier.weight(1f)
-                )
-                NumberCarousel(
-                    label = "Min",
-                    unit = "m",
-                    values = (0..59).toList(),
-                    selectedValue = selectedMinute,
-                    onValueSelected = { selectedMinute = it },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            OutlinedTextField(
+                value = timeText,
+                onValueChange = { timeText = it.take(5) },
+                label = { Text("Tiempo (HH:mm)") },
+                leadingIcon = { Icon(Icons.Default.Schedule, null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             if (errorText != null) {
                 Text(
@@ -1060,23 +1098,32 @@ fun DiaryEntryEditBottomSheet(
 
             Button(
                 onClick = {
-                    val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, selectedHour, selectedMinute)
+                    val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, timeText)
+                    if (updatedTimestamp == null) {
+                        errorText = "Usa un formato de tiempo válido: HH:mm"
+                        return@Button
+                    }
 
                     val updatedEntry = if (entry.type == "WATER") {
-                        if (selectedAmount <= 0) {
+                        val amount = amountText.toIntOrNull()
+                        if (amount == null || amount <= 0) {
                             errorText = "Cantidad inválida"
                             return@Button
                         }
-                        entry.copy(amountMl = selectedAmount, timestamp = updatedTimestamp)
+                        entry.copy(amountMl = amount, timestamp = updatedTimestamp)
                     } else {
-                        if (selectedCaffeine < 0 || selectedDose <= 0 || selectedPreparation.isBlank()) {
+                        val caffeine = caffeineText.toIntOrNull()
+                        val grams = doseText.toIntOrNull()
+                        if (caffeine == null || caffeine < 0 || grams == null || grams <= 0 || selectedPreparation.isBlank()) {
                             errorText = "Completa todos los campos correctamente"
                             return@Button
                         }
                         entry.copy(
-                            caffeineAmount = selectedCaffeine,
-                            coffeeGrams = selectedDose,
+                            caffeineAmount = caffeine,
+                            coffeeGrams = grams,
                             preparationType = selectedPreparation.trim(),
+                            sizeLabel = selectedSize,
+                            amountMl = sizeOptions.find { it.label == selectedSize }?.defaultMl ?: entry.amountMl,
                             timestamp = updatedTimestamp
                         )
                     }
@@ -1093,60 +1140,33 @@ fun DiaryEntryEditBottomSheet(
     }
 }
 
-@Composable
-private fun NumberCarousel(
-    label: String,
-    unit: String,
-    values: List<Int>,
-    selectedValue: Int,
-    onValueSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
-        )
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-        ) {
-            LazyColumn(
-                modifier = Modifier.height(180.dp).fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                items(values) { value ->
-                    val isSelected = value == selectedValue
-                    Surface(
-                        onClick = { onValueSelected(value) },
-                        modifier = Modifier.padding(horizontal = 10.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
-                        border = BorderStroke(
-                            width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-                        )
-                    ) {
-                        Text(
-                            text = "$value $unit",
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                }
-            }
-        }
-    }
+private data class PrepOption(
+    val label: String,
+    val drawableName: String?
+)
+
+private data class SizeOption(
+    val label: String,
+    val rangeLabel: String,
+    val defaultMl: Int
+)
+
+private fun inferSizeLabel(amountMl: Int): String = when (amountMl) {
+    in 20..60 -> "Espresso"
+    in 150..220 -> "Pequeño"
+    in 230..320 -> "Mediano"
+    in 330..420 -> "Grande"
+    in 430..520 -> "Tazón XL"
+    else -> "Mediano"
 }
 
-private fun updateTimestampWithHourMinute(currentTimestamp: Long, hour: Int, minute: Int): Long {
+private fun updateTimestampWithHourMinute(currentTimestamp: Long, hourMinute: String): Long? {
+    val parts = hourMinute.trim().split(":")
+    if (parts.size != 2) return null
+    val hour = parts[0].toIntOrNull() ?: return null
+    val minute = parts[1].toIntOrNull() ?: return null
+    if (hour !in 0..23 || minute !in 0..59) return null
+
     val calendar = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
     calendar.set(Calendar.HOUR_OF_DAY, hour)
     calendar.set(Calendar.MINUTE, minute)
@@ -1154,11 +1174,6 @@ private fun updateTimestampWithHourMinute(currentTimestamp: Long, hour: Int, min
     calendar.set(Calendar.MILLISECOND, 0)
     return calendar.timeInMillis
 }
-
-private data class PrepOption(
-    val label: String,
-    val drawableName: String?
-)
 
 @Composable
 private fun MetricPill(

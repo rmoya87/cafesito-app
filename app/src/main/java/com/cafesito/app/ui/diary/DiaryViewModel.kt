@@ -182,13 +182,14 @@ class DiaryViewModel @Inject constructor(
         caffeineAmount: Int, 
         amountMl: Int, 
         coffeeGrams: Int,
-        preparationType: String
+        preparationType: String,
+        sizeLabel: String? = null
     ) {
-        diaryRepository.addDiaryEntry(coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams, preparationType)
+        diaryRepository.addDiaryEntry(coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams, preparationType, sizeLabel)
     }
     
     suspend fun addWaterConsumption(amountMl: Int) {
-        diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None")
+        diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None", null)
     }
     
     fun updateEntry(entry: DiaryEntryEntity) {

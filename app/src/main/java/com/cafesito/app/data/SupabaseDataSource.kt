@@ -312,6 +312,7 @@ class SupabaseDataSource @Inject constructor(
             amountMl = entry.amountMl,
             coffeeGrams = entry.coffeeGrams,
             preparationType = entry.preparationType,
+            sizeLabel = entry.sizeLabel,
             timestamp = entry.timestamp,
             type = entry.type
         )
