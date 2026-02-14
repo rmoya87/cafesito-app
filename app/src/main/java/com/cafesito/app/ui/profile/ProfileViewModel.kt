@@ -18,6 +18,29 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+
+private data class ProfileInternalState(
+    val isEditing: Boolean,
+    val generalError: String?,
+    val usernameError: String?,
+    val tempAvatar: Uri?,
+    val loggedOut: Boolean
+)
+
+private data class ProfilePrimaryData(
+    val activeUser: UserEntity?,
+    val targetUser: UserEntity?,
+    val userPosts: List<PostWithDetails>,
+    val allCoffees: List<CoffeeWithDetails>
+)
+
+private data class ProfileSecondaryData(
+    val allReviews: List<ReviewEntity>,
+    val followingMap: Map<Int, Set<Int>>,
+    val myFavorites: List<LocalFavorite>,
+    val internalState: ProfileInternalState
+)
+
 sealed interface ProfileUiState {
     data object Loading : ProfileUiState
     data class Error(val message: String) : ProfileUiState
@@ -73,31 +96,32 @@ class ProfileViewModel @Inject constructor(
         else flowOf(emptyList())
     }
 
+    private val internalStateFlow = combine(_isEditing, _error, _usernameError, _temporaryAvatarUri, _loggedOut) {
+        isEditing, generalError, usernameError, tempAvatar, loggedOut ->
+        ProfileInternalState(isEditing, generalError, usernameError, tempAvatar, loggedOut)
+    }
+
     val uiState: StateFlow<ProfileUiState> = combine(
-        activeUserFlow,
-        targetUserFlow,
-        userPostsFlow,
-        coffeeRepository.allCoffees,
-        coffeeRepository.allReviews,
-        userRepository.followingMap,
-        coffeeRepository.favorites,
-        combine(_isEditing, _error, _usernameError, _temporaryAvatarUri, _loggedOut) { it }
-    ) { args ->
-        @Suppress("UNCHECKED_CAST")
-        val activeUser = args[0] as? UserEntity
-        val targetUser = args[1] as? UserEntity
-        val userPosts = args[2] as List<PostWithDetails>
-        val allCoffees = args[3] as List<CoffeeWithDetails>
-        val allReviews = args[4] as List<ReviewEntity>
-        val followingMap = args[5] as Map<Int, Set<Int>>
-        val myFavorites = args[6] as List<LocalFavorite>
-        
-        val internalState = args[7] as Array<*>
-        val isEditing = internalState[0] as Boolean
-        val generalError = internalState[1] as? String
-        val usernameError = internalState[2] as? String
-        val tempAvatar = internalState[3] as? Uri
-        val loggedOut = internalState[4] as Boolean
+        combine(activeUserFlow, targetUserFlow, userPostsFlow, coffeeRepository.allCoffees) { activeUser, targetUser, userPosts, allCoffees ->
+            ProfilePrimaryData(activeUser, targetUser, userPosts, allCoffees)
+        },
+        combine(coffeeRepository.allReviews, userRepository.followingMap, coffeeRepository.favorites, internalStateFlow) { allReviews, followingMap, myFavorites, internalState ->
+            ProfileSecondaryData(allReviews, followingMap, myFavorites, internalState)
+        }
+    ) { primary, secondary ->
+        val activeUser = primary.activeUser
+        val targetUser = primary.targetUser
+        val userPosts = primary.userPosts
+        val allCoffees = primary.allCoffees
+        val allReviews = secondary.allReviews
+        val followingMap = secondary.followingMap
+        val myFavorites = secondary.myFavorites
+
+        val isEditing = secondary.internalState.isEditing
+        val generalError = secondary.internalState.generalError
+        val usernameError = secondary.internalState.usernameError
+        val tempAvatar = secondary.internalState.tempAvatar
+        val loggedOut = secondary.internalState.loggedOut
 
         if (loggedOut) return@combine ProfileUiState.LoggedOut
         if (generalError != null) return@combine ProfileUiState.Error(generalError)
