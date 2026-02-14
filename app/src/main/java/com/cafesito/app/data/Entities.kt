@@ -137,6 +137,8 @@ data class PostCoffeeTagEntity(
     @SerialName("post_id") val postId: String,
     @SerialName("coffee_id") val coffeeId: String,
     @SerialName("coffee_name") val coffeeName: String,
+    @SerialName("coffee_brand") val coffeeBrand: String,
+    @SerialName("coffee_image_url") val coffeeImageUrl: String,
     @SerialName("coffee_rating") val coffeeRating: Float? = null
 )
 

@@ -102,8 +102,9 @@ class AddPostViewModel @Inject constructor(
         if (query.isEmpty()) all.take(10)
         else all.filter {
             it.coffee.nombre.contains(query, ignoreCase = true) ||
-            it.coffee.marca.contains(query, ignoreCase = true)
-        }
+            it.coffee.marca.contains(query, ignoreCase = true) ||
+            it.coffee.codigoBarras.contains(query, ignoreCase = true)
+        }.take(10)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun loadGalleryImages() {
@@ -279,6 +280,8 @@ class AddPostViewModel @Inject constructor(
                         postId = postId,
                         coffeeId = selected.coffee.id,
                         coffeeName = selected.coffee.nombre,
+                        coffeeBrand = selected.coffee.marca,
+                        coffeeImageUrl = selected.coffee.imageUrl,
                         coffeeRating = selected.averageRating.takeIf { it > 0f }
                     )
                 )

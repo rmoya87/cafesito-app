@@ -53,6 +53,9 @@ import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.DarkCoffeeBean
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import java.io.File
 import java.util.UUID
 
@@ -95,11 +98,6 @@ fun AddPostScreen(
         if (uri != null) viewModel.setImage(uri)
     }
 
-    val galleryMultiLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 200)
-    ) { uris ->
-        if (uris.isNotEmpty()) viewModel.mergeGalleryImages(uris)
-    }
 
     LaunchedEffect(allPermissionsGranted, Build.VERSION.SDK_INT) {
         if (allPermissionsGranted || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -109,13 +107,6 @@ fun AddPostScreen(
         }
     }
 
-    var hasAutoOpenedImport by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(postType, currentStep) {
-        if (postType == PostType.PUBLICATION && currentStep == 0 && !hasAutoOpenedImport) {
-            hasAutoOpenedImport = true
-            galleryMultiLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }
-    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -613,6 +604,22 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                     onValueChange = viewModel::onSearchQueryChanged,
                     placeholder = { Text("Buscar café") },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            val options = GmsBarcodeScannerOptions.Builder()
+                                .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                                .build()
+                            GmsBarcodeScanning.getClient(context, options)
+                                .startScan()
+                                .addOnSuccessListener { barcode ->
+                                    barcode.rawValue?.let { value ->
+                                        viewModel.onSearchQueryChanged(value)
+                                    }
+                                }
+                        }) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear EAN")
+                        }
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp)
