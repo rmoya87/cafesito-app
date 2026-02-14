@@ -175,6 +175,12 @@ class SocialRepository @Inject constructor(
         triggerRefresh()
     }
 
+    suspend fun upsertPostCoffeeTag(tag: PostCoffeeTagEntity?) = withContext(Dispatchers.IO) {
+        if (tag == null) return@withContext
+        socialDao.upsertPostCoffeeTag(tag)
+        triggerRefresh()
+    }
+
     suspend fun uploadImage(bucket: String, path: String, bytes: ByteArray): String {
         return supabaseDataSource.uploadImage(bucket, path, bytes)
     }
