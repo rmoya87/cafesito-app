@@ -191,6 +191,12 @@ class DiaryViewModel @Inject constructor(
         diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None")
     }
     
+    fun updateEntry(entry: DiaryEntryEntity) {
+        viewModelScope.launch {
+            diaryRepository.updateDiaryEntry(entry)
+        }
+    }
+
     fun deleteEntry(entryId: Long) { 
         viewModelScope.launch { 
             diaryRepository.deleteDiaryEntry(entryId) 

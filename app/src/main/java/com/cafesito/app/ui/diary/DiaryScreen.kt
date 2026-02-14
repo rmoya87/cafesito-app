@@ -314,9 +314,13 @@ fun DiaryScreen(
 
 
         selectedEntry?.let { entry ->
-            DiaryEntryDetailBottomSheet(
+            DiaryEntryEditBottomSheet(
                 entry = entry,
-                onDismiss = { selectedEntry = null }
+                onDismiss = { selectedEntry = null },
+                onSave = { updatedEntry ->
+                    viewModel.updateEntry(updatedEntry)
+                    selectedEntry = null
+                }
             )
         }
 
