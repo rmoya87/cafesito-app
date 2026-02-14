@@ -122,6 +122,7 @@ class DiaryRepository @Inject constructor(
         amountMl: Int = 250,
         coffeeGrams: Int = 15,
         preparationType: String = "Espresso",
+        sizeLabel: String? = null,
         reduceFromPantry: Boolean = true
     ) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
@@ -129,7 +130,7 @@ class DiaryRepository @Inject constructor(
             userId = user.id, coffeeId = coffeeId, coffeeName = coffeeName, 
             coffeeBrand = coffeeBrand, caffeineAmount = caffeineAmount, 
             amountMl = amountMl, coffeeGrams = coffeeGrams,
-            preparationType = preparationType, timestamp = System.currentTimeMillis(), type = type
+            preparationType = preparationType, sizeLabel = sizeLabel, timestamp = System.currentTimeMillis(), type = type
         )
         
         val rowId = diaryDao.insertDiaryEntry(entry)
@@ -192,7 +193,7 @@ class DiaryRepository @Inject constructor(
             }
 
             try {
-                supabaseDataSource.insertDiaryEntry(localEntry)
+                supabaseDataSource.upsertDiaryEntry(localEntry)
                 diaryDao.deletePendingDiarySync(pending.localEntryId)
             } catch (e: Exception) {
                 enqueueDiaryEntryForSync(pending.localEntryId, e)
@@ -284,6 +285,27 @@ class DiaryRepository @Inject constructor(
 
     suspend fun addToPantry(coffeeId: String, totalGrams: Int) {
         updatePantryStockFull(coffeeId, totalGrams, totalGrams)
+    }
+
+
+
+    suspend fun updateDiaryEntry(entry: DiaryEntryEntity) = withContext(Dispatchers.IO) {
+        diaryDao.insertDiaryEntry(entry)
+
+        externalScope.launch {
+            val isOnline = connectivityObserver.observe().first() == ConnectivityObserver.Status.Available
+            if (isOnline) {
+                try {
+                    supabaseDataSource.upsertDiaryEntry(entry)
+                    diaryDao.deletePendingDiarySync(entry.id)
+                } catch (e: Exception) {
+                    Log.e("DiaryRepository", "Error updating diary entry in Supabase", e)
+                    enqueueDiaryEntryForSync(entry.id, e)
+                }
+            } else {
+                enqueueDiaryEntryForSync(entry.id, IOException("No network available"))
+            }
+        }
     }
 
     suspend fun deleteDiaryEntry(entryId: Long) = withContext(Dispatchers.IO) {
