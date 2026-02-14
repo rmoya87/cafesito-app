@@ -613,7 +613,6 @@ fun CoffeeSizeStepPremium(
                         Text(option.label, fontWeight = FontWeight.Bold)
                         Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Icon(Icons.Default.LocalCafe, null, tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
