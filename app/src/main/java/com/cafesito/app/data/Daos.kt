@@ -146,6 +146,12 @@ interface SocialDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPosts(posts: List<PostEntity>): List<Long>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPostCoffeeTag(tag: PostCoffeeTagEntity)
+
+    @Query("DELETE FROM post_coffee_tags WHERE postId = :postId")
+    suspend fun deletePostCoffeeTag(postId: String)
+
     @Delete
     suspend fun deletePost(post: PostEntity): Int
 

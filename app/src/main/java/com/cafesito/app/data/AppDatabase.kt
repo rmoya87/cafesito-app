@@ -13,6 +13,7 @@ import androidx.room.RoomDatabase
         UserEntity::class,
         FollowEntity::class,
         PostEntity::class,
+        PostCoffeeTagEntity::class,
         CommentEntity::class,
         LikeEntity::class,
         NotificationEntity::class,
@@ -23,7 +24,7 @@ import androidx.room.RoomDatabase
         UserTokenEntity::class,
         ActiveSessionEntity::class
     ],
-    version = 30,
+    version = 31,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

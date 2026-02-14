@@ -263,7 +263,7 @@ fun DiaryScreen(
                                                     entry = entry,
                                                     coffeeImageUrl = if (entry.type == "CUP") coffeeImageMap[entry.coffeeId] else null,
                                                     highlightNew = isNew,
-                                                    enableDeleteSwipe = !isNew,
+                                                    enableDeleteSwipe = true,
                                                     onDelete = { viewModel.deleteEntry(entry.id) }
                                                 )
                                             }
