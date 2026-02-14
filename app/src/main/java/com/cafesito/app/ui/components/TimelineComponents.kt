@@ -748,9 +748,16 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false, enableDeleteSwipe: Boolean = true, onDelete: () -> Unit) {
+fun SwipeableDiaryItem(
+    entry: DiaryEntryEntity,
+    coffeeImageUrl: String? = null,
+    highlightNew: Boolean = false,
+    enableDeleteSwipe: Boolean = true,
+    onDelete: () -> Unit,
+    onClick: (() -> Unit)? = null
+) {
     if (!enableDeleteSwipe) {
-        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, onClick = onClick)
         return
     }
 
@@ -771,12 +778,17 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, 
             }
         }
     ) {
-        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, onClick = onClick)
     }
 }
 
 @Composable
-fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false) {
+fun DiaryEntryItem(
+    entry: DiaryEntryEntity,
+    coffeeImageUrl: String? = null,
+    highlightNew: Boolean = false,
+    onClick: (() -> Unit)? = null
+) {
     val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
     val cardColor by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surface,
@@ -785,7 +797,11 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
     )
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { baseModifier ->
+                if (onClick != null) baseModifier.clickable(onClick = onClick) else baseModifier
+            },
         color = cardColor,
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
@@ -823,18 +839,20 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = if (entry.type == "WATER") "Hidratación" else entry.coffeeName,
+                        text = if (entry.type == "WATER") "Agua" else entry.coffeeName.toCoffeeNameFormat(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = if (entry.type == "WATER") "Registro de agua" else (entry.coffeeBrand.ifBlank { "Café" }),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (entry.type != "WATER") {
+                        Text(
+                            text = entry.coffeeBrand.ifBlank { "Café" }.toCoffeeBrandFormat(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 AssistChip(
@@ -859,6 +877,79 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
                     modifier = Modifier.weight(1f)
                 )
                 if (entry.type == "CUP") {
+                    MetricPill(
+                        icon = Icons.Default.Scale,
+                        label = "Dosis",
+                        value = "${entry.coffeeGrams} g",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiaryEntryDetailBottomSheet(entry: DiaryEntryEntity, onDismiss: () -> Unit) {
+    val timeLabel = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        scrimColor = Color.Black.copy(alpha = 0.5f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = if (entry.type == "WATER") "Detalle de agua" else "Detalle de café",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            if (entry.type == "CUP") {
+                Text(
+                    text = entry.coffeeName.toCoffeeNameFormat(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = entry.coffeeBrand.toCoffeeBrandFormat(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                MetricPill(
+                    icon = if (entry.type == "WATER") Icons.Default.LocalDrink else Icons.Default.Bolt,
+                    label = if (entry.type == "WATER") "Cantidad" else "Cafeína",
+                    value = if (entry.type == "WATER") "${entry.amountMl} ml" else "${entry.caffeineAmount} mg",
+                    modifier = Modifier.weight(1f)
+                )
+                MetricPill(
+                    icon = Icons.Default.Schedule,
+                    label = "Tiempo",
+                    value = timeLabel,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (entry.type == "CUP") {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    MetricPill(
+                        icon = Icons.Default.CoffeeMaker,
+                        label = "Preparación",
+                        value = entry.preparationType,
+                        modifier = Modifier.weight(1f)
+                    )
                     MetricPill(
                         icon = Icons.Default.Scale,
                         label = "Dosis",
