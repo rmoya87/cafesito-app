@@ -225,6 +225,9 @@ interface DiaryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDiaryEntry(entry: DiaryEntryEntity): Long
 
+    @Query("SELECT * FROM diary_entries WHERE id = :entryId LIMIT 1")
+    suspend fun getDiaryEntryById(entryId: Long): DiaryEntryEntity?
+
     @Query("DELETE FROM diary_entries WHERE id = :entryId")
     suspend fun deleteDiaryEntryById(entryId: Long): Int
 
@@ -236,4 +239,13 @@ interface DiaryDao {
 
     @Query("DELETE FROM pantry_items WHERE coffeeId = :coffeeId AND userId = :userId")
     suspend fun deletePantryItem(coffeeId: String, userId: Int): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPendingDiarySync(item: PendingDiarySyncEntity)
+
+    @Query("SELECT * FROM pending_diary_sync ORDER BY createdAt ASC")
+    suspend fun getPendingDiarySyncEntries(): List<PendingDiarySyncEntity>
+
+    @Query("DELETE FROM pending_diary_sync WHERE localEntryId = :localEntryId")
+    suspend fun deletePendingDiarySync(localEntryId: Long)
 }
