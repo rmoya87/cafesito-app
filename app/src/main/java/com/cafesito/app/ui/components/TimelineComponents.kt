@@ -7,6 +7,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -82,6 +83,7 @@ import com.cafesito.app.ui.timeline.TimelineNotification
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.io.File
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
@@ -748,9 +750,16 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false, enableDeleteSwipe: Boolean = true, onDelete: () -> Unit) {
+fun SwipeableDiaryItem(
+    entry: DiaryEntryEntity,
+    coffeeImageUrl: String? = null,
+    highlightNew: Boolean = false,
+    enableDeleteSwipe: Boolean = true,
+    onDelete: () -> Unit,
+    onClick: (() -> Unit)? = null
+) {
     if (!enableDeleteSwipe) {
-        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, onClick = onClick)
         return
     }
 
@@ -771,12 +780,17 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, 
             }
         }
     ) {
-        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, onClick = onClick)
     }
 }
 
 @Composable
-fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false) {
+fun DiaryEntryItem(
+    entry: DiaryEntryEntity,
+    coffeeImageUrl: String? = null,
+    highlightNew: Boolean = false,
+    onClick: (() -> Unit)? = null
+) {
     val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
     val cardColor by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surface,
@@ -785,7 +799,11 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
     )
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { baseModifier ->
+                if (onClick != null) baseModifier.clickable(onClick = onClick) else baseModifier
+            },
         color = cardColor,
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
@@ -823,18 +841,20 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = if (entry.type == "WATER") "Hidratación" else entry.coffeeName,
+                        text = if (entry.type == "WATER") "Agua" else entry.coffeeName.toCoffeeNameFormat(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = if (entry.type == "WATER") "Registro de agua" else (entry.coffeeBrand.ifBlank { "Café" }),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (entry.type != "WATER") {
+                        Text(
+                            text = entry.coffeeBrand.ifBlank { "Café" }.toCoffeeBrandFormat(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 AssistChip(
@@ -852,13 +872,13 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
                     value = if (entry.type == "WATER") "${entry.amountMl} ml" else "${entry.caffeineAmount} mg",
                     modifier = Modifier.weight(1f)
                 )
-                MetricPill(
-                    icon = if (entry.type == "WATER") Icons.Default.Opacity else Icons.Default.CoffeeMaker,
-                    label = if (entry.type == "WATER") "Tipo" else "Preparación",
-                    value = if (entry.type == "WATER") "Agua" else entry.preparationType,
-                    modifier = Modifier.weight(1f)
-                )
                 if (entry.type == "CUP") {
+                    MetricPill(
+                        icon = Icons.Default.CoffeeMaker,
+                        label = "Preparación",
+                        value = entry.preparationType,
+                        modifier = Modifier.weight(1f)
+                    )
                     MetricPill(
                         icon = Icons.Default.Scale,
                         label = "Dosis",
@@ -870,6 +890,275 @@ fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, high
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiaryEntryEditBottomSheet(
+    entry: DiaryEntryEntity,
+    onDismiss: () -> Unit,
+    onSave: (DiaryEntryEntity) -> Unit
+) {
+    val context = LocalContext.current
+    val initialCalendar = remember(entry.id) { Calendar.getInstance().apply { timeInMillis = entry.timestamp } }
+    var selectedAmount by remember(entry.id) { mutableIntStateOf(entry.amountMl.coerceIn(50, 1000)) }
+    var selectedCaffeine by remember(entry.id) { mutableIntStateOf(entry.caffeineAmount.coerceIn(0, 500)) }
+    var selectedDose by remember(entry.id) { mutableIntStateOf(entry.coffeeGrams.coerceIn(5, 40)) }
+    var selectedHour by remember(entry.id) { mutableIntStateOf(initialCalendar.get(Calendar.HOUR_OF_DAY)) }
+    var selectedMinute by remember(entry.id) { mutableIntStateOf(initialCalendar.get(Calendar.MINUTE)) }
+
+    val preparationOptions = remember(entry.id) {
+        val base = listOf(
+            PrepOption("Espresso", "espresso"),
+            PrepOption("Americano", "americano"),
+            PrepOption("Capuchino", "capuchino"),
+            PrepOption("Latte", "latte"),
+            PrepOption("Macchiato", "macchiato"),
+            PrepOption("Moca", "moca"),
+            PrepOption("Vienés", "vienes"),
+            PrepOption("Irlandés", "irlandes"),
+            PrepOption("Frappuccino", "frappuccino")
+        )
+        if (entry.preparationType in base.map { it.label }) base
+        else base + PrepOption(entry.preparationType, null)
+    }
+    var selectedPreparation by remember(entry.id) { mutableStateOf(entry.preparationType) }
+    var errorText by remember(entry.id) { mutableStateOf<String?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        scrimColor = Color.Black.copy(alpha = 0.5f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.92f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = if (entry.type == "WATER") "Editar registro de agua" else "Editar registro de café",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            if (entry.type == "CUP") {
+                Text(
+                    text = "${entry.coffeeName.toCoffeeNameFormat()} · ${entry.coffeeBrand.toCoffeeBrandFormat()}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (entry.type == "CUP") {
+                Text(
+                    text = "Preparación",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(preparationOptions) { option ->
+                        val isSelected = selectedPreparation == option.label
+                        Surface(
+                            onClick = { selectedPreparation = option.label },
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
+                                if (resId != 0) {
+                                    Image(
+                                        painter = painterResource(id = resId),
+                                        contentDescription = option.label,
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                } else {
+                                    Icon(Icons.Default.CoffeeMaker, null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                                Text(
+                                    text = option.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    NumberCarousel(
+                        label = "Cafeína",
+                        unit = "mg",
+                        values = (0..500 step 5).toList(),
+                        selectedValue = selectedCaffeine,
+                        onValueSelected = { selectedCaffeine = it },
+                        modifier = Modifier.weight(1f)
+                    )
+                    NumberCarousel(
+                        label = "Dosis",
+                        unit = "g",
+                        values = (5..40).toList(),
+                        selectedValue = selectedDose,
+                        onValueSelected = { selectedDose = it },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                NumberCarousel(
+                    label = "Cantidad",
+                    unit = "ml",
+                    values = (50..1000 step 10).toList(),
+                    selectedValue = selectedAmount,
+                    onValueSelected = { selectedAmount = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                NumberCarousel(
+                    label = "Hora",
+                    unit = "h",
+                    values = (0..23).toList(),
+                    selectedValue = selectedHour,
+                    onValueSelected = { selectedHour = it },
+                    modifier = Modifier.weight(1f)
+                )
+                NumberCarousel(
+                    label = "Min",
+                    unit = "m",
+                    values = (0..59).toList(),
+                    selectedValue = selectedMinute,
+                    onValueSelected = { selectedMinute = it },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (errorText != null) {
+                Text(
+                    text = errorText!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Button(
+                onClick = {
+                    val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, selectedHour, selectedMinute)
+
+                    val updatedEntry = if (entry.type == "WATER") {
+                        if (selectedAmount <= 0) {
+                            errorText = "Cantidad inválida"
+                            return@Button
+                        }
+                        entry.copy(amountMl = selectedAmount, timestamp = updatedTimestamp)
+                    } else {
+                        if (selectedCaffeine < 0 || selectedDose <= 0 || selectedPreparation.isBlank()) {
+                            errorText = "Completa todos los campos correctamente"
+                            return@Button
+                        }
+                        entry.copy(
+                            caffeineAmount = selectedCaffeine,
+                            coffeeGrams = selectedDose,
+                            preparationType = selectedPreparation.trim(),
+                            timestamp = updatedTimestamp
+                        )
+                    }
+
+                    errorText = null
+                    onSave(updatedEntry)
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Guardar cambios")
+            }
+        }
+    }
+}
+
+@Composable
+private fun NumberCarousel(
+    label: String,
+    unit: String,
+    values: List<Int>,
+    selectedValue: Int,
+    onValueSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
+        )
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        ) {
+            LazyColumn(
+                modifier = Modifier.height(180.dp).fillMaxWidth(),
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(values) { value ->
+                    val isSelected = value == selectedValue
+                    Surface(
+                        onClick = { onValueSelected(value) },
+                        modifier = Modifier.padding(horizontal = 10.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                        border = BorderStroke(
+                            width = if (isSelected) 2.dp else 1.dp,
+                            color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                        )
+                    ) {
+                        Text(
+                            text = "$value $unit",
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun updateTimestampWithHourMinute(currentTimestamp: Long, hour: Int, minute: Int): Long {
+    val calendar = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
+    calendar.set(Calendar.HOUR_OF_DAY, hour)
+    calendar.set(Calendar.MINUTE, minute)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+    return calendar.timeInMillis
+}
+
+private data class PrepOption(
+    val label: String,
+    val drawableName: String?
+)
 
 @Composable
 private fun MetricPill(

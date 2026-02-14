@@ -69,6 +69,7 @@ fun DiaryScreen(
     var itemToEdit by remember { mutableStateOf<PantryItemWithDetails?>(null) }
     var showQuickActions by remember { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
+    var selectedEntry by remember { mutableStateOf<DiaryEntryEntity?>(null) }
     
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
@@ -264,7 +265,8 @@ fun DiaryScreen(
                                                     coffeeImageUrl = if (entry.type == "CUP") coffeeImageMap[entry.coffeeId] else null,
                                                     highlightNew = isNew,
                                                     enableDeleteSwipe = true,
-                                                    onDelete = { viewModel.deleteEntry(entry.id) }
+                                                    onDelete = { viewModel.deleteEntry(entry.id) },
+                                                    onClick = { selectedEntry = entry }
                                                 )
                                             }
                                         }
@@ -308,6 +310,18 @@ fun DiaryScreen(
                 }
             }
         }
+        }
+
+
+        selectedEntry?.let { entry ->
+            DiaryEntryEditBottomSheet(
+                entry = entry,
+                onDismiss = { selectedEntry = null },
+                onSave = { updatedEntry ->
+                    viewModel.updateEntry(updatedEntry)
+                    selectedEntry = null
+                }
+            )
         }
 
         if (showPeriodMenu) {
