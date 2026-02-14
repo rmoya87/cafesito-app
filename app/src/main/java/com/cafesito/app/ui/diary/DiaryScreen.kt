@@ -3,6 +3,7 @@ package com.cafesito.app.ui.diary
 import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -60,6 +61,7 @@ fun DiaryScreen(
     val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
     val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
     val analytics by viewModel.analytics.collectAsState(initial = null)
+    val availableCoffees by viewModel.availableCoffees.collectAsState(initial = emptyList())
     val selectedPeriod by viewModel.selectedPeriod.collectAsState(initial = DiaryPeriod.HOY)
     val isLoading by viewModel.isLoading.collectAsState(initial = true)
     
@@ -72,6 +74,9 @@ fun DiaryScreen(
     val coroutineScope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
 
+    val coffeeImageMap = remember(availableCoffees) {
+        availableCoffees.associate { it.coffee.id to it.coffee.imageUrl }
+    }
     LaunchedEffect(Unit) {
         viewModel.refreshData()
     }
@@ -245,12 +250,22 @@ fun DiaryScreen(
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                                     item { Spacer(Modifier.height(16.dp)) }
                                     items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
+                                        val isNew = entry.timestamp >= System.currentTimeMillis() - 10_000
                                         AnimatedVisibility(
                                             visible = true,
-                                            enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
+                                            enter = fadeIn(animationSpec = tween(220)) +
+                                                slideInVertically(initialOffsetY = { it / 5 }, animationSpec = tween(220)) +
+                                                scaleIn(initialScale = 0.92f, animationSpec = tween(220)),
+                                            label = "DiaryEntryAppear"
                                         ) {
                                             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                                SwipeableDiaryItem(entry = entry, onDelete = { viewModel.deleteEntry(entry.id) })
+                                                SwipeableDiaryItem(
+                                                    entry = entry,
+                                                    coffeeImageUrl = if (entry.type == "CUP") coffeeImageMap[entry.coffeeId] else null,
+                                                    highlightNew = isNew,
+                                                    enableDeleteSwipe = true,
+                                                    onDelete = { viewModel.deleteEntry(entry.id) }
+                                                )
                                             }
                                         }
                                     }

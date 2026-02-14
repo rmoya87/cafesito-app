@@ -269,7 +269,8 @@ fun TimelineScreen(
                                                 onLikeClick = { viewModel.toggleLike(item.details.post.id) },
                                                 isOwnPost = item.details.post.userId == state.activeUser.id,
                                                 onEditClick = { postToEdit = item.details },
-                                                onDeleteClick = { itemToDelete = item.details }
+                                                onDeleteClick = { itemToDelete = item.details },
+                                                onCoffeeClick = onCoffeeClick
                                             )
                                             is TimelineItem.ReviewItem -> UserReviewCard(
                                                 info = item.reviewInfo,
