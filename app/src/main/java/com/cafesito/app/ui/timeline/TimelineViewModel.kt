@@ -29,6 +29,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -120,6 +121,7 @@ class TimelineViewModel @Inject constructor(
         }
     }
 
+    @OptIn(FlowPreview::class)
     private fun observeBaseData() {
         viewModelScope.launch {
             combine(

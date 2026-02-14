@@ -4,6 +4,7 @@ import android.util.Log
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -14,6 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+@OptIn(ExperimentalCoroutinesApi::class)
 class DiaryRepository @Inject constructor(
     private val diaryDao: DiaryDao,
     private val coffeeDao: CoffeeDao,
