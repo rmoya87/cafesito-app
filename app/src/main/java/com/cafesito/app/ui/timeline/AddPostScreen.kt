@@ -50,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.components.*
+import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.DarkCoffeeBean
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -98,6 +99,11 @@ fun AddPostScreen(
         if (uri != null) viewModel.setImage(uri)
     }
 
+    val galleryMultiLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 200)
+    ) { uris ->
+        if (uris.isNotEmpty()) viewModel.mergeGalleryImages(uris)
+    }
 
     LaunchedEffect(allPermissionsGranted, Build.VERSION.SDK_INT) {
         if (allPermissionsGranted || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -207,6 +213,9 @@ fun AddPostScreen(
                             val uri = createTempImageUri(context)
                             pendingCameraUri = uri
                             cameraLauncher.launch(uri)
+                        },
+                        onGalleryClick = {
+                            galleryMultiLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
                     )
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
@@ -286,7 +295,10 @@ private fun PhotoSelectionStepPremium(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(4.dp)
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onGalleryClick() }
+                    .padding(4.dp)
             ) {
                 Text(
                     text = "Galería del dispositivo",
@@ -617,7 +629,7 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
                                     }
                                 }
                         }) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear EAN")
+                            BarcodeActionIcon(tint = MaterialTheme.colorScheme.onSurface)
                         }
                     },
                     singleLine = true,
