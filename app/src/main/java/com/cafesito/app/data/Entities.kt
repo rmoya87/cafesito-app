@@ -239,6 +239,15 @@ data class DiaryEntryEntity(
     @SerialName("external_id") val externalId: String? = null
 )
 
+@Entity(tableName = "pending_diary_sync")
+data class PendingDiarySyncEntity(
+    @PrimaryKey val localEntryId: Long,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastAttemptAt: Long? = null,
+    val retryCount: Int = 0,
+    val lastError: String? = null
+)
+
 @Serializable
 @Entity(tableName = "pantry_items", primaryKeys = ["coffeeId", "userId"])
 data class PantryItemEntity(
