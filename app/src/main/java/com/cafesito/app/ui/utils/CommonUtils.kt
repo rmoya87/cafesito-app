@@ -26,7 +26,10 @@ object CaffeineCalculator {
     private val baseCaffeineMap = mapOf(
         "Espresso" to 63, "Marroqui" to 95, "Aguamiles" to 95, "Americano" to 95,
         "Capuchino" to 95, "Latte" to 95, "Macchiato" to 95, "Moca" to 105,
-        "Vienés" to 80, "Irlandés" to 96, "Corretto" to 63, "Frappuccino" to 80
+        "Vienés" to 80, "Irlandés" to 96, "Corretto" to 63, "Frappuccino" to 80,
+        "Caramelo macchiato" to 90, "Freddo" to 80, "Latte macchiato" to 95,
+        "Leche con chocolate" to 75, "Marroquí" to 95, "Romano" to 70,
+        "Descafeinado" to 10
     )
     fun calculate(type: String, grams: Int?, isFromPantry: Boolean, isDecaf: Boolean = false): Int {
         val base = baseCaffeineMap[type] ?: 80

@@ -919,11 +919,11 @@ fun DiaryEntryEditBottomSheet(
     }
     val sizeOptions = remember {
         listOf(
-            SizeOption("Espresso", "25–30 ml", 30),
-            SizeOption("Pequeño", "150–200 ml", 180),
-            SizeOption("Mediano", "250–300 ml", 275),
-            SizeOption("Grande", "350–400 ml", 375),
-            SizeOption("Tazón XL", "450–500 ml", 475)
+            SizeOption("Espresso", "25–30 ml", 30, "taza_espresso"),
+            SizeOption("Pequeño", "150–200 ml", 180, "taza_pequeno"),
+            SizeOption("Mediano", "250–300 ml", 275, "taza_mediano"),
+            SizeOption("Grande", "350–400 ml", 375, "taza_grande"),
+            SizeOption("Tazón XL", "450–500 ml", 475, "taza_xl")
         )
     }
     var selectedSize by remember(entry.id) {
@@ -940,7 +940,15 @@ fun DiaryEntryEditBottomSheet(
             PrepOption("Moca", "moca"),
             PrepOption("Vienés", "vienes"),
             PrepOption("Irlandés", "irlandes"),
-            PrepOption("Frappuccino", "frappuccino")
+            PrepOption("Frappuccino", "frappuccino"),
+            PrepOption("Caramelo macchiato", "caramel_macchiato"),
+            PrepOption("Corretto", "corretto"),
+            PrepOption("Freddo", "freddo"),
+            PrepOption("Latte macchiato", "latte_macchiato"),
+            PrepOption("Leche con chocolate", "leche_con_chocolate"),
+            PrepOption("Marroquí", "marroqui"),
+            PrepOption("Romano", "romano"),
+            PrepOption("Descafeinado", "descafeinado")
         )
         if (entry.preparationType in base.map { it.label }) base
         else base + PrepOption(entry.preparationType, null)
@@ -971,12 +979,6 @@ fun DiaryEntryEditBottomSheet(
             )
 
             if (entry.type == "CUP") {
-                Text(
-                    text = "${entry.coffeeName.toCoffeeNameFormat()} · ${entry.coffeeBrand.toCoffeeBrandFormat()}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
                 Text(
                     text = "Preparación",
                     style = MaterialTheme.typography.labelLarge,
@@ -1022,25 +1024,27 @@ fun DiaryEntryEditBottomSheet(
                     }
                 }
 
-                OutlinedTextField(
-                    value = caffeineText,
-                    onValueChange = { caffeineText = it.filter(Char::isDigit) },
-                    label = { Text("Cafeína (mg)") },
-                    leadingIcon = { Icon(Icons.Default.Bolt, null) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = caffeineText,
+                        onValueChange = { caffeineText = it.filter(Char::isDigit) },
+                        label = { Text("Cafeína (mg)") },
+                        leadingIcon = { Icon(Icons.Default.Bolt, null) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                OutlinedTextField(
-                    value = doseText,
-                    onValueChange = { doseText = it.filter(Char::isDigit) },
-                    label = { Text("Dosis (g)") },
-                    leadingIcon = { Icon(Icons.Default.Scale, null) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    OutlinedTextField(
+                        value = doseText,
+                        onValueChange = { doseText = it.filter(Char::isDigit) },
+                        label = { Text("Dosis (g)") },
+                        leadingIcon = { Icon(Icons.Default.Scale, null) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
                 Text(
                     text = "Tamaño",
@@ -1061,7 +1065,20 @@ fun DiaryEntryEditBottomSheet(
                             )
                         ) {
                             Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                                Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    val sizeResId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
+                                    if (sizeResId != 0) {
+                                        Image(
+                                            painter = painterResource(id = sizeResId),
+                                            contentDescription = option.label,
+                                            modifier = Modifier.size(22.dp),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    } else {
+                                        Icon(Icons.Default.LocalCafe, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                    Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                                }
                                 Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -1131,7 +1148,11 @@ fun DiaryEntryEditBottomSheet(
                     errorText = null
                     onSave(updatedEntry)
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding()
+                    .navigationBarsPadding()
+                    .requiredHeight(52.dp),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Text("Guardar cambios")
@@ -1148,7 +1169,8 @@ private data class PrepOption(
 private data class SizeOption(
     val label: String,
     val rangeLabel: String,
-    val defaultMl: Int
+    val defaultMl: Int,
+    val drawableName: String
 )
 
 private fun inferSizeLabel(amountMl: Int): String = when (amountMl) {
