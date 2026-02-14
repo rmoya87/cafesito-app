@@ -147,6 +147,17 @@ class AddPostViewModel @Inject constructor(
         }
     }
 
+
+    fun mergeGalleryImages(uris: List<Uri>, selectFirst: Boolean = true) {
+        if (uris.isEmpty()) return
+        val merged = (uris + _galleryImages.value).distinct()
+        _galleryImages.value = merged
+        if (selectFirst) {
+            _imageSource.value = uris.first()
+            savedStateHandle.set("imageUri", uris.first().toString())
+        }
+    }
+
     fun setPostType(type: PostType) {
         _postType.value = type
         savedStateHandle.set("postType", type)
@@ -253,13 +264,26 @@ class AddPostViewModel @Inject constructor(
             
             val imageUrl = _imageSource.value?.let { uploadImageAndGetUrl(it, "posts") } ?: ""
             
+            val postId = "post_${System.currentTimeMillis()}"
             socialRepository.createPost(PostEntity(
-                id = "post_${System.currentTimeMillis()}", 
-                userId = activeUser.id, 
-                imageUrl = imageUrl, 
-                comment = _comment.value, 
+                id = postId,
+                userId = activeUser.id,
+                imageUrl = imageUrl,
+                comment = _comment.value,
                 timestamp = System.currentTimeMillis()
             ))
+
+            _selectedCoffee.value?.let { selected ->
+                socialRepository.upsertPostCoffeeTag(
+                    PostCoffeeTagEntity(
+                        postId = postId,
+                        coffeeId = selected.coffee.id,
+                        coffeeName = selected.coffee.nombre,
+                        coffeeRating = selected.averageRating.takeIf { it > 0f }
+                    )
+                )
+            }
+
             socialRepository.syncSocialData()
             
             clearState()

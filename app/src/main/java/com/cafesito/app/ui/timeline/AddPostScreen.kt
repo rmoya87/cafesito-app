@@ -51,8 +51,7 @@ import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.DarkCoffeeBean
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
 import java.util.UUID
 
@@ -83,7 +82,8 @@ fun AddPostScreen(
     }
     
     val context = androidx.compose.ui.platform.LocalContext.current
-    val allPermissionsGranted = permissions.any { rememberPermissionState(it).status.isGranted }
+    val mediaPermissionsState = rememberMultiplePermissionsState(permissions)
+    val allPermissionsGranted = mediaPermissionsState.allPermissionsGranted
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -94,9 +94,25 @@ fun AddPostScreen(
         if (uri != null) viewModel.setImage(uri)
     }
 
-    LaunchedEffect(allPermissionsGranted) {
+    val galleryMultiLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 200)
+    ) { uris ->
+        if (uris.isNotEmpty()) viewModel.mergeGalleryImages(uris)
+    }
+
+    LaunchedEffect(allPermissionsGranted, Build.VERSION.SDK_INT) {
         if (allPermissionsGranted || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             viewModel.loadGalleryImages()
+        } else {
+            mediaPermissionsState.launchMultiplePermissionRequest()
+        }
+    }
+
+    var hasAutoOpenedImport by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(postType, currentStep) {
+        if (postType == PostType.PUBLICATION && currentStep == 0 && !hasAutoOpenedImport) {
+            hasAutoOpenedImport = true
+            galleryMultiLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
     }
 
@@ -199,9 +215,6 @@ fun AddPostScreen(
                             val uri = createTempImageUri(context)
                             pendingCameraUri = uri
                             cameraLauncher.launch(uri)
-                        },
-                        onGalleryClick = {
-                            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
                     )
                     postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(viewModel = viewModel, activeUser = activeUser)
@@ -241,7 +254,6 @@ fun AddPostScreen(
 private fun PhotoSelectionStepPremium(
     viewModel: AddPostViewModel,
     onCameraClick: () -> Unit,
-    onGalleryClick: () -> Unit,
 ) {
     val imageSource by viewModel.imageSource.collectAsState()
     val galleryImages by viewModel.galleryImages.collectAsState()
@@ -282,7 +294,7 @@ private fun PhotoSelectionStepPremium(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onGalleryClick() }.padding(4.dp)
+                modifier = Modifier.padding(4.dp)
             ) {
                 Text(
                     text = "Galería",
@@ -290,8 +302,6 @@ private fun PhotoSelectionStepPremium(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(Modifier.width(4.dp))
-                Icon(Icons.Default.ExpandMore, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurface)
             }
 
             IconButton(onClick = onCameraClick) {
@@ -321,7 +331,7 @@ private fun PhotoSelectionStepPremium(
                        contentAlignment = Alignment.Center
                    ) {
                        Text(
-                           text = "No tienes fotos disponibles en tu dispositivo", 
+                           text = "No hay imágenes para mostrar. Reabre Nuevo Post para volver a importar desde dispositivo/Google Photos", 
                            style = MaterialTheme.typography.bodySmall, 
                            color = MaterialTheme.colorScheme.onSurfaceVariant, 
                            textAlign = TextAlign.Center
@@ -372,10 +382,14 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
     val imageSource = viewModel.imageSource.collectAsState().value as? Uri
     val comment by viewModel.comment.collectAsState()
     val mentionSuggestions by viewModel.mentionSuggestions.collectAsState()
+    val selectedCoffee by viewModel.selectedCoffee.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val coffeeList by viewModel.coffeeList.collectAsState()
     var commentValue by remember(comment) {
         mutableStateOf(TextFieldValue(comment, selection = TextRange(comment.length)))
     }
     var showPickerSheet by remember { mutableStateOf(false) }
+    var showCoffeeSelector by remember { mutableStateOf(false) }
     var showEmojiPanel by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -520,6 +534,36 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
 
         Spacer(Modifier.height(16.dp))
 
+        Surface(
+            onClick = { showCoffeeSelector = true },
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Coffee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(10.dp))
+                Text("Añadir café", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = selectedCoffee?.coffee?.nombre ?: "Seleccionar café",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Spacer(Modifier.width(6.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
         imageSource?.let { uri ->
             Box(
                 modifier = Modifier
@@ -549,6 +593,70 @@ private fun PostDetailsStepPremium(viewModel: AddPostViewModel, activeUser: User
         }
 
         Spacer(Modifier.height(100.dp))
+    }
+
+    if (showCoffeeSelector) {
+        ModalBottomSheet(
+            onDismissRequest = { showCoffeeSelector = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Text("SELECCIONAR CAFÉ", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = viewModel::onSearchQueryChanged,
+                    placeholder = { Text("Buscar café") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                Spacer(Modifier.height(12.dp))
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 20.dp)
+                ) {
+                    items(coffeeList.take(10)) { coffee ->
+                        Surface(
+                            onClick = {
+                                viewModel.selectCoffee(coffee)
+                                showCoffeeSelector = false
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AsyncImage(
+                                    model = coffee.coffee.imageUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(coffee.coffee.nombre, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(coffee.coffee.marca, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (coffee.averageRating > 0f) {
+                                    AssistChip(onClick = {}, enabled = false, label = { Text(String.format(java.util.Locale.getDefault(), "%.1f", coffee.averageRating)) })
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (showPickerSheet) {
@@ -777,6 +885,7 @@ private fun ReviewDetailsStepPremium(
         }
 
         Spacer(Modifier.height(16.dp))
+
 
         imageSource?.let { uri ->
             Box(
