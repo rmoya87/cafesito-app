@@ -170,8 +170,8 @@ class DiaryViewModel @Inject constructor(
 
     fun setPeriod(period: DiaryPeriod) { _selectedPeriod.value = period }
     
-    fun refreshData() {
-        _isLoading.value = true
+    fun refreshData(showLoader: Boolean = false) {
+        if (showLoader) _isLoading.value = true
         diaryRepository.triggerRefresh()
     }
 
