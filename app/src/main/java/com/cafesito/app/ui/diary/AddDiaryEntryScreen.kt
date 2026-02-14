@@ -608,6 +608,7 @@ fun CoffeeSizeStepPremium(
                     } else {
                         Icon(Icons.Default.LocalCafe, null, tint = MaterialTheme.colorScheme.primary)
                     }
+                    Icon(Icons.Default.LocalCafe, null, tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
