@@ -1000,7 +1000,7 @@ fun DiaryEntryEditBottomSheet(
                             }
                         }
                     }
-                )
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     NumberCarousel(
