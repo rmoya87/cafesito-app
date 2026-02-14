@@ -103,7 +103,7 @@ class AddPostViewModel @Inject constructor(
         else all.filter {
             it.coffee.nombre.contains(query, ignoreCase = true) ||
             it.coffee.marca.contains(query, ignoreCase = true) ||
-            it.coffee.codigoBarras.contains(query, ignoreCase = true)
+            it.coffee.codigoBarras?.contains(query, ignoreCase = true) == true
         }.take(10)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
