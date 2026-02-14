@@ -748,7 +748,7 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeableDiaryItem(entry: DiaryEntryEntity, onDelete: () -> Unit) {
+fun SwipeableDiaryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false, onDelete: () -> Unit) {
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { if (it == SwipeToDismissBoxValue.EndToStart) { onDelete(); true } else false })
     
     SwipeToDismissBox(
@@ -766,41 +766,127 @@ fun SwipeableDiaryItem(entry: DiaryEntryEntity, onDelete: () -> Unit) {
             } 
         }
     ) {
-        DiaryEntryItem(entry)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew)
     }
 }
 
 @Composable
-fun DiaryEntryItem(entry: DiaryEntryEntity) {
+fun DiaryEntryItem(entry: DiaryEntryEntity, coffeeImageUrl: String? = null, highlightNew: Boolean = false) {
     val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
+    val cardColor by animateColorAsState(
+        targetValue = if (highlightNew) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
+        animationSpec = tween(320),
+        label = "DiaryCardColor"
+    )
+
     Surface(
-        modifier = Modifier.fillMaxWidth(), 
-        color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp), 
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        modifier = Modifier.fillMaxWidth(),
+        color = cardColor,
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, if (highlightNew) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        if (entry.type == "WATER") Color(0xFFE3F2FD).copy(alpha = if (isSystemInDarkTheme()) 0.2f else 1f) else MaterialTheme.colorScheme.primary.copy(
-                            alpha = 0.15f
-                        ),
-                        CircleShape
-                    ), 
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee, 
-                    null, 
-                    tint = if (entry.type == "WATER") Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurface, 
-                    modifier = Modifier.size(24.dp)
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (entry.type == "CUP" && !coffeeImageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = coffeeImageUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(
+                                if (entry.type == "WATER") Color(0xFFE3F2FD).copy(alpha = if (isSystemInDarkTheme()) 0.22f else 1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                RoundedCornerShape(12.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee,
+                            null,
+                            tint = if (entry.type == "WATER") Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = if (entry.type == "WATER") "Hidratación" else entry.coffeeName,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (entry.type == "WATER") "Registro de agua" else (entry.coffeeBrand.ifBlank { "Café" }),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                AssistChip(
+                    onClick = {},
+                    enabled = false,
+                    label = { Text(dateStr, fontSize = 11.sp) },
+                    leadingIcon = { Icon(Icons.Default.Schedule, null, modifier = Modifier.size(14.dp)) }
                 )
             }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(entry.coffeeName, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
-                Text("$dateStr • ${if (entry.type == "WATER") "${entry.amountMl}ml" else "${entry.caffeineAmount}mg - ${entry.preparationType}"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                MetricPill(
+                    icon = if (entry.type == "WATER") Icons.Default.LocalDrink else Icons.Default.Bolt,
+                    label = if (entry.type == "WATER") "Cantidad" else "Cafeína",
+                    value = if (entry.type == "WATER") "${entry.amountMl} ml" else "${entry.caffeineAmount} mg",
+                    modifier = Modifier.weight(1f)
+                )
+                MetricPill(
+                    icon = if (entry.type == "WATER") Icons.Default.Opacity else Icons.Default.CoffeeMaker,
+                    label = if (entry.type == "WATER") "Tipo" else "Preparación",
+                    value = if (entry.type == "WATER") "Agua" else entry.preparationType,
+                    modifier = Modifier.weight(1f)
+                )
+                if (entry.type == "CUP") {
+                    MetricPill(
+                        icon = Icons.Default.Scale,
+                        label = "Dosis",
+                        value = "${entry.coffeeGrams} g",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricPill(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(icon, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Column {
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

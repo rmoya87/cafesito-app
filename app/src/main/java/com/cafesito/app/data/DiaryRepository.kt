@@ -2,11 +2,10 @@ package com.cafesito.app.data
 
 import android.util.Log
 import com.cafesito.app.ui.utils.ConnectivityObserver
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -24,6 +23,27 @@ class DiaryRepository @Inject constructor(
     private val externalScope: CoroutineScope
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+
+    init {
+        externalScope.launch {
+            while (true) {
+                try {
+                    syncPendingDiaryEntries()
+                } catch (e: Exception) {
+                    Log.e("DiaryRepository", "Error in periodic diary sync", e)
+                }
+                delay(10 * 60 * 1000L)
+            }
+        }
+
+        externalScope.launch {
+            connectivityObserver.observe().collect { status ->
+                if (status == ConnectivityObserver.Status.Available) {
+                    syncPendingDiaryEntries()
+                }
+            }
+        }
+    }
 
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
@@ -128,13 +148,52 @@ class DiaryRepository @Inject constructor(
             }
         }
 
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
+        externalScope.launch {
+            val isOnline = connectivityObserver.observe().first() == ConnectivityObserver.Status.Available
+            if (isOnline) {
                 try {
                     supabaseDataSource.insertDiaryEntry(entryWithId)
+                    diaryDao.deletePendingDiarySync(entryWithId.id)
                 } catch (e: Exception) {
                     Log.e("DiaryRepository", "Error syncing diary entry to Supabase", e)
+                    enqueueDiaryEntryForSync(entryWithId.id, e)
                 }
+            } else {
+                enqueueDiaryEntryForSync(entryWithId.id, IOException("No network available"))
+            }
+        }
+    }
+
+
+    private suspend fun enqueueDiaryEntryForSync(localEntryId: Long, error: Throwable?) {
+        val existing = diaryDao.getPendingDiarySyncEntries().firstOrNull { it.localEntryId == localEntryId }
+        diaryDao.upsertPendingDiarySync(
+            PendingDiarySyncEntity(
+                localEntryId = localEntryId,
+                createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                lastAttemptAt = System.currentTimeMillis(),
+                retryCount = (existing?.retryCount ?: 0) + 1,
+                lastError = error?.message
+            )
+        )
+    }
+
+    suspend fun syncPendingDiaryEntries() = withContext(Dispatchers.IO) {
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext
+
+        val pendingEntries = diaryDao.getPendingDiarySyncEntries()
+        pendingEntries.forEach { pending ->
+            val localEntry = diaryDao.getDiaryEntryById(pending.localEntryId)
+            if (localEntry == null) {
+                diaryDao.deletePendingDiarySync(pending.localEntryId)
+                return@forEach
+            }
+
+            try {
+                supabaseDataSource.insertDiaryEntry(localEntry)
+                diaryDao.deletePendingDiarySync(pending.localEntryId)
+            } catch (e: Exception) {
+                enqueueDiaryEntryForSync(pending.localEntryId, e)
             }
         }
     }
@@ -226,6 +285,7 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun deleteDiaryEntry(entryId: Long) = withContext(Dispatchers.IO) {
+        diaryDao.deletePendingDiarySync(entryId)
         diaryDao.deleteDiaryEntryById(entryId)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.deleteDiaryEntry(entryId) } catch (e: Exception) { } }
