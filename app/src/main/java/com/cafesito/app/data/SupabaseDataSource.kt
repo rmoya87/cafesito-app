@@ -46,7 +46,6 @@ class SupabaseDataSource @Inject constructor(
         val channel = client.realtime.channel("notifications-$userId")
         return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "notifications_db"
-            filter = "user_id=eq.$userId"
         }
     }
 
