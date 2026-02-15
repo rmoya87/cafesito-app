@@ -756,12 +756,13 @@ fun SwipeableDiaryItem(
     entry: DiaryEntryEntity,
     coffeeImageUrl: String? = null,
     highlightNew: Boolean = false,
+    selectedPeriod: DiaryPeriod = DiaryPeriod.HOY,
     enableDeleteSwipe: Boolean = true,
     onDelete: () -> Unit,
     onClick: (() -> Unit)? = null
 ) {
     if (!enableDeleteSwipe) {
-        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, onClick = onClick)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, selectedPeriod = selectedPeriod, onClick = onClick)
         return
     }
 
@@ -782,7 +783,7 @@ fun SwipeableDiaryItem(
             }
         }
     ) {
-        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, onClick = onClick)
+        DiaryEntryItem(entry = entry, coffeeImageUrl = coffeeImageUrl, highlightNew = highlightNew, selectedPeriod = selectedPeriod, onClick = onClick)
     }
 }
 
@@ -791,9 +792,11 @@ fun DiaryEntryItem(
     entry: DiaryEntryEntity,
     coffeeImageUrl: String? = null,
     highlightNew: Boolean = false,
+    selectedPeriod: DiaryPeriod = DiaryPeriod.HOY,
     onClick: (() -> Unit)? = null
 ) {
-    val dateStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp))
+    val datePattern = if (selectedPeriod == DiaryPeriod.HOY) "HH:mm" else "dd/MM | HH:mm"
+    val dateStr = SimpleDateFormat(datePattern, Locale.getDefault()).format(Date(entry.timestamp))
     val cardColor by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surface,
         animationSpec = tween(320),
