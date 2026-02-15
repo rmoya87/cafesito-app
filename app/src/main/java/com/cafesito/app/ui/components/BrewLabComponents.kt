@@ -555,7 +555,6 @@ fun PreparationStep(
                     )
                 }
             }
-        }
     }
 }
 
