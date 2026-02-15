@@ -256,6 +256,36 @@ class DiaryViewModel @Inject constructor(
         }
     }
 
+    fun saveCustomCoffeeForDiary(
+        name: String, brand: String, specialty: String, roast: String?, variety: String?,
+        country: String, hasCaffeine: Boolean, format: String,
+        imageUri: Uri?, onSuccess: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val imageBytes = imageUri?.let { uri ->
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    }
+                }
+                val coffeeId = diaryRepository.createCustomCoffee(
+                    name = name,
+                    brand = brand,
+                    specialty = specialty,
+                    roast = roast,
+                    variety = variety,
+                    country = country,
+                    hasCaffeine = hasCaffeine,
+                    format = format,
+                    imageBytes = imageBytes
+                )
+                coffeeId?.let(onSuccess)
+            } catch (e: Exception) {
+                Log.e("DIARY_VIEWMODEL", "Error al guardar café para registro", e)
+            }
+        }
+    }
+
     fun updateCustomCoffee(
         id: String, name: String, brand: String, specialty: String, roast: String?,
         variety: String?, country: String, hasCaffeine: Boolean, format: String,

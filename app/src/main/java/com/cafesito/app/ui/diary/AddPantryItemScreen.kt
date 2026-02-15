@@ -44,6 +44,8 @@ import com.cafesito.app.ui.components.toCoffeeNameFormat
 fun AddPantryItemScreen(
     onBackClick: (String?) -> Unit,
     onlyActivity: Boolean = false,
+    diaryEntryFlow: Boolean = false,
+    onCoffeeCreatedForDiary: ((String) -> Unit)? = null,
     coffeeId: String? = null,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
@@ -105,12 +107,12 @@ fun AddPantryItemScreen(
         if (uri != null) imageUri = uri
     }
 
-    val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && grams.isNotEmpty()
+    val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && (diaryEntryFlow || grams.isNotEmpty())
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(if (coffeeId != null) "EDITAR CAFÉ" else "NUEVO CAFÉ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, letterSpacing = 1.sp) },
+                title = { Text(if (coffeeId != null) "EDITAR CAFÉ" else if (diaryEntryFlow) "CREAR MI CAFÉ" else "NUEVO CAFÉ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, letterSpacing = 1.sp) },
                 navigationIcon = {
                     IconButton(onClick = { onBackClick(null) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = MaterialTheme.colorScheme.onSurface)
@@ -118,7 +120,7 @@ fun AddPantryItemScreen(
                 },
                 actions = {
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             val onSuccessNavigation = if (onlyActivity) "pantry" else null
                             if (coffeeId != null) {
                                 viewModel.updateCustomCoffee(
@@ -134,6 +136,22 @@ fun AddPantryItemScreen(
                                     totalGrams = grams.toIntOrNull() ?: 250,
                                     imageUri = imageUri,
                                     onSuccess = { onBackClick(onSuccessNavigation) }
+                                )
+                            } else if (diaryEntryFlow) {
+                                viewModel.saveCustomCoffeeForDiary(
+                                    name = name,
+                                    brand = brand,
+                                    specialty = specialty,
+                                    roast = roast,
+                                    variety = variety,
+                                    country = country,
+                                    hasCaffeine = hasCaffeine,
+                                    format = format,
+                                    imageUri = imageUri,
+                                    onSuccess = { createdCoffeeId ->
+                                        onCoffeeCreatedForDiary?.invoke(createdCoffeeId)
+                                        onBackClick(null)
+                                    }
                                 )
                             } else {
                                 viewModel.saveCustomCoffee(
@@ -154,7 +172,7 @@ fun AddPantryItemScreen(
                         enabled = isFormValid
                     ) {
                         Text(
-                            text = "AÑADIR",
+                            text = if (diaryEntryFlow) "CREAR" else "AÑADIR",
                             fontWeight = FontWeight.Bold,
                             color = if (isFormValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         )
@@ -295,7 +313,7 @@ fun AddPantryItemScreen(
 
             // FORMATO Y STOCK
             item {
-                FormSectionCard(title = "Formato y Despensa") {
+                FormSectionCard(title = if (diaryEntryFlow) "Formato" else "Formato y Despensa") {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -329,15 +347,17 @@ fun AddPantryItemScreen(
                             }
                         }
 
-                        OutlinedTextField(
-                            value = grams,
-                            onValueChange = { if (it.all { c -> c.isDigit() }) grams = it },
-                            label = { Text("Peso total de la bolsa (g)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-                        )
+                        if (!diaryEntryFlow) {
+                            OutlinedTextField(
+                                value = grams,
+                                onValueChange = { if (it.all { c -> c.isDigit() }) grams = it },
+                                label = { Text("Peso total de la bolsa (g)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                            )
+                        }
                     }
                 }
             }
