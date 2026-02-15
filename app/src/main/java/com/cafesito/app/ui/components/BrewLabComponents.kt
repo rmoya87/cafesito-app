@@ -968,7 +968,9 @@ fun LocalDetailBlock(label: String, value: String, icon: ImageVector, modifier: 
 @Composable
 fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
     PremiumCard(
-        modifier = Modifier.width(160.dp).clickable { onClick() },
+        modifier = Modifier
+            .width(160.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(24.dp)
     ) {
         Column {
@@ -976,12 +978,26 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                 model = item.coffee.imageUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(100.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
             )
             Column(Modifier.padding(12.dp)) {
-                Text(item.coffee.nombre.toCoffeeNameFormat(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = item.coffee.nombre.toCoffeeNameFormat(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 @Suppress("DEPRECATION")
-                Text("${item.pantryItem.gramsRemaining}G REST.", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 8.sp)
+                Text(
+                    text = "${item.pantryItem.gramsRemaining}G REST.",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 8.sp
+                )
             }
         }
     }
@@ -989,19 +1005,39 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
 
 @Composable
 fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(20.dp)) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    PremiumCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             AsyncImage(
                 model = coffee.coffee.imageUrl,
                 contentDescription = null,
-                modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)),
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )
             Spacer(Modifier.width(16.dp))
             Column {
-                Text(coffee.coffee.nombre.toCoffeeNameFormat(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = coffee.coffee.nombre.toCoffeeNameFormat(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 @Suppress("DEPRECATION")
-                Text(coffee.coffee.marca.toCoffeeBrandFormat(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontSize = 9.sp)
+                Text(
+                    text = coffee.coffee.marca.toCoffeeBrandFormat(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 9.sp
+                )
             }
         }
     }
