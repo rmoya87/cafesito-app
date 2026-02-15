@@ -517,9 +517,16 @@ fun AppNavigation(
             ) { backStackEntry ->
                 val type = backStackEntry.arguments?.getString("type") ?: ""
                 val quick = backStackEntry.arguments?.getBoolean("quick") ?: false
+                val createdCoffeeId by backStackEntry.savedStateHandle
+                    .getStateFlow<String?>("diary_created_coffee_id", null)
+                    .collectAsState()
                 AddDiaryEntryScreen(
                     initialType = type,
                     quickStart = quick,
+                    createdCoffeeId = createdCoffeeId,
+                    onCreatedCoffeeConsumed = {
+                        backStackEntry.savedStateHandle["diary_created_coffee_id"] = null
+                    },
                     onBackClick = { navController.popBackStack() },
                     onAddNotFoundClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=diary_entry") }
                 )
@@ -536,11 +543,16 @@ fun AppNavigation(
                 val origin = backStackEntry.arguments?.getString("origin") ?: ""
                 AddPantryItemScreen(
                     onlyActivity = onlyActivity,
+                    diaryEntryFlow = origin == "diary_entry",
+                    onCoffeeCreatedForDiary = { createdCoffeeId ->
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("diary_created_coffee_id", createdCoffeeId)
+                    },
                     onBackClick = { navigateTo ->
                         if (origin == "brewlab" && navigateTo != null) {
                             navController.popBackStack("brewlab", inclusive = false)
                         } else if (origin == "diary_entry") {
-                            // Si venimos de registrar café, solo volvemos atrás para que se refresque la lista
                             navController.popBackStack()
                         } else if (navigateTo != null) {
                             navController.navigate("diary?navigateTo=$navigateTo") {

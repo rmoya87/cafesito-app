@@ -201,12 +201,12 @@ class DiaryRepository @Inject constructor(
         }
     }
 
-    suspend fun createCustomCoffeeAndAddToPantry(
+    suspend fun createCustomCoffee(
         name: String, brand: String, specialty: String, roast: String?, variety: String?, 
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
         totalGrams: Int = 250
-    ) = withContext(Dispatchers.IO) {
-        val user = userRepository.getActiveUser() ?: return@withContext
+    ): String? = withContext(Dispatchers.IO) {
+        val user = userRepository.getActiveUser() ?: return@withContext null
         val coffeeId = UUID.randomUUID().toString()
         
         var imageUrl = ""
@@ -229,6 +229,17 @@ class DiaryRepository @Inject constructor(
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try { supabaseDataSource.upsertCustomCoffee(customCoffee) } catch (e: Exception) { }
         }
+
+        coffeeId
+    }
+
+    suspend fun createCustomCoffeeAndAddToPantry(
+        name: String, brand: String, specialty: String, roast: String?, variety: String?, 
+        country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
+        totalGrams: Int = 250
+    ) = withContext(Dispatchers.IO) {
+        val coffeeId = createCustomCoffee(name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams)
+            ?: return@withContext
 
         addToPantry(coffeeId, totalGrams)
     }
