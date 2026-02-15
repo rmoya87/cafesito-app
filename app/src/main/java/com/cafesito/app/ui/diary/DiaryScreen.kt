@@ -155,16 +155,18 @@ fun DiaryScreen(
                             showPantryOptionsId = null
                         }
                     )
-                    ModalMenuOption(
-                        title = "Editar café",
-                        icon = Icons.Default.LocalCafe,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            val id = showPantryOptionsId!!
-                            showPantryOptionsId = null
-                            if (selectedItem.isCustom) onEditCoffeeClick(id) else onEditStockClick(id, false)
-                        }
-                    )
+                    if (selectedItem.isCustom) {
+                        ModalMenuOption(
+                            title = "Editar café",
+                            icon = Icons.Default.LocalCafe,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            onClick = {
+                                val id = showPantryOptionsId!!
+                                showPantryOptionsId = null
+                                onEditCoffeeClick(id)
+                            }
+                        )
+                    }
                     val deleteIconColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                     ModalMenuOption(
                         title = "Eliminar de la despensa",
