@@ -465,7 +465,7 @@ fun AppNavigation(
                 val origin = backStackEntry.arguments?.getString("origin") ?: ""
                 AddStockScreen(
                     onBackClick = { navController.popBackStack() },
-                    onAddCustomClick = { navController.navigate("addDiaryEntry?type=COFFEE&quick=true") },
+                    onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") },
                     onSuccess = {
                         if (origin == "brewlab") {
                             navController.popBackStack()

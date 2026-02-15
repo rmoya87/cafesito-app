@@ -102,7 +102,7 @@ fun PostCard(
                     Text(
                         text = post.comment,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black, 
+                        color = MaterialTheme.colorScheme.onSurface,
                         lineHeight = 22.sp
                     )
                     Spacer(Modifier.height(16.dp))
