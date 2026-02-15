@@ -55,6 +55,8 @@ import kotlin.math.roundToInt
 fun AddDiaryEntryScreen(
     initialType: String,
     quickStart: Boolean = false,
+    createdCoffeeId: String? = null,
+    onCreatedCoffeeConsumed: () -> Unit = {},
     onBackClick: () -> Unit,
     onAddNotFoundClick: () -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
@@ -75,27 +77,37 @@ fun AddDiaryEntryScreen(
 
     var searchQuery by remember { mutableStateOf("") }
 
+    LaunchedEffect(createdCoffeeId, allCoffees) {
+        val newCoffeeId = createdCoffeeId ?: return@LaunchedEffect
+        val createdCoffee = allCoffees.firstOrNull { it.coffee.id == newCoffeeId }?.coffee ?: return@LaunchedEffect
+        selectedCoffee = createdCoffee
+        isFromPantry = false
+        selectedDoseGrams = 15f
+        selectedPrepType = "Espresso"
+        selectedSize = CoffeeSizeOption.default()
+        step = 2
+        onCreatedCoffeeConsumed()
+    }
+
     val registerCoffee: () -> Unit = {
         scope.launch {
-            if (!quickStart) {
-                isSaving = true
-                val caffeine = calculateAverageCaffeine(
-                    type = selectedPrepType,
-                    grams = selectedDoseGrams.roundToInt(),
-                    sizeFactor = selectedSize.multiplier,
-                    isDecaf = selectedCoffee?.cafeina?.equals("No", ignoreCase = true) == true
-                )
-                viewModel.addCoffeeConsumption(
-                    coffeeId = selectedCoffee?.id,
-                    coffeeName = selectedCoffee?.nombre ?: selectedPrepType,
-                    coffeeBrand = selectedCoffee?.marca ?: "Café rápido",
-                    caffeineAmount = caffeine,
-                    amountMl = selectedSize.defaultMl,
-                    coffeeGrams = selectedDoseGrams.roundToInt(),
-                    preparationType = selectedPrepType,
-                    sizeLabel = selectedSize.label
-                )
-            }
+            isSaving = true
+            val caffeine = calculateAverageCaffeine(
+                type = selectedPrepType,
+                grams = selectedDoseGrams.roundToInt(),
+                sizeFactor = selectedSize.multiplier,
+                isDecaf = selectedCoffee?.cafeina?.equals("No", ignoreCase = true) == true
+            )
+            viewModel.addCoffeeConsumption(
+                coffeeId = selectedCoffee?.id,
+                coffeeName = selectedCoffee?.nombre ?: selectedPrepType,
+                coffeeBrand = selectedCoffee?.marca ?: "Café rápido",
+                caffeineAmount = caffeine,
+                amountMl = selectedSize.defaultMl,
+                coffeeGrams = selectedDoseGrams.roundToInt(),
+                preparationType = selectedPrepType,
+                sizeLabel = selectedSize.label
+            )
             onBackClick()
         }
     }
@@ -119,7 +131,7 @@ fun AddDiaryEntryScreen(
                     )
                 },
                 navigationIcon = {
-                    val useCloseIcon = initialType == "WATER" || step <= 2
+                    val useCloseIcon = initialType == "WATER" || step == 1
                     IconButton(
                         onClick = {
                             if (initialType == "WATER") {
@@ -150,6 +162,19 @@ fun AddDiaryEntryScreen(
                             }
                         }) {
                             Text("REGISTRAR", fontWeight = FontWeight.Bold)
+                        }
+                    } else if (step == 1) {
+                        IconButton(
+                            onClick = {
+                                selectedCoffee = null
+                                isFromPantry = false
+                                selectedDoseGrams = 15f
+                                selectedPrepType = "Espresso"
+                                selectedSize = CoffeeSizeOption.default()
+                                step = 2
+                            }
+                        ) {
+                            Icon(Icons.Default.Bolt, contentDescription = "Registro rápido")
                         }
                     } else if (step in 2..3) {
                         IconButton(onClick = { step += 1 }) {
@@ -194,14 +219,6 @@ fun AddDiaryEntryScreen(
                             searchQuery = searchQuery,
                             onSearchQueryChange = { searchQuery = it },
                             onAddNotFoundClick = onAddNotFoundClick,
-                            onQuickAddClick = {
-                                selectedCoffee = null
-                                isFromPantry = false
-                                selectedDoseGrams = 15f
-                                selectedPrepType = "Espresso"
-                                selectedSize = CoffeeSizeOption.default()
-                                step = 2
-                            },
                             onCoffeeSelected = { coffee, fromPantry -> 
                                 selectedCoffee = coffee
                                 isFromPantry = fromPantry
@@ -323,7 +340,6 @@ fun CoffeeSelectionStepPremium(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onAddNotFoundClick: () -> Unit,
-    onQuickAddClick: () -> Unit,
     onCoffeeSelected: (Coffee, Boolean) -> Unit,
     onBarcodeClick: () -> Unit
 ) {
@@ -347,15 +363,6 @@ fun CoffeeSelectionStepPremium(
             ) {
                 Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 
-                TextButton(
-                    onClick = onAddNotFoundClick,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Icon(Icons.Default.AddCircle, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Añadir mi café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-                }
             }
             Spacer(Modifier.height(16.dp))
             if (pantryItems.isEmpty()) {
@@ -424,7 +431,7 @@ fun CoffeeSelectionStepPremium(
                 ) {
                     Icon(Icons.Default.AddCircle, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
-                    Text("Añadir a despensa", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                    Text("Crear mi café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                 }
             }
             Spacer(Modifier.height(16.dp))
