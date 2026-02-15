@@ -395,7 +395,7 @@ fun PreparationStep(
     val totalProgress = (timerSeconds.toFloat() / totalSeconds).coerceIn(0f, 1f)
 
     val timerScale by animateFloatAsState(
-        targetValue = if (remainingSeconds <= 5 && isTimerRunning) { 1.1f } else { 1f },
+        targetValue = if (remainingSeconds <= 5 && isTimerRunning) 1.1f else 1f,
         animationSpec = if (remainingSeconds <= 5 && isTimerRunning) {
             infiniteRepeatable(
                 animation = tween(500, easing = FastOutSlowInEasing),
@@ -542,9 +542,17 @@ fun PreparationStep(
                     colors = ButtonDefaults.buttonColors(containerColor = if (isTimerRunning) ElectricRed else MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Icon(if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
+                    Icon(
+                        if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary
+                    )
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isTimerRunning) "PAUSAR" else "INICIAR", fontWeight = FontWeight.Bold, color = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
+                    Text(
+                        if (isTimerRunning) "PAUSAR" else "INICIAR",
+                        fontWeight = FontWeight.Bold,
+                        color = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
     }
