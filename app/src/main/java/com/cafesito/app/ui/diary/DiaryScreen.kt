@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -250,7 +251,22 @@ fun DiaryScreen(
                             } else {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                                     item { Spacer(Modifier.height(16.dp)) }
-                                    items(entries, key = { "${it.id}_${it.timestamp}" }) { entry ->
+                                    itemsIndexed(entries, key = { _, it -> "${it.id}_${it.timestamp}" }) { index, entry ->
+                                        if (selectedPeriod != DiaryPeriod.HOY) {
+                                            val dayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(entry.timestamp))
+                                            val previousDayKey = entries.getOrNull(index - 1)?.let {
+                                                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(it.timestamp))
+                                            }
+                                            if (dayKey != previousDayKey) {
+                                                Text(
+                                                    text = SimpleDateFormat("d MMMM", Locale("es", "ES")).format(Date(entry.timestamp)),
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                                                )
+                                            }
+                                        }
                                         val isNew = entry.timestamp >= System.currentTimeMillis() - 10_000
                                         AnimatedVisibility(
                                             visible = true,

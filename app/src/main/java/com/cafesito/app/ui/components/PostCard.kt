@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -102,7 +101,7 @@ fun PostCard(
                     Text(
                         text = post.comment,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black, 
+                        color = MaterialTheme.colorScheme.onSurface,
                         lineHeight = 22.sp
                     )
                     Spacer(Modifier.height(16.dp))
