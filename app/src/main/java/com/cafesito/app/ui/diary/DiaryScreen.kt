@@ -53,6 +53,8 @@ import kotlin.math.roundToInt
 @Composable
 fun DiaryScreen(
     navigateTo: String = "",
+    refreshSignal: Long? = null,
+    onRefreshSignalConsumed: () -> Unit = {},
     onCoffeeClick: (String) -> Unit,
     onAddWaterClick: () -> Unit,
     onAddCoffeeClick: () -> Unit,
@@ -108,6 +110,13 @@ fun DiaryScreen(
     LaunchedEffect(pagerState.currentPage) {
         if (pagerState.currentPage == 0) {
             viewModel.refreshData()
+        }
+    }
+
+    LaunchedEffect(refreshSignal) {
+        if (refreshSignal != null) {
+            viewModel.refreshData(showLoader = false)
+            onRefreshSignalConsumed()
         }
     }
 
