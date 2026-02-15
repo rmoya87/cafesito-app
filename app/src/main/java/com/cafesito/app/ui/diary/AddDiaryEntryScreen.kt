@@ -115,11 +115,11 @@ fun AddDiaryEntryScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            val title = if (initialType == "WATER") "REGISTRO DE AGUA" else when (step) {
-                1 -> if (quickStart) "SELECCIÓN" else "SELECCIONAR CAFÉ"
-                2 -> "DOSIS DE CAFÉ"
-                3 -> "TIPO DE CAFÉ"
-                else -> "SELECCIONA TAMAÑO"
+            val title = if (initialType == "WATER") "AGUA" else when (step) {
+                1 -> if (quickStart) "SELECCIÓN" else "SELECCIONA"
+                2 -> "DOSIS"
+                3 -> "TIPO"
+                else -> "TAMAÑO"
             }
             CenterAlignedTopAppBar(
                 title = {

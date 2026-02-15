@@ -281,7 +281,7 @@ class DiaryViewModel @Inject constructor(
                 )
                 coffeeId?.let(onSuccess)
             } catch (e: Exception) {
-                Log.e("DIARY_VIEWMODEL", "Error al guardar café para registro", e)
+                Log.e("DIARY_VIEWMODEL", "Error al guardar café", e)
             }
         }
     }

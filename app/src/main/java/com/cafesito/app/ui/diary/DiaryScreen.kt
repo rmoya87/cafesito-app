@@ -278,7 +278,7 @@ fun DiaryScreen(
                                     }
                                 }
                             } else if (entries.isEmpty()) {
-                                EmptyStateMessage("No hay registros en este periodo")
+                                EmptyStateMessage("Sin café o agua registrada")
                             } else {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                                     item { Spacer(Modifier.height(16.dp)) }
