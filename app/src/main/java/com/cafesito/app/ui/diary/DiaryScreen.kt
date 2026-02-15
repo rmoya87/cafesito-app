@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.cafesito.app.data.DiaryEntryEntity
 import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.components.*
@@ -50,6 +53,8 @@ import kotlin.math.roundToInt
 @Composable
 fun DiaryScreen(
     navigateTo: String = "",
+    refreshSignal: Long? = null,
+    onRefreshSignalConsumed: () -> Unit = {},
     onCoffeeClick: (String) -> Unit,
     onAddWaterClick: () -> Unit,
     onAddCoffeeClick: () -> Unit,
@@ -74,6 +79,7 @@ fun DiaryScreen(
     
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
     var isRefreshing by remember { mutableStateOf(false) }
 
     val coffeeImageMap = remember(availableCoffees) {
@@ -83,9 +89,34 @@ fun DiaryScreen(
         viewModel.refreshData()
     }
 
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     LaunchedEffect(navigateTo) {
         if (navigateTo == "pantry") {
             pagerState.scrollToPage(1)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage == 0) {
+            viewModel.refreshData()
+        }
+    }
+
+    LaunchedEffect(refreshSignal) {
+        if (refreshSignal != null) {
+            viewModel.refreshData(showLoader = false)
+            onRefreshSignalConsumed()
         }
     }
 

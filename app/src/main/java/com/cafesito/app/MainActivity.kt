@@ -428,14 +428,21 @@ fun AppNavigation(
                 )
             }
 
-            composable("brewlab") {
+            composable("brewlab") { backStackEntry ->
+                val createdCoffeeId by backStackEntry.savedStateHandle
+                    .getStateFlow<String?>("brewlab_created_coffee_id", null)
+                    .collectAsState()
                 BrewLabScreen(
                     onNavigateToDiary = {
                         navController.navigate("diary") {
                             popUpTo("brewlab") { inclusive = false }
                         }
                     },
-                    onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE&quick=true") }
+                    onAddCoffeeClick = { navController.navigate("addPantryItem?origin=brewlab") },
+                    createdCoffeeId = createdCoffeeId,
+                    onCreatedCoffeeConsumed = {
+                        backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null
+                    }
                 )
             }
 
@@ -444,8 +451,15 @@ fun AppNavigation(
                 arguments = listOf(navArgument("navigateTo") { defaultValue = "" })
             ) { backStackEntry ->
                 val navigateTo = backStackEntry.arguments?.getString("navigateTo") ?: ""
+                val refreshSignal by backStackEntry.savedStateHandle
+                    .getStateFlow<Long?>("diary_refresh_signal", null)
+                    .collectAsState()
                 DiaryScreen(
                     navigateTo = navigateTo,
+                    refreshSignal = refreshSignal,
+                    onRefreshSignalConsumed = {
+                        backStackEntry.savedStateHandle["diary_refresh_signal"] = null
+                    },
                     onCoffeeClick = { id -> navController.navigate("detail/$id") },
                     onAddWaterClick = { navController.navigate("addDiaryEntry?type=WATER") },
                     onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE") },
@@ -517,10 +531,22 @@ fun AppNavigation(
             ) { backStackEntry ->
                 val type = backStackEntry.arguments?.getString("type") ?: ""
                 val quick = backStackEntry.arguments?.getBoolean("quick") ?: false
+                val createdCoffeeId by backStackEntry.savedStateHandle
+                    .getStateFlow<String?>("diary_created_coffee_id", null)
+                    .collectAsState()
                 AddDiaryEntryScreen(
                     initialType = type,
                     quickStart = quick,
-                    onBackClick = { navController.popBackStack() },
+                    createdCoffeeId = createdCoffeeId,
+                    onCreatedCoffeeConsumed = {
+                        backStackEntry.savedStateHandle["diary_created_coffee_id"] = null
+                    },
+                    onBackClick = {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("diary_refresh_signal", System.currentTimeMillis())
+                        navController.popBackStack()
+                    },
                     onAddNotFoundClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=diary_entry") }
                 )
             }
@@ -536,11 +562,22 @@ fun AppNavigation(
                 val origin = backStackEntry.arguments?.getString("origin") ?: ""
                 AddPantryItemScreen(
                     onlyActivity = onlyActivity,
+                    diaryEntryFlow = origin == "diary_entry",
+                    brewLabFlow = origin == "brewlab",
+                    onCoffeeCreatedForDiary = { createdCoffeeId ->
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("diary_created_coffee_id", createdCoffeeId)
+                    },
+                    onCoffeeCreatedForBrewLab = { createdCoffeeId ->
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("brewlab_created_coffee_id", createdCoffeeId)
+                    },
                     onBackClick = { navigateTo ->
                         if (origin == "brewlab" && navigateTo != null) {
                             navController.popBackStack("brewlab", inclusive = false)
                         } else if (origin == "diary_entry") {
-                            // Si venimos de registrar café, solo volvemos atrás para que se refresque la lista
                             navController.popBackStack()
                         } else if (navigateTo != null) {
                             navController.navigate("diary?navigateTo=$navigateTo") {

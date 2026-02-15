@@ -226,6 +226,12 @@ fun ChooseCoffeeStep(
         item {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onAddNotFoundClick) {
+                    Icon(Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Crear mi café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
             }
         }
 
@@ -288,8 +294,7 @@ fun ConfigStep(
     ratio: Float,
     coffeeGrams: Float,
     valuation: String,
-    viewModel: BrewLabViewModel,
-    onNext: () -> Unit
+    viewModel: BrewLabViewModel
 ) {
     val waterBlue = Color(0xFF2196F3)
     Column(Modifier.fillMaxSize()) {
@@ -370,19 +375,6 @@ fun ConfigStep(
             Spacer(Modifier.height(40.dp))
         }
 
-        BottomActionContainer {
-            Button(
-                onClick = onNext,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                @Suppress("DEPRECATION")
-                Text("EMPEZAR PREPARACIÓN", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onPrimary)
-            }
-        }
     }
 }
 
@@ -521,10 +513,13 @@ fun PreparationStep(
                     }
                 }
             }
-        }
 
-        BottomActionContainer {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 if (hasTimerStarted) {
                     OutlinedButton(
                         onClick = { viewModel.resetTimer() },
@@ -552,7 +547,6 @@ fun PreparationStep(
                     Text(if (isTimerRunning) "PAUSAR" else "INICIAR", fontWeight = FontWeight.Bold, color = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
                 }
             }
-        }
     }
 }
 
