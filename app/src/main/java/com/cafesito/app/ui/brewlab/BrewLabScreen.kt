@@ -28,6 +28,8 @@ fun BrewLabScreen(
     onNavigateToDiary: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onAddCoffeeClick: () -> Unit = {},
+    createdCoffeeId: String? = null,
+    onCreatedCoffeeConsumed: () -> Unit = {},
     viewModel: BrewLabViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -61,6 +63,13 @@ fun BrewLabScreen(
         }
     }
 
+    LaunchedEffect(createdCoffeeId, allCoffees) {
+        val newCoffeeId = createdCoffeeId ?: return@LaunchedEffect
+        val createdCoffee = allCoffees.firstOrNull { it.coffee.id == newCoffeeId }?.coffee ?: return@LaunchedEffect
+        viewModel.selectCoffeeFromCatalog(createdCoffee)
+        onCreatedCoffeeConsumed()
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
@@ -68,7 +77,14 @@ fun BrewLabScreen(
             GlassyTopBar(
                 title = step.title,
                 onBackClick = if (step != BrewStep.CHOOSE_METHOD) { { viewModel.backStep() } } else null,
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                actions = {
+                    if (step == BrewStep.CONFIGURATION) {
+                        IconButton(onClick = { viewModel.startBrewing() }) {
+                            Icon(Icons.Default.ArrowForwardIos, contentDescription = "Empezar preparación")
+                        }
+                    }
+                }
             ) 
         }
     ) { padding ->
@@ -99,7 +115,7 @@ fun BrewLabScreen(
                             }
                         )
                     }
-                    BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, viewModel) { viewModel.startBrewing() }
+                    BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, viewModel)
                     BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, isTimerRunning, hasTimerStarted, viewModel)
                     BrewStep.RESULT -> ResultStep(selectedTaste, recommendation, selectedCoffee, viewModel, onNavigateToDiary)
                 }

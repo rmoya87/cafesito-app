@@ -226,6 +226,12 @@ fun ChooseCoffeeStep(
         item {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onAddNotFoundClick) {
+                    Icon(Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Crear mi café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
             }
         }
 
@@ -288,8 +294,7 @@ fun ConfigStep(
     ratio: Float,
     coffeeGrams: Float,
     valuation: String,
-    viewModel: BrewLabViewModel,
-    onNext: () -> Unit
+    viewModel: BrewLabViewModel
 ) {
     val waterBlue = Color(0xFF2196F3)
     Column(Modifier.fillMaxSize()) {
@@ -370,19 +375,6 @@ fun ConfigStep(
             Spacer(Modifier.height(40.dp))
         }
 
-        BottomActionContainer {
-            Button(
-                onClick = onNext,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                @Suppress("DEPRECATION")
-                Text("EMPEZAR PREPARACIÓN", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onPrimary)
-            }
-        }
     }
 }
 
@@ -403,7 +395,7 @@ fun PreparationStep(
     val totalProgress = (timerSeconds.toFloat() / totalSeconds).coerceIn(0f, 1f)
 
     val timerScale by animateFloatAsState(
-        targetValue = if (remainingSeconds <= 5 && isTimerRunning) { 1.1f } else { 1f },
+        targetValue = if (remainingSeconds <= 5 && isTimerRunning) 1.1f else 1f,
         animationSpec = if (remainingSeconds <= 5 && isTimerRunning) {
             infiniteRepeatable(
                 animation = tween(500, easing = FastOutSlowInEasing),
@@ -521,10 +513,13 @@ fun PreparationStep(
                     }
                 }
             }
-        }
 
-        BottomActionContainer {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 if (hasTimerStarted) {
                     OutlinedButton(
                         onClick = { viewModel.resetTimer() },
@@ -547,9 +542,17 @@ fun PreparationStep(
                     colors = ButtonDefaults.buttonColors(containerColor = if (isTimerRunning) ElectricRed else MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Icon(if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
+                    Icon(
+                        if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary
+                    )
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isTimerRunning) "PAUSAR" else "INICIAR", fontWeight = FontWeight.Bold, color = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary)
+                    Text(
+                        if (isTimerRunning) "PAUSAR" else "INICIAR",
+                        fontWeight = FontWeight.Bold,
+                        color = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
         }
@@ -958,48 +961,6 @@ fun LocalDetailBlock(label: String, value: String, icon: ImageVector, modifier: 
                 Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
                 @Suppress("DEPRECATION")
                 Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
-            }
-        }
-    }
-}
-
-@Composable
-fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
-    PremiumCard(
-        modifier = Modifier.width(160.dp).clickable { onClick() },
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Column {
-            AsyncImage(
-                model = item.coffee.imageUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(100.dp)
-            )
-            Column(Modifier.padding(12.dp)) {
-                Text(item.coffee.nombre.toCoffeeNameFormat(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
-                @Suppress("DEPRECATION")
-                Text("${item.pantryItem.gramsRemaining}G REST.", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 8.sp)
-            }
-        }
-    }
-}
-
-@Composable
-fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(20.dp)) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = coffee.coffee.imageUrl,
-                contentDescription = null,
-                modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(Modifier.width(16.dp))
-            Column {
-                Text(coffee.coffee.nombre.toCoffeeNameFormat(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                @Suppress("DEPRECATION")
-                Text(coffee.coffee.marca.toCoffeeBrandFormat(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontSize = 9.sp)
             }
         }
     }
