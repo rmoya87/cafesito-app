@@ -795,7 +795,7 @@ fun DiaryEntryItem(
     selectedPeriod: DiaryPeriod = DiaryPeriod.HOY,
     onClick: (() -> Unit)? = null
 ) {
-    val datePattern = if (selectedPeriod == DiaryPeriod.HOY) "HH:mm" else "dd/MM | HH:mm"
+    val datePattern = if (selectedPeriod == DiaryPeriod.HOY || selectedPeriod == DiaryPeriod.SEMANA || selectedPeriod == DiaryPeriod.MES) "HH:mm" else "dd/MM | HH:mm"
     val dateStr = SimpleDateFormat(datePattern, Locale.getDefault()).format(Date(entry.timestamp))
     val cardColor by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surface,
@@ -870,36 +870,48 @@ fun DiaryEntryItem(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricPill(
-                    icon = if (entry.type == "WATER") Icons.Default.LocalDrink else Icons.Default.Bolt,
-                    label = if (entry.type == "WATER") "Cantidad" else "Cafeína",
-                    value = if (entry.type == "WATER") "${entry.amountMl} ml" else "${entry.caffeineAmount} mg",
-                    modifier = Modifier.weight(1f)
-                )
-                if (entry.type == "CUP") {
+            if (entry.type == "WATER") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     MetricPill(
-                        icon = Icons.Default.CoffeeMaker,
-                        label = "Preparación",
-                        value = entry.preparationType,
+                        icon = Icons.Default.LocalDrink,
+                        label = "Cantidad",
+                        value = "${entry.amountMl} ml",
                         modifier = Modifier.weight(1f)
                     )
                 }
-            }
-            if (entry.type == "CUP") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    MetricPill(
-                        icon = Icons.Default.Scale,
-                        label = "Dosis",
-                        value = "${entry.coffeeGrams} g",
-                        modifier = Modifier.weight(1f)
-                    )
-                    MetricPill(
-                        icon = Icons.Default.LocalCafe,
-                        label = "Tamaño",
-                        value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl),
-                        modifier = Modifier.weight(1f)
-                    )
+            } else {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        MetricPill(
+                            icon = Icons.Default.Bolt,
+                            label = "Cafeína",
+                            value = "${entry.caffeineAmount} mg"
+                        )
+                    }
+                    item {
+                        MetricPill(
+                            icon = Icons.Default.CoffeeMaker,
+                            label = "Preparación",
+                            value = entry.preparationType
+                        )
+                    }
+                    item {
+                        MetricPill(
+                            icon = Icons.Default.Scale,
+                            label = "Dosis",
+                            value = "${entry.coffeeGrams} g"
+                        )
+                    }
+                    item {
+                        MetricPill(
+                            icon = Icons.Default.LocalCafe,
+                            label = "Tamaño",
+                            value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
+                        )
+                    }
                 }
             }
         }
