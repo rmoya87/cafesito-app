@@ -43,7 +43,7 @@ fun PostCard(
 ) {
     val post = details.post
     val author = details.author
-    val postTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+    val postTextColor = if (isSystemInDarkTheme()) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Black
     var showOptionsSheet by remember { mutableStateOf(false) }
 
     if (showOptionsSheet) {
@@ -201,7 +201,7 @@ fun PostCard(
 private fun InteractionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     count: Int,
-    color: Color,
+    color: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit
 ) {
     Row(
