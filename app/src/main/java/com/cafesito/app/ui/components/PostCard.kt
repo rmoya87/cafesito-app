@@ -3,6 +3,7 @@ package com.cafesito.app.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,6 +43,7 @@ fun PostCard(
 ) {
     val post = details.post
     val author = details.author
+    val postTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
     var showOptionsSheet by remember { mutableStateOf(false) }
 
     if (showOptionsSheet) {
@@ -77,7 +79,7 @@ fun PostCard(
                                 text = author?.fullName ?: "Usuario", 
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = postTextColor
                             )
                             Text(
                                 text = formatRelativeTime(post.timestamp).uppercase(),
@@ -101,7 +103,7 @@ fun PostCard(
                     Text(
                         text = post.comment,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = postTextColor,
                         lineHeight = 22.sp
                     )
                     Spacer(Modifier.height(16.dp))
@@ -170,7 +172,7 @@ fun PostCard(
                     InteractionItem(
                         icon = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         count = details.likes.size,
-                        color = if (isLiked) ElectricRed else MaterialTheme.colorScheme.onSurface,
+                        color = if (isLiked) ElectricRed else postTextColor,
                         onClick = onLikeClick
                     )
                     
@@ -179,7 +181,7 @@ fun PostCard(
                     InteractionItem(
                         icon = Icons.Outlined.ChatBubbleOutline,
                         count = details.comments.size,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = postTextColor,
                         onClick = onCommentClick
                     )
 
