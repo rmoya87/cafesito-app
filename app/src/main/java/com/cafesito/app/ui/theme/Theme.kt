@@ -41,7 +41,7 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerHighest = ScreenDarkBackground,
     onSurface = Color.White,
     onSurfaceVariant = MutedCream,
-    outline = DarkOutline, // Negro suave (0xFF1A1A1A) en lugar de marrón
+    outline = PureBlack, // Cambiado de DarkOutline (gris muy oscuro) a negro puro
     surfaceTint = Color.Transparent // Desactiva la elevación tonal para mantener negro puro
 )
 

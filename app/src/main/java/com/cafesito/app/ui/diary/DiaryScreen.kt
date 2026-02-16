@@ -266,7 +266,8 @@ fun DiaryScreen(
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillParentMaxHeight(),
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.Top,
+                    userScrollEnabled = false
                 ) { page ->
                     when(page) {
                         0 -> {
