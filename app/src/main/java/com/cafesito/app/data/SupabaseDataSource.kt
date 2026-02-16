@@ -226,7 +226,16 @@ class SupabaseDataSource @Inject constructor(
     }
     suspend fun upsertComment(comment: CommentEntity) = client.postgrest["comments_db"].upsert(comment)
     suspend fun deleteComment(commentId: Int) {
-        client.postgrest["comments_db"].delete { filter { eq("id", commentId) } }
+        try {
+            client.postgrest.rpc(
+                "delete_comment",
+                buildJsonObject {
+                    put("p_comment_id", commentId)
+                }
+            )
+        } catch (_: Exception) {
+            client.postgrest["comments_db"].delete { filter { eq("id", commentId) } }
+        }
     }
     suspend fun updateComment(commentId: Int, newText: String) {
         client.postgrest["comments_db"].update(

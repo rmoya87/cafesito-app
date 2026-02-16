@@ -252,9 +252,16 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun deleteComment(commentId: Int) = withContext(Dispatchers.IO) {
-        socialDao.deleteComment(commentId)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deleteComment(commentId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.deleteComment(commentId)
+                socialDao.deleteComment(commentId)
+            } catch (e: Exception) {
+                triggerRefresh()
+                return@withContext
+            }
+        } else {
+            socialDao.deleteComment(commentId)
         }
         triggerRefresh()
     }
