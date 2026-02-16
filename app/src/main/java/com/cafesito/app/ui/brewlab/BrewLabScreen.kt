@@ -11,7 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -82,7 +82,7 @@ fun BrewLabScreen(
                 actions = {
                     if (step == BrewStep.CONFIGURATION) {
                         IconButton(onClick = { viewModel.startBrewing() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = "Empezar preparación")
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Empezar preparación")
                         }
                     }
                 }

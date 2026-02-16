@@ -47,8 +47,8 @@ class CafesitoFcmService : FirebaseMessagingService() {
         }
 
         val notificationType = (remoteMessage.data["type"] ?: remoteMessage.data["notification_type"] ?: "").uppercase()
-        val relatedId = remoteMessage.data["related_id"]
-        val postId = remoteMessage.data["post_id"] ?: relatedId?.split(":")?.firstOrNull()
+        val relatedId = remoteMessage.data["related_id"] ?: remoteMessage.data["targetId"]
+        val postId = remoteMessage.data["post_id"] ?: remoteMessage.data["target_post_id"] ?: relatedId?.split(":")?.firstOrNull()
         val commentId = remoteMessage.data["comment_id"]?.toIntOrNull()
             ?: relatedId?.split(":")?.getOrNull(1)?.toIntOrNull()
 

@@ -26,6 +26,23 @@ class SocialRepository @Inject constructor(
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
+    init {
+        externalScope.launch {
+            supabaseDataSource.subscribeToLikes()
+                .catch { }
+                .collect {
+                    triggerRefresh()
+                }
+        }
+        externalScope.launch {
+            supabaseDataSource.subscribeToComments()
+                .catch { }
+                .collect {
+                    triggerRefresh()
+                }
+        }
+    }
+
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
     }
@@ -55,8 +72,8 @@ class SocialRepository @Inject constructor(
                 saveFetchResult = { payload ->
                     withContext(Dispatchers.IO) {
                         socialDao.insertPosts(payload.posts)
-                        socialDao.insertLikes(payload.likes)
-                        socialDao.insertComments(payload.comments)
+                        syncLikesWithRemote(payload.likes)
+                        syncCommentsWithRemote(payload.comments)
                         socialDao.upsertPostCoffeeTags(payload.coffeeTags)
                         userRepository.insertUsers(payload.users)
                     }
@@ -233,8 +250,13 @@ class SocialRepository @Inject constructor(
                         )
                     )
                     socialDao.insertComment(stored)
-                    notifyMentionsIfNeeded(stored)
-                    notifyPostOwnerIfNeeded(stored)
+                    val mentionedUsernames = notifyMentionsIfNeeded(stored)
+                    val postOwnerId = notifyPostOwnerIfNeeded(stored)
+                    notifyCommentParticipantsIfNeeded(
+                        comment = stored,
+                        postOwnerId = postOwnerId,
+                        excludedUsernames = mentionedUsernames
+                    )
                 } catch (e: Exception) {
                     socialDao.insertComment(comment)
                 }
@@ -247,9 +269,16 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun deleteComment(commentId: Int) = withContext(Dispatchers.IO) {
-        socialDao.deleteComment(commentId)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deleteComment(commentId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.deleteComment(commentId)
+                socialDao.deleteComment(commentId)
+            } catch (e: Exception) {
+                triggerRefresh()
+                return@withContext
+            }
+        } else {
+            socialDao.deleteComment(commentId)
         }
         triggerRefresh()
     }
@@ -272,6 +301,28 @@ class SocialRepository @Inject constructor(
         val coffeeTags: List<PostCoffeeTagEntity>
     )
 
+    private suspend fun syncCommentsWithRemote(remoteComments: List<CommentEntity>) {
+        socialDao.insertComments(remoteComments)
+        val remoteIds = remoteComments.map { it.id }.toSet()
+        val staleLocalIds = socialDao.getAllCommentIds()
+            .filter { localId -> localId > 0 && localId !in remoteIds }
+        if (staleLocalIds.isNotEmpty()) {
+            socialDao.deleteCommentsByIds(staleLocalIds)
+        }
+    }
+
+    private suspend fun syncLikesWithRemote(remoteLikes: List<LikeEntity>) {
+        socialDao.insertLikes(remoteLikes)
+        val remoteLikeKeys = remoteLikes
+            .map { it.postId to it.userId }
+            .toSet()
+        val staleLocalLikes = socialDao.getAllLikesList()
+            .filter { localLike -> (localLike.postId to localLike.userId) !in remoteLikeKeys }
+        staleLocalLikes.forEach { staleLike ->
+            socialDao.deleteLike(staleLike)
+        }
+    }
+
     suspend fun deletePost(postId: String) = withContext(Dispatchers.IO) {
         val post = socialDao.getAllPostsWithDetails().first().find { it.post.id == postId }?.post
         if (post != null) socialDao.deletePost(post)
@@ -287,16 +338,16 @@ class SocialRepository @Inject constructor(
         }
     }
 
-    private suspend fun notifyPostOwnerIfNeeded(comment: CommentEntity) {
+    private suspend fun notifyPostOwnerIfNeeded(comment: CommentEntity): Int? {
         val postOwnerId = socialDao.getAllPostsWithDetails()
             .first()
             .firstOrNull { it.post.id == comment.postId }
             ?.post
             ?.userId
-            ?: return
-        if (postOwnerId == comment.userId) return
+            ?: return null
+        if (postOwnerId == comment.userId) return postOwnerId
 
-        val author = userRepository.getUserById(comment.userId) ?: return
+        val author = userRepository.getUserById(comment.userId) ?: return null
         supabaseDataSource.insertNotification(
             NotificationEntity(
                 userId = postOwnerId,
@@ -307,14 +358,15 @@ class SocialRepository @Inject constructor(
                 relatedId = "${comment.postId}:${comment.id}"
             )
         )
+        return postOwnerId
     }
 
-    private suspend fun notifyMentionsIfNeeded(comment: CommentEntity) {
+    private suspend fun notifyMentionsIfNeeded(comment: CommentEntity): Set<String> {
         val mentionUsernames = extractMentions(comment.text)
-        if (mentionUsernames.isEmpty()) return
-        val author = userRepository.getUserById(comment.userId) ?: return
+        if (mentionUsernames.isEmpty()) return emptySet()
+        val author = userRepository.getUserById(comment.userId) ?: return emptySet()
         val mentions = mentionUsernames.filterNot { it.equals(author.username, ignoreCase = true) }
-        if (mentions.isEmpty()) return
+        if (mentions.isEmpty()) return emptySet()
 
         mentions.forEach { username ->
             val user = userRepository.getUserByUsername(username) ?: return@forEach
@@ -325,6 +377,39 @@ class SocialRepository @Inject constructor(
                     type = "MENTION",
                     fromUsername = author.username,
                     message = comment.text,
+                    timestamp = System.currentTimeMillis(),
+                    relatedId = "${comment.postId}:${comment.id}"
+                )
+            )
+        }
+        return mentions.map { it.lowercase() }.toSet()
+    }
+
+    private suspend fun notifyCommentParticipantsIfNeeded(
+        comment: CommentEntity,
+        postOwnerId: Int?,
+        excludedUsernames: Set<String>
+    ) {
+        val author = userRepository.getUserById(comment.userId) ?: return
+        val excludedLower = excludedUsernames.map { it.lowercase() }.toSet()
+        val participants = socialDao.getCommentsWithAuthorForPost(comment.postId)
+            .first()
+            .mapNotNull { it.author }
+            .filter { participant ->
+                participant.id != author.id &&
+                    participant.id != postOwnerId &&
+                    !participant.username.equals(author.username, ignoreCase = true) &&
+                    !excludedLower.contains(participant.username.lowercase())
+            }
+            .distinctBy { it.id }
+
+        participants.forEach { participant ->
+            supabaseDataSource.insertNotification(
+                NotificationEntity(
+                    userId = participant.id,
+                    type = "COMMENT",
+                    fromUsername = author.username,
+                    message = "ha respondido en una publicación donde participas",
                     timestamp = System.currentTimeMillis(),
                     relatedId = "${comment.postId}:${comment.id}"
                 )
@@ -371,8 +456,8 @@ class SocialRepository @Inject constructor(
                 val reviews = supabaseDataSource.getAllReviews()
                 
                 socialDao.insertPosts(posts)
-                socialDao.insertLikes(likes)
-                socialDao.insertComments(comments)
+                syncLikesWithRemote(likes)
+                syncCommentsWithRemote(comments)
                 socialDao.upsertReviews(reviews)
                 
                 triggerRefresh()
