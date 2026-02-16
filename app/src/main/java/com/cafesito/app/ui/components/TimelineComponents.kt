@@ -928,7 +928,7 @@ fun DiaryEntryEditBottomSheet(
     val context = LocalContext.current
     var amountText by remember(entry.id) { mutableStateOf(entry.amountMl.toString()) }
     var caffeineText by remember(entry.id) { mutableStateOf(entry.caffeineAmount.toString()) }
-    var doseText by remember(entry.id) { mutableStateOf(entry.coffeeGrams.toString()) }
+    var doseText by remember(entry.id) { mutableStateOf(String.format(Locale.getDefault(), "%.1f", entry.coffeeGrams.toFloat())) }
     var timeText by remember(entry.id) {
         mutableStateOf(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(entry.timestamp)))
     }
@@ -1052,10 +1052,14 @@ fun DiaryEntryEditBottomSheet(
 
                     OutlinedTextField(
                         value = doseText,
-                        onValueChange = { doseText = it.filter(Char::isDigit) },
+                        onValueChange = { value ->
+                            doseText = value.filter { it.isDigit() || it == '.' }.let { filtered ->
+                                if (filtered.count { it == '.' } <= 1) filtered else filtered.dropLast(1)
+                            }
+                        },
                         label = { Text("Dosis (g)") },
                         leadingIcon = { Icon(Icons.Default.Scale, null) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -1105,7 +1109,7 @@ fun DiaryEntryEditBottomSheet(
                     onValueChange = { amountText = it.filter(Char::isDigit) },
                     label = { Text("Cantidad (ml)") },
                     leadingIcon = { Icon(Icons.Default.LocalDrink, null) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1145,14 +1149,16 @@ fun DiaryEntryEditBottomSheet(
                         entry.copy(amountMl = amount, timestamp = updatedTimestamp)
                     } else {
                         val caffeine = caffeineText.toIntOrNull()
-                        val grams = doseText.toIntOrNull()
-                        if (caffeine == null || caffeine < 0 || grams == null || grams <= 0 || selectedPreparation.isBlank()) {
-                            errorText = "Completa todos los campos correctamente"
+                        val grams = doseText.toFloatOrNull()
+                        val normalizedPrep = selectedPreparation.trim()
+                        val espressoRangeValid = !normalizedPrep.equals("Espresso", ignoreCase = true) || (grams != null && grams in 3f..30f)
+                        if (caffeine == null || caffeine < 0 || grams == null || grams <= 0f || normalizedPrep.isBlank() || !espressoRangeValid) {
+                            errorText = if (!espressoRangeValid) "Para espresso, la dosis debe estar entre 3.0 y 30.0 g" else "Completa todos los campos correctamente"
                             return@Button
                         }
                         entry.copy(
                             caffeineAmount = caffeine,
-                            coffeeGrams = grams,
+                            coffeeGrams = grams.roundToInt(),
                             preparationType = selectedPreparation.trim(),
                             sizeLabel = selectedSize,
                             amountMl = sizeOptions.find { it.label == selectedSize }?.defaultMl ?: entry.amountMl,

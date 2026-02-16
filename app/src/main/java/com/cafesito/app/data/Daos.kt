@@ -35,6 +35,12 @@ interface CoffeeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCoffees(coffees: List<Coffee>): List<Long>
 
+    @Query("DELETE FROM coffees WHERE id = :coffeeId")
+    suspend fun deleteCoffeeById(coffeeId: String): Int
+
+    @Query("DELETE FROM custom_coffees WHERE id = :coffeeId")
+    suspend fun deleteCustomCoffeeById(coffeeId: String): Int
+
     @Query("SELECT * FROM local_favorites")
     fun getLocalFavorites(): Flow<List<LocalFavorite>>
 

@@ -65,6 +65,7 @@ import java.util.UUID
 fun AddPostScreen(
     onBackClick: () -> Unit = {},
     onPublishSuccess: () -> Unit = {},
+    initialPostType: PostType? = null,
     viewModel: AddPostViewModel = hiltViewModel()
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -77,6 +78,10 @@ fun AddPostScreen(
     val activeUser by viewModel.activeUser.collectAsState()
     val comment by viewModel.comment.collectAsState()
     val rating by viewModel.rating.collectAsState()
+
+    LaunchedEffect(initialPostType) {
+        initialPostType?.let(viewModel::setPostType)
+    }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
@@ -545,17 +550,27 @@ private fun PostDetailsStepPremium(
                 Icon(Icons.Default.Coffee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(10.dp))
                 Text("Añadir café", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = selectedCoffee?.coffee?.nombre ?: "Seleccionar café",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                Spacer(Modifier.width(6.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Text(
+                        text = selectedCoffee?.coffee?.nombre ?: "Seleccionar café",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.padding(end = 20.dp)
+                    )
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                }
             }
         }
 
@@ -798,6 +813,10 @@ private fun ReviewDetailsStepPremium(
     val imageSource = viewModel.imageSource.collectAsState().value as? Uri
     val comment by viewModel.comment.collectAsState()
     val rating by viewModel.rating.collectAsState()
+
+    LaunchedEffect(initialPostType) {
+        initialPostType?.let(viewModel::setPostType)
+    }
     val mentionSuggestions by viewModel.mentionSuggestions.collectAsState()
 
     var commentValue by remember(comment) {

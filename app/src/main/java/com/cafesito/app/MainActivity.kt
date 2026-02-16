@@ -88,6 +88,7 @@ class MainActivity : ComponentActivity() {
     lateinit var analyticsHelper: AnalyticsHelper
     
     private val notificationNavigation = mutableStateOf<NotificationNavigation?>(null)
+    private val shortcutNavigation = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,6 +97,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdgeConfig()
 
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
+        shortcutNavigation.value = resolveShortcutAction(intent)
 
         setContent {
             CafesitoTheme {
@@ -117,10 +119,25 @@ class MainActivity : ComponentActivity() {
                         userRepository = userRepository,
                         notificationNavigation = notificationNavigation.value,
                         onNotificationConsumed = { notificationNavigation.value = null },
+                        shortcutAction = shortcutNavigation.value,
+                        onShortcutConsumed = { shortcutNavigation.value = null },
                         analyticsHelper = analyticsHelper
                     )
                 }
             }
+        }
+    }
+
+
+    private fun resolveShortcutAction(intent: Intent?): String? {
+        val directAction = intent?.getStringExtra("shortcut_action")
+        if (!directAction.isNullOrBlank()) return directAction
+
+        return when (intent?.data?.toString()) {
+            "cafesito://shortcut/search" -> "SEARCH"
+            "cafesito://shortcut/new_post" -> "NEW_POST"
+            "cafesito://shortcut/new_review" -> "NEW_REVIEW"
+            else -> null
         }
     }
 
@@ -141,6 +158,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
+        shortcutNavigation.value = resolveShortcutAction(intent)
     }
 
     private fun setupCoil() {
@@ -167,6 +185,8 @@ fun AppNavigation(
     userRepository: UserRepository,
     notificationNavigation: NotificationNavigation?,
     onNotificationConsumed: () -> Unit,
+    shortcutAction: String?,
+    onShortcutConsumed: () -> Unit,
     analyticsHelper: AnalyticsHelper
 ) {
     val navController = rememberNavController()
@@ -224,6 +244,19 @@ fun AppNavigation(
             }
         }
         onNotificationConsumed()
+    }
+
+    LaunchedEffect(shortcutAction) {
+        when (shortcutAction) {
+            "SEARCH" -> navController.navigate("search")
+            "NEW_POST" -> navController.navigate("addPost")
+            "NEW_REVIEW" -> navController.navigate("addPost?postType=OPINION")
+            "OPEN_DIARY" -> navController.navigate("diary")
+            "ADD_COFFEE_ENTRY" -> navController.navigate("addDiaryEntry?type=COFFEE")
+            "ADD_WATER_ENTRY" -> navController.navigate("addDiaryEntry?type=WATER")
+            else -> return@LaunchedEffect
+        }
+        onShortcutConsumed()
     }
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -665,14 +698,19 @@ fun AppNavigation(
                 DetailScreen(onBackClick = { navController.popBackStack() })
             }
 
-            composable("addPost") {
+            composable(
+                route = "addPost?postType={postType}",
+                arguments = listOf(navArgument("postType") { type = NavType.StringType; defaultValue = "PUBLICATION" })
+            ) { backStackEntry ->
+                val postTypeArg = backStackEntry.arguments?.getString("postType")
                 AddPostScreen(
                     onBackClick = { navController.popBackStack() },
                     onPublishSuccess = {
                         navController.previousBackStackEntry
                             ?.savedStateHandle
                             ?.set("publishing_pending", true)
-                    }
+                    },
+                    initialPostType = if (postTypeArg.equals("OPINION", ignoreCase = true)) PostType.OPINION else PostType.PUBLICATION
                 )
             }
         }
