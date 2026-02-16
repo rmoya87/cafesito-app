@@ -66,6 +66,14 @@ internal object WidgetDataStore {
         return WidgetPeriod.entries.firstOrNull { it.name == value } ?: WidgetPeriod.DAY
     }
 
+    // Compatibilidad retro para builds locales que todavía referencian paginación antigua.
+    fun savePage(context: Context, widgetId: Int, page: Int) {
+        // No-op intencional: el diseño actual usa scroll táctil sin páginas.
+    }
+
+    fun readPage(context: Context, widgetId: Int): Int = 0
+
+
     suspend fun loadDiaryChart(context: Context, period: WidgetPeriod): List<DiaryWidgetChartPoint> = withContext(Dispatchers.IO) {
         val userId = resolveUserId(context) ?: return@withContext emptyList()
         val entries = db(context).diaryDao().getDiaryEntries(userId).first()

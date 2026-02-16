@@ -27,6 +27,11 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
         handleFilterAction(context, intent)
     }
 
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        handleFilterAction(context, intent)
+    }
+
 
 
     private fun handleFilterAction(context: Context, intent: Intent) {
@@ -37,10 +42,15 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
             ACTION_FILTER_DAY -> WidgetPeriod.DAY
             ACTION_FILTER_WEEK -> WidgetPeriod.WEEK
             ACTION_FILTER_MONTH -> WidgetPeriod.MONTH
+            ACTION_PREV_PAGE, ACTION_NEXT_PAGE -> null
             else -> return
         }
 
-        WidgetDataStore.savePeriod(context, widgetId, period)
+        if (period != null) {
+            WidgetDataStore.savePeriod(context, widgetId, period)
+        }
+        // Compatibilidad con código antiguo que todavía intentaba paginar.
+        WidgetDataStore.savePage(context, widgetId, WidgetDataStore.readPage(context, widgetId))
         AppWidgetManager.getInstance(context).updateAppWidget(widgetId, buildViews(context, widgetId))
     }
     companion object {
@@ -49,6 +59,8 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
         private const val ACTION_FILTER_DAY = "com.cafesito.app.widget.FILTER_DAY"
         private const val ACTION_FILTER_WEEK = "com.cafesito.app.widget.FILTER_WEEK"
         private const val ACTION_FILTER_MONTH = "com.cafesito.app.widget.FILTER_MONTH"
+        private const val ACTION_PREV_PAGE = "com.cafesito.app.widget.PREV_PAGE"
+        private const val ACTION_NEXT_PAGE = "com.cafesito.app.widget.NEXT_PAGE"
 
         private val COFFEE_IDS = intArrayOf(
             R.id.widget_bar_coffee_1, R.id.widget_bar_coffee_2, R.id.widget_bar_coffee_3, R.id.widget_bar_coffee_4, R.id.widget_bar_coffee_5,
