@@ -126,6 +126,12 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
                     setImageViewResource(WATER_BAR_IDS[i], WATER_LEVEL_DRAWABLES.first())
                 }
             }
+            return PendingIntent.getBroadcast(
+                context,
+                widgetId * 31 + action.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
 
         private fun buildViews(context: Context, widgetId: Int, options: Bundle?): RemoteViews {
