@@ -48,6 +48,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -479,7 +480,7 @@ fun CoffeeDoseStepPremium(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "${doseGrams.roundToInt()} g",
+                    text = String.format(Locale.getDefault(), "%.1f g", doseGrams),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -493,7 +494,8 @@ fun CoffeeDoseStepPremium(
         Slider(
             value = doseGrams,
             onValueChange = onDoseChange,
-            valueRange = 5f..40f,
+            valueRange = 3f..30f,
+            steps = 269,
             colors = SliderDefaults.colors(
                 thumbColor = coffeeColor,
                 activeTrackColor = coffeeColor,
