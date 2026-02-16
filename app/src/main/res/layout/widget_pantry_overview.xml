@@ -3,23 +3,68 @@
     android:id="@+id/widget_pantry_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/widget_card_background"
     android:orientation="vertical"
-    android:padding="12dp"
-    android:background="@android:drawable/dialog_holo_light_frame">
+    android:padding="12dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Despensa"
-        android:textStyle="bold"
+        android:text="Mi despensa"
+        android:textColor="#1A120B"
         android:textSize="16sp"
-        android:textColor="#1A120B" />
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_pantry_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text=""
+        android:textColor="#5A4A42"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/widget_pantry_item_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="#3E2D22"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_pantry_item_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#3E2D22"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_pantry_item_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#3E2D22"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_pantry_item_4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#3E2D22"
+        android:textSize="12sp"
+        android:textStyle="bold" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Toca para abrir tu despensa y ver gramos restantes por café."
-        android:textSize="12sp"
-        android:textColor="#5A4A42" />
+        android:text="Toca para abrir tu despensa"
+        android:textColor="#7B6E65"
+        android:textSize="11sp" />
 </LinearLayout>
