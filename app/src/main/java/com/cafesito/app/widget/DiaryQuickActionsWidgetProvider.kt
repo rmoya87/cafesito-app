@@ -18,6 +18,13 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
         appWidgetIds.forEach { id ->
             appWidgetManager.updateAppWidget(id, buildViews(context, id))
         }
+
+        AppWidgetManager.getInstance(context).updateAppWidget(widgetId, buildViews(context, widgetId))
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        handleFilterAction(context, intent)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -127,6 +134,12 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
                     }
                 }
             }
+            return PendingIntent.getBroadcast(
+                context,
+                widgetId * 31 + action.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
 
         private fun actionIntent(context: Context, widgetId: Int, action: String): PendingIntent {
