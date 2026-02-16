@@ -233,8 +233,13 @@ class SocialRepository @Inject constructor(
                         )
                     )
                     socialDao.insertComment(stored)
-                    notifyMentionsIfNeeded(stored)
-                    notifyPostOwnerIfNeeded(stored)
+                    val mentionedUsernames = notifyMentionsIfNeeded(stored)
+                    val postOwnerId = notifyPostOwnerIfNeeded(stored)
+                    notifyCommentParticipantsIfNeeded(
+                        comment = stored,
+                        postOwnerId = postOwnerId,
+                        excludedUsernames = mentionedUsernames
+                    )
                 } catch (e: Exception) {
                     socialDao.insertComment(comment)
                 }
@@ -287,16 +292,16 @@ class SocialRepository @Inject constructor(
         }
     }
 
-    private suspend fun notifyPostOwnerIfNeeded(comment: CommentEntity) {
+    private suspend fun notifyPostOwnerIfNeeded(comment: CommentEntity): Int? {
         val postOwnerId = socialDao.getAllPostsWithDetails()
             .first()
             .firstOrNull { it.post.id == comment.postId }
             ?.post
             ?.userId
-            ?: return
-        if (postOwnerId == comment.userId) return
+            ?: return null
+        if (postOwnerId == comment.userId) return postOwnerId
 
-        val author = userRepository.getUserById(comment.userId) ?: return
+        val author = userRepository.getUserById(comment.userId) ?: return null
         supabaseDataSource.insertNotification(
             NotificationEntity(
                 userId = postOwnerId,
@@ -307,14 +312,15 @@ class SocialRepository @Inject constructor(
                 relatedId = "${comment.postId}:${comment.id}"
             )
         )
+        return postOwnerId
     }
 
-    private suspend fun notifyMentionsIfNeeded(comment: CommentEntity) {
+    private suspend fun notifyMentionsIfNeeded(comment: CommentEntity): Set<String> {
         val mentionUsernames = extractMentions(comment.text)
-        if (mentionUsernames.isEmpty()) return
-        val author = userRepository.getUserById(comment.userId) ?: return
+        if (mentionUsernames.isEmpty()) return emptySet()
+        val author = userRepository.getUserById(comment.userId) ?: return emptySet()
         val mentions = mentionUsernames.filterNot { it.equals(author.username, ignoreCase = true) }
-        if (mentions.isEmpty()) return
+        if (mentions.isEmpty()) return emptySet()
 
         mentions.forEach { username ->
             val user = userRepository.getUserByUsername(username) ?: return@forEach
@@ -325,6 +331,39 @@ class SocialRepository @Inject constructor(
                     type = "MENTION",
                     fromUsername = author.username,
                     message = comment.text,
+                    timestamp = System.currentTimeMillis(),
+                    relatedId = "${comment.postId}:${comment.id}"
+                )
+            )
+        }
+        return mentions.map { it.lowercase() }.toSet()
+    }
+
+    private suspend fun notifyCommentParticipantsIfNeeded(
+        comment: CommentEntity,
+        postOwnerId: Int?,
+        excludedUsernames: Set<String>
+    ) {
+        val author = userRepository.getUserById(comment.userId) ?: return
+        val excludedLower = excludedUsernames.map { it.lowercase() }.toSet()
+        val participants = socialDao.getCommentsWithAuthorForPost(comment.postId)
+            .first()
+            .mapNotNull { it.author }
+            .filter { participant ->
+                participant.id != author.id &&
+                    participant.id != postOwnerId &&
+                    !participant.username.equals(author.username, ignoreCase = true) &&
+                    !excludedLower.contains(participant.username.lowercase())
+            }
+            .distinctBy { it.id }
+
+        participants.forEach { participant ->
+            supabaseDataSource.insertNotification(
+                NotificationEntity(
+                    userId = participant.id,
+                    type = "COMMENT",
+                    fromUsername = author.username,
+                    message = "ha respondido en una publicación donde participas",
                     timestamp = System.currentTimeMillis(),
                     relatedId = "${comment.postId}:${comment.id}"
                 )
