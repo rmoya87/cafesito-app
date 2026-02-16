@@ -46,13 +46,15 @@
                 android:layout_weight="1"
                 android:background="@drawable/widget_pantry_item_card"
                 android:orientation="vertical"
-                android:padding="6dp">
+                android:padding="6dp"
+                android:visibility="invisible">
 
                 <ImageView
                     android:id="@+id/widget_pantry_item_image_1"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
-                    android:src="@drawable/ic_launcher_foreground" />
+                    android:src="@drawable/ic_launcher_foreground"
+                    android:scaleType="centerInside" />
 
                 <TextView
                     android:id="@+id/widget_pantry_item_name_1"
@@ -100,9 +102,10 @@
                 android:layout_weight="1"
                 android:background="@drawable/widget_pantry_item_card"
                 android:orientation="vertical"
-                android:padding="6dp">
+                android:padding="6dp"
+                android:visibility="invisible">
 
-                <ImageView android:id="@+id/widget_pantry_item_image_2" android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/ic_launcher_foreground" />
+                <ImageView android:id="@+id/widget_pantry_item_image_2" android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/ic_launcher_foreground" android:scaleType="centerInside" />
                 <TextView android:id="@+id/widget_pantry_item_name_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:maxLines="1" android:textColor="#2E2017" android:textSize="11sp" android:textStyle="bold" />
                 <TextView android:id="@+id/widget_pantry_item_brand_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:textColor="#7A6253" android:textSize="10sp" />
                 <TextView android:id="@+id/widget_pantry_item_stock_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="#5C4334" android:textSize="10sp" android:textStyle="bold" />
@@ -125,9 +128,10 @@
                 android:layout_weight="1"
                 android:background="@drawable/widget_pantry_item_card"
                 android:orientation="vertical"
-                android:padding="6dp">
+                android:padding="6dp"
+                android:visibility="invisible">
 
-                <ImageView android:id="@+id/widget_pantry_item_image_3" android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/ic_launcher_foreground" />
+                <ImageView android:id="@+id/widget_pantry_item_image_3" android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/ic_launcher_foreground" android:scaleType="centerInside" />
                 <TextView android:id="@+id/widget_pantry_item_name_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:maxLines="1" android:textColor="#2E2017" android:textSize="11sp" android:textStyle="bold" />
                 <TextView android:id="@+id/widget_pantry_item_brand_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:textColor="#7A6253" android:textSize="10sp" />
                 <TextView android:id="@+id/widget_pantry_item_stock_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="#5C4334" android:textSize="10sp" android:textStyle="bold" />
@@ -142,9 +146,10 @@
                 android:layout_weight="1"
                 android:background="@drawable/widget_pantry_item_card"
                 android:orientation="vertical"
-                android:padding="6dp">
+                android:padding="6dp"
+                android:visibility="invisible">
 
-                <ImageView android:id="@+id/widget_pantry_item_image_4" android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/ic_launcher_foreground" />
+                <ImageView android:id="@+id/widget_pantry_item_image_4" android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/ic_launcher_foreground" android:scaleType="centerInside" />
                 <TextView android:id="@+id/widget_pantry_item_name_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:maxLines="1" android:textColor="#2E2017" android:textSize="11sp" android:textStyle="bold" />
                 <TextView android:id="@+id/widget_pantry_item_brand_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:textColor="#7A6253" android:textSize="10sp" />
                 <TextView android:id="@+id/widget_pantry_item_stock_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textColor="#5C4334" android:textSize="10sp" android:textStyle="bold" />

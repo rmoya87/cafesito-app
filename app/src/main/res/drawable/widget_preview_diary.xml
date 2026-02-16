@@ -1,37 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Fondo del Widget -->
     <item>
         <shape android:shape="rectangle">
-            <gradient android:angle="270" android:startColor="#FFF7EF" android:endColor="#FFF1E6" />
-            <corners android:radius="20dp" />
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="16dp" />
             <stroke android:width="1dp" android:color="#E8D4C2" />
         </shape>
     </item>
-    <item android:left="10dp" android:top="10dp" android:right="100dp">
+
+    <!-- Título "Mi diario" -->
+    <item android:left="16dp" android:top="16dp" android:right="160dp">
         <shape android:shape="rectangle">
             <size android:height="10dp"/>
+            <solid android:color="#1F120A"/>
+            <corners android:radius="2dp"/>
+        </shape>
+    </item>
+
+    <!-- Resumen "mg · ml" -->
+    <item android:left="16dp" android:top="32dp" android:right="100dp">
+        <shape android:shape="rectangle">
+            <size android:height="6dp"/>
+            <solid android:color="#6A4D3B"/>
+            <corners android:radius="2dp"/>
+        </shape>
+    </item>
+
+    <!-- Representación de Gráfico de Barras -->
+    <item android:left="16dp" android:top="50dp" android:right="16dp" android:bottom="60dp">
+        <layer-list>
+            <!-- Barra 1 -->
+            <item android:left="10dp" android:right="180dp" android:top="20dp">
+                <shape android:shape="rectangle"><solid android:color="#7E4422"/><corners android:radius="1dp"/></shape>
+            </item>
+            <item android:left="20dp" android:right="170dp" android:top="10dp">
+                <shape android:shape="rectangle"><solid android:color="#2196F3"/><corners android:radius="1dp"/></shape>
+            </item>
+            <!-- Barra 2 -->
+            <item android:left="40dp" android:right="150dp" android:top="15dp">
+                <shape android:shape="rectangle"><solid android:color="#7E4422"/><corners android:radius="1dp"/></shape>
+            </item>
+            <item android:left="50dp" android:right="140dp" android:top="5dp">
+                <shape android:shape="rectangle"><solid android:color="#2196F3"/><corners android:radius="1dp"/></shape>
+            </item>
+            <!-- Barra 3 -->
+            <item android:left="70dp" android:right="120dp" android:top="25dp">
+                <shape android:shape="rectangle"><solid android:color="#7E4422"/><corners android:radius="1dp"/></shape>
+            </item>
+            <item android:left="80dp" android:right="110dp" android:top="15dp">
+                <shape android:shape="rectangle"><solid android:color="#2196F3"/><corners android:radius="1dp"/></shape>
+            </item>
+            <!-- Barra 4 -->
+            <item android:left="100dp" android:right="90dp" android:top="10dp">
+                <shape android:shape="rectangle"><solid android:color="#7E4422"/><corners android:radius="1dp"/></shape>
+            </item>
+            <item android:left="110dp" android:right="80dp" android:top="0dp">
+                <shape android:shape="rectangle"><solid android:color="#2196F3"/><corners android:radius="1dp"/></shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Botones de Acción inferiores -->
+    <item android:left="16dp" android:bottom="16dp" android:right="110dp">
+        <shape android:shape="rectangle">
+            <size android:height="30dp"/>
             <solid android:color="#7E4422"/>
-            <corners android:radius="4dp"/>
+            <corners android:radius="8dp"/>
         </shape>
     </item>
-    <item android:left="10dp" android:top="28dp" android:right="10dp">
+    <item android:left="110dp" android:bottom="16dp" android:right="16dp">
         <shape android:shape="rectangle">
-            <size android:height="8dp"/>
-            <solid android:color="#C8A78C"/>
-            <corners android:radius="4dp"/>
-        </shape>
-    </item>
-    <item android:left="10dp" android:top="44dp" android:right="10dp" android:bottom="10dp">
-        <shape android:shape="rectangle">
-            <solid android:color="#FDF7F2"/>
-            <corners android:radius="10dp"/>
-            <stroke android:width="1dp" android:color="#E8D4C2"/>
-        </shape>
-    </item>
-    <item android:left="20dp" android:top="58dp" android:right="20dp" android:bottom="26dp">
-        <shape android:shape="rectangle">
-            <solid android:color="#EAD8C7"/>
-            <corners android:radius="6dp"/>
+            <size android:height="30dp"/>
+            <solid android:color="#2196F3"/>
+            <corners android:radius="8dp"/>
         </shape>
     </item>
 </layer-list>

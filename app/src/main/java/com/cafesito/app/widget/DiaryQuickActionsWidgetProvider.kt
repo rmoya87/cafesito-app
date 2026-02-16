@@ -126,16 +126,11 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
                     setImageViewResource(WATER_BAR_IDS[i], WATER_LEVEL_DRAWABLES.first())
                 }
             }
-            return PendingIntent.getBroadcast(
-                context,
-                widgetId * 31 + action.hashCode(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
         }
 
         private fun buildViews(context: Context, widgetId: Int, options: Bundle?): RemoteViews {
-            val points = runBlocking { WidgetDataStore.loadDiaryChart(context, WidgetPeriod.WEEK) }.takeLast(SLOT_COUNT)
+            val period = WidgetDataStore.readPeriod(context, widgetId)
+            val points = runBlocking { WidgetDataStore.loadDiaryChart(context, period) }.takeLast(SLOT_COUNT)
             val maxCoffee = points.maxOfOrNull { it.caffeineMg } ?: 1
             val maxWater = points.maxOfOrNull { it.waterMl } ?: 1
 
@@ -143,7 +138,12 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
             val totalWater = points.sumOf { it.waterMl }
 
             return RemoteViews(context.packageName, R.layout.widget_diary_quick_actions).apply {
-                setTextViewText(R.id.widget_diary_summary, "${totalCaffeine} mg · ${totalWater} ml")
+                val summaryPrefix = when(period) {
+                    WidgetPeriod.DAY -> "Hoy:"
+                    WidgetPeriod.WEEK -> "Semana:"
+                    WidgetPeriod.MONTH -> "Mes:"
+                }
+                setTextViewText(R.id.widget_diary_summary, "$summaryPrefix ${totalCaffeine} mg · ${totalWater} ml")
                 setViewVisibility(
                     R.id.widget_diary_actions,
                     if (isExpanded(options)) View.VISIBLE else View.GONE
