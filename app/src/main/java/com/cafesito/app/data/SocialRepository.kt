@@ -26,6 +26,23 @@ class SocialRepository @Inject constructor(
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
+    init {
+        externalScope.launch {
+            supabaseDataSource.subscribeToLikes()
+                .catch { }
+                .collect {
+                    triggerRefresh()
+                }
+        }
+        externalScope.launch {
+            supabaseDataSource.subscribeToComments()
+                .catch { }
+                .collect {
+                    triggerRefresh()
+                }
+        }
+    }
+
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
     }
@@ -55,8 +72,8 @@ class SocialRepository @Inject constructor(
                 saveFetchResult = { payload ->
                     withContext(Dispatchers.IO) {
                         socialDao.insertPosts(payload.posts)
-                        socialDao.insertLikes(payload.likes)
-                        socialDao.insertComments(payload.comments)
+                        syncLikesWithRemote(payload.likes)
+                        syncCommentsWithRemote(payload.comments)
                         socialDao.upsertPostCoffeeTags(payload.coffeeTags)
                         userRepository.insertUsers(payload.users)
                     }
@@ -284,6 +301,28 @@ class SocialRepository @Inject constructor(
         val coffeeTags: List<PostCoffeeTagEntity>
     )
 
+    private suspend fun syncCommentsWithRemote(remoteComments: List<CommentEntity>) {
+        socialDao.insertComments(remoteComments)
+        val remoteIds = remoteComments.map { it.id }.toSet()
+        val staleLocalIds = socialDao.getAllCommentIds()
+            .filter { localId -> localId > 0 && localId !in remoteIds }
+        if (staleLocalIds.isNotEmpty()) {
+            socialDao.deleteCommentsByIds(staleLocalIds)
+        }
+    }
+
+    private suspend fun syncLikesWithRemote(remoteLikes: List<LikeEntity>) {
+        socialDao.insertLikes(remoteLikes)
+        val remoteLikeKeys = remoteLikes
+            .map { it.postId to it.userId }
+            .toSet()
+        val staleLocalLikes = socialDao.getAllLikesList()
+            .filter { localLike -> (localLike.postId to localLike.userId) !in remoteLikeKeys }
+        staleLocalLikes.forEach { staleLike ->
+            socialDao.deleteLike(staleLike)
+        }
+    }
+
     suspend fun deletePost(postId: String) = withContext(Dispatchers.IO) {
         val post = socialDao.getAllPostsWithDetails().first().find { it.post.id == postId }?.post
         if (post != null) socialDao.deletePost(post)
@@ -417,8 +456,8 @@ class SocialRepository @Inject constructor(
                 val reviews = supabaseDataSource.getAllReviews()
                 
                 socialDao.insertPosts(posts)
-                socialDao.insertLikes(likes)
-                socialDao.insertComments(comments)
+                syncLikesWithRemote(likes)
+                syncCommentsWithRemote(comments)
                 socialDao.upsertReviews(reviews)
                 
                 triggerRefresh()

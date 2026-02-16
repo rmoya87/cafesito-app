@@ -182,6 +182,12 @@ interface SocialDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertComments(comments: List<CommentEntity>): List<Long>
 
+    @Query("SELECT id FROM comments_db")
+    suspend fun getAllCommentIds(): List<Int>
+
+    @Query("DELETE FROM comments_db WHERE id IN (:commentIds)")
+    suspend fun deleteCommentsByIds(commentIds: List<Int>): Int
+
     @Query("DELETE FROM comments_db WHERE id = :commentId")
     suspend fun deleteComment(commentId: Int): Int
 
@@ -193,6 +199,9 @@ interface SocialDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertLikes(likes: List<LikeEntity>): List<Long>
+
+    @Query("SELECT * FROM likes_db")
+    suspend fun getAllLikesList(): List<LikeEntity>
 
     @Delete
     suspend fun deleteLike(like: LikeEntity): Int
