@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -13,6 +15,8 @@ import android.widget.RemoteViews
 import com.cafesito.app.MainActivity
 import com.cafesito.app.R
 import kotlinx.coroutines.runBlocking
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlin.math.max
 
 class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
@@ -113,6 +117,7 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
         private fun fallbackViews(context: Context, widgetId: Int, options: Bundle?): RemoteViews {
             return RemoteViews(context.packageName, R.layout.widget_diary_quick_actions).apply {
                 setTextViewText(R.id.widget_diary_summary, "Semana sin datos")
+                setImageViewResource(R.id.widget_diary_cover, R.drawable.ic_launcher_foreground)
                 setViewVisibility(
                     R.id.widget_diary_actions,
                     if (isExpanded(options)) View.VISIBLE else View.GONE
@@ -131,6 +136,7 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
         private fun buildViews(context: Context, widgetId: Int, options: Bundle?): RemoteViews {
             val period = WidgetDataStore.readPeriod(context, widgetId)
             val points = runBlocking { WidgetDataStore.loadDiaryChart(context, period) }.takeLast(SLOT_COUNT)
+            val latestCoffeeImageUrl = runBlocking { WidgetDataStore.loadLatestCoffeeImageUrl(context) }
             val maxCoffee = points.maxOfOrNull { it.caffeineMg } ?: 1
             val maxWater = points.maxOfOrNull { it.waterMl } ?: 1
 
@@ -148,6 +154,10 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
                     R.id.widget_diary_actions,
                     if (isExpanded(options)) View.VISIBLE else View.GONE
                 )
+                setImageViewResource(R.id.widget_diary_cover, R.drawable.ic_launcher_foreground)
+                loadBitmapFromUrl(latestCoffeeImageUrl)?.let { bitmap ->
+                    setImageViewBitmap(R.id.widget_diary_cover, bitmap)
+                }
 
                 setOnClickPendingIntent(R.id.widget_add_coffee, navIntent(context, "ADD_COFFEE_ENTRY"))
                 setOnClickPendingIntent(R.id.widget_add_water, navIntent(context, "ADD_WATER_ENTRY"))
@@ -173,6 +183,23 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
                     }
                 }
             }
+        }
+
+        private fun loadBitmapFromUrl(url: String?): Bitmap? {
+            if (url.isNullOrBlank()) return null
+            return runCatching {
+                val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 6000
+                    readTimeout = 6000
+                    instanceFollowRedirects = true
+                    doInput = true
+                }
+                connection.inputStream.use { input ->
+                    BitmapFactory.decodeStream(input)
+                }?.let { original ->
+                    Bitmap.createScaledBitmap(original, 96, 96, true)
+                }
+            }.getOrNull()
         }
 
         private fun barLevel(value: Int, maxValue: Int): Int {

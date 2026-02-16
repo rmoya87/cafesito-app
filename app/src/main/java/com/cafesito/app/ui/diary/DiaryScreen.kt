@@ -292,7 +292,7 @@ fun DiaryScreen(
                                             }
                                             if (dayKey != previousDayKey) {
                                                 Text(
-                                                    text = SimpleDateFormat("d MMMM", Locale("es", "ES")).format(Date(entry.timestamp)),
+                                                    text = SimpleDateFormat("d MMMM", Locale.forLanguageTag("es-ES")).format(Date(entry.timestamp)),
                                                     style = MaterialTheme.typography.titleSmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,

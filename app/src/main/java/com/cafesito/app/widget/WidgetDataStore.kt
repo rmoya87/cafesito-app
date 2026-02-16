@@ -74,6 +74,33 @@ internal object WidgetDataStore {
         }
     }
 
+    suspend fun loadLatestCoffeeImageUrl(context: Context): String? = withContext(Dispatchers.IO) {
+        val userId = resolveUserId(context) ?: return@withContext null
+        val appDb = runCatching { db(context) }.getOrNull() ?: return@withContext null
+        val latestCoffeeId = runCatching {
+            appDb.openHelper.readableDatabase
+                .query(
+                    "SELECT coffeeId FROM diary_entries " +
+                        "WHERE userId = ? AND type = 'CUP' AND coffeeId IS NOT NULL " +
+                        "ORDER BY timestamp DESC LIMIT 1",
+                    arrayOf(userId.toString())
+                )
+                .use { c -> if (c.moveToFirst()) c.getString(0) else null }
+        }.getOrNull() ?: return@withContext null
+
+        runCatching {
+            appDb.openHelper.readableDatabase
+                .query("SELECT imageUrl FROM coffees WHERE id = ? LIMIT 1", arrayOf(latestCoffeeId))
+                .use { c ->
+                    if (c.moveToFirst()) {
+                        c.getString(0)?.takeIf { it.isNotBlank() }
+                    } else {
+                        null
+                    }
+                }
+        }.getOrNull()
+    }
+
     private fun buildDayChart(entries: List<DiaryEntryEntity>): List<DiaryWidgetChartPoint> {
         val cal = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
