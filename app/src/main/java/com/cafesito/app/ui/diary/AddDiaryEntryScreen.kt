@@ -310,7 +310,6 @@ fun WaterRegistrationStepPremium(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
             }
         }
         
@@ -324,7 +323,9 @@ fun WaterRegistrationStepPremium(
             colors = SliderDefaults.colors(
                 thumbColor = waterBlue,
                 activeTrackColor = waterBlue,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                activeTickColor = Color.Transparent,
+                inactiveTickColor = Color.Transparent
             ),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -486,7 +487,6 @@ fun CoffeeDoseStepPremium(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text("DOSIS DE CAFÉ", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
             }
         }
 
@@ -500,7 +500,9 @@ fun CoffeeDoseStepPremium(
             colors = SliderDefaults.colors(
                 thumbColor = coffeeColor,
                 activeTrackColor = coffeeColor,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                activeTickColor = Color.Transparent,
+                inactiveTickColor = Color.Transparent
             ),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
