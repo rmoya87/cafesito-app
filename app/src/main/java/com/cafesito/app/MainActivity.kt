@@ -17,13 +17,13 @@ import androidx.lifecycle.lifecycleScope
 import com.cafesito.app.analytics.AnalyticsHelper
 import com.cafesito.app.data.UserRepository
 import com.cafesito.app.navigation.AppNavigation
+import com.cafesito.app.navigation.NotificationNavigation
 import com.cafesito.app.startup.AppSessionCoordinator
 import com.cafesito.app.startup.AppUiInitializer
 import com.cafesito.app.startup.ShortcutActionResolver
 import com.cafesito.app.ui.access.SessionState
 import com.cafesito.app.ui.access.SessionViewModel
 import com.cafesito.app.ui.theme.CafesitoTheme
-import com.cafesito.app.ui.timeline.NotificationNavigation
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 

@@ -2,6 +2,7 @@ package com.cafesito.app.startup
 
 import android.app.Activity
 import android.graphics.Color as AndroidColor
+import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import coil.Coil
@@ -30,9 +31,11 @@ object AppUiInitializer {
     }
 
     private fun setupEdgeToEdge(activity: Activity) {
-        activity.enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
-        )
+        if (activity is ComponentActivity) {
+            activity.enableEdgeToEdge(
+                statusBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+                navigationBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+            )
+        }
     }
 }

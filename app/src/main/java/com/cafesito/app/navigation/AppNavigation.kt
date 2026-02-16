@@ -1,5 +1,6 @@
 package com.cafesito.app.navigation
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween

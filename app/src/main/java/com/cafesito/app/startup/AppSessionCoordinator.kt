@@ -17,7 +17,13 @@ class AppSessionCoordinator @Inject constructor(
     private val analyticsHelper: AnalyticsHelper
 ) {
     fun onAuthenticated(userId: Int, scope: CoroutineScope) {
-        syncManager.syncAll()
+        scope.launch {
+            try {
+                syncManager.syncAll()
+            } catch (e: Exception) {
+                Log.e("Sync", "Error during initial sync", e)
+            }
+        }
         analyticsHelper.setUserId(userId.toString())
         updateFcmToken(scope)
     }

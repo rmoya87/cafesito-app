@@ -382,7 +382,7 @@ fun CoffeeSelectionStepPremium(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(pantryItems, key = { it.id }) { item ->
+                    items(pantryItems, key = { it.pantryItem.coffeeId }) { item ->
                         PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
                     }
                 }
