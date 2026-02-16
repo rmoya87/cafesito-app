@@ -6,12 +6,16 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import com.cafesito.app.MainActivity
 import com.cafesito.app.R
 import kotlinx.coroutines.runBlocking
+import java.net.URL
 import kotlin.math.roundToInt
 
 class PantryOverviewWidgetProvider : AppWidgetProvider() {
@@ -24,37 +28,43 @@ class PantryOverviewWidgetProvider : AppWidgetProvider() {
 
     companion object {
         private const val TAG = "PantryWidget"
-        private const val CARD_COUNT = 3
+        private const val CARD_COUNT = 4
 
         private val CARD_IDS = intArrayOf(
             R.id.widget_pantry_card_1,
             R.id.widget_pantry_card_2,
-            R.id.widget_pantry_card_3
+            R.id.widget_pantry_card_3,
+            R.id.widget_pantry_card_4
         )
         private val IMAGE_IDS = intArrayOf(
             R.id.widget_pantry_item_image_1,
             R.id.widget_pantry_item_image_2,
-            R.id.widget_pantry_item_image_3
+            R.id.widget_pantry_item_image_3,
+            R.id.widget_pantry_item_image_4
         )
         private val NAME_IDS = intArrayOf(
             R.id.widget_pantry_item_name_1,
             R.id.widget_pantry_item_name_2,
-            R.id.widget_pantry_item_name_3
+            R.id.widget_pantry_item_name_3,
+            R.id.widget_pantry_item_name_4
         )
         private val BRAND_IDS = intArrayOf(
             R.id.widget_pantry_item_brand_1,
             R.id.widget_pantry_item_brand_2,
-            R.id.widget_pantry_item_brand_3
+            R.id.widget_pantry_item_brand_3,
+            R.id.widget_pantry_item_brand_4
         )
         private val STOCK_IDS = intArrayOf(
             R.id.widget_pantry_item_stock_1,
             R.id.widget_pantry_item_stock_2,
-            R.id.widget_pantry_item_stock_3
+            R.id.widget_pantry_item_stock_3,
+            R.id.widget_pantry_item_stock_4
         )
         private val PROGRESS_IDS = intArrayOf(
             R.id.widget_pantry_item_progress_1,
             R.id.widget_pantry_item_progress_2,
-            R.id.widget_pantry_item_progress_3
+            R.id.widget_pantry_item_progress_3,
+            R.id.widget_pantry_item_progress_4
         )
 
         fun refresh(context: Context) {
@@ -112,7 +122,13 @@ class PantryOverviewWidgetProvider : AppWidgetProvider() {
                         setTextViewText(BRAND_IDS[index], item.coffeeBrand)
                         setTextViewText(STOCK_IDS[index], "${safeRemaining}g de ${safeTotal}g")
                         setProgressBar(PROGRESS_IDS[index], 100, pct, false)
-                        setImageViewResource(IMAGE_IDS[index], R.drawable.ic_launcher_foreground)
+
+                        val bitmap = loadCoffeeImage(context, item.imageUrl)
+                        if (bitmap != null) {
+                            setImageViewBitmap(IMAGE_IDS[index], bitmap)
+                        } else {
+                            setImageViewResource(IMAGE_IDS[index], R.drawable.ic_launcher_foreground)
+                        }
                     }
                 }
 
@@ -124,6 +140,22 @@ class PantryOverviewWidgetProvider : AppWidgetProvider() {
                     setViewVisibility(R.id.widget_pantry_more, View.GONE)
                 }
             }
+        }
+
+        private fun loadCoffeeImage(context: Context, rawUrl: String): Bitmap? {
+            if (rawUrl.isBlank()) return null
+            return runCatching {
+                when {
+                    rawUrl.startsWith("content://") || rawUrl.startsWith("file://") || rawUrl.startsWith("android.resource://") -> {
+                        val uri = Uri.parse(rawUrl)
+                        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+                    }
+                    rawUrl.startsWith("http://") || rawUrl.startsWith("https://") -> {
+                        URL(rawUrl).openStream().use { BitmapFactory.decodeStream(it) }
+                    }
+                    else -> BitmapFactory.decodeFile(rawUrl)
+                }
+            }.getOrNull()
         }
 
         private fun navIntent(context: Context): PendingIntent {

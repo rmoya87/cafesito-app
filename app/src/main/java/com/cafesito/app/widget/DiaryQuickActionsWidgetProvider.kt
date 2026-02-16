@@ -6,7 +6,9 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.RemoteViews
 import com.cafesito.app.MainActivity
 import com.cafesito.app.R
@@ -17,37 +19,26 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         appWidgetIds.forEach { id ->
-            appWidgetManager.updateAppWidget(id, safeBuildViews(context, id))
+            appWidgetManager.updateAppWidget(id, safeBuildViews(context, id, appWidgetManager.getAppWidgetOptions(id)))
         }
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
-
-        val period = when (intent.action) {
-            ACTION_FILTER_DAY -> WidgetPeriod.DAY
-            ACTION_FILTER_WEEK -> WidgetPeriod.WEEK
-            ACTION_FILTER_MONTH -> WidgetPeriod.MONTH
-            else -> null
-        }
-
-        if (period != null) {
-            WidgetDataStore.savePeriod(context, widgetId, period)
-            AppWidgetManager.getInstance(context).updateAppWidget(widgetId, safeBuildViews(context, widgetId))
-        }
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        appWidgetManager.updateAppWidget(appWidgetId, safeBuildViews(context, appWidgetId, newOptions))
     }
 
     companion object {
         private const val TAG = "DiaryWidget"
         private const val SLOT_COUNT = 7
+        private const val EXPANDED_MIN_HEIGHT_DP = 220
 
-        private const val ACTION_FILTER_DAY = "com.cafesito.app.widget.FILTER_DAY"
-        private const val ACTION_FILTER_WEEK = "com.cafesito.app.widget.FILTER_WEEK"
-        private const val ACTION_FILTER_MONTH = "com.cafesito.app.widget.FILTER_MONTH"
-
-        private val COFFEE_IDS = intArrayOf(
+        private val COFFEE_BAR_IDS = intArrayOf(
             R.id.widget_bar_coffee_1,
             R.id.widget_bar_coffee_2,
             R.id.widget_bar_coffee_3,
@@ -57,7 +48,7 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
             R.id.widget_bar_coffee_7
         )
 
-        private val WATER_IDS = intArrayOf(
+        private val WATER_BAR_IDS = intArrayOf(
             R.id.widget_bar_water_1,
             R.id.widget_bar_water_2,
             R.id.widget_bar_water_3,
@@ -65,6 +56,16 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
             R.id.widget_bar_water_5,
             R.id.widget_bar_water_6,
             R.id.widget_bar_water_7
+        )
+
+        private val VALUE_IDS = intArrayOf(
+            R.id.widget_bar_value_1,
+            R.id.widget_bar_value_2,
+            R.id.widget_bar_value_3,
+            R.id.widget_bar_value_4,
+            R.id.widget_bar_value_5,
+            R.id.widget_bar_value_6,
+            R.id.widget_bar_value_7
         )
 
         private val LABEL_IDS = intArrayOf(
@@ -77,75 +78,53 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
             R.id.widget_bar_label_7
         )
 
+        private val COFFEE_LEVEL_DRAWABLES = intArrayOf(
+            R.drawable.widget_bar_coffee_0,
+            R.drawable.widget_bar_coffee_1,
+            R.drawable.widget_bar_coffee_2,
+            R.drawable.widget_bar_coffee_3,
+            R.drawable.widget_bar_coffee_4,
+            R.drawable.widget_bar_coffee_5
+        )
+
+        private val WATER_LEVEL_DRAWABLES = intArrayOf(
+            R.drawable.widget_bar_water_0,
+            R.drawable.widget_bar_water_1,
+            R.drawable.widget_bar_water_2,
+            R.drawable.widget_bar_water_3,
+            R.drawable.widget_bar_water_4,
+            R.drawable.widget_bar_water_5
+        )
+
         fun refresh(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, DiaryQuickActionsWidgetProvider::class.java)
             manager.getAppWidgetIds(component).forEach { id ->
-                manager.updateAppWidget(id, safeBuildViews(context, id))
+                manager.updateAppWidget(id, safeBuildViews(context, id, manager.getAppWidgetOptions(id)))
             }
         }
 
-        private fun safeBuildViews(context: Context, widgetId: Int): RemoteViews {
-            return runCatching { buildViews(context, widgetId) }
+        private fun safeBuildViews(context: Context, widgetId: Int, options: Bundle?): RemoteViews {
+            return runCatching { buildViews(context, widgetId, options) }
                 .onFailure { Log.e(TAG, "Error al construir widget diario", it) }
-                .getOrElse { fallbackViews(context, widgetId) }
+                .getOrElse { fallbackViews(context, widgetId, options) }
         }
 
-        private fun fallbackViews(context: Context, widgetId: Int): RemoteViews {
+        private fun fallbackViews(context: Context, widgetId: Int, options: Bundle?): RemoteViews {
             return RemoteViews(context.packageName, R.layout.widget_diary_quick_actions).apply {
-                setOnClickPendingIntent(R.id.widget_diary_container, navIntent(context, "OPEN_DIARY"))
-                setOnClickPendingIntent(R.id.widget_filter_day, actionIntent(context, widgetId, ACTION_FILTER_DAY))
-                setOnClickPendingIntent(R.id.widget_filter_week, actionIntent(context, widgetId, ACTION_FILTER_WEEK))
-                setOnClickPendingIntent(R.id.widget_filter_month, actionIntent(context, widgetId, ACTION_FILTER_MONTH))
-                setTextViewText(R.id.widget_diary_summary, "Abre la app para sincronizar datos")
+                setTextViewText(R.id.widget_diary_summary, "Semana sin datos")
+                setViewVisibility(
+                    R.id.widget_diary_actions,
+                    if (isExpanded(options)) View.VISIBLE else View.GONE
+                )
+                setOnClickPendingIntent(R.id.widget_add_coffee, navIntent(context, "ADD_COFFEE_ENTRY"))
+                setOnClickPendingIntent(R.id.widget_add_water, navIntent(context, "ADD_WATER_ENTRY"))
                 repeat(SLOT_COUNT) { i ->
-                    setTextViewText(COFFEE_IDS[i], "▁")
-                    setTextViewText(WATER_IDS[i], "▁")
+                    setTextViewText(VALUE_IDS[i], "")
                     setTextViewText(LABEL_IDS[i], "")
+                    setImageViewResource(COFFEE_BAR_IDS[i], COFFEE_LEVEL_DRAWABLES.first())
+                    setImageViewResource(WATER_BAR_IDS[i], WATER_LEVEL_DRAWABLES.first())
                 }
-            }
-        }
-
-        private fun buildViews(context: Context, widgetId: Int): RemoteViews {
-            val period = WidgetDataStore.readPeriod(context, widgetId)
-            val points = runBlocking { WidgetDataStore.loadDiaryChart(context, period) }.takeLast(SLOT_COUNT)
-            val maxCoffee = points.maxOfOrNull { it.caffeineMg } ?: 1
-            val maxWater = points.maxOfOrNull { it.waterMl } ?: 1
-
-            val totalCaffeine = points.sumOf { it.caffeineMg }
-            val totalWater = points.sumOf { it.waterMl }
-
-            return RemoteViews(context.packageName, R.layout.widget_diary_quick_actions).apply {
-                setOnClickPendingIntent(R.id.widget_diary_container, navIntent(context, "OPEN_DIARY"))
-
-                setOnClickPendingIntent(R.id.widget_filter_day, actionIntent(context, widgetId, ACTION_FILTER_DAY))
-                setOnClickPendingIntent(R.id.widget_filter_week, actionIntent(context, widgetId, ACTION_FILTER_WEEK))
-                setOnClickPendingIntent(R.id.widget_filter_month, actionIntent(context, widgetId, ACTION_FILTER_MONTH))
-
-                setTextViewText(R.id.widget_diary_summary, "${totalCaffeine} mg cafeína · ${totalWater} ml agua")
-                setTextViewText(R.id.widget_filter_day, if (period == WidgetPeriod.DAY) "• DÍA" else "DÍA")
-                setTextViewText(R.id.widget_filter_week, if (period == WidgetPeriod.WEEK) "• SEM" else "SEM")
-                setTextViewText(R.id.widget_filter_month, if (period == WidgetPeriod.MONTH) "• MES" else "MES")
-
-                repeat(SLOT_COUNT) { index ->
-                    val point = points.getOrNull(index)
-                    if (point == null) {
-                        setTextViewText(COFFEE_IDS[index], "")
-                        setTextViewText(WATER_IDS[index], "")
-                        setTextViewText(LABEL_IDS[index], "")
-                    } else {
-                        setTextViewText(COFFEE_IDS[index], WidgetDataStore.barGlyph(point.caffeineMg, max(1, maxCoffee)))
-                        setTextViewText(WATER_IDS[index], WidgetDataStore.barGlyph(point.waterMl, max(1, maxWater)))
-                        setTextViewText(LABEL_IDS[index], point.label)
-                    }
-                }
-            }
-        }
-
-        private fun actionIntent(context: Context, widgetId: Int, action: String): PendingIntent {
-            val intent = Intent(context, DiaryQuickActionsWidgetProvider::class.java).apply {
-                this.action = action
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
             }
             return PendingIntent.getBroadcast(
                 context,
@@ -153,6 +132,65 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+        }
+
+        private fun buildViews(context: Context, widgetId: Int, options: Bundle?): RemoteViews {
+            val points = runBlocking { WidgetDataStore.loadDiaryChart(context, WidgetPeriod.WEEK) }.takeLast(SLOT_COUNT)
+            val maxCoffee = points.maxOfOrNull { it.caffeineMg } ?: 1
+            val maxWater = points.maxOfOrNull { it.waterMl } ?: 1
+
+            val totalCaffeine = points.sumOf { it.caffeineMg }
+            val totalWater = points.sumOf { it.waterMl }
+
+            return RemoteViews(context.packageName, R.layout.widget_diary_quick_actions).apply {
+                setTextViewText(R.id.widget_diary_summary, "${totalCaffeine} mg · ${totalWater} ml")
+                setViewVisibility(
+                    R.id.widget_diary_actions,
+                    if (isExpanded(options)) View.VISIBLE else View.GONE
+                )
+
+                setOnClickPendingIntent(R.id.widget_add_coffee, navIntent(context, "ADD_COFFEE_ENTRY"))
+                setOnClickPendingIntent(R.id.widget_add_water, navIntent(context, "ADD_WATER_ENTRY"))
+
+                repeat(SLOT_COUNT) { index ->
+                    val point = points.getOrNull(index)
+                    if (point == null) {
+                        setTextViewText(VALUE_IDS[index], "")
+                        setTextViewText(LABEL_IDS[index], "")
+                        setImageViewResource(COFFEE_BAR_IDS[index], COFFEE_LEVEL_DRAWABLES.first())
+                        setImageViewResource(WATER_BAR_IDS[index], WATER_LEVEL_DRAWABLES.first())
+                    } else {
+                        setTextViewText(VALUE_IDS[index], "${point.caffeineMg}/${point.waterMl}")
+                        setTextViewText(LABEL_IDS[index], point.label)
+                        setImageViewResource(
+                            COFFEE_BAR_IDS[index],
+                            COFFEE_LEVEL_DRAWABLES[barLevel(point.caffeineMg, max(1, maxCoffee))]
+                        )
+                        setImageViewResource(
+                            WATER_BAR_IDS[index],
+                            WATER_LEVEL_DRAWABLES[barLevel(point.waterMl, max(1, maxWater))]
+                        )
+                    }
+                }
+            }
+        }
+
+        private fun barLevel(value: Int, maxValue: Int): Int {
+            if (value <= 0 || maxValue <= 0) return 0
+            val ratio = value.toFloat() / maxValue
+            return when {
+                ratio >= 0.85f -> 5
+                ratio >= 0.65f -> 4
+                ratio >= 0.45f -> 3
+                ratio >= 0.25f -> 2
+                else -> 1
+            }
+        }
+
+        private fun isExpanded(options: Bundle?): Boolean {
+            val minHeight = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
+            val maxHeight = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0) ?: 0
+            return maxOf(minHeight, maxHeight) >= EXPANDED_MIN_HEIGHT_DP
         }
 
         private fun navIntent(context: Context, action: String): PendingIntent {
