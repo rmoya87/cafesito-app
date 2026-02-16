@@ -21,6 +21,8 @@ internal data class DiaryWidgetChartPoint(
 
 internal data class PantryWidgetItem(
     val coffeeName: String,
+    val coffeeBrand: String,
+    val imageUrl: String,
     val gramsRemaining: Int,
     val totalGrams: Int
 )
@@ -29,7 +31,6 @@ internal object WidgetDataStore {
 
     private const val PREFS = "cafesito_widget_prefs"
     private const val KEY_PERIOD_PREFIX = "diary_period_"
-    private const val KEY_PAGE_PREFIX = "diary_page_"
 
     @Volatile
     private var database: AppDatabase? = null
@@ -44,8 +45,13 @@ internal object WidgetDataStore {
         }
     }
 
-    suspend fun resolveUserId(context: Context): Int? = withContext(Dispatchers.IO) {
-        db(context).sessionDao().getActiveSession().first()?.userId
+    private suspend fun resolveUserId(context: Context): Int? = withContext(Dispatchers.IO) {
+        val appDb = db(context)
+        appDb.sessionDao().getActiveSession().first()?.userId
+            ?: appDb.openHelper.readableDatabase.query("SELECT userId FROM diary_entries ORDER BY timestamp DESC LIMIT 1")
+                .use { c -> if (c.moveToFirst()) c.getInt(0) else null }
+            ?: appDb.openHelper.readableDatabase.query("SELECT userId FROM pantry_items ORDER BY lastUpdated DESC LIMIT 1")
+                .use { c -> if (c.moveToFirst()) c.getInt(0) else null }
     }
 
     fun savePeriod(context: Context, widgetId: Int, period: WidgetPeriod) {
@@ -60,18 +66,6 @@ internal object WidgetDataStore {
         return WidgetPeriod.entries.firstOrNull { it.name == value } ?: WidgetPeriod.DAY
     }
 
-    fun savePage(context: Context, widgetId: Int, page: Int) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putInt(KEY_PAGE_PREFIX + widgetId, max(0, page))
-            .apply()
-    }
-
-    fun readPage(context: Context, widgetId: Int): Int {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getInt(KEY_PAGE_PREFIX + widgetId, 0)
-            .coerceAtLeast(0)
-    }
-
     suspend fun loadDiaryChart(context: Context, period: WidgetPeriod): List<DiaryWidgetChartPoint> = withContext(Dispatchers.IO) {
         val userId = resolveUserId(context) ?: return@withContext emptyList()
         val entries = db(context).diaryDao().getDiaryEntries(userId).first()
@@ -82,18 +76,21 @@ internal object WidgetDataStore {
         }
     }
 
-    suspend fun loadPantryItems(context: Context, maxItems: Int = 3): List<PantryWidgetItem> = withContext(Dispatchers.IO) {
+    suspend fun loadPantryItems(context: Context, maxItems: Int = 10): List<PantryWidgetItem> = withContext(Dispatchers.IO) {
         val userId = resolveUserId(context) ?: return@withContext emptyList()
-        val pantry = db(context).diaryDao().getPantryItems(userId).first()
+        val appDb = db(context)
+        val pantry = appDb.diaryDao().getPantryItems(userId).first()
             .sortedByDescending { it.gramsRemaining }
             .take(maxItems)
 
         pantry.map { item ->
-            val coffee = db(context).coffeeDao().getCoffeeById(item.coffeeId)
+            val coffee = appDb.coffeeDao().getCoffeeById(item.coffeeId)
             PantryWidgetItem(
-                coffeeName = coffee?.nombre?.ifBlank { coffee.marca.ifBlank { "Café" } } ?: "Café",
+                coffeeName = coffee?.nombre?.ifBlank { "Café" } ?: "Café",
+                coffeeBrand = coffee?.marca?.ifBlank { "Cafesito" } ?: "Cafesito",
+                imageUrl = coffee?.imageUrl ?: "",
                 gramsRemaining = item.gramsRemaining,
-                totalGrams = item.totalGrams
+                totalGrams = max(1, item.totalGrams)
             )
         }
     }

@@ -10,30 +10,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Mi diario"
-            android:textColor="#1F120A"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_page_indicator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/widget_chip_background"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
-            android:text="1/1"
-            android:textColor="#5A3826"
-            android:textSize="10sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+        android:text="Mi diario"
+        android:textColor="#1F120A"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/widget_diary_summary"
@@ -89,46 +69,57 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <LinearLayout
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Cafeína"
+        android:textColor="#8F4B22"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Agua"
+        android:textColor="#2D77AE"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/widget_prev_page"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:background="@drawable/widget_nav_button"
-            android:gravity="center"
-            android:text="◀"
-            android:textColor="#5A3826"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+        android:layout_marginTop="6dp"
+        android:scrollbars="none">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="6dp"
-            android:layout_weight="1"
-            android:gravity="center"
             android:orientation="horizontal">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="34dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/widget_bar_value_1"
+                    android:id="@+id/widget_bar_coffee_1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▁"
                     android:textColor="#8F4B22"
-                    android:textSize="21sp"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -136,23 +127,31 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#705747"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
-
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="34dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/widget_bar_value_2"
+                    android:id="@+id/widget_bar_coffee_2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▁"
                     android:textColor="#8F4B22"
-                    android:textSize="21sp"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -160,23 +159,31 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#705747"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
-
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="34dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/widget_bar_value_3"
+                    android:id="@+id/widget_bar_coffee_3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▁"
                     android:textColor="#8F4B22"
-                    android:textSize="21sp"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -184,23 +191,31 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#705747"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
-
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="34dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/widget_bar_value_4"
+                    android:id="@+id/widget_bar_coffee_4"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▁"
                     android:textColor="#8F4B22"
-                    android:textSize="21sp"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -208,23 +223,31 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#705747"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
-
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="34dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/widget_bar_value_5"
+                    android:id="@+id/widget_bar_coffee_5"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▁"
                     android:textColor="#8F4B22"
-                    android:textSize="21sp"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -232,23 +255,31 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#705747"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
-
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="34dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/widget_bar_value_6"
+                    android:id="@+id/widget_bar_coffee_6"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▁"
                     android:textColor="#8F4B22"
-                    android:textSize="21sp"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -256,53 +287,808 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#705747"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_7"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_7"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_7"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_8"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_8"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_8"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_9"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_9"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_9"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_10"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_10"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_10"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_11"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_11"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_11"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_12"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_12"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_12"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_13"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_13"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_13"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_14"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_14"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_14"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_15"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_15"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_15"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_16"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_16"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_16"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_17"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_17"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_17"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_18"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_18"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_18"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_19"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_19"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_19"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_20"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_20"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_20"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_21"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_21"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_21"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_22"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_22"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_22"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_23"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_23"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_23"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_24"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_24"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_24"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_25"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_25"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_25"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_26"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_26"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_26"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_27"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_27"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_27"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_28"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_28"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_28"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_29"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_29"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_29"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_30"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_30"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_30"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bar_coffee_31"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#8F4B22"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_water_31"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▁"
+                    android:textColor="#2D77AE"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_bar_label_31"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#705747"
+                    android:textSize="9sp" />
             </LinearLayout>
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/widget_next_page"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:background="@drawable/widget_nav_button"
-            android:gravity="center"
-            android:text="▶"
-            android:textColor="#5A3826"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/widget_add_coffee_btn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/widget_action_button_coffee"
-            android:gravity="center"
-            android:paddingVertical="8dp"
-            android:text="Añadir café"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_add_water_btn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_action_button_water"
-            android:gravity="center"
-            android:paddingVertical="8dp"
-            android:text="Añadir agua"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+    </HorizontalScrollView>
 </LinearLayout>
