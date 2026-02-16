@@ -11,15 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -188,31 +179,6 @@ fun ProfileFavorites(
                     coffeeDetails = item,
                     onFavoriteClick = { viewModel.onToggleFavorite(item.coffee.id, false) },
                     onClick = { onCoffeeClick(item.coffee.id) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfileReviews(
-    userReviews: List<UserReviewInfo>,
-    isCurrentUser: Boolean,
-    onCoffeeClick: (String) -> Unit,
-    listState: LazyListState = rememberLazyListState(),
-    onEditClick: (UserReviewInfo) -> Unit,
-    onDeleteClick: (UserReviewInfo) -> Unit
-) {
-    LazyColumn(state = listState, contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
-        items(userReviews) { item ->
-            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                UserReviewCard(
-                    info = item,
-                    showHeader = false,
-                    isOwnReview = isCurrentUser,
-                    onEditClick = { onEditClick(item) },
-                    onDeleteClick = { onDeleteClick(item) },
-                    onClick = { onCoffeeClick(item.coffeeDetails.coffee.id) }
                 )
             }
         }

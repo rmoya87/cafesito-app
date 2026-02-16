@@ -37,7 +37,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.core.os.bundleOf
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -45,7 +44,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.launch
 import com.cafesito.app.data.UserRepository
 import com.cafesito.app.ui.access.*
 import com.cafesito.app.ui.brewlab.*
@@ -55,6 +53,7 @@ import com.cafesito.app.ui.profile.*
 import com.cafesito.app.ui.search.SearchScreen
 import com.cafesito.app.ui.timeline.*
 import com.cafesito.app.analytics.AnalyticsHelper
+import androidx.navigation.NavGraph.Companion.findStartDestination
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,31 +67,21 @@ fun AppNavigation(
     analyticsHelper: AnalyticsHelper
 ) {
     val navController = rememberNavController()
-    val scope = rememberCoroutineScope()
-
     var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
-    
-    // IMPORTANTE: Usamos 'remember' (NO saveable). Esto se reseteará a 'false' si el sistema mata la actividad.
-    // Solo redirigiremos al login si el usuario estuvo autenticado EN ESTA EJECUCIÓN ESPECÍFICA y luego deja de estarlo.
     var wasAuthenticatedInCurrentInstance by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessionState) {
         when (sessionState) {
             is SessionState.Authenticated -> {
                 wasAuthenticatedInCurrentInstance = true
-                if (startRoute == null) {
-                    startRoute = "timeline"
-                }
+                if (startRoute == null) startRoute = "timeline"
             }
             is SessionState.NotAuthenticated -> {
                 if (startRoute == null) {
                     startRoute = "login"
                 } else if (wasAuthenticatedInCurrentInstance) {
-                    // Solo redirigimos al login si ANTES estuvimos autenticados (Logout real o expiración de sesión)
                     wasAuthenticatedInCurrentInstance = false
-                    navController.navigate("login") {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
                 }
             }
             else -> {} 
@@ -113,11 +102,7 @@ fun AppNavigation(
             "NOTIFICATIONS" -> navController.navigate("notifications")
             "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
             "MENTION", "COMMENT" -> nav.targetId?.let { postId ->
-                val route = if (nav.commentId != null) {
-                    "timeline?postId=$postId&commentId=${nav.commentId}"
-                } else {
-                    "timeline?postId=$postId"
-                }
+                val route = if (nav.commentId != null) "timeline?postId=$postId&commentId=${nav.commentId}" else "timeline?postId=$postId"
                 navController.navigate(route)
             }
         }
@@ -128,11 +113,8 @@ fun AppNavigation(
         when (shortcutAction) {
             "SEARCH" -> navController.navigate("search")
             "NEW_POST" -> navController.navigate("addPost")
-            "NEW_REVIEW" -> navController.navigate("addPost?postType=OPINION")
-            "OPEN_DIARY" -> navController.navigate("diary")
-            "OPEN_PANTRY" -> navController.navigate("diary?navigateTo=pantry")
-            "ADD_COFFEE_ENTRY" -> navController.navigate("addDiaryEntry?type=COFFEE")
-            "ADD_WATER_ENTRY" -> navController.navigate("addDiaryEntry?type=WATER")
+            "BREWLAB" -> navController.navigate("brewlab")
+            "DIARY" -> navController.navigate("diary")
             else -> return@LaunchedEffect
         }
         onShortcutConsumed()
@@ -141,11 +123,8 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
     
-    // Registro automático de eventos de vista de pantalla
     LaunchedEffect(currentRoute) {
-        if (currentRoute.isNotEmpty()) {
-            analyticsHelper.trackScreenView(currentRoute)
-        }
+        if (currentRoute.isNotEmpty()) analyticsHelper.trackScreenView(currentRoute)
     }
     
     val navItems = remember {
@@ -158,17 +137,15 @@ fun AppNavigation(
         )
     }
 
-    val state = remember(currentRoute) {
+    val shouldShowBottomBar = remember(currentRoute) {
         val mainScreens = listOf("timeline", "search", "brewlab", "diary", "profile")
         val userIdArg = navBackStackEntry?.arguments?.getInt("userId") ?: 0
         val isOther = currentRoute.startsWith("profile/") && userIdArg != 0
         val isFollow = currentRoute.contains("/followers") || currentRoute.contains("/following") || currentRoute == "searchUsers"
         val isNotifications = currentRoute == "notifications"
-        val showBottom = mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow && !isNotifications
-        Triple(showBottom, isOther, isFollow)
+        mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow && !isNotifications
     }
 
-    val shouldShowBottomBar = state.first
     val useNavRail = LocalConfiguration.current.screenWidthDp >= 840
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -183,12 +160,11 @@ fun AppNavigation(
                         NavigationRailItem(
                             selected = isSelected,
                             onClick = {
-                                val previousRoute = navController.previousBackStackEntry?.destination?.route
                                 val destination = if (route == "profile") "profile/0" else route
                                 navController.navigate(destination) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
-                                    restoreState = previousRoute == route
+                                    restoreState = true
                                 }
                             },
                             icon = {
@@ -212,437 +188,345 @@ fun AppNavigation(
             NavHost(
                 navController = navController,
                 startDestination = finalStartRoute,
-                modifier = Modifier.fillMaxSize().weight(1f),
-                enterTransition = { EnterTransition.None },
-                exitTransition = { ExitTransition.None },
-                popEnterTransition = { EnterTransition.None },
-                popExitTransition = { ExitTransition.None }
+                modifier = Modifier.fillMaxSize().weight(1f)
             ) {
-            composable("login") {
-                LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
-                    analyticsHelper.trackEvent("login_success", bundleOf("is_new_user" to isNewUser))
-                    if (!isNewUser) {
-                        navController.navigate("timeline") {
-                            popUpTo("login") { inclusive = true }
-                        }
-                    } else {
-                        val encodedEmail = Uri.encode(email)
-                        val encodedName = Uri.encode(name)
-                        val encodedPhoto = Uri.encode(photo)
-                        navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
-                            popUpTo("login") { inclusive = true }
-                        }
-                    }
-                })
-            }
-
-            composable(
-                route = "completeProfile?googleId={googleId}&email={email}&name={name}&photoUrl={photoUrl}",
-                arguments = listOf(
-                    navArgument("googleId") { defaultValue = "" },
-                    navArgument("email") { defaultValue = "" },
-                    navArgument("name") { defaultValue = "" },
-                    navArgument("photoUrl") { defaultValue = "" }
-                )
-            ) { backStackEntry ->
-                CompleteProfileScreen(
-                    googleId = backStackEntry.arguments?.getString("googleId") ?: "",
-                    userEmail = backStackEntry.arguments?.getString("email") ?: "",
-                    initialName = backStackEntry.arguments?.getString("name") ?: "",
-                    initialPhoto = backStackEntry.arguments?.getString("photoUrl") ?: "",
-                    onSuccess = {
-                        analyticsHelper.trackEvent("profile_completed")
-                        navController.navigate("timeline") { popUpTo("completeProfile") { inclusive = true } }
-                    }
-                )
-            }
-
-            composable(
-                route = "timeline?postId={postId}&commentId={commentId}",
-                arguments = listOf(
-                    navArgument("postId") { type = NavType.StringType; nullable = true; defaultValue = null },
-                    navArgument("commentId") { type = NavType.IntType; defaultValue = -1 }
-                )
-            ) { backStackEntry ->
-                val postId = backStackEntry.arguments?.getString("postId")
-                val commentIdArg = backStackEntry.arguments?.getInt("commentId") ?: -1
-                val commentId = commentIdArg.takeIf { it >= 0 }
-                val publishingPending by backStackEntry.savedStateHandle
-                    .getStateFlow("publishing_pending", false)
-                    .collectAsState()
-                TimelineScreen(
-                    onUserClick = { id -> 
-                        if (id == 0) {
-                            navController.navigate("profile/0") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
+                composable("login") {
+                    LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
+                        analyticsHelper.trackEvent("login_success", bundleOf("is_new_user" to isNewUser))
+                        if (!isNewUser) {
+                            navController.navigate("timeline") { popUpTo("login") { inclusive = true } }
                         } else {
-                            navController.navigate("profile/$id")
+                            val encodedEmail = Uri.encode(email)
+                            val encodedName = Uri.encode(name)
+                            val encodedPhoto = Uri.encode(photo)
+                            navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
+                                popUpTo("login") { inclusive = true }
+                            }
                         }
-                    },
-                    onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onAddPostClick = { navController.navigate("addPost") },
-                    onSearchUsersClick = { navController.navigate("searchUsers") },
-                    onNotificationsClick = { navController.navigate("notifications") },
-                    initialPostId = postId,
-                    initialCommentId = commentId,
-                    publishingPending = publishingPending,
-                    onPublishingPendingConsumed = {
-                        backStackEntry.savedStateHandle["publishing_pending"] = false
-                    }
-                )
-            }
+                    })
+                }
 
-            composable(
-                route = "notifications",
-                enterTransition = {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(300)
+                composable(
+                    route = "completeProfile?googleId={googleId}&email={email}&name={name}&photoUrl={photoUrl}",
+                    arguments = listOf(
+                        navArgument("googleId") { defaultValue = "" },
+                        navArgument("email") { defaultValue = "" },
+                        navArgument("name") { defaultValue = "" },
+                        navArgument("photoUrl") { defaultValue = "" }
                     )
-                },
-                popExitTransition = {
-                    slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(300)
+                ) { backStackEntry ->
+                    CompleteProfileScreen(
+                        googleId = backStackEntry.arguments?.getString("googleId") ?: "",
+                        userEmail = backStackEntry.arguments?.getString("email") ?: "",
+                        initialName = backStackEntry.arguments?.getString("name") ?: "",
+                        initialPhoto = backStackEntry.arguments?.getString("photoUrl") ?: "",
+                        onSuccess = {
+                            analyticsHelper.trackEvent("profile_completed")
+                            navController.navigate("timeline") { popUpTo("completeProfile") { inclusive = true } }
+                        }
                     )
                 }
-            ) {
-                val viewModel: TimelineViewModel = hiltViewModel()
-                val notifications by viewModel.notifications.collectAsState()
-                val unreadIds by viewModel.unreadNotificationIds.collectAsState()
-                val uiState by viewModel.uiState.collectAsState()
-                val followingIds = (uiState as? TimelineUiState.Success)?.myFollowingIds ?: emptySet()
-                val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-                NotificationsScreen(
-                    notifications = notifications,
-                    unreadIds = unreadIds,
-                    followingIds = followingIds,
-                    onBackClick = { navController.popBackStack() },
-                    onMarkAllAsRead = { viewModel.markAllAsRead() },
-                    onFollowToggle = { userId -> viewModel.toggleFollowSuggestion(userId) },
-                    onReplyToNotification = { notification ->
-                        viewModel.markNotificationRead(notification)
-                        when (notification) {
-                            is TimelineNotification.Mention -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
-                            is TimelineNotification.Comment -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
-                            else -> Unit
-                        }
-                    },
-                    onSavePostFromNotification = { notification ->
-                        viewModel.savePostFromNotification(notification)
-                    },
-                    onDeleteNotification = { notification -> viewModel.deleteNotification(notification) },
-                    onNotificationClick = { notification ->
-                        viewModel.markNotificationRead(notification)
-                        when (notification) {
-                            is TimelineNotification.Follow -> {
-                                navController.navigate("profile/${notification.user.id}")
+                composable(
+                    route = "timeline?postId={postId}&commentId={commentId}",
+                    arguments = listOf(
+                        navArgument("postId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                        navArgument("commentId") { type = NavType.IntType; defaultValue = -1 }
+                    )
+                ) { backStackEntry ->
+                    val postId = backStackEntry.arguments?.getString("postId")
+                    val commentIdArg = backStackEntry.arguments?.getInt("commentId") ?: -1
+                    val commentId = commentIdArg.takeIf { it >= 0 }
+                    val publishingPending by backStackEntry.savedStateHandle.getStateFlow("publishing_pending", false).collectAsState()
+                    TimelineScreen(
+                        onUserClick = { id -> 
+                            if (id == 0) {
+                                navController.navigate("profile/0") {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else navController.navigate("profile/$id")
+                        },
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                        onAddPostClick = { navController.navigate("addPost") },
+                        onSearchUsersClick = { navController.navigate("searchUsers") },
+                        onNotificationsClick = { navController.navigate("notifications") },
+                        initialPostId = postId,
+                        initialCommentId = commentId,
+                        publishingPending = publishingPending,
+                        onPublishingPendingConsumed = { backStackEntry.savedStateHandle["publishing_pending"] = false }
+                    )
+                }
+
+                composable("notifications") {
+                    val viewModel: TimelineViewModel = hiltViewModel()
+                    val notifications by viewModel.notifications.collectAsState()
+                    val unreadIds by viewModel.unreadNotificationIds.collectAsState()
+                    val uiState by viewModel.uiState.collectAsState()
+                    val followingIds = (uiState as? TimelineUiState.Success)?.myFollowingIds ?: emptySet()
+                    val isRefreshing by viewModel.isRefreshing.collectAsState()
+
+                    NotificationsScreen(
+                        notifications = notifications,
+                        unreadIds = unreadIds,
+                        followingIds = followingIds,
+                        onBackClick = { navController.popBackStack() },
+                        onMarkAllAsRead = { viewModel.markAllAsRead() },
+                        onFollowToggle = { userId -> viewModel.toggleFollowSuggestion(userId) },
+                        onDeleteNotification = { notification -> viewModel.deleteNotification(notification) },
+                        onReplyToNotification = { notification ->
+                            when (notification) {
+                                is TimelineNotification.Mention -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                is TimelineNotification.Comment -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                else -> Unit
                             }
-                            is TimelineNotification.Mention -> {
-                                navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                        },
+                        onSavePostFromNotification = { notification -> viewModel.savePostFromNotification(notification) },
+                        onNotificationClick = { notification ->
+                            viewModel.markNotificationRead(notification)
+                            when (notification) {
+                                is TimelineNotification.Follow -> navController.navigate("profile/${notification.user.id}")
+                                is TimelineNotification.Mention -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                is TimelineNotification.Comment -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
                             }
-                            is TimelineNotification.Comment -> {
-                                navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
-                            }
+                        },
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.refreshData() }
+                    )
+                }
+
+                composable("searchUsers") {
+                    SearchUsersScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onUserClick = { id -> 
+                            if (id == 0) {
+                                navController.navigate("profile/0") {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else navController.navigate("profile/$id")
                         }
-                    },
-                    isRefreshing = isRefreshing,
-                    onRefresh = { viewModel.refreshData() }
-                )
-            }
+                    )
+                }
 
-            composable("searchUsers") {
-                SearchUsersScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> 
-                        if (id == 0) {
-                            navController.navigate("profile/0") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } else {
-                            navController.navigate("profile/$id")
+                composable("search") {
+                    SearchScreen(
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                        onProfileClick = { id -> 
+                            if (id == 0) {
+                                navController.navigate("profile/0") {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else navController.navigate("profile/$id")
                         }
-                    }
-                )
-            }
+                    )
+                }
 
-            composable("search") {
-                SearchScreen(
-                    onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onProfileClick = { id -> 
-                        if (id == 0) {
-                            navController.navigate("profile/0") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } else {
-                            navController.navigate("profile/$id")
+                composable("brewlab") { backStackEntry ->
+                    val createdCoffeeId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_created_coffee_id", null).collectAsState()
+                    BrewLabScreen(
+                        onNavigateToDiary = {
+                            navController.navigate("diary") { popUpTo("brewlab") { inclusive = false } }
+                        },
+                        onAddCoffeeClick = { navController.navigate("addPantryItem?origin=brewlab") },
+                        createdCoffeeId = createdCoffeeId,
+                        onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null }
+                    )
+                }
+
+                composable(
+                    route = "diary?navigateTo={navigateTo}",
+                    arguments = listOf(navArgument("navigateTo") { defaultValue = "" })
+                ) { backStackEntry ->
+                    val navigateTo = backStackEntry.arguments?.getString("navigateTo") ?: ""
+                    val refreshSignal by backStackEntry.savedStateHandle.getStateFlow<Long?>("diary_refresh_signal", null).collectAsState()
+                    DiaryScreen(
+                        navigateTo = navigateTo,
+                        refreshSignal = refreshSignal,
+                        onRefreshSignalConsumed = { backStackEntry.savedStateHandle["diary_refresh_signal"] = null },
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                        onAddWaterClick = { navController.navigate("addDiaryEntry?type=WATER") },
+                        onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE") },
+                        onAddStockClick = { navController.navigate("addStock") },
+                        onEditStockClick = { id, isCustom ->
+                            if (isCustom) navController.navigate("editCustomCoffee/$id")
+                            else navController.navigate("editNormalStock/$id")
+                        },
+                        onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
+                    )
+                }
+
+                composable(
+                    route = "addStock?origin={origin}",
+                    arguments = listOf(navArgument("origin") { defaultValue = "" })
+                ) { backStackEntry ->
+                    val origin = backStackEntry.arguments?.getString("origin") ?: ""
+                    AddStockScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") },
+                        onSuccess = {
+                            if (origin == "brewlab") navController.popBackStack()
+                            else navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }
                         }
-                    }
-                )
-            }
+                    )
+                }
 
-            composable("brewlab") { backStackEntry ->
-                val createdCoffeeId by backStackEntry.savedStateHandle
-                    .getStateFlow<String?>("brewlab_created_coffee_id", null)
-                    .collectAsState()
-                BrewLabScreen(
-                    onNavigateToDiary = {
-                        navController.navigate("diary") {
-                            popUpTo("brewlab") { inclusive = false }
+                composable(
+                    route = "editCustomCoffee/{coffeeId}",
+                    arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val coffeeId = backStackEntry.arguments?.getString("coffeeId")
+                    AddPantryItemScreen(
+                        coffeeId = coffeeId,
+                        onBackClick = { navigateTo ->
+                            if (navigateTo != null) {
+                                navController.navigate("diary?navigateTo=$navigateTo") { popUpTo("diary") { inclusive = true } }
+                            } else navController.popBackStack()
                         }
-                    },
-                    onAddCoffeeClick = { navController.navigate("addPantryItem?origin=brewlab") },
-                    createdCoffeeId = createdCoffeeId,
-                    onCreatedCoffeeConsumed = {
-                        backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null
-                    }
-                )
-            }
+                    )
+                }
 
-            composable(
-                route = "diary?navigateTo={navigateTo}",
-                arguments = listOf(navArgument("navigateTo") { defaultValue = "" })
-            ) { backStackEntry ->
-                val navigateTo = backStackEntry.arguments?.getString("navigateTo") ?: ""
-                val refreshSignal by backStackEntry.savedStateHandle
-                    .getStateFlow<Long?>("diary_refresh_signal", null)
-                    .collectAsState()
-                DiaryScreen(
-                    navigateTo = navigateTo,
-                    refreshSignal = refreshSignal,
-                    onRefreshSignalConsumed = {
-                        backStackEntry.savedStateHandle["diary_refresh_signal"] = null
-                    },
-                    onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onAddWaterClick = { navController.navigate("addDiaryEntry?type=WATER") },
-                    onAddCoffeeClick = { navController.navigate("addDiaryEntry?type=COFFEE") },
-                    onAddStockClick = { navController.navigate("addStock") },
-                    onEditStockClick = { id, isCustom ->
-                        if (isCustom) navController.navigate("editCustomCoffee/$id")
-                        else navController.navigate("editNormalStock/$id")
-                    },
-                    onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
-                )
-            }
+                composable(
+                    route = "editNormalStock/{coffeeId}",
+                    arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val coffeeId = backStackEntry.arguments?.getString("coffeeId") ?: ""
+                    EditNormalStockScreen(
+                        coffeeId = coffeeId,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
 
-            composable(
-                route = "addStock?origin={origin}",
-                arguments = listOf(navArgument("origin") { defaultValue = "" })
-            ) { backStackEntry ->
-                val origin = backStackEntry.arguments?.getString("origin") ?: ""
-                AddStockScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") },
-                    onSuccess = {
-                        if (origin == "brewlab") {
+                composable(
+                    route = "addDiaryEntry?type={type}&quick={quick}",
+                    arguments = listOf(
+                        navArgument("type") { defaultValue = "" },
+                        navArgument("quick") { type = NavType.BoolType; defaultValue = false }
+                    )
+                ) { backStackEntry ->
+                    val type = backStackEntry.arguments?.getString("type") ?: ""
+                    val quick = backStackEntry.arguments?.getBoolean("quick") ?: false
+                    val createdCoffeeId by backStackEntry.savedStateHandle.getStateFlow<String?>("diary_created_coffee_id", null).collectAsState()
+                    AddDiaryEntryScreen(
+                        initialType = type,
+                        quickStart = quick,
+                        createdCoffeeId = createdCoffeeId,
+                        onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["diary_created_coffee_id"] = null },
+                        onBackClick = {
+                            navController.previousBackStackEntry?.savedStateHandle?.set("diary_refresh_signal", System.currentTimeMillis())
                             navController.popBackStack()
-                        } else {
-                            navController.navigate("diary?navigateTo=pantry") {
-                                popUpTo("diary") { inclusive = true }
-                            }
+                        },
+                        onAddNotFoundClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=diary_entry") }
+                    )
+                }
+
+                composable(
+                    route = "addPantryItem?onlyActivity={onlyActivity}&origin={origin}",
+                    arguments = listOf(
+                        navArgument("onlyActivity") { type = NavType.BoolType; defaultValue = false },
+                        navArgument("origin") { defaultValue = "" }
+                    )
+                ) { backStackEntry ->
+                    val onlyActivity = backStackEntry.arguments?.getBoolean("onlyActivity") ?: false
+                    val origin = backStackEntry.arguments?.getString("origin") ?: ""
+                    AddPantryItemScreen(
+                        onlyActivity = onlyActivity,
+                        diaryEntryFlow = origin == "diary_entry",
+                        brewLabFlow = origin == "brewlab",
+                        onCoffeeCreatedForDiary = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("diary_created_coffee_id", id) },
+                        onCoffeeCreatedForBrewLab = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
+                        onBackClick = { navigateTo ->
+                            if (origin == "brewlab" && navigateTo != null) navController.popBackStack("brewlab", inclusive = false)
+                            else if (origin == "diary_entry") navController.popBackStack()
+                            else if (navigateTo != null) navController.navigate("diary?navigateTo=$navigateTo") { popUpTo("diary") { inclusive = true } }
+                            else navController.popBackStack()
                         }
-                    }
-                )
-            }
+                    )
+                }
 
-            composable(
-                route = "editCustomCoffee/{coffeeId}",
-                arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val coffeeId = backStackEntry.arguments?.getString("coffeeId")
-                AddPantryItemScreen(
-                    coffeeId = coffeeId,
-                    onBackClick = { navigateTo ->
-                        if (navigateTo != null) {
-                            navController.navigate("diary?navigateTo=$navigateTo") {
-                                popUpTo("diary") { inclusive = true }
-                            }
-                        } else {
-                            navController.popBackStack()
+                composable(
+                    route = "profile/{userId}",
+                    arguments = listOf(navArgument("userId") { type = NavType.IntType })
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                    ProfileScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onUserClick = { id -> 
+                            if (id == 0) {
+                                navController.navigate("profile/0") {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else navController.navigate("profile/$id")
+                        },
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                        onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
+                        onFollowingClick = { id -> navController.navigate("profile/$id/following") }
+                    )
+                }
+
+                composable(
+                    route = "profile/{userId}/followers",
+                    arguments = listOf(navArgument("userId") { type = NavType.IntType })
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                    FollowersScreen(
+                        userId = userId,
+                        onBackClick = { navController.popBackStack() },
+                        onUserClick = { id -> 
+                            if (id == 0) {
+                                navController.navigate("profile/0") {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else navController.navigate("profile/$id")
                         }
-                    }
-                )
-            }
+                    )
+                }
 
-            composable(
-                route = "editNormalStock/{coffeeId}",
-                arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val coffeeId = backStackEntry.arguments?.getString("coffeeId") ?: ""
-                EditNormalStockScreen(
-                    coffeeId = coffeeId,
-                    onBackClick = { navController.popBackStack() }
-                )
-            }
-
-            composable(
-                route = "addDiaryEntry?type={type}&quick={quick}",
-                arguments = listOf(
-                    navArgument("type") { defaultValue = "" },
-                    navArgument("quick") { type = NavType.BoolType; defaultValue = false }
-                )
-            ) { backStackEntry ->
-                val type = backStackEntry.arguments?.getString("type") ?: ""
-                val quick = backStackEntry.arguments?.getBoolean("quick") ?: false
-                val createdCoffeeId by backStackEntry.savedStateHandle
-                    .getStateFlow<String?>("diary_created_coffee_id", null)
-                    .collectAsState()
-                AddDiaryEntryScreen(
-                    initialType = type,
-                    quickStart = quick,
-                    createdCoffeeId = createdCoffeeId,
-                    onCreatedCoffeeConsumed = {
-                        backStackEntry.savedStateHandle["diary_created_coffee_id"] = null
-                    },
-                    onBackClick = {
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("diary_refresh_signal", System.currentTimeMillis())
-                        navController.popBackStack()
-                    },
-                    onAddNotFoundClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=diary_entry") }
-                )
-            }
-
-            composable(
-                route = "addPantryItem?onlyActivity={onlyActivity}&origin={origin}",
-                arguments = listOf(
-                    navArgument("onlyActivity") { type = NavType.BoolType; defaultValue = false },
-                    navArgument("origin") { defaultValue = "" }
-                )
-            ) { backStackEntry ->
-                val onlyActivity = backStackEntry.arguments?.getBoolean("onlyActivity") ?: false
-                val origin = backStackEntry.arguments?.getString("origin") ?: ""
-                AddPantryItemScreen(
-                    onlyActivity = onlyActivity,
-                    diaryEntryFlow = origin == "diary_entry",
-                    brewLabFlow = origin == "brewlab",
-                    onCoffeeCreatedForDiary = { createdCoffeeId ->
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("diary_created_coffee_id", createdCoffeeId)
-                    },
-                    onCoffeeCreatedForBrewLab = { createdCoffeeId ->
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("brewlab_created_coffee_id", createdCoffeeId)
-                    },
-                    onBackClick = { navigateTo ->
-                        if (origin == "brewlab" && navigateTo != null) {
-                            navController.popBackStack("brewlab", inclusive = false)
-                        } else if (origin == "diary_entry") {
-                            navController.popBackStack()
-                        } else if (navigateTo != null) {
-                            navController.navigate("diary?navigateTo=$navigateTo") {
-                                popUpTo("diary") { inclusive = true }
-                            }
-                        } else {
-                            navController.popBackStack()
+                composable(
+                    route = "profile/{userId}/following",
+                    arguments = listOf(navArgument("userId") { type = NavType.IntType })
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                    FollowingScreen(
+                        userId = userId,
+                        onBackClick = { navController.popBackStack() },
+                        onUserClick = { id -> 
+                            if (id == 0) {
+                                navController.navigate("profile/0") {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else navController.navigate("profile/$id")
                         }
-                    }
-                )
-            }
+                    )
+                }
 
-            composable(
-                route = "profile/{userId}",
-                arguments = listOf(navArgument("userId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                ProfileScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> 
-                        if (id == 0) {
-                            navController.navigate("profile/0") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } else {
-                            navController.navigate("profile/$id")
-                        }
-                    },
-                    onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                    onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
-                    onFollowingClick = { id -> navController.navigate("profile/$id/following") }
-                )
-            }
+                composable(
+                    route = "detail/{coffeeId}",
+                    arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
+                ) { DetailScreen(onBackClick = { navController.popBackStack() }) }
 
-            composable(
-                route = "profile/{userId}/followers",
-                arguments = listOf(navArgument("userId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                FollowersScreen(
-                    userId = userId,
-                    onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> 
-                        if (id == 0) {
-                            navController.navigate("profile/0") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } else {
-                            navController.navigate("profile/$id")
-                        }
-                    }
-                )
+                composable(
+                    route = "addPost?postType={postType}",
+                    arguments = listOf(navArgument("postType") { type = NavType.StringType; defaultValue = "PUBLICATION" })
+                ) { backStackEntry ->
+                    val postTypeArg = backStackEntry.arguments?.getString("postType")
+                    AddPostScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onPublishSuccess = { navController.previousBackStackEntry?.savedStateHandle?.set("publishing_pending", true) },
+                        initialPostType = if (postTypeArg.equals("OPINION", ignoreCase = true)) PostType.OPINION else PostType.PUBLICATION
+                    )
+                }
             }
-
-            composable(
-                route = "profile/{userId}/following",
-                arguments = listOf(navArgument("userId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-                FollowingScreen(
-                    userId = userId,
-                    onBackClick = { navController.popBackStack() },
-                    onUserClick = { id -> 
-                        if (id == 0) {
-                            navController.navigate("profile/0") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } else {
-                            navController.navigate("profile/$id")
-                        }
-                    }
-                )
-            }
-
-            composable(
-                route = "detail/{coffeeId}",
-                arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
-            ) {
-                DetailScreen(onBackClick = { navController.popBackStack() })
-            }
-
-            composable(
-                route = "addPost?postType={postType}",
-                arguments = listOf(navArgument("postType") { type = NavType.StringType; defaultValue = "PUBLICATION" })
-            ) { backStackEntry ->
-                val postTypeArg = backStackEntry.arguments?.getString("postType")
-                AddPostScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onPublishSuccess = {
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("publishing_pending", true)
-                    },
-                    initialPostType = if (postTypeArg.equals("OPINION", ignoreCase = true)) PostType.OPINION else PostType.PUBLICATION
-                )
-            }
-        }
-
         }
 
         if (shouldShowBottomBar && !useNavRail) {
@@ -668,7 +552,6 @@ fun AppNavigation(
                     ) {
                         navItems.forEach { (route, label, icon) ->
                             val isSelected = currentRoute.startsWith(route)
-
                             NavigationBarItem(
                                 icon = {
                                     Icon(
@@ -690,19 +573,11 @@ fun AppNavigation(
                                     unselectedIconColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
                                 ),
                                 onClick = {
-                                    val previousRoute = navController.previousBackStackEntry?.destination?.route
-                                    if (route == "profile") {
-                                        navController.navigate("profile/0") {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = previousRoute == route
-                                        }
-                                    } else {
-                                        navController.navigate(route) {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = previousRoute == route
-                                        }
+                                    val destination = if (route == "profile") "profile/0" else route
+                                    navController.navigate(destination) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
                                 }
                             )

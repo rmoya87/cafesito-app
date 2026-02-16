@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <exclude domain="cache" path="."/>
     <exclude domain="database" path="*.db-wal"/>
     <exclude domain="database" path="*.db-shm"/>
 </full-backup-content>

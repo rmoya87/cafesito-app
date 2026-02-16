@@ -279,6 +279,10 @@ data class PantryItemEntity(
 
 // --- CLASES AUXILIARES PARA INSERCIÓN (NO SON ENTIDADES) ---
 
+/**
+ * IMPORTANTE: Los campos técnicos (method, extraction_time, etc.) se han omitido
+ * temporalmente de esta clase para evitar errores de esquema en Supabase.
+ */
 @Serializable
 data class ReviewInsert(
     val id: Long? = null,
@@ -292,12 +296,7 @@ data class ReviewInsert(
     val cuerpo: Float? = null,
     val acidez: Float? = null,
     val dulzura: Float? = null,
-    val timestamp: Long,
-    val method: String? = null,
-    val ratio: String? = null,
-    @SerialName("water_temp") val waterTemp: Int? = null,
-    @SerialName("extraction_time") val extractionTime: String? = null,
-    @SerialName("grind_size") val grindSize: String? = null
+    val timestamp: Long
 )
 
 @Serializable

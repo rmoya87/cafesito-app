@@ -73,15 +73,14 @@ fun AddPostScreen(
     val modalBackgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface
 
     val currentStep by viewModel.currentStep.collectAsState()
-    val postType by viewModel.postType.collectAsState()
     val imageSource by viewModel.imageSource.collectAsState()
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val activeUser by viewModel.activeUser.collectAsState()
     val comment by viewModel.comment.collectAsState()
-    val rating by viewModel.rating.collectAsState()
 
-    LaunchedEffect(initialPostType) {
-        initialPostType?.let(viewModel::setPostType)
+    // Forzamos a que sea siempre tipo PUBLICACIÓN
+    LaunchedEffect(Unit) {
+        viewModel.setPostType(PostType.PUBLICATION)
     }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -121,13 +120,7 @@ fun AddPostScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    val titleText = when {
-                        currentStep == 0 && postType == PostType.PUBLICATION -> "nuevo post"
-                        currentStep == 0 && postType == PostType.OPINION -> "nueva reseña"
-                        currentStep == 1 && postType == PostType.PUBLICATION -> "nuevo post"
-                        currentStep == 2 && postType == PostType.OPINION -> "nueva reseña"
-                        else -> "detalles"
-                    }
+                    val titleText = if (currentStep == 0) "nuevo post" else "detalles"
                     Text(
                         text = titleText.uppercase(),
                         style = MaterialTheme.typography.labelLarge,
@@ -140,11 +133,7 @@ fun AddPostScreen(
                         if (currentStep == 0) {
                             onBackClick()
                         } else {
-                            if (postType == PostType.OPINION && currentStep == 2) {
-                                viewModel.goToStep(0)
-                            } else {
-                                viewModel.goToStep(currentStep - 1)
-                            }
+                            viewModel.goToStep(currentStep - 1)
                         }
                     }) {
                         Icon(
@@ -155,42 +144,28 @@ fun AddPostScreen(
                     }
                 },
                 actions = {
-                    val isLastStep = when(postType) {
-                        PostType.PUBLICATION -> currentStep == 1
-                        PostType.OPINION -> currentStep == 2
-                    }
+                    val isLastStep = currentStep == 1
 
                     if (isLastStep) {
                         TextButton(
                             onClick = { 
-                                if (postType == PostType.PUBLICATION) viewModel.createPost {
+                                viewModel.createPost {
                                     onPublishSuccess()
                                     onBackClick()
                                 }
-                                else viewModel.submitReview {
-                                    onPublishSuccess()
-                                    onBackClick()
-                                }
-                            },
-                            enabled = if (postType == PostType.PUBLICATION) true else (rating > 0 && comment.isNotBlank())
+                            }
                         ) {
                             Text(
                                 "PUBLICAR", 
-                                color = if (if (postType == PostType.PUBLICATION) true else (rating > 0 && comment.isNotBlank())) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     } else {
-                        val canNext = when (postType) {
-                            PostType.PUBLICATION -> currentStep == 0
-                            PostType.OPINION -> (selectedCoffee != null && currentStep == 0)
-                        }
-                        if (canNext) {
-                            IconButton(onClick = { 
-                                if (postType == PostType.OPINION) viewModel.goToStep(2) else viewModel.goToStep(currentStep + 1) 
-                            }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                            }
+                        IconButton(onClick = { 
+                            viewModel.goToStep(currentStep + 1) 
+                        }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                         }
                     }
                 },
@@ -208,8 +183,8 @@ fun AddPostScreen(
                 label = "FlowTransition",
                 modifier = Modifier.fillMaxSize()
             ) { step ->
-                when {
-                    postType == PostType.PUBLICATION && step == 0 -> PhotoSelectionStepPremium(
+                if (step == 0) {
+                    PhotoSelectionStepPremium(
                         viewModel = viewModel,
                         onCameraClick = {
                             val uri = createTempImageUri(context)
@@ -217,39 +192,12 @@ fun AddPostScreen(
                             cameraLauncher.launch(uri)
                         }
                     )
-                    postType == PostType.PUBLICATION && step == 1 -> PostDetailsStepPremium(
+                } else {
+                    PostDetailsStepPremium(
                         viewModel = viewModel, 
                         activeUser = activeUser,
                         galleryLauncher = galleryLauncher,
                         cameraLauncher = cameraLauncher
-                    )
-                    
-                    postType == PostType.OPINION && step == 0 -> CoffeeSelectionStepPremium(viewModel)
-                    postType == PostType.OPINION && step == 2 -> ReviewDetailsStepPremium(
-                        viewModel = viewModel, 
-                        activeUser = activeUser,
-                        isDarkTheme = isDarkTheme,
-                        modalBackgroundColor = modalBackgroundColor,
-                        galleryLauncher = galleryLauncher,
-                        cameraLauncher = cameraLauncher
-                    )
-                }
-            }
-
-            // ✅ ALINEACIÓN EXACTA CON EL MENÚ PRINCIPAL
-            if (currentStep == 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding() // Respeta la barra de sistema igual que el menú principal
-                        .padding(bottom = 12.dp), // Margen vertical idéntico al del menú inferior (Surface horizontal padding)
-                    contentAlignment = Alignment.Center
-                ) {
-                    PremiumTabRow(
-                        selectedTabIndex = if(postType == PostType.PUBLICATION) 0 else 1,
-                        tabs = listOf("POST", "RESEÑA"),
-                        onTabSelected = { viewModel.setPostType(if(it == 0) PostType.PUBLICATION else PostType.OPINION) }
                     )
                 }
             }
@@ -794,270 +742,6 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
                             Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontSize = 9.sp)
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReviewDetailsStepPremium(
-    viewModel: AddPostViewModel, 
-    activeUser: UserEntity?,
-    isDarkTheme: Boolean,
-    modalBackgroundColor: Color,
-    galleryLauncher: androidx.activity.result.ActivityResultLauncher<PickVisualMediaRequest>,
-    cameraLauncher: androidx.activity.result.ActivityResultLauncher<Uri>
-) {
-    val selectedCoffee by viewModel.selectedCoffee.collectAsState()
-    val imageSource = viewModel.imageSource.collectAsState().value as? Uri
-    val comment by viewModel.comment.collectAsState()
-    val rating by viewModel.rating.collectAsState()
-
-    val mentionSuggestions by viewModel.mentionSuggestions.collectAsState()
-
-    var commentValue by remember(comment) {
-        mutableStateOf(TextFieldValue(comment, selection = TextRange(comment.length)))
-    }
-    var showPickerSheet by remember { mutableStateOf(false) }
-    var showEmojiPanel by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val focusRequester = remember { FocusRequester() }
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
-    
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(rememberScrollState())) {
-        Spacer(Modifier.height(16.dp))
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = activeUser?.avatarUrl,
-                contentDescription = "Profile Picture",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = activeUser?.fullName ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "@${activeUser?.username ?: ""}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-            SemicircleRatingBar(rating = rating, onRatingChanged = viewModel::onRatingChanged)
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-            ) {
-                OutlinedTextField(
-                    value = commentValue,
-                    onValueChange = {
-                        commentValue = it
-                        viewModel.onCommentChanged(it.text)
-                        if (it.text.endsWith("@")) showEmojiPanel = false
-                    },
-                    placeholder = { Text("¿Qué te ha parecido este café?") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 120.dp)
-                        .focusRequester(focusRequester),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                        unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
-                    )
-                )
-
-                // Suggestions/Emojis moved inside above icons
-                AnimatedVisibility(
-                    visible = (mentionSuggestions.isNotEmpty() && !showEmojiPanel && !commentValue.text.trim().endsWith("@")) || showEmojiPanel,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Column {
-                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
-                        if (showEmojiPanel) {
-                            FadingLazyRow(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                                    Surface(
-                                        onClick = {
-                                            val updated = commentValue.text + emoji
-                                            commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                            viewModel.onCommentChanged(updated)
-                                            focusRequester.requestFocus()
-                                            keyboardController?.show()
-                                        },
-                                        modifier = Modifier.size(40.dp),
-                                        shape = CircleShape,
-                                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
-                                        color = MaterialTheme.colorScheme.surface
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(emoji, fontSize = 16.sp)
-                                        }
-                                    }
-                                }
-                            }
-                        } else if (mentionSuggestions.isNotEmpty() && !commentValue.text.trim().endsWith("@")) {
-                            FadingLazyRow(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                items(mentionSuggestions) { user ->
-                                    SuggestionChip(user = user) {
-                                        val updated = insertOrReplaceMentionToken(commentValue.text, user.username)
-                                        commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                        viewModel.onCommentChanged(updated)
-                                        focusRequester.requestFocus()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                ComposerActionRow(
-                    onToggleEmoji = {
-                        showEmojiPanel = !showEmojiPanel
-                        if (!showEmojiPanel) keyboardController?.show()
-                    },
-                    onInsertMention = {
-                        val updated = commentValue.text + "@"
-                        commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                        viewModel.onCommentChanged(updated)
-                        showEmojiPanel = false
-                        focusRequester.requestFocus()
-                        keyboardController?.show()
-                    },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-                )
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        if (imageSource != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-            ) {
-                AsyncImage(
-                    model = imageSource,
-                    contentDescription = "Review Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(28.dp)
-                        .clickable { viewModel.setImage(null) },
-                    shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.6f)
-                ) {
-                    Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-        } else {
-             Surface(
-                onClick = { showPickerSheet = true },
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(10.dp))
-                    Text("Añadir foto", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-        }
-
-        selectedCoffee?.let { coffeeDetails ->
-            Surface(
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = CircleShape,
-                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
-                color = if (isDarkTheme) Color.Black else Color.White
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxHeight()) {
-                    AsyncImage(
-                        model = coffeeDetails.coffee.imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)),
-                        contentScale = ContentScale.Fit
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = coffeeDetails.coffee.nombre,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(end = 16.dp).weight(1f, fill = false)
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(100.dp))
-    }
-
-    if (showPickerSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showPickerSheet = false },
-            containerColor = modalBackgroundColor
-        ) {
-            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-                Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
-                ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
-                    val uri = createTempImageUri(context)
-                    pendingCameraUri = uri
-                    cameraLauncher.launch(uri)
-                    showPickerSheet = false
-                }
-                ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
-                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    showPickerSheet = false
                 }
             }
         }

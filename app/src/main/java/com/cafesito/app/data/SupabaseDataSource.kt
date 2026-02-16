@@ -274,12 +274,7 @@ class SupabaseDataSource @Inject constructor(
             cuerpo = review.cuerpo,
             acidez = review.acidez,
             dulzura = review.dulzura,
-            timestamp = review.timestamp,
-            method = review.method,
-            ratio = review.ratio,
-            waterTemp = review.waterTemp,
-            extractionTime = review.extractionTime,
-            grindSize = review.grindSize
+            timestamp = review.timestamp
         )
         client.postgrest["reviews_db"].upsert(insertData)
     }

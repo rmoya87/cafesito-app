@@ -1,5 +1,9 @@
 package com.cafesito.app.ui.timeline
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -11,9 +15,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import android.Manifest
-import android.os.Build
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -24,21 +27,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.components.*
+import com.cafesito.app.ui.theme.*
 import kotlin.math.max
 import kotlin.random.Random
-import com.cafesito.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +66,6 @@ fun TimelineScreen(
     var hasHandledInitialDeepLink by rememberSaveable { mutableStateOf(false) }
     
     val unreadCount by viewModel.unreadCount.collectAsState()
-    val newDeviceNotifications by viewModel.newUnreadNotifications.collectAsState()
     val context = LocalContext.current
     
     val listState = rememberLazyListState()
@@ -187,7 +188,7 @@ fun TimelineScreen(
                 modifier = Modifier
                     .padding(bottom = 100.dp, end = 8.dp)
                     .size(56.dp) 
-            ) { Icon(Icons.Default.Add, contentDescription = "Añadir", modifier = Modifier.size(24.dp)) }
+            ) { Icon(Icons.Default.Add, contentDescription = "Nuevo Post", modifier = Modifier.size(24.dp)) }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -272,13 +273,65 @@ fun TimelineScreen(
                                                 onDeleteClick = { itemToDelete = item.details },
                                                 onCoffeeClick = onCoffeeClick
                                             )
-                                            is TimelineItem.ReviewItem -> UserReviewCard(
-                                                info = item.reviewInfo,
-                                                isOwnReview = item.reviewInfo.review.userId == state.activeUser.id,
-                                                onEditClick = { reviewToEdit = item },
-                                                onDeleteClick = { itemToDelete = item },
-                                                onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
-                                            )
+                                            is TimelineItem.ReviewItem -> {
+                                                val isOwnReview = item.reviewInfo.review.userId == state.activeUser.id
+                                                if (isOwnReview) {
+                                                    val dismissState = rememberSwipeToDismissBoxState(
+                                                        confirmValueChange = {
+                                                            if (it == SwipeToDismissBoxValue.EndToStart) {
+                                                                viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
+                                                                true
+                                                            } else false
+                                                        }
+                                                    )
+
+                                                    SwipeToDismissBox(
+                                                        state = dismissState,
+                                                        enableDismissFromStartToEnd = false,
+                                                        backgroundContent = {
+                                                            val isDragging = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+                                                            val color = if (isDragging) ElectricRed else Color.Transparent
+                                                            Box(
+                                                                Modifier
+                                                                    .fillMaxSize()
+                                                                    .clip(RoundedCornerShape(24.dp))
+                                                                    .background(color),
+                                                                contentAlignment = Alignment.CenterEnd
+                                                            ) {
+                                                                if (isDragging) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Delete,
+                                                                        contentDescription = "Borrar",
+                                                                        tint = Color.White,
+                                                                        modifier = Modifier
+                                                                            .padding(end = 24.dp)
+                                                                            .graphicsLayer {
+                                                                                val p = dismissState.progress
+                                                                                alpha = if (p > 0.05f) p.coerceIn(0f, 1f) else 0f
+                                                                                scaleX = if (p > 0.05f) p.coerceIn(0.5f, 1f) else 0.5f
+                                                                                scaleY = if (p > 0.05f) p.coerceIn(0.5f, 1f) else 0.5f
+                                                                            }
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    ) {
+                                                        Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+                                                            UserReviewCard(
+                                                                info = item.reviewInfo,
+                                                                isOwnReview = true,
+                                                                onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
+                                                            )
+                                                        }
+                                                    }
+                                                } else {
+                                                    UserReviewCard(
+                                                        info = item.reviewInfo,
+                                                        isOwnReview = false,
+                                                        onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
+                                                    )
+                                                }
+                                            }
                                             else -> {}
                                         }
                                     }

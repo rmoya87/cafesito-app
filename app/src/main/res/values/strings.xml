@@ -1,11 +1,13 @@
 <resources>
     <string name="app_name">Cafesito</string>
-    <string name="shortcut_search_short">Buscar</string>
-    <string name="shortcut_search_long">Buscar cafés</string>
+    <string name="shortcut_search_short">Busca café</string>
+    <string name="shortcut_search_long">Busca café</string>
     <string name="shortcut_new_post_short">Nuevo post</string>
     <string name="shortcut_new_post_long">Nuevo post</string>
-    <string name="shortcut_new_review_short">Nueva reseña</string>
-    <string name="shortcut_new_review_long">Nueva reseña</string>
+    <string name="shortcut_brewlab_short">Elaboración</string>
+    <string name="shortcut_brewlab_long">Elaboración</string>
+    <string name="shortcut_diary_short">Mi diario</string>
+    <string name="shortcut_diary_long">Mi diario</string>
 
     <string name="login_welcome_to">BIENVENIDO A</string>
     <string name="login_brand">CAFESITO</string>
