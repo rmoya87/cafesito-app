@@ -34,6 +34,8 @@ fun NotificationsScreen(
     onBackClick: () -> Unit,
     onMarkAllAsRead: () -> Unit,
     onFollowToggle: (Int) -> Unit,
+    onReplyToNotification: (TimelineNotification) -> Unit,
+    onSavePostFromNotification: (TimelineNotification) -> Unit,
     onDeleteNotification: (TimelineNotification) -> Unit,
     onNotificationClick: (TimelineNotification) -> Unit,
     isRefreshing: Boolean = false,
@@ -115,6 +117,8 @@ fun NotificationsScreen(
                                 else -> false
                             },
                             onFollowToggle = onFollowToggle,
+                            onReplyToNotification = onReplyToNotification,
+                            onSavePostFromNotification = onSavePostFromNotification,
                             onClick = { onNotificationClick(notification) }
                         )
                     }
@@ -131,6 +135,8 @@ private fun NotificationItemRow(
     isUnread: Boolean,
     isFollowing: Boolean,
     onFollowToggle: (Int) -> Unit,
+    onReplyToNotification: (TimelineNotification) -> Unit,
+    onSavePostFromNotification: (TimelineNotification) -> Unit,
     onClick: () -> Unit
 ) {
     val unreadColor = ElectricRed
@@ -185,35 +191,60 @@ private fun NotificationItemRow(
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             
-            if (notification is TimelineNotification.Follow) {
-                Spacer(Modifier.width(12.dp))
-                
-                if (isFollowing) {
-                    OutlinedButton(
-                        onClick = { onFollowToggle(notification.user.id) },
-                        modifier = Modifier.height(32.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary,
-                            containerColor = Color.Transparent
-                        ),
-                        contentPadding = PaddingValues(horizontal = 12.dp)
-                    ) {
-                        Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+            when (notification) {
+                is TimelineNotification.Follow -> {
+                    Spacer(Modifier.width(12.dp))
+
+                    if (isFollowing) {
+                        OutlinedButton(
+                            onClick = { onFollowToggle(notification.user.id) },
+                            modifier = Modifier.height(32.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary,
+                                containerColor = Color.Transparent
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        }
+                    } else {
+                        Button(
+                            onClick = { onFollowToggle(notification.user.id) },
+                            modifier = Modifier.height(32.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        }
                     }
-                } else {
-                    Button(
-                        onClick = { onFollowToggle(notification.user.id) },
-                        modifier = Modifier.height(32.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 12.dp)
-                    ) {
-                        Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                }
+
+                is TimelineNotification.Comment,
+                is TimelineNotification.Mention -> {
+                    Spacer(Modifier.width(10.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedButton(
+                            onClick = { onReplyToNotification(notification) },
+                            modifier = Modifier.height(30.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp)
+                        ) {
+                            Text("RESPONDER", fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                        }
+                        Button(
+                            onClick = { onSavePostFromNotification(notification) },
+                            modifier = Modifier.height(30.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp)
+                        ) {
+                            Text("GUARDAR", fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                        }
                     }
                 }
             }

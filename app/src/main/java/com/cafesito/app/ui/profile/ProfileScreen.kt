@@ -14,6 +14,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,6 +23,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.UserReviewInfo
+import com.cafesito.app.security.runWithBiometricReauth
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
 import kotlinx.coroutines.delay
@@ -44,6 +46,7 @@ fun ProfileScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
     var showSensoryDetail by remember { mutableStateOf(false) }
@@ -248,7 +251,15 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
-                        onLogoutClick = { viewModel.logout() }
+                        onLogoutClick = {
+                            runWithBiometricReauth(
+                                context = context,
+                                title = "Confirma tu identidad",
+                                subtitle = "Para cerrar sesión en Cafesito",
+                                onAuthenticated = { viewModel.logout() },
+                                onFallback = { viewModel.logout() }
+                            )
+                        }
                     )
                 }
 
@@ -258,9 +269,21 @@ fun ProfileScreen(
                         title = "Borrar",
                         text = "Una vez borrado no se puede recuperar. ¿Estás seguro?",
                         onConfirm = {
-                            if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                            else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
-                            itemToDelete = null
+                            runWithBiometricReauth(
+                                context = context,
+                                title = "Acción sensible",
+                                subtitle = "Confirma para eliminar contenido",
+                                onAuthenticated = {
+                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
+                                    else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                                    itemToDelete = null
+                                },
+                                onFallback = {
+                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
+                                    else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                                    itemToDelete = null
+                                }
+                            )
                         }
                     )
                 }

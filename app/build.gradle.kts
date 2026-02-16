@@ -124,6 +124,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.browser)
+    implementation("androidx.biometric:biometric:1.1.0")
     
     // ML Kit & Barcode Scanning
     implementation(libs.google.play.services.code.scanner)

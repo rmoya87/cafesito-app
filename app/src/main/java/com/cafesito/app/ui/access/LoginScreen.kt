@@ -201,7 +201,40 @@ fun LoginScreen(
                                     when (val credential = result.credential) {
                                         is PublicKeyCredential -> {
                                             haptics.perform(HapticSignal.Success)
-                                            Toast.makeText(context, "Passkey autenticada correctamente.", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(context, "Passkey validada. Completando inicio de sesión…", Toast.LENGTH_LONG).show()
+
+                                            val fallbackGoogleRequest = GetCredentialRequest.Builder()
+                                                .addCredentialOption(
+                                                    GetGoogleIdOption.Builder()
+                                                        .setFilterByAuthorizedAccounts(false)
+                                                        .setServerClientId(BuildConfig.GOOGLE_SERVER_CLIENT_ID)
+                                                        .setAutoSelectEnabled(true)
+                                                        .build()
+                                                )
+                                                .build()
+
+                                            val fallbackResult = credentialManager.getCredential(
+                                                context = context,
+                                                request = fallbackGoogleRequest
+                                            )
+                                            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(fallbackResult.credential.data)
+                                            viewModel.handleGoogleIdToken(
+                                                idToken = googleIdTokenCredential.idToken,
+                                                onSuccess = { supabaseUuid, isNewUser ->
+                                                    haptics.perform(HapticSignal.Success)
+                                                    onLoginSuccess(
+                                                        supabaseUuid,
+                                                        googleIdTokenCredential.id,
+                                                        googleIdTokenCredential.displayName ?: "",
+                                                        googleIdTokenCredential.profilePictureUri?.toString() ?: "",
+                                                        isNewUser
+                                                    )
+                                                },
+                                                onError = { error ->
+                                                    haptics.perform(HapticSignal.Error)
+                                                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                                }
+                                            )
                                         }
                                         else -> {
                                             val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)

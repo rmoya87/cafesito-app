@@ -6,8 +6,9 @@ import android.content.Intent
 import android.graphics.Bitmap
 import androidx.core.app.NotificationCompat
 import com.cafesito.app.MainActivity
-import com.cafesito.app.notifications.NotificationChannels
 import com.cafesito.app.R
+import com.cafesito.app.notifications.NotificationActionReceiver
+import com.cafesito.app.notifications.NotificationChannels
 
 object TimelineNotificationSystem {
     const val CHANNEL_ID = "cafesito_notifications"
@@ -71,7 +72,9 @@ object TimelineNotificationSystem {
             is TimelineNotification.Comment -> notification.user.username to notification.message
         }
         val channelId = NotificationChannels.resolveChannel(notification.type)
-        return NotificationCompat.Builder(context, channelId)
+        val notificationId = notification.id.hashCode()
+
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(message)
@@ -79,5 +82,102 @@ object TimelineNotificationSystem {
             .setContentIntent(buildPendingIntent(context, notification))
             .setLargeIcon(largeIcon)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .addAction(
+                0,
+                "Marcar leída",
+                buildReceiverPendingIntent(
+                    context = context,
+                    requestCode = notificationId,
+                    action = NotificationActionReceiver.ACTION_MARK_READ,
+                    notificationId = notificationId
+                )
+            )
+
+        when (notification) {
+            is TimelineNotification.Follow -> {
+                builder.addAction(
+                    0,
+                    "Seguir",
+                    buildReceiverPendingIntent(
+                        context = context,
+                        requestCode = notificationId + 1,
+                        action = NotificationActionReceiver.ACTION_FOLLOW_BACK,
+                        notificationId = notificationId,
+                        targetUserId = notification.user.id
+                    )
+                )
+            }
+
+            is TimelineNotification.Mention,
+            is TimelineNotification.Comment -> {
+                val postId = when (notification) {
+                    is TimelineNotification.Mention -> notification.postId
+                    is TimelineNotification.Comment -> notification.postId
+                    else -> null
+                }
+                val commentId = when (notification) {
+                    is TimelineNotification.Mention -> notification.commentId
+                    is TimelineNotification.Comment -> notification.commentId
+                    else -> null
+                }
+
+                if (!postId.isNullOrBlank()) {
+                    builder.addAction(
+                        0,
+                        "Responder",
+                        PendingIntent.getActivity(
+                            context,
+                            notificationId + 2,
+                            Intent(context, MainActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                putExtra(NAV_TYPE_KEY, if (notification is TimelineNotification.Mention) "MENTION" else "COMMENT")
+                                putExtra("nav_id", postId)
+                                commentId?.let { putExtra("nav_comment_id", it) }
+                                putExtra("notification_action", "reply")
+                            },
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                        )
+                    )
+                    builder.addAction(
+                        0,
+                        "Guardar",
+                        buildReceiverPendingIntent(
+                            context = context,
+                            requestCode = notificationId + 3,
+                            action = NotificationActionReceiver.ACTION_SAVE_POST,
+                            notificationId = notificationId,
+                            postId = postId,
+                            commentId = commentId
+                        )
+                    )
+                }
+            }
+        }
+
+        return builder
+    }
+
+    private fun buildReceiverPendingIntent(
+        context: Context,
+        requestCode: Int,
+        action: String,
+        notificationId: Int,
+        targetUserId: Int? = null,
+        postId: String? = null,
+        commentId: Int? = null
+    ): PendingIntent {
+        val receiverIntent = Intent(context, NotificationActionReceiver::class.java).apply {
+            this.action = action
+            putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+            targetUserId?.let { putExtra(NotificationActionReceiver.EXTRA_TARGET_USER_ID, it) }
+            postId?.let { putExtra(NotificationActionReceiver.EXTRA_POST_ID, it) }
+            commentId?.let { putExtra(NotificationActionReceiver.EXTRA_COMMENT_ID, it) }
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            receiverIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 }

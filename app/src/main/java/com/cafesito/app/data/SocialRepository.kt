@@ -237,6 +237,25 @@ class SocialRepository @Inject constructor(
         triggerRefresh()
     }
 
+    suspend fun savePost(postId: String, userId: Int) = withContext(Dispatchers.IO) {
+        val alreadyLiked = socialDao.isPostLikedByUser(postId, userId).first()
+        if (alreadyLiked) return@withContext
+
+        val like = LikeEntity(postId, userId)
+        socialDao.insertLike(like)
+
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            externalScope.launch {
+                try {
+                    supabaseDataSource.insertLike(like)
+                } catch (_: Exception) {
+                    // Best-effort en background; el refresco reintentará en siguiente sync.
+                }
+            }
+        }
+        triggerRefresh()
+    }
+
     suspend fun addComment(comment: CommentEntity) = withContext(Dispatchers.IO) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {

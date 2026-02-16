@@ -498,6 +498,20 @@ class TimelineViewModel @Inject constructor(
         }
     }
 
+    fun savePostFromNotification(notification: TimelineNotification) {
+        val postId = when (notification) {
+            is TimelineNotification.Mention -> notification.postId
+            is TimelineNotification.Comment -> notification.postId
+            else -> null
+        } ?: return
+
+        viewModelScope.launch {
+            val me = userRepository.getActiveUser() ?: return@launch
+            socialRepository.savePost(postId, me.id)
+            markNotificationRead(notification)
+        }
+    }
+
     fun markNotificationsNotified(notificationIds: Set<String>) {
         if (notificationIds.isEmpty()) return
         notifiedNotificationIds.update { it + notificationIds }

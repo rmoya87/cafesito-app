@@ -324,6 +324,17 @@ fun AppNavigation(
                     onBackClick = { navController.popBackStack() },
                     onMarkAllAsRead = { viewModel.markAllAsRead() },
                     onFollowToggle = { userId -> viewModel.toggleFollowSuggestion(userId) },
+                    onReplyToNotification = { notification ->
+                        viewModel.markNotificationRead(notification)
+                        when (notification) {
+                            is TimelineNotification.Mention -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                            is TimelineNotification.Comment -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                            else -> Unit
+                        }
+                    },
+                    onSavePostFromNotification = { notification ->
+                        viewModel.savePostFromNotification(notification)
+                    },
                     onDeleteNotification = { notification -> viewModel.deleteNotification(notification) },
                     onNotificationClick = { notification ->
                         viewModel.markNotificationRead(notification)
