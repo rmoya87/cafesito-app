@@ -46,12 +46,24 @@ internal object WidgetDataStore {
     }
 
     private suspend fun resolveUserId(context: Context): Int? = withContext(Dispatchers.IO) {
-        val appDb = db(context)
-        appDb.sessionDao().getActiveSession().first()?.userId
-            ?: appDb.openHelper.readableDatabase.query("SELECT userId FROM diary_entries ORDER BY timestamp DESC LIMIT 1")
-                .use { c -> if (c.moveToFirst()) c.getInt(0) else null }
-            ?: appDb.openHelper.readableDatabase.query("SELECT userId FROM pantry_items ORDER BY lastUpdated DESC LIMIT 1")
-                .use { c -> if (c.moveToFirst()) c.getInt(0) else null }
+        val appDb = runCatching { db(context) }.getOrNull() ?: return@withContext null
+
+        runCatching { appDb.sessionDao().getActiveSession().first()?.userId }.getOrNull()
+            ?: runCatching {
+                appDb.openHelper.readableDatabase
+                    .query("SELECT userId FROM diary_entries ORDER BY timestamp DESC LIMIT 1")
+                    .use { c -> if (c.moveToFirst()) c.getInt(0) else null }
+            }.getOrNull()
+            ?: runCatching {
+                appDb.openHelper.readableDatabase
+                    .query("SELECT userId FROM pantry_items ORDER BY lastUpdated DESC LIMIT 1")
+                    .use { c -> if (c.moveToFirst()) c.getInt(0) else null }
+            }.getOrNull()
+            ?: runCatching {
+                appDb.openHelper.readableDatabase
+                    .query("SELECT userId FROM pantry_items LIMIT 1")
+                    .use { c -> if (c.moveToFirst()) c.getInt(0) else null }
+            }.getOrNull()
     }
 
     fun savePeriod(context: Context, widgetId: Int, period: WidgetPeriod) {
@@ -66,17 +78,15 @@ internal object WidgetDataStore {
         return WidgetPeriod.entries.firstOrNull { it.name == value } ?: WidgetPeriod.DAY
     }
 
-    // Compatibilidad retro para builds locales que todavía referencian paginación antigua.
     fun savePage(context: Context, widgetId: Int, page: Int) {
-        // No-op intencional: el diseño actual usa scroll táctil sin páginas.
+        // Compatibilidad retro (no-op)
     }
 
     fun readPage(context: Context, widgetId: Int): Int = 0
 
-
     suspend fun loadDiaryChart(context: Context, period: WidgetPeriod): List<DiaryWidgetChartPoint> = withContext(Dispatchers.IO) {
         val userId = resolveUserId(context) ?: return@withContext emptyList()
-        val entries = db(context).diaryDao().getDiaryEntries(userId).first()
+        val entries = runCatching { db(context).diaryDao().getDiaryEntries(userId).first() }.getOrElse { emptyList() }
         when (period) {
             WidgetPeriod.DAY -> buildDayChart(entries)
             WidgetPeriod.WEEK -> buildWeekChart(entries)
@@ -86,18 +96,20 @@ internal object WidgetDataStore {
 
     suspend fun loadPantryItems(context: Context, maxItems: Int = 10): List<PantryWidgetItem> = withContext(Dispatchers.IO) {
         val userId = resolveUserId(context) ?: return@withContext emptyList()
-        val appDb = db(context)
-        val pantry = appDb.diaryDao().getPantryItems(userId).first()
+        val appDb = runCatching { db(context) }.getOrNull() ?: return@withContext emptyList()
+
+        val pantry = runCatching { appDb.diaryDao().getPantryItems(userId).first() }
+            .getOrElse { emptyList() }
             .sortedByDescending { it.gramsRemaining }
             .take(maxItems)
 
         pantry.map { item ->
-            val coffee = appDb.coffeeDao().getCoffeeById(item.coffeeId)
+            val coffee = runCatching { appDb.coffeeDao().getCoffeeById(item.coffeeId) }.getOrNull()
             PantryWidgetItem(
                 coffeeName = coffee?.nombre?.ifBlank { "Café" } ?: "Café",
                 coffeeBrand = coffee?.marca?.ifBlank { "Cafesito" } ?: "Cafesito",
                 imageUrl = coffee?.imageUrl ?: "",
-                gramsRemaining = item.gramsRemaining,
+                gramsRemaining = item.gramsRemaining.coerceAtLeast(0),
                 totalGrams = max(1, item.totalGrams)
             )
         }

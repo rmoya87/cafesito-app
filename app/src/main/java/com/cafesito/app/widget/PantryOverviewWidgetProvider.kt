@@ -6,7 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import com.cafesito.app.MainActivity
@@ -18,51 +18,76 @@ class PantryOverviewWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         appWidgetIds.forEach { id ->
-            appWidgetManager.updateAppWidget(id, buildViews(context))
+            appWidgetManager.updateAppWidget(id, safeBuildViews(context))
         }
     }
 
     companion object {
-        private const val CARD_COUNT = 6
+        private const val TAG = "PantryWidget"
+        private const val CARD_COUNT = 3
 
         private val CARD_IDS = intArrayOf(
-            R.id.widget_pantry_card_1, R.id.widget_pantry_card_2, R.id.widget_pantry_card_3,
-            R.id.widget_pantry_card_4, R.id.widget_pantry_card_5, R.id.widget_pantry_card_6
+            R.id.widget_pantry_card_1,
+            R.id.widget_pantry_card_2,
+            R.id.widget_pantry_card_3
         )
         private val IMAGE_IDS = intArrayOf(
-            R.id.widget_pantry_item_image_1, R.id.widget_pantry_item_image_2, R.id.widget_pantry_item_image_3,
-            R.id.widget_pantry_item_image_4, R.id.widget_pantry_item_image_5, R.id.widget_pantry_item_image_6
+            R.id.widget_pantry_item_image_1,
+            R.id.widget_pantry_item_image_2,
+            R.id.widget_pantry_item_image_3
         )
         private val NAME_IDS = intArrayOf(
-            R.id.widget_pantry_item_name_1, R.id.widget_pantry_item_name_2, R.id.widget_pantry_item_name_3,
-            R.id.widget_pantry_item_name_4, R.id.widget_pantry_item_name_5, R.id.widget_pantry_item_name_6
+            R.id.widget_pantry_item_name_1,
+            R.id.widget_pantry_item_name_2,
+            R.id.widget_pantry_item_name_3
         )
         private val BRAND_IDS = intArrayOf(
-            R.id.widget_pantry_item_brand_1, R.id.widget_pantry_item_brand_2, R.id.widget_pantry_item_brand_3,
-            R.id.widget_pantry_item_brand_4, R.id.widget_pantry_item_brand_5, R.id.widget_pantry_item_brand_6
+            R.id.widget_pantry_item_brand_1,
+            R.id.widget_pantry_item_brand_2,
+            R.id.widget_pantry_item_brand_3
         )
         private val STOCK_IDS = intArrayOf(
-            R.id.widget_pantry_item_stock_1, R.id.widget_pantry_item_stock_2, R.id.widget_pantry_item_stock_3,
-            R.id.widget_pantry_item_stock_4, R.id.widget_pantry_item_stock_5, R.id.widget_pantry_item_stock_6
+            R.id.widget_pantry_item_stock_1,
+            R.id.widget_pantry_item_stock_2,
+            R.id.widget_pantry_item_stock_3
         )
         private val PROGRESS_IDS = intArrayOf(
-            R.id.widget_pantry_item_progress_1, R.id.widget_pantry_item_progress_2, R.id.widget_pantry_item_progress_3,
-            R.id.widget_pantry_item_progress_4, R.id.widget_pantry_item_progress_5, R.id.widget_pantry_item_progress_6
+            R.id.widget_pantry_item_progress_1,
+            R.id.widget_pantry_item_progress_2,
+            R.id.widget_pantry_item_progress_3
         )
 
         fun refresh(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, PantryOverviewWidgetProvider::class.java)
-            manager.updateAppWidget(component, buildViews(context))
+            manager.updateAppWidget(component, safeBuildViews(context))
+        }
+
+        private fun safeBuildViews(context: Context): RemoteViews {
+            return runCatching { buildViews(context) }
+                .onFailure { Log.e(TAG, "Error al construir widget despensa", it) }
+                .getOrElse { fallbackViews(context) }
+        }
+
+        private fun fallbackViews(context: Context): RemoteViews {
+            return RemoteViews(context.packageName, R.layout.widget_pantry_overview).apply {
+                setOnClickPendingIntent(R.id.widget_pantry_container, navIntent(context))
+                setViewVisibility(R.id.widget_pantry_empty, View.VISIBLE)
+                setTextViewText(R.id.widget_pantry_empty, "Abre la app para sincronizar despensa")
+                setViewVisibility(R.id.widget_pantry_more, View.GONE)
+                CARD_IDS.forEach { setViewVisibility(it, View.GONE) }
+            }
         }
 
         private fun buildViews(context: Context): RemoteViews {
-            val items = runBlocking { WidgetDataStore.loadPantryItems(context, maxItems = CARD_COUNT) }
+            val allItems = runBlocking { WidgetDataStore.loadPantryItems(context, maxItems = 20) }
+            val items = allItems.take(CARD_COUNT)
             return RemoteViews(context.packageName, R.layout.widget_pantry_overview).apply {
                 setOnClickPendingIntent(R.id.widget_pantry_container, navIntent(context))
 
                 if (items.isEmpty()) {
                     setViewVisibility(R.id.widget_pantry_empty, View.VISIBLE)
+                    setViewVisibility(R.id.widget_pantry_more, View.GONE)
                     CARD_IDS.forEach { setViewVisibility(it, View.GONE) }
                     return@apply
                 }
@@ -74,18 +99,29 @@ class PantryOverviewWidgetProvider : AppWidgetProvider() {
                     if (item == null) {
                         setViewVisibility(CARD_IDS[index], View.GONE)
                     } else {
-                        val pct = ((item.gramsRemaining.toFloat() / item.totalGrams) * 100f).roundToInt().coerceIn(0, 100)
+                        val safeTotal = item.totalGrams.coerceAtLeast(1)
+                        val safeRemaining = item.gramsRemaining.coerceAtLeast(0)
+                        val pct = ((safeRemaining.toFloat() / safeTotal) * 100f)
+                            .takeIf { it.isFinite() }
+                            ?.roundToInt()
+                            ?.coerceIn(0, 100)
+                            ?: 0
+
                         setViewVisibility(CARD_IDS[index], View.VISIBLE)
                         setTextViewText(NAME_IDS[index], item.coffeeName)
                         setTextViewText(BRAND_IDS[index], item.coffeeBrand)
-                        setTextViewText(STOCK_IDS[index], "${item.gramsRemaining}g de ${item.totalGrams}g")
+                        setTextViewText(STOCK_IDS[index], "${safeRemaining}g de ${safeTotal}g")
                         setProgressBar(PROGRESS_IDS[index], 100, pct, false)
-                        if (item.imageUrl.isNotBlank()) {
-                            setImageViewUri(IMAGE_IDS[index], Uri.parse(item.imageUrl))
-                        } else {
-                            setImageViewResource(IMAGE_IDS[index], R.drawable.ic_launcher_foreground)
-                        }
+                        setImageViewResource(IMAGE_IDS[index], R.drawable.ic_launcher_foreground)
                     }
+                }
+
+                val remaining = allItems.size - CARD_COUNT
+                if (remaining > 0) {
+                    setViewVisibility(R.id.widget_pantry_more, View.VISIBLE)
+                    setTextViewText(R.id.widget_pantry_more, "+${remaining} cafés más en tu despensa")
+                } else {
+                    setViewVisibility(R.id.widget_pantry_more, View.GONE)
                 }
             }
         }
