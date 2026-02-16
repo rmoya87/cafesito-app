@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Mi despensa"
-        android:textColor="#1A120B"
+        android:textColor="#1F120A"
         android:textSize="16sp"
         android:textStyle="bold" />
 
@@ -19,52 +19,110 @@
         android:id="@+id/widget_pantry_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text=""
-        android:textColor="#5A4A42"
+        android:layout_marginTop="10dp"
+        android:text="No hay cafés en despensa. Toca para abrir y añadir."
+        android:textColor="#6A4D3B"
         android:textSize="12sp" />
 
-    <TextView
-        android:id="@+id/widget_pantry_item_1"
+    <LinearLayout
+        android:id="@+id/widget_pantry_row_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_pantry_item_title_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="#3E2618"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_pantry_item_grams_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#7A6253"
+            android:textSize="11sp" />
+
+        <ProgressBar
+            android:id="@+id/widget_pantry_item_progress_1"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="4dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#8F4B22" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_pantry_row_2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:textColor="#3E2D22"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/widget_pantry_item_2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="#3E2D22"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        <TextView
+            android:id="@+id/widget_pantry_item_title_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="#3E2618"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
-    <TextView
-        android:id="@+id/widget_pantry_item_3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="#3E2D22"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        <TextView
+            android:id="@+id/widget_pantry_item_grams_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#7A6253"
+            android:textSize="11sp" />
 
-    <TextView
-        android:id="@+id/widget_pantry_item_4"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="#3E2D22"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        <ProgressBar
+            android:id="@+id/widget_pantry_item_progress_2"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="4dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#8F4B22" />
+    </LinearLayout>
 
-    <TextView
+    <LinearLayout
+        android:id="@+id/widget_pantry_row_3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Toca para abrir tu despensa"
-        android:textColor="#7B6E65"
-        android:textSize="11sp" />
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_pantry_item_title_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:textColor="#3E2618"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_pantry_item_grams_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#7A6253"
+            android:textSize="11sp" />
+
+        <ProgressBar
+            android:id="@+id/widget_pantry_item_progress_3"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="4dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#8F4B22" />
+    </LinearLayout>
 </LinearLayout>

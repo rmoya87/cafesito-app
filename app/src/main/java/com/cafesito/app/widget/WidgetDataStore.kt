@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.max
 
 internal enum class WidgetPeriod { DAY, WEEK, MONTH }
 
@@ -28,6 +29,7 @@ internal object WidgetDataStore {
 
     private const val PREFS = "cafesito_widget_prefs"
     private const val KEY_PERIOD_PREFIX = "diary_period_"
+    private const val KEY_PAGE_PREFIX = "diary_page_"
 
     @Volatile
     private var database: AppDatabase? = null
@@ -47,8 +49,7 @@ internal object WidgetDataStore {
     }
 
     fun savePeriod(context: Context, widgetId: Int, period: WidgetPeriod) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_PERIOD_PREFIX + widgetId, period.name)
             .apply()
     }
@@ -57,6 +58,18 @@ internal object WidgetDataStore {
         val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_PERIOD_PREFIX + widgetId, WidgetPeriod.DAY.name)
         return WidgetPeriod.entries.firstOrNull { it.name == value } ?: WidgetPeriod.DAY
+    }
+
+    fun savePage(context: Context, widgetId: Int, page: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_PAGE_PREFIX + widgetId, max(0, page))
+            .apply()
+    }
+
+    fun readPage(context: Context, widgetId: Int): Int {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(KEY_PAGE_PREFIX + widgetId, 0)
+            .coerceAtLeast(0)
     }
 
     suspend fun loadDiaryChart(context: Context, period: WidgetPeriod): List<DiaryWidgetChartPoint> = withContext(Dispatchers.IO) {
@@ -69,18 +82,16 @@ internal object WidgetDataStore {
         }
     }
 
-    suspend fun loadPantryItems(context: Context, maxItems: Int = 4): List<PantryWidgetItem> = withContext(Dispatchers.IO) {
+    suspend fun loadPantryItems(context: Context, maxItems: Int = 3): List<PantryWidgetItem> = withContext(Dispatchers.IO) {
         val userId = resolveUserId(context) ?: return@withContext emptyList()
-        val diaryDao = db(context).diaryDao()
-        val coffeeDao = db(context).coffeeDao()
-        val pantry = diaryDao.getPantryItems(userId).first()
+        val pantry = db(context).diaryDao().getPantryItems(userId).first()
             .sortedByDescending { it.gramsRemaining }
             .take(maxItems)
 
         pantry.map { item ->
-            val coffee = coffeeDao.getCoffeeById(item.coffeeId)
+            val coffee = db(context).coffeeDao().getCoffeeById(item.coffeeId)
             PantryWidgetItem(
-                coffeeName = coffee?.nombre?.ifBlank { coffee?.marca ?: "Café" } ?: "Café",
+                coffeeName = coffee?.nombre?.ifBlank { coffee.marca.ifBlank { "Café" } } ?: "Café",
                 gramsRemaining = item.gramsRemaining,
                 totalGrams = item.totalGrams
             )
@@ -98,8 +109,7 @@ internal object WidgetDataStore {
         val today = entries.filter { it.timestamp >= start }
         val grouped = today.groupBy { Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.HOUR_OF_DAY) }
 
-        val hours = listOf(6, 8, 10, 12, 14, 16, 18, 20, 22)
-        return hours.map { hour ->
+        return (0..23).map { hour ->
             val values = grouped[hour].orEmpty()
             DiaryWidgetChartPoint(
                 label = String.format(Locale.getDefault(), "%02d", hour),
@@ -120,10 +130,12 @@ internal object WidgetDataStore {
         val start = cal.timeInMillis
         val weekEntries = entries.filter { it.timestamp >= start }
         val labels = listOf("L", "M", "X", "J", "V", "S", "D")
+
         val grouped = weekEntries.groupBy {
             val day = Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_WEEK)
             if (day == Calendar.SUNDAY) 6 else day - 2
         }
+
         return labels.mapIndexed { index, label ->
             val values = grouped[index].orEmpty()
             DiaryWidgetChartPoint(
@@ -135,6 +147,9 @@ internal object WidgetDataStore {
     }
 
     private fun buildMonthChart(entries: List<DiaryEntryEntity>): List<DiaryWidgetChartPoint> {
+        val now = Calendar.getInstance()
+        val maxDays = now.getActualMaximum(Calendar.DAY_OF_MONTH)
+
         val cal = Calendar.getInstance().apply {
             set(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.HOUR_OF_DAY, 0)
@@ -148,10 +163,10 @@ internal object WidgetDataStore {
             Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_MONTH)
         }
 
-        return (1..14).map { index ->
-            val values = grouped[index].orEmpty()
+        return (1..maxDays).map { day ->
+            val values = grouped[day].orEmpty()
             DiaryWidgetChartPoint(
-                label = index.toString(),
+                label = day.toString(),
                 caffeineMg = values.filter { it.type == "CUP" }.sumOf { it.caffeineAmount },
                 waterMl = values.filter { it.type == "WATER" }.sumOf { it.amountMl }
             )
@@ -160,13 +175,13 @@ internal object WidgetDataStore {
 
     fun barGlyph(value: Int, maxValue: Int): String {
         if (maxValue <= 0 || value <= 0) return "▁"
-        val ratio = value.toFloat() / maxValue.toFloat()
+        val ratio = value.toFloat() / maxValue
         return when {
             ratio >= 0.9f -> "█"
             ratio >= 0.75f -> "▇"
-            ratio >= 0.60f -> "▆"
+            ratio >= 0.6f -> "▆"
             ratio >= 0.45f -> "▅"
-            ratio >= 0.30f -> "▄"
+            ratio >= 0.3f -> "▄"
             ratio >= 0.15f -> "▃"
             else -> "▂"
         }
