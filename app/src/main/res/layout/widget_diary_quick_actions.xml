@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="12dp">
 
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Mi diario"
@@ -86,1009 +86,155 @@
         android:textSize="10sp"
         android:textStyle="bold" />
 
-    <HorizontalScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:scrollbars="none">
+        android:orientation="horizontal">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_4"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_4"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_4"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_5"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_5"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_5"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_6"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_6"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_6"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_7"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_7"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_7"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_8"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_8"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_8"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_9"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_9"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_9"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_10"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_10"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_10"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_11"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_11"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_11"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_12"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_12"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_12"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_13"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_13"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_13"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_14"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_14"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_14"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_15"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_15"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_15"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_16"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_16"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_16"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_17"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_17"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_17"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_18"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_18"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_18"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_19"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_19"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_19"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_20"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_20"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_20"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_21"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_21"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_21"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_22"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_22"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_22"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_23"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_23"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_23"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_24"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_24"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_24"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_25"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_25"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_25"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_26"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_26"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_26"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_27"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_27"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_27"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_28"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_28"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_28"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_29"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_29"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_29"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_30"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_30"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_30"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="34dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_bar_coffee_31"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#8F4B22"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_water_31"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="▁"
-                    android:textColor="#2D77AE"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_bar_label_31"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#705747"
-                    android:textSize="9sp" />
-            </LinearLayout>
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView android:id="@+id/widget_bar_coffee_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8F4B22" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_water_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#2D77AE" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_label_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#705747" android:textSize="9sp" />
         </LinearLayout>
-    </HorizontalScrollView>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView android:id="@+id/widget_bar_coffee_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8F4B22" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_water_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#2D77AE" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_label_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#705747" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView android:id="@+id/widget_bar_coffee_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8F4B22" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_water_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#2D77AE" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_label_3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#705747" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView android:id="@+id/widget_bar_coffee_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8F4B22" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_water_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#2D77AE" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_label_4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#705747" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView android:id="@+id/widget_bar_coffee_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8F4B22" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_water_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#2D77AE" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_label_5" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#705747" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView android:id="@+id/widget_bar_coffee_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8F4B22" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_water_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#2D77AE" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_label_6" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#705747" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView android:id="@+id/widget_bar_coffee_7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8F4B22" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_water_7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#2D77AE" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/widget_bar_label_7" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#705747" android:textSize="9sp" />
+        </LinearLayout>
+
+        <!-- Dummy views for the rest of IDs used in code to avoid crash but minimize layout size -->
+        <View android:id="@+id/widget_bar_coffee_8" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_9" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_10" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_11" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_12" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_13" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_14" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_15" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_16" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_17" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_18" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_19" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_20" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_21" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_22" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_23" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_24" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_25" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_26" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_27" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_28" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_29" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_30" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_coffee_31" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_8" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_9" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_10" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_11" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_12" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_13" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_14" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_15" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_16" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_17" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_18" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_19" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_20" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_21" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_22" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_23" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_24" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_25" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_26" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_27" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_28" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_29" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_30" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_water_31" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_8" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_9" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_10" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_11" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_12" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_13" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_14" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_15" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_16" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_17" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_18" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_19" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_20" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_21" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_22" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_23" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_24" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_25" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_26" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_27" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_28" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_29" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_30" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <View android:id="@+id/widget_bar_label_31" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    </LinearLayout>
 </LinearLayout>
