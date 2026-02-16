@@ -252,6 +252,7 @@ fun AppNavigation(
             "NEW_POST" -> navController.navigate("addPost")
             "NEW_REVIEW" -> navController.navigate("addPost?postType=OPINION")
             "OPEN_DIARY" -> navController.navigate("diary")
+            "OPEN_PANTRY" -> navController.navigate("diary?navigateTo=pantry")
             "ADD_COFFEE_ENTRY" -> navController.navigate("addDiaryEntry?type=COFFEE")
             "ADD_WATER_ENTRY" -> navController.navigate("addDiaryEntry?type=WATER")
             else -> return@LaunchedEffect
