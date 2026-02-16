@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_search"
+        android:shortcutShortLabel="@string/shortcut_search_short"
+        android:shortcutLongLabel="@string/shortcut_search_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cafesito.app"
+            android:targetClass="com.cafesito.app.MainActivity"
+            android:data="cafesito://shortcut/search" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="new_post"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:shortcutShortLabel="@string/shortcut_new_post_short"
+        android:shortcutLongLabel="@string/shortcut_new_post_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cafesito.app"
+            android:targetClass="com.cafesito.app.MainActivity"
+            android:data="cafesito://shortcut/new_post" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="new_review"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:shortcutShortLabel="@string/shortcut_new_review_short"
+        android:shortcutLongLabel="@string/shortcut_new_review_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cafesito.app"
+            android:targetClass="com.cafesito.app.MainActivity"
+            android:data="cafesito://shortcut/new_review" />
+    </shortcut>
+</shortcuts>

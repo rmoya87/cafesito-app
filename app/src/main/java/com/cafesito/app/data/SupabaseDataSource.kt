@@ -165,6 +165,15 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
+    suspend fun deleteCustomCoffee(id: String, userId: Int) {
+        client.postgrest["custom_coffees"].delete {
+            filter {
+                eq("id", id)
+                eq("user_id", userId)
+            }
+        }
+    }
+
     // --- FAVORITOS PERSONALIZADOS (RESTAURADOS) ---
     suspend fun getAllFavoritesCustom(): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select().decodeList<LocalFavoriteCustom>()
     
