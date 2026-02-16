@@ -45,7 +45,16 @@ class AddPostViewModel @Inject constructor(
     private val _currentStep = MutableStateFlow(savedStateHandle.get<Int>("currentStep") ?: 0)
     val currentStep: StateFlow<Int> = _currentStep.asStateFlow()
 
-    private val _postType = MutableStateFlow(savedStateHandle.get<PostType>("postType") ?: PostType.PUBLICATION)
+    private val _postType = MutableStateFlow(
+        run {
+            val saved = savedStateHandle.get<Any>("postType")
+            when (saved) {
+                is PostType -> saved
+                is String -> try { PostType.valueOf(saved) } catch (e: Exception) { PostType.PUBLICATION }
+                else -> PostType.PUBLICATION
+            }
+        }
+    )
     val postType: StateFlow<PostType> = _postType.asStateFlow()
 
     private val _imageSource = MutableStateFlow<Any?>(
@@ -201,8 +210,9 @@ class AddPostViewModel @Inject constructor(
     }
 
     fun setPostType(type: PostType) {
+        if (_postType.value == type) return
         _postType.value = type
-        savedStateHandle.set("postType", type)
+        savedStateHandle.set("postType", type.name)
         _currentStep.value = 0
         savedStateHandle.set("currentStep", 0)
         if (type == PostType.OPINION) {
@@ -383,6 +393,7 @@ class AddPostViewModel @Inject constructor(
         savedStateHandle.remove<String>("imageUri")
         savedStateHandle.remove<String>("selectedCoffeeId")
         savedStateHandle.remove<Int>("currentStep")
+        savedStateHandle.remove<String>("postType")
     }
 
     private fun UserEntity.toDomainUser(): User = User(

@@ -814,9 +814,6 @@ private fun ReviewDetailsStepPremium(
     val comment by viewModel.comment.collectAsState()
     val rating by viewModel.rating.collectAsState()
 
-    LaunchedEffect(initialPostType) {
-        initialPostType?.let(viewModel::setPostType)
-    }
     val mentionSuggestions by viewModel.mentionSuggestions.collectAsState()
 
     var commentValue by remember(comment) {
