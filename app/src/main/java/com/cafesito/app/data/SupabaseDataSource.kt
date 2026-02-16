@@ -361,10 +361,12 @@ class SupabaseDataSource @Inject constructor(
 
     suspend fun getNotificationsForUser(userId: Int): List<NotificationEntity> {
         return try {
-            client.postgrest["notifications_db"].select {
-                filter { eq("user_id", userId) }
-                order("timestamp", Order.DESCENDING)
-            }.decodeList()
+            client.postgrest.rpc(
+                "get_notifications_for_user",
+                buildJsonObject {
+                    put("p_user_id", userId)
+                }
+            ).decodeList()
         } catch (e: Exception) {
             Log.e("SupabaseDataSource", "Error fetching notifications: ${e.message}")
             emptyList()
@@ -373,11 +375,12 @@ class SupabaseDataSource @Inject constructor(
 
     suspend fun markNotificationRead(notificationId: Int) {
         try {
-            client.postgrest["notifications_db"].update({
-                set("is_read", true)
-            }) {
-                filter { eq("id", notificationId) }
-            }
+            client.postgrest.rpc(
+                "mark_notification_read",
+                buildJsonObject {
+                    put("p_notification_id", notificationId)
+                }
+            )
         } catch (e: Exception) {
             Log.e("SupabaseDataSource", "Error marking read: ${e.message}")
         }
@@ -385,11 +388,12 @@ class SupabaseDataSource @Inject constructor(
 
     suspend fun markAllNotificationsRead(userId: Int) {
         try {
-            client.postgrest["notifications_db"].update({
-                set("is_read", true)
-            }) {
-                filter { eq("user_id", userId) }
-            }
+            client.postgrest.rpc(
+                "mark_all_notifications_read",
+                buildJsonObject {
+                    put("p_user_id", userId)
+                }
+            )
         } catch (e: Exception) {
             Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")
         }
@@ -397,9 +401,12 @@ class SupabaseDataSource @Inject constructor(
 
     suspend fun deleteNotification(notificationId: Int) {
         try {
-            client.postgrest["notifications_db"].delete {
-                filter { eq("id", notificationId) }
-            }
+            client.postgrest.rpc(
+                "delete_notification",
+                buildJsonObject {
+                    put("p_notification_id", notificationId)
+                }
+            )
         } catch (e: Exception) {
             Log.e("SupabaseDataSource", "Error deleting notification: ${e.message}")
         }

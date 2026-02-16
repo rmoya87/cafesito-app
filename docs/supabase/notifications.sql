@@ -111,3 +111,66 @@ $$;
 grant execute on function public.create_notification(
     bigint, text, text, text, bigint, text
 ) to authenticated;
+
+-- ==========================================================
+-- RPCs de lectura/actualización/borrado para evitar bloqueos
+-- por RLS cuando se usa un user_id numérico de la app.
+-- ==========================================================
+create or replace function public.get_notifications_for_user(
+    p_user_id bigint
+) returns setof public.notifications_db
+language sql
+security definer
+set search_path = public
+as $$
+    select *
+    from public.notifications_db
+    where user_id = p_user_id
+    order by timestamp desc;
+$$;
+
+create or replace function public.mark_notification_read(
+    p_notification_id bigint
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    update public.notifications_db
+    set is_read = true
+    where id = p_notification_id;
+end;
+$$;
+
+create or replace function public.mark_all_notifications_read(
+    p_user_id bigint
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    update public.notifications_db
+    set is_read = true
+    where user_id = p_user_id;
+end;
+$$;
+
+create or replace function public.delete_notification(
+    p_notification_id bigint
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    delete from public.notifications_db
+    where id = p_notification_id;
+end;
+$$;
+
+grant execute on function public.get_notifications_for_user(bigint) to authenticated;
+grant execute on function public.mark_notification_read(bigint) to authenticated;
+grant execute on function public.mark_all_notifications_read(bigint) to authenticated;
+grant execute on function public.delete_notification(bigint) to authenticated;
