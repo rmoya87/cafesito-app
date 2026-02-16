@@ -47,9 +47,9 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.cafesito.app.ui.theme.CaramelAccent
 import androidx.compose.material3.ExperimentalMaterial3Api
-import kotlin.OptIn
 
-@OptIn(UnstableApi::class, ExperimentalMaterial3Api::class)
+@UnstableApi
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginSuccess: (googleId: String, email: String, name: String, photoUrl: String, isNewUser: Boolean) -> Unit,

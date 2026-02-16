@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -179,7 +180,7 @@ fun AddDiaryEntryScreen(
                         }
                     } else if (step in 2..3) {
                         IconButton(onClick = { step += 1 }) {
-                            Icon(Icons.Default.ArrowForwardIos, contentDescription = "Siguiente")
+                            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = "Siguiente")
                         }
                     } else if (step == 4) {
                         TextButton(onClick = registerCoffee, enabled = !isSaving) {
