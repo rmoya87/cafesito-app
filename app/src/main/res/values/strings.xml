@@ -6,4 +6,28 @@
     <string name="shortcut_new_post_long">Nuevo post</string>
     <string name="shortcut_new_review_short">Nueva reseña</string>
     <string name="shortcut_new_review_long">Nueva reseña</string>
+
+    <string name="login_welcome_to">BIENVENIDO A</string>
+    <string name="login_brand">CAFESITO</string>
+    <string name="login_subtitle">La comunidad para los amantes del café.</string>
+    <string name="login_feature_share_title">Comparte</string>
+    <string name="login_feature_share_desc">Publica tus momentos cafeteros.</string>
+    <string name="login_feature_explore_title">Explora</string>
+    <string name="login_feature_explore_desc">Descubre nuevos granos y baristas.</string>
+    <string name="login_feature_brew_title">Elabora</string>
+    <string name="login_feature_brew_desc">Prepara recetas como un profesional.</string>
+    <string name="login_feature_track_title">Registra</string>
+    <string name="login_feature_track_desc">Crea tu propio perfil sensorial.</string>
+    <string name="login_start_now">EMPEZAR AHORA</string>
+    <string name="login_sheet_description">Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.</string>
+    <string name="login_no_google_accounts">No se encontraron cuentas de Google.</string>
+    <string name="login_connection_error">Error de conexión: %1$s</string>
+    <string name="login_continue_with_google">Continuar con Google</string>
+    <string name="login_terms_note">Al continuar, aceptas nuestros Términos y Condiciones.</string>
+
+    <string name="add_stock_title">AÑADIR STOCK</string>
+    <string name="add_stock_weight_label">Peso total (g)</string>
+    <string name="add_stock_save_button">GUARDAR EN DESPENSA</string>
+    <string name="add_stock_select_title">SELECCIONAR</string>
+    <string name="add_stock_search_placeholder">Busca un café o marca</string>
 </resources>
