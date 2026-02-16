@@ -37,6 +37,7 @@ class AddPostViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val reviewRepository: ReviewRepository,
     private val supabaseDataSource: SupabaseDataSource,
+    private val diaryRepository: DiaryRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
@@ -95,16 +96,56 @@ class AddPostViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val pantryCoffeeIds: StateFlow<Set<String>> = diaryRepository.getPantryItems()
+        .map { items -> items.map { it.pantryItem.coffeeId }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    private val favoriteCoffeeIds: StateFlow<Set<String>> = combine(
+        coffeeRepository.favorites,
+        coffeeRepository.favoritesCustom
+    ) { favorites, favoritesCustom ->
+        (favorites.map { it.coffeeId } + favoritesCustom.map { it.coffeeId }).toSet()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    private val recentCoffeeIds: StateFlow<List<String>> = diaryRepository.getDiaryEntries()
+        .map { entries ->
+            entries
+                .asSequence()
+                .mapNotNull { it.coffeeId }
+                .distinct()
+                .take(20)
+                .toList()
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val coffeeList: StateFlow<List<CoffeeWithDetails>> = combine(
         _searchQuery,
-        coffeeRepository.allCoffees
-    ) { query, all ->
-        if (query.isEmpty()) all.take(10)
-        else all.filter {
+        coffeeRepository.allCoffees,
+        pantryCoffeeIds,
+        favoriteCoffeeIds,
+        recentCoffeeIds
+    ) { query, all, pantryIds, favoriteIds, recentIds ->
+        val queryFiltered = if (query.isEmpty()) {
+            all
+        } else {
+            all.filter {
             it.coffee.nombre.contains(query, ignoreCase = true) ||
             it.coffee.marca.contains(query, ignoreCase = true) ||
             it.coffee.codigoBarras?.contains(query, ignoreCase = true) == true
-        }.take(10)
+            }
+        }
+
+        if (query.isNotEmpty()) return@combine queryFiltered.take(10)
+
+        val byId = queryFiltered.associateBy { it.coffee.id }
+        val ordered = mutableListOf<CoffeeWithDetails>()
+
+        pantryIds.forEach { id -> byId[id]?.let(ordered::add) }
+        recentIds.forEach { id -> byId[id]?.let(ordered::add) }
+        favoriteIds.forEach { id -> byId[id]?.let(ordered::add) }
+        queryFiltered.forEach { ordered.add(it) }
+
+        ordered.distinctBy { it.coffee.id }.take(10)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun loadGalleryImages() {

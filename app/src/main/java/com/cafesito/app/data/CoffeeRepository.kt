@@ -32,6 +32,7 @@ class CoffeeRepository @Inject constructor(
     }
 
     val favorites: Flow<List<LocalFavorite>> = coffeeDao.getLocalFavorites()
+    val favoritesCustom: Flow<List<LocalFavoriteCustom>> = coffeeDao.getLocalFavoritesCustom()
     val allReviews: Flow<List<ReviewEntity>> = coffeeDao.getAllReviews()
 
     fun getCoffeesPagingFlow(

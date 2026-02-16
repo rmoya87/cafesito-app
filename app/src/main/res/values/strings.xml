@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Cafesito</string>
+    <string name="shortcut_search_short">Buscar</string>
+    <string name="shortcut_search_long">Buscar cafés</string>
+    <string name="shortcut_new_post_short">Nuevo post</string>
+    <string name="shortcut_new_post_long">Crear nuevo post</string>
+    <string name="shortcut_new_review_short">Nueva reseña</string>
+    <string name="shortcut_new_review_long">Crear nueva reseña</string>
 </resources>
