@@ -609,9 +609,11 @@ private fun RatingFilterContent(
             valueRange = 0f..5f,
             steps = 4,
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
+                thumbColor = MaterialTheme.colorScheme.outline,
                 activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                inactiveTrackColor = MaterialTheme.colorScheme.outline,
+                activeTickColor = MaterialTheme.colorScheme.outline,
+                inactiveTickColor = MaterialTheme.colorScheme.outline
             )
         )
         Row(

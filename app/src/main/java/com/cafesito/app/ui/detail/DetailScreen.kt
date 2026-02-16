@@ -456,7 +456,12 @@ private fun SensoryProfileBottomSheet(
                         value = score.coerceIn(0f, 10f),
                         onValueChange = { updated -> values[index] = label to updated },
                         valueRange = 0f..10f,
-                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.outline,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.outline
+                        )
                     )
                     Text("10", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

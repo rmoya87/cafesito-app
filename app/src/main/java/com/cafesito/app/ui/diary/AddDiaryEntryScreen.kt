@@ -322,7 +322,7 @@ fun WaterRegistrationStepPremium(
             valueRange = 50f..1000f,
             enabled = !isSaving,
             colors = SliderDefaults.colors(
-                thumbColor = waterBlue,
+                thumbColor = MaterialTheme.colorScheme.outline,
                 activeTrackColor = waterBlue,
                 inactiveTrackColor = MaterialTheme.colorScheme.outline
             ),
@@ -498,9 +498,11 @@ fun CoffeeDoseStepPremium(
             valueRange = 3f..30f,
             steps = 269,
             colors = SliderDefaults.colors(
-                thumbColor = coffeeColor,
+                thumbColor = MaterialTheme.colorScheme.outline,
                 activeTrackColor = coffeeColor,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                inactiveTrackColor = MaterialTheme.colorScheme.outline,
+                activeTickColor = MaterialTheme.colorScheme.outline,
+                inactiveTickColor = MaterialTheme.colorScheme.outline
             ),
             modifier = Modifier.padding(horizontal = 16.dp)
         )

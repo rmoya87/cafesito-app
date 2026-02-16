@@ -320,7 +320,7 @@ fun ConfigStep(
                         Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Slider(
                             value = water, onValueChange = { viewModel.setWaterAmount(it) }, valueRange = 50f..1000f,
-                            colors = SliderDefaults.colors(thumbColor = waterBlue, activeTrackColor = waterBlue, inactiveTrackColor = MaterialTheme.colorScheme.outline)
+                            colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.outline, activeTrackColor = waterBlue, inactiveTrackColor = MaterialTheme.colorScheme.outline)
                         )
                     }
 
@@ -332,7 +332,7 @@ fun ConfigStep(
                     Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Slider(
                         value = ratio, onValueChange = { viewModel.setRatio(it) }, valueRange = range,
-                        colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary, activeTrackColor = MaterialTheme.colorScheme.primary, inactiveTrackColor = MaterialTheme.colorScheme.outline)
+                        colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.outline, activeTrackColor = MaterialTheme.colorScheme.primary, inactiveTrackColor = MaterialTheme.colorScheme.outline)
                     )
 
                     if (valuation.isNotEmpty()) {
