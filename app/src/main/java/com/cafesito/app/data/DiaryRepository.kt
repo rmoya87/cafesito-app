@@ -329,9 +329,22 @@ class DiaryRepository @Inject constructor(
 
     suspend fun deletePantryItem(coffeeId: String) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
+        val localCoffee = coffeeDao.getCoffeeById(coffeeId)
+
         diaryDao.deletePantryItem(coffeeId, user.id)
+
+        if (localCoffee?.isCustom == true) {
+            coffeeDao.deleteCoffeeById(coffeeId)
+            coffeeDao.deleteCustomCoffeeById(coffeeId)
+        }
+
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deletePantryItem(coffeeId, user.id) } catch (e: Exception) { } }
+            externalScope.launch {
+                try { supabaseDataSource.deletePantryItem(coffeeId, user.id) } catch (e: Exception) { }
+                if (localCoffee?.isCustom == true) {
+                    try { supabaseDataSource.deleteCustomCoffee(coffeeId, user.id) } catch (e: Exception) { }
+                }
+            }
         }
     }
 }
