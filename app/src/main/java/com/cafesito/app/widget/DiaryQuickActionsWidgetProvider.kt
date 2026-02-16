@@ -39,26 +39,6 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        handleFilterAction(context, intent)
-    }
-
-    private fun handleFilterAction(context: Context, intent: Intent) {
-        val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
-
-        val period = when (intent.action) {
-            ACTION_FILTER_DAY -> WidgetPeriod.DAY
-            ACTION_FILTER_WEEK -> WidgetPeriod.WEEK
-            ACTION_FILTER_MONTH -> WidgetPeriod.MONTH
-            else -> return
-        }
-
-        WidgetDataStore.savePeriod(context, widgetId, period)
-        AppWidgetManager.getInstance(context).updateAppWidget(widgetId, buildViews(context, widgetId))
-    }
-
     companion object {
         private const val TAG = "DiaryWidget"
         private const val SLOT_COUNT = 7
@@ -170,19 +150,6 @@ class DiaryQuickActionsWidgetProvider : AppWidgetProvider() {
             return PendingIntent.getBroadcast(
                 context,
                 widgetId * 31 + action.hashCode(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-        }
-
-        private fun actionIntent(context: Context, widgetId: Int, action: String): PendingIntent {
-            val intent = Intent(context, DiaryQuickActionsWidgetProvider::class.java).apply {
-                this.action = action
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
-            }
-            return PendingIntent.getBroadcast(
-                context,
-                widgetId + action.hashCode(),
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
