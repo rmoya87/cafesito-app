@@ -1,14 +1,12 @@
 package com.cafesito.app.ui.timeline
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.cafesito.app.MainActivity
+import com.cafesito.app.notifications.NotificationChannels
 import com.cafesito.app.R
 
 object TimelineNotificationSystem {
@@ -23,15 +21,7 @@ object TimelineNotificationSystem {
     private const val NAV_TYPE_KEY = "nav_type"
 
     fun ensureChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Notificaciones Cafesito",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-            val manager = context.getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
-        }
+        NotificationChannels.ensureCreated(context)
     }
 
     fun buildPendingIntent(context: Context, notification: TimelineNotification): PendingIntent {
@@ -80,7 +70,8 @@ object TimelineNotificationSystem {
             is TimelineNotification.Mention -> notification.user.username to "te ha mencionado en un comentario"
             is TimelineNotification.Comment -> notification.user.username to notification.message
         }
-        return NotificationCompat.Builder(context, CHANNEL_ID)
+        val channelId = NotificationChannels.resolveChannel(notification.type)
+        return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(message)

@@ -1,5 +1,7 @@
 package com.cafesito.app.ui.diary
 
+import android.content.Intent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -14,21 +16,22 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cafesito.app.R
+import com.cafesito.app.camera.NativeBarcodeScannerActivity
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
-import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +59,17 @@ fun AddStockScreen(
     var selectedCoffeeId by remember { mutableStateOf<String?>(null) }
     var grams by remember { mutableStateOf("250") }
     var isSaving by remember { mutableStateOf(false) }
+    val nativeScannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val value = result.data?.getStringExtra(NativeBarcodeScannerActivity.EXTRA_BARCODE_VALUE)
+        if (!value.isNullOrBlank()) {
+            searchQuery = value
+            val found = coffees.find { it.coffee.codigoBarras == value }
+            if (found != null) selectedCoffeeId = found.coffee.id
+        }
+    }
+
 
     if (selectedCoffeeId != null) {
         ModalBottomSheet(
@@ -71,7 +85,7 @@ fun AddStockScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "AÑADIR STOCK", 
+                    text = stringResource(R.string.add_stock_title), 
                     style = MaterialTheme.typography.labelLarge, 
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
@@ -83,7 +97,7 @@ fun AddStockScreen(
                 OutlinedTextField(
                     value = grams,
                     onValueChange = { if (it.all { c -> c.isDigit() }) grams = it },
-                    label = { Text("Peso total (g)") },
+                    label = { Text(stringResource(R.string.add_stock_weight_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -116,7 +130,7 @@ fun AddStockScreen(
                     if (isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                     } else {
-                        Text("GUARDAR EN DESPENSA", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                        Text(stringResource(R.string.add_stock_save_button), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
@@ -127,7 +141,7 @@ fun AddStockScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
-                title = "SELECCIONAR",
+                title = stringResource(R.string.add_stock_select_title),
                 onBackClick = onBackClick,
                 actions = {
                     IconButton(onClick = onAddCustomClick) {
@@ -147,7 +161,7 @@ fun AddStockScreen(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Busca un café o marca") },
+                    placeholder = { Text(stringResource(R.string.add_stock_search_placeholder)) },
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -163,21 +177,7 @@ fun AddStockScreen(
                     trailingIcon = {
                         IconButton(
                             onClick = {
-                                val options = GmsBarcodeScannerOptions.Builder()
-                                    .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
-                                    .build()
-                                GmsBarcodeScanning.getClient(context, options)
-                                    .startScan()
-                                    .addOnSuccessListener { barcode ->
-                                        barcode.rawValue?.let { value ->
-                                            searchQuery = value
-                                            // Si hay match directo, seleccionamos
-                                            val found = coffees.find { it.coffee.codigoBarras == value }
-                                            if (found != null) {
-                                                selectedCoffeeId = found.coffee.id
-                                            }
-                                        }
-                                    }
+                                nativeScannerLauncher.launch(Intent(context, NativeBarcodeScannerActivity::class.java))
                             },
                             modifier = Modifier.padding(end = 12.dp)
                         ) {
@@ -190,7 +190,7 @@ fun AddStockScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            items(filteredSuggestions) { coffeeDetails ->
+            items(filteredSuggestions, key = { it.coffee.id }) { coffeeDetails ->
                 CoffeePremiumRowItem(coffeeDetails) { 
                     selectedCoffeeId = coffeeDetails.coffee.id 
                 }

@@ -5,6 +5,8 @@ package com.cafesito.app.ui.search
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -81,6 +83,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -111,16 +114,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
+import com.cafesito.app.camera.NativeBarcodeScannerActivity
 import com.cafesito.app.ui.components.PremiumCard
 import com.cafesito.app.ui.components.ShimmerItem
 import com.cafesito.app.ui.components.TagChip
 import com.cafesito.app.ui.theme.*
-import com.google.mlkit.vision.barcode.common.Barcode
 import com.cafesito.app.ui.components.toCoffeeBrandFormat
 import com.cafesito.app.ui.components.toCoffeeNameFormat
-import com.google.android.gms.common.api.CommonStatusCodes
-import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
-import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.absoluteValue
@@ -385,6 +385,15 @@ fun SearchScreen(
         )
     }
 
+    val nativeScannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val value = result.data?.getStringExtra(NativeBarcodeScannerActivity.EXTRA_BARCODE_VALUE)
+        if (!value.isNullOrBlank()) {
+            viewModel.onBarcodeScanned(value, onCoffeeClick)
+        }
+    }
+
     val availableFilters = remember(filterOptions, currentFilterCounts) {
         listOfNotNull(
             if (filterOptions.origins.isNotEmpty() || (currentFilterCounts["País"] ?: 0) > 0) "País" else null,
@@ -417,21 +426,7 @@ fun SearchScreen(
                 },
                 onBarcodeClick = {
                     context.findActivity()?.let { activity ->
-                        val options = GmsBarcodeScannerOptions.Builder()
-                            .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
-                            .build()
-                        GmsBarcodeScanning.getClient(activity, options)
-                            .startScan()
-                            .addOnSuccessListener { barcode ->
-                                barcode.rawValue?.let { value ->
-                                    viewModel.onBarcodeScanned(value, onCoffeeClick)
-                                }
-                            }
-                            .addOnFailureListener { error ->
-                                if ((error as? com.google.android.gms.common.api.ApiException)?.statusCode != CommonStatusCodes.CANCELED) {
-                                    // Sin UX adicional: mantenemos comportamiento silencioso para no romper flujo.
-                                }
-                            }
+                        nativeScannerLauncher.launch(Intent(activity, NativeBarcodeScannerActivity::class.java))
                     }
                 },
                 scrollBehavior = actualScrollBehavior,

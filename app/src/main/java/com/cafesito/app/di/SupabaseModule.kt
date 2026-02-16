@@ -17,6 +17,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.serialization.json.Json
+import com.cafesito.app.BuildConfig
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,8 +28,8 @@ object SupabaseModule {
     @Singleton
     fun provideSupabaseClient(): SupabaseClient {
         return createSupabaseClient(
-            supabaseUrl = "https://ubcxjmagimjhpsehqync.supabase.co",
-            supabaseKey = "sb_publishable_M2cY8wb50_I_pfnv_ZcukA_AIvnk66z"
+            supabaseUrl = BuildConfig.SUPABASE_URL,
+            supabaseKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY
         ) {
             install(Postgrest)
             install(Auth) {

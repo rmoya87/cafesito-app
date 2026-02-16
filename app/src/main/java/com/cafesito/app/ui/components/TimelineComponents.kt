@@ -154,7 +154,7 @@ fun CommentsSheet(
                     state = listState,
                     contentPadding = PaddingValues(bottom = 12.dp, top = 8.dp)
                 ) {
-                    items(comments) { item ->
+                    items(comments, key = { it.comment.id }) { item ->
                         CommentRow(
                             commentWithAuthor = item,
                             isOwnComment = item.author?.id == activeUser?.id,
@@ -234,7 +234,7 @@ fun CommentsSheet(
                                 FadingLazyRow(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
-                                    items(suggestions) { user ->
+                                    items(suggestions, key = { it.id }) { user ->
                                         SuggestionChip(user = user) {
                                             val updated = insertOrReplaceMentionToken(textValue.text, user.username)
                                             textValue = TextFieldValue(updated, selection = TextRange(updated.length))
@@ -1001,7 +1001,7 @@ fun DiaryEntryEditBottomSheet(
                     fontWeight = FontWeight.SemiBold
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(preparationOptions) { option ->
+                    items(preparationOptions, key = { it }) { option ->
                         val isSelected = selectedPreparation == option.label
                         Surface(
                             onClick = { selectedPreparation = option.label },
@@ -1072,7 +1072,7 @@ fun DiaryEntryEditBottomSheet(
                     fontWeight = FontWeight.SemiBold
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(sizeOptions) { option ->
+                    items(sizeOptions, key = { it }) { option ->
                         val isSelected = selectedSize == option.label
                         Surface(
                             onClick = { selectedSize = option.label },

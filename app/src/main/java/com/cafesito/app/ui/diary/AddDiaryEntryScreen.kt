@@ -382,7 +382,7 @@ fun CoffeeSelectionStepPremium(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(pantryItems) { item ->
+                    items(pantryItems, key = { it.id }) { item ->
                         PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
                     }
                 }
@@ -440,7 +440,7 @@ fun CoffeeSelectionStepPremium(
             Spacer(Modifier.height(16.dp))
         }
 
-        items(filteredCatalog) { coffee ->
+        items(filteredCatalog, key = { it.coffee.id }) { coffee ->
             CoffeePremiumRowItem(coffee) { onCoffeeSelected(coffee.coffee, false) }
             Spacer(Modifier.height(12.dp))
         }
@@ -546,7 +546,7 @@ fun CoffeeTypeStepPremium(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(prepTypes) { option ->
+        items(prepTypes, key = { it.drawableName }) { option ->
             val isSelected = selectedType == option.label
             val resId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
             Surface(
