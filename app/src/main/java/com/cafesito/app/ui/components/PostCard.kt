@@ -6,16 +6,31 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,6 +40,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.utils.formatRelativeTime
 import com.cafesito.app.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,9 +186,10 @@ fun PostCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     InteractionItem(
-                        icon = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        icon = if (isLiked) Icons.Filled.LocalCafe else Icons.Outlined.LocalCafe,
                         count = details.likes.size,
                         color = if (isLiked) ElectricRed else postTextColor,
+                        type = InteractionType.FAVORITE,
                         onClick = onLikeClick
                     )
                     
@@ -182,6 +199,7 @@ fun PostCard(
                         icon = Icons.Outlined.ChatBubbleOutline,
                         count = details.comments.size,
                         color = postTextColor,
+                        type = InteractionType.COMMENT,
                         onClick = onCommentClick
                     )
 
@@ -202,21 +220,106 @@ private fun InteractionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     count: Int,
     color: androidx.compose.ui.graphics.Color,
+    type: InteractionType,
     onClick: () -> Unit
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
-        if (count > 0) {
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
+    val iconScale = remember { Animatable(1f) }
+    val iconRotation = remember { Animatable(0f) }
+    val iconGlow = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    val onInteractionClick = {
+        scope.launch {
+            iconScale.animateTo(
+                targetValue = 1f,
+                animationSpec = keyframes {
+                    durationMillis = 520
+                    1.34f at 120
+                    0.9f at 260
+                    1.12f at 380
+                    1f at 520
+                }
             )
         }
+        scope.launch {
+            val target = if (type == InteractionType.FAVORITE) 22f else 14f
+            iconRotation.animateTo(
+                targetValue = 0f,
+                animationSpec = keyframes {
+                    durationMillis = 420
+                    -target at 100
+                    target * 0.7f at 190
+                    -target * 0.4f at 290
+                    0f at 420
+                }
+            )
+        }
+        scope.launch {
+            iconGlow.snapTo(0f)
+            iconGlow.animateTo(1f, animationSpec = tween(180, easing = FastOutSlowInEasing))
+            iconGlow.animateTo(0f, animationSpec = tween(360, easing = FastOutSlowInEasing))
+        }
+        onClick()
     }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable(onClick = onInteractionClick)
+    ) {
+        Icon(
+            icon,
+            null,
+            tint = color,
+            modifier = Modifier
+                .size(24.dp)
+                .graphicsLayer {
+                    scaleX = iconScale.value
+                    scaleY = iconScale.value
+                    rotationZ = iconRotation.value
+                    shadowElevation = 20f * iconGlow.value
+                    alpha = 0.82f + (0.18f * iconGlow.value)
+                }
+        )
+        if (count > 0) {
+            Spacer(Modifier.width(6.dp))
+            AnimatedContent(
+                targetState = count,
+                transitionSpec = {
+                    val enter = if (targetState > initialState) {
+                        slideInVertically(animationSpec = tween(240)) { it } +
+                            fadeIn(tween(180)) +
+                            scaleIn(initialScale = 0.72f, animationSpec = spring(dampingRatio = 0.65f, stiffness = 520f))
+                    } else {
+                        slideInVertically(animationSpec = tween(240)) { -it } +
+                            fadeIn(tween(180)) +
+                            scaleIn(initialScale = 0.72f, animationSpec = spring(dampingRatio = 0.65f, stiffness = 520f))
+                    }
+                    val exit = if (targetState > initialState) {
+                        slideOutVertically(animationSpec = tween(240)) { -it } +
+                            fadeOut(tween(180)) +
+                            scaleOut(targetScale = 1.28f, animationSpec = tween(220))
+                    } else {
+                        slideOutVertically(animationSpec = tween(240)) { it } +
+                            fadeOut(tween(180)) +
+                            scaleOut(targetScale = 1.28f, animationSpec = tween(220))
+                    }
+                    enter togetherWith exit using SizeTransform(clip = false)
+                },
+                label = "interactionCount"
+            ) { animatedCount ->
+                Text(
+                    text = animatedCount.toString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    modifier = Modifier.clickable(onClick = onInteractionClick)
+                )
+            }
+        }
+    }
+}
+
+private enum class InteractionType {
+    FAVORITE,
+    COMMENT
 }

@@ -467,11 +467,11 @@ fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
             .fillMaxWidth(0.7f)
             .height(48.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isFollowing) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
-            contentColor = if (isFollowing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+            containerColor = if (isFollowing) Color.White else MaterialTheme.colorScheme.primary,
+            contentColor = if (isFollowing) Color.Black else MaterialTheme.colorScheme.onPrimary
         ),
         shape = RoundedCornerShape(24.dp),
-        border = if (isFollowing) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null
+        border = if (isFollowing) BorderStroke(1.dp, Color.Black) else null
     ) {
         Text(if (isFollowing) "SIGUIENDO" else "SEGUIR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     }
