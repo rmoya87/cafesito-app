@@ -6,6 +6,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -16,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,6 +35,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.utils.formatRelativeTime
 import com.cafesito.app.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,9 +181,10 @@ fun PostCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     InteractionItem(
-                        icon = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        icon = if (isLiked) Icons.Filled.LocalCafe else Icons.Outlined.FavoriteBorder,
                         count = details.likes.size,
                         color = if (isLiked) ElectricRed else postTextColor,
+                        type = InteractionType.FAVORITE,
                         onClick = onLikeClick
                     )
                     
@@ -182,6 +194,7 @@ fun PostCard(
                         icon = Icons.Outlined.ChatBubbleOutline,
                         count = details.comments.size,
                         color = postTextColor,
+                        type = InteractionType.COMMENT,
                         onClick = onCommentClick
                     )
 
@@ -202,21 +215,70 @@ private fun InteractionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     count: Int,
     color: androidx.compose.ui.graphics.Color,
+    type: InteractionType,
     onClick: () -> Unit
 ) {
+    val iconScale = remember { Animatable(1f) }
+    val iconRotation = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    val onInteractionClick = {
+        scope.launch {
+            iconScale.animateTo(1.24f, animationSpec = tween(180, easing = FastOutSlowInEasing))
+            iconScale.animateTo(1f, animationSpec = tween(220, easing = FastOutSlowInEasing))
+        }
+        scope.launch {
+            val target = if (type == InteractionType.FAVORITE) 22f else 14f
+            iconRotation.animateTo(target, animationSpec = tween(180, easing = FastOutSlowInEasing))
+            iconRotation.animateTo(0f, animationSpec = tween(240, easing = FastOutSlowInEasing))
+        }
+        onClick()
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier.clickable(onClick = onInteractionClick)
     ) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+        Icon(
+            icon,
+            null,
+            tint = color,
+            modifier = Modifier
+                .size(24.dp)
+                .graphicsLayer {
+                    scaleX = iconScale.value
+                    scaleY = iconScale.value
+                    rotationZ = iconRotation.value
+                }
+        )
         if (count > 0) {
             Spacer(Modifier.width(6.dp))
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
+            AnimatedContent(
+                targetState = count,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        slideInVertically(animationSpec = tween(240)) { it } + fadeIn(tween(180)) togetherWith
+                            slideOutVertically(animationSpec = tween(240)) { -it } + fadeOut(tween(180))
+                    } else {
+                        slideInVertically(animationSpec = tween(240)) { -it } + fadeIn(tween(180)) togetherWith
+                            slideOutVertically(animationSpec = tween(240)) { it } + fadeOut(tween(180))
+                    }
+                },
+                label = "interactionCount"
+            ) { animatedCount ->
+                Text(
+                    text = animatedCount.toString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    modifier = Modifier.clickable(onClick = onInteractionClick)
+                )
+            }
         }
     }
+}
+
+private enum class InteractionType {
+    FAVORITE,
+    COMMENT
 }
