@@ -478,8 +478,8 @@ fun NotificationsBottomSheet(
                             is TimelineNotification.Follow -> {
                                 NotificationRow(
                                     avatarUrl = notification.user.avatarUrl,
-                                    title = "${notification.user.fullName} empezó a seguirte.",
-                                    subtitle = "@${notification.user.username}",
+                                    title = "@${notification.user.username}",
+                                    subtitle = "ha comenzado a seguirte",
                                     isUnread = isUnread,
                                     trailingContent = {
                                         val isFollowing = followingIds.contains(notification.user.id)
@@ -514,11 +514,10 @@ fun NotificationsBottomSheet(
                                 )
                             }
                             is TimelineNotification.Mention -> {
-                                val preview = notification.commentText.replace("\n", " ").take(80)
                                 NotificationRow(
                                     avatarUrl = notification.user.avatarUrl,
-                                    title = "${notification.user.fullName} te mencionó en un comentario.",
-                                    subtitle = preview,
+                                    title = "@${notification.user.username}",
+                                    subtitle = "Te han mencionado.",
                                     isUnread = isUnread,
                                     trailingContent = null,
                                     onClick = { onNotificationClick(notification) }
@@ -527,8 +526,8 @@ fun NotificationsBottomSheet(
                             is TimelineNotification.Comment -> {
                                 NotificationRow(
                                     avatarUrl = notification.user.avatarUrl,
-                                    title = notification.user.fullName,
-                                    subtitle = notification.message,
+                                    title = "@${notification.user.username}",
+                                    subtitle = "Te ha escrito en un post",
                                     isUnread = isUnread,
                                     trailingContent = null,
                                     onClick = { onNotificationClick(notification) }
