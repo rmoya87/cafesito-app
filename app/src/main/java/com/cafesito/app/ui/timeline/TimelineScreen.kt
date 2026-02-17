@@ -176,21 +176,10 @@ fun TimelineScreen(
                     IconButton(onClick = onNotificationsClick) {
                         BadgedBox(
                             badge = {
-                                AnimatedVisibility(
+                                TimelineNotificationBadge(
                                     visible = hasUnread,
-                                    enter = fadeIn(tween(100)),
-                                    exit = fadeOut(tween(100))
-                                ) {
-                                    Badge(
-                                        containerColor = ElectricRed,
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .graphicsLayer {
-                                                scaleX = badgeScale.value
-                                                scaleY = badgeScale.value
-                                            }
-                                    ) {}
-                                }
+                                    scale = badgeScale.value
+                                )
                             }
                         ) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", modifier = Modifier.size(24.dp))
@@ -498,5 +487,27 @@ fun TimelineScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun TimelineNotificationBadge(
+    visible: Boolean,
+    scale: Float
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(100)),
+        exit = fadeOut(tween(100))
+    ) {
+        Badge(
+            containerColor = ElectricRed,
+            modifier = Modifier
+                .size(10.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+        ) {}
     }
 }
