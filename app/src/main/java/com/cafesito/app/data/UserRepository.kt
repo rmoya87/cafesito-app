@@ -274,19 +274,28 @@ class UserRepository @Inject constructor(
 
     suspend fun markNotificationRead(notificationId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.markNotificationRead(notificationId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.markNotificationRead(notificationId)
+            } catch (_: Exception) {
+            }
         }
     }
 
     suspend fun markAllNotificationsRead(userId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.markAllNotificationsRead(userId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.markAllNotificationsRead(userId)
+            } catch (_: Exception) {
+            }
         }
     }
 
     suspend fun deleteNotification(notificationId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deleteNotification(notificationId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.deleteNotification(notificationId)
+            } catch (_: Exception) {
+            }
         }
     }
 

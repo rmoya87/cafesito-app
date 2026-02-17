@@ -72,6 +72,19 @@ begin
             for update
             using (auth.uid()::text = user_id::text);
     end if;
+
+    if not exists (
+        select 1
+        from pg_policies
+        where schemaname = 'public'
+          and tablename = 'notifications_db'
+          and policyname = 'Notifications are deletable by owner'
+    ) then
+        create policy "Notifications are deletable by owner"
+            on public.notifications_db
+            for delete
+            using (auth.uid()::text = user_id::text);
+    end if;
 end $$;
 
 -- ==========================================================
@@ -174,3 +187,12 @@ grant execute on function public.get_notifications_for_user(bigint) to authentic
 grant execute on function public.mark_notification_read(bigint) to authenticated;
 grant execute on function public.mark_all_notifications_read(bigint) to authenticated;
 grant execute on function public.delete_notification(bigint) to authenticated;
+
+
+-- ==========================================================
+-- Endurecimiento recomendado (opcional):
+-- restringe acceso directo de tablas y fuerza uso de RLS/RPC.
+-- ==========================================================
+revoke all on table public.notifications_db from anon;
+revoke all on table public.notifications_db from authenticated;
+grant select, insert, update, delete on table public.notifications_db to authenticated;
