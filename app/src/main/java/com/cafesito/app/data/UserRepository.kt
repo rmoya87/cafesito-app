@@ -245,16 +245,20 @@ class UserRepository @Inject constructor(
                     val followerUser = userDao.getUserById(followerId)
                     val fromUsername = followerUser?.username
                     if (!fromUsername.isNullOrBlank()) {
-                        supabaseDataSource.insertNotification(
-                            NotificationEntity(
-                                userId = targetId,
-                                type = "FOLLOW",
-                                fromUsername = fromUsername,
-                                message = "",
-                                timestamp = System.currentTimeMillis(),
-                                relatedId = followerId.toString()
+                        try {
+                            supabaseDataSource.insertNotification(
+                                NotificationEntity(
+                                    userId = targetId,
+                                    type = "FOLLOW",
+                                    fromUsername = fromUsername,
+                                    message = "",
+                                    timestamp = System.currentTimeMillis(),
+                                    relatedId = followerId.toString()
+                                )
                             )
-                        )
+                        } catch (e: Exception) {
+                            Log.e("UserRepository", "Follow persisted but follow-notification failed", e)
+                        }
                     }
                 }
             }

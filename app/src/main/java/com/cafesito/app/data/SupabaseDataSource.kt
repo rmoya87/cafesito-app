@@ -384,7 +384,6 @@ class SupabaseDataSource @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
-                throw e
             }
         }
     }
