@@ -149,12 +149,12 @@ private fun NotificationItemRow(
         is TimelineNotification.Mention -> Triple(
             notification.user.avatarUrl,
             "@${notification.user.username}",
-            "Te han mencionado."
+            "te ha mencionado en una publicación"
         )
         is TimelineNotification.Comment -> Triple(
             notification.user.avatarUrl,
             "@${notification.user.username}",
-            "Te ha escrito en un post"
+            "ha comentado en tu publicación"
         )
     }
 
@@ -191,10 +191,10 @@ private fun NotificationItemRow(
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             
+            Spacer(Modifier.width(8.dp))
+
             when (notification) {
                 is TimelineNotification.Follow -> {
-                    Spacer(Modifier.width(12.dp))
-
                     if (isFollowing) {
                         OutlinedButton(
                             onClick = { onFollowToggle(notification.user.id) },
@@ -227,24 +227,17 @@ private fun NotificationItemRow(
 
                 is TimelineNotification.Comment,
                 is TimelineNotification.Mention -> {
-                    Spacer(Modifier.width(10.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(
-                            onClick = { onReplyToNotification(notification) },
-                            modifier = Modifier.height(30.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp)
-                        ) {
-                            Text("RESPONDER", fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                        }
-                        Button(
-                            onClick = { onSavePostFromNotification(notification) },
-                            modifier = Modifier.height(30.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp)
-                        ) {
-                            Text("GUARDAR", fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                        }
+                    Button(
+                        onClick = { onReplyToNotification(notification) },
+                        modifier = Modifier.height(32.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Black,
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp)
+                    ) {
+                        Text("RESPONDER", fontWeight = FontWeight.Bold, fontSize = 10.sp)
                     }
                 }
             }

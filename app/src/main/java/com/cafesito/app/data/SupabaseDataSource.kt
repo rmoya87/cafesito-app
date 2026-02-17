@@ -30,11 +30,6 @@ class SupabaseDataSource @Inject constructor(
         @kotlinx.serialization.SerialName("is_read") val isRead: Boolean = false,
         @kotlinx.serialization.SerialName("related_id") val relatedId: String? = null
     )
-    @kotlinx.serialization.Serializable
-    private data class UserTokenUpsert(
-        @kotlinx.serialization.SerialName("user_id") val userId: Int,
-        @kotlinx.serialization.SerialName("fcm_token") val fcmToken: String
-    )
     // --- STORAGE ---
     suspend fun uploadImage(bucket: String, path: String, byteArray: ByteArray): String {
         val bucketRef = client.storage.from(bucket)
@@ -73,16 +68,11 @@ class SupabaseDataSource @Inject constructor(
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
     suspend fun insertUserToken(token: UserTokenEntity) { 
-        val payload = UserTokenUpsert(userId = token.userId, fcmToken = token.fcmToken)
         try {
-            client.postgrest["user_fcm_tokens"].upsert(payload, onConflict = "fcm_token")
-        } catch (firstError: Exception) {
-            Log.w("SupabaseDataSource", "FCM upsert by fcm_token failed, trying user_id: ${firstError.message}")
-            try {
-                client.postgrest["user_fcm_tokens"].upsert(payload, onConflict = "user_id")
-            } catch (e: Exception) {
-                Log.e("SupabaseDataSource", "Error inserting FCM token: ${e.message}")
-            }
+            // Versión compatible con el SDK actual de Supabase KT para evitar duplicados
+            client.postgrest["user_fcm_tokens"].upsert(token)
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error inserting FCM token: ${e.message}")
         }
     }
 
@@ -370,11 +360,11 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "create_notification",
                 buildJsonObject {
-                    put("p_user_id", notification.userId.toLong())
+                    put("p_user_id", notification.userId)
                     put("p_type", notification.type)
                     put("p_from_username", notification.fromUsername)
                     put("p_message", notification.message)
-                    put("p_timestamp", notification.timestamp.toLong())
+                    put("p_timestamp", notification.timestamp)
                     notification.relatedId?.let { put("p_related_id", it) }
                 }
             )
@@ -394,6 +384,7 @@ class SupabaseDataSource @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+                throw e
             }
         }
     }
@@ -403,7 +394,7 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "get_notifications_for_user",
                 buildJsonObject {
-                    put("p_user_id", userId.toLong())
+                    put("p_user_id", userId)
                 }
             ).decodeList()
         } catch (rpcError: Exception) {
@@ -425,7 +416,7 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "mark_notification_read",
                 buildJsonObject {
-                    put("p_notification_id", notificationId.toLong())
+                    put("p_notification_id", notificationId)
                 }
             )
         } catch (rpcError: Exception) {
@@ -447,7 +438,7 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "mark_all_notifications_read",
                 buildJsonObject {
-                    put("p_user_id", userId.toLong())
+                    put("p_user_id", userId)
                 }
             )
         } catch (rpcError: Exception) {
@@ -469,7 +460,7 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "delete_notification",
                 buildJsonObject {
-                    put("p_notification_id", notificationId.toLong())
+                    put("p_notification_id", notificationId)
                 }
             )
         } catch (rpcError: Exception) {
