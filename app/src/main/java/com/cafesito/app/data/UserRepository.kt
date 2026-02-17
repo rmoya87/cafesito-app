@@ -3,11 +3,10 @@ package com.cafesito.app.data
 import android.util.Log
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.gotrue.SessionStatus
+import io.github.jan.supabase.exceptions.UnauthorizedRestException
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -50,7 +49,7 @@ class UserRepository @Inject constructor(
                             .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
                     }
                 },
-                fetch = { supabaseDataSource.getAllFollows() },
+                fetch = { getAllFollowsWithAuthRetry() },
                 saveFetchResult = { follows ->
                     withContext(Dispatchers.IO) { userDao.insertFollows(follows) }
                 },
@@ -232,19 +231,21 @@ class UserRepository @Inject constructor(
     suspend fun toggleFollow(followerId: Int, targetId: Int) = withContext(Dispatchers.IO) {
         val follow = FollowEntity(followerId, targetId)
         val isFollowing = userDao.getAllFollows().first().any { it.followerId == followerId && it.followedId == targetId }
-        
+
         if (isFollowing) userDao.deleteFollow(follow) else userDao.insertFollow(follow)
 
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try {
-                    if (isFollowing) {
-                        supabaseDataSource.deleteFollow(followerId, targetId)
-                    } else {
-                        supabaseDataSource.insertFollow(follow)
-                        if (followerId != targetId) {
-                            val followerUser = userDao.getUserById(followerId)
-                            val fromUsername = followerUser?.username ?: return@launch
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext
+
+        val remoteCall: suspend () -> Unit = {
+            if (isFollowing) {
+                supabaseDataSource.deleteFollow(followerId, targetId)
+            } else {
+                supabaseDataSource.insertFollow(follow)
+                if (followerId != targetId) {
+                    val followerUser = userDao.getUserById(followerId)
+                    val fromUsername = followerUser?.username
+                    if (!fromUsername.isNullOrBlank()) {
+                        try {
                             supabaseDataSource.insertNotification(
                                 NotificationEntity(
                                     userId = targetId,
@@ -255,10 +256,32 @@ class UserRepository @Inject constructor(
                                     relatedId = followerId.toString()
                                 )
                             )
+                        } catch (e: Exception) {
+                            Log.e("UserRepository", "Follow persisted but follow-notification failed", e)
                         }
                     }
-                } catch (e: Exception) { }
+                }
             }
+        }
+
+        try {
+            remoteCall()
+        } catch (e: UnauthorizedRestException) {
+            Log.w("UserRepository", "toggleFollow unauthorized, trying one auth refresh and retry", e)
+            refreshAuthSession()
+            try {
+                remoteCall()
+            } catch (retryError: Exception) {
+                if (isFollowing) userDao.insertFollow(follow) else userDao.deleteFollow(follow)
+                triggerRefresh()
+                Log.e("UserRepository", "toggleFollow failed after auth refresh", retryError)
+                throw retryError
+            }
+        } catch (e: Exception) {
+            if (isFollowing) userDao.insertFollow(follow) else userDao.deleteFollow(follow)
+            triggerRefresh()
+            Log.e("UserRepository", "toggleFollow remote sync failed", e)
+            throw e
         }
     }
 
@@ -268,25 +291,53 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun syncFollows() {
-        val follows = supabaseDataSource.getAllFollows()
+        val follows = getAllFollowsWithAuthRetry()
         userDao.insertFollows(follows)
+    }
+
+    private suspend fun getAllFollowsWithAuthRetry(): List<FollowEntity> {
+        return try {
+            supabaseDataSource.getAllFollows()
+        } catch (e: UnauthorizedRestException) {
+            Log.w("UserRepository", "getAllFollows unauthorized, trying one auth refresh and retry", e)
+            refreshAuthSession()
+            supabaseDataSource.getAllFollows()
+        }
+    }
+
+    private suspend fun refreshAuthSession() {
+        try {
+            supabaseClient.auth.refreshCurrentSession()
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Auth refresh failed, forcing re-login", e)
+            throw e
+        }
     }
 
     suspend fun markNotificationRead(notificationId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.markNotificationRead(notificationId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.markNotificationRead(notificationId)
+            } catch (_: Exception) {
+            }
         }
     }
 
     suspend fun markAllNotificationsRead(userId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.markAllNotificationsRead(userId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.markAllNotificationsRead(userId)
+            } catch (_: Exception) {
+            }
         }
     }
 
     suspend fun deleteNotification(notificationId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deleteNotification(notificationId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.deleteNotification(notificationId)
+            } catch (_: Exception) {
+            }
         }
     }
 
