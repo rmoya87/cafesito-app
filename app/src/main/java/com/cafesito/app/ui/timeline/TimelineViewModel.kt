@@ -507,7 +507,11 @@ class TimelineViewModel @Inject constructor(
     fun toggleFollowSuggestion(userId: Int) {
         viewModelScope.launch {
             val me = userRepository.getActiveUser() ?: return@launch
-            userRepository.toggleFollow(me.id, userId)
+            try {
+                userRepository.toggleFollow(me.id, userId)
+            } catch (e: Exception) {
+                Log.e("TimelineVM", "toggleFollowSuggestion failed", e)
+            }
         }
     }
 
