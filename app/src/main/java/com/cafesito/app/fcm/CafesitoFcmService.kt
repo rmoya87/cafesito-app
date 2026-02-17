@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.cafesito.app.MainActivity
@@ -21,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class CafesitoFcmService : FirebaseMessagingService() {
 
@@ -52,8 +54,11 @@ class CafesitoFcmService : FirebaseMessagingService() {
         super.onMessageReceived(message)
 
         // Manejar tanto notificaciones automáticas de Firebase como 'data payload'
-        val title = message.notification?.title ?: message.data["title"] ?: "Cafesito"
-        val body = message.notification?.body ?: message.data["body"] ?: ""
+        val rawTitle = message.notification?.title ?: message.data["title"] ?: "Cafesito"
+        val rawBody = message.notification?.body ?: message.data["body"] ?: ""
+
+        val title = rawTitle.capitalizedFirst()
+        val body = rawBody.capitalizedFirst()
 
         showNotification(title, body, message)
     }
@@ -110,7 +115,8 @@ class CafesitoFcmService : FirebaseMessagingService() {
         )
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(com.cafesito.app.R.drawable.ic_launcher_foreground)
+            .setSmallIcon(com.cafesito.app.R.drawable.ic_notification_small)
+            .setLargeIcon(BitmapFactory.decodeResource(resources, com.cafesito.app.R.mipmap.ic_launcher))
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -158,6 +164,15 @@ class CafesitoFcmService : FirebaseMessagingService() {
 
         notificationManager.notify(notificationId, notificationBuilder.build())
     }
+
+    private fun String.capitalizedFirst(): String {
+        val trimmed = trim()
+        if (trimmed.isEmpty()) return trimmed
+        return trimmed.replaceFirstChar { first ->
+            if (first.isLowerCase()) first.titlecase(Locale.getDefault()) else first.toString()
+        }
+    }
+
 
     private fun buildActionPendingIntent(
         requestCode: Int,
