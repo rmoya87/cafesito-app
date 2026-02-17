@@ -72,6 +72,19 @@ begin
             for update
             using (auth.uid()::text = user_id::text);
     end if;
+
+    if not exists (
+        select 1
+        from pg_policies
+        where schemaname = 'public'
+          and tablename = 'notifications_db'
+          and policyname = 'Notifications are deletable by owner'
+    ) then
+        create policy "Notifications are deletable by owner"
+            on public.notifications_db
+            for delete
+            using (auth.uid()::text = user_id::text);
+    end if;
 end $$;
 
 -- ==========================================================
@@ -174,3 +187,37 @@ grant execute on function public.get_notifications_for_user(bigint) to authentic
 grant execute on function public.mark_notification_read(bigint) to authenticated;
 grant execute on function public.mark_all_notifications_read(bigint) to authenticated;
 grant execute on function public.delete_notification(bigint) to authenticated;
+
+
+-- ==========================================================
+-- Endurecimiento recomendado (opcional):
+-- restringe acceso directo de tablas y fuerza uso de RLS/RPC.
+-- ==========================================================
+revoke all on table public.notifications_db from anon;
+revoke all on table public.notifications_db from authenticated;
+grant select, insert, update, delete on table public.notifications_db to authenticated;
+
+
+-- ==========================================================
+-- FIXES recomendados para incidencias en producción
+-- ==========================================================
+-- 1) Evitar ambigüedad de RPC create_notification por sobrecarga
+--    (integer vs bigint). Conservamos la versión bigint.
+drop function if exists public.create_notification(integer, text, text, text, bigint, text);
+
+-- 2) Si no tienes pg_net disponible, desactiva trigger de push en DB
+--    para que no bloquee inserts en notifications_db.
+--    (El push puede mantenerse vía Edge Functions / backend separado).
+do $$
+begin
+    if not exists (select 1 from pg_extension where extname = 'pg_net') then
+        drop trigger if exists notify_fcm_on_notification_insert on public.notifications_db;
+    end if;
+end $$;
+
+
+-- 3) Garantizar claves únicas para upsert de tokens FCM
+create unique index if not exists idx_user_fcm_tokens_token_unique
+    on public.user_fcm_tokens (fcm_token);
+create unique index if not exists idx_user_fcm_tokens_user_unique
+    on public.user_fcm_tokens (user_id);

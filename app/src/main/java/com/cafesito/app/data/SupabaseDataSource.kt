@@ -20,6 +20,21 @@ import android.util.Log
 class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
+    @kotlinx.serialization.Serializable
+    private data class NotificationInsert(
+        @kotlinx.serialization.SerialName("user_id") val userId: Int,
+        val type: String,
+        @kotlinx.serialization.SerialName("from_username") val fromUsername: String,
+        val message: String,
+        val timestamp: Long,
+        @kotlinx.serialization.SerialName("is_read") val isRead: Boolean = false,
+        @kotlinx.serialization.SerialName("related_id") val relatedId: String? = null
+    )
+    @kotlinx.serialization.Serializable
+    private data class UserTokenUpsert(
+        @kotlinx.serialization.SerialName("user_id") val userId: Int,
+        @kotlinx.serialization.SerialName("fcm_token") val fcmToken: String
+    )
     // --- STORAGE ---
     suspend fun uploadImage(bucket: String, path: String, byteArray: ByteArray): String {
         val bucketRef = client.storage.from(bucket)
@@ -58,11 +73,16 @@ class SupabaseDataSource @Inject constructor(
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
     suspend fun insertUserToken(token: UserTokenEntity) { 
+        val payload = UserTokenUpsert(userId = token.userId, fcmToken = token.fcmToken)
         try {
-            // Sintaxis correcta para Supabase KT 2.6.x: onConflict se pasa como parámetro
-            client.postgrest["user_fcm_tokens"].upsert(token, onConflict = "fcm_token")
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error inserting FCM token: ${e.message}")
+            client.postgrest["user_fcm_tokens"].upsert(payload, onConflict = "fcm_token")
+        } catch (firstError: Exception) {
+            Log.w("SupabaseDataSource", "FCM upsert by fcm_token failed, trying user_id: ${firstError.message}")
+            try {
+                client.postgrest["user_fcm_tokens"].upsert(payload, onConflict = "user_id")
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error inserting FCM token: ${e.message}")
+            }
         }
     }
 
@@ -350,16 +370,31 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "create_notification",
                 buildJsonObject {
-                    put("p_user_id", notification.userId)
+                    put("p_user_id", notification.userId.toLong())
                     put("p_type", notification.type)
                     put("p_from_username", notification.fromUsername)
                     put("p_message", notification.message)
-                    put("p_timestamp", notification.timestamp)
+                    put("p_timestamp", notification.timestamp.toLong())
                     notification.relatedId?.let { put("p_related_id", it) }
                 }
             )
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC create_notification unavailable, falling back to direct insert: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].insert(
+                    NotificationInsert(
+                        userId = notification.userId,
+                        type = notification.type,
+                        fromUsername = notification.fromUsername,
+                        message = notification.message,
+                        timestamp = notification.timestamp,
+                        isRead = notification.isRead,
+                        relatedId = notification.relatedId
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+            }
         }
     }
 
@@ -368,12 +403,20 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "get_notifications_for_user",
                 buildJsonObject {
-                    put("p_user_id", userId)
+                    put("p_user_id", userId.toLong())
                 }
             ).decodeList()
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error fetching notifications: ${e.message}")
-            emptyList()
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC get_notifications_for_user unavailable, falling back to direct query: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].select {
+                    filter { eq("user_id", userId) }
+                    order("timestamp", Order.DESCENDING)
+                }.decodeList<NotificationEntity>()
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error fetching notifications: ${e.message}")
+                emptyList()
+            }
         }
     }
 
@@ -382,11 +425,20 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "mark_notification_read",
                 buildJsonObject {
-                    put("p_notification_id", notificationId)
+                    put("p_notification_id", notificationId.toLong())
                 }
             )
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error marking read: ${e.message}")
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC mark_notification_read unavailable, falling back to direct update: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].update({
+                    set("is_read", true)
+                }) {
+                    filter { eq("id", notificationId) }
+                }
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error marking read: ${e.message}")
+            }
         }
     }
 
@@ -395,11 +447,20 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "mark_all_notifications_read",
                 buildJsonObject {
-                    put("p_user_id", userId)
+                    put("p_user_id", userId.toLong())
                 }
             )
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC mark_all_notifications_read unavailable, falling back to direct update: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].update({
+                    set("is_read", true)
+                }) {
+                    filter { eq("user_id", userId) }
+                }
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")
+            }
         }
     }
 
@@ -408,11 +469,18 @@ class SupabaseDataSource @Inject constructor(
             client.postgrest.rpc(
                 "delete_notification",
                 buildJsonObject {
-                    put("p_notification_id", notificationId)
+                    put("p_notification_id", notificationId.toLong())
                 }
             )
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error deleting notification: ${e.message}")
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC delete_notification unavailable, falling back to direct delete: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].delete {
+                    filter { eq("id", notificationId) }
+                }
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error deleting notification: ${e.message}")
+            }
         }
     }
 }
