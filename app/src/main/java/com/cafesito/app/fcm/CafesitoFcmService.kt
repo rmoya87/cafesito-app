@@ -4,29 +4,61 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.cafesito.app.MainActivity
+import com.cafesito.app.data.UserRepository
 import com.cafesito.app.notifications.NotificationActionReceiver
 import com.cafesito.app.notifications.NotificationChannels
 import com.cafesito.app.ui.timeline.TimelineNotificationSystem
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 class CafesitoFcmService : FirebaseMessagingService() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface FcmServiceEntryPoint {
+        fun userRepository(): UserRepository
+    }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "Nuevo token: $token")
-        // El token se sincroniza automáticamente en MainActivity al iniciar sesión
+        serviceScope.launch {
+            try {
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    applicationContext,
+                    FcmServiceEntryPoint::class.java
+                )
+                entryPoint.userRepository().updateFcmToken(token)
+            } catch (e: Exception) {
+                Log.e("FCM", "Error sincronizando token FCM", e)
+            }
+        }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
         // Manejar tanto notificaciones automáticas de Firebase como 'data payload'
-        val title = message.notification?.title ?: message.data["title"] ?: "Cafesito"
-        val body = message.notification?.body ?: message.data["body"] ?: ""
+        val rawTitle = message.notification?.title ?: message.data["title"] ?: "Cafesito"
+        val rawBody = message.notification?.body ?: message.data["body"] ?: ""
+
+        val title = rawTitle.capitalizedFirst()
+        val body = rawBody.capitalizedFirst()
 
         showNotification(title, body, message)
     }
@@ -83,7 +115,8 @@ class CafesitoFcmService : FirebaseMessagingService() {
         )
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(com.cafesito.app.R.drawable.ic_launcher_foreground)
+            .setSmallIcon(com.cafesito.app.R.drawable.ic_notification_small)
+            .setLargeIcon(BitmapFactory.decodeResource(resources, com.cafesito.app.R.mipmap.ic_launcher))
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -131,6 +164,15 @@ class CafesitoFcmService : FirebaseMessagingService() {
 
         notificationManager.notify(notificationId, notificationBuilder.build())
     }
+
+    private fun String.capitalizedFirst(): String {
+        val trimmed = trim()
+        if (trimmed.isEmpty()) return trimmed
+        return trimmed.replaceFirstChar { first ->
+            if (first.isLowerCase()) first.titlecase(Locale.getDefault()) else first.toString()
+        }
+    }
+
 
     private fun buildActionPendingIntent(
         requestCode: Int,
