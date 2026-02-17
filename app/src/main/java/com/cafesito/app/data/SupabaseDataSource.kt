@@ -20,6 +20,16 @@ import android.util.Log
 class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
+    @kotlinx.serialization.Serializable
+    private data class NotificationInsert(
+        @kotlinx.serialization.SerialName("user_id") val userId: Int,
+        val type: String,
+        @kotlinx.serialization.SerialName("from_username") val fromUsername: String,
+        val message: String,
+        val timestamp: Long,
+        @kotlinx.serialization.SerialName("is_read") val isRead: Boolean = false,
+        @kotlinx.serialization.SerialName("related_id") val relatedId: String? = null
+    )
     // --- STORAGE ---
     suspend fun uploadImage(bucket: String, path: String, byteArray: ByteArray): String {
         val bucketRef = client.storage.from(bucket)
@@ -358,8 +368,24 @@ class SupabaseDataSource @Inject constructor(
                     notification.relatedId?.let { put("p_related_id", it) }
                 }
             )
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC create_notification unavailable, falling back to direct insert: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].insert(
+                    NotificationInsert(
+                        userId = notification.userId,
+                        type = notification.type,
+                        fromUsername = notification.fromUsername,
+                        message = notification.message,
+                        timestamp = notification.timestamp,
+                        isRead = notification.isRead,
+                        relatedId = notification.relatedId
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+                throw e
+            }
         }
     }
 
