@@ -42,8 +42,8 @@ android {
         applicationId = "com.cafesito.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 158
-        versionName = "2026.2.16"
+        versionCode = 159
+        versionName = "2026.2.18"
 
         testInstrumentationRunner = "com.cafesito.app.HiltTestRunner"
 
