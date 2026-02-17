@@ -440,13 +440,47 @@ class TimelineViewModel @Inject constructor(
         .flatMapLatest { static ->
             val userId = static.activeUser?.id ?: return@flatMapLatest flowOf(emptyList<TimelineNotification>())
             userRepository.getNotificationsForUser(userId).map { entities ->
-                entities.mapNotNull { it.toTimelineNotification(static.allUsers) }
+                val hydratedUsers = hydrateUsersForNotifications(
+                    entities = entities,
+                    knownUsers = static.allUsers
+                )
+                entities.mapNotNull { it.toTimelineNotification(hydratedUsers) }
             }
         }
         .combine(deletedNotificationIds) { list: List<TimelineNotification>, deletedIds: Set<String> ->
             list.filter { it.id !in deletedIds }.sortedByDescending { it.timestamp }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private suspend fun hydrateUsersForNotifications(
+        entities: List<com.cafesito.app.data.NotificationEntity>,
+        knownUsers: List<UserEntity>
+    ): List<UserEntity> {
+        if (entities.isEmpty()) return knownUsers
+        val usersById = knownUsers.associateBy { it.id }.toMutableMap()
+        val usersByUsername = knownUsers.associateBy { it.username.lowercase() }.toMutableMap()
+
+        entities.forEach { notification ->
+            if (notification.type.equals("FOLLOW", ignoreCase = true)) {
+                val followerId = notification.relatedId?.toIntOrNull()
+                if (followerId != null && !usersById.containsKey(followerId)) {
+                    userRepository.getUserById(followerId)?.let { user ->
+                        usersById[user.id] = user
+                        usersByUsername[user.username.lowercase()] = user
+                    }
+                }
+            }
+
+            val usernameKey = notification.fromUsername.lowercase()
+            if (!usersByUsername.containsKey(usernameKey)) {
+                userRepository.getUserByUsername(notification.fromUsername)?.let { user ->
+                    usersById[user.id] = user
+                    usersByUsername[user.username.lowercase()] = user
+                }
+            }
+        }
+        return usersById.values.toList()
+    }
 
     val unreadNotificationIds: StateFlow<Set<String>> = combine(
         notifications,
@@ -473,7 +507,11 @@ class TimelineViewModel @Inject constructor(
     fun toggleFollowSuggestion(userId: Int) {
         viewModelScope.launch {
             val me = userRepository.getActiveUser() ?: return@launch
-            userRepository.toggleFollow(me.id, userId)
+            try {
+                userRepository.toggleFollow(me.id, userId)
+            } catch (e: Exception) {
+                Log.e("TimelineVM", "toggleFollowSuggestion failed", e)
+            }
         }
     }
 
