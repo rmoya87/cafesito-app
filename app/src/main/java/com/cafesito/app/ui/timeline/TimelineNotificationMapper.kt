@@ -21,7 +21,7 @@ fun NotificationEntity.toTimelineNotification(users: List<UserEntity>): Timeline
             )
         }
         "MENTION" -> {
-            val mentionTarget = parseMentionTarget(relatedId) ?: return null
+            val mentionTarget = parseNotificationTarget(relatedId) ?: return null
             val user = users.find { it.username == fromUsername } ?: return null
             TimelineNotification.Mention(
                 notificationId = notificationId,
@@ -35,7 +35,7 @@ fun NotificationEntity.toTimelineNotification(users: List<UserEntity>): Timeline
             )
         }
         "COMMENT" -> {
-            val commentTarget = parseMentionTarget(relatedId) ?: return null
+            val commentTarget = parseNotificationTarget(relatedId) ?: return null
             val user = users.find { it.username == fromUsername } ?: return null
             TimelineNotification.Comment(
                 notificationId = notificationId,
@@ -52,12 +52,18 @@ fun NotificationEntity.toTimelineNotification(users: List<UserEntity>): Timeline
     }
 }
 
-private data class MentionTarget(val postId: String, val commentId: Int)
+private data class NotificationTarget(val postId: String, val commentId: Int)
 
-private fun parseMentionTarget(relatedId: String?): MentionTarget? {
+private fun parseNotificationTarget(relatedId: String?): NotificationTarget? {
     if (relatedId.isNullOrBlank()) return null
-    val parts = relatedId.split(":")
+    val delimiter = when {
+        relatedId.contains(":") -> ":"
+        relatedId.contains("|") -> "|"
+        relatedId.contains(";") -> ";"
+        else -> return null
+    }
+    val parts = relatedId.split(delimiter)
     if (parts.size != 2) return null
     val commentId = parts[1].toIntOrNull() ?: return null
-    return MentionTarget(postId = parts[0], commentId = commentId)
+    return NotificationTarget(postId = parts[0], commentId = commentId)
 }
