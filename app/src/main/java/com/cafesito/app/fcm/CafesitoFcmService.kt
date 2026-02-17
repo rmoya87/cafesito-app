@@ -7,18 +7,45 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.cafesito.app.MainActivity
+import com.cafesito.app.data.UserRepository
 import com.cafesito.app.notifications.NotificationActionReceiver
 import com.cafesito.app.notifications.NotificationChannels
 import com.cafesito.app.ui.timeline.TimelineNotificationSystem
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class CafesitoFcmService : FirebaseMessagingService() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface FcmServiceEntryPoint {
+        fun userRepository(): UserRepository
+    }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "Nuevo token: $token")
-        // El token se sincroniza automáticamente en MainActivity al iniciar sesión
+        serviceScope.launch {
+            try {
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    applicationContext,
+                    FcmServiceEntryPoint::class.java
+                )
+                entryPoint.userRepository().updateFcmToken(token)
+            } catch (e: Exception) {
+                Log.e("FCM", "Error sincronizando token FCM", e)
+            }
+        }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
