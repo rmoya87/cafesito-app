@@ -217,6 +217,30 @@ end $$;
 
 
 -- 3) Garantizar claves únicas para upsert de tokens FCM
+--    Primero limpiamos duplicados existentes para evitar error 23505.
+--    Conservamos la fila más reciente (id mayor) por cada clave.
+with ranked_by_user as (
+    select id,
+           row_number() over (partition by user_id order by id desc) as rn
+    from public.user_fcm_tokens
+),
+to_delete_user as (
+    select id from ranked_by_user where rn > 1
+)
+delete from public.user_fcm_tokens
+where id in (select id from to_delete_user);
+
+with ranked_by_token as (
+    select id,
+           row_number() over (partition by fcm_token order by id desc) as rn
+    from public.user_fcm_tokens
+),
+to_delete_token as (
+    select id from ranked_by_token where rn > 1
+)
+delete from public.user_fcm_tokens
+where id in (select id from to_delete_token);
+
 create unique index if not exists idx_user_fcm_tokens_token_unique
     on public.user_fcm_tokens (fcm_token);
 create unique index if not exists idx_user_fcm_tokens_user_unique
