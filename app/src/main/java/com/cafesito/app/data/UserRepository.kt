@@ -152,7 +152,7 @@ class UserRepository @Inject constructor(
         val pollingFlow = flow {
             while (true) {
                 emit(Unit)
-                delay(12_000)
+                delay(3_000)
             }
         }
         return merge(_refreshTrigger, realtimeFlow, pollingFlow)

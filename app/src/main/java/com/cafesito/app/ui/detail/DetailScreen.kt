@@ -5,6 +5,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,7 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -388,8 +392,9 @@ private fun DetailContent(
                 GlassyIconButton(icon = Icons.Default.Inventory, iconColor = MaterialTheme.colorScheme.onSurface, onClick = { showStockDialog = true })
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
-                    icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                    icon = if (coffeeDetails.isFavorite) Icons.Filled.LocalCafe else Icons.Outlined.LocalCafe,
                     iconColor = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.onSurface,
+                    premiumAnimated = true,
                     onClick = { onFavoriteToggle(!coffeeDetails.isFavorite) }
                 )
             }
@@ -398,15 +403,73 @@ private fun DetailContent(
 }
 
 @Composable
-fun GlassyIconButton(icon: ImageVector, iconColor: Color, onClick: () -> Unit) {
+fun GlassyIconButton(
+    icon: ImageVector,
+    iconColor: Color,
+    premiumAnimated: Boolean = false,
+    onClick: () -> Unit
+) {
+    val iconScale = remember { Animatable(1f) }
+    val iconRotation = remember { Animatable(0f) }
+    val iconGlow = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    val onPremiumClick = {
+        if (premiumAnimated) {
+            scope.launch {
+                iconScale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = keyframes {
+                        durationMillis = 540
+                        1.34f at 100
+                        0.88f at 240
+                        1.16f at 360
+                        1f at 540
+                    }
+                )
+            }
+            scope.launch {
+                iconRotation.animateTo(
+                    targetValue = 0f,
+                    animationSpec = keyframes {
+                        durationMillis = 480
+                        -19f at 120
+                        14f at 220
+                        -8f at 330
+                        0f at 480
+                    }
+                )
+            }
+            scope.launch {
+                iconGlow.snapTo(0f)
+                iconGlow.animateTo(1f, animationSpec = tween(190, easing = FastOutSlowInEasing))
+                iconGlow.animateTo(0f, animationSpec = tween(360, easing = FastOutSlowInEasing))
+            }
+        }
+        onClick()
+    }
+
     Surface(
-        onClick = onClick, 
+        onClick = onPremiumClick,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), 
         shape = RoundedCornerShape(16.dp), 
         modifier = Modifier.size(44.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
+            Icon(
+                icon,
+                null,
+                tint = iconColor,
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer {
+                        scaleX = iconScale.value
+                        scaleY = iconScale.value
+                        rotationZ = iconRotation.value
+                        shadowElevation = 24f * iconGlow.value
+                        alpha = 0.84f + (0.16f * iconGlow.value)
+                    }
+            )
         }
     }
 }

@@ -66,6 +66,8 @@ fun TimelineScreen(
     var hasHandledInitialDeepLink by rememberSaveable { mutableStateOf(false) }
     
     val unreadCount by viewModel.unreadCount.collectAsState()
+    val badgeScale = remember { Animatable(1f) }
+    val hasUnread = unreadCount > 0
     val context = LocalContext.current
     
     val listState = rememberLazyListState()
@@ -106,6 +108,17 @@ fun TimelineScreen(
             onPublishingPendingConsumed()
         }
     }
+
+    LaunchedEffect(hasUnread) {
+        if (hasUnread) {
+            badgeScale.snapTo(1.9f)
+            badgeScale.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing)
+            )
+        }
+    }
+
 
     var lastItemCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(uiState) {
@@ -163,10 +176,19 @@ fun TimelineScreen(
                     IconButton(onClick = onNotificationsClick) {
                         BadgedBox(
                             badge = {
-                                if (unreadCount > 0) {
+                                AnimatedVisibility(
+                                    visible = hasUnread,
+                                    enter = fadeIn(tween(100)),
+                                    exit = fadeOut(tween(100))
+                                ) {
                                     Badge(
                                         containerColor = ElectricRed,
-                                        modifier = Modifier.size(10.dp)
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .graphicsLayer {
+                                                scaleX = badgeScale.value
+                                                scaleY = badgeScale.value
+                                            }
                                     ) {}
                                 }
                             }
