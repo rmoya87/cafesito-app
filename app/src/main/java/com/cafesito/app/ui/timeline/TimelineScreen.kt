@@ -164,7 +164,10 @@ fun TimelineScreen(
                         BadgedBox(
                             badge = {
                                 if (unreadCount > 0) {
-                                    Badge { Text(unreadCount.toString()) }
+                                    Badge(
+                                        containerColor = ElectricRed,
+                                        modifier = Modifier.size(10.dp)
+                                    ) {}
                                 }
                             }
                         ) {

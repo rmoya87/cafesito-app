@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -148,7 +149,13 @@ class UserRepository @Inject constructor(
         val realtimeFlow = supabaseDataSource.subscribeToNotifications(userId)
             .map { Unit }
             .catch { emit(Unit) }
-        return merge(_refreshTrigger, realtimeFlow)
+        val pollingFlow = flow {
+            while (true) {
+                emit(Unit)
+                delay(12_000)
+            }
+        }
+        return merge(_refreshTrigger, realtimeFlow, pollingFlow)
             .flatMapLatest {
                 flow {
                     val notifications = try {
