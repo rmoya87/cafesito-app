@@ -57,15 +57,23 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
-    suspend fun insertUserToken(token: UserTokenEntity) { 
+    suspend fun insertUserToken(token: UserTokenEntity) {
+        val payload = UserTokenUpsert(
+            userId = token.userId,
+            fcmToken = token.fcmToken
+        )
         try {
-            // Sintaxis correcta para Supabase KT 2.6.x: onConflict se pasa como parámetro
-            client.postgrest["user_fcm_tokens"].upsert(token, onConflict = "fcm_token")
+            // Evita enviar "id=0" (PK local Room) al backend.
+            client.postgrest["user_fcm_tokens"].upsert(payload, onConflict = "fcm_token")
         } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error inserting FCM token: ${e.message}")
+            Log.w("SupabaseDataSource", "Upsert FCM token failed, trying insert: ${e.message}")
+            try {
+                client.postgrest["user_fcm_tokens"].insert(payload)
+            } catch (insertError: Exception) {
+                Log.e("SupabaseDataSource", "Error inserting FCM token: ${insertError.message}", insertError)
+            }
         }
     }
-
     // --- SEGUIMIENTOS ---
     suspend fun getAllFollows(): List<FollowEntity> = client.postgrest["follows"].select().decodeList<FollowEntity>()
     suspend fun insertFollow(follow: FollowEntity) { client.postgrest["follows"].insert(follow) }
@@ -405,3 +413,4 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 }
+

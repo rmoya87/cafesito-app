@@ -240,10 +240,10 @@ class UserRepository @Inject constructor(
     suspend fun updateFcmToken(token: String) {
         val currentUser = getActiveUser() ?: return
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try {
-                    supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
-                } catch (e: Exception) { }
+            try {
+                supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Error updating FCM token: ${e.message}", e)
             }
         }
     }
