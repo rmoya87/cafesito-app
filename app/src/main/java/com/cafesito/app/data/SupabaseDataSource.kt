@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
+import java.time.Instant
 
 @Singleton
 class SupabaseDataSource @Inject constructor(
@@ -73,6 +74,17 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
+
+    suspend fun touchUserLastInteraction(userId: Int) {
+        client.postgrest["users_db"].update(
+            {
+                set("updated_at", Instant.now().toString())
+            }
+        ) {
+            filter { eq("id", userId) }
+        }
+    }
+
     suspend fun insertUserToken(token: UserTokenEntity) {
         try {
             // No enviamos `id` para evitar conflictos con PK autogenerada y forzar upsert por user_id.

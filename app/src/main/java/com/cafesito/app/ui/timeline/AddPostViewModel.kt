@@ -325,6 +325,8 @@ class AddPostViewModel @Inject constructor(
                 timestamp = System.currentTimeMillis()
             ))
 
+            notifyMentionsInPost(postId = postId, author = activeUser, text = _comment.value)
+
             _selectedCoffee.value?.let { selected ->
                 socialRepository.upsertPostCoffeeTag(
                     PostCoffeeTagEntity(
@@ -396,6 +398,35 @@ class AddPostViewModel @Inject constructor(
         savedStateHandle.remove<String>("postType")
     }
 
+
+    private suspend fun notifyMentionsInPost(postId: String, author: UserEntity, text: String) {
+        val mentionRegex = Regex("@([A-Za-z0-9_]{2,30})")
+        val usernames = mentionRegex.findAll(text)
+            .map { it.groupValues[1].trim() }
+            .filter { it.isNotBlank() && !it.equals(author.username, ignoreCase = true) }
+            .toList()
+        val deduped = linkedMapOf<String, String>()
+        usernames.forEach { name -> deduped.putIfAbsent(name.lowercase(), name) }
+
+        deduped.values.forEach { username ->
+            val mentionedUser = userRepository.getUserByUsername(username) ?: return@forEach
+            if (mentionedUser.id == author.id) return@forEach
+            runCatching {
+                supabaseDataSource.insertNotification(
+                    NotificationEntity(
+                        userId = mentionedUser.id,
+                        type = "MENTION",
+                        fromUsername = author.username,
+                        message = "te ha mencionado",
+                        timestamp = System.currentTimeMillis(),
+                        relatedId = postId
+                    )
+                )
+            }.onFailure { error ->
+                Log.e("AddPostVM", "Error enviando mención en post", error)
+            }
+        }
+    }
     private fun UserEntity.toDomainUser(): User = User(
         id = id, username = username, fullName = fullName, avatarUrl = avatarUrl, email = email, bio = bio, favoriteCoffeeIds = emptyList()
     )

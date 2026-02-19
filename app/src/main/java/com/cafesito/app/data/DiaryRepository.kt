@@ -292,10 +292,19 @@ class DiaryRepository @Inject constructor(
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.upsertPantryItem(item) } catch (e: Exception) { } }
         }
+        userRepository.touchUserInteraction()
     }
 
     suspend fun addToPantry(coffeeId: String, totalGrams: Int) {
-        updatePantryStockFull(coffeeId, totalGrams, totalGrams)
+        val user = userRepository.getActiveUser() ?: return
+        val existing = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == coffeeId }
+        if (existing != null) {
+            val mergedTotal = (existing.totalGrams + totalGrams).coerceAtLeast(0)
+            val mergedRemaining = (existing.gramsRemaining + totalGrams).coerceAtLeast(0)
+            updatePantryStockFull(coffeeId, mergedTotal, mergedRemaining)
+        } else {
+            updatePantryStockFull(coffeeId, totalGrams, totalGrams)
+        }
     }
 
 

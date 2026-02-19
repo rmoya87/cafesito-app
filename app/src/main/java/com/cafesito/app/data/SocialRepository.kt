@@ -176,6 +176,7 @@ class SocialRepository @Inject constructor(
                 Log.e("SocialRepository", "Error creating post in Supabase", e)
             }
         }
+        userRepository.touchUserInteraction()
         triggerRefresh()
     }
 
@@ -279,6 +280,7 @@ class SocialRepository @Inject constructor(
                 } catch (e: Exception) {
                     socialDao.insertComment(comment)
                 }
+                userRepository.touchUserInteraction()
                 triggerRefresh()
             }
         } else {

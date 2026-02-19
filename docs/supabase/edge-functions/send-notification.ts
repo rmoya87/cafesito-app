@@ -81,13 +81,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    const fromUsername = record.from_username ?? "";
+    const { data: fromUser } = await supabase
+      .from("users_db")
+      .select("avatar_url, username")
+      .eq("username", fromUsername)
+      .maybeSingle();
+
     const title =
       record.type === "FOLLOW"
-        ? `${record.from_username} te siguió`
+        ? `${fromUsername} te siguió`
+        : record.type === "MENTION"
+        ? fromUsername
         : "Cafesito";
     const body =
       record.type === "MENTION"
-        ? `${record.from_username} te mencionó`
+        ? "te ha mencionado"
         : record.message || "Nueva notificación";
 
     const fcmPayload = {
@@ -95,10 +104,14 @@ Deno.serve(async (req) => {
       notification: {
         title,
         body,
+        image: fromUser?.avatar_url ?? undefined,
       },
       data: {
         type: record.type,
         targetId: record.related_id ?? "",
+        post_id: record.related_id ?? "",
+        action_label: record.type === "MENTION" ? "Ver" : "",
+        avatar_url: fromUser?.avatar_url ?? "",
       },
     };
 

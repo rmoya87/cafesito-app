@@ -714,19 +714,45 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
 }
 
 @Composable
-fun StockSliderSection(label: String, value: Float, maxValue: Float, onValueChange: (Float) -> Unit) {
+fun StockSliderSection(
+    label: String,
+    value: Float,
+    maxValue: Float,
+    onValueChange: (Float) -> Unit,
+    onManualValueChange: (Float) -> Unit
+) {
+    var manualValue by remember(value) { mutableStateOf(value.roundToInt().toString()) }
+
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text("${value.roundToInt()} g", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
         Slider(
-            value = value, 
-            onValueChange = onValueChange, 
-            valueRange = 0f..maxValue.coerceAtLeast(1f), 
+            value = value.coerceIn(0f, maxValue.coerceAtLeast(1f)),
+            onValueChange = {
+                onValueChange(it)
+                manualValue = it.roundToInt().toString()
+            },
+            valueRange = 0f..maxValue.coerceAtLeast(1f),
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.primary,
                 activeTrackColor = MaterialTheme.colorScheme.primary,
                 inactiveTrackColor = MaterialTheme.colorScheme.outline
             )
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = manualValue,
+            onValueChange = { input ->
+                if (input.isEmpty() || input.all { it.isDigit() }) {
+                    manualValue = input
+                    input.toFloatOrNull()?.let { onManualValueChange(it) }
+                }
+            },
+            label = { Text("Cantidad manual (g)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
         )
     }
 }
@@ -1309,9 +1335,21 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(32.dp))
-            StockSliderSection("Bolsa total", total, 1000f) { total = it; if (rem > it) rem = it }
+            StockSliderSection(
+                "Cantidad de café total",
+                total,
+                1000f,
+                onValueChange = { total = it },
+                onManualValueChange = { total = it }
+            )
             Spacer(Modifier.height(24.dp))
-            StockSliderSection("Restante", rem, total) { rem = it }
+            StockSliderSection(
+                "Cantidad de café restante",
+                rem,
+                total.coerceAtLeast(1f),
+                onValueChange = { rem = it },
+                onManualValueChange = { rem = it }
+            )
             Spacer(Modifier.height(40.dp))
             
             Row(
