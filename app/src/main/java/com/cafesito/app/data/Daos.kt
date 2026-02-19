@@ -32,6 +32,9 @@ interface CoffeeDao {
     @Query("SELECT * FROM coffees WHERE id = :id")
     suspend fun getCoffeeById(id: String): Coffee?
 
+    @Query("SELECT * FROM coffees WHERE isCustom = 1 AND userId = :userId")
+    suspend fun getCustomCoffeesByUserId(userId: Int): List<Coffee>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCoffees(coffees: List<Coffee>): List<Long>
 

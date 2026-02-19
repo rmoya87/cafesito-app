@@ -42,6 +42,7 @@ class DiaryRepository @Inject constructor(
             connectivityObserver.observe().collect { status ->
                 if (status == ConnectivityObserver.Status.Available) {
                     syncPendingDiaryEntries()
+                    syncLocalCustomCoffees()
                 }
             }
         }
@@ -234,9 +235,7 @@ class DiaryRepository @Inject constructor(
         )
 
         coffeeDao.insertCoffees(listOf(customCoffee))
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try { supabaseDataSource.upsertCustomCoffee(customCoffee) } catch (e: Exception) { }
-        }
+        syncCustomCoffeeIfOnline(customCoffee)
 
         coffeeId
     }
@@ -294,9 +293,11 @@ class DiaryRepository @Inject constructor(
 
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {
-                try { 
-                    supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee) 
-                } catch (e: Exception) { } 
+                try {
+                    supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee)
+                } catch (e: Exception) {
+                    Log.e("DiaryRepository", "Error updating custom coffee in remote", e)
+                }
             }
         }
     }
@@ -371,4 +372,29 @@ class DiaryRepository @Inject constructor(
             }
         }
     }
+
+
+    private fun syncCustomCoffeeIfOnline(coffee: Coffee) {
+        externalScope.launch {
+            if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@launch
+            try {
+                supabaseDataSource.upsertCustomCoffee(coffee)
+            } catch (e: Exception) {
+                Log.e("DiaryRepository", "Error syncing custom coffee to remote", e)
+            }
+        }
+    }
+
+    private suspend fun syncLocalCustomCoffees() = withContext(Dispatchers.IO) {
+        val user = userRepository.getActiveUser() ?: return@withContext
+        val localCustomCoffees = coffeeDao.getCustomCoffeesByUserId(user.id)
+        localCustomCoffees.forEach { customCoffee ->
+            try {
+                supabaseDataSource.upsertCustomCoffee(customCoffee)
+            } catch (e: Exception) {
+                Log.e("DiaryRepository", "Error backfilling custom coffee ${customCoffee.id} to remote", e)
+            }
+        }
+    }
+
 }
