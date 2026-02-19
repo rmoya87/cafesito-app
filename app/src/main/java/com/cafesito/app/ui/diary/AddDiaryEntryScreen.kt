@@ -31,7 +31,9 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -283,6 +285,7 @@ fun WaterRegistrationStepPremium(
     isSaving: Boolean
 ) {
     val waterBlue = Color(0xFF2196F3)
+    var mlInput by remember(ml) { mutableStateOf(ml.roundToInt().toString()) }
 
     Column(
         modifier = Modifier
@@ -304,11 +307,23 @@ fun WaterRegistrationStepPremium(
                     tint = waterBlue
                 )
                 Spacer(Modifier.height(24.dp))
-                Text(
-                    text = "${ml.roundToInt()} ml",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                OutlinedTextField(
+                    value = mlInput,
+                    onValueChange = { input ->
+                        if (input.isEmpty() || input.all(Char::isDigit)) {
+                            mlInput = input
+                            input.toFloatOrNull()?.let(onMlChange)
+                        }
+                    },
+                    suffix = { Text("ml") },
+                    textStyle = LocalTextStyle.current.copy(
+                        fontSize = MaterialTheme.typography.headlineLarge.fontSize,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
                 )
             }
         }
@@ -454,6 +469,7 @@ fun CoffeeDoseStepPremium(
     onDoseChange: (Float) -> Unit
 ) {
     val coffeeColor = CaramelAccent
+    var doseInput by remember(doseGrams) { mutableStateOf(String.format(Locale.getDefault(), "%.1f", doseGrams)) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -481,11 +497,24 @@ fun CoffeeDoseStepPremium(
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    text = String.format(Locale.getDefault(), "%.1f g", doseGrams),
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                OutlinedTextField(
+                    value = doseInput,
+                    onValueChange = { input ->
+                        val normalized = input.replace(',', '.')
+                        if (input.isEmpty() || normalized.all { it.isDigit() || it == '.' }) {
+                            doseInput = input
+                            normalized.toFloatOrNull()?.let(onDoseChange)
+                        }
+                    },
+                    suffix = { Text("g") },
+                    textStyle = LocalTextStyle.current.copy(
+                        fontSize = MaterialTheme.typography.headlineLarge.fontSize,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
                 )
             }
         }
