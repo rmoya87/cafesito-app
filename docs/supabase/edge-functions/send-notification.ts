@@ -30,6 +30,7 @@ if (!supabaseUrl || !supabaseServiceKey || !fcmServerKey) {
 }
 
 const supabase = createClient(supabaseUrl ?? "", supabaseServiceKey ?? "");
+const HIGH_PRIORITY_TYPES = new Set(["FOLLOW", "MENTION", "COMMENT"]);
 
 Deno.serve(async (req) => {
   try {
@@ -111,18 +112,22 @@ Deno.serve(async (req) => {
         ? "te ha mencionado"
         : record.message || "Nueva notificación";
 
+    const notificationType = String(record.type ?? "").toUpperCase();
+    const fcmPriority = HIGH_PRIORITY_TYPES.has(notificationType) ? "high" : "normal";
+
     const fcmPayload = {
       registration_ids: tokenList,
+      priority: fcmPriority,
       notification: {
         title,
         body,
         image: fromUser?.avatar_url ?? undefined,
       },
       data: {
-        type: record.type,
+        type: notificationType,
         targetId: record.related_id ?? "",
         post_id: record.related_id ?? "",
-        action_label: record.type === "MENTION" ? "Ver" : "",
+        action_label: notificationType === "MENTION" ? "Ver" : "",
         avatar_url: fromUser?.avatar_url ?? "",
       },
     };
@@ -158,7 +163,8 @@ Deno.serve(async (req) => {
     console.log("FCM sent", {
       status: fcmResponse.status,
       userId: record.user_id,
-      type: record.type,
+      type: notificationType,
+      priority: fcmPriority,
       tokenCount: tokenList.length,
     });
 
