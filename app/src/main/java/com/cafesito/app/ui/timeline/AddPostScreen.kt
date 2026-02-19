@@ -83,12 +83,17 @@ fun AddPostScreen(
         viewModel.setPostType(PostType.PUBLICATION)
     }
 
-    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        listOf(Manifest.permission.READ_MEDIA_IMAGES)
-    } else {
-        listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    val permissions = remember {
+        val list = mutableListOf(Manifest.permission.CAMERA)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            list.add(Manifest.permission.READ_MEDIA_IMAGES)
+            list.add(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            list.add(Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            list.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        list
     }
     
     val context = LocalContext.current
@@ -187,9 +192,13 @@ fun AddPostScreen(
                     PhotoSelectionStepPremium(
                         viewModel = viewModel,
                         onCameraClick = {
-                            val uri = createTempImageUri(context)
-                            pendingCameraUri = uri
-                            cameraLauncher.launch(uri)
+                            if (mediaPermissionsState.allPermissionsGranted) {
+                                val uri = createTempImageUri(context)
+                                pendingCameraUri = uri
+                                cameraLauncher.launch(uri)
+                            } else {
+                                mediaPermissionsState.launchMultiplePermissionRequest()
+                            }
                         }
                     )
                 } else {
@@ -197,7 +206,8 @@ fun AddPostScreen(
                         viewModel = viewModel, 
                         activeUser = activeUser,
                         galleryLauncher = galleryLauncher,
-                        cameraLauncher = cameraLauncher
+                        cameraLauncher = cameraLauncher,
+                        mediaPermissionsState = mediaPermissionsState
                     )
                 }
             }
@@ -332,13 +342,14 @@ private fun PhotoSelectionStepPremium(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
 @Composable
 private fun PostDetailsStepPremium(
     viewModel: AddPostViewModel, 
     activeUser: UserEntity?,
     galleryLauncher: androidx.activity.result.ActivityResultLauncher<PickVisualMediaRequest>,
-    cameraLauncher: androidx.activity.result.ActivityResultLauncher<Uri>
+    cameraLauncher: androidx.activity.result.ActivityResultLauncher<Uri>,
+    mediaPermissionsState: com.google.accompanist.permissions.MultiplePermissionsState
 ) {
     val imageSource = viewModel.imageSource.collectAsState().value as? Uri
     val comment by viewModel.comment.collectAsState()
@@ -669,10 +680,14 @@ private fun PostDetailsStepPremium(
             Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                 Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
                 ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
-                    val uri = createTempImageUri(context)
-                    pendingCameraUri = uri
-                    cameraLauncher.launch(uri)
-                    showPickerSheet = false
+                    if (mediaPermissionsState.allPermissionsGranted) {
+                        val uri = createTempImageUri(context)
+                        pendingCameraUri = uri
+                        cameraLauncher.launch(uri)
+                        showPickerSheet = false
+                    } else {
+                        mediaPermissionsState.launchMultiplePermissionRequest()
+                    }
                 }
                 ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
                     galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))

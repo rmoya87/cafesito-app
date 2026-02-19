@@ -1,6 +1,7 @@
 package com.cafesito.app.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -20,6 +21,8 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -30,7 +33,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,7 +48,10 @@ import coil.compose.SubcomposeAsyncImage
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.utils.formatRelativeTime
 import com.cafesito.app.ui.theme.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.cos
+import kotlin.math.sin
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +70,7 @@ fun PostCard(
 ) {
     val post = details.post
     val author = details.author
-    val postTextColor = if (isSystemInDarkTheme()) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Black
+    val postTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
     var showOptionsSheet by remember { mutableStateOf(false) }
 
     if (showOptionsSheet) {
@@ -185,21 +196,23 @@ fun PostCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Interaction para Me gusta (Color Marrón Acepto)
                     InteractionItem(
-                        icon = if (isLiked) Icons.Filled.LocalCafe else Icons.Outlined.LocalCafe,
+                        icon = Icons.Outlined.LocalCafe,
                         count = details.likes.size,
-                        color = if (isLiked) ElectricRed else postTextColor,
-                        type = InteractionType.FAVORITE,
+                        isLiked = isLiked,
+                        color = postTextColor,
+                        isLikeIcon = true,
                         onClick = onLikeClick
                     )
                     
                     Spacer(Modifier.width(24.dp))
                     
+                    // Interaction para Comentarios
                     InteractionItem(
                         icon = Icons.Outlined.ChatBubbleOutline,
                         count = details.comments.size,
                         color = postTextColor,
-                        type = InteractionType.COMMENT,
                         onClick = onCommentClick
                     )
 
@@ -217,92 +230,124 @@ fun PostCard(
 
 @Composable
 private fun InteractionItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     count: Int,
-    color: androidx.compose.ui.graphics.Color,
-    type: InteractionType,
+    isLiked: Boolean = false,
+    color: Color,
+    isLikeIcon: Boolean = false,
     onClick: () -> Unit
 ) {
-    val iconScale = remember { Animatable(1f) }
-    val iconRotation = remember { Animatable(0f) }
-    val iconGlow = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    val fillProgress = remember { Animatable(if (isLiked) 1f else 0f) }
+    val fireworkProgress = remember { Animatable(0f) }
+    val scale = remember { Animatable(1f) }
 
-    val onInteractionClick = {
-        scope.launch {
-            iconScale.animateTo(
-                targetValue = 1f,
-                animationSpec = keyframes {
-                    durationMillis = 520
-                    1.34f at 120
-                    0.9f at 260
-                    1.12f at 380
-                    1f at 520
+    // Estado local para respuesta inmediata
+    var likedByMe by remember { mutableStateOf(isLiked) }
+    
+    // Sincronizar solo cuando el valor real de la DB cambia
+    LaunchedEffect(isLiked) {
+        likedByMe = isLiked
+    }
+
+    // Animaciones sincronizadas con el color de la app (CaramelAccent)
+    LaunchedEffect(likedByMe) {
+        if (isLikeIcon) {
+            if (likedByMe) {
+                launch {
+                    scale.animateTo(1.35f, tween(150))
+                    scale.animateTo(1f, spring(dampingRatio = 0.6f))
                 }
-            )
+                fillProgress.animateTo(1f, tween(350, easing = FastOutSlowInEasing))
+                fireworkProgress.snapTo(0f)
+                fireworkProgress.animateTo(1f, tween(500))
+                fireworkProgress.snapTo(0f)
+            } else {
+                fillProgress.animateTo(0f, tween(250))
+            }
         }
-        scope.launch {
-            val target = if (type == InteractionType.FAVORITE) 22f else 14f
-            iconRotation.animateTo(
-                targetValue = 0f,
-                animationSpec = keyframes {
-                    durationMillis = 420
-                    -target at 100
-                    target * 0.7f at 190
-                    -target * 0.4f at 290
-                    0f at 420
-                }
-            )
-        }
-        scope.launch {
-            iconGlow.snapTo(0f)
-            iconGlow.animateTo(1f, animationSpec = tween(180, easing = FastOutSlowInEasing))
-            iconGlow.animateTo(0f, animationSpec = tween(360, easing = FastOutSlowInEasing))
+    }
+
+    val handleIconClick = {
+        if (isLikeIcon) {
+            likedByMe = !likedByMe
+        } else {
+            scope.launch {
+                scale.animateTo(1.25f, tween(100))
+                scale.animateTo(1f, spring(dampingRatio = 0.6f))
+            }
         }
         onClick()
     }
 
+    val outlinedPainter = rememberVectorPainter(Icons.Outlined.LocalCafe)
+    val filledPainter = rememberVectorPainter(Icons.Filled.LocalCafe)
+    val activeColor = CaramelAccent // El marrón de la app
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable(onClick = onInteractionClick)
+        modifier = Modifier.clickable(
+            onClick = handleIconClick,
+            indication = ripple(bounded = false, radius = 24.dp),
+            interactionSource = remember { MutableInteractionSource() }
+        )
     ) {
-        Icon(
-            icon,
-            null,
-            tint = color,
+        Box(
             modifier = Modifier
                 .size(24.dp)
                 .graphicsLayer {
-                    scaleX = iconScale.value
-                    scaleY = iconScale.value
-                    rotationZ = iconRotation.value
-                    shadowElevation = 20f * iconGlow.value
-                    alpha = 0.82f + (0.18f * iconGlow.value)
+                    scaleX = scale.value
+                    scaleY = scale.value
+                    alpha = 0.95f
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (isLikeIcon) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    // 1. Contorno (Marron si activo, sino color texto)
+                    val strokeColor = if (likedByMe) activeColor else color
+                    with(outlinedPainter) {
+                        draw(size, colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(strokeColor))
+                    }
+                    
+                    // 2. Llenado animado
+                    if (fillProgress.value > 0f) {
+                        clipRect(top = size.height * (1f - fillProgress.value), bottom = size.height) {
+                            with(filledPainter) {
+                                draw(size, colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(activeColor))
+                            }
+                        }
+                    }
+                    
+                    // 3. Fuegos artificiales
+                    if (fireworkProgress.value > 0f && fireworkProgress.value < 1f) {
+                        val p = fireworkProgress.value
+                        val alpha = (1f - p).coerceIn(0f, 1f)
+                        for (i in 0 until 8) {
+                            val angle = (i * 45f) * (Math.PI / 180f)
+                            val dist = 36f * p
+                            val px = (size.width / 2) + (cos(angle) * dist).toFloat()
+                            val py = (size.height / 4) - (sin(angle) * dist).toFloat()
+                            drawCircle(activeColor.copy(alpha = alpha), radius = 2.4f * (1f - p), center = Offset(px, py))
+                        }
+                    }
                 }
-        )
-        if (count > 0) {
+            } else {
+                Icon(icon, null, tint = color, modifier = Modifier.fillMaxSize())
+            }
+        }
+
+        val displayCount = if (likedByMe && !isLiked) count + 1 
+                          else if (!likedByMe && isLiked) count - 1 
+                          else count
+
+        if (displayCount > 0) {
             Spacer(Modifier.width(6.dp))
             AnimatedContent(
-                targetState = count,
+                targetState = displayCount,
                 transitionSpec = {
-                    val enter = if (targetState > initialState) {
-                        slideInVertically(animationSpec = tween(240)) { it } +
-                            fadeIn(tween(180)) +
-                            scaleIn(initialScale = 0.72f, animationSpec = spring(dampingRatio = 0.65f, stiffness = 520f))
-                    } else {
-                        slideInVertically(animationSpec = tween(240)) { -it } +
-                            fadeIn(tween(180)) +
-                            scaleIn(initialScale = 0.72f, animationSpec = spring(dampingRatio = 0.65f, stiffness = 520f))
-                    }
-                    val exit = if (targetState > initialState) {
-                        slideOutVertically(animationSpec = tween(240)) { -it } +
-                            fadeOut(tween(180)) +
-                            scaleOut(targetScale = 1.28f, animationSpec = tween(220))
-                    } else {
-                        slideOutVertically(animationSpec = tween(240)) { it } +
-                            fadeOut(tween(180)) +
-                            scaleOut(targetScale = 1.28f, animationSpec = tween(220))
-                    }
+                    val enter = if (targetState > initialState) slideInVertically { it } + fadeIn() else slideInVertically { -it } + fadeIn()
+                    val exit = if (targetState > initialState) slideOutVertically { -it } + fadeOut() else slideOutVertically { it } + fadeOut()
                     enter togetherWith exit using SizeTransform(clip = false)
                 },
                 label = "interactionCount"
@@ -311,15 +356,9 @@ private fun InteractionItem(
                     text = animatedCount.toString(),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = color,
-                    modifier = Modifier.clickable(onClick = onInteractionClick)
+                    color = if (isLikeIcon && likedByMe) activeColor else color
                 )
             }
         }
     }
-}
-
-private enum class InteractionType {
-    FAVORITE,
-    COMMENT
 }
