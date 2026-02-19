@@ -226,12 +226,16 @@ class UserRepository @Inject constructor(
 
     suspend fun updateFcmToken(token: String) {
         val currentUser = getActiveUser() ?: return
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try {
-                    supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
-                } catch (e: Exception) { }
-            }
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return
+
+        try {
+            supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
+        } catch (e: UnauthorizedRestException) {
+            Log.w("UserRepository", "updateFcmToken unauthorized, trying one auth refresh and retry", e)
+            refreshAuthSession()
+            supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
+        } catch (e: Exception) {
+            Log.e("UserRepository", "updateFcmToken failed", e)
         }
     }
 
