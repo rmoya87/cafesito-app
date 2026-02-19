@@ -94,11 +94,11 @@ class DiaryRepository @Inject constructor(
                 if (localCoffee == null) {
                     val coffeeIds = listOf(item.coffeeId)
                     val remoteCoffee = supabaseDataSource.getCoffeesByIds(coffeeIds).firstOrNull()
-                        ?: supabaseDataSource.getCustomCoffees(user.id).find { c -> c.id == item.coffeeId }?.toCoffee()
+                        ?: supabaseDataSource.getCustomCoffees(user.id).find { c -> c.id == item.coffeeId }
                     remoteCoffee?.let { c -> coffeeDao.insertCoffees(listOf(c)) }
                 } else if (localCoffee.isCustom && localCoffee.imageUrl.isNotBlank()) {
                     // Si es custom y ya tiene imagen local, nos aseguramos de no perderla si el remoto viene vacío por delay de sync
-                    val remoteCoffee = supabaseDataSource.getCustomCoffees(user.id).find { it.id == item.coffeeId }?.toCoffee()
+                    val remoteCoffee = supabaseDataSource.getCustomCoffees(user.id).find { it.id == item.coffeeId }
                     if (remoteCoffee != null && remoteCoffee.imageUrl.isBlank()) {
                         coffeeDao.insertCoffees(listOf(remoteCoffee.copy(imageUrl = localCoffee.imageUrl)))
                     } else if (remoteCoffee != null) {

@@ -391,7 +391,7 @@ private fun DetailContent(
                 GlassyIconButton(icon = Icons.Default.Inventory, iconColor = MaterialTheme.colorScheme.onSurface, onClick = { showStockDialog = true })
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
-                    icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     iconColor = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.onSurface,
                     premiumAnimated = true,
                     onClick = { onFavoriteToggle(!coffeeDetails.isFavorite) }
