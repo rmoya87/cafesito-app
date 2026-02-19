@@ -814,9 +814,27 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                 OutlinedTextField(value = brand, onValueChange = { brand = it.toCoffeeBrandFormat() }, label = { Text(text = "Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(24.dp))
             }
-            StockSliderSection(label = "TOTAL BOLSA", value = total, maxValue = 1000f) { total = it; if (rem > it) rem = it }
+            StockSliderSection(
+                label = "TOTAL BOLSA", 
+                value = total, 
+                maxValue = 1000f,
+                onValueChange = { 
+                    total = it
+                    if (rem > it) rem = it 
+                },
+                onManualValueChange = {
+                    total = it
+                    if (rem > it) rem = it
+                }
+            )
             Spacer(Modifier.height(24.dp))
-            StockSliderSection(label = "RESTANTE", value = rem, maxValue = total) { rem = it }
+            StockSliderSection(
+                label = "RESTANTE", 
+                value = rem, 
+                maxValue = total,
+                onValueChange = { rem = it },
+                onManualValueChange = { rem = it }
+            )
             Spacer(Modifier.height(40.dp))
             
             Row(
