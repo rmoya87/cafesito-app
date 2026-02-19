@@ -288,7 +288,7 @@ class UserRepository @Inject constructor(
                                     userId = targetId,
                                     type = "FOLLOW",
                                     fromUsername = fromUsername,
-                                    message = "",
+                                    message = "ha empezado a seguirte",
                                     timestamp = System.currentTimeMillis(),
                                     relatedId = followerId.toString()
                                 )
