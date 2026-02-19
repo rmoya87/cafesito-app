@@ -34,7 +34,13 @@ const supabase = createClient(supabaseUrl ?? "", supabaseServiceKey ?? "");
 Deno.serve(async (req) => {
   try {
     const payload = await req.json();
-    const record = payload?.record;
+    const record = payload?.record ?? payload;
+
+    console.log("send-notification invoked", {
+      notificationId: record?.id ?? null,
+      userId: record?.user_id ?? null,
+      type: record?.type ?? null,
+    });
 
     if (!record?.user_id) {
       return new Response(JSON.stringify({ error: "Missing user_id" }), {
@@ -74,6 +80,12 @@ Deno.serve(async (req) => {
       )
     );
 
+    console.log("send-notification tokens", {
+      userId: record.user_id,
+      totalRows: tokens?.length ?? 0,
+      uniqueTokens: tokenList.length,
+    });
+
     if (tokenList.length === 0) {
       return new Response(JSON.stringify({ ok: true, sent: 0 }), {
         status: 200,
@@ -81,13 +93,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    const fromUsername = record.from_username ?? "";
+    const { data: fromUser } = await supabase
+      .from("users_db")
+      .select("avatar_url, username")
+      .eq("username", fromUsername)
+      .maybeSingle();
+
     const title =
       record.type === "FOLLOW"
-        ? `${record.from_username} te siguió`
+        ? `${fromUsername} te siguió`
+        : record.type === "MENTION"
+        ? fromUsername
         : "Cafesito";
     const body =
       record.type === "MENTION"
-        ? `${record.from_username} te mencionó`
+        ? "te ha mencionado"
         : record.message || "Nueva notificación";
 
     const fcmPayload = {
@@ -95,10 +116,14 @@ Deno.serve(async (req) => {
       notification: {
         title,
         body,
+        image: fromUser?.avatar_url ?? undefined,
       },
       data: {
         type: record.type,
         targetId: record.related_id ?? "",
+        post_id: record.related_id ?? "",
+        action_label: record.type === "MENTION" ? "Ver" : "",
+        avatar_url: fromUser?.avatar_url ?? "",
       },
     };
 
@@ -129,6 +154,13 @@ Deno.serve(async (req) => {
         }
       );
     }
+
+    console.log("FCM sent", {
+      status: fcmResponse.status,
+      userId: record.user_id,
+      type: record.type,
+      tokenCount: tokenList.length,
+    });
 
     return new Response(JSON.stringify({ ok: true, result: fcmResult }), {
       status: 200,

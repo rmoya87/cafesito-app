@@ -1,8 +1,10 @@
 package com.cafesito.app.ui.diary
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -33,13 +35,15 @@ import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.components.*
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
 import java.util.Locale
 import java.util.UUID
 import com.cafesito.app.ui.components.toCoffeeBrandFormat
 import com.cafesito.app.ui.components.toCoffeeNameFormat
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun AddPantryItemScreen(
     onBackClick: (String?) -> Unit,
@@ -100,6 +104,21 @@ fun AddPantryItemScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var showImagePickerSheet by remember { mutableStateOf(false) }
+
+    // Gestión de permisos
+    val permissions = remember {
+        val list = mutableListOf(Manifest.permission.CAMERA)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            list.add(Manifest.permission.READ_MEDIA_IMAGES)
+            list.add(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            list.add(Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            list.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        list
+    }
+    val permissionState = rememberMultiplePermissionsState(permissions)
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) imageUri = pendingCameraUri
@@ -387,10 +406,14 @@ fun AddPantryItemScreen(
                         icon = Icons.Default.PhotoCamera,
                         color = MaterialTheme.colorScheme.primary,
                         onClick = {
-                            val uri = createTempImageUri(context)
-                            pendingCameraUri = uri
-                            cameraLauncher.launch(uri)
-                            showImagePickerSheet = false
+                            if (permissionState.allPermissionsGranted) {
+                                val uri = createTempImageUri(context)
+                                pendingCameraUri = uri
+                                cameraLauncher.launch(uri)
+                                showImagePickerSheet = false
+                            } else {
+                                permissionState.launchMultiplePermissionRequest()
+                            }
                         }
                     )
                     ModalMenuOption(

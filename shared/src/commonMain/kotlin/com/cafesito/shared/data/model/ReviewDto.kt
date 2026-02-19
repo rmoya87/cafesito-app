@@ -1,11 +1,20 @@
 package com.cafesito.shared.data.model
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ReviewDto(
+    /**
+     * El id se marca con EncodeDefault para que, si es null (inserción), 
+     * NO se envíe en el JSON y no rompa la restricción not-null de Supabase.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
     val id: Long? = null,
+    
     @SerialName("coffee_id") val coffeeId: String,
     @SerialName("user_id") val userId: Int,
     val rating: Float,
@@ -16,10 +25,8 @@ data class ReviewDto(
     val cuerpo: Float? = null,
     val acidez: Float? = null,
     val dulzura: Float? = null,
-    val timestamp: Long,
-    val method: String? = null,
-    val ratio: String? = null,
-    @SerialName("water_temp") val waterTemp: Int? = null,
-    @SerialName("extraction_time") val extractionTime: String? = null,
-    @SerialName("grind_size") val grindSize: String? = null
+    val timestamp: Long
+    
+    // IMPORTANTE: Se omiten campos técnicos que no existen en el esquema remoto actual
+    // para evitar errores de mismatch de columnas.
 )

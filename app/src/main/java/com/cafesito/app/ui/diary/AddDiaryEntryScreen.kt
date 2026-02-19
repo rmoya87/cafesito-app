@@ -17,8 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,7 +31,9 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -150,7 +152,7 @@ fun AddDiaryEntryScreen(
                         if (useCloseIcon) {
                             Icon(Icons.Default.Close, contentDescription = "Cerrar")
                         } else {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBackIos, contentDescription = "Volver")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                         }
                     }
                 },
@@ -180,7 +182,7 @@ fun AddDiaryEntryScreen(
                         }
                     } else if (step in 2..3) {
                         IconButton(onClick = { step += 1 }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = "Siguiente")
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Siguiente")
                         }
                     } else if (step == 4) {
                         TextButton(onClick = registerCoffee, enabled = !isSaving) {
@@ -283,6 +285,7 @@ fun WaterRegistrationStepPremium(
     isSaving: Boolean
 ) {
     val waterBlue = Color(0xFF2196F3)
+    var mlInput by remember(ml) { mutableStateOf(ml.roundToInt().toString()) }
 
     Column(
         modifier = Modifier
@@ -304,13 +307,24 @@ fun WaterRegistrationStepPremium(
                     tint = waterBlue
                 )
                 Spacer(Modifier.height(24.dp))
-                Text(
-                    text = "${ml.roundToInt()} ml",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                OutlinedTextField(
+                    value = mlInput,
+                    onValueChange = { input ->
+                        if (input.isEmpty() || input.all(Char::isDigit)) {
+                            mlInput = input
+                            input.toFloatOrNull()?.let(onMlChange)
+                        }
+                    },
+                    suffix = { Text("ml") },
+                    textStyle = LocalTextStyle.current.copy(
+                        fontSize = MaterialTheme.typography.headlineLarge.fontSize,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
                 )
-                Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
             }
         }
         
@@ -322,9 +336,11 @@ fun WaterRegistrationStepPremium(
             valueRange = 50f..1000f,
             enabled = !isSaving,
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.outline,
+                thumbColor = waterBlue,
                 activeTrackColor = waterBlue,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                activeTickColor = Color.Transparent,
+                inactiveTickColor = Color.Transparent
             ),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -381,7 +397,7 @@ fun CoffeeSelectionStepPremium(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(pantryItems) { item ->
+                    items(pantryItems, key = { it.pantryItem.coffeeId }) { item ->
                         PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
                     }
                 }
@@ -439,7 +455,7 @@ fun CoffeeSelectionStepPremium(
             Spacer(Modifier.height(16.dp))
         }
 
-        items(filteredCatalog) { coffee ->
+        items(filteredCatalog, key = { it.coffee.id }) { coffee ->
             CoffeePremiumRowItem(coffee) { onCoffeeSelected(coffee.coffee, false) }
             Spacer(Modifier.height(12.dp))
         }
@@ -453,6 +469,7 @@ fun CoffeeDoseStepPremium(
     onDoseChange: (Float) -> Unit
 ) {
     val coffeeColor = CaramelAccent
+    var doseInput by remember(doseGrams) { mutableStateOf(String.format(Locale.getDefault(), "%.1f", doseGrams)) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -480,13 +497,25 @@ fun CoffeeDoseStepPremium(
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    text = String.format(Locale.getDefault(), "%.1f g", doseGrams),
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                OutlinedTextField(
+                    value = doseInput,
+                    onValueChange = { input ->
+                        val normalized = input.replace(',', '.')
+                        if (input.isEmpty() || normalized.all { it.isDigit() || it == '.' }) {
+                            doseInput = input
+                            normalized.toFloatOrNull()?.let(onDoseChange)
+                        }
+                    },
+                    suffix = { Text("g") },
+                    textStyle = LocalTextStyle.current.copy(
+                        fontSize = MaterialTheme.typography.headlineLarge.fontSize,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
                 )
-                Text("DOSIS DE CAFÉ", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
             }
         }
 
@@ -498,11 +527,11 @@ fun CoffeeDoseStepPremium(
             valueRange = 3f..30f,
             steps = 269,
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.outline,
+                thumbColor = coffeeColor,
                 activeTrackColor = coffeeColor,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline,
-                activeTickColor = MaterialTheme.colorScheme.outline,
-                inactiveTickColor = MaterialTheme.colorScheme.outline
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                activeTickColor = Color.Transparent,
+                inactiveTickColor = Color.Transparent
             ),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -546,7 +575,7 @@ fun CoffeeTypeStepPremium(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(prepTypes) { option ->
+        items(prepTypes, key = { it.drawableName }) { option ->
             val isSelected = selectedType == option.label
             val resId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
             Surface(

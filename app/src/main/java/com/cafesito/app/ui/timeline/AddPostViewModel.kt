@@ -16,6 +16,7 @@ import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -38,7 +39,8 @@ class AddPostViewModel @Inject constructor(
     private val reviewRepository: ReviewRepository,
     private val supabaseDataSource: SupabaseDataSource,
     private val diaryRepository: DiaryRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
+    private val externalScope: CoroutineScope
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -109,12 +111,9 @@ class AddPostViewModel @Inject constructor(
         .map { items -> items.map { it.pantryItem.coffeeId }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    private val favoriteCoffeeIds: StateFlow<Set<String>> = combine(
-        coffeeRepository.favorites,
-        coffeeRepository.favoritesCustom
-    ) { favorites, favoritesCustom ->
-        (favorites.map { it.coffeeId } + favoritesCustom.map { it.coffeeId }).toSet()
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+    private val favoriteCoffeeIds: StateFlow<Set<String>> = coffeeRepository.favorites
+        .map { favorites -> favorites.map { it.coffeeId }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     private val recentCoffeeIds: StateFlow<List<String>> = diaryRepository.getDiaryEntries()
         .map { entries ->
@@ -310,22 +309,29 @@ class AddPostViewModel @Inject constructor(
         }
     }
 
-    fun createPost(onSuccess: () -> Unit) {
-        viewModelScope.launch {
+    fun createPost() {
+        val commentSnapshot = _comment.value
+        val imageSnapshot = _imageSource.value
+        val selectedCoffeeSnapshot = _selectedCoffee.value
+
+        clearState()
+
+        externalScope.launch {
             val activeUser = userRepository.getActiveUser() ?: return@launch
-            
-            val imageUrl = _imageSource.value?.let { uploadImageAndGetUrl(it, "posts") } ?: ""
-            
+            val imageUrl = imageSnapshot?.let { uploadImageAndGetUrl(it, "posts") } ?: ""
+
             val postId = "post_${System.currentTimeMillis()}"
             socialRepository.createPost(PostEntity(
                 id = postId,
                 userId = activeUser.id,
                 imageUrl = imageUrl,
-                comment = _comment.value,
+                comment = commentSnapshot,
                 timestamp = System.currentTimeMillis()
             ))
 
-            _selectedCoffee.value?.let { selected ->
+            notifyMentionsInPost(postId = postId, author = activeUser, text = commentSnapshot)
+
+            selectedCoffeeSnapshot?.let { selected ->
                 socialRepository.upsertPostCoffeeTag(
                     PostCoffeeTagEntity(
                         postId = postId,
@@ -339,9 +345,6 @@ class AddPostViewModel @Inject constructor(
             }
 
             socialRepository.syncSocialData()
-            
-            clearState()
-            onSuccess()
         }
     }
 
@@ -396,6 +399,35 @@ class AddPostViewModel @Inject constructor(
         savedStateHandle.remove<String>("postType")
     }
 
+
+    private suspend fun notifyMentionsInPost(postId: String, author: UserEntity, text: String) {
+        val mentionRegex = Regex("@([A-Za-z0-9._-]{2,30})")
+        val usernames = mentionRegex.findAll(text)
+            .map { it.groupValues[1].trim() }
+            .filter { it.isNotBlank() && !it.equals(author.username, ignoreCase = true) }
+            .toList()
+        val deduped = linkedMapOf<String, String>()
+        usernames.forEach { name -> deduped.putIfAbsent(name.lowercase(), name) }
+
+        deduped.values.forEach { username ->
+            val mentionedUser = userRepository.getUserByUsername(username) ?: return@forEach
+            if (mentionedUser.id == author.id) return@forEach
+            runCatching {
+                supabaseDataSource.insertNotification(
+                    NotificationEntity(
+                        userId = mentionedUser.id,
+                        type = "MENTION",
+                        fromUsername = author.username,
+                        message = "te ha mencionado",
+                        timestamp = System.currentTimeMillis(),
+                        relatedId = "$postId:-1"
+                    )
+                )
+            }.onFailure { error ->
+                Log.e("AddPostVM", "Error enviando mención en post", error)
+            }
+        }
+    }
     private fun UserEntity.toDomainUser(): User = User(
         id = id, username = username, fullName = fullName, avatarUrl = avatarUrl, email = email, bio = bio, favoriteCoffeeIds = emptyList()
     )

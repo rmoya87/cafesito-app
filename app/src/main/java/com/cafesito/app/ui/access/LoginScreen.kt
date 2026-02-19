@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -22,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetPublicKeyCredentialOption
+import androidx.credentials.PublicKeyCredential
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +35,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.cafesito.app.R
+import com.cafesito.app.BuildConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +50,8 @@ import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.cafesito.app.ui.theme.CaramelAccent
+import com.cafesito.app.platform.HapticSignal
+import com.cafesito.app.platform.rememberNativeHaptics
 import androidx.compose.material3.ExperimentalMaterial3Api
 
 @UnstableApi
@@ -60,6 +66,7 @@ fun LoginScreen(
     val loginScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
     val isLoading by viewModel.isLoading.collectAsState()
     var showLoginModal by remember { mutableStateOf(false) }
+    val haptics = rememberNativeHaptics()
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -119,19 +126,19 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 24.dp)
             ) {
-                Text("BIENVENIDO A", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
-                Text("CAFESITO", style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Black, lineHeight = 44.sp, letterSpacing = 2.sp)
+                Text(stringResource(R.string.login_welcome_to), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+                Text(stringResource(R.string.login_brand), style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Black, lineHeight = 44.sp, letterSpacing = 2.sp)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("La comunidad para los amantes del café.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), lineHeight = 26.sp)
+                Text(stringResource(R.string.login_subtitle), style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), lineHeight = 26.sp)
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                FeatureRowUnified(icon = Icons.Default.CameraAlt, title = "Comparte", desc = "Publica tus momentos cafeteros.")
-                FeatureRowUnified(icon = Icons.Default.Coffee, title = "Explora", desc = "Descubre nuevos granos y baristas.")
-                FeatureRowUnified(icon = Icons.Default.Science, title = "Elabora", desc = "Prepara recetas como un profesional.")
-                FeatureRowUnified(icon = Icons.Default.AutoGraph, title = "Registra", desc = "Crea tu propio perfil sensorial.")
+                FeatureRowUnified(icon = Icons.Default.CameraAlt, title = stringResource(R.string.login_feature_share_title), desc = stringResource(R.string.login_feature_share_desc))
+                FeatureRowUnified(icon = Icons.Default.Coffee, title = stringResource(R.string.login_feature_explore_title), desc = stringResource(R.string.login_feature_explore_desc))
+                FeatureRowUnified(icon = Icons.Default.Science, title = stringResource(R.string.login_feature_brew_title), desc = stringResource(R.string.login_feature_brew_desc))
+                FeatureRowUnified(icon = Icons.Default.AutoGraph, title = stringResource(R.string.login_feature_track_title), desc = stringResource(R.string.login_feature_track_desc))
             }
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -143,7 +150,7 @@ fun LoginScreen(
                 shape = RoundedCornerShape(20.dp),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
-                Text("EMPEZAR AHORA", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Text(stringResource(R.string.login_start_now), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -160,7 +167,7 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.",
+                    text = stringResource(R.string.login_sheet_description),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
@@ -175,37 +182,90 @@ fun LoginScreen(
                                 try {
                                     val googleIdOption = GetGoogleIdOption.Builder()
                                         .setFilterByAuthorizedAccounts(false)
-                                        .setServerClientId("789398399906-468mj79uf2t4e485n7ilufv4eiouk3sm.apps.googleusercontent.com")
+                                        .setServerClientId(BuildConfig.GOOGLE_SERVER_CLIENT_ID)
                                         .setAutoSelectEnabled(false)
                                         .build()
 
-                                    val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
+                                    val requestBuilder = GetCredentialRequest.Builder()
+                                        .addCredentialOption(googleIdOption)
 
+                                    if (BuildConfig.PASSKEY_REQUEST_JSON.isNotBlank()) {
+                                        requestBuilder.addCredentialOption(
+                                            GetPublicKeyCredentialOption(BuildConfig.PASSKEY_REQUEST_JSON)
+                                        )
+                                    }
+
+                                    val request = requestBuilder.build()
                                     val result = credentialManager.getCredential(context = context, request = request)
-                                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
-                                    
-                                    viewModel.handleGoogleIdToken(
-                                        idToken = googleIdTokenCredential.idToken,
-                                        onSuccess = { supabaseUuid, isNewUser ->
-                                            onLoginSuccess(
-                                                supabaseUuid, 
-                                                googleIdTokenCredential.id, 
-                                                googleIdTokenCredential.displayName ?: "",
-                                                googleIdTokenCredential.profilePictureUri?.toString() ?: "",
-                                                isNewUser
+
+                                    when (val credential = result.credential) {
+                                        is PublicKeyCredential -> {
+                                            haptics.perform(HapticSignal.Success)
+                                            Toast.makeText(context, "Passkey validada. Completando inicio de sesión…", Toast.LENGTH_LONG).show()
+
+                                            val fallbackGoogleRequest = GetCredentialRequest.Builder()
+                                                .addCredentialOption(
+                                                    GetGoogleIdOption.Builder()
+                                                        .setFilterByAuthorizedAccounts(false)
+                                                        .setServerClientId(BuildConfig.GOOGLE_SERVER_CLIENT_ID)
+                                                        .setAutoSelectEnabled(true)
+                                                        .build()
+                                                )
+                                                .build()
+
+                                            val fallbackResult = credentialManager.getCredential(
+                                                context = context,
+                                                request = fallbackGoogleRequest
                                             )
-                                        },
-                                        onError = { error ->
-                                            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(fallbackResult.credential.data)
+                                            viewModel.handleGoogleIdToken(
+                                                idToken = googleIdTokenCredential.idToken,
+                                                onSuccess = { supabaseUuid, isNewUser ->
+                                                    haptics.perform(HapticSignal.Success)
+                                                    onLoginSuccess(
+                                                        supabaseUuid,
+                                                        googleIdTokenCredential.id,
+                                                        googleIdTokenCredential.displayName ?: "",
+                                                        googleIdTokenCredential.profilePictureUri?.toString() ?: "",
+                                                        isNewUser
+                                                    )
+                                                },
+                                                onError = { error ->
+                                                    haptics.perform(HapticSignal.Error)
+                                                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                                }
+                                            )
                                         }
-                                    )
+                                        else -> {
+                                            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                                            viewModel.handleGoogleIdToken(
+                                                idToken = googleIdTokenCredential.idToken,
+                                                onSuccess = { supabaseUuid, isNewUser ->
+                                                    haptics.perform(HapticSignal.Success)
+                                                    onLoginSuccess(
+                                                        supabaseUuid,
+                                                        googleIdTokenCredential.id,
+                                                        googleIdTokenCredential.displayName ?: "",
+                                                        googleIdTokenCredential.profilePictureUri?.toString() ?: "",
+                                                        isNewUser
+                                                    )
+                                                },
+                                                onError = { error ->
+                                                    haptics.perform(HapticSignal.Error)
+                                                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                                }
+                                            )
+                                        }
+                                    }
                                 } catch (e: GetCredentialCancellationException) {
                                     Log.d("LoginScreen", "Cerrado")
                                 } catch (e: NoCredentialException) {
-                                    Toast.makeText(context, "No se encontraron cuentas de Google.", Toast.LENGTH_LONG).show()
+                                    haptics.perform(HapticSignal.Error)
+                                    Toast.makeText(context, context.getString(R.string.login_no_google_accounts), Toast.LENGTH_LONG).show()
                                 } catch (e: Exception) {
                                     Log.e("LoginScreen", "Error: ${e.message}", e)
-                                    Toast.makeText(context, "Error de conexión: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                    haptics.perform(HapticSignal.Critical)
+                                    Toast.makeText(context, context.getString(R.string.login_connection_error, e.localizedMessage ?: ""), Toast.LENGTH_LONG).show()
                                 }
                             }
                         },
@@ -216,12 +276,12 @@ fun LoginScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                             Text("G", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, modifier = Modifier.padding(end = 12.dp))
-                            Text("Continuar con Google", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                            Text(stringResource(R.string.login_continue_with_google), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Al continuar, aceptas nuestros Términos y Condiciones.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center)
+                Text(stringResource(R.string.login_terms_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center)
             }
         }
     }

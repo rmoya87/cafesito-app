@@ -90,7 +90,8 @@ class DetailViewModel @Inject constructor(
             isCustom = coffee.coffee.isCustom,
             currentPantryItem = pantryDetails?.pantryItem,
             sensoryAverages = sensoryAverages,
-            sensoryEditorsCount = sensoryEditorsCount
+            sensoryEditorsCount = sensoryEditorsCount,
+            activeUser = activeUser
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
 
@@ -154,6 +155,19 @@ class DetailViewModel @Inject constructor(
         }
     }
 
+    fun deleteReview() {
+        viewModelScope.launch {
+            val user = userRepository.getActiveUser() ?: return@launch
+            try {
+                coffeeRepository.deleteReview(coffeeId, user.id)
+                socialRepository.triggerRefresh()
+                coffeeRepository.triggerRefresh()
+            } catch (e: Exception) {
+                Log.e("DETAIL_VM", "Error eliminando reseña: ${e.message}")
+            }
+        }
+    }
+
     fun submitReview(rating: Float, comment: String, imageUri: Uri? = null) {
         viewModelScope.launch {
             val validation = validateReviewInput(rating, comment)
@@ -194,7 +208,6 @@ class DetailViewModel @Inject constructor(
                     Log.e("DETAIL_VM", "Error al guardar reseña: ${result.exceptionOrNull()?.message}")
                     return@launch
                 }
-                // Es crucial refrescar AMBOS repositorios para que la UI se actualice al instante
                 socialRepository.triggerRefresh()
                 coffeeRepository.triggerRefresh()
             } catch (e: Exception) {
@@ -213,7 +226,8 @@ sealed interface DetailUiState {
         val isCustom: Boolean,
         val currentPantryItem: PantryItemEntity?,
         val sensoryAverages: Map<String, Float>,
-        val sensoryEditorsCount: Int
+        val sensoryEditorsCount: Int,
+        val activeUser: UserEntity? = null
     ) : DetailUiState
     data class Error(val message: String) : DetailUiState
 }

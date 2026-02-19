@@ -11,15 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -40,7 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
@@ -188,31 +179,6 @@ fun ProfileFavorites(
                     coffeeDetails = item,
                     onFavoriteClick = { viewModel.onToggleFavorite(item.coffee.id, false) },
                     onClick = { onCoffeeClick(item.coffee.id) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfileReviews(
-    userReviews: List<UserReviewInfo>,
-    isCurrentUser: Boolean,
-    onCoffeeClick: (String) -> Unit,
-    listState: LazyListState = rememberLazyListState(),
-    onEditClick: (UserReviewInfo) -> Unit,
-    onDeleteClick: (UserReviewInfo) -> Unit
-) {
-    LazyColumn(state = listState, contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
-        items(userReviews) { item ->
-            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                UserReviewCard(
-                    info = item,
-                    showHeader = false,
-                    isOwnReview = isCurrentUser,
-                    onEditClick = { onEditClick(item) },
-                    onDeleteClick = { onDeleteClick(item) },
-                    onClick = { onCoffeeClick(item.coffeeDetails.coffee.id) }
                 )
             }
         }
@@ -501,11 +467,11 @@ fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
             .fillMaxWidth(0.7f)
             .height(48.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isFollowing) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
-            contentColor = if (isFollowing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+            containerColor = if (isFollowing) Color.White else MaterialTheme.colorScheme.primary,
+            contentColor = if (isFollowing) Color.Black else MaterialTheme.colorScheme.onPrimary
         ),
         shape = RoundedCornerShape(24.dp),
-        border = if (isFollowing) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null
+        border = if (isFollowing) BorderStroke(1.dp, Color.Black) else null
     ) {
         Text(if (isFollowing) "SIGUIENDO" else "SEGUIR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     }

@@ -15,11 +15,22 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
+import java.time.Instant
 
 @Singleton
 class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
+    @kotlinx.serialization.Serializable
+    private data class NotificationInsert(
+        @kotlinx.serialization.SerialName("user_id") val userId: Int,
+        val type: String,
+        @kotlinx.serialization.SerialName("from_username") val fromUsername: String,
+        val message: String,
+        val timestamp: Long,
+        @kotlinx.serialization.SerialName("is_read") val isRead: Boolean = false,
+        @kotlinx.serialization.SerialName("related_id") val relatedId: String? = null
+    )
     // --- STORAGE ---
     suspend fun uploadImage(bucket: String, path: String, byteArray: ByteArray): String {
         val bucketRef = client.storage.from(bucket)
@@ -57,21 +68,31 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
-    suspend fun insertUserToken(token: UserTokenEntity) {
-        val payload = UserTokenUpsert(
-            userId = token.userId,
-            fcmToken = token.fcmToken
-        )
-        try {
-            // Evita enviar "id=0" (PK local Room) al backend.
-            client.postgrest["user_fcm_tokens"].upsert(payload, onConflict = "fcm_token")
-        } catch (e: Exception) {
-            Log.w("SupabaseDataSource", "Upsert FCM token failed, trying insert: ${e.message}")
-            try {
-                client.postgrest["user_fcm_tokens"].insert(payload)
-            } catch (insertError: Exception) {
-                Log.e("SupabaseDataSource", "Error inserting FCM token: ${insertError.message}", insertError)
+    
+    suspend fun touchUserLastInteraction(userId: Int) {
+        client.postgrest["users_db"].update(
+            {
+                set("updated_at", Instant.now().toString())
             }
+        ) {
+            filter { eq("id", userId) }
+        }
+    }
+
+    suspend fun insertUserToken(token: UserTokenEntity) {
+        try {
+            // No enviamos `id` para evitar conflictos con PK autogenerada y forzar upsert por user_id.
+            // Para Supabase kt 2.6.1, onConflict es un parámetro de la función upsert
+            client.postgrest["user_fcm_tokens"].upsert(
+                value = UserTokenUpsert(
+                    userId = token.userId,
+                    fcmToken = token.fcmToken
+                ),
+                onConflict = "user_id"
+            )
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error upserting FCM token", e)
+            throw e
         }
     }
     // --- SEGUIMIENTOS ---
@@ -94,6 +115,7 @@ class SupabaseDataSource @Inject constructor(
             }
             if (origin != null) eq("pais_origen", origin)
             if (roast != null) eq("tueste", roast)
+            eq("is_custom", false)
         }
         order("nombre", Order.ASCENDING) 
     }.decodeList<Coffee>()
@@ -120,6 +142,7 @@ class SupabaseDataSource @Inject constructor(
             if (specialties.isNotEmpty()) isIn("especialidad", specialties.toList())
             if (formats.isNotEmpty()) isIn("formato", formats.toList())
             if (minRating > 0) gte("puntuacion_total", minRating)
+            eq("is_custom", false)
         }
         order("nombre", Order.ASCENDING)
         range(from, to)
@@ -149,22 +172,28 @@ class SupabaseDataSource @Inject constructor(
     }
 
     // --- CAFÉS PERSONALIZADOS ---
-    suspend fun getCustomCoffees(userId: Int): List<CustomCoffeeEntity> = client.postgrest["custom_coffees"].select { filter { eq("user_id", userId) } }.decodeList<CustomCoffeeEntity>()
-    suspend fun insertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].upsert(coffee)
-    suspend fun upsertCustomCoffee(coffee: CustomCoffeeEntity) = client.postgrest["custom_coffees"].upsert(coffee)
-    
-    suspend fun updateCustomCoffee(id: String, userId: Int, coffee: CustomCoffeeEntity) {
-        client.postgrest["custom_coffees"].update({
-            set("name", coffee.name)
-            set("brand", coffee.brand)
-            set("specialty", coffee.specialty)
-            set("roast", coffee.roast)
-            set("variety", coffee.variety)
-            set("country", coffee.country)
-            set("has_caffeine", coffee.hasCaffeine)
-            set("format", coffee.format)
+    suspend fun getCustomCoffees(userId: Int): List<Coffee> = client.postgrest["coffees"].select {
+        filter {
+            eq("user_id", userId)
+            eq("is_custom", true)
+        }
+    }.decodeList<Coffee>()
+
+    suspend fun upsertCustomCoffee(coffee: Coffee) = client.postgrest["coffees"].upsert(coffee)
+
+    suspend fun updateCustomCoffee(id: String, userId: Int, coffee: Coffee) {
+        client.postgrest["coffees"].update({
+            set("nombre", coffee.nombre)
+            set("marca", coffee.marca)
+            set("especialidad", coffee.especialidad)
+            set("tueste", coffee.tueste)
+            set("variedad_tipo", coffee.variedadTipo)
+            set("pais_origen", coffee.paisOrigen)
+            set("cafeina", coffee.cafeina)
+            set("formato", coffee.formato)
             set("image_url", coffee.imageUrl)
-            set("total_grams", coffee.totalGrams)
+            set("is_custom", true)
+            set("user_id", userId)
         }) {
             filter {
                 eq("id", id)
@@ -174,26 +203,12 @@ class SupabaseDataSource @Inject constructor(
     }
 
     suspend fun deleteCustomCoffee(id: String, userId: Int) {
-        client.postgrest["custom_coffees"].delete {
+        client.postgrest["coffees"].delete {
             filter {
                 eq("id", id)
                 eq("user_id", userId)
+                eq("is_custom", true)
             }
-        }
-    }
-
-    // --- FAVORITOS PERSONALIZADOS (RESTAURADOS) ---
-    suspend fun getAllFavoritesCustom(): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select().decodeList<LocalFavoriteCustom>()
-    
-    suspend fun getFavoritesCustomByUserId(userId: Int): List<LocalFavoriteCustom> = client.postgrest["local_favorites_custom"].select {
-        filter { eq("user_id", userId) }
-    }.decodeList<LocalFavoriteCustom>()
-
-    suspend fun insertFavoriteCustom(favorite: LocalFavoriteCustom) { client.postgrest["local_favorites_custom"].upsert(favorite) }
-    
-    suspend fun deleteFavoriteCustom(coffeeId: String, userId: Int) {
-        client.postgrest["local_favorites_custom"].delete {
-            filter { eq("coffee_id", coffeeId); eq("user_id", userId) }
         }
     }
 
@@ -234,7 +249,16 @@ class SupabaseDataSource @Inject constructor(
     }
     suspend fun upsertComment(comment: CommentEntity) = client.postgrest["comments_db"].upsert(comment)
     suspend fun deleteComment(commentId: Int) {
-        client.postgrest["comments_db"].delete { filter { eq("id", commentId) } }
+        try {
+            client.postgrest.rpc(
+                "delete_comment",
+                buildJsonObject {
+                    put("p_comment_id", commentId)
+                }
+            )
+        } catch (_: Exception) {
+            client.postgrest["comments_db"].delete { filter { eq("id", commentId) } }
+        }
     }
     suspend fun updateComment(commentId: Int, newText: String) {
         client.postgrest["comments_db"].update(
@@ -273,12 +297,7 @@ class SupabaseDataSource @Inject constructor(
             cuerpo = review.cuerpo,
             acidez = review.acidez,
             dulzura = review.dulzura,
-            timestamp = review.timestamp,
-            method = review.method,
-            ratio = review.ratio,
-            waterTemp = review.waterTemp,
-            extractionTime = review.extractionTime,
-            grindSize = review.grindSize
+            timestamp = review.timestamp
         )
         client.postgrest["reviews_db"].upsert(insertData)
     }
@@ -350,6 +369,9 @@ class SupabaseDataSource @Inject constructor(
 
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
+        val requiresPushPipeline = notification.type.equals("MENTION", ignoreCase = true) ||
+            notification.type.equals("COMMENT", ignoreCase = true) ||
+            notification.type.equals("FOLLOW", ignoreCase = true)
         try {
             client.postgrest.rpc(
                 "create_notification",
@@ -362,54 +384,120 @@ class SupabaseDataSource @Inject constructor(
                     notification.relatedId?.let { put("p_related_id", it) }
                 }
             )
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+        } catch (rpcError: Exception) {
+            Log.w(
+                "SupabaseDataSource",
+                "RPC create_notification failed for type=${notification.type} userId=${notification.userId}: ${rpcError.message}"
+            )
+            if (requiresPushPipeline) {
+                Log.e(
+                    "SupabaseDataSource",
+                    "Notification RPC is mandatory for push-capable notifications. Skipping direct insert to avoid silent push loss."
+                )
+                throw rpcError
+            }
+            try {
+                client.postgrest["notifications_db"].insert(
+                    NotificationInsert(
+                        userId = notification.userId,
+                        type = notification.type,
+                        fromUsername = notification.fromUsername,
+                        message = notification.message,
+                        timestamp = notification.timestamp,
+                        isRead = notification.isRead,
+                        relatedId = notification.relatedId
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error inserting notification: ${e.message}")
+                throw e
+            }
         }
     }
 
     suspend fun getNotificationsForUser(userId: Int): List<NotificationEntity> {
         return try {
-            client.postgrest["notifications_db"].select {
-                filter { eq("user_id", userId) }
-                order("timestamp", Order.DESCENDING)
-            }.decodeList()
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error fetching notifications: ${e.message}")
-            emptyList()
+            client.postgrest.rpc(
+                "get_notifications_for_user",
+                buildJsonObject {
+                    put("p_user_id", userId)
+                }
+            ).decodeList()
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC get_notifications_for_user unavailable, falling back to direct query: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].select {
+                    filter { eq("user_id", userId) }
+                    order("timestamp", Order.DESCENDING)
+                }.decodeList<NotificationEntity>()
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error fetching notifications: ${e.message}")
+                emptyList()
+            }
         }
     }
 
     suspend fun markNotificationRead(notificationId: Int) {
         try {
-            client.postgrest["notifications_db"].update({
-                set("is_read", true)
-            }) {
-                filter { eq("id", notificationId) }
+            client.postgrest.rpc(
+                "mark_notification_read",
+                buildJsonObject {
+                    put("p_notification_id", notificationId)
+                }
+            )
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC mark_notification_read unavailable, falling back to direct update: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].update({
+                    set("is_read", true)
+                }) {
+                    filter { eq("id", notificationId) }
+                }
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error marking read: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error marking read: ${e.message}")
         }
     }
 
     suspend fun markAllNotificationsRead(userId: Int) {
         try {
-            client.postgrest["notifications_db"].update({
-                set("is_read", true)
-            }) {
-                filter { eq("user_id", userId) }
+            client.postgrest.rpc(
+                "mark_all_notifications_read",
+                buildJsonObject {
+                    put("p_user_id", userId)
+                }
+            )
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC mark_all_notifications_read unavailable, falling back to direct update: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].update({
+                    set("is_read", true)
+                }) {
+                    filter { eq("id", userId) }
+                }
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")
         }
     }
 
     suspend fun deleteNotification(notificationId: Int) {
         try {
-            client.postgrest["notifications_db"].delete {
-                filter { eq("id", notificationId) }
+            client.postgrest.rpc(
+                "delete_notification",
+                buildJsonObject {
+                    put("p_notification_id", notificationId)
+                }
+            )
+        } catch (rpcError: Exception) {
+            Log.w("SupabaseDataSource", "RPC delete_notification unavailable, falling back to direct delete: ${rpcError.message}")
+            try {
+                client.postgrest["notifications_db"].delete {
+                    filter { eq("id", notificationId) }
+                }
+            } catch (e: Exception) {
+                Log.e("SupabaseDataSource", "Error deleting notification: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error deleting notification: ${e.message}")
         }
     }
 }

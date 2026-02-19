@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,26 +29,10 @@ fun UserReviewCard(
     info: UserReviewInfo, 
     showHeader: Boolean = true,
     isOwnReview: Boolean = false,
-    onEditClick: () -> Unit = {},
-    onDeleteClick: () -> Unit = {},
     onClick: () -> Unit
 ) {
-    var showOptionsSheet by remember { mutableStateOf(false) }
-
-    if (showOptionsSheet) {
-        ReviewOptionsBottomSheet(
-            onDismiss = { showOptionsSheet = false },
-            onEditClick = {
-                showOptionsSheet = false
-                onEditClick()
-            },
-            onDeleteClick = {
-                showOptionsSheet = false
-                onDeleteClick()
-            }
-        )
-    }
-
+    // Se eliminan showOptionsSheet y ReviewOptionsBottomSheet
+    
     PremiumCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -79,28 +62,22 @@ fun UserReviewCard(
                             letterSpacing = 1.sp
                         )
                     }
-                    if (isOwnReview) {
-                        IconButton(onClick = { showOptionsSheet = true }) {
-                            Icon(Icons.Default.MoreHoriz, null, tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
+                    // Se ha eliminado el IconButton de opciones (MoreHoriz)
                 }
             }
 
-            // TEXTO DE LA OPINIÓN: Antes de la imagen, color negro
             if (info.review.comment.isNotBlank()) {
                 Text(
                     text = info.review.comment,
                     style = MaterialTheme.typography.bodyLarge,
                     lineHeight = 24.sp,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Normal,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = if (showHeader) 0.dp else 20.dp)
                 )
                 Spacer(Modifier.height(16.dp))
             }
 
-            // IMAGEN: Después del texto, ancho completo
             if (info.review.imageUrl != null) {
                 AsyncImage(
                     model = info.review.imageUrl,
@@ -112,7 +89,6 @@ fun UserReviewCard(
                 )
             }
 
-            // Bloque de Café y Rating
             Column(modifier = Modifier.padding(20.dp)) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),

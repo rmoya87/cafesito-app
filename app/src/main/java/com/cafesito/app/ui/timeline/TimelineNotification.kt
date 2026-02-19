@@ -8,13 +8,17 @@ sealed class TimelineNotification(
     open val timestamp: Long,
     open val isRead: Boolean
 ) {
+    abstract val type: String
+
     data class Follow(
         override val notificationId: Int,
         override val id: String,
         override val timestamp: Long,
         override val isRead: Boolean,
         val user: UserEntity
-    ) : TimelineNotification(notificationId, id, timestamp, isRead)
+    ) : TimelineNotification(notificationId, id, timestamp, isRead) {
+        override val type: String = "follow"
+    }
 
     data class Mention(
         override val notificationId: Int,
@@ -25,7 +29,9 @@ sealed class TimelineNotification(
         val postId: String,
         val commentId: Int,
         val commentText: String
-    ) : TimelineNotification(notificationId, id, timestamp, isRead)
+    ) : TimelineNotification(notificationId, id, timestamp, isRead) {
+        override val type: String = "mention"
+    }
 
     data class Comment(
         override val notificationId: Int,
@@ -36,5 +42,7 @@ sealed class TimelineNotification(
         val postId: String,
         val commentId: Int,
         val message: String
-    ) : TimelineNotification(notificationId, id, timestamp, isRead)
+    ) : TimelineNotification(notificationId, id, timestamp, isRead) {
+        override val type: String = "comment"
+    }
 }

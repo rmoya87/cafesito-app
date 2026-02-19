@@ -22,7 +22,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -46,15 +47,18 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -154,7 +158,7 @@ fun CommentsSheet(
                     state = listState,
                     contentPadding = PaddingValues(bottom = 12.dp, top = 8.dp)
                 ) {
-                    items(comments) { item ->
+                    items(comments, key = { it.comment.id }) { item ->
                         CommentRow(
                             commentWithAuthor = item,
                             isOwnComment = item.author?.id == activeUser?.id,
@@ -234,7 +238,7 @@ fun CommentsSheet(
                                 FadingLazyRow(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
-                                    items(suggestions) { user ->
+                                    items(suggestions, key = { it.id }) { user ->
                                         SuggestionChip(user = user) {
                                             val updated = insertOrReplaceMentionToken(textValue.text, user.username)
                                             textValue = TextFieldValue(updated, selection = TextRange(updated.length))
@@ -478,8 +482,8 @@ fun NotificationsBottomSheet(
                             is TimelineNotification.Follow -> {
                                 NotificationRow(
                                     avatarUrl = notification.user.avatarUrl,
-                                    title = "${notification.user.fullName} empezó a seguirte.",
-                                    subtitle = "@${notification.user.username}",
+                                    title = "@${notification.user.username}",
+                                    subtitle = "ha comenzado a seguirte",
                                     isUnread = isUnread,
                                     trailingContent = {
                                         val isFollowing = followingIds.contains(notification.user.id)
@@ -514,11 +518,10 @@ fun NotificationsBottomSheet(
                                 )
                             }
                             is TimelineNotification.Mention -> {
-                                val preview = notification.commentText.replace("\n", " ").take(80)
                                 NotificationRow(
                                     avatarUrl = notification.user.avatarUrl,
-                                    title = "${notification.user.fullName} te mencionó en un comentario.",
-                                    subtitle = preview,
+                                    title = "@${notification.user.username}",
+                                    subtitle = "Te han mencionado.",
                                     isUnread = isUnread,
                                     trailingContent = null,
                                     onClick = { onNotificationClick(notification) }
@@ -527,8 +530,8 @@ fun NotificationsBottomSheet(
                             is TimelineNotification.Comment -> {
                                 NotificationRow(
                                     avatarUrl = notification.user.avatarUrl,
-                                    title = notification.user.fullName,
-                                    subtitle = notification.message,
+                                    title = "@${notification.user.username}",
+                                    subtitle = "Te ha escrito en un post",
                                     isUnread = isUnread,
                                     trailingContent = null,
                                     onClick = { onNotificationClick(notification) }
@@ -637,17 +640,10 @@ private fun CommentRow(
                 modifier = Modifier.clickable { author?.id?.let { onNavigateToProfile(it) } }
             )
 
-            val annotatedContent = buildAnnotatedStringWithMentions(comment.text)
-            @Suppress("DEPRECATION")
-            ClickableText(
-                text = annotatedContent,
+            MentionText(
+                text = comment.text,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                onClick = { offset ->
-                    annotatedContent.getStringAnnotations("MENTION", offset, offset)
-                        .firstOrNull()?.let { annotation ->
-                            onMentionClick(annotation.item)
-                        }
-                }
+                onMentionClick = onMentionClick
             )
         }
 
@@ -674,17 +670,16 @@ private fun CommentRow(
 
 }
 
-@Composable
-private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
+private fun buildAnnotatedStringWithMentions(text: String, mentionColor: Color): AnnotatedString {
     return buildAnnotatedString {
-        val regex = Regex("@(\\w+)")
+        val regex = Regex("@([A-Za-z0-9._-]{2,30})")
         var lastIndex = 0
 
         regex.findAll(text).forEach { matchResult ->
             append(text.substring(lastIndex, matchResult.range.first))
             val username = matchResult.groupValues[1]
             pushStringAnnotation(tag = "MENTION", annotation = username)
-            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
+            withStyle(style = SpanStyle(color = mentionColor, fontWeight = FontWeight.Bold)) {
                 append(matchResult.value)
             }
             pop()
@@ -694,6 +689,34 @@ private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
             append(text.substring(lastIndex))
         }
     }
+}
+
+@Composable
+fun MentionText(
+    text: String,
+    style: TextStyle,
+    onMentionClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val mentionColor = MaterialTheme.colorScheme.primary
+    val annotatedContent = remember(text, mentionColor) { buildAnnotatedStringWithMentions(text, mentionColor) }
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+    Text(
+        text = annotatedContent,
+        style = style,
+        modifier = modifier.pointerInput(annotatedContent) {
+            detectTapGestures { tapOffset ->
+                val layoutResult = textLayoutResult ?: return@detectTapGestures
+                val offset = layoutResult.getOffsetForPosition(tapOffset)
+                annotatedContent
+                    .getStringAnnotations(tag = "MENTION", start = offset, end = offset)
+                    .firstOrNull()
+                    ?.let { onMentionClick(it.item) }
+            }
+        },
+        onTextLayout = { textLayoutResult = it }
+    )
 }
 
 @Composable
@@ -715,20 +738,48 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
 }
 
 @Composable
-fun StockSliderSection(label: String, value: Float, maxValue: Float, onValueChange: (Float) -> Unit) {
+fun StockSliderSection(
+    label: String,
+    value: Float,
+    maxValue: Float,
+    onValueChange: (Float) -> Unit
+) {
+    var editableValue by remember(value) { mutableStateOf(value.roundToInt().toString()) }
+
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("${value.roundToInt()} g", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+        BasicTextField(
+            value = editableValue,
+            onValueChange = { input ->
+                if (input.isEmpty() || input.all { it.isDigit() }) {
+                    editableValue = input
+                    input.toFloatOrNull()?.let(onValueChange)
+                }
+            },
+            textStyle = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp)
+        )
         Slider(
-            value = value, 
-            onValueChange = onValueChange, 
-            valueRange = 0f..maxValue.coerceAtLeast(1f), 
+            value = value.coerceIn(0f, maxValue.coerceAtLeast(1f)),
+            onValueChange = {
+                onValueChange(it)
+                editableValue = it.roundToInt().toString()
+            },
+            valueRange = 0f..maxValue.coerceAtLeast(1f),
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.outline,
                 activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
             )
         )
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -1001,7 +1052,7 @@ fun DiaryEntryEditBottomSheet(
                     fontWeight = FontWeight.SemiBold
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(preparationOptions) { option ->
+                    items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
                         Surface(
                             onClick = { selectedPreparation = option.label },
@@ -1072,7 +1123,7 @@ fun DiaryEntryEditBottomSheet(
                     fontWeight = FontWeight.SemiBold
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(sizeOptions) { option ->
+                    items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
                         Surface(
                             onClick = { selectedSize = option.label },
@@ -1247,8 +1298,10 @@ private fun MetricPill(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InfoBottomSheet(onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
@@ -1289,8 +1342,10 @@ fun InfoRow(label: String, value: String, desc: String) {
 fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onSave: (Int, Int) -> Unit) {
     var total by remember { mutableStateOf(item.pantryItem.totalGrams.toFloat()) }
     var rem by remember { mutableStateOf(item.pantryItem.gramsRemaining.toFloat()) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
@@ -1310,9 +1365,19 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(32.dp))
-            StockSliderSection("Bolsa total", total, 1000f) { total = it; if (rem > it) rem = it }
+            StockSliderSection(
+                "Cantidad de café total (g)",
+                total,
+                1000f,
+                onValueChange = { total = it }
+            )
             Spacer(Modifier.height(24.dp))
-            StockSliderSection("Restante", rem, total) { rem = it }
+            StockSliderSection(
+                "Cantidad de café restante (g)",
+                rem,
+                total.coerceAtLeast(1f),
+                onValueChange = { rem = it }
+            )
             Spacer(Modifier.height(40.dp))
             
             Row(

@@ -11,6 +11,22 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+val supabaseUrl = providers.gradleProperty("SUPABASE_URL")
+    .orElse("https://ubcxjmagimjhpsehqync.supabase.co")
+    .get()
+
+val supabasePublishableKey = providers.gradleProperty("SUPABASE_PUBLISHABLE_KEY")
+    .orElse("sb_publishable_M2cY8wb50_I_pfnv_ZcukA_AIvnk66z")
+    .get()
+
+val googleServerClientId = providers.gradleProperty("GOOGLE_SERVER_CLIENT_ID")
+    .orElse("789398399906-468mj79uf2t4e485n7ilufv4eiouk3sm.apps.googleusercontent.com")
+    .get()
+
+val passkeyRequestJson = providers.gradleProperty("PASSKEY_REQUEST_JSON")
+    .orElse("")
+    .get()
+
 // Cargar propiedades de firma
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -26,10 +42,17 @@ android {
         applicationId = "com.cafesito.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 142
-        versionName = "2026.2.27"
+        versionCode = 175
+        versionName = "2026.2.29"
 
         testInstrumentationRunner = "com.cafesito.app.HiltTestRunner"
+
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"$supabasePublishableKey\"")
+        buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
+        buildConfigField("String", "PASSKEY_REQUEST_JSON", "\"$passkeyRequestJson\"")
+
+        manifestPlaceholders["usesCleartextTraffic"] = "true"
     }
 
     signingConfigs {
@@ -56,6 +79,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+
+            manifestPlaceholders["usesCleartextTraffic"] = "false"
+        }
+
+        debug {
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
         }
     }
 
@@ -86,7 +115,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
     // UI & Material Components
-    implementation("com.google.android.material:material:1.12.0")
+    implementation(libs.google.material)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -95,14 +124,21 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.browser)
+    implementation("androidx.biometric:biometric:1.1.0")
     
     // ML Kit & Barcode Scanning
-    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
-    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation(libs.google.play.services.code.scanner)
+    implementation(libs.google.play.services.mlkit.barcode.scanning)
+    implementation(libs.google.mlkit.barcode.scanning)
     
     // Accompanist Permissions
     implementation(libs.accompanist.permissions)
+
+    // CameraX (native camera scanning)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 
     // Paging 3
     implementation(libs.androidx.paging.runtime)
@@ -119,8 +155,8 @@ dependencies {
     implementation(libs.firebase.analytics)
 
     // Media3 (Video Player)
-    implementation("androidx.media3:media3-exoplayer:1.5.1")
-    implementation("androidx.media3:media3-ui:1.5.1")
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

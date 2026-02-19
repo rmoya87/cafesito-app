@@ -12,6 +12,8 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = Color.White,
     secondary = CaramelAccent,
     onSecondary = Color.White,
+    tertiary = BorderLight,
+    onTertiary = EspressoDeep,
     background = ScreenLightBackground,
     surface = PureWhite,
     surfaceVariant = PureWhite, // Forzado a blanco puro para evitar tonos grisáceos en cards
@@ -31,6 +33,8 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = PureBlack,
     secondary = CaramelSoft,
     onSecondary = PureBlack,
+    tertiary = MutedCream,
+    onTertiary = PureBlack,
     background = ScreenDarkBackground,
     surface = PureBlack,
     surfaceVariant = PureBlack, // Negro puro para modo noche
@@ -41,7 +45,7 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerHighest = ScreenDarkBackground,
     onSurface = Color.White,
     onSurfaceVariant = MutedCream,
-    outline = DarkOutline, // Negro suave (0xFF1A1A1A) en lugar de marrón
+    outline = PureBlack, // Cambiado de DarkOutline (gris muy oscuro) a negro puro
     surfaceTint = Color.Transparent // Desactiva la elevación tonal para mantener negro puro
 )
 

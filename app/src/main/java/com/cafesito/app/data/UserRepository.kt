@@ -3,15 +3,15 @@ package com.cafesito.app.data
 import android.util.Log
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.gotrue.SessionStatus
+import io.github.jan.supabase.exceptions.UnauthorizedRestException
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,7 +22,7 @@ import javax.inject.Singleton
 @Singleton
 class UserRepository @Inject constructor(
     private val userDao: UserDao,
-    private val sessionDao: SessionDao, // INYECTADO
+    private val sessionDao: SessionDao,
     private val supabaseDataSource: SupabaseDataSource,
     private val supabaseClient: SupabaseClient,
     private val connectivityObserver: ConnectivityObserver,
@@ -50,7 +50,7 @@ class UserRepository @Inject constructor(
                             .mapValues { entry -> entry.value.map { it.followedId }.toSet() }
                     }
                 },
-                fetch = { supabaseDataSource.getAllFollows() },
+                fetch = { getAllFollowsWithAuthRetry() },
                 saveFetchResult = { follows ->
                     withContext(Dispatchers.IO) { userDao.insertFollows(follows) }
                 },
@@ -61,15 +61,14 @@ class UserRepository @Inject constructor(
         .distinctUntilChanged()
         .flowOn(Dispatchers.IO)
 
-    suspend fun signInWithSupabase(token: String): String? {
+    suspend fun signInWithSupabase(token: String): String? = withContext(Dispatchers.IO) {
         ensureConnected()
-        return try {
+        try {
             supabaseClient.auth.signInWith(IDToken) {
                 idToken = token
                 provider = Google
             }
             val uid = supabaseClient.auth.currentUserOrNull()?.id
-            // Si el usuario ya existe localmente, marcamos la sesión en Room
             if (uid != null) {
                 userDao.getUserByGoogleId(uid)?.let { localUser ->
                     sessionDao.setSession(ActiveSessionEntity(userId = localUser.id))
@@ -87,15 +86,51 @@ class UserRepository @Inject constructor(
             if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
                 supabaseClient.auth.signOut()
             }
-            sessionDao.clearSession() // LIMPIAMOS SESIÓN EN ROOM
+            sessionDao.clearSession()
             userDao.deleteAllUsers()
-            lastSyncMap.clear()
+            // Limpiar caché de sincronización si existe
             triggerRefresh()
         } catch (e: Exception) {
             Log.e("UserRepository", "Logout failed", e)
         }
     }
 
+    fun getActiveUserFlow(): Flow<UserEntity?> = sessionDao.getActiveSession()
+        .flatMapLatest { session ->
+            if (session != null) {
+                userDao.getUserByIdFlow(session.userId)
+            } else {
+                flowOf(null)
+            }
+        }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
+
+    suspend fun getActiveUser(): UserEntity? = withContext(Dispatchers.IO) {
+        val session = sessionDao.getActiveSession().first() ?: return@withContext null
+        userDao.getUserById(session.userId)
+    }
+    
+    suspend fun upsertLocalOnly(user: UserEntity) = withContext(Dispatchers.IO) {
+        userDao.upsertUser(user)
+        sessionDao.setSession(ActiveSessionEntity(userId = user.id))
+    }
+
+    suspend fun getUserByGoogleId(googleId: String): UserEntity? = withContext(Dispatchers.IO) {
+        val local = userDao.getUserByGoogleId(googleId)
+        if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                supabaseDataSource.getUserByGoogleId(googleId)?.also { remote ->
+                    userDao.upsertUser(remote)
+                    return@withContext remote
+                }
+            } catch (e: Exception) { }
+        }
+        local
+    }
+
+    // ... (resto de métodos omitidos para brevedad, se mantienen igual)
+    
     fun getAllUsersFlow(): Flow<List<UserEntity>> = _refreshTrigger
         .flatMapLatest {
             networkBoundResource(
@@ -114,7 +149,13 @@ class UserRepository @Inject constructor(
         val realtimeFlow = supabaseDataSource.subscribeToNotifications(userId)
             .map { Unit }
             .catch { emit(Unit) }
-        return merge(_refreshTrigger, realtimeFlow)
+        val pollingFlow = flow {
+            while (true) {
+                emit(Unit)
+                delay(3_000)
+            }
+        }
+        return merge(_refreshTrigger, realtimeFlow, pollingFlow)
             .flatMapLatest {
                 flow {
                     val notifications = try {
@@ -144,40 +185,16 @@ class UserRepository @Inject constructor(
 
     suspend fun getAllUsersList(): List<UserEntity> = userDao.getAllUsers().first()
 
-    /**
-     * Fuente de verdad de la sesión: Room (ActiveSessionEntity).
-     * Esto asegura que la sesión persista tras bloqueos de pantalla o reinicios,
-     * y solo se pierda al cerrar sesión explícitamente.
-     */
-    fun getActiveUserFlow(): Flow<UserEntity?> = sessionDao.getActiveSession()
-        .flatMapLatest { session ->
-            if (session != null) {
-                // Hay una sesión activa en Room
-                userDao.getUserByIdFlow(session.userId).onStart {
-                    // Intento de refresco opcional si hay internet
-                    if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-                        externalScope.launch {
-                            try {
-                                val uid = supabaseClient.auth.currentUserOrNull()?.id
-                                if (uid != null) {
-                                    val remote = supabaseDataSource.getUserByGoogleId(uid)
-                                    if (remote != null) userDao.upsertUser(remote)
-                                }
-                            } catch (e: Exception) { }
-                        }
-                    }
-                }
-            } else {
-                // No hay sesión activa en Room
-                flowOf(null)
-            }
-        }.flowOn(Dispatchers.IO)
 
-    suspend fun getActiveUser(): UserEntity? {
-        val session = sessionDao.getActiveSession().first() ?: return null
-        return userDao.getUserById(session.userId)
+    suspend fun restoreSessionFromSupabaseIfNeeded() = withContext(Dispatchers.IO) {
+        val activeSession = sessionDao.getActiveSession().first()
+        if (activeSession != null) return@withContext
+
+        val authUserId = supabaseClient.auth.currentUserOrNull()?.id ?: return@withContext
+        val remoteUser = getUserByGoogleId(authUserId) ?: return@withContext
+        sessionDao.setSession(ActiveSessionEntity(userId = remoteUser.id))
     }
-    
+
     suspend fun setSession(userId: Int) {
         sessionDao.setSession(ActiveSessionEntity(userId = userId))
     }
@@ -187,20 +204,6 @@ class UserRepository @Inject constructor(
         if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try {
                 val remote = supabaseDataSource.getUserById(userId)
-                if (remote != null) {
-                    userDao.upsertUser(remote)
-                    return remote
-                }
-            } catch (e: Exception) { }
-        }
-        return local
-    }
-
-    suspend fun getUserByGoogleId(googleId: String): UserEntity? {
-        val local = userDao.getUserByGoogleId(googleId)
-        if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try {
-                val remote = supabaseDataSource.getUserByGoogleId(googleId)
                 if (remote != null) {
                     userDao.upsertUser(remote)
                     return remote
@@ -231,53 +234,91 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun upsertLocalOnly(user: UserEntity) {
-        userDao.upsertUser(user)
-        // Al guardar localmente tras el login exitoso, marcamos la sesión
-        sessionDao.setSession(ActiveSessionEntity(userId = user.id))
+
+    suspend fun touchUserInteraction() {
+        val currentUser = getActiveUser() ?: return
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return
+
+        try {
+            supabaseDataSource.touchUserLastInteraction(currentUser.id)
+        } catch (e: UnauthorizedRestException) {
+            Log.w("UserRepository", "touchUserInteraction unauthorized, retrying after auth refresh", e)
+            refreshAuthSession()
+            supabaseDataSource.touchUserLastInteraction(currentUser.id)
+        } catch (e: Exception) {
+            Log.e("UserRepository", "touchUserInteraction failed", e)
+        }
     }
 
     suspend fun updateFcmToken(token: String) {
         val currentUser = getActiveUser() ?: return
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try {
-                supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
-            } catch (e: Exception) {
-                Log.e("UserRepository", "Error updating FCM token: ${e.message}", e)
-            }
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return
+
+        try {
+            supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
+        } catch (e: UnauthorizedRestException) {
+            Log.w("UserRepository", "updateFcmToken unauthorized, trying one auth refresh and retry", e)
+            refreshAuthSession()
+            supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
+        } catch (e: Exception) {
+            Log.e("UserRepository", "updateFcmToken failed", e)
         }
     }
 
     suspend fun toggleFollow(followerId: Int, targetId: Int) = withContext(Dispatchers.IO) {
         val follow = FollowEntity(followerId, targetId)
         val isFollowing = userDao.getAllFollows().first().any { it.followerId == followerId && it.followedId == targetId }
-        
+
         if (isFollowing) userDao.deleteFollow(follow) else userDao.insertFollow(follow)
 
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try {
-                    if (isFollowing) {
-                        supabaseDataSource.deleteFollow(followerId, targetId)
-                    } else {
-                        supabaseDataSource.insertFollow(follow)
-                        if (followerId != targetId) {
-                            val followerUser = userDao.getUserById(followerId)
-                            val fromUsername = followerUser?.username ?: return@launch
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext
+
+        val remoteCall: suspend () -> Unit = {
+            if (isFollowing) {
+                supabaseDataSource.deleteFollow(followerId, targetId)
+            } else {
+                supabaseDataSource.insertFollow(follow)
+                if (followerId != targetId) {
+                    val followerUser = userDao.getUserById(followerId)
+                    val fromUsername = followerUser?.username
+                    if (!fromUsername.isNullOrBlank()) {
+                        try {
                             supabaseDataSource.insertNotification(
                                 NotificationEntity(
                                     userId = targetId,
                                     type = "FOLLOW",
                                     fromUsername = fromUsername,
-                                    message = "",
+                                    message = "ha empezado a seguirte",
                                     timestamp = System.currentTimeMillis(),
                                     relatedId = followerId.toString()
                                 )
                             )
+                        } catch (e: Exception) {
+                            Log.e("UserRepository", "Follow persisted but follow-notification failed", e)
                         }
                     }
-                } catch (e: Exception) { }
+                }
             }
+        }
+
+        try {
+            remoteCall()
+        } catch (e: UnauthorizedRestException) {
+            Log.w("UserRepository", "toggleFollow unauthorized, trying one auth refresh and retry", e)
+            refreshAuthSession()
+            try {
+                remoteCall()
+            } catch (retryError: Exception) {
+                if (isFollowing) userDao.insertFollow(follow) else userDao.deleteFollow(follow)
+                triggerRefresh()
+                Log.e("UserRepository", "toggleFollow failed after auth refresh", retryError)
+                throw retryError
+            }
+        } catch (e: Exception) {
+            if (isFollowing) userDao.insertFollow(follow) else userDao.deleteFollow(follow)
+            triggerRefresh()
+            Log.e("UserRepository", "toggleFollow remote sync failed", e)
+            throw e
         }
     }
 
@@ -287,25 +328,53 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun syncFollows() {
-        val follows = supabaseDataSource.getAllFollows()
+        val follows = getAllFollowsWithAuthRetry()
         userDao.insertFollows(follows)
+    }
+
+    private suspend fun getAllFollowsWithAuthRetry(): List<FollowEntity> {
+        return try {
+            supabaseDataSource.getAllFollows()
+        } catch (e: UnauthorizedRestException) {
+            Log.w("UserRepository", "getAllFollows unauthorized, trying one auth refresh and retry", e)
+            refreshAuthSession()
+            supabaseDataSource.getAllFollows()
+        }
+    }
+
+    private suspend fun refreshAuthSession() {
+        try {
+            supabaseClient.auth.refreshCurrentSession()
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Auth refresh failed, forcing re-login", e)
+            throw e
+        }
     }
 
     suspend fun markNotificationRead(notificationId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.markNotificationRead(notificationId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.markNotificationRead(notificationId)
+            } catch (_: Exception) {
+            }
         }
     }
 
     suspend fun markAllNotificationsRead(userId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.markAllNotificationsRead(userId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.markAllNotificationsRead(userId)
+            } catch (_: Exception) {
+            }
         }
     }
 
     suspend fun deleteNotification(notificationId: Int) {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deleteNotification(notificationId) } catch (e: Exception) { } }
+            try {
+                supabaseDataSource.deleteNotification(notificationId)
+            } catch (_: Exception) {
+            }
         }
     }
 

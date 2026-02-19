@@ -7,7 +7,6 @@ import androidx.room.RoomDatabase
     entities = [
         Coffee::class, 
         LocalFavorite::class,
-        LocalFavoriteCustom::class,
         ReviewEntity::class,
         CoffeeSensoryProfileEntity::class,
         UserEntity::class,
@@ -20,11 +19,10 @@ import androidx.room.RoomDatabase
         DiaryEntryEntity::class,
         PendingDiarySyncEntity::class,
         PantryItemEntity::class,
-        CustomCoffeeEntity::class,
         UserTokenEntity::class,
         ActiveSessionEntity::class
     ],
-    version = 33,
+    version = 34,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

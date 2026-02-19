@@ -14,6 +14,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,6 +23,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.UserReviewInfo
+import com.cafesito.app.security.runWithBiometricReauth
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
 import kotlinx.coroutines.delay
@@ -39,17 +41,17 @@ fun ProfileScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
-    val tabs = listOf("POSTS", "ADN", "FAVORITOS", "RESEÑAS")
+    val tabs = listOf("POSTS", "ADN", "FAVORITOS")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
     var showSensoryDetail by remember { mutableStateOf(false) }
 
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
-    var reviewToEdit by remember { mutableStateOf<UserReviewInfo?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
 
     var isRefreshing by remember { mutableStateOf(false) }
@@ -157,7 +159,6 @@ fun ProfileScreen(
                     }
 
                     stickyHeader {
-                        // ✅ ALINEACIÓN: El margen vertical ahora es 12.dp para coincidir con la BottomBar
                         Box(modifier = Modifier.padding(vertical = 12.dp)) {
                             PremiumTabRow(
                                 selectedTabIndex = selectedTabIndex,
@@ -194,7 +195,6 @@ fun ProfileScreen(
                                     Box(Modifier.clickable { showSensoryDetail = true }) {
                                         PremiumCard {
                                             Column(Modifier.padding(24.dp)) {
-                                                // Se quita el texto "PERFIL SENSORIAL" por petición del usuario
                                                 SensoryRadarChart(data = state.sensoryProfile, modifier = Modifier.fillMaxWidth().height(220.dp))
                                                 Spacer(Modifier.height(16.dp))
                                                 Text("Tus gustos basados en tus cafés favoritos y reseñas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
@@ -219,23 +219,6 @@ fun ProfileScreen(
                                 }
                             }
                         }
-                        3 -> {
-                            if (state.userReviews.isEmpty()) {
-                                item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("No has escrito reseñas aún", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-                            } else {
-                                items(state.userReviews, key = { it.review.id }) { review ->
-                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                        UserReviewCard(
-                                            info = review,
-                                            isOwnReview = state.isCurrentUser,
-                                            onEditClick = { reviewToEdit = review },
-                                            onDeleteClick = { itemToDelete = review },
-                                            onClick = { onCoffeeClick(review.coffeeDetails.coffee.id) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
 
@@ -248,7 +231,15 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
-                        onLogoutClick = { viewModel.logout() }
+                        onLogoutClick = {
+                            runWithBiometricReauth(
+                                context = context,
+                                title = "Confirma tu identidad",
+                                subtitle = "Para cerrar sesión en Cafesito",
+                                onAuthenticated = { viewModel.logout() },
+                                onFallback = { viewModel.logout() }
+                            )
+                        }
                     )
                 }
 
@@ -258,9 +249,21 @@ fun ProfileScreen(
                         title = "Borrar",
                         text = "Una vez borrado no se puede recuperar. ¿Estás seguro?",
                         onConfirm = {
-                            if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                            else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
-                            itemToDelete = null
+                            runWithBiometricReauth(
+                                context = context,
+                                title = "Acción sensible",
+                                subtitle = "Confirma para eliminar contenido",
+                                onAuthenticated = {
+                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
+                                    else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                                    itemToDelete = null
+                                },
+                                onFallback = {
+                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
+                                    else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                                    itemToDelete = null
+                                }
+                            )
                         }
                     )
                 }
@@ -272,17 +275,6 @@ fun ProfileScreen(
                         onConfirm = { newText, newImageUrl ->
                             viewModel.updatePost(details.post.id, newText, newImageUrl)
                             postToEdit = null
-                        }
-                    )
-                }
-
-                reviewToEdit?.let { info ->
-                    EditReviewBottomSheet(
-                        initialRating = info.review.rating, initialComment = info.review.comment, initialImage = info.review.imageUrl,
-                        onDismiss = { reviewToEdit = null },
-                        onConfirm = { rating, comment, imageUrl ->
-                            viewModel.updateReview(info.coffeeDetails.coffee.id, rating, comment, imageUrl)
-                            reviewToEdit = null
                         }
                     )
                 }

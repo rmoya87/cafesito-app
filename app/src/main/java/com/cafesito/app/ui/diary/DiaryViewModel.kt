@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.app.widget.DiaryQuickActionsWidgetProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -175,6 +176,7 @@ class DiaryViewModel @Inject constructor(
     fun refreshData(showLoader: Boolean = false) {
         if (showLoader) _isLoading.value = true
         diaryRepository.triggerRefresh()
+        refreshDiaryWidget()
     }
 
     suspend fun addCoffeeConsumption(
@@ -188,21 +190,25 @@ class DiaryViewModel @Inject constructor(
         sizeLabel: String? = null
     ) {
         diaryRepository.addDiaryEntry(coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams, preparationType, sizeLabel)
+        refreshDiaryWidget()
     }
     
     suspend fun addWaterConsumption(amountMl: Int) {
         diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None", null)
+        refreshDiaryWidget()
     }
     
     fun updateEntry(entry: DiaryEntryEntity) {
         viewModelScope.launch {
             diaryRepository.updateDiaryEntry(entry)
+            refreshDiaryWidget()
         }
     }
 
     fun deleteEntry(entryId: Long) { 
         viewModelScope.launch { 
             diaryRepository.deleteDiaryEntry(entryId) 
+            refreshDiaryWidget()
         } 
     }
     
@@ -210,6 +216,7 @@ class DiaryViewModel @Inject constructor(
         viewModelScope.launch { 
             try {
                 diaryRepository.addToPantry(coffeeId, grams)
+                refreshDiaryWidget()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error adding to pantry", e)
@@ -220,6 +227,7 @@ class DiaryViewModel @Inject constructor(
     fun updateStock(coffeeId: String, total: Int, remaining: Int) {
         viewModelScope.launch {
             diaryRepository.updatePantryStockFull(coffeeId, total, remaining)
+            refreshDiaryWidget()
         }
     }
 
@@ -227,6 +235,7 @@ class DiaryViewModel @Inject constructor(
         viewModelScope.launch { 
             try {
                 diaryRepository.deletePantryItem(coffeeId)
+                refreshDiaryWidget()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error removing from pantry", e)
@@ -301,6 +310,7 @@ class DiaryViewModel @Inject constructor(
                 diaryRepository.updateCustomCoffee(
                     id, name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams
                 )
+                refreshDiaryWidget()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error al actualizar café personalizado", e)
@@ -308,4 +318,7 @@ class DiaryViewModel @Inject constructor(
         }
     }
 
+    private fun refreshDiaryWidget() {
+        DiaryQuickActionsWidgetProvider.refresh(context)
+    }
 }
