@@ -34,7 +34,13 @@ const supabase = createClient(supabaseUrl ?? "", supabaseServiceKey ?? "");
 Deno.serve(async (req) => {
   try {
     const payload = await req.json();
-    const record = payload?.record;
+    const record = payload?.record ?? payload;
+
+    console.log("send-notification invoked", {
+      notificationId: record?.id ?? null,
+      userId: record?.user_id ?? null,
+      type: record?.type ?? null,
+    });
 
     if (!record?.user_id) {
       return new Response(JSON.stringify({ error: "Missing user_id" }), {
@@ -73,6 +79,12 @@ Deno.serve(async (req) => {
           .filter((token) => typeof token === "string" && token.length > 0)
       )
     );
+
+    console.log("send-notification tokens", {
+      userId: record.user_id,
+      totalRows: tokens?.length ?? 0,
+      uniqueTokens: tokenList.length,
+    });
 
     if (tokenList.length === 0) {
       return new Response(JSON.stringify({ ok: true, sent: 0 }), {
@@ -142,6 +154,13 @@ Deno.serve(async (req) => {
         }
       );
     }
+
+    console.log("FCM sent", {
+      status: fcmResponse.status,
+      userId: record.user_id,
+      type: record.type,
+      tokenCount: tokenList.length,
+    });
 
     return new Response(JSON.stringify({ ok: true, result: fcmResult }), {
       status: 200,
