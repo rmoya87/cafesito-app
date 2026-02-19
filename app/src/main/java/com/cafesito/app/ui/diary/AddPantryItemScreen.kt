@@ -173,7 +173,7 @@ fun AddPantryItemScreen(
                                     onSuccess = { createdCoffeeId ->
                                         if (diaryEntryFlow) onCoffeeCreatedForDiary?.invoke(createdCoffeeId)
                                         if (brewLabFlow) onCoffeeCreatedForBrewLab?.invoke(createdCoffeeId)
-                                        onBackClick(null)
+                                        onBackClick(if (diaryEntryFlow) "pantry_loading" else null)
                                     }
                                 )
                             } else {

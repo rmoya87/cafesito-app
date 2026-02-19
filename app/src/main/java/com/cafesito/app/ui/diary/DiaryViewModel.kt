@@ -276,7 +276,7 @@ class DiaryViewModel @Inject constructor(
                         context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     }
                 }
-                val coffeeId = diaryRepository.createCustomCoffee(
+                val coffeeId = diaryRepository.createCustomCoffeeAndAddToPantry(
                     name = name,
                     brand = brand,
                     specialty = specialty,
@@ -285,7 +285,8 @@ class DiaryViewModel @Inject constructor(
                     country = country,
                     hasCaffeine = hasCaffeine,
                     format = format,
-                    imageBytes = imageBytes
+                    imageBytes = imageBytes,
+                    totalGrams = 250
                 )
                 coffeeId?.let(onSuccess)
             } catch (e: Exception) {

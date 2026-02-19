@@ -235,7 +235,14 @@ class DiaryRepository @Inject constructor(
         )
 
         coffeeDao.insertCoffees(listOf(customCoffee))
-        syncCustomCoffeeIfOnline(customCoffee)
+
+        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+            try {
+                supabaseDataSource.upsertCustomCoffee(customCoffee)
+            } catch (e: Exception) {
+                Log.e("DiaryRepository", "Error syncing new custom coffee to remote", e)
+            }
+        }
 
         coffeeId
     }
@@ -244,11 +251,12 @@ class DiaryRepository @Inject constructor(
         name: String, brand: String, specialty: String, roast: String?, variety: String?, 
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
         totalGrams: Int = 250
-    ) = withContext(Dispatchers.IO) {
+    ): String? = withContext(Dispatchers.IO) {
         val coffeeId = createCustomCoffee(name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams)
-            ?: return@withContext
+            ?: return@withContext null
 
         addToPantry(coffeeId, totalGrams)
+        coffeeId
     }
 
     suspend fun updateCustomCoffee(
@@ -373,17 +381,6 @@ class DiaryRepository @Inject constructor(
         }
     }
 
-
-    private fun syncCustomCoffeeIfOnline(coffee: Coffee) {
-        externalScope.launch {
-            if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@launch
-            try {
-                supabaseDataSource.upsertCustomCoffee(coffee)
-            } catch (e: Exception) {
-                Log.e("DiaryRepository", "Error syncing custom coffee to remote", e)
-            }
-        }
-    }
 
     private suspend fun syncLocalCustomCoffees() = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext

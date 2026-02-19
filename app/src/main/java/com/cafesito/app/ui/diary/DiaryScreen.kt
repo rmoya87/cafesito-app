@@ -54,6 +54,10 @@ import kotlin.math.roundToInt
 fun DiaryScreen(
     navigateTo: String = "",
     refreshSignal: Long? = null,
+    forcePantry: Boolean = false,
+    showPendingPantryPlaceholder: Boolean = false,
+    onConsumeForcePantry: () -> Unit = {},
+    onConsumePendingPantryPlaceholder: () -> Unit = {},
     onRefreshSignalConsumed: () -> Unit = {},
     onCoffeeClick: (String) -> Unit,
     onAddWaterClick: () -> Unit,
@@ -81,6 +85,7 @@ fun DiaryScreen(
     val coroutineScope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
     var isRefreshing by remember { mutableStateOf(false) }
+    var showPantryPlaceholder by remember { mutableStateOf(false) }
 
     val coffeeImageMap = remember(availableCoffees) {
         availableCoffees.associate { it.coffee.id to it.coffee.imageUrl }
@@ -104,6 +109,22 @@ fun DiaryScreen(
     LaunchedEffect(navigateTo) {
         if (navigateTo == "pantry") {
             pagerState.scrollToPage(1)
+        }
+    }
+
+    LaunchedEffect(forcePantry) {
+        if (forcePantry) {
+            pagerState.scrollToPage(1)
+            onConsumeForcePantry()
+        }
+    }
+
+    LaunchedEffect(showPendingPantryPlaceholder) {
+        if (showPendingPantryPlaceholder) {
+            showPantryPlaceholder = true
+            delay(1800)
+            showPantryPlaceholder = false
+            onConsumePendingPantryPlaceholder()
         }
     }
 
@@ -257,7 +278,7 @@ fun DiaryScreen(
                     selectedTabIndex = pagerState.currentPage,
                     tabs = listOf("ACTIVIDAD", "DESPENSA"),
                     onTabSelected = { 
-                        coroutineScope.launch { pagerState.animateScrollToPage(it) }
+                        coroutineScope.launch { pagerState.animateScrollToPage(it, animationSpec = tween(120)) }
                     }
                 )
             }
@@ -347,6 +368,9 @@ fun DiaryScreen(
                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                     modifier = Modifier.fillMaxSize()
                                 ) {
+                                    if (showPantryPlaceholder) {
+                                        item { PantryItemShimmer() }
+                                    }
                                     items(pantryItems, key = { it.coffee.id }) { item ->
                                         PantryPremiumCard(
                                             item = item,
