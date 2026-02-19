@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -32,6 +33,7 @@ import com.cafesito.app.camera.NativeBarcodeScannerActivity
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,8 +74,10 @@ fun AddStockScreen(
 
 
     if (selectedCoffeeId != null) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = { if (!isSaving) selectedCoffeeId = null },
+            sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
@@ -94,22 +98,44 @@ fun AddStockScreen(
                 )
                 Spacer(Modifier.height(24.dp))
                 
-                OutlinedTextField(
+                val gramsValue = grams.toFloatOrNull() ?: 250f
+                Text(
+                    text = stringResource(R.string.add_stock_weight_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                BasicTextField(
                     value = grams,
-                    onValueChange = { if (it.all { c -> c.isDigit() }) grams = it },
-                    label = { Text(stringResource(R.string.add_stock_weight_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    onValueChange = { input ->
+                        if (input.isEmpty() || input.all { it.isDigit() }) {
+                            grams = input
+                        }
+                    },
+                    textStyle = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     enabled = !isSaving,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                )
+                Spacer(Modifier.height(12.dp))
+                Slider(
+                    value = gramsValue.coerceIn(0f, 2000f),
+                    onValueChange = { grams = it.roundToInt().toString() },
+                    valueRange = 0f..2000f,
+                    enabled = !isSaving,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
                     )
                 )
-                
+
                 Spacer(Modifier.height(32.dp))
                 
                 Button(

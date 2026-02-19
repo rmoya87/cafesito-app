@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.util.Locale
+import java.net.URL
 
 class CafesitoFcmService : FirebaseMessagingService() {
 
@@ -116,7 +117,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(com.cafesito.app.R.drawable.ic_notification_small)
-            .setLargeIcon(BitmapFactory.decodeResource(resources, com.cafesito.app.R.mipmap.ic_launcher))
+            .setLargeIcon(resolveLargeIcon(remoteMessage.data["avatar_url"]))
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -138,7 +139,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
         }
 
         if ((notificationType == "COMMENT" || notificationType == "MENTION") && !postId.isNullOrBlank()) {
-            val replyIntent = PendingIntent.getActivity(
+            val viewIntent = PendingIntent.getActivity(
                 this,
                 notificationId + 2,
                 Intent(this, MainActivity::class.java).apply {
@@ -146,20 +147,22 @@ class CafesitoFcmService : FirebaseMessagingService() {
                     putExtra("nav_type", navType)
                     putExtra("nav_id", postId)
                     commentId?.let { putExtra("nav_comment_id", it) }
-                    putExtra("notification_action", "reply")
+                    putExtra("notification_action", "view")
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            notificationBuilder.addAction(0, "Responder", replyIntent)
+            notificationBuilder.addAction(0, "Ver", viewIntent)
 
-            val savePostPendingIntent = buildActionPendingIntent(
-                requestCode = notificationId + 3,
-                action = NotificationActionReceiver.ACTION_SAVE_POST,
-                notificationId = notificationId,
-                postId = postId,
-                commentId = commentId
-            )
-            notificationBuilder.addAction(0, "Guardar", savePostPendingIntent)
+            if (notificationType == "COMMENT") {
+                val savePostPendingIntent = buildActionPendingIntent(
+                    requestCode = notificationId + 3,
+                    action = NotificationActionReceiver.ACTION_SAVE_POST,
+                    notificationId = notificationId,
+                    postId = postId,
+                    commentId = commentId
+                )
+                notificationBuilder.addAction(0, "Guardar", savePostPendingIntent)
+            }
         }
 
         notificationManager.notify(notificationId, notificationBuilder.build())

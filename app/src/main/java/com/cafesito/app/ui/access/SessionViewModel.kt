@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed interface SessionState {
@@ -19,6 +20,12 @@ sealed interface SessionState {
 class SessionViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            userRepository.restoreSessionFromSupabaseIfNeeded()
+        }
+    }
 
     /**
      * Observa el estado de la sesión de forma reactiva.
