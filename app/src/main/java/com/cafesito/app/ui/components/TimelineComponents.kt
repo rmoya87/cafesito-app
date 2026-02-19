@@ -774,7 +774,7 @@ fun StockSliderSection(
             },
             valueRange = 0f..maxValue.coerceAtLeast(1f),
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
+                thumbColor = MaterialTheme.colorScheme.outline,
                 activeTrackColor = MaterialTheme.colorScheme.primary,
                 inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
             )
