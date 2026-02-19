@@ -357,8 +357,13 @@ private fun PostDetailsStepPremium(
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val coffeeList by viewModel.coffeeList.collectAsState()
-    var commentValue by remember(comment) {
+    var commentValue by remember {
         mutableStateOf(TextFieldValue(comment, selection = TextRange(comment.length)))
+    }
+    LaunchedEffect(comment) {
+        if (comment != commentValue.text) {
+            commentValue = TextFieldValue(comment, selection = TextRange(comment.length))
+        }
     }
     var showPickerSheet by remember { mutableStateOf(false) }
     var showCoffeeSelector by remember { mutableStateOf(false) }

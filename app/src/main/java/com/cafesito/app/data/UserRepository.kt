@@ -185,6 +185,16 @@ class UserRepository @Inject constructor(
 
     suspend fun getAllUsersList(): List<UserEntity> = userDao.getAllUsers().first()
 
+
+    suspend fun restoreSessionFromSupabaseIfNeeded() = withContext(Dispatchers.IO) {
+        val activeSession = sessionDao.getActiveSession().first()
+        if (activeSession != null) return@withContext
+
+        val authUserId = supabaseClient.auth.currentUserOrNull()?.id ?: return@withContext
+        val remoteUser = getUserByGoogleId(authUserId) ?: return@withContext
+        sessionDao.setSession(ActiveSessionEntity(userId = remoteUser.id))
+    }
+
     suspend fun setSession(userId: Int) {
         sessionDao.setSession(ActiveSessionEntity(userId = userId))
     }
@@ -221,6 +231,22 @@ class UserRepository @Inject constructor(
         userDao.upsertUser(user)
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch { try { supabaseDataSource.upsertUser(user) } catch (e: Exception) { } }
+        }
+    }
+
+
+    suspend fun touchUserInteraction() {
+        val currentUser = getActiveUser() ?: return
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return
+
+        try {
+            supabaseDataSource.touchUserLastInteraction(currentUser.id)
+        } catch (e: UnauthorizedRestException) {
+            Log.w("UserRepository", "touchUserInteraction unauthorized, retrying after auth refresh", e)
+            refreshAuthSession()
+            supabaseDataSource.touchUserLastInteraction(currentUser.id)
+        } catch (e: Exception) {
+            Log.e("UserRepository", "touchUserInteraction failed", e)
         }
     }
 

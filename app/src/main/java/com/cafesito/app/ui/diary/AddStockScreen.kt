@@ -32,6 +32,7 @@ import com.cafesito.app.camera.NativeBarcodeScannerActivity
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,9 +95,23 @@ fun AddStockScreen(
                 )
                 Spacer(Modifier.height(24.dp))
                 
+                val gramsValue = grams.toFloatOrNull() ?: 250f
+                Text("Añadir stock", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(12.dp))
+                Slider(
+                    value = gramsValue.coerceIn(0f, 2000f),
+                    onValueChange = { grams = it.roundToInt().toString() },
+                    valueRange = 0f..2000f,
+                    enabled = !isSaving,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = grams,
-                    onValueChange = { if (it.all { c -> c.isDigit() }) grams = it },
+                    onValueChange = { if (it.all { c -> c.isDigit() } || it.isEmpty()) grams = it },
                     label = { Text(stringResource(R.string.add_stock_weight_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -109,7 +124,7 @@ fun AddStockScreen(
                         focusedContainerColor = MaterialTheme.colorScheme.surface
                     )
                 )
-                
+
                 Spacer(Modifier.height(32.dp))
                 
                 Button(

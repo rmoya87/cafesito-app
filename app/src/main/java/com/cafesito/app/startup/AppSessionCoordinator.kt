@@ -26,6 +26,7 @@ class AppSessionCoordinator @Inject constructor(
         }
         analyticsHelper.setUserId(userId.toString())
         updateFcmToken(scope)
+        scope.launch { userRepository.touchUserInteraction() }
     }
 
     fun onNotAuthenticated() {
