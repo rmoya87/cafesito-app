@@ -71,7 +71,7 @@ fun UserReviewCard(
                     text = info.review.comment,
                     style = MaterialTheme.typography.bodyLarge,
                     lineHeight = 24.sp,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Normal,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = if (showHeader) 0.dp else 20.dp)
                 )

@@ -42,6 +42,7 @@ class DiaryRepository @Inject constructor(
             connectivityObserver.observe().collect { status ->
                 if (status == ConnectivityObserver.Status.Available) {
                     syncPendingDiaryEntries()
+                    syncLocalCustomCoffees()
                 }
             }
         }
@@ -94,11 +95,11 @@ class DiaryRepository @Inject constructor(
                 if (localCoffee == null) {
                     val coffeeIds = listOf(item.coffeeId)
                     val remoteCoffee = supabaseDataSource.getCoffeesByIds(coffeeIds).firstOrNull()
-                        ?: supabaseDataSource.getCustomCoffees(user.id).find { c -> c.id == item.coffeeId }?.toCoffee()
+                        ?: supabaseDataSource.getCustomCoffees(user.id).find { c -> c.id == item.coffeeId }
                     remoteCoffee?.let { c -> coffeeDao.insertCoffees(listOf(c)) }
                 } else if (localCoffee.isCustom && localCoffee.imageUrl.isNotBlank()) {
                     // Si es custom y ya tiene imagen local, nos aseguramos de no perderla si el remoto viene vacío por delay de sync
-                    val remoteCoffee = supabaseDataSource.getCustomCoffees(user.id).find { it.id == item.coffeeId }?.toCoffee()
+                    val remoteCoffee = supabaseDataSource.getCustomCoffees(user.id).find { it.id == item.coffeeId }
                     if (remoteCoffee != null && remoteCoffee.imageUrl.isBlank()) {
                         coffeeDao.insertCoffees(listOf(remoteCoffee.copy(imageUrl = localCoffee.imageUrl)))
                     } else if (remoteCoffee != null) {
@@ -218,16 +219,29 @@ class DiaryRepository @Inject constructor(
             }
         }
 
-        val customCoffee = CustomCoffeeEntity(
-            id = coffeeId, userId = user.id, name = name, brand = brand,
-            specialty = specialty, roast = roast, variety = variety,
-            country = country, hasCaffeine = hasCaffeine, format = format,
-            imageUrl = imageUrl, totalGrams = totalGrams
+        val customCoffee = Coffee(
+            id = coffeeId,
+            nombre = name,
+            marca = brand,
+            especialidad = specialty,
+            tueste = roast ?: "",
+            variedadTipo = variety,
+            paisOrigen = country,
+            cafeina = if (hasCaffeine) "Sí" else "No",
+            formato = format,
+            imageUrl = imageUrl,
+            isCustom = true,
+            userId = user.id
         )
-        
-        coffeeDao.insertCoffees(listOf(customCoffee.toCoffee()))
+
+        coffeeDao.insertCoffees(listOf(customCoffee))
+
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try { supabaseDataSource.upsertCustomCoffee(customCoffee) } catch (e: Exception) { }
+            try {
+                supabaseDataSource.upsertCustomCoffee(customCoffee)
+            } catch (e: Exception) {
+                Log.e("DiaryRepository", "Error syncing new custom coffee to remote", e)
+            }
         }
 
         coffeeId
@@ -237,11 +251,12 @@ class DiaryRepository @Inject constructor(
         name: String, brand: String, specialty: String, roast: String?, variety: String?, 
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
         totalGrams: Int = 250
-    ) = withContext(Dispatchers.IO) {
+    ): String? = withContext(Dispatchers.IO) {
         val coffeeId = createCustomCoffee(name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams)
-            ?: return@withContext
+            ?: return@withContext null
 
         addToPantry(coffeeId, totalGrams)
+        coffeeId
     }
 
     suspend fun updateCustomCoffee(
@@ -258,14 +273,22 @@ class DiaryRepository @Inject constructor(
             } catch (e: Exception) { }
         }
 
-        val customCoffee = CustomCoffeeEntity(
-            id = id, userId = user.id, name = name, brand = brand,
-            specialty = specialty, roast = roast, variety = variety,
-            country = country, hasCaffeine = hasCaffeine, format = format,
-            imageUrl = imageUrl, totalGrams = totalGrams
+        val customCoffee = Coffee(
+            id = id,
+            nombre = name,
+            marca = brand,
+            especialidad = specialty,
+            tueste = roast ?: "",
+            variedadTipo = variety,
+            paisOrigen = country,
+            cafeina = if (hasCaffeine) "Sí" else "No",
+            formato = format,
+            imageUrl = imageUrl,
+            isCustom = true,
+            userId = user.id
         )
 
-        coffeeDao.insertCoffees(listOf(customCoffee.toCoffee()))
+        coffeeDao.insertCoffees(listOf(customCoffee))
         
         val pantryItem = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == id }
         if (pantryItem != null) {
@@ -278,9 +301,11 @@ class DiaryRepository @Inject constructor(
 
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             externalScope.launch {
-                try { 
-                    supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee) 
-                } catch (e: Exception) { } 
+                try {
+                    supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee)
+                } catch (e: Exception) {
+                    Log.e("DiaryRepository", "Error updating custom coffee in remote", e)
+                }
             }
         }
     }
@@ -344,7 +369,6 @@ class DiaryRepository @Inject constructor(
 
         if (localCoffee?.isCustom == true) {
             coffeeDao.deleteCoffeeById(coffeeId)
-            coffeeDao.deleteCustomCoffeeById(coffeeId)
         }
 
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
@@ -356,4 +380,18 @@ class DiaryRepository @Inject constructor(
             }
         }
     }
+
+
+    private suspend fun syncLocalCustomCoffees() = withContext(Dispatchers.IO) {
+        val user = userRepository.getActiveUser() ?: return@withContext
+        val localCustomCoffees = coffeeDao.getCustomCoffeesByUserId(user.id)
+        localCustomCoffees.forEach { customCoffee ->
+            try {
+                supabaseDataSource.upsertCustomCoffee(customCoffee)
+            } catch (e: Exception) {
+                Log.e("DiaryRepository", "Error backfilling custom coffee ${customCoffee.id} to remote", e)
+            }
+        }
+    }
+
 }

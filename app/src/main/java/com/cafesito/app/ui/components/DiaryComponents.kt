@@ -154,7 +154,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
 @Composable
 fun ComparisonPill(percentage: Int, baseColor: Color? = null) {
     val isPositive = percentage > 0
-    val color = baseColor ?: if (isPositive) ErrorRed else SuccessGreen
+    val color = baseColor ?: Color(0xFF8B5E3C)
     Surface(
         color = color.copy(alpha = 0.1f),
         shape = RoundedCornerShape(12.dp)

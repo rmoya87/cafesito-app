@@ -1052,7 +1052,7 @@ fun DiaryEntryEditBottomSheet(
                     fontWeight = FontWeight.SemiBold
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(preparationOptions, key = { it }) { option ->
+                    items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
                         Surface(
                             onClick = { selectedPreparation = option.label },
@@ -1123,7 +1123,7 @@ fun DiaryEntryEditBottomSheet(
                     fontWeight = FontWeight.SemiBold
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(sizeOptions, key = { it }) { option ->
+                    items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
                         Surface(
                             onClick = { selectedSize = option.label },

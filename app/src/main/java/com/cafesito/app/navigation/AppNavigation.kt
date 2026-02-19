@@ -160,6 +160,7 @@ fun AppNavigation(
                         NavigationRailItem(
                             selected = isSelected,
                             onClick = {
+                                if (isSelected) return@NavigationRailItem
                                 val destination = if (route == "profile") "profile/0" else route
                                 navController.navigate(destination) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -356,9 +357,15 @@ fun AppNavigation(
                 ) { backStackEntry ->
                     val navigateTo = backStackEntry.arguments?.getString("navigateTo") ?: ""
                     val refreshSignal by backStackEntry.savedStateHandle.getStateFlow<Long?>("diary_refresh_signal", null).collectAsState()
+                    val forcePantry by backStackEntry.savedStateHandle.getStateFlow("diary_force_pantry", false).collectAsState()
+                    val pendingPantryPlaceholder by backStackEntry.savedStateHandle.getStateFlow("pending_pantry_placeholder", false).collectAsState()
                     DiaryScreen(
                         navigateTo = navigateTo,
                         refreshSignal = refreshSignal,
+                        forcePantry = forcePantry,
+                        showPendingPantryPlaceholder = pendingPantryPlaceholder,
+                        onConsumeForcePantry = { backStackEntry.savedStateHandle["diary_force_pantry"] = false },
+                        onConsumePendingPantryPlaceholder = { backStackEntry.savedStateHandle["pending_pantry_placeholder"] = false },
                         onRefreshSignalConsumed = { backStackEntry.savedStateHandle["diary_refresh_signal"] = null },
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
                         onAddWaterClick = { navController.navigate("addDiaryEntry?type=WATER") },
@@ -452,10 +459,18 @@ fun AppNavigation(
                         onCoffeeCreatedForDiary = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("diary_created_coffee_id", id) },
                         onCoffeeCreatedForBrewLab = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
                         onBackClick = { navigateTo ->
-                            if (origin == "brewlab" && navigateTo != null) navController.popBackStack("brewlab", inclusive = false)
-                            else if (origin == "diary_entry") navController.popBackStack()
-                            else if (navigateTo != null) navController.navigate("diary?navigateTo=$navigateTo") { popUpTo("diary") { inclusive = true } }
-                            else navController.popBackStack()
+                            if (origin == "brewlab" && navigateTo != null) {
+                                navController.popBackStack("brewlab", inclusive = false)
+                            } else if (origin == "diary_entry" && navigateTo == "pantry_loading") {
+                                val diaryEntry = navController.getBackStackEntry("diary")
+                                diaryEntry.savedStateHandle["diary_force_pantry"] = true
+                                diaryEntry.savedStateHandle["pending_pantry_placeholder"] = true
+                                navController.popBackStack("diary", inclusive = false)
+                            } else if (origin == "diary_entry") {
+                                navController.popBackStack()
+                            } else if (navigateTo != null) {
+                                navController.navigate("diary?navigateTo=$navigateTo") { popUpTo("diary") { inclusive = true } }
+                            } else navController.popBackStack()
                         }
                     )
                 }
@@ -585,6 +600,7 @@ fun AppNavigation(
                                     unselectedIconColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
                                 ),
                                 onClick = {
+                                    if (isSelected) return@NavigationBarItem
                                     val destination = if (route == "profile") "profile/0" else route
                                     navController.navigate(destination) {
                                         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
