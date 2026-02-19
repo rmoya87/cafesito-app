@@ -815,7 +815,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                 Spacer(Modifier.height(24.dp))
             }
             StockSliderSection(
-                label = "TOTAL BOLSA", 
+                label = "Cantidad de cafe total (g)", 
                 value = total, 
                 maxValue = 1000f,
                 onValueChange = { 
@@ -825,7 +825,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
             )
             Spacer(Modifier.height(24.dp))
             StockSliderSection(
-                label = "RESTANTE", 
+                label = "Cantidad de cafe restante (g)", 
                 value = rem, 
                 maxValue = total,
                 onValueChange = { rem = it }

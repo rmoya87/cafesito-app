@@ -766,7 +766,6 @@ fun StockSliderSection(
                 .fillMaxWidth()
                 .padding(top = 2.dp)
         )
-        Text("g", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Slider(
             value = value.coerceIn(0f, maxValue.coerceAtLeast(1f)),
             onValueChange = {
@@ -1367,14 +1366,14 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
             )
             Spacer(Modifier.height(32.dp))
             StockSliderSection(
-                "Cantidad de café total",
+                "Cantidad de café total (g)",
                 total,
                 1000f,
                 onValueChange = { total = it }
             )
             Spacer(Modifier.height(24.dp))
             StockSliderSection(
-                "Cantidad de café restante",
+                "Cantidad de café restante (g)",
                 rem,
                 total.coerceAtLeast(1f),
                 onValueChange = { rem = it }
