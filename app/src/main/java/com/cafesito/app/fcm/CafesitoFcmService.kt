@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -115,6 +116,8 @@ class CafesitoFcmService : FirebaseMessagingService() {
             notificationId = notificationId
         )
 
+        val largeIcon = resolveLargeIcon(remoteMessage.data["avatar_url"])
+
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(com.cafesito.app.R.drawable.ic_notification_small)
             .setLargeIcon(resolveLargeIcon(remoteMessage.data["avatar_url"]))
@@ -166,6 +169,20 @@ class CafesitoFcmService : FirebaseMessagingService() {
         }
 
         notificationManager.notify(notificationId, notificationBuilder.build())
+    }
+
+    private fun resolveLargeIcon(avatarUrl: String?): Bitmap? {
+        if (avatarUrl.isNullOrBlank()) return null
+        return try {
+            val connection = URL(avatarUrl).openConnection()
+            connection.doInput = true
+            connection.connect()
+            val input = connection.getInputStream()
+            BitmapFactory.decodeStream(input)
+        } catch (e: Exception) {
+            Log.e("FCM", "No se pudo cargar la imagen de perfil para la notificación", e)
+            null
+        }
     }
 
     private fun String.capitalizedFirst(): String {

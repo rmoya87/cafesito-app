@@ -756,6 +756,21 @@ fun StockSliderSection(
                 inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
             )
         )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = manualValue,
+            onValueChange = { input ->
+                if (input.isEmpty() || input.all { it.isDigit() }) {
+                    manualValue = input
+                    input.toFloatOrNull()?.let { onManualValueChange(it) }
+                }
+            },
+            label = { Text("Cantidad manual (g)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+        )
     }
 }
 
