@@ -32,7 +32,6 @@ class CoffeeRepository @Inject constructor(
     }
 
     val favorites: Flow<List<LocalFavorite>> = coffeeDao.getLocalFavorites()
-    val favoritesCustom: Flow<List<LocalFavoriteCustom>> = coffeeDao.getLocalFavoritesCustom()
     val allReviews: Flow<List<ReviewEntity>> = coffeeDao.getAllReviews()
 
     fun getCoffeesPagingFlow(
@@ -57,7 +56,7 @@ class CoffeeRepository @Inject constructor(
         fetch = { 
             val user = userRepository.getActiveUser()
             val public = supabaseDataSource.getAllCoffees()
-            val custom = user?.let { supabaseDataSource.getCustomCoffees(it.id).map { c -> c.toCoffee() } } ?: emptyList()
+            val custom = user?.let { supabaseDataSource.getCustomCoffees(it.id) } ?: emptyList()
             val reviews = supabaseDataSource.getAllReviews()
             Triple(public, custom, reviews)
         },
@@ -79,7 +78,7 @@ class CoffeeRepository @Inject constructor(
                 fetch = {
                     val user = userRepository.getActiveUser()
                     val coffee = supabaseDataSource.getCoffeesByIds(listOf(id)).firstOrNull()
-                        ?: user?.let { u -> supabaseDataSource.getCustomCoffees(u.id).find { it.id == id }?.toCoffee() }
+                        ?: user?.let { u -> supabaseDataSource.getCustomCoffees(u.id).find { it.id == id } }
                     val reviews = supabaseDataSource.getReviewsByCoffeeId(id)
                     Pair(coffee, reviews)
                 },
@@ -99,23 +98,21 @@ class CoffeeRepository @Inject constructor(
     suspend fun toggleFavorite(coffeeId: String, shouldBeFavorite: Boolean) = withContext(Dispatchers.IO) {
         val currentUser = userRepository.getActiveUser() ?: return@withContext
         try {
-            val isCustom = coffeeDao.getCoffeeById(coffeeId)?.isCustom ?: false
             val favorite = LocalFavorite(coffeeId, currentUser.id)
-            val favoriteCustom = LocalFavoriteCustom(coffeeId, currentUser.id)
 
             if (shouldBeFavorite) {
-                if (isCustom) coffeeDao.insertFavoriteCustom(favoriteCustom) else coffeeDao.insertFavorite(favorite)
+                coffeeDao.insertFavorite(favorite)
             } else {
-                if (isCustom) coffeeDao.deleteFavoriteCustom(favoriteCustom) else coffeeDao.deleteFavorite(favorite)
+                coffeeDao.deleteFavorite(favorite)
             }
-            
+
             if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
                 externalScope.launch {
                     try {
-                         if (shouldBeFavorite) {
-                            if (isCustom) supabaseDataSource.insertFavoriteCustom(favoriteCustom) else supabaseDataSource.insertFavorite(favorite)
+                        if (shouldBeFavorite) {
+                            supabaseDataSource.insertFavorite(favorite)
                         } else {
-                            if (isCustom) supabaseDataSource.deleteFavoriteCustom(coffeeId, currentUser.id) else supabaseDataSource.deleteFavorite(coffeeId, currentUser.id)
+                            supabaseDataSource.deleteFavorite(coffeeId, currentUser.id)
                         }
                     } catch (e: Exception) { }
                 }
@@ -128,11 +125,8 @@ class CoffeeRepository @Inject constructor(
         if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext
         try {
             val remoteFavorites = supabaseDataSource.getFavoritesByUserId(currentUser.id)
-            val remoteFavoritesCustom = supabaseDataSource.getFavoritesCustomByUserId(currentUser.id)
             coffeeDao.deleteFavoritesByUserId(currentUser.id)
-            coffeeDao.deleteFavoritesCustomByUserId(currentUser.id)
             if (remoteFavorites.isNotEmpty()) coffeeDao.insertFavorites(remoteFavorites)
-            if (remoteFavoritesCustom.isNotEmpty()) coffeeDao.insertFavoritesCustom(remoteFavoritesCustom)
         } catch (e: Exception) {
             Log.w("CoffeeRepository", "syncFavoritesFromRemote failed", e)
         }

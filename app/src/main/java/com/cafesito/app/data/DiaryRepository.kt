@@ -218,14 +218,22 @@ class DiaryRepository @Inject constructor(
             }
         }
 
-        val customCoffee = CustomCoffeeEntity(
-            id = coffeeId, userId = user.id, name = name, brand = brand,
-            specialty = specialty, roast = roast, variety = variety,
-            country = country, hasCaffeine = hasCaffeine, format = format,
-            imageUrl = imageUrl, totalGrams = totalGrams
+        val customCoffee = Coffee(
+            id = coffeeId,
+            nombre = name,
+            marca = brand,
+            especialidad = specialty,
+            tueste = roast ?: "",
+            variedadTipo = variety,
+            paisOrigen = country,
+            cafeina = if (hasCaffeine) "Sí" else "No",
+            formato = format,
+            imageUrl = imageUrl,
+            isCustom = true,
+            userId = user.id
         )
-        
-        coffeeDao.insertCoffees(listOf(customCoffee.toCoffee()))
+
+        coffeeDao.insertCoffees(listOf(customCoffee))
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try { supabaseDataSource.upsertCustomCoffee(customCoffee) } catch (e: Exception) { }
         }
@@ -258,14 +266,22 @@ class DiaryRepository @Inject constructor(
             } catch (e: Exception) { }
         }
 
-        val customCoffee = CustomCoffeeEntity(
-            id = id, userId = user.id, name = name, brand = brand,
-            specialty = specialty, roast = roast, variety = variety,
-            country = country, hasCaffeine = hasCaffeine, format = format,
-            imageUrl = imageUrl, totalGrams = totalGrams
+        val customCoffee = Coffee(
+            id = id,
+            nombre = name,
+            marca = brand,
+            especialidad = specialty,
+            tueste = roast ?: "",
+            variedadTipo = variety,
+            paisOrigen = country,
+            cafeina = if (hasCaffeine) "Sí" else "No",
+            formato = format,
+            imageUrl = imageUrl,
+            isCustom = true,
+            userId = user.id
         )
 
-        coffeeDao.insertCoffees(listOf(customCoffee.toCoffee()))
+        coffeeDao.insertCoffees(listOf(customCoffee))
         
         val pantryItem = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == id }
         if (pantryItem != null) {
@@ -344,7 +360,6 @@ class DiaryRepository @Inject constructor(
 
         if (localCoffee?.isCustom == true) {
             coffeeDao.deleteCoffeeById(coffeeId)
-            coffeeDao.deleteCustomCoffeeById(coffeeId)
         }
 
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
