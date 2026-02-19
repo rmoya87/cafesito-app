@@ -101,6 +101,12 @@ class TimelineViewModel @Inject constructor(
         }
     }
 
+    suspend fun getUserIdByUsername(username: String): Int? {
+        val cleanName = username.removePrefix("@").trim()
+        if (cleanName.isEmpty()) return null
+        return userRepository.getUserByUsername(cleanName)?.id
+    }
+
     fun refreshData() {
         viewModelScope.launch {
             if (_isRefreshing.value) return@launch

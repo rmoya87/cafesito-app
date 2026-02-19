@@ -404,7 +404,7 @@ class AddPostViewModel @Inject constructor(
 
 
     private suspend fun notifyMentionsInPost(postId: String, author: UserEntity, text: String) {
-        val mentionRegex = Regex("@([A-Za-z0-9_]{2,30})")
+        val mentionRegex = Regex("@([A-Za-z0-9._-]{2,30})")
         val usernames = mentionRegex.findAll(text)
             .map { it.groupValues[1].trim() }
             .filter { it.isNotBlank() && !it.equals(author.username, ignoreCase = true) }
@@ -423,7 +423,7 @@ class AddPostViewModel @Inject constructor(
                         fromUsername = author.username,
                         message = "te ha mencionado",
                         timestamp = System.currentTimeMillis(),
-                        relatedId = postId
+                        relatedId = "$postId:-1"
                     )
                 )
             }.onFailure { error ->
