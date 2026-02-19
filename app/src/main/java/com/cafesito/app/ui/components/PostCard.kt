@@ -66,7 +66,8 @@ fun PostCard(
     isOwnPost: Boolean = false,
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
-    onCoffeeClick: (String) -> Unit = {}
+    onCoffeeClick: (String) -> Unit = {},
+    onMentionClick: (String) -> Unit = {}
 ) {
     val post = details.post
     val author = details.author
@@ -127,11 +128,10 @@ fun PostCard(
 
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = if (showHeader) 0.dp else 20.dp)) {
                 if (post.comment.isNotBlank()) {
-                    Text(
+                    MentionText(
                         text = post.comment,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = postTextColor,
-                        lineHeight = 22.sp
+                        style = MaterialTheme.typography.bodyLarge.copy(color = postTextColor, lineHeight = 22.sp),
+                        onMentionClick = onMentionClick
                     )
                     Spacer(Modifier.height(16.dp))
                 }
