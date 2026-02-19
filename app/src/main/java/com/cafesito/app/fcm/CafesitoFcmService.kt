@@ -120,9 +120,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(com.cafesito.app.R.drawable.ic_notification_small)
-            .apply {
-                if (largeIcon != null) setLargeIcon(largeIcon)
-            }
+            .setLargeIcon(resolveLargeIcon(remoteMessage.data["avatar_url"]))
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

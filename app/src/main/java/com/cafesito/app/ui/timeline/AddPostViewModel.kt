@@ -16,6 +16,7 @@ import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -38,7 +39,8 @@ class AddPostViewModel @Inject constructor(
     private val reviewRepository: ReviewRepository,
     private val supabaseDataSource: SupabaseDataSource,
     private val diaryRepository: DiaryRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
+    private val externalScope: CoroutineScope
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -310,24 +312,29 @@ class AddPostViewModel @Inject constructor(
         }
     }
 
-    fun createPost(onSuccess: () -> Unit) {
-        viewModelScope.launch {
+    fun createPost() {
+        val commentSnapshot = _comment.value
+        val imageSnapshot = _imageSource.value
+        val selectedCoffeeSnapshot = _selectedCoffee.value
+
+        clearState()
+
+        externalScope.launch {
             val activeUser = userRepository.getActiveUser() ?: return@launch
-            
-            val imageUrl = _imageSource.value?.let { uploadImageAndGetUrl(it, "posts") } ?: ""
-            
+            val imageUrl = imageSnapshot?.let { uploadImageAndGetUrl(it, "posts") } ?: ""
+
             val postId = "post_${System.currentTimeMillis()}"
             socialRepository.createPost(PostEntity(
                 id = postId,
                 userId = activeUser.id,
                 imageUrl = imageUrl,
-                comment = _comment.value,
+                comment = commentSnapshot,
                 timestamp = System.currentTimeMillis()
             ))
 
-            notifyMentionsInPost(postId = postId, author = activeUser, text = _comment.value)
+            notifyMentionsInPost(postId = postId, author = activeUser, text = commentSnapshot)
 
-            _selectedCoffee.value?.let { selected ->
+            selectedCoffeeSnapshot?.let { selected ->
                 socialRepository.upsertPostCoffeeTag(
                     PostCoffeeTagEntity(
                         postId = postId,
@@ -341,9 +348,6 @@ class AddPostViewModel @Inject constructor(
             }
 
             socialRepository.syncSocialData()
-            
-            clearState()
-            onSuccess()
         }
     }
 

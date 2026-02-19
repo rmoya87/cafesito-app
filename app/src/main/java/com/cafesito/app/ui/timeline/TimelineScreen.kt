@@ -380,7 +380,7 @@ fun TimelineScreen(
                     colors = listOf(
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
                         MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f)
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
                     )
                 )
                 Surface(

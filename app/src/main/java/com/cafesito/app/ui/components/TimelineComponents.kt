@@ -718,25 +718,42 @@ fun StockSliderSection(
     label: String,
     value: Float,
     maxValue: Float,
-    onValueChange: (Float) -> Unit,
-    onManualValueChange: (Float) -> Unit
+    onValueChange: (Float) -> Unit
 ) {
-    var manualValue by remember(value) { mutableStateOf(value.roundToInt().toString()) }
+    var editableValue by remember(value) { mutableStateOf(value.roundToInt().toString()) }
 
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("${value.roundToInt()} g", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+        BasicTextField(
+            value = editableValue,
+            onValueChange = { input ->
+                if (input.isEmpty() || input.all { it.isDigit() }) {
+                    editableValue = input
+                    input.toFloatOrNull()?.let(onValueChange)
+                }
+            },
+            textStyle = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp)
+        )
+        Text("g", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Slider(
             value = value.coerceIn(0f, maxValue.coerceAtLeast(1f)),
             onValueChange = {
                 onValueChange(it)
-                manualValue = it.roundToInt().toString()
+                editableValue = it.roundToInt().toString()
             },
             valueRange = 0f..maxValue.coerceAtLeast(1f),
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.primary,
                 activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
             )
         )
         Spacer(Modifier.height(8.dp))
@@ -1272,8 +1289,10 @@ private fun MetricPill(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InfoBottomSheet(onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
@@ -1314,8 +1333,10 @@ fun InfoRow(label: String, value: String, desc: String) {
 fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onSave: (Int, Int) -> Unit) {
     var total by remember { mutableStateOf(item.pantryItem.totalGrams.toFloat()) }
     var rem by remember { mutableStateOf(item.pantryItem.gramsRemaining.toFloat()) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
@@ -1339,16 +1360,14 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 "Cantidad de café total",
                 total,
                 1000f,
-                onValueChange = { total = it },
-                onManualValueChange = { total = it }
+                onValueChange = { total = it }
             )
             Spacer(Modifier.height(24.dp))
             StockSliderSection(
                 "Cantidad de café restante",
                 rem,
                 total.coerceAtLeast(1f),
-                onValueChange = { rem = it },
-                onManualValueChange = { rem = it }
+                onValueChange = { rem = it }
             )
             Spacer(Modifier.height(40.dp))
             

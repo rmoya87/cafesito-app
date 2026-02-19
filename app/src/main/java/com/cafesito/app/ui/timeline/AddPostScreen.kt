@@ -153,11 +153,10 @@ fun AddPostScreen(
 
                     if (isLastStep) {
                         TextButton(
-                            onClick = { 
-                                viewModel.createPost {
-                                    onPublishSuccess()
-                                    onBackClick()
-                                }
+                            onClick = {
+                                viewModel.createPost()
+                                onPublishSuccess()
+                                onBackClick()
                             }
                         ) {
                             Text(
