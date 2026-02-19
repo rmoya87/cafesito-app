@@ -21,6 +21,12 @@ class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
     @kotlinx.serialization.Serializable
+    private data class UserTokenUpsert(
+        @kotlinx.serialization.SerialName("user_id") val userId: Int,
+        @kotlinx.serialization.SerialName("fcm_token") val fcmToken: String
+    )
+
+    @kotlinx.serialization.Serializable
     private data class NotificationInsert(
         @kotlinx.serialization.SerialName("user_id") val userId: Int,
         val type: String,
@@ -67,12 +73,20 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
-    suspend fun insertUserToken(token: UserTokenEntity) { 
+    suspend fun insertUserToken(token: UserTokenEntity) {
         try {
-            // Versión compatible con el SDK actual de Supabase KT para evitar duplicados
-            client.postgrest["user_fcm_tokens"].upsert(token)
+            // No enviamos `id` para evitar conflictos con PK autogenerada y forzar upsert por user_id.
+            client.postgrest["user_fcm_tokens"].upsert(
+                UserTokenUpsert(
+                    userId = token.userId,
+                    fcmToken = token.fcmToken
+                )
+            ) {
+                onConflict = "user_id"
+            }
         } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error inserting FCM token: ${e.message}")
+            Log.e("SupabaseDataSource", "Error upserting FCM token", e)
+            throw e
         }
     }
 
