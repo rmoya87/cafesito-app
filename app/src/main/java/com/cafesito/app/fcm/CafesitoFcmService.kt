@@ -70,8 +70,10 @@ class CafesitoFcmService : FirebaseMessagingService() {
         NotificationChannels.ensureCreated(this)
 
         val notificationType = (remoteMessage.data["type"] ?: remoteMessage.data["notification_type"] ?: "").uppercase()
+        val relatedId = remoteMessage.data["related_id"]
+            ?: remoteMessage.data["targetId"]
+            ?: remoteMessage.data["target_id"]
         val channelId = NotificationChannels.resolveChannel(notificationType)
-        val relatedId = remoteMessage.data["related_id"] ?: remoteMessage.data["targetId"]
         val postId = remoteMessage.data["post_id"] ?: remoteMessage.data["target_post_id"] ?: relatedId?.split(":")?.firstOrNull()
         val commentId = remoteMessage.data["comment_id"]?.toIntOrNull()
             ?: relatedId?.split(":")?.getOrNull(1)?.toIntOrNull()

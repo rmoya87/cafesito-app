@@ -22,12 +22,6 @@ class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
     @kotlinx.serialization.Serializable
-    private data class UserTokenUpsert(
-        @kotlinx.serialization.SerialName("user_id") val userId: Int,
-        @kotlinx.serialization.SerialName("fcm_token") val fcmToken: String
-    )
-
-    @kotlinx.serialization.Serializable
     private data class NotificationInsert(
         @kotlinx.serialization.SerialName("user_id") val userId: Int,
         val type: String,
@@ -74,7 +68,7 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
-
+    
     suspend fun touchUserLastInteraction(userId: Int) {
         client.postgrest["users_db"].update(
             {
@@ -101,7 +95,6 @@ class SupabaseDataSource @Inject constructor(
             throw e
         }
     }
-
     // --- SEGUIMIENTOS ---
     suspend fun getAllFollows(): List<FollowEntity> = client.postgrest["follows"].select().decodeList<FollowEntity>()
     suspend fun insertFollow(follow: FollowEntity) { client.postgrest["follows"].insert(follow) }
@@ -508,3 +501,4 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 }
+

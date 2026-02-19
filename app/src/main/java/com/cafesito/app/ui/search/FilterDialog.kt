@@ -33,7 +33,14 @@ fun FilterDialog(
                     value = sliderValue,
                     onValueChange = { sliderValue = it },
                     valueRange = 0f..100f,
-                    steps = 100
+                    steps = 100,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.outline,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.outline,
+                        activeTickColor = MaterialTheme.colorScheme.outline,
+                        inactiveTickColor = MaterialTheme.colorScheme.outline
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
