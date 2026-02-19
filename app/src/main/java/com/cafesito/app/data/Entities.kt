@@ -52,41 +52,9 @@ data class Coffee(
     @SerialName("codigo_barras") val codigoBarras: String? = null,
     @SerialName("image_url") val imageUrl: String = "",
     @SerialName("product_url") val productUrl: String = "",
-    val isCustom: Boolean = false,
-    val userId: Int? = null
+    @SerialName("is_custom") val isCustom: Boolean = false,
+    @SerialName("user_id") val userId: Int? = null
 )
-
-@Serializable
-@Entity(tableName = "custom_coffees")
-data class CustomCoffeeEntity(
-    @PrimaryKey val id: String,
-    @SerialName("user_id") val userId: Int,
-    val name: String,
-    val brand: String,
-    val specialty: String,
-    val roast: String? = null,
-    val variety: String? = null,
-    val country: String,
-    @SerialName("has_caffeine") val hasCaffeine: Boolean,
-    val format: String,
-    @SerialName("image_url") val imageUrl: String,
-    @SerialName("total_grams") val totalGrams: Int = 250
-) {
-    fun toCoffee(): Coffee = Coffee(
-        id = id,
-        nombre = name,
-        marca = brand,
-        especialidad = specialty,
-        tueste = roast ?: "",
-        variedadTipo = variety,
-        paisOrigen = country,
-        cafeina = if (hasCaffeine) "Sí" else "No",
-        formato = format,
-        imageUrl = imageUrl,
-        isCustom = true,
-        userId = userId
-    )
-}
 
 @Serializable
 @Entity(tableName = "users_db")
@@ -223,16 +191,6 @@ data class LocalFavorite(
     @SerialName("user_id") val userId: Int,
     @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
 )
-
-@Serializable
-@Entity(tableName = "local_favorites_custom", primaryKeys = ["coffeeId", "userId"])
-data class LocalFavoriteCustom(
-    @SerialName("coffee_id") val coffeeId: String,
-    @SerialName("user_id") val userId: Int,
-    @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
-) {
-    fun toLocalFavorite(): LocalFavorite = LocalFavorite(coffeeId, userId, savedAt)
-}
 
 @Serializable
 @Entity(

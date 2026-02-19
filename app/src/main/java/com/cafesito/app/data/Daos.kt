@@ -38,9 +38,6 @@ interface CoffeeDao {
     @Query("DELETE FROM coffees WHERE id = :coffeeId")
     suspend fun deleteCoffeeById(coffeeId: String): Int
 
-    @Query("DELETE FROM custom_coffees WHERE id = :coffeeId")
-    suspend fun deleteCustomCoffeeById(coffeeId: String): Int
-
     @Query("SELECT * FROM local_favorites")
     fun getLocalFavorites(): Flow<List<LocalFavorite>>
 
@@ -55,21 +52,6 @@ interface CoffeeDao {
 
     @Query("DELETE FROM local_favorites WHERE userId = :userId")
     suspend fun deleteFavoritesByUserId(userId: Int): Int
-
-    @Query("SELECT * FROM local_favorites_custom")
-    fun getLocalFavoritesCustom(): Flow<List<LocalFavoriteCustom>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertFavoriteCustom(favorite: LocalFavoriteCustom): Long
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertFavoritesCustom(favorites: List<LocalFavoriteCustom>): List<Long>
-
-    @Delete
-    suspend fun deleteFavoriteCustom(favorite: LocalFavoriteCustom): Int
-
-    @Query("DELETE FROM local_favorites_custom WHERE userId = :userId")
-    suspend fun deleteFavoritesCustomByUserId(userId: Int): Int
 
     @Query("SELECT * FROM reviews_db ORDER BY timestamp DESC")
     fun getAllReviews(): Flow<List<ReviewEntity>>

@@ -111,12 +111,9 @@ class AddPostViewModel @Inject constructor(
         .map { items -> items.map { it.pantryItem.coffeeId }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    private val favoriteCoffeeIds: StateFlow<Set<String>> = combine(
-        coffeeRepository.favorites,
-        coffeeRepository.favoritesCustom
-    ) { favorites, favoritesCustom ->
-        (favorites.map { it.coffeeId } + favoritesCustom.map { it.coffeeId }).toSet()
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+    private val favoriteCoffeeIds: StateFlow<Set<String>> = coffeeRepository.favorites
+        .map { favorites -> favorites.map { it.coffeeId }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     private val recentCoffeeIds: StateFlow<List<String>> = diaryRepository.getDiaryEntries()
         .map { entries ->
