@@ -6,7 +6,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
-import com.cafesito.app.widget.DiaryQuickActionsWidgetProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -319,6 +318,6 @@ class DiaryViewModel @Inject constructor(
     }
 
     private fun refreshDiaryWidget() {
-        DiaryQuickActionsWidgetProvider.refresh(context)
+        // Widgets desactivados en esta rama.
     }
 }
