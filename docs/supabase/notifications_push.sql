@@ -12,30 +12,28 @@
 --   https://<PROJECT_REF>.functions.supabase.co/send-notification
 --
 -- IMPORTANTE:
--- - Usa SERVICE_ROLE_KEY como secreto en el header Authorization.
--- - El cuerpo incluye NEW.* con datos de notifications_db.
--- - Verifica que existan tokens:
---   select user_id, count(*) from public.user_fcm_tokens group by user_id;
+-- - Usa una key REAL del proyecto (anon o service_role).
+-- - Para evitar el 401 "Missing authorization header", envía
+--   ambos headers y usa la clave en formato Bearer.
 -- ==========================================================
 
--- 1) Función que llama a la Edge Function
 create or replace function public.notify_fcm_on_notification()
 returns trigger
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     response json;
 begin
-    -- Llama a la Edge Function con el registro insertado.
-    -- Usa pg_net para ejecutar la llamada HTTP.
     response := (
         select net.http_post(
             url := 'https://<PROJECT_REF>.functions.supabase.co/send-notification'::text,
             headers := jsonb_build_object(
                 'Content-Type', 'application/json',
-                'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
-            )::jsonb,
+                'apikey', '<SUPABASE_ANON_OR_SERVICE_ROLE_KEY>',
+                'authorization', 'Bearer <SUPABASE_ANON_OR_SERVICE_ROLE_KEY>'
+            ),
             body := json_build_object(
                 'record', row_to_json(NEW)
             )::text
@@ -46,7 +44,6 @@ begin
 end;
 $$;
 
--- 2) Trigger al insertar notificaciones
 drop trigger if exists notify_fcm_on_notification_insert
     on public.notifications_db;
 
