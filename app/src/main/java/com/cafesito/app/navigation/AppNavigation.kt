@@ -277,7 +277,13 @@ fun AppNavigation(
                         onDeleteNotification = { notification -> viewModel.deleteNotification(notification) },
                         onReplyToNotification = { notification ->
                             when (notification) {
-                                is TimelineNotification.Mention -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                is TimelineNotification.Mention -> {
+                                    if (notification.commentId >= 0) {
+                                        navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                    } else {
+                                        navController.navigate("timeline?postId=${notification.postId}")
+                                    }
+                                }
                                 is TimelineNotification.Comment -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
                                 else -> Unit
                             }
@@ -287,7 +293,13 @@ fun AppNavigation(
                             viewModel.markNotificationRead(notification)
                             when (notification) {
                                 is TimelineNotification.Follow -> navController.navigate("profile/${notification.user.id}")
-                                is TimelineNotification.Mention -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                is TimelineNotification.Mention -> {
+                                    if (notification.commentId >= 0) {
+                                        navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                    } else {
+                                        navController.navigate("timeline?postId=${notification.postId}")
+                                    }
+                                }
                                 is TimelineNotification.Comment -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
                             }
                         },

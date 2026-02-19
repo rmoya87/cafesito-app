@@ -672,7 +672,7 @@ private fun CommentRow(
 
 private fun buildAnnotatedStringWithMentions(text: String, mentionColor: Color): AnnotatedString {
     return buildAnnotatedString {
-        val regex = Regex("@(\\w+)")
+        val regex = Regex("@([A-Za-z0-9._-]{2,30})")
         var lastIndex = 0
 
         regex.findAll(text).forEach { matchResult ->

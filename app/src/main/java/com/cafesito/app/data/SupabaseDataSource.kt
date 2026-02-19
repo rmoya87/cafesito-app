@@ -382,6 +382,9 @@ class SupabaseDataSource @Inject constructor(
 
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
+        val requiresPushPipeline = notification.type.equals("MENTION", ignoreCase = true) ||
+            notification.type.equals("COMMENT", ignoreCase = true) ||
+            notification.type.equals("FOLLOW", ignoreCase = true)
         try {
             client.postgrest.rpc(
                 "create_notification",
@@ -395,7 +398,17 @@ class SupabaseDataSource @Inject constructor(
                 }
             )
         } catch (rpcError: Exception) {
-            Log.w("SupabaseDataSource", "RPC create_notification unavailable, falling back to direct insert: ${rpcError.message}")
+            Log.w(
+                "SupabaseDataSource",
+                "RPC create_notification failed for type=${notification.type} userId=${notification.userId}: ${rpcError.message}"
+            )
+            if (requiresPushPipeline) {
+                Log.e(
+                    "SupabaseDataSource",
+                    "Notification RPC is mandatory for push-capable notifications. Skipping direct insert to avoid silent push loss."
+                )
+                throw rpcError
+            }
             try {
                 client.postgrest["notifications_db"].insert(
                     NotificationInsert(

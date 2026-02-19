@@ -439,7 +439,7 @@ class SocialRepository @Inject constructor(
     }
 
     private fun extractMentions(text: String): Set<String> {
-        val regex = Regex("@([A-Za-z0-9_]{2,30})")
+        val regex = Regex("@([A-Za-z0-9._-]{2,30})")
         return regex.findAll(text)
             .map { it.groupValues[1] }
             .map { it.trim() }

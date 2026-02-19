@@ -21,7 +21,11 @@ fun NotificationEntity.toTimelineNotification(users: List<UserEntity>): Timeline
             )
         }
         "MENTION" -> {
-            val mentionTarget = parseNotificationTarget(relatedId) ?: return null
+            val mentionTarget = parseNotificationTarget(relatedId)
+                ?: relatedId?.takeIf { it.isNotBlank() }?.let {
+                    NotificationTarget(postId = it, commentId = -1)
+                }
+                ?: return null
             val user = users.find { it.username == fromUsername } ?: return null
             TimelineNotification.Mention(
                 notificationId = notificationId,
