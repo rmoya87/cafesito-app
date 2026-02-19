@@ -22,7 +22,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -46,15 +47,18 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -636,17 +640,10 @@ private fun CommentRow(
                 modifier = Modifier.clickable { author?.id?.let { onNavigateToProfile(it) } }
             )
 
-            val annotatedContent = buildAnnotatedStringWithMentions(comment.text)
-            @Suppress("DEPRECATION")
-            ClickableText(
-                text = annotatedContent,
+            MentionText(
+                text = comment.text,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                onClick = { offset ->
-                    annotatedContent.getStringAnnotations("MENTION", offset, offset)
-                        .firstOrNull()?.let { annotation ->
-                            onMentionClick(annotation.item)
-                        }
-                }
+                onMentionClick = onMentionClick
             )
         }
 
@@ -673,8 +670,7 @@ private fun CommentRow(
 
 }
 
-@Composable
-private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
+private fun buildAnnotatedStringWithMentions(text: String, mentionColor: Color): AnnotatedString {
     return buildAnnotatedString {
         val regex = Regex("@(\\w+)")
         var lastIndex = 0
@@ -683,7 +679,7 @@ private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
             append(text.substring(lastIndex, matchResult.range.first))
             val username = matchResult.groupValues[1]
             pushStringAnnotation(tag = "MENTION", annotation = username)
-            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
+            withStyle(style = SpanStyle(color = mentionColor, fontWeight = FontWeight.Bold)) {
                 append(matchResult.value)
             }
             pop()
@@ -693,6 +689,34 @@ private fun buildAnnotatedStringWithMentions(text: String): AnnotatedString {
             append(text.substring(lastIndex))
         }
     }
+}
+
+@Composable
+fun MentionText(
+    text: String,
+    style: TextStyle,
+    onMentionClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val mentionColor = MaterialTheme.colorScheme.primary
+    val annotatedContent = remember(text, mentionColor) { buildAnnotatedStringWithMentions(text, mentionColor) }
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+    Text(
+        text = annotatedContent,
+        style = style,
+        modifier = modifier.pointerInput(annotatedContent) {
+            detectTapGestures { tapOffset ->
+                val layoutResult = textLayoutResult ?: return@detectTapGestures
+                val offset = layoutResult.getOffsetForPosition(tapOffset)
+                annotatedContent
+                    .getStringAnnotations(tag = "MENTION", start = offset, end = offset)
+                    .firstOrNull()
+                    ?.let { onMentionClick(it.item) }
+            }
+        },
+        onTextLayout = { textLayoutResult = it }
+    )
 }
 
 @Composable
@@ -742,7 +766,6 @@ fun StockSliderSection(
                 .fillMaxWidth()
                 .padding(top = 2.dp)
         )
-        Text("g", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Slider(
             value = value.coerceIn(0f, maxValue.coerceAtLeast(1f)),
             onValueChange = {
@@ -757,20 +780,6 @@ fun StockSliderSection(
             )
         )
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = manualValue,
-            onValueChange = { input ->
-                if (input.isEmpty() || input.all { it.isDigit() }) {
-                    manualValue = input
-                    input.toFloatOrNull()?.let { onManualValueChange(it) }
-                }
-            },
-            label = { Text("Cantidad manual (g)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-        )
     }
 }
 
@@ -1357,14 +1366,14 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
             )
             Spacer(Modifier.height(32.dp))
             StockSliderSection(
-                "Cantidad de café total",
+                "Cantidad de café total (g)",
                 total,
                 1000f,
                 onValueChange = { total = it }
             )
             Spacer(Modifier.height(24.dp))
             StockSliderSection(
-                "Cantidad de café restante",
+                "Cantidad de café restante (g)",
                 rem,
                 total.coerceAtLeast(1f),
                 onValueChange = { rem = it }

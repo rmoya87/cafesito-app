@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
+import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.random.Random
 
@@ -69,7 +70,8 @@ fun TimelineScreen(
     val badgeScale = remember { Animatable(1f) }
     val hasUnread = unreadCount > 0
     val context = LocalContext.current
-    
+    val scope = rememberCoroutineScope()
+
     val listState = rememberLazyListState()
     var showReviewOptions by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
 
@@ -285,7 +287,15 @@ fun TimelineScreen(
                                                 isOwnPost = item.details.post.userId == state.activeUser.id,
                                                 onEditClick = { postToEdit = item.details },
                                                 onDeleteClick = { itemToDelete = item.details },
-                                                onCoffeeClick = onCoffeeClick
+                                                onCoffeeClick = onCoffeeClick,
+                                                onMentionClick = { username ->
+                                                    scope.launch {
+                                                        viewModel.getUserIdByUsername(username)?.let { mentionedUserId ->
+                                                            if (mentionedUserId == state.activeUser.id) onUserClick(0)
+                                                            else onUserClick(mentionedUserId)
+                                                        }
+                                                    }
+                                                }
                                             )
                                             is TimelineItem.ReviewItem -> {
                                                 val isOwnReview = item.reviewInfo.review.userId == state.activeUser.id
