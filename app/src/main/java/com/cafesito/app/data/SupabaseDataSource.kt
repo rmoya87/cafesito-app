@@ -76,14 +76,14 @@ class SupabaseDataSource @Inject constructor(
     suspend fun insertUserToken(token: UserTokenEntity) {
         try {
             // No enviamos `id` para evitar conflictos con PK autogenerada y forzar upsert por user_id.
+            // Para Supabase kt 2.6.1, onConflict es un parámetro de la función upsert
             client.postgrest["user_fcm_tokens"].upsert(
-                UserTokenUpsert(
+                value = UserTokenUpsert(
                     userId = token.userId,
                     fcmToken = token.fcmToken
-                )
-            ) {
+                ),
                 onConflict = "user_id"
-            }
+            )
         } catch (e: Exception) {
             Log.e("SupabaseDataSource", "Error upserting FCM token", e)
             throw e
@@ -461,7 +461,7 @@ class SupabaseDataSource @Inject constructor(
                 client.postgrest["notifications_db"].update({
                     set("is_read", true)
                 }) {
-                    filter { eq("user_id", userId) }
+                    filter { eq("id", userId) }
                 }
             } catch (e: Exception) {
                 Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")
