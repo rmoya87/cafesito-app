@@ -821,10 +821,6 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                 onValueChange = { 
                     total = it
                     if (rem > it) rem = it 
-                },
-                onManualValueChange = {
-                    total = it
-                    if (rem > it) rem = it
                 }
             )
             Spacer(Modifier.height(24.dp))
@@ -832,8 +828,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                 label = "RESTANTE", 
                 value = rem, 
                 maxValue = total,
-                onValueChange = { rem = it },
-                onManualValueChange = { rem = it }
+                onValueChange = { rem = it }
             )
             Spacer(Modifier.height(40.dp))
             
