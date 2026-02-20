@@ -1,7 +1,12 @@
 package com.cafesito.app.navigation
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -35,7 +40,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -66,15 +73,25 @@ fun AppNavigation(
     onShortcutConsumed: () -> Unit,
     analyticsHelper: AnalyticsHelper
 ) {
+    val context = LocalContext.current
     val navController = rememberNavController()
     var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
     var wasAuthenticatedInCurrentInstance by remember { mutableStateOf(false) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {}
 
     LaunchedEffect(sessionState) {
         when (sessionState) {
             is SessionState.Authenticated -> {
                 wasAuthenticatedInCurrentInstance = true
                 if (startRoute == null) startRoute = "timeline"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    val permission = Manifest.permission.POST_NOTIFICATIONS
+                    if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                        notificationPermissionLauncher.launch(permission)
+                    }
+                }
             }
             is SessionState.NotAuthenticated -> {
                 if (startRoute == null) {
