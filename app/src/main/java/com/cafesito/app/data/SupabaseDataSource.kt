@@ -80,19 +80,28 @@ class SupabaseDataSource @Inject constructor(
     }
 
     suspend fun insertUserToken(token: UserTokenEntity) {
+        val upsertPayload = UserTokenUpsert(
+            userId = token.userId,
+            fcmToken = token.fcmToken
+        )
         try {
-            // No enviamos `id` para evitar conflictos con PK autogenerada y forzar upsert por user_id.
-            // Para Supabase kt 2.6.1, onConflict es un parámetro de la función upsert
+            // Ruta normal: una fila por user_id.
             client.postgrest["user_fcm_tokens"].upsert(
-                value = UserTokenUpsert(
-                    userId = token.userId,
-                    fcmToken = token.fcmToken
-                ),
+                value = upsertPayload,
                 onConflict = "user_id"
             )
-        } catch (e: Exception) {
-            Log.e("SupabaseDataSource", "Error upserting FCM token", e)
-            throw e
+        } catch (userConflictError: Exception) {
+            Log.w("SupabaseDataSource", "Upsert token by user_id failed, trying by fcm_token", userConflictError)
+            try {
+                // Si el token ya existe en otra fila/usuario, lo reasignamos al usuario activo.
+                client.postgrest["user_fcm_tokens"].upsert(
+                    value = upsertPayload,
+                    onConflict = "fcm_token"
+                )
+            } catch (tokenConflictError: Exception) {
+                Log.e("SupabaseDataSource", "Error upserting FCM token by both user_id and fcm_token", tokenConflictError)
+                throw tokenConflictError
+            }
         }
     }
     // --- SEGUIMIENTOS ---
