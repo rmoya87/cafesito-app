@@ -2,9 +2,11 @@
 // Env vars requeridas:
 // - SUPABASE_URL
 // - SUPABASE_SERVICE_ROLE_KEY
-// - FCM_SERVER_KEY (Legacy) o configura el envío con HTTP v1 si lo prefieres.
+// - FCM_PROJECT_ID
+// - FCM_CLIENT_EMAIL
+// - FCM_PRIVATE_KEY (PEM; si tiene \n escapados, se normaliza)
 //
-// Esta función recibe un payload:
+// Payload esperado:
 // {
 //   "record": {
 //     "id": 1,
@@ -16,23 +18,167 @@
 //     "related_id": "456"
 //   }
 // }
-//
-// Luego busca tokens en public.user_fcm_tokens y envía un push a cada token.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const fcmServerKey = Deno.env.get("FCM_SERVER_KEY");
+const fcmProjectId = Deno.env.get("FCM_PROJECT_ID");
+const fcmClientEmail = Deno.env.get("FCM_CLIENT_EMAIL");
+const fcmPrivateKey = Deno.env.get("FCM_PRIVATE_KEY")?.replace(/\\n/g, "\n");
 
-if (!supabaseUrl || !supabaseServiceKey || !fcmServerKey) {
-  console.error("Missing required environment variables.");
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
+}
+if (!fcmProjectId || !fcmClientEmail || !fcmPrivateKey) {
+  console.error("Missing one or more FCM HTTP v1 credentials.");
 }
 
 const supabase = createClient(supabaseUrl ?? "", supabaseServiceKey ?? "");
 const HIGH_PRIORITY_TYPES = new Set(["FOLLOW", "MENTION", "COMMENT"]);
+const GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token";
+const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
+
+let accessTokenCache: { token: string; expiresAtMs: number } | null = null;
+
+const corsHeaders = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+};
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: corsHeaders });
+}
+
+function base64UrlEncode(input: Uint8Array): string {
+  let binary = "";
+  for (const b of input) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function stripPemMarkers(pem: string): string {
+  return pem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\s+/g, "");
+}
+
+async function importPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
+  const binary = Uint8Array.from(atob(stripPemMarkers(privateKeyPem)), (c) => c.charCodeAt(0));
+  return await crypto.subtle.importKey(
+    "pkcs8",
+    binary.buffer,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+}
+
+async function createGoogleAccessToken(): Promise<{ accessToken: string; expiresAtMs: number }> {
+  if (!fcmClientEmail || !fcmPrivateKey) {
+    throw new Error("Missing FCM service-account credentials.");
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const jwtHeader = { alg: "RS256", typ: "JWT" };
+  const jwtPayload = {
+    iss: fcmClientEmail,
+    scope: FCM_SCOPE,
+    aud: GOOGLE_TOKEN_URI,
+    iat: nowSeconds,
+    exp: nowSeconds + 3600,
+  };
+
+  const encoder = new TextEncoder();
+  const headerB64 = base64UrlEncode(encoder.encode(JSON.stringify(jwtHeader)));
+  const payloadB64 = base64UrlEncode(encoder.encode(JSON.stringify(jwtPayload)));
+  const unsignedJwt = `${headerB64}.${payloadB64}`;
+
+  const privateKey = await importPrivateKey(fcmPrivateKey);
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    privateKey,
+    encoder.encode(unsignedJwt)
+  );
+  const signedJwt = `${unsignedJwt}.${base64UrlEncode(new Uint8Array(signature))}`;
+
+  const tokenResp = await fetch(GOOGLE_TOKEN_URI, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: signedJwt,
+    }),
+  });
+
+  const tokenBody = await tokenResp.json();
+  if (!tokenResp.ok || !tokenBody?.access_token) {
+    throw new Error(`OAuth token request failed: ${JSON.stringify(tokenBody)}`);
+  }
+
+  const expiresIn = Number(tokenBody.expires_in ?? 3600);
+  return {
+    accessToken: String(tokenBody.access_token),
+    expiresAtMs: Date.now() + Math.max(0, expiresIn - 60) * 1000,
+  };
+}
+
+async function getGoogleAccessToken(): Promise<string> {
+  if (accessTokenCache && Date.now() < accessTokenCache.expiresAtMs) {
+    return accessTokenCache.token;
+  }
+  const token = await createGoogleAccessToken();
+  accessTokenCache = { token: token.accessToken, expiresAtMs: token.expiresAtMs };
+  return token.accessToken;
+}
+
+function parseRelatedTarget(relatedId: string | null | undefined): {
+  related: string;
+  postId: string;
+  commentId: string;
+  targetUserId: string;
+} {
+  const related = String(relatedId ?? "");
+  const parts = related.split(":");
+  if (parts.length === 2) {
+    const [postId, commentId] = parts;
+    return {
+      related,
+      postId: postId || "",
+      commentId: commentId || "",
+      targetUserId: "",
+    };
+  }
+  return {
+    related,
+    postId: "",
+    commentId: "",
+    targetUserId: /^\d+$/.test(related) ? related : "",
+  };
+}
+
+async function deleteTokenIfInvalid(token: string): Promise<void> {
+  const { error } = await supabase.from("user_fcm_tokens").delete().eq("fcm_token", token);
+  if (error) {
+    console.warn("Could not delete invalid token", { token: token.slice(0, 12), error });
+  }
+}
+
+function isInvalidTokenError(responseText: string): boolean {
+  const text = responseText.toUpperCase();
+  return (
+    text.includes("UNREGISTERED") ||
+    text.includes("INVALID_ARGUMENT") ||
+    text.includes("INVALID REGISTRATION TOKEN") ||
+    text.includes("NOT A VALID FCM REGISTRATION TOKEN")
+  );
+}
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+
   try {
     const payload = await req.json();
     const record = payload?.record ?? payload;
@@ -43,21 +189,9 @@ Deno.serve(async (req) => {
       type: record?.type ?? null,
     });
 
-    if (!record?.user_id) {
-      return new Response(JSON.stringify({ error: "Missing user_id" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (!supabaseUrl || !supabaseServiceKey || !fcmServerKey) {
-      return new Response(
-        JSON.stringify({ error: "Server misconfigured: missing secrets" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+    if (!record?.user_id) return jsonResponse({ error: "Missing user_id" }, 400);
+    if (!supabaseUrl || !supabaseServiceKey || !fcmProjectId || !fcmClientEmail || !fcmPrivateKey) {
+      return jsonResponse({ error: "Server misconfigured: missing secrets" }, 500);
     }
 
     const { data: tokens, error } = await supabase
@@ -67,10 +201,7 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("Error fetching tokens:", error);
-      return new Response(JSON.stringify({ error: "Token lookup failed" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Token lookup failed" }, 500);
     }
 
     const tokenList = Array.from(
@@ -88,95 +219,121 @@ Deno.serve(async (req) => {
     });
 
     if (tokenList.length === 0) {
-      return new Response(JSON.stringify({ ok: true, sent: 0 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: true, sent: 0, failed: 0, invalidTokensRemoved: 0 }, 200);
     }
 
-    const fromUsername = record.from_username ?? "";
+    const fromUsername = String(record.from_username ?? "");
     const { data: fromUser } = await supabase
       .from("users_db")
       .select("avatar_url, username")
       .eq("username", fromUsername)
       .maybeSingle();
 
+    const rawType = String(record.type ?? "");
+    const notificationType = rawType.toUpperCase();
+    const isMention = notificationType === "MENTION";
+
     const title =
-      record.type === "FOLLOW"
-        ? `${fromUsername} te siguió`
-        : record.type === "MENTION"
-        ? fromUsername
+      notificationType === "FOLLOW"
+        ? `${fromUsername} te siguio`
+        : isMention
+        ? fromUsername || "Cafesito"
         : "Cafesito";
-    const body =
-      record.type === "MENTION"
-        ? "te ha mencionado"
-        : record.message || "Nueva notificación";
+    const body = isMention ? "te ha mencionado" : String(record.message || "Nueva notificacion");
 
-    const notificationType = String(record.type ?? "").toUpperCase();
-    const fcmPriority = HIGH_PRIORITY_TYPES.has(notificationType) ? "high" : "normal";
+    const fcmPriority = HIGH_PRIORITY_TYPES.has(notificationType) ? "HIGH" : "NORMAL";
+    const target = parseRelatedTarget(record.related_id);
+    const accessToken = await getGoogleAccessToken();
 
-    const fcmPayload = {
-      registration_ids: tokenList,
-      priority: fcmPriority,
-      notification: {
-        title,
-        body,
-        image: fromUser?.avatar_url ?? undefined,
-      },
-      data: {
-        type: notificationType,
-        targetId: record.related_id ?? "",
-        post_id: record.related_id ?? "",
-        action_label: notificationType === "MENTION" ? "Ver" : "",
-        avatar_url: fromUser?.avatar_url ?? "",
-      },
-    };
+    const sendResults = await Promise.all(
+      tokenList.map(async (token) => {
+        const messagePayload = {
+          message: {
+            token,
+            notification: {
+              title,
+              body,
+              ...(fromUser?.avatar_url ? { image: fromUser.avatar_url } : {}),
+            },
+            android: {
+              priority: fcmPriority,
+              notification: {
+                sound: "default",
+              },
+            },
+            data: {
+              type: notificationType,
+              targetId: target.related,
+              related_id: target.related,
+              post_id: target.postId,
+              comment_id: target.commentId,
+              target_user_id: target.targetUserId,
+              action_label: isMention ? "Ver" : "",
+              avatar_url: String(fromUser?.avatar_url ?? ""),
+            },
+          },
+        };
 
-    const fcmResponse = await fetch("https://fcm.googleapis.com/fcm/send", {
-      method: "POST",
-      headers: {
-        Authorization: `key=${fcmServerKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(fcmPayload),
+        const fcmResp = await fetch(
+          `https://fcm.googleapis.com/v1/projects/${fcmProjectId}/messages:send`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(messagePayload),
+          }
+        );
+
+        const text = await fcmResp.text();
+        if (!fcmResp.ok && isInvalidTokenError(text)) {
+          await deleteTokenIfInvalid(token);
+          return { ok: false, tokenInvalid: true, status: fcmResp.status, response: text };
+        }
+        return { ok: fcmResp.ok, tokenInvalid: false, status: fcmResp.status, response: text };
+      })
+    );
+
+    const sent = sendResults.filter((r) => r.ok).length;
+    const failed = sendResults.length - sent;
+    const invalidTokensRemoved = sendResults.filter((r) => r.tokenInvalid).length;
+
+    console.log("FCM send summary", {
+      userId: record.user_id,
+      type: notificationType,
+      sent,
+      failed,
+      invalidTokensRemoved,
     });
 
-    const fcmText = await fcmResponse.text();
-    let fcmResult: unknown = fcmText;
-    try {
-      fcmResult = JSON.parse(fcmText);
-    } catch {
-      // keep raw text
-    }
-
-    if (!fcmResponse.ok) {
-      console.error("FCM error:", fcmResponse.status, fcmResult);
-      return new Response(
-        JSON.stringify({ ok: false, status: fcmResponse.status, result: fcmResult }),
+    const sampleError = sendResults.find((r) => !r.ok);
+    if (sent === 0) {
+      return jsonResponse(
         {
-          status: 502,
-          headers: { "Content-Type": "application/json" },
-        }
+          ok: false,
+          sent,
+          failed,
+          invalidTokensRemoved,
+          sampleError: sampleError
+            ? { status: sampleError.status, response: sampleError.response }
+            : null,
+        },
+        502
       );
     }
 
-    console.log("FCM sent", {
-      status: fcmResponse.status,
-      userId: record.user_id,
-      type: notificationType,
-      priority: fcmPriority,
-      tokenCount: tokenList.length,
-    });
-
-    return new Response(JSON.stringify({ ok: true, result: fcmResult }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse(
+      {
+        ok: true,
+        sent,
+        failed,
+        invalidTokensRemoved,
+      },
+      200
+    );
   } catch (error) {
     console.error("send-notification error:", error);
-    return new Response(JSON.stringify({ error: "Unhandled error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Unhandled error" }, 500);
   }
 });
