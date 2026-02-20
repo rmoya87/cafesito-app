@@ -164,5 +164,4 @@ jobs:
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: ${{ steps.track.outputs.track }}
           status: completed
-          changesNotSentForReview: true
           whatsNewDirectory: release-notes
