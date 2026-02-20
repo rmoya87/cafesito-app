@@ -3,7 +3,6 @@ package com.cafesito.app.ui.access
 import android.net.Uri
 import android.util.Log
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -93,8 +92,25 @@ fun LoginScreen(
                     player = exoPlayer
                     useController = false
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    // Workaround for occasional first-render misalignment of video surfaces in Compose.
+                    runCatching {
+                        javaClass.getMethod("setEnableComposeSurfaceSyncWorkaround", Boolean::class.javaPrimitiveType)
+                            .invoke(this, true)
+                    }
                 }
+            },
+            update = { view ->
+                view.player = exoPlayer
+                view.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                view.layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                view.requestLayout()
             },
             modifier = Modifier.fillMaxSize()
         )
