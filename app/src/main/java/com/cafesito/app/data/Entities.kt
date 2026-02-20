@@ -85,8 +85,7 @@ data class UserTokenEntity(
 @Serializable
 data class UserTokenUpsert(
     @SerialName("user_id") val userId: Int,
-    @SerialName("fcm_token") val fcmToken: String,
-    val platform: String = "android"
+    @SerialName("fcm_token") val fcmToken: String
 )
 
 @Serializable
