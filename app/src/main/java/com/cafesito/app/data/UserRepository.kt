@@ -1,6 +1,7 @@
 package com.cafesito.app.data
 
 import android.util.Log
+import android.content.SharedPreferences
 import com.cafesito.app.ui.utils.ConnectivityObserver
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.exceptions.UnauthorizedRestException
@@ -26,9 +27,11 @@ class UserRepository @Inject constructor(
     private val supabaseDataSource: SupabaseDataSource,
     private val supabaseClient: SupabaseClient,
     private val connectivityObserver: ConnectivityObserver,
+    private val sharedPreferences: SharedPreferences,
     private val externalScope: CoroutineScope
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+    private val prefsLock = Any()
 
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
@@ -251,15 +254,41 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun updateFcmToken(token: String) {
-        val currentUser = getActiveUser() ?: return
-        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return
+        val cleanToken = token.trim()
+        if (cleanToken.isBlank()) return
+        savePendingFcmToken(cleanToken)
+        syncPendingFcmTokenIfAny()
+    }
+
+    suspend fun syncPendingFcmTokenIfAny() {
+        val pendingToken = getPendingFcmToken() ?: return
+        val currentUser = getActiveUser() ?: run {
+            Log.d("UserRepository", "FCM token pending; no active user yet")
+            return
+        }
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
+            Log.d("UserRepository", "FCM token pending; offline")
+            return
+        }
 
         try {
-            supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
+            supabaseDataSource.insertUserToken(
+                UserTokenEntity(userId = currentUser.id, fcmToken = pendingToken)
+            )
+            clearPendingFcmToken(pendingToken)
+            Log.d("UserRepository", "FCM token synced for userId=${currentUser.id}")
         } catch (e: UnauthorizedRestException) {
             Log.w("UserRepository", "updateFcmToken unauthorized, trying one auth refresh and retry", e)
-            refreshAuthSession()
-            supabaseDataSource.insertUserToken(UserTokenEntity(userId = currentUser.id, fcmToken = token))
+            try {
+                refreshAuthSession()
+                supabaseDataSource.insertUserToken(
+                    UserTokenEntity(userId = currentUser.id, fcmToken = pendingToken)
+                )
+                clearPendingFcmToken(pendingToken)
+                Log.d("UserRepository", "FCM token synced after auth refresh for userId=${currentUser.id}")
+            } catch (retryError: Exception) {
+                Log.e("UserRepository", "updateFcmToken failed after auth refresh", retryError)
+            }
         } catch (e: Exception) {
             Log.e("UserRepository", "updateFcmToken failed", e)
         }
@@ -380,5 +409,30 @@ class UserRepository @Inject constructor(
 
     suspend fun insertUsers(users: List<UserEntity>) {
         userDao.insertUsers(users)
+    }
+
+    private fun savePendingFcmToken(token: String) {
+        synchronized(prefsLock) {
+            sharedPreferences.edit().putString(KEY_PENDING_FCM_TOKEN, token).apply()
+        }
+    }
+
+    private fun getPendingFcmToken(): String? {
+        return synchronized(prefsLock) {
+            sharedPreferences.getString(KEY_PENDING_FCM_TOKEN, null)?.takeIf { it.isNotBlank() }
+        }
+    }
+
+    private fun clearPendingFcmToken(expectedToken: String) {
+        synchronized(prefsLock) {
+            val current = sharedPreferences.getString(KEY_PENDING_FCM_TOKEN, null)
+            if (current == expectedToken) {
+                sharedPreferences.edit().remove(KEY_PENDING_FCM_TOKEN).apply()
+            }
+        }
+    }
+
+    private companion object {
+        const val KEY_PENDING_FCM_TOKEN = "pending_fcm_token"
     }
 }

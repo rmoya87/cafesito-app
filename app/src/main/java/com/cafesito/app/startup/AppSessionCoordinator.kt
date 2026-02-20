@@ -24,6 +24,13 @@ class AppSessionCoordinator @Inject constructor(
                 Log.e("Sync", "Error during initial sync", e)
             }
         }
+        scope.launch {
+            try {
+                userRepository.syncPendingFcmTokenIfAny()
+            } catch (e: Exception) {
+                Log.e("FCM", "Error syncing pending FCM token", e)
+            }
+        }
         analyticsHelper.setUserId(userId.toString())
         updateFcmToken(scope)
         scope.launch { userRepository.touchUserInteraction() }
