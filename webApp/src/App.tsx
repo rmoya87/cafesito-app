@@ -7,6 +7,7 @@ import {
   deletePost,
   fetchInitialData,
   fetchUserData,
+  uploadImageFile,
   toggleFollow,
   toggleLike,
   updateComment,
@@ -43,11 +44,14 @@ type IconName =
   | "arrow-right"
   | "more"
   | "coffee"
+  | "camera"
   | "chat"
   | "at"
   | "smile"
   | "chevron-right"
-  | "send";
+  | "send"
+  | "edit"
+  | "trash";
 
 const NAV_ITEMS: Array<{ id: TabId; label: string; icon: IconName }> = [
   { id: "timeline", label: "Inicio", icon: "home" },
@@ -170,6 +174,14 @@ function UiIcon({ name, className }: { name: IconName; className?: string }) {
       </svg>
     );
   }
+  if (name === "camera") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+        <path d="M4.5 7.5h4l1.3-2h4.4l1.3 2h4a1.8 1.8 0 011.8 1.8v8.7a1.8 1.8 0 01-1.8 1.8h-15A1.8 1.8 0 012.7 18V9.3A1.8 1.8 0 014.5 7.5z" />
+        <circle cx="12" cy="13" r="3.2" />
+      </svg>
+    );
+  }
   if (name === "chat") {
     return (
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
@@ -206,6 +218,23 @@ function UiIcon({ name, className }: { name: IconName; className?: string }) {
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
         <path d="M4 11.5L20 4l-4.8 16-3.4-5.2L4 11.5z" />
         <path d="M20 4L11.8 14.8" />
+      </svg>
+    );
+  }
+  if (name === "edit") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+        <path d="M4 16.8V20h3.2L18 9.2l-3.2-3.2L4 16.8z" />
+        <path d="M13.8 6.9l3.2 3.2" />
+      </svg>
+    );
+  }
+  if (name === "trash") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+        <path d="M5.5 7.5h13" />
+        <path d="M9.5 7.5V5.8h5V7.5" />
+        <path d="M8 7.5l.8 11h6.4l.8-11" />
       </svg>
     );
   }
@@ -322,6 +351,10 @@ export function App() {
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const [notificationsLastSeenAt, setNotificationsLastSeenAt] = useState(0);
   const [showCommentEmojiPanel, setShowCommentEmojiPanel] = useState(false);
+  const [commentImageFile, setCommentImageFile] = useState<File | null>(null);
+  const [commentImageName, setCommentImageName] = useState("");
+  const [commentImagePreviewError, setCommentImagePreviewError] = useState(false);
+  const [commentImagePreviewUrl, setCommentImagePreviewUrl] = useState("");
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPostText, setNewPostText] = useState("");
   const [newPostImageUrl, setNewPostImageUrl] = useState("");
@@ -500,6 +533,12 @@ export function App() {
   }, [commentSheetPostId, comments, editingCommentId]);
 
   useEffect(() => {
+    return () => {
+      if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
+    };
+  }, [commentImagePreviewUrl]);
+
+  useEffect(() => {
     if (!commentSheetPostId || !highlightedCommentId) return;
     const list = commentListRef.current;
     if (!list) return;
@@ -525,18 +564,6 @@ export function App() {
     url.searchParams.delete("commentId");
     window.history.replaceState({}, "", url.toString());
   }, [handledTimelineDeepLink, posts]);
-
-  useEffect(() => {
-    if (!commentMenuId) return;
-    const onDown = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) return;
-      if (target.closest(".comment-menu-wrap")) return;
-      setCommentMenuId(null);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [commentMenuId]);
 
   const loadInitialData = useCallback(async () => {
     if (!sessionEmail) return;
@@ -629,6 +656,11 @@ export function App() {
     });
     return map;
   }, [coffees]);
+  const coffeesById = useMemo(() => {
+    const map = new Map<string, CoffeeRow>();
+    coffees.forEach((coffee) => map.set(coffee.id, coffee));
+    return map;
+  }, [coffees]);
 
   const timelineCards: TimelineCard[] = useMemo(
     () =>
@@ -642,6 +674,7 @@ export function App() {
         const tag = tagsByPostId.get(post.id);
         const coffeeKey = tag ? `${(tag.coffee_brand ?? "").trim().toLowerCase()}|${(tag.coffee_name ?? "").trim().toLowerCase()}` : "";
         const coffeeId = coffeeKey ? coffeeIdByNameBrand.get(coffeeKey) ?? null : null;
+        const coffee = coffeeId ? coffeesById.get(coffeeId) ?? null : null;
 
         return {
           id: post.id,
@@ -655,11 +688,13 @@ export function App() {
           likes: postLikes,
           comments: postComments,
           coffeeId,
-          coffeeTag: tag ? `${tag.coffee_brand} ${tag.coffee_name}`.trim() : null,
+          coffeeTagName: tag?.coffee_name ?? null,
+          coffeeTagBrand: tag?.coffee_brand ?? null,
+          coffeeImageUrl: coffee?.image_url ?? null,
           likedByActiveUser
         };
       }),
-    [activeUser, coffeeIdByNameBrand, commentsByPostId, likes, likesByPostId, posts, tagsByPostId, usersById]
+    [activeUser, coffeeIdByNameBrand, coffeesById, commentsByPostId, likes, likesByPostId, posts, tagsByPostId, usersById]
   );
 
   const filteredCoffees = useMemo(() => {
@@ -728,6 +763,10 @@ export function App() {
         .slice(-120),
     [commentSheetPostId, commentsByPostId]
   );
+  const activeCommentMenuRow = useMemo(
+    () => commentSheetRows.find((row) => row.id === commentMenuId) ?? null,
+    [commentMenuId, commentSheetRows]
+  );
   const commentMentionSuggestions = useMemo(() => {
     const draftParts = commentDraft.split(/\s+/);
     const token = draftParts[draftParts.length - 1] ?? "";
@@ -737,6 +776,7 @@ export function App() {
     return users.filter((user) => user.username.toLowerCase().includes(query)).slice(0, 8);
   }, [commentDraft, users]);
   const commentListRef = useRef<HTMLUListElement | null>(null);
+  const commentImageInputRef = useRef<HTMLInputElement | null>(null);
   const timelineNotifications = useMemo(() => {
     if (!activeUser) return [];
 
@@ -812,6 +852,11 @@ export function App() {
       const newComment = await createComment(commentSheetPostId, activeUser.id, text);
       setComments((prev) => [newComment, ...prev]);
       setCommentDraft("");
+      if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
+      setCommentImageFile(null);
+      setCommentImageName("");
+      setCommentImagePreviewError(false);
+      setCommentImagePreviewUrl("");
       setTimelineActionBanner("Comentario publicado");
     } catch (error) {
       setGlobalStatus(`Error comentario: ${(error as Error).message}`);
@@ -834,6 +879,11 @@ export function App() {
       );
       setEditingCommentId(null);
       setCommentDraft("");
+      if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
+      setCommentImageFile(null);
+      setCommentImageName("");
+      setCommentImagePreviewError(false);
+      setCommentImagePreviewUrl("");
       setTimelineActionBanner("Comentario actualizado");
     } catch (error) {
       setGlobalStatus(`Error comentario: ${(error as Error).message}`);
@@ -892,14 +942,15 @@ export function App() {
     setTimelineBusyMessage(null);
   };
 
-  const handleEditPost = async (postId: string, newText: string, newImageUrl: string) => {
+  const handleEditPost = async (postId: string, newText: string, newImageUrl: string, imageFile?: File | null) => {
     setTimelineBusyMessage("Actualizando publicacion...");
     vibrateTap(8);
     try {
-      await updatePost(postId, newText, newImageUrl);
+      const imageToPersist = imageFile ? await uploadImageFile("posts", imageFile) : newImageUrl;
+      await updatePost(postId, newText, imageToPersist);
       setPosts((prev) =>
         prev.map((post) =>
-          post.id === postId ? { ...post, comment: newText, image_url: newImageUrl } : post
+          post.id === postId ? { ...post, comment: newText, image_url: imageToPersist } : post
         )
       );
       setTimelineActionBanner("Publicacion actualizada");
@@ -1088,6 +1139,13 @@ export function App() {
               onDeletePost={handleDeletePost}
               onRefresh={handleRefreshTimeline}
               onMentionClick={handleMentionNavigation}
+              onOpenCoffee={(coffeeId) => {
+                setSearchQuery("");
+                setSearchFilter("todo");
+                setActiveTab("search");
+                const selected = coffees.find((item) => item.id === coffeeId);
+                if (selected) setSearchQuery(selected.nombre);
+              }}
             />
           ) : null}
           {activeTab === "search" ? <SearchView searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} searchFilter={searchFilter} onSearchFilterChange={setSearchFilter} coffees={filteredCoffees} /> : null}
@@ -1114,24 +1172,19 @@ export function App() {
           onClick={() => {
             setCommentSheetPostId(null);
             setCommentDraft("");
+            setCommentMenuId(null);
             setHighlightedCommentId(null);
+            if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
+            setCommentImageFile(null);
+            setCommentImageName("");
+            setCommentImagePreviewError(false);
+            setCommentImagePreviewUrl("");
           }}
         >
           <div className="sheet-card" onClick={(event) => event.stopPropagation()}>
             <div className="sheet-handle" aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">COMENTARIOS</strong>
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => {
-                  setCommentSheetPostId(null);
-                  setCommentDraft("");
-                  setHighlightedCommentId(null);
-                }}
-              >
-                Cerrar
-              </button>
             </header>
             <ul className="sheet-list comments-list" ref={commentListRef}>
               {commentSheetRows.length
@@ -1146,52 +1199,23 @@ export function App() {
                       >
                         <div className="sheet-item-head">
                           {user?.avatar_url ? (
-                            <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
+                            <img className="comment-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
                           ) : (
-                            <div className="avatar" aria-hidden="true">
+                            <div className="comment-avatar comment-avatar-fallback" aria-hidden="true">
                               {(user?.username ?? "us").slice(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <div>
-                            <p className="feed-user">{user?.full_name ?? `Usuario ${row.user_id}`}</p>
-                            <p className="feed-meta">@{user?.username ?? `user${row.user_id}`} - {toRelativeMinutes(row.timestamp)}</p>
+                          <div className="comment-copy">
+                            <p className="comment-author">@{user?.username ?? `user${row.user_id}`}</p>
                           </div>
                           {isOwnComment ? (
-                            <div className="comment-menu-wrap">
-                              <button
-                                type="button"
-                                className="icon-button post-menu-trigger"
-                                onClick={() =>
-                                  setCommentMenuId((prev) => (prev === row.id ? null : row.id))
-                                }
-                              >
-                                <UiIcon name="more" className="ui-icon" />
-                              </button>
-                              {commentMenuId === row.id ? (
-                                <div className="post-menu">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingCommentId(row.id);
-                                      setCommentDraft(row.text);
-                                      setCommentMenuId(null);
-                                    }}
-                                  >
-                                    Editar
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const confirmed = window.confirm("Borrar comentario?");
-                                      if (!confirmed) return;
-                                      void handleDeleteComment(row.id);
-                                    }}
-                                  >
-                                    Borrar
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
+                            <button
+                              type="button"
+                              className="icon-button post-menu-trigger"
+                              onClick={() => setCommentMenuId(row.id)}
+                            >
+                              <UiIcon name="more" className="ui-icon" />
+                            </button>
                           ) : null}
                         </div>
                         <p className="sheet-item-text">
@@ -1200,8 +1224,45 @@ export function App() {
                       </li>
                     );
                   })
-                : <li className="sheet-item">Sin comentarios</li>}
+                : <li className="sheet-item comments-empty">No hay comentarios todavia</li>}
             </ul>
+            {activeCommentMenuRow ? (
+              <div className="sheet-overlay comment-action-overlay" onClick={() => setCommentMenuId(null)}>
+                <div className="sheet-card comment-action-sheet" onClick={(event) => event.stopPropagation()}>
+                  <div className="sheet-handle" aria-hidden="true" />
+                  <div className="comment-action-list">
+                    <p className="comment-action-title">OPCIONES</p>
+                    <button
+                      type="button"
+                      className="comment-action-button"
+                      onClick={() => {
+                        setEditingCommentId(activeCommentMenuRow.id);
+                        setCommentDraft(activeCommentMenuRow.text);
+                        setCommentMenuId(null);
+                      }}
+                    >
+                      <UiIcon name="edit" className="ui-icon" />
+                      <span>Editar</span>
+                      <UiIcon name="chevron-right" className="ui-icon trailing" />
+                    </button>
+                    <button
+                      type="button"
+                      className="comment-action-button is-danger"
+                      onClick={() => {
+                        const confirmed = window.confirm("Borrar comentario?");
+                        if (!confirmed) return;
+                        setCommentMenuId(null);
+                        void handleDeleteComment(activeCommentMenuRow.id);
+                      }}
+                    >
+                      <UiIcon name="trash" className="ui-icon" />
+                      <span>Borrar</span>
+                      <UiIcon name="chevron-right" className="ui-icon trailing" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             {editingCommentId ? (
               <div className="edit-comment-banner">
                 <span>Editando comentario</span>
@@ -1219,6 +1280,23 @@ export function App() {
             ) : null}
             <div className="sheet-composer">
               <div className="sheet-input-wrap">
+                <input
+                  ref={commentImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="file-input-hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    if (!file) return;
+                    if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
+                    const preview = URL.createObjectURL(file);
+                    setCommentImageFile(file);
+                    setCommentImageName(file.name);
+                    setCommentImagePreviewError(false);
+                    setCommentImagePreviewUrl(preview);
+                    event.currentTarget.value = "";
+                  }}
+                />
                 <div className="sheet-input-shell">
                   {showCommentEmojiPanel ? (
                     <div className="comment-inline-panel emoji-panel">
@@ -1269,6 +1347,14 @@ export function App() {
                   />
                   <div className="sheet-composer-bottom">
                     <div className="sheet-composer-tools-inline">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        onClick={() => commentImageInputRef.current?.click()}
+                        aria-label="Agregar foto"
+                      >
+                        <UiIcon name="camera" className="ui-icon" />
+                      </button>
                       <button type="button" className="icon-button" onClick={() => setCommentDraft((prev) => `${prev}@`)}>
                         <UiIcon name="at" className="ui-icon" />
                       </button>
@@ -1289,6 +1375,35 @@ export function App() {
                       {editingCommentId ? "Guardar" : "Enviar"}
                     </button>
                   </div>
+                  {commentImagePreviewUrl ? (
+                    <div className="comment-image-thumb-wrap">
+                      {commentImagePreviewError ? (
+                        <div className="comment-image-thumb-fallback">{commentImageName || "Imagen seleccionada"}</div>
+                      ) : (
+                        <img
+                          className="comment-image-thumb"
+                          src={commentImagePreviewUrl}
+                          alt="Miniatura comentario"
+                          loading="lazy"
+                          onError={() => setCommentImagePreviewError(true)}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        className="comment-image-remove"
+                        onClick={() => {
+                          if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
+                          setCommentImageFile(null);
+                          setCommentImageName("");
+                          setCommentImagePreviewError(false);
+                          setCommentImagePreviewUrl("");
+                        }}
+                        aria-label="Quitar imagen"
+                      >
+                        x
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1624,7 +1739,8 @@ function TimelineView({
   onEditPost,
   onDeletePost,
   onRefresh,
-  onMentionClick
+  onMentionClick,
+  onOpenCoffee
 }: {
   cards: TimelineCard[];
   recommendations: CoffeeRow[];
@@ -1639,31 +1755,38 @@ function TimelineView({
   onOpenComments: (postId: string) => void;
   onToggleLike: (postId: string) => void;
   onToggleFollow: (userId: number) => void;
-  onEditPost: (postId: string, newText: string, newImageUrl: string) => Promise<void>;
+  onEditPost: (postId: string, newText: string, newImageUrl: string, imageFile?: File | null) => Promise<void>;
   onDeletePost: (postId: string) => Promise<void>;
   onRefresh: () => Promise<void>;
   onMentionClick: (username: string) => void;
+  onOpenCoffee: (coffeeId: string) => void;
 }) {
   const [menuPostId, setMenuPostId] = useState<string | null>(null);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [editingImageUrl, setEditingImageUrl] = useState("");
+  const [editingImageFile, setEditingImageFile] = useState<File | null>(null);
+  const [editingImagePreviewUrl, setEditingImagePreviewUrl] = useState("");
+  const [likeBurstPostId, setLikeBurstPostId] = useState<string | null>(null);
   const [pullDistance, setPullDistance] = useState(0);
+  const editImageInputRef = useRef<HTMLInputElement | null>(null);
   const touchStartY = useRef<number | null>(null);
   const pullActive = useRef(false);
+  const likeBurstTimerRef = useRef<number | null>(null);
   const visibleCards = cards;
+  const activeMenuPost = useMemo(
+    () => visibleCards.find((card) => card.id === menuPostId) ?? null,
+    [menuPostId, visibleCards]
+  );
 
-  useEffect(() => {
-    if (!menuPostId) return;
-    const onDown = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) return;
-      if (target.closest(".post-menu-wrap")) return;
-      setMenuPostId(null);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [menuPostId]);
+  const closeEditModal = useCallback(() => {
+    if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
+    setEditingPostId(null);
+    setEditingText("");
+    setEditingImageUrl("");
+    setEditingImageFile(null);
+    setEditingImagePreviewUrl("");
+  }, [editingImagePreviewUrl]);
 
   const isMobileLike = typeof window !== "undefined" ? window.innerWidth < 900 : false;
   const pullProgress = Math.min(1, pullDistance / 84);
@@ -1698,15 +1821,11 @@ function TimelineView({
     const onEsc = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setMenuPostId(null);
-      if (editingPostId) {
-        setEditingPostId(null);
-        setEditingText("");
-        setEditingImageUrl("");
-      }
+      if (editingPostId) closeEditModal();
     };
     window.addEventListener("keydown", onEsc);
     return () => window.removeEventListener("keydown", onEsc);
-  }, [editingPostId]);
+  }, [closeEditModal, editingPostId]);
 
   useEffect(() => {
     if (!editingPostId) return;
@@ -1716,6 +1835,18 @@ function TimelineView({
       document.body.style.overflow = prev;
     };
   }, [editingPostId]);
+
+  useEffect(() => {
+    return () => {
+      if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
+    };
+  }, [editingImagePreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -1836,66 +1967,41 @@ function TimelineView({
                   <p className="feed-user">{card.userName}</p>
                   <p className="feed-meta">{card.minsAgoLabel.toUpperCase()}</p>
                 </div>
-                {activeUserId && activeUserId !== card.userId ? (
+                {activeUserId === card.userId ? (
                   <button
                     type="button"
-                    className={`action-button feed-follow-chip ${followingIds.has(card.userId) ? "is-following" : ""}`}
-                    onClick={() => onToggleFollow(card.userId)}
+                    className="icon-button post-menu-trigger"
+                    onClick={() => setMenuPostId(card.id)}
+                    aria-label="Opciones"
                   >
-                    {followingIds.has(card.userId) ? "SIGUIENDO" : "SEGUIR"}
+                    <UiIcon name="more" className="ui-icon" />
                   </button>
-                ) : null}
-                {activeUserId === card.userId ? (
-                  <div className="post-menu-wrap">
-                    <button
-                      type="button"
-                      className="icon-button post-menu-trigger"
-                      onClick={() => setMenuPostId((prev) => (prev === card.id ? null : card.id))}
-                      aria-label="Opciones"
-                    >
-                      <UiIcon name="more" className="ui-icon" />
-                    </button>
-                    {menuPostId === card.id ? (
-                      <div className="post-menu">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingPostId(card.id);
-                            setEditingText(card.text);
-                            setEditingImageUrl(card.imageUrl ?? "");
-                            setMenuPostId(null);
-                          }}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const confirmed = window.confirm("Borrar post definitivamente?");
-                            if (!confirmed) return;
-                            await onDeletePost(card.id);
-                            setMenuPostId(null);
-                          }}
-                        >
-                          Borrar
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
                 ) : null}
               </header>
 
-              <p className="feed-text">
-                {card.text ? <MentionText text={card.text} onMentionClick={onMentionClick} /> : "Sin comentario"}
-              </p>
+              {card.text ? (
+                <p className="feed-text">
+                  <MentionText text={card.text} onMentionClick={onMentionClick} />
+                </p>
+              ) : null}
 
-              {card.imageUrl ? <img className="feed-image" src={card.imageUrl} alt="Publicacion" loading="lazy" /> : null}
+              {card.imageUrl ? <img className={`feed-image ${card.text ? "" : "feed-image-no-text"}`.trim()} src={card.imageUrl} alt="Publicacion" loading="lazy" /> : null}
 
-              {card.coffeeTag ? (
-                <button type="button" className="coffee-tag-card">
-                  <div>
+              {card.coffeeTagName ? (
+                <button type="button" className="coffee-tag-card" onClick={() => card.coffeeId && onOpenCoffee(card.coffeeId)} disabled={!card.coffeeId}>
+                  <div className="coffee-tag-card-media">
+                    {card.coffeeImageUrl ? (
+                      <img className="coffee-tag-image" src={card.coffeeImageUrl} alt={card.coffeeTagName} loading="lazy" />
+                    ) : (
+                      <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
+                        <UiIcon name="coffee" className="ui-icon" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="coffee-tag-copy">
                     <p className="coffee-origin">CAFE ETIQUETADO</p>
-                    <p className="feed-user">{card.coffeeTag}</p>
+                    <p className="coffee-tag-name">{card.coffeeTagName}</p>
+                    {card.coffeeTagBrand ? <p className="coffee-tag-brand">{card.coffeeTagBrand.toUpperCase()}</p> : null}
                   </div>
                   <UiIcon name="chevron-right" className="ui-icon" />
                 </button>
@@ -1904,13 +2010,35 @@ function TimelineView({
               <footer className="feed-stats">
                 <button
                   type="button"
-                  className={`inline-action action-like ${card.likedByActiveUser ? "is-liked" : ""}`}
-                  onClick={() => onToggleLike(card.id)}
+                  className={`inline-action action-like ${card.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === card.id ? "is-bursting" : ""}`}
+                  onClick={() => {
+                    if (!card.likedByActiveUser) {
+                      setLikeBurstPostId(card.id);
+                      if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
+                      likeBurstTimerRef.current = window.setTimeout(() => {
+                        setLikeBurstPostId(null);
+                        likeBurstTimerRef.current = null;
+                      }, 520);
+                    }
+                    onToggleLike(card.id);
+                  }}
                 >
-                  <UiIcon name="coffee" className="ui-icon" /> {card.likes}
+                  <span className="like-icon-wrap">
+                    <UiIcon name="coffee" className="ui-icon" />
+                    <span className="like-burst" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </span>
+                  {card.likes > 0 ? <span>{card.likes}</span> : null}
                 </button>
                 <button type="button" className="inline-action" onClick={() => onOpenComments(card.id)}>
-                  <UiIcon name="chat" className="ui-icon" /> {card.comments}
+                  <UiIcon name="chat" className="ui-icon" />
+                  {card.comments > 0 ? <span>{card.comments}</span> : null}
                 </button>
               </footer>
                 </article>
@@ -1924,75 +2052,109 @@ function TimelineView({
           <p>Publica tu primer cafe o sigue a mas personas.</p>
         </article>
       )}
+      {activeMenuPost ? (
+        <div className="sheet-overlay comment-action-overlay" onClick={() => setMenuPostId(null)}>
+          <div className="sheet-card comment-action-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <div className="comment-action-list">
+              <p className="comment-action-title">OPCIONES</p>
+              <button
+                type="button"
+                className="comment-action-button"
+                onClick={() => {
+                  setEditingPostId(activeMenuPost.id);
+                  setEditingText(activeMenuPost.text);
+                  const initialImage = activeMenuPost.imageUrl ?? "";
+                  setEditingImageUrl(initialImage);
+                  setEditingImageFile(null);
+                  setEditingImagePreviewUrl(initialImage);
+                  setMenuPostId(null);
+                }}
+              >
+                <UiIcon name="edit" className="ui-icon" />
+                <span>Editar</span>
+                <UiIcon name="chevron-right" className="ui-icon trailing" />
+              </button>
+              <button
+                type="button"
+                className="comment-action-button is-danger"
+                onClick={async () => {
+                  const confirmed = window.confirm("Borrar post definitivamente?");
+                  if (!confirmed) return;
+                  await onDeletePost(activeMenuPost.id);
+                  setMenuPostId(null);
+                }}
+              >
+                <UiIcon name="trash" className="ui-icon" />
+                <span>Borrar</span>
+                <UiIcon name="chevron-right" className="ui-icon trailing" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {editingPostId ? (
         <div
           className="sheet-overlay"
           role="dialog"
           aria-modal="true"
           aria-label="Editar publicacion"
-          onClick={() => {
-            setEditingPostId(null);
-            setEditingText("");
-            setEditingImageUrl("");
-          }}
+          onClick={closeEditModal}
         >
           <div className="sheet-card" onClick={(event) => event.stopPropagation()}>
             <div className="sheet-handle" aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">EDITAR PUBLICACION</strong>
+            <div className="create-post-body edit-post-sheet">
+              <h3 className="edit-post-title">Editar</h3>
+              <input
+                ref={editImageInputRef}
+                type="file"
+                accept="image/*"
+                className="file-input-hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (!file) return;
+                  if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
+                  const preview = URL.createObjectURL(file);
+                  setEditingImageFile(file);
+                  setEditingImagePreviewUrl(preview);
+                }}
+              />
               <button
                 type="button"
-                className="text-button"
-                onClick={() => {
-                  setEditingPostId(null);
-                  setEditingText("");
-                  setEditingImageUrl("");
-                }}
+                className="edit-image-picker"
+                onClick={() => editImageInputRef.current?.click()}
               >
-                Cerrar
+                {editingImagePreviewUrl.trim() ? (
+                  <img className="create-post-preview" src={editingImagePreviewUrl.trim()} alt="Previsualizacion" loading="lazy" />
+                ) : (
+                  <span className="edit-image-placeholder">Seleccionar imagen</span>
+                )}
               </button>
-            </header>
-            <div className="create-post-body">
               <textarea
                 className="search-wide sheet-input"
-                placeholder="Actualiza tu texto..."
+                placeholder="Descripcion"
                 value={editingText}
                 rows={4}
                 onChange={(event) => setEditingText(event.target.value)}
               />
-              <input
-                className="search-wide"
-                placeholder="URL de imagen (opcional)"
-                value={editingImageUrl}
-                onChange={(event) => setEditingImageUrl(event.target.value)}
-              />
-              {editingImageUrl.trim() ? (
-                <img className="create-post-preview" src={editingImageUrl.trim()} alt="Previsualizacion" loading="lazy" />
-              ) : null}
-              <div className="create-post-actions">
+              <div className="create-post-actions edit-post-actions-native">
                 <button
                   type="button"
-                  className="action-button action-button-ghost"
-                  onClick={() => {
-                    setEditingPostId(null);
-                    setEditingText("");
-                    setEditingImageUrl("");
-                  }}
+                  className="action-button action-button-ghost edit-post-cancel"
+                  onClick={closeEditModal}
                 >
-                  Cancelar
+                  CANCELAR
                 </button>
                 <button
                   type="button"
-                  className="action-button"
-                  disabled={!editingText.trim() && !editingImageUrl.trim()}
+                  className="action-button edit-post-save"
+                  disabled={!editingText.trim() && !editingImageUrl.trim() && !editingImageFile}
                   onClick={async () => {
-                    await onEditPost(editingPostId, editingText.trim(), editingImageUrl.trim());
-                    setEditingPostId(null);
-                    setEditingText("");
-                    setEditingImageUrl("");
+                    await onEditPost(editingPostId, editingText.trim(), editingImageUrl.trim(), editingImageFile);
+                    closeEditModal();
                   }}
                 >
-                  Guardar
+                  GUARDAR
                 </button>
               </div>
             </div>
@@ -2331,5 +2493,6 @@ function ProfileView({
     </>
   );
 }
+
 
 

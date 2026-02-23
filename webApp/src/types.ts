@@ -90,7 +90,9 @@ export type TimelineCard = {
   likes: number;
   comments: number;
   coffeeId: string | null;
-  coffeeTag: string | null;
+  coffeeTagName: string | null;
+  coffeeTagBrand: string | null;
+  coffeeImageUrl: string | null;
   likedByActiveUser: boolean;
 };
 

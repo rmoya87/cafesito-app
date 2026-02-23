@@ -212,3 +212,17 @@ export async function addPostCoffeeTag(tag: PostCoffeeTagRow): Promise<void> {
   throwIfError(error);
 }
 
+export async function uploadImageFile(bucket: string, file: File): Promise<string> {
+  const supabase = getSupabaseClient();
+  const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
+  const path = `${Date.now()}_${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert: true,
+    contentType: file.type || "image/jpeg"
+  });
+  throwIfError(error);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("No se pudo obtener URL publica de la imagen.");
+  return data.publicUrl;
+}
+
