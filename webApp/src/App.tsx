@@ -1,21 +1,26 @@
-import { Fragment, type PointerEvent as ReactPointerEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { Fragment, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addPostCoffeeTag,
+  createDiaryEntry,
   createPost,
   createComment,
   deleteCoffeeReview,
   deleteComment,
+  deleteDiaryEntry,
+  deletePantryItem,
   deletePost,
   fetchInitialData,
   fetchUserData,
   toggleFavoriteCoffee,
   upsertCoffeeReview,
   upsertCoffeeSensoryProfile,
+  upsertCustomCoffee,
   upsertPantryStock,
   toggleFollow,
   toggleLike,
   uploadImageFile,
   updateComment,
+  updateDiaryEntry,
   updatePost
 } from "./data/supabaseApi";
 import { getSupabaseClient, supabaseConfigError } from "./supabase";
@@ -83,7 +88,23 @@ type IconName =
   | "chevron-right"
   | "send"
   | "edit"
-  | "trash";
+  | "trash"
+  | "shop"
+  | "leaf"
+  | "blend"
+  | "roast-light"
+  | "roast-medium"
+  | "roast-dark"
+  | "recycle"
+  | "rugby"
+  | "thermostat"
+  | "taste-bitter"
+  | "taste-acid"
+  | "taste-balance"
+  | "taste-salty"
+  | "taste-watery"
+  | "taste-sweet"
+  | "clock";
 
 type TimelineNotificationItem = {
   id: string;
@@ -103,8 +124,19 @@ const NAV_ITEMS: Array<{ id: TabId; label: string; icon: IconName; activeIcon: I
   { id: "profile", label: "Perfil", icon: "nav-person-outline", activeIcon: "nav-person-filled" }
 ];
 
-const BREW_METHODS = ["V60", "AeroPress", "French Press", "Chemex", "Espresso"];
-const COMMENT_EMOJIS = ["😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎"];
+const BREW_METHODS: Array<{ name: string; icon: string }> = [
+  { name: "Aeropress", icon: "/brew-methods/maq_aeropress.png" },
+  { name: "Chemex", icon: "/brew-methods/maq_chemex.png" },
+  { name: "Espresso", icon: "/brew-methods/maq_espresso.png" },
+  { name: "Goteo", icon: "/brew-methods/maq_goteo.png" },
+  { name: "Hario V60", icon: "/brew-methods/maq_hario_v60.png" },
+  { name: "Italiana", icon: "/brew-methods/maq_italiana.png" },
+  { name: "Manual", icon: "/brew-methods/maq_manual.png" },
+  { name: "Prensa francesa", icon: "/brew-methods/maq_prensa_francesa.png" },
+  { name: "Sifón", icon: "/brew-methods/maq_sifon.png" },
+  { name: "Turco", icon: "/brew-methods/maq_turco.png" }
+];
+const COMMENT_EMOJIS = ["ðŸ˜€", "ðŸ˜", "ðŸ¤Ž", "â˜•", "ðŸ”¥", "ðŸ™Œ", "ðŸ‘", "ðŸ˜‹", "ðŸ¥³", "ðŸ˜Ž"];
 
 type RouteState = {
   tab: TabId;
@@ -204,6 +236,31 @@ function normalizeLookupText(value: string | null | undefined): string {
     .toLowerCase();
 }
 
+function toUiOptionValue(value: string | null | undefined): string {
+  const compact = (value ?? "").replace(/\s+/g, " ").trim();
+  if (!compact) return "";
+  return compact
+    .split(" ")
+    .map((chunk) => {
+      if (!chunk) return chunk;
+      const lower = chunk.toLocaleLowerCase("es");
+      return lower.charAt(0).toLocaleUpperCase("es") + lower.slice(1);
+    })
+    .join(" ");
+}
+
+function buildNormalizedOptions(values: Array<string | null | undefined>): string[] {
+  const map = new Map<string, string>();
+  values.forEach((raw) => {
+    const normalizedKey = normalizeLookupText(raw);
+    if (!normalizedKey) return;
+    if (!map.has(normalizedKey)) {
+      map.set(normalizedKey, toUiOptionValue(raw));
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "es"));
+}
+
 function toEventTimestamp(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -221,7 +278,26 @@ function MaterialSymbolIcon({
   filled,
   className
 }: {
-  symbol: "book" | "science" | "explore";
+  symbol:
+    | "book"
+    | "science"
+    | "explore"
+    | "globe"
+    | "verified"
+    | "auto_awesome_mosaic"
+    | "local_fire_department"
+    | "whatshot"
+    | "fireplace"
+    | "grain"
+    | "energy_savings_leaf"
+    | "sports_rugby"
+    | "settings"
+    | "lens_blur"
+    | "storefront"
+    | "device_thermostat"
+    | "waves"
+    | "water_drop"
+    | "favorite";
   filled: boolean;
   className?: string;
 }) {
@@ -394,26 +470,13 @@ function UiIcon({ name, className }: { name: IconName; className?: string }) {
     );
   }
   if (name === "origin") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M12 21s6-5.4 6-11a6 6 0 1 0-12 0c0 5.6 6 11 6 11z" />
-        <circle cx="12" cy="10" r="2.2" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="globe" filled={false} className={className} />;
   }
   if (name === "specialty") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="m12 3 2.5 5.1 5.6.8-4 3.9.9 5.5L12 15.8 7 18.3l1-5.5-4-3.9 5.5-.8z" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="verified" filled={false} className={className} />;
   }
   if (name === "roast") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M9 20c-2.4-1.6-3.6-3.5-3.6-5.8C5.4 10 9.5 8.8 9.5 5 12.5 7 14 9.5 14 12c0 4.6-3 8-5 8zM15 21c1.9-1.2 3.6-3.3 3.6-6.3 0-1.5-.4-2.8-1.2-4.2" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="local_fire_department" filled={false} className={className} />;
   }
   if (name === "format") {
     return (
@@ -424,31 +487,76 @@ function UiIcon({ name, className }: { name: IconName; className?: string }) {
     );
   }
   if (name === "process") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M7 4h10v3H7zM9 7v6.5L5 20h14l-4-6.5V7" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="settings" filled={false} className={className} />;
   }
   if (name === "variety") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M12 20c-3.9-2.7-6.2-6.3-6.2-10.1 0-2.3 1.9-4.2 4.2-4.2 1 0 2 .4 2.8 1.1.8-.7 1.8-1.1 2.8-1.1 2.3 0 4.2 1.9 4.2 4.2 0 3.8-2.3 7.4-6.2 10.1z" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="auto_awesome_mosaic" filled={false} className={className} />;
   }
   if (name === "grind") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M8 4h8v3H8zM7 7h10l1.4 5.4A4 4 0 0 1 14.5 17h-5A4 4 0 0 1 5.6 12.4zM9 20h6" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="lens_blur" filled={false} className={className} />;
+  }
+  if (name === "shop") {
+    return <MaterialSymbolIcon symbol="storefront" filled={false} className={className} />;
   }
   if (name === "caffeine") {
     return (
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
         <path d="M5 10h11a3 3 0 0 1 0 6H5zM7 7c0-1.4.8-2.2 2-3M11 7c0-1.4.8-2.2 2-3" />
       </svg>
+    );
+  }
+  if (name === "leaf") {
+    return <MaterialSymbolIcon symbol="energy_savings_leaf" filled={false} className={className} />;
+  }
+  if (name === "blend") {
+    return <MaterialSymbolIcon symbol="grain" filled={false} className={className} />;
+  }
+  if (name === "rugby") {
+    return <MaterialSymbolIcon symbol="sports_rugby" filled={false} className={className} />;
+  }
+  if (name === "thermostat") {
+    return <MaterialSymbolIcon symbol="device_thermostat" filled={false} className={className} />;
+  }
+  if (name === "taste-bitter") {
+    return <MaterialSymbolIcon symbol="local_fire_department" filled={true} className={className} />;
+  }
+  if (name === "taste-acid") {
+    return <MaterialSymbolIcon symbol="science" filled={true} className={className} />;
+  }
+  if (name === "taste-balance") {
+    return <MaterialSymbolIcon symbol="verified" filled={true} className={className} />;
+  }
+  if (name === "taste-salty") {
+    return <MaterialSymbolIcon symbol="waves" filled={true} className={className} />;
+  }
+  if (name === "taste-watery") {
+    return <MaterialSymbolIcon symbol="water_drop" filled={true} className={className} />;
+  }
+  if (name === "taste-sweet") {
+    return <MaterialSymbolIcon symbol="favorite" filled={true} className={className} />;
+  }
+  if (name === "clock") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M12 7.8v4.6l3 1.8" />
+      </svg>
+    );
+  }
+  if (name === "roast-light") {
+    return <MaterialSymbolIcon symbol="local_fire_department" filled={false} className={className} />;
+  }
+  if (name === "roast-medium") {
+    return <MaterialSymbolIcon symbol="local_fire_department" filled={false} className={className} />;
+  }
+  if (name === "roast-dark") {
+    return <MaterialSymbolIcon symbol="fireplace" filled={false} className={className} />;
+  }
+  if (name === "recycle") {
+    return (
+      <span className={`${className ?? ""} material-symbol-icon is-outlined`.trim()} aria-hidden="true">
+        recycling
+      </span>
     );
   }
   if (name === "arrow-left") {
@@ -555,11 +663,158 @@ function UiIcon({ name, className }: { name: IconName; className?: string }) {
 }
 
 function getBrewStepTitle(step: BrewStep): string {
-  if (step === "method") return "ELIGE METODO";
+  if (step === "method") return "ELABORACION";
   if (step === "coffee") return "ELIGE CAFE";
   if (step === "config") return "CONFIGURA";
-  if (step === "brewing") return "PREPARANDO";
+  if (step === "brewing") return "PROCESO EN CURSO";
   return "RESULTADO";
+}
+
+type BrewPhaseInfo = {
+  label: string;
+  instruction: string;
+  durationSeconds: number;
+};
+
+function getBrewTimelineForMethod(method: string, waterMl: number): BrewPhaseInfo[] {
+  const key = normalizeLookupText(method);
+  if (key.includes("espresso")) {
+    return [
+      {
+        label: "Extracción",
+        instruction: "Aplica presión constante. Vigila el flujo: debe ser como un hilo de miel. Busca obtener unos 36-40g de líquido final.",
+        durationSeconds: 25
+      }
+    ];
+  }
+  if (key.includes("prensa")) {
+    return [
+      {
+        label: "Inmersión",
+        instruction: "Vierte todo el agua caliente uniformemente sobre el café. Coloca la tapa sin presionar para mantener el calor.",
+        durationSeconds: 240
+      }
+    ];
+  }
+  if (key.includes("aeropress")) {
+    return [
+      {
+        label: "Pre-infusión",
+        instruction: "Vierte unos 50ml de agua para humedecer todo el café. Remueve suavemente 3 veces para asegurar una extracción uniforme.",
+        durationSeconds: 30
+      },
+      {
+        label: "Infusión",
+        instruction: "Añade el resto del agua. Deja que el café repose e interactúe con el agua para extraer todos sus sabores.",
+        durationSeconds: 90
+      },
+      {
+        label: "Presión",
+        instruction: "Presiona el émbolo hacia abajo con una fuerza firme y constante. Escucha el 'sssh' final y detente.",
+        durationSeconds: 30
+      }
+    ];
+  }
+  if (key.includes("italiana")) {
+    const boilTime = Math.round(120 + waterMl * 0.2);
+    return [
+      {
+        label: "Calentamiento",
+        instruction: "Mantén el fuego medio-bajo. El agua en la base empezará a crear presión para subir por la chimenea.",
+        durationSeconds: boilTime
+      },
+      {
+        label: "Extracción",
+        instruction: "Cuando el café empiece a salir, baja el fuego o retíralo. Escucha el burbujeo suave y detente antes del chorro final.",
+        durationSeconds: 40
+      }
+    ];
+  }
+  if (key.includes("turco")) {
+    return [
+      {
+        label: "Infusión",
+        instruction: "Calienta a fuego muy lento hasta que veas que se forma una espuma densa y oscura en la superficie (crema).",
+        durationSeconds: 120
+      },
+      {
+        label: "Levantamiento 1",
+        instruction: "Retira el cezve del fuego justo antes de que hierva. Deja que la espuma baje un poco y vuelve al fuego.",
+        durationSeconds: 20
+      },
+      {
+        label: "Levantamiento 2",
+        instruction: "Repite el proceso: deja que suba la espuma por segunda vez para intensificar el cuerpo y sabor.",
+        durationSeconds: 20
+      },
+      {
+        label: "Toque Final",
+        instruction: "Último ciclo de espuma. El café turco se caracteriza por su densidad y su sedimento único.",
+        durationSeconds: 20
+      }
+    ];
+  }
+  if (key.includes("sifon")) {
+    return [
+      {
+        label: "Ascenso",
+        instruction: "La presión enviará el agua a la cámara superior. Espera a que se estabilice antes de añadir el café.",
+        durationSeconds: 90
+      },
+      {
+        label: "Mezcla",
+        instruction: "Añade el café molido y remueve en círculos suavemente. Asegúrate de que todo el café esté sumergido.",
+        durationSeconds: 60
+      },
+      {
+        label: "Efecto Vacío",
+        instruction: "Retira la fuente de calor. El enfriamiento creará un vacío que filtrará el café hacia abajo a través del filtro.",
+        durationSeconds: 45
+      }
+    ];
+  }
+
+  const totalPourTime = Math.max(90, Math.min(300, Math.round(120 + (waterMl - 250) * 0.18)));
+  const bloomMl = Math.floor(waterMl / 10);
+  const devMl = Math.floor(waterMl * 0.6);
+  return [
+    {
+      label: "Pre-infusión",
+      instruction: `Vierte unos ${bloomMl}ml. Verás burbujas: es el CO2 liberándose para que el agua penetre mejor.`,
+      durationSeconds: 30
+    },
+    {
+      label: "Desarrollo de Sabor",
+      instruction: `Vierte en espiral desde el centro hacia afuera hasta los ${devMl}ml. Mantén un flujo constante.`,
+      durationSeconds: Math.round(totalPourTime * 0.4)
+    },
+    {
+      label: "Cuerpo y Dulzor",
+      instruction: `Añade el agua restante hasta los ${Math.floor(waterMl)}ml. Hazlo con suavidad para finalizar la extracción limpiamente.`,
+      durationSeconds: Math.round(totalPourTime * 0.6)
+    }
+  ];
+}
+
+function formatClock(totalSeconds: number): string {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const mm = Math.floor(safe / 60)
+    .toString()
+    .padStart(2, "0");
+  const ss = (safe % 60).toString().padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
+function getBrewDialRecommendation(taste: string): string {
+  const key = normalizeLookupText(taste);
+  if (key === "amargo") return "Sobre-extracción: Muele más grueso o baja la temperatura 2°C para reducir el amargor.";
+  if (key === "acido") return "Sub-extracción: Muele más fino o vierte más lento para aumentar el contacto con el agua.";
+  if (key === "equilibrado") return "¡Perfil perfecto! Has logrado un equilibrio ideal entre dulzor, acidez y cuerpo.";
+  if (key === "salado") return "Muy sub-extraído: Muele mucho más fino. Indica que el agua no ha extraído los azúcares.";
+  if (key === "acuoso") return "Poca intensidad: Usa un ratio de café más alto o intenta una molienda un punto más fina.";
+  if (key === "aspero") return "Astringencia: Evita remover en exceso y asegúrate de que el filtro esté bien lavado.";
+  if (key === "dulce") return "¡Extraordinario! Has resaltado los azúcares naturales del grano. Mantén estos ajustes.";
+  return "";
 }
 
 function MentionText({
@@ -625,6 +880,7 @@ export function App() {
 
   const [users, setUsers] = useState<UserRow[]>([]);
   const [coffees, setCoffees] = useState<CoffeeRow[]>([]);
+  const [customCoffees, setCustomCoffees] = useState<CoffeeRow[]>([]);
   const [coffeeReviews, setCoffeeReviews] = useState<CoffeeReviewRow[]>([]);
   const [coffeeSensoryProfiles, setCoffeeSensoryProfiles] = useState<CoffeeSensoryProfileRow[]>([]);
   const [posts, setPosts] = useState<PostRow[]>([]);
@@ -649,24 +905,54 @@ export function App() {
   const [searchSelectedCoffeeId, setSearchSelectedCoffeeId] = useState<string | null>(null);
   const [searchFocusCoffeeProfile, setSearchFocusCoffeeProfile] = useState(false);
   const [detailCoffeeId, setDetailCoffeeId] = useState<string | null>(null);
-  const [detailHostTab, setDetailHostTab] = useState<"timeline" | "search" | "profile" | null>(null);
+  const [detailHostTab, setDetailHostTab] = useState<"timeline" | "search" | "profile" | "diary" | null>(null);
   const [detailReviewText, setDetailReviewText] = useState("");
   const [detailReviewRating, setDetailReviewRating] = useState(0);
   const [detailReviewImageFile, setDetailReviewImageFile] = useState<File | null>(null);
   const [detailReviewImagePreviewUrl, setDetailReviewImagePreviewUrl] = useState("");
   const [detailSensoryDraft, setDetailSensoryDraft] = useState({ aroma: 0, sabor: 0, cuerpo: 0, acidez: 0, dulzura: 0 });
   const [detailStockDraft, setDetailStockDraft] = useState({ total: 0, remaining: 0 });
+  const [detailOpenStockSignal, setDetailOpenStockSignal] = useState(0);
   const [showBarcodeScannerSheet, setShowBarcodeScannerSheet] = useState(false);
 
   const [brewStep, setBrewStep] = useState<BrewStep>("method");
-  const [brewMethod, setBrewMethod] = useState("V60");
+  const [brewMethod, setBrewMethod] = useState("");
   const [brewCoffeeId, setBrewCoffeeId] = useState<string>("");
   const [waterMl, setWaterMl] = useState(300);
   const [ratio, setRatio] = useState(16);
   const [timerSeconds, setTimerSeconds] = useState(150);
   const [brewRunning, setBrewRunning] = useState(false);
+  const [showCreateCoffeeComposer, setShowCreateCoffeeComposer] = useState(false);
+  const [createCoffeeSaving, setCreateCoffeeSaving] = useState(false);
+  const [createCoffeeError, setCreateCoffeeError] = useState<string | null>(null);
+  const [createCoffeeDraft, setCreateCoffeeDraft] = useState({
+    name: "",
+    brand: "",
+    specialty: "",
+    country: "",
+    format: "",
+    roast: "",
+    variety: "",
+    hasCaffeine: true,
+    totalGrams: 250
+  });
+  const [createCoffeeImageFile, setCreateCoffeeImageFile] = useState<File | null>(null);
+  const [createCoffeeImagePreviewUrl, setCreateCoffeeImagePreviewUrl] = useState("");
 
   const [diaryTab, setDiaryTab] = useState<"actividad" | "despensa">("actividad");
+  const [diaryPeriod, setDiaryPeriod] = useState<"hoy" | "7d" | "30d">("hoy");
+  const [showDiaryQuickActions, setShowDiaryQuickActions] = useState(false);
+  const [showDiaryPeriodSheet, setShowDiaryPeriodSheet] = useState(false);
+  const [showDiaryWaterSheet, setShowDiaryWaterSheet] = useState(false);
+  const [diaryWaterMlDraft, setDiaryWaterMlDraft] = useState("250");
+  const [showDiaryCoffeeSheet, setShowDiaryCoffeeSheet] = useState(false);
+  const [diaryCoffeeIdDraft, setDiaryCoffeeIdDraft] = useState("");
+  const [diaryCoffeeMlDraft, setDiaryCoffeeMlDraft] = useState("250");
+  const [diaryCoffeeCaffeineDraft, setDiaryCoffeeCaffeineDraft] = useState("95");
+  const [diaryCoffeePreparationDraft, setDiaryCoffeePreparationDraft] = useState("Manual");
+  const [showDiaryAddPantrySheet, setShowDiaryAddPantrySheet] = useState(false);
+  const [diaryPantryCoffeeIdDraft, setDiaryPantryCoffeeIdDraft] = useState("");
+  const [diaryPantryGramsDraft, setDiaryPantryGramsDraft] = useState("250");
   const [profileTab, setProfileTab] = useState<"posts" | "adn" | "favoritos">("posts");
   const [profileUsername, setProfileUsername] = useState<string | null>(initialRoute.profileUsername);
 
@@ -916,6 +1202,7 @@ export function App() {
       await supabase.auth.signOut();
       setUsers([]);
       setCoffees([]);
+      setCustomCoffees([]);
       setCoffeeReviews([]);
       setCoffeeSensoryProfiles([]);
       setPosts([]);
@@ -926,6 +1213,22 @@ export function App() {
       setDiaryEntries([]);
       setPantryItems([]);
       setFavorites([]);
+      setShowCreateCoffeeComposer(false);
+      setCreateCoffeeSaving(false);
+      setCreateCoffeeError(null);
+      setCreateCoffeeDraft({
+        name: "",
+        brand: "",
+        specialty: "",
+        country: "",
+        format: "",
+        roast: "",
+        variety: "",
+        hasCaffeine: true,
+        totalGrams: 250
+      });
+      setCreateCoffeeImageFile(null);
+      setCreateCoffeeImagePreviewUrl("");
       setDetailCoffeeId(null);
       setDetailHostTab(null);
       setGlobalStatus("Listo");
@@ -976,6 +1279,12 @@ export function App() {
   );
 
   useEffect(() => {
+    return () => {
+      if (createCoffeeImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(createCoffeeImagePreviewUrl);
+    };
+  }, [createCoffeeImagePreviewUrl]);
+
+  useEffect(() => {
     const onEscSheet = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (showNotificationsPanel) {
@@ -992,10 +1301,13 @@ export function App() {
         setCommentDraft("");
         setHighlightedCommentId(null);
       }
+      if (showCreateCoffeeComposer) {
+        setShowCreateCoffeeComposer(false);
+      }
     };
     window.addEventListener("keydown", onEscSheet);
     return () => window.removeEventListener("keydown", onEscSheet);
-  }, [commentSheetPostId, resetCreatePostComposer, showCreatePost, showCreatePostCoffeeSheet, showNotificationsPanel]);
+  }, [commentSheetPostId, resetCreatePostComposer, showCreateCoffeeComposer, showCreatePost, showCreatePostCoffeeSheet, showNotificationsPanel]);
 
   useEffect(() => {
     const hasModal = Boolean(commentSheetPostId || showCreatePost || showNotificationsPanel || showCreatePostCoffeeSheet);
@@ -1101,6 +1413,15 @@ export function App() {
   }, [authReady, loadInitialData, sessionEmail]);
 
   useEffect(() => {
+    if (activeTab === "diary") return;
+    setShowDiaryQuickActions(false);
+    setShowDiaryPeriodSheet(false);
+    setShowDiaryWaterSheet(false);
+    setShowDiaryCoffeeSheet(false);
+    setShowDiaryAddPantrySheet(false);
+  }, [activeTab]);
+
+  useEffect(() => {
     if (!activeUser) return;
     (async () => {
       try {
@@ -1108,22 +1429,32 @@ export function App() {
         setDiaryEntries(data.diaryEntries);
         setPantryItems(data.pantryItems);
         setFavorites(data.favorites);
+        setCustomCoffees(data.customCoffees);
       } catch (error) {
         setGlobalStatus(`Error: ${(error as Error).message}`);
       }
     })();
   }, [activeUser]);
 
+  const brewCoffeeCatalog = useMemo(() => {
+    if (!customCoffees.length) return coffees;
+    const byId = new Map<string, CoffeeRow>();
+    coffees.forEach((coffee) => byId.set(String(coffee.id), coffee));
+    customCoffees.forEach((coffee) => byId.set(String(coffee.id), coffee));
+    return Array.from(byId.values());
+  }, [coffees, customCoffees]);
+
   useEffect(() => {
     if (!brewRunning || brewStep !== "brewing") return;
-    if (timerSeconds <= 0) {
+    const totalDuration = getBrewTimelineForMethod(brewMethod, waterMl).reduce((acc, phase) => acc + phase.durationSeconds, 0);
+    if (totalDuration > 0 && timerSeconds >= totalDuration) {
       setBrewRunning(false);
       setBrewStep("result");
       return;
     }
-    const id = window.setTimeout(() => setTimerSeconds((prev) => prev - 1), 1000);
+    const id = window.setTimeout(() => setTimerSeconds((prev) => prev + 1), 1000);
     return () => window.clearTimeout(id);
-  }, [brewRunning, brewStep, timerSeconds]);
+  }, [brewMethod, brewRunning, brewStep, timerSeconds, waterMl]);
 
   const usersById = useMemo(() => {
     const map = new Map<number, UserRow>();
@@ -1268,19 +1599,20 @@ export function App() {
       const queryMatch = !q || byName || byBrand || byOrigin;
       if (!queryMatch) return false;
 
+      const origin = toUiOptionValue(coffee.pais_origen ?? "");
       const originMatch =
-        !searchSelectedOrigins.size || (coffee.pais_origen ? searchSelectedOrigins.has(coffee.pais_origen) : false);
+        !searchSelectedOrigins.size || (origin ? searchSelectedOrigins.has(origin) : false);
       if (!originMatch) return false;
 
-      const roast = coffee.tueste ?? "";
+      const roast = toUiOptionValue(coffee.tueste ?? "");
       const roastMatch = !searchSelectedRoasts.size || (roast ? searchSelectedRoasts.has(roast) : false);
       if (!roastMatch) return false;
 
-      const specialty = coffee.especialidad ?? "";
+      const specialty = toUiOptionValue(coffee.especialidad ?? "");
       const specialtyMatch = !searchSelectedSpecialties.size || (specialty ? searchSelectedSpecialties.has(specialty) : false);
       if (!specialtyMatch) return false;
 
-      const format = coffee.formato ?? "";
+      const format = toUiOptionValue(coffee.formato ?? "");
       const formatMatch = !searchSelectedFormats.size || (format ? searchSelectedFormats.has(format) : false);
       if (!formatMatch) return false;
 
@@ -1304,34 +1636,148 @@ export function App() {
   ]);
 
   const searchOriginOptions = useMemo(
-    () =>
-      Array.from(new Set(coffees.map((coffee) => coffee.pais_origen).filter((value): value is string => Boolean(value && value.trim())))).sort(
-        (a, b) => a.localeCompare(b)
-      ),
+    () => buildNormalizedOptions(coffees.map((coffee) => coffee.pais_origen)),
     [coffees]
   );
 
   const searchRoastOptions = useMemo(
-    () => Array.from(new Set(coffees.map((coffee) => coffee.tueste ?? "").filter((value) => value.trim().length > 0))).sort((a, b) => a.localeCompare(b)),
+    () => buildNormalizedOptions(coffees.map((coffee) => coffee.tueste)),
     [coffees]
   );
 
   const searchSpecialtyOptions = useMemo(
-    () => Array.from(new Set(coffees.map((coffee) => coffee.especialidad ?? "").filter((value) => value.trim().length > 0))).sort((a, b) => a.localeCompare(b)),
+    () => buildNormalizedOptions(coffees.map((coffee) => coffee.especialidad)),
     [coffees]
   );
 
   const searchFormatOptions = useMemo(
-    () => Array.from(new Set(coffees.map((coffee) => coffee.formato ?? "").filter((value) => value.trim().length > 0))).sort((a, b) => a.localeCompare(b)),
+    () => buildNormalizedOptions(coffees.map((coffee) => coffee.formato)),
     [coffees]
   );
-  const selectedCoffee = coffees.find((coffee) => coffee.id === brewCoffeeId) ?? coffees[0];
+  const selectedCoffee = brewCoffeeCatalog.find((coffee) => coffee.id === brewCoffeeId) ?? brewCoffeeCatalog[0];
   const coffeeGrams = Math.max(1, Math.round(waterMl / ratio));
+  const saveBrewToDiary = useCallback(
+    async (taste: string) => {
+      if (!activeUser || !selectedCoffee) return;
+      const decaf = normalizeLookupText(selectedCoffee.cafeina ?? "").includes("sin");
+      const caffeineMg = Math.max(0, Math.round(coffeeGrams * (decaf ? 2 : 9)));
+      const preparationType = `Lab: ${brewMethod || "Metodo"} (${taste})`;
+      const created = await createDiaryEntry({
+        userId: activeUser.id,
+        coffeeId: selectedCoffee.id,
+        coffeeName: selectedCoffee.nombre,
+        amountMl: waterMl,
+        caffeineMg,
+        preparationType,
+        type: "CUP"
+      });
+      setDiaryEntries((prev) => [created, ...prev]);
+      setBrewRunning(false);
+      setTimerSeconds(0);
+      setBrewStep("method");
+      navigateToTab("diary");
+    },
+    [activeUser, brewMethod, coffeeGrams, navigateToTab, selectedCoffee, setBrewStep, waterMl]
+  );
+  const brewPantryItems = useMemo(() => {
+    const coffeeById = new Map<string, CoffeeRow>();
+    brewCoffeeCatalog.forEach((coffee) => {
+      coffeeById.set(String(coffee.id), coffee);
+    });
+
+    const latestByCoffee = new Map<string, PantryItemRow>();
+    pantryItems.forEach((item) => {
+      const coffeeId = String(item.coffee_id);
+      if (!coffeeId) return;
+      const prev = latestByCoffee.get(coffeeId);
+      if (!prev || Number(item.last_updated ?? 0) > Number(prev.last_updated ?? 0)) {
+        latestByCoffee.set(coffeeId, item);
+      }
+    });
+
+    return Array.from(latestByCoffee.values())
+      .map((item) => {
+        const coffeeId = String(item.coffee_id);
+        const coffee = coffeeById.get(coffeeId);
+        if (!coffee) return null;
+        const total = Math.max(0, Number(item.total_grams ?? 0));
+        const remaining = Math.max(0, Math.min(total, Number(item.grams_remaining ?? 0)));
+        const progress = total > 0 ? remaining / total : 0;
+        return { item, coffee, total, remaining, progress };
+      })
+      .filter((row): row is { item: PantryItemRow; coffee: CoffeeRow; total: number; remaining: number; progress: number } => Boolean(row))
+      .sort((a, b) => Number(b.item.last_updated ?? 0) - Number(a.item.last_updated ?? 0));
+  }, [brewCoffeeCatalog, pantryItems]);
 
   const diaryEntriesActivity = diaryEntries.slice(0, 80);
   const pantryCoffeeRows = pantryItems
     .map((item) => ({ item, coffee: coffees.find((coffee) => coffee.id === item.coffee_id) }))
     .filter((row) => row.coffee);
+  const handleDeleteDiaryEntry = useCallback(
+    async (entryId: number) => {
+      if (!activeUser) return;
+      await deleteDiaryEntry(entryId, activeUser.id);
+      setDiaryEntries((prev) => prev.filter((entry) => entry.id !== entryId));
+    },
+    [activeUser]
+  );
+  const handleUpdateDiaryEntry = useCallback(
+    async (entryId: number, amountMl: number, caffeineMg: number, preparationType: string) => {
+      if (!activeUser) return;
+      const updated = await updateDiaryEntry({
+        entryId,
+        userId: activeUser.id,
+        amountMl,
+        caffeineMg,
+        preparationType
+      });
+      setDiaryEntries((prev) => prev.map((entry) => (entry.id === updated.id ? { ...entry, ...updated } : entry)));
+    },
+    [activeUser]
+  );
+  const handleUpdatePantryStock = useCallback(
+    async (coffeeId: string, totalGrams: number, gramsRemaining: number) => {
+      if (!activeUser) return;
+      const total = Math.max(1, Math.round(totalGrams));
+      const remaining = Math.max(0, Math.min(total, Math.round(gramsRemaining)));
+      const updated = await upsertPantryStock({
+        coffeeId,
+        userId: activeUser.id,
+        totalGrams: total,
+        gramsRemaining: remaining
+      });
+      setPantryItems((prev) =>
+        [updated, ...prev.filter((row) => !(row.user_id === updated.user_id && row.coffee_id === updated.coffee_id))]
+      );
+    },
+    [activeUser]
+  );
+  const handleRemovePantryItem = useCallback(
+    async (coffeeId: string) => {
+      if (!activeUser) return;
+      await deletePantryItem(coffeeId, activeUser.id);
+      setPantryItems((prev) => prev.filter((row) => !(row.user_id === activeUser.id && row.coffee_id === coffeeId)));
+    },
+    [activeUser]
+  );
+  const diaryCoffeeOptions = useMemo(() => {
+    const map = new Map<string, CoffeeRow>();
+    pantryCoffeeRows.forEach((row) => {
+      if (row.coffee?.id) map.set(row.coffee.id, row.coffee);
+    });
+    coffees.forEach((coffee) => {
+      if (!map.has(coffee.id)) map.set(coffee.id, coffee);
+    });
+    return Array.from(map.values()).slice(0, 500);
+  }, [coffees, pantryCoffeeRows]);
+  const selectedDiaryCoffee = useMemo(
+    () => diaryCoffeeOptions.find((coffee) => coffee.id === diaryCoffeeIdDraft) ?? diaryCoffeeOptions[0] ?? null,
+    [diaryCoffeeIdDraft, diaryCoffeeOptions]
+  );
+  const selectedDiaryPantryCoffee = useMemo(
+    () => diaryCoffeeOptions.find((coffee) => coffee.id === diaryPantryCoffeeIdDraft) ?? diaryCoffeeOptions[0] ?? null,
+    [diaryCoffeeOptions, diaryPantryCoffeeIdDraft]
+  );
 
   const profileUser = useMemo(() => {
     if (profileUsername) {
@@ -1879,12 +2325,15 @@ export function App() {
   };
 
   const openCoffeeDetail = useCallback(
-    (coffeeId: string, sourceTab: "timeline" | "search" | "profile") => {
+    (coffeeId: string, sourceTab: "timeline" | "search" | "profile" | "diary") => {
       const coffee = coffeesById.get(coffeeId);
       if (!coffee) return;
       const slug = coffeeSlugIndex.byId.get(coffeeId) ?? toCoffeeSlug(coffee.nombre);
       setDetailCoffeeId(coffeeId);
-      if (mode === "desktop") {
+      if (sourceTab === "diary") {
+        setDetailHostTab(null);
+        setActiveTab("coffee");
+      } else if (mode === "desktop") {
         setDetailHostTab(sourceTab);
       } else {
         setDetailHostTab(null);
@@ -1981,6 +2430,76 @@ export function App() {
     });
   }, [activeUser, detailCoffeeId, detailStockDraft]);
 
+  const closeCreateCoffeeComposer = useCallback(() => {
+    if (createCoffeeSaving) return;
+    setShowCreateCoffeeComposer(false);
+    setCreateCoffeeError(null);
+  }, [createCoffeeSaving]);
+
+  const saveCreateCoffee = useCallback(async () => {
+    if (!activeUser) return;
+    if (!createCoffeeDraft.name.trim() || !createCoffeeDraft.brand.trim()) {
+      setCreateCoffeeError("Nombre y marca son obligatorios.");
+      return;
+    }
+    if (!createCoffeeDraft.specialty.trim() || !createCoffeeDraft.country.trim() || !createCoffeeDraft.format.trim()) {
+      setCreateCoffeeError("Completa especialidad, país y formato.");
+      return;
+    }
+    setCreateCoffeeSaving(true);
+    setCreateCoffeeError(null);
+    try {
+      let imageUrl = "";
+      if (createCoffeeImageFile) {
+        imageUrl = await uploadImageFile("posts", createCoffeeImageFile);
+      }
+      const created = await upsertCustomCoffee({
+        userId: activeUser.id,
+        name: createCoffeeDraft.name,
+        brand: createCoffeeDraft.brand,
+        specialty: createCoffeeDraft.specialty,
+        country: createCoffeeDraft.country,
+        format: createCoffeeDraft.format,
+        roast: createCoffeeDraft.roast || null,
+        variety: createCoffeeDraft.variety || null,
+        hasCaffeine: createCoffeeDraft.hasCaffeine,
+        imageUrl,
+        totalGrams: createCoffeeDraft.totalGrams
+      });
+
+      const pantryRow = await upsertPantryStock({
+        coffeeId: created.id,
+        userId: activeUser.id,
+        totalGrams: Math.max(1, createCoffeeDraft.totalGrams || 250),
+        gramsRemaining: Math.max(1, createCoffeeDraft.totalGrams || 250)
+      });
+
+      setCustomCoffees((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
+      setPantryItems((prev) => [pantryRow, ...prev.filter((item) => !(item.coffee_id === pantryRow.coffee_id && item.user_id === pantryRow.user_id))]);
+      setBrewCoffeeId(created.id);
+      setBrewStep("config");
+      setShowCreateCoffeeComposer(false);
+      setCreateCoffeeDraft({
+        name: "",
+        brand: "",
+        specialty: "",
+        country: "",
+        format: "",
+        roast: "",
+        variety: "",
+        hasCaffeine: true,
+        totalGrams: 250
+      });
+      if (createCoffeeImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(createCoffeeImagePreviewUrl);
+      setCreateCoffeeImageFile(null);
+      setCreateCoffeeImagePreviewUrl("");
+    } catch (error) {
+      setCreateCoffeeError((error as Error).message);
+    } finally {
+      setCreateCoffeeSaving(false);
+    }
+  }, [activeUser, createCoffeeDraft, createCoffeeImageFile, createCoffeeImagePreviewUrl]);
+
   const detailPanel = detailCoffee ? (
     <CoffeeDetailView
       coffee={detailCoffee}
@@ -2013,8 +2532,34 @@ export function App() {
       onSaveStock={saveDetailStock}
       onOpenUserProfile={(userId) => navigateToTab("profile", { profileUserId: userId })}
       fullPage={false}
+      externalOpenStockSignal={0}
     />
   ) : null;
+
+  const createCoffeePanel = (
+    <CreateCoffeeView
+      draft={createCoffeeDraft}
+      imagePreviewUrl={createCoffeeImagePreviewUrl}
+      saving={createCoffeeSaving}
+      error={createCoffeeError}
+      countryOptions={searchOriginOptions}
+      specialtyOptions={searchSpecialtyOptions}
+      onChange={setCreateCoffeeDraft}
+      onPickImage={(file, previewUrl) => {
+        if (createCoffeeImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(createCoffeeImagePreviewUrl);
+        setCreateCoffeeImageFile(file);
+        setCreateCoffeeImagePreviewUrl(previewUrl);
+      }}
+      onRemoveImage={() => {
+        if (createCoffeeImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(createCoffeeImagePreviewUrl);
+        setCreateCoffeeImageFile(null);
+        setCreateCoffeeImagePreviewUrl("");
+      }}
+      onClose={closeCreateCoffeeComposer}
+      onSave={() => void saveCreateCoffee()}
+      fullPage={mode !== "desktop"}
+    />
+  );
 
   useEffect(() => {
     const isCoffeeRoute = window.location.pathname.startsWith("/coffee/");
@@ -2068,6 +2613,7 @@ export function App() {
   const handleNavClick = (tabId: TabId) => {
     setDetailCoffeeId(null);
     setDetailHostTab(null);
+    setShowCreateCoffeeComposer(false);
     if (tabId === "search") {
       setSearchSelectedCoffeeId(null);
       setSearchFocusCoffeeProfile(false);
@@ -2205,9 +2751,16 @@ export function App() {
             const latestSeen = visibleTimelineNotifications.reduce((max, item) => Math.max(max, item.timestamp), 0);
             setNotificationsLastSeenAt((prev) => Math.max(prev, latestSeen));
           }}
+          diaryPeriod={diaryPeriod}
+          onDiaryOpenQuickActions={() => setShowDiaryQuickActions(true)}
+          onDiaryOpenPeriodSelector={() => setShowDiaryPeriodSheet(true)}
           scrolled={topbarScrolled}
           brewStep={brewStep}
           onBrewBack={() => {
+            if (showCreateCoffeeComposer) {
+              closeCreateCoffeeComposer();
+              return;
+            }
             if (brewStep === "coffee") setBrewStep("method");
             else if (brewStep === "config") setBrewStep("coffee");
             else if (brewStep === "brewing") setBrewStep("config");
@@ -2215,11 +2768,13 @@ export function App() {
           }}
           onBrewForward={() => {
             if (brewStep === "config") {
-              setTimerSeconds(150);
+              setTimerSeconds(0);
               setBrewRunning(true);
               setBrewStep("brewing");
             }
           }}
+          brewCreateCoffeeOpen={showCreateCoffeeComposer}
+          onBrewCreateCoffeeBack={closeCreateCoffeeComposer}
           onProfileSignOut={handleSignOut}
           onCoffeeBack={() => {
             if (window.history.length > 1) {
@@ -2227,6 +2782,14 @@ export function App() {
               return;
             }
             navigateToTab("timeline", { replace: true });
+          }}
+          coffeeTopbarFavoriteActive={activeTab === "coffee" ? detailIsFavorite : false}
+          coffeeTopbarStockActive={activeTab === "coffee" ? Boolean(detailPantryStock) : false}
+          onCoffeeTopbarToggleFavorite={() => {
+            void saveDetailFavorite();
+          }}
+          onCoffeeTopbarOpenStock={() => {
+            setDetailOpenStockSignal((prev) => prev + 1);
           }}
         />
 
@@ -2381,6 +2944,7 @@ export function App() {
                 onSaveStock={saveDetailStock}
                 onOpenUserProfile={(userId) => navigateToTab("profile", { profileUserId: userId })}
                 fullPage
+                externalOpenStockSignal={detailOpenStockSignal}
               />
             ) : (
               <article className="coffee-detail-empty coffee-detail-empty-full">
@@ -2398,8 +2962,51 @@ export function App() {
               </article>
             )
           ) : null}
-          {activeTab === "brewlab" ? <BrewLabView brewStep={brewStep} setBrewStep={setBrewStep} brewMethod={brewMethod} setBrewMethod={setBrewMethod} brewCoffeeId={brewCoffeeId} setBrewCoffeeId={setBrewCoffeeId} coffees={coffees} waterMl={waterMl} setWaterMl={setWaterMl} ratio={ratio} setRatio={setRatio} timerSeconds={timerSeconds} brewRunning={brewRunning} setBrewRunning={setBrewRunning} selectedCoffee={selectedCoffee} coffeeGrams={coffeeGrams} /> : null}
-          {activeTab === "diary" ? <DiaryView tab={diaryTab} setTab={setDiaryTab} entries={diaryEntriesActivity} pantryRows={pantryCoffeeRows} /> : null}
+          {activeTab === "brewlab" ? (
+            showCreateCoffeeComposer && mode !== "desktop" ? (
+              <section className="create-coffee-mobile-screen">{createCoffeePanel}</section>
+            ) : (
+              <BrewLabView
+                brewStep={brewStep}
+                setBrewStep={setBrewStep}
+                brewMethod={brewMethod}
+                setBrewMethod={setBrewMethod}
+                brewCoffeeId={brewCoffeeId}
+                setBrewCoffeeId={setBrewCoffeeId}
+                coffees={brewCoffeeCatalog}
+                pantryItems={brewPantryItems}
+                onAddNotFoundCoffee={() => {
+                  setCreateCoffeeError(null);
+                  setShowCreateCoffeeComposer(true);
+                }}
+                waterMl={waterMl}
+                setWaterMl={setWaterMl}
+                ratio={ratio}
+                setRatio={setRatio}
+                timerSeconds={timerSeconds}
+                setTimerSeconds={setTimerSeconds}
+                brewRunning={brewRunning}
+                setBrewRunning={setBrewRunning}
+                selectedCoffee={selectedCoffee}
+                coffeeGrams={coffeeGrams}
+                onSaveResultToDiary={saveBrewToDiary}
+              />
+            )
+          ) : null}
+          {activeTab === "diary" ? (
+            <DiaryView
+              tab={diaryTab}
+              setTab={setDiaryTab}
+              period={diaryPeriod}
+              entries={diaryEntriesActivity}
+              pantryRows={pantryCoffeeRows}
+              onDeleteEntry={handleDeleteDiaryEntry}
+              onEditEntry={handleUpdateDiaryEntry}
+              onUpdatePantryStock={handleUpdatePantryStock}
+              onRemovePantryItem={handleRemovePantryItem}
+              onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "diary")}
+            />
+          ) : null}
           {activeTab === "profile" && profileUser ? (
             <ProfileView
               user={profileUser}
@@ -2423,9 +3030,14 @@ export function App() {
       </main>
 
       {mode === "desktop" ? (
-        <aside className={useRightRailDetail ? "detail-rail-fixed" : "fab-rail"} aria-label={useRightRailDetail ? "Detalle cafe" : "Acciones"}>
+        <aside
+          className={useRightRailDetail || (activeTab === "brewlab" && showCreateCoffeeComposer) ? "detail-rail-fixed" : "fab-rail"}
+          aria-label={useRightRailDetail ? "Detalle cafe" : activeTab === "brewlab" && showCreateCoffeeComposer ? "Crear cafe" : "Acciones"}
+        >
           {useRightRailDetail ? (
             <div className="desktop-detail-wrap">{detailPanel}</div>
+          ) : activeTab === "brewlab" && showCreateCoffeeComposer ? (
+            <div className="desktop-detail-wrap">{createCoffeePanel}</div>
           ) : activeTab === "timeline" ? (
             <button className="fab fab-desktop" type="button" aria-label="Nuevo Post" onClick={openCreatePostComposer}>
               <UiIcon name="add" className="ui-icon" />
@@ -2434,7 +3046,7 @@ export function App() {
         </aside>
       ) : null}
 
-      {mode === "mobile" ? <footer className="bottom-tabs">{nav}</footer> : null}
+      {mode === "mobile" && !(activeTab === "brewlab" && showCreateCoffeeComposer) ? <footer className="bottom-tabs">{nav}</footer> : null}
 
       <MobileBarcodeScannerSheet
         open={showBarcodeScannerSheet}
@@ -3093,6 +3705,319 @@ export function App() {
           </div>
         </div>
       ) : null}
+
+      {activeTab === "diary" && showDiaryQuickActions ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Nuevo registro" onClick={() => setShowDiaryQuickActions(false)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">NUEVO REGISTRO</strong>
+            </header>
+            <div className="diary-sheet-list">
+              <button
+                type="button"
+                className="diary-sheet-action is-water"
+                onClick={() => {
+                  setDiaryWaterMlDraft("250");
+                  setShowDiaryQuickActions(false);
+                  setShowDiaryWaterSheet(true);
+                }}
+              >
+                <UiIcon name="stock" className="ui-icon" />
+                <span>Agua</span>
+                <UiIcon name="chevron-right" className="ui-icon" />
+              </button>
+              <button
+                type="button"
+                className="diary-sheet-action is-coffee"
+                onClick={() => {
+                  const defaultCoffee = diaryCoffeeOptions[0];
+                  if (defaultCoffee) {
+                    setDiaryCoffeeIdDraft(defaultCoffee.id);
+                    const isDecaf = normalizeLookupText(defaultCoffee.cafeina ?? "").includes("sin");
+                    setDiaryCoffeeCaffeineDraft(isDecaf ? "5" : "95");
+                  } else {
+                    setDiaryCoffeeIdDraft("");
+                    setDiaryCoffeeCaffeineDraft("95");
+                  }
+                  setDiaryCoffeeMlDraft("250");
+                  setDiaryCoffeePreparationDraft("Manual");
+                  setShowDiaryQuickActions(false);
+                  setShowDiaryCoffeeSheet(true);
+                }}
+              >
+                <UiIcon name="coffee" className="ui-icon" />
+                <span>Café</span>
+                <UiIcon name="chevron-right" className="ui-icon" />
+              </button>
+              <button
+                type="button"
+                className="diary-sheet-action is-pantry"
+                onClick={() => {
+                  const defaultCoffee = diaryCoffeeOptions[0];
+                  setDiaryPantryCoffeeIdDraft(defaultCoffee?.id ?? "");
+                  setDiaryPantryGramsDraft("250");
+                  setShowDiaryQuickActions(false);
+                  setShowDiaryAddPantrySheet(true);
+                }}
+              >
+                <UiIcon name="add" className="ui-icon" />
+                <span>Añadir a Despensa</span>
+                <UiIcon name="chevron-right" className="ui-icon" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === "diary" && showDiaryPeriodSheet ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Seleccionar periodo" onClick={() => setShowDiaryPeriodSheet(false)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">SELECCIONAR PERIODO</strong>
+            </header>
+            <div className="diary-sheet-list">
+              {([
+                { value: "hoy", label: "HOY" },
+                { value: "7d", label: "SEMANA" },
+                { value: "30d", label: "MES" }
+              ] as const).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`diary-sheet-action ${diaryPeriod === option.value ? "is-active" : ""}`.trim()}
+                  onClick={() => {
+                    setDiaryPeriod(option.value);
+                    setShowDiaryPeriodSheet(false);
+                  }}
+                >
+                  <span>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === "diary" && showDiaryWaterSheet ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Registrar agua" onClick={() => setShowDiaryWaterSheet(false)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">REGISTRAR AGUA</strong>
+            </header>
+            <div className="diary-sheet-form">
+              <div className="diary-water-presets">
+                {[250, 500, 750].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`chip-button period-chip ${Number(diaryWaterMlDraft) === value ? "is-active" : ""}`.trim()}
+                    onClick={() => setDiaryWaterMlDraft(String(value))}
+                  >
+                    {value} ml
+                  </button>
+                ))}
+              </div>
+              <label>
+                <span>Cantidad personalizada (ml)</span>
+                <input
+                  className="search-wide"
+                  type="number"
+                  min={1}
+                  value={diaryWaterMlDraft}
+                  onChange={(event) => setDiaryWaterMlDraft(event.target.value)}
+                />
+              </label>
+              <div className="diary-sheet-form-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={() => setShowDiaryWaterSheet(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  onClick={async () => {
+                    if (!activeUser) return;
+                    const amount = Math.max(1, Math.round(Number(diaryWaterMlDraft || 0)));
+                    const created = await createDiaryEntry({
+                      userId: activeUser.id,
+                      coffeeId: null,
+                      coffeeName: "Agua",
+                      amountMl: amount,
+                      caffeineMg: 0,
+                      preparationType: "None",
+                      type: "WATER"
+                    });
+                    setDiaryEntries((prev) => [created, ...prev]);
+                    setShowDiaryWaterSheet(false);
+                  }}
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === "diary" && showDiaryCoffeeSheet ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Registrar cafe" onClick={() => setShowDiaryCoffeeSheet(false)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">REGISTRAR CAFÉ</strong>
+            </header>
+            <div className="diary-sheet-form">
+              <label>
+                <span>Café</span>
+                <select
+                  className="search-wide"
+                  value={diaryCoffeeIdDraft}
+                  onChange={(event) => {
+                    const nextId = event.target.value;
+                    setDiaryCoffeeIdDraft(nextId);
+                    const selected = diaryCoffeeOptions.find((coffee) => coffee.id === nextId);
+                    if (selected) {
+                      const isDecaf = normalizeLookupText(selected.cafeina ?? "").includes("sin");
+                      setDiaryCoffeeCaffeineDraft(isDecaf ? "5" : "95");
+                    }
+                  }}
+                >
+                  {diaryCoffeeOptions.map((coffee) => (
+                    <option key={coffee.id} value={coffee.id}>
+                      {coffee.nombre} {coffee.marca ? `- ${coffee.marca}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Preparación</span>
+                <input
+                  className="search-wide"
+                  value={diaryCoffeePreparationDraft}
+                  onChange={(event) => setDiaryCoffeePreparationDraft(event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Cantidad (ml)</span>
+                <input
+                  className="search-wide"
+                  type="number"
+                  min={1}
+                  value={diaryCoffeeMlDraft}
+                  onChange={(event) => setDiaryCoffeeMlDraft(event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Cafeína (mg)</span>
+                <input
+                  className="search-wide"
+                  type="number"
+                  min={0}
+                  value={diaryCoffeeCaffeineDraft}
+                  onChange={(event) => setDiaryCoffeeCaffeineDraft(event.target.value)}
+                />
+              </label>
+              <div className="diary-sheet-form-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={() => setShowDiaryCoffeeSheet(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  onClick={async () => {
+                    if (!activeUser) return;
+                    if (!selectedDiaryCoffee) return;
+                    const created = await createDiaryEntry({
+                      userId: activeUser.id,
+                      coffeeId: selectedDiaryCoffee.id,
+                      coffeeName: selectedDiaryCoffee.nombre,
+                      amountMl: Math.max(1, Number(diaryCoffeeMlDraft || 0)),
+                      caffeineMg: Math.max(0, Number(diaryCoffeeCaffeineDraft || 0)),
+                      preparationType: diaryCoffeePreparationDraft.trim() || "Manual",
+                      type: "CUP"
+                    });
+                    setDiaryEntries((prev) => [created, ...prev]);
+                    setShowDiaryCoffeeSheet(false);
+                  }}
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === "diary" && showDiaryAddPantrySheet ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Añadir a despensa" onClick={() => setShowDiaryAddPantrySheet(false)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">AÑADIR A DESPENSA</strong>
+            </header>
+            <div className="diary-sheet-form">
+              <label>
+                <span>Café</span>
+                <select
+                  className="search-wide"
+                  value={diaryPantryCoffeeIdDraft}
+                  onChange={(event) => setDiaryPantryCoffeeIdDraft(event.target.value)}
+                >
+                  {diaryCoffeeOptions.map((coffee) => (
+                    <option key={coffee.id} value={coffee.id}>
+                      {coffee.nombre} {coffee.marca ? `- ${coffee.marca}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Gramos a añadir</span>
+                <input
+                  className="search-wide"
+                  type="number"
+                  min={1}
+                  value={diaryPantryGramsDraft}
+                  onChange={(event) => setDiaryPantryGramsDraft(event.target.value)}
+                />
+              </label>
+              <div className="diary-sheet-form-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={() => setShowDiaryAddPantrySheet(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  onClick={async () => {
+                    if (!activeUser) return;
+                    if (!selectedDiaryPantryCoffee) return;
+                    const gramsToAdd = Math.max(1, Math.round(Number(diaryPantryGramsDraft || 0)));
+                    const existing = pantryItems.find(
+                      (item) => item.user_id === activeUser.id && item.coffee_id === selectedDiaryPantryCoffee.id
+                    );
+                    const total = Math.max(gramsToAdd, (existing?.total_grams ?? 0) + gramsToAdd);
+                    const remaining = Math.max(gramsToAdd, (existing?.grams_remaining ?? 0) + gramsToAdd);
+                    const updated = await upsertPantryStock({
+                      coffeeId: selectedDiaryPantryCoffee.id,
+                      userId: activeUser.id,
+                      totalGrams: total,
+                      gramsRemaining: remaining
+                    });
+                    setPantryItems((prev) =>
+                      [updated, ...prev.filter((row) => !(row.user_id === updated.user_id && row.coffee_id === updated.coffee_id))]
+                    );
+                    setDiaryTab("despensa");
+                    setShowDiaryAddPantrySheet(false);
+                  }}
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3379,12 +4304,21 @@ function TopBar({
   showNotificationsBadge,
   onTimelineSearchUsers,
   onTimelineNotifications,
+  diaryPeriod,
+  onDiaryOpenQuickActions,
+  onDiaryOpenPeriodSelector,
   scrolled,
   brewStep,
   onBrewBack,
   onBrewForward,
+  brewCreateCoffeeOpen,
+  onBrewCreateCoffeeBack,
   onProfileSignOut,
-  onCoffeeBack
+  onCoffeeBack,
+  coffeeTopbarFavoriteActive,
+  coffeeTopbarStockActive,
+  onCoffeeTopbarToggleFavorite,
+  onCoffeeTopbarOpenStock
 }: {
   activeTab: TabId;
   searchQuery: string;
@@ -3404,12 +4338,21 @@ function TopBar({
   showNotificationsBadge: boolean;
   onTimelineSearchUsers: () => void;
   onTimelineNotifications: () => void;
+  diaryPeriod: "hoy" | "7d" | "30d";
+  onDiaryOpenQuickActions: () => void;
+  onDiaryOpenPeriodSelector: () => void;
   scrolled: boolean;
   brewStep: BrewStep;
   onBrewBack: () => void;
   onBrewForward: () => void;
+  brewCreateCoffeeOpen: boolean;
+  onBrewCreateCoffeeBack: () => void;
   onProfileSignOut: () => void;
   onCoffeeBack: () => void;
+  coffeeTopbarFavoriteActive: boolean;
+  coffeeTopbarStockActive: boolean;
+  onCoffeeTopbarToggleFavorite: () => void;
+  onCoffeeTopbarOpenStock: () => void;
 }) {
   const [searchFocus, setSearchFocus] = useState(false);
   const [searchHintWord, setSearchHintWord] = useState<"marca" | "cafe">("marca");
@@ -3434,7 +4377,7 @@ function TopBar({
   if (activeTab === "search") {
     if (searchMode === "users") {
       return (
-        <header className={`topbar topbar-search-users ${scrolled ? "topbar-scrolled" : ""}`}>
+        <header className={`topbar topbar-search-users ${showSearchCancel ? "has-cancel" : ""} ${scrolled ? "topbar-scrolled" : ""}`.trim()}>
           <div className="topbar-slot">
             <button className="icon-button topbar-icon-button search-users-back" type="button" onClick={onSearchBack} aria-label="Atras">
               <UiIcon name="arrow-left" className="ui-icon" />
@@ -3444,7 +4387,7 @@ function TopBar({
             <UiIcon name="search" className="ui-icon search-users-leading-icon" />
             <input
               id="quick-search"
-              className="search-wide search-users-input"
+              className="search-wide search-input-standard search-users-input"
               placeholder="Buscar usuarios..."
               value={searchQuery}
               onFocus={() => setSearchFocus(true)}
@@ -3487,7 +4430,7 @@ function TopBar({
           ) : null}
           <input
             id="quick-search"
-            className="search-wide search-coffee-input"
+            className="search-wide search-input-standard search-coffee-input"
             placeholder=""
             value={searchQuery}
             onFocus={() => setSearchFocus(true)}
@@ -3504,7 +4447,12 @@ function TopBar({
         <button
           className={`text-button search-cancel-button ${showSearchCancel ? "is-visible" : ""}`}
           type="button"
-          onClick={onSearchCancel}
+          onClick={() => {
+            onSearchCancel();
+            setSearchFocus(false);
+            const activeElement = document.activeElement;
+            if (activeElement instanceof HTMLElement) activeElement.blur();
+          }}
           aria-hidden={!showSearchCancel}
           tabIndex={showSearchCancel ? 0 : -1}
         >
@@ -3539,24 +4487,51 @@ function TopBar({
   }
 
   if (activeTab === "brewlab") {
+    if (brewCreateCoffeeOpen) {
+      return (
+        <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
+          <div className="topbar-slot">
+            <button className="icon-button topbar-icon-button" type="button" onClick={onBrewCreateCoffeeBack} aria-label="Atras">
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </button>
+          </div>
+          <h1 className="title title-upper topbar-title-center">CREAR CAFE</h1>
+          <div className="topbar-slot topbar-slot-end" />
+        </header>
+      );
+    }
     return (
-      <header className={`topbar ${scrolled ? "topbar-scrolled" : ""}`}>
-        <div className="topbar-inline">
-          {brewStep !== "method" ? <button className="icon-button" type="button" onClick={onBrewBack} aria-label="Atras"><UiIcon name="arrow-left" className="ui-icon" /></button> : null}
-          <h1 className="title title-upper">{getBrewStepTitle(brewStep)}</h1>
+      <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
+        <div className="topbar-slot">
+          {brewStep !== "method" ? (
+            <button className="icon-button topbar-icon-button" type="button" onClick={onBrewBack} aria-label="Atras">
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </button>
+          ) : null}
         </div>
-        {brewStep === "config" ? <button className="icon-button" type="button" onClick={onBrewForward} aria-label="Empezar"><UiIcon name="arrow-right" className="ui-icon" /></button> : null}
+        <h1 className="title title-upper topbar-title-center">{getBrewStepTitle(brewStep)}</h1>
+        <div className="topbar-slot topbar-slot-end">
+          {brewStep === "config" ? (
+            <button className="icon-button topbar-icon-button" type="button" onClick={onBrewForward} aria-label="Empezar">
+              <UiIcon name="arrow-right" className="ui-icon" />
+            </button>
+          ) : null}
+        </div>
       </header>
     );
   }
 
   if (activeTab === "diary") {
+    const periodLabel = diaryPeriod === "hoy" ? "HOY" : diaryPeriod === "7d" ? "SEMANA" : "MES";
     return (
-      <header className={`topbar ${scrolled ? "topbar-scrolled" : ""}`}>
-        <h1 className="title title-upper">MI DIARIO</h1>
-        <div className="topbar-actions">
-          <button className="icon-button" type="button" aria-label="Agregar"><UiIcon name="add" className="ui-icon" /></button>
-          <button className="chip-button" type="button">HOY</button>
+      <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""}`}>
+        <div className="topbar-slot" />
+        <h1 className="title title-upper topbar-title-center">MI DIARIO</h1>
+        <div className="topbar-slot topbar-slot-end">
+          <button className="icon-button topbar-icon-button" type="button" aria-label="Agregar" onClick={onDiaryOpenQuickActions}>
+            <UiIcon name="add" className="ui-icon" />
+          </button>
+          <button className="chip-button" type="button" onClick={onDiaryOpenPeriodSelector}>{periodLabel}</button>
         </div>
       </header>
     );
@@ -3573,14 +4548,31 @@ function TopBar({
 
   if (activeTab === "coffee") {
     return (
-      <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
+      <header className={`topbar topbar-timeline topbar-centered topbar-coffee ${scrolled ? "topbar-scrolled" : ""}`}>
         <div className="topbar-slot">
           <button className="icon-button topbar-icon-button" type="button" onClick={onCoffeeBack} aria-label="Volver">
             <UiIcon name="arrow-left" className="ui-icon" />
           </button>
         </div>
         <h1 className="title title-upper topbar-title-center">CAFE</h1>
-        <div className="topbar-slot topbar-slot-end" />
+        <div className="topbar-slot topbar-slot-end">
+          <button
+            className={`icon-button topbar-icon-button ${coffeeTopbarFavoriteActive ? "is-active" : ""}`.trim()}
+            type="button"
+            aria-label={coffeeTopbarFavoriteActive ? "Quitar de favoritos" : "Guardar en favoritos"}
+            onClick={onCoffeeTopbarToggleFavorite}
+          >
+            <UiIcon name={coffeeTopbarFavoriteActive ? "favorite-filled" : "favorite"} className="ui-icon" />
+          </button>
+          <button
+            className={`icon-button topbar-icon-button ${coffeeTopbarStockActive ? "is-active" : ""}`.trim()}
+            type="button"
+            aria-label="Añadir a stock"
+            onClick={onCoffeeTopbarOpenStock}
+          >
+            <UiIcon name="stock" className="ui-icon" />
+          </button>
+        </div>
       </header>
     );
   }
@@ -4498,7 +5490,8 @@ function CoffeeDetailView({
   onStockDraftChange,
   onSaveStock,
   onOpenUserProfile,
-  fullPage
+  fullPage,
+  externalOpenStockSignal
 }: {
   coffee: CoffeeRow;
   reviews: Array<CoffeeReviewRow & { user: UserRow | null }>;
@@ -4527,6 +5520,7 @@ function CoffeeDetailView({
   onSaveStock: () => Promise<void>;
   onOpenUserProfile: (userId: number) => void;
   fullPage: boolean;
+  externalOpenStockSignal: number;
 }) {
   const [showSensorySheet, setShowSensorySheet] = useState(false);
   const [showStockSheet, setShowStockSheet] = useState(false);
@@ -4548,14 +5542,12 @@ function CoffeeDetailView({
     dulzura: "Dulzura"
   };
   const techRowsBase: Array<{ icon: IconName; label: string; value: string }> = [
-    { icon: "origin", label: "País", value: coffee.pais_origen ?? "" },
+    { icon: "origin", label: "Pais", value: coffee.pais_origen ?? "" },
     { icon: "specialty", label: "Especialidad", value: coffee.especialidad ?? "" },
-    { icon: "roast", label: "Tueste", value: coffee.tueste ?? "" },
-    { icon: "format", label: "Formato", value: coffee.formato ?? "" },
-    { icon: "process", label: "Proceso", value: coffee.proceso ?? "" },
     { icon: "variety", label: "Variedad", value: coffee.variedad_tipo ?? "" },
-    { icon: "grind", label: "Molienda", value: coffee.molienda_recomendada ?? "" },
-    { icon: "caffeine", label: "Cafeína", value: coffee.cafeina ?? "" }
+    { icon: "roast", label: "Tueste", value: coffee.tueste ?? "" },
+    { icon: "process", label: "Proceso", value: coffee.proceso ?? "" },
+    { icon: "grind", label: "Molienda", value: coffee.molienda_recomendada ?? "" }
   ];
   const techRows = techRowsBase.filter((row) => row.value.trim().length > 0);
   const otherReviews = reviews.filter((review) => !currentUser || review.user_id !== currentUser.id);
@@ -4577,47 +5569,61 @@ function CoffeeDetailView({
     Math.abs(reviewDraftRating - baseReviewRating) > 0.001 ||
     draftReviewImage !== baseReviewImage;
   const canSaveReview = reviewDraftRating > 0 && isReviewDirty;
+  const sensoryEditorsCount = new Set(reviews.map((review) => review.user_id).filter((value): value is number => typeof value === "number")).size;
+  const hasAnyOpinions = Boolean(currentUserReview) || otherReviews.length > 0;
+  const acquireLabel = useMemo(() => {
+    if (!coffee.product_url) return "";
+    try {
+      const host = new URL(coffee.product_url).hostname.replace(/^www\./i, "");
+      return host.toUpperCase();
+    } catch {
+      return "ADQUIRIR";
+    }
+  }, [coffee.product_url]);
+
+  useEffect(() => {
+    if (!fullPage || externalOpenStockSignal <= 0) return;
+    setStockSheetError(null);
+    setShowStockSheet(true);
+  }, [externalOpenStockSignal, fullPage]);
 
   return (
     <article className={`coffee-detail ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}>
-      <header className="coffee-detail-topbar">
-        <div className="coffee-detail-topbar-left">
-          {!fullPage ? (
-            <button type="button" className="icon-button topbar-icon-button coffee-detail-topbar-icon" aria-label="Cerrar detalle" onClick={onClose}>
-              <UiIcon name="close" className="ui-icon" />
-            </button>
-          ) : null}
-        </div>
-        <div className="coffee-detail-topbar-actions">
-          <button
-            type="button"
-            className={`icon-button topbar-icon-button coffee-detail-topbar-icon ${isFavorite ? "is-active" : ""}`.trim()}
-            aria-label={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
-            onClick={onToggleFavorite}
-          >
-            <UiIcon name={isFavorite ? "favorite-filled" : "favorite"} className="ui-icon" />
-          </button>
-          <button
-            type="button"
-            className={`icon-button topbar-icon-button coffee-detail-topbar-icon ${pantry ? "is-active" : ""}`.trim()}
-            aria-label="Añadir a stock"
-            onClick={() => {
-              setStockSheetError(null);
-              setShowStockSheet(true);
-            }}
-          >
-            <UiIcon name="stock" className="ui-icon" />
-          </button>
-        </div>
-      </header>
       <header className="coffee-detail-hero">
         {coffee.image_url ? <img className="coffee-detail-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" /> : null}
         <div className="coffee-detail-overlay" />
+        {!fullPage ? (
+          <div className="coffee-detail-hero-top-actions">
+            <button type="button" className="icon-button topbar-icon-button coffee-detail-topbar-icon" aria-label="Cerrar detalle" onClick={onClose}>
+              <UiIcon name="close" className="ui-icon" />
+            </button>
+            <div className="coffee-detail-topbar-actions">
+              <button
+                type="button"
+                className={`icon-button topbar-icon-button coffee-detail-topbar-icon ${isFavorite ? "is-active" : ""}`.trim()}
+                aria-label={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
+                onClick={onToggleFavorite}
+              >
+                <UiIcon name={isFavorite ? "favorite-filled" : "favorite"} className="ui-icon" />
+              </button>
+              <button
+                type="button"
+                className={`icon-button topbar-icon-button coffee-detail-topbar-icon ${pantry ? "is-active" : ""}`.trim()}
+                aria-label="Añadir a stock"
+                onClick={() => {
+                  setStockSheetError(null);
+                  setShowStockSheet(true);
+                }}
+              >
+                <UiIcon name="stock" className="ui-icon" />
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="coffee-detail-headline">
           <p className="coffee-origin">{coffee.marca ?? "Marca"}</p>
           <h2 className="coffee-detail-title">{coffee.nombre}</h2>
-          <p className="coffee-sub">{avgRating > 0 ? `Nota ${avgRating.toFixed(1)} / 5` : "Sin valoraciones"}</p>
         </div>
         {avgRating > 0 ? (
           <span className="coffee-detail-rating-badge">
@@ -4627,14 +5633,7 @@ function CoffeeDetailView({
         ) : null}
       </header>
 
-      <section className="coffee-detail-section">
-        {coffee.product_url ? (
-          <div className="coffee-detail-intro-actions">
-            <a className="text-button coffee-detail-inline-action coffee-detail-intro-link" href={coffee.product_url} target="_blank" rel="noreferrer">
-              Adquirir
-            </a>
-          </div>
-        ) : null}
+      <section className="coffee-detail-section coffee-detail-section-first">
         {coffee.descripcion ? <p className="feed-text coffee-detail-description">{coffee.descripcion}</p> : <p className="coffee-sub coffee-detail-opinion-empty">Sin descripción.</p>}
       </section>
 
@@ -4666,36 +5665,61 @@ function CoffeeDetailView({
               setShowSensorySheet(true);
             }}
           >
-            Editar perfil
+            Editar
           </button>
         </div>
+        {sensoryEditorsCount > 0 ? (
+          <p className="coffee-detail-sensory-note">
+            Basado en los comentarios de {sensoryEditorsCount} usuarios. {sensoryEditorsCount} son las personas que lo han editado.
+          </p>
+        ) : null}
         <div className="coffee-detail-sensory-summary">
           {sensoryKeys.map((key) => (
             <div key={key} className="coffee-detail-sensory-row">
-              <span>{sensoryLabels[key]}</span>
+              <div className="coffee-detail-sensory-meta">
+                <span>{sensoryLabels[key].toUpperCase()}</span>
+                <strong>{`${sensory[key].toFixed(1).replace(".", ",")}/10`}</strong>
+              </div>
               <div className="coffee-detail-sensory-track" aria-hidden="true">
                 <div className="coffee-detail-sensory-fill" style={{ width: `${Math.max(0, Math.min(100, (sensory[key] / 10) * 100))}%` }} />
               </div>
-              <strong>{sensory[key].toFixed(1)}</strong>
             </div>
           ))}
         </div>
       </section>
+
+      {coffee.product_url ? (
+        <section className="coffee-detail-section">
+          <div className="coffee-detail-acquire">
+            <h3 className="section-title">Adquirir</h3>
+            <a className="coffee-detail-acquire-row" href={coffee.product_url} target="_blank" rel="noreferrer">
+              <span className="coffee-detail-acquire-main">
+                <UiIcon name="shop" className="ui-icon coffee-detail-acquire-icon" />
+                <strong>{acquireLabel}</strong>
+              </span>
+              <UiIcon name="chevron-right" className="ui-icon coffee-detail-acquire-chevron" />
+            </a>
+          </div>
+        </section>
+      ) : null}
 
       <section className="coffee-detail-section coffee-detail-opinions-section">
         <div className="coffee-detail-section-head">
           <h3 className="section-title">Opiniones</h3>
           <button
             type="button"
-            className="text-button coffee-detail-inline-action"
+            className="coffee-detail-opinions-cta"
             onClick={() => {
               setReviewSheetError(null);
               setShowReviewSheet(true);
             }}
           >
-            {currentUserReview ? "Editar" : "Escribir"}
+            {currentUserReview ? "EDITAR" : "+ AÑADIR"}
           </button>
         </div>
+        {!hasAnyOpinions ? (
+          <p className="coffee-detail-opinions-empty">No hay opiniones aún. ¡Sé el primero!</p>
+        ) : null}
         {currentUserReview ? (
           <article className="coffee-detail-opinion-preview">
             <p className="coffee-detail-opinion-label">Tu opinión</p>
@@ -4730,11 +5754,9 @@ function CoffeeDetailView({
             {currentUserReview.comment ? <p className="feed-text">{currentUserReview.comment}</p> : null}
             {currentUserReview.image_url ? <img className="coffee-detail-review-image" src={currentUserReview.image_url} alt="Tu reseña" loading="lazy" /> : null}
           </article>
-        ) : (
-          <p className="coffee-sub coffee-detail-opinion-empty">Aún no has escrito tu opinión.</p>
-        )}
+        ) : null}
         <ul className="coffee-list">
-          {otherReviews.length ? otherReviews.map((review) => (
+          {otherReviews.map((review) => (
             <li key={`${review.user_id}-${review.id ?? review.timestamp ?? 0}`} className="coffee-card coffee-detail-opinion-item">
               <div className="coffee-detail-opinion-head">
                 {review.user?.id ? (
@@ -4767,7 +5789,7 @@ function CoffeeDetailView({
               {review.comment ? <p className="feed-text">{review.comment}</p> : null}
               {review.image_url ? <img className="coffee-detail-review-image" src={review.image_url} alt="Imagen reseña" loading="lazy" /> : null}
             </li>
-          )) : <li className="coffee-card">Sin opiniones aún</li>}
+          ))}
         </ul>
       </section>
 
@@ -4785,45 +5807,39 @@ function CoffeeDetailView({
         >
           <div className="sheet-card coffee-detail-sheet coffee-detail-sensory-sheet" onClick={(event) => event.stopPropagation()}>
             <div className="sheet-handle" aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">PERFIL SENSORIAL</strong>
+            <header className="coffee-detail-sensory-sheet-head">
+              <h3 className="coffee-detail-sensory-sheet-title">Perfil sensorial</h3>
+              <p className="coffee-detail-sensory-sheet-copy">Tu opinión se unirá a la media de todas las valoraciones</p>
             </header>
             <div className="coffee-detail-sheet-body coffee-detail-sliders coffee-detail-sensory-sliders">
               {sensoryKeys.map((key) => (
                 <label key={key} className="coffee-detail-sensory-control">
                   <span className="coffee-detail-slider-label">
                     {sensoryLabels[key]}
-                    <strong>{sensoryDraft[key].toFixed(1)}</strong>
+                    <strong>{sensoryDraft[key].toFixed(1).replace(".", ",")}</strong>
                   </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={10}
-                    step={0.5}
-                    value={sensoryDraft[key]}
-                    onChange={(event) => onSensoryDraftChange({ ...sensoryDraft, [key]: Number(event.target.value) })}
-                  />
+                  <span className="coffee-detail-sensory-slider-row">
+                    <small>0</small>
+                    <input
+                      style={{ "--sensory-progress": `${Math.max(0, Math.min(100, (sensoryDraft[key] / 10) * 100))}%` } as CSSProperties}
+                      type="range"
+                      min={0}
+                      max={10}
+                      step={0.5}
+                      value={sensoryDraft[key]}
+                      onChange={(event) => onSensoryDraftChange({ ...sensoryDraft, [key]: Number(event.target.value) })}
+                    />
+                    <small>10</small>
+                  </span>
                 </label>
               ))}
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions">
               <button
                 type="button"
-                className="action-button action-button-ghost"
+                className="action-button coffee-detail-sensory-submit"
                 disabled={savingSensory}
-                onClick={() => {
-                  setSensorySheetError(null);
-                  setShowSensorySheet(false);
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="action-button"
-                disabled={!isSensoryDirty || savingSensory}
                 onClick={async () => {
-                  if (!isSensoryDirty) return;
                   setSavingSensory(true);
                   try {
                     await onSaveSensory();
@@ -4836,7 +5852,7 @@ function CoffeeDetailView({
                   }
                 }}
               >
-                {savingSensory ? "Guardando..." : "Guardar perfil"}
+                {savingSensory ? "Guardando..." : "Listo"}
               </button>
             </div>
             {sensorySheetError ? <p className="coffee-detail-sheet-error">{sensorySheetError}</p> : null}
@@ -4863,7 +5879,7 @@ function CoffeeDetailView({
             </header>
             <div className="coffee-detail-sheet-body coffee-detail-stock">
               <input
-                className="search-wide"
+                className="search-wide search-input-standard"
                 type="number"
                 min={0}
                 value={stockDraft.total}
@@ -5093,15 +6109,19 @@ function BrewLabView({
   brewCoffeeId,
   setBrewCoffeeId,
   coffees,
+  pantryItems,
+  onAddNotFoundCoffee,
   waterMl,
   setWaterMl,
   ratio,
   setRatio,
   timerSeconds,
+  setTimerSeconds,
   brewRunning,
   setBrewRunning,
   selectedCoffee,
-  coffeeGrams
+  coffeeGrams,
+  onSaveResultToDiary
 }: {
   brewStep: BrewStep;
   setBrewStep: (step: BrewStep) => void;
@@ -5110,195 +6130,1506 @@ function BrewLabView({
   brewCoffeeId: string;
   setBrewCoffeeId: (value: string) => void;
   coffees: CoffeeRow[];
+  pantryItems: Array<{ item: PantryItemRow; coffee: CoffeeRow; total: number; remaining: number; progress: number }>;
+  onAddNotFoundCoffee: () => void;
   waterMl: number;
   setWaterMl: (value: number) => void;
   ratio: number;
   setRatio: (value: number) => void;
   timerSeconds: number;
+  setTimerSeconds: (value: number) => void;
   brewRunning: boolean;
   setBrewRunning: (value: boolean) => void;
   selectedCoffee?: CoffeeRow;
   coffeeGrams: number;
+  onSaveResultToDiary: (taste: string) => Promise<void>;
 }) {
+  const [brewCoffeeQuery, setBrewCoffeeQuery] = useState("");
+  const [resultTaste, setResultTaste] = useState("");
+  const [savingResult, setSavingResult] = useState(false);
+  const q = normalizeLookupText(brewCoffeeQuery);
+  const filteredPantry = useMemo(
+    () =>
+      pantryItems.filter((row) => {
+        if (!q) return true;
+        return normalizeLookupText(row.coffee.nombre).includes(q) || normalizeLookupText(row.coffee.marca).includes(q);
+      }),
+    [pantryItems, q]
+  );
+  const filteredSuggestions = useMemo(
+    () =>
+      coffees
+        .filter((coffee) => {
+          if (!q) return true;
+          return normalizeLookupText(coffee.nombre).includes(q) || normalizeLookupText(coffee.marca).includes(q);
+        })
+        .slice(0, 24),
+    [coffees, q]
+  );
+  const coffeeGramsPrecise = useMemo(() => Number((waterMl / ratio).toFixed(1)), [ratio, waterMl]);
+  const coffeeGramsLabel = useMemo(() => coffeeGramsPrecise.toFixed(1).replace(".", ","), [coffeeGramsPrecise]);
+  const waterProgress = useMemo(() => {
+    const min = 150;
+    const max = 600;
+    return Math.max(0, Math.min(100, ((waterMl - min) / (max - min)) * 100));
+  }, [waterMl]);
+  const ratioProgress = useMemo(() => {
+    const min = 12;
+    const max = 20;
+    return Math.max(0, Math.min(100, ((ratio - min) / (max - min)) * 100));
+  }, [ratio]);
+  const brewAdvice = useMemo(() => {
+    const methodKey = normalizeLookupText(brewMethod);
+    if (!methodKey) return "";
+
+    let intensity = "";
+    if (methodKey.includes("espresso")) {
+      if (ratio < 16) intensity = "Perfil sedoso y cuerpo ligero";
+      else if (ratio < 20) intensity = "Equilibrio perfecto de dulzor";
+      else intensity = "Cuerpo intenso y textura densa";
+    } else if (methodKey.includes("italiana")) {
+      if (ratio < 18) intensity = "Sabor suave y retrogusto limpio";
+      else if (ratio < 21) intensity = "Intensidad clásica con mucho cuerpo";
+      else intensity = "Textura muy robusta y concentrada";
+    } else {
+      if (ratio < 13) intensity = "Cuerpo muy pesado y sabores potentes";
+      else if (ratio < 15) intensity = "Notas dulces muy marcadas y untuosas";
+      else if (ratio < 17.5) intensity = "Extracción equilibrada y balanceada";
+      else if (ratio < 19) intensity = "Mayor claridad aromática y cuerpo sutil";
+      else intensity = "Perfil muy ligero con notas acuosas";
+    }
+
+    let volumeDesc = "";
+    if (waterMl < 150) volumeDesc = "en formato de taza corta e intensa.";
+    else if (waterMl < 300) volumeDesc = "en una taza estándar ideal para el día a día.";
+    else volumeDesc = "en formato diseñado para compartir.";
+
+    return `${intensity} ${volumeDesc}`;
+  }, [brewMethod, ratio, waterMl]);
+  const baristaTips = useMemo(() => {
+    const methodKey = normalizeLookupText(brewMethod);
+    const isEspresso = methodKey.includes("espresso");
+    if (isEspresso) {
+      return { grind: "Fina", temperature: "90-93°C" };
+    }
+    return { grind: "Fina/Media", temperature: "80-85°C" };
+  }, [brewMethod]);
+  const brewTimeline = useMemo(() => getBrewTimelineForMethod(brewMethod, waterMl), [brewMethod, waterMl]);
+  const brewTotalSeconds = useMemo(() => brewTimeline.reduce((acc, phase) => acc + phase.durationSeconds, 0), [brewTimeline]);
+  const elapsedSeconds = useMemo(() => Math.max(0, Math.min(timerSeconds, brewTotalSeconds || timerSeconds)), [brewTotalSeconds, timerSeconds]);
+  const currentPhaseIndex = useMemo(() => {
+    if (!brewTimeline.length) return 0;
+    let elapsed = 0;
+    for (let i = 0; i < brewTimeline.length; i += 1) {
+      elapsed += brewTimeline[i].durationSeconds;
+      if (elapsedSeconds < elapsed) return i;
+    }
+    return Math.max(0, brewTimeline.length - 1);
+  }, [brewTimeline, elapsedSeconds]);
+  const currentPhase = brewTimeline[currentPhaseIndex] ?? { label: "Listo", instruction: "Proceso completado.", durationSeconds: 0 };
+  const nextPhase = brewTimeline[currentPhaseIndex + 1];
+  const elapsedBeforeCurrentPhase = useMemo(() => {
+    if (!brewTimeline.length) return 0;
+    return brewTimeline.slice(0, currentPhaseIndex).reduce((acc, phase) => acc + phase.durationSeconds, 0);
+  }, [brewTimeline, currentPhaseIndex]);
+  const remainingInPhase = useMemo(
+    () => Math.max(0, currentPhase.durationSeconds - Math.max(0, elapsedSeconds - elapsedBeforeCurrentPhase)),
+    [currentPhase.durationSeconds, elapsedBeforeCurrentPhase, elapsedSeconds]
+  );
+  const resultRecommendation = useMemo(() => getBrewDialRecommendation(resultTaste), [resultTaste]);
+  const tasteOptions = useMemo(
+    () => [
+      { label: "Amargo", icon: "taste-bitter" as IconName },
+      { label: "Acido", icon: "taste-acid" as IconName },
+      { label: "Equilibrado", icon: "taste-balance" as IconName },
+      { label: "Salado", icon: "taste-salty" as IconName },
+      { label: "Acuoso", icon: "taste-watery" as IconName },
+      { label: "Aspero", icon: "grind" as IconName },
+      { label: "Dulce", icon: "taste-sweet" as IconName }
+    ],
+    []
+  );
+
+  useEffect(() => {
+    if (brewStep !== "result") {
+      setResultTaste("");
+      setSavingResult(false);
+    }
+  }, [brewStep]);
+
   return (
     <>
-      <ol className="stepper" aria-label="Pasos de elabora">
-        {["method", "coffee", "config", "brewing", "result"].map((id) => (
-          <li key={id} className={`step ${brewStep === id ? "is-active" : ""}`}>{id.toUpperCase()}</li>
-        ))}
-      </ol>
-
       {brewStep === "method" ? (
-        <div className="method-grid">
+        <div className="brew-method-grid-native">
           {BREW_METHODS.map((method) => (
-            <button key={method} type="button" className={`method-card ${brewMethod === method ? "is-active" : ""}`} onClick={() => {
-              setBrewMethod(method);
+            <button key={method.name} type="button" className={`brew-method-card-native ${brewMethod === method.name ? "is-active" : ""}`} onClick={() => {
+              setBrewMethod(method.name);
+              setBrewCoffeeId("");
               setBrewStep("coffee");
             }}>
-              {method}
+              <img src={method.icon} alt={method.name} loading="lazy" />
+              <strong>{method.name.toUpperCase()}</strong>
             </button>
           ))}
         </div>
       ) : null}
 
       {brewStep === "coffee" ? (
-        <ul className="coffee-list">
-          {coffees.slice(0, 20).map((coffee) => (
-            <li key={coffee.id}>
-              <button type="button" className={`coffee-select ${brewCoffeeId === coffee.id ? "is-active" : ""}`} onClick={() => {
-                setBrewCoffeeId(coffee.id);
-                setBrewStep("config");
-              }}>
-                <span>{coffee.nombre}</span>
-                <small>{coffee.marca}</small>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <section className="brew-choose-coffee">
+          <div className="brew-coffee-block">
+            <p className="section-title">Tu despensa</p>
+            {filteredPantry.length ? (
+              <div className="brew-pantry-row">
+                {filteredPantry.map((row) => (
+                  <button
+                    key={`${row.coffee.id}-pantry`}
+                    type="button"
+                    className="brew-pantry-card"
+                    onClick={() => {
+                      setBrewCoffeeId(row.coffee.id);
+                      setBrewStep("config");
+                    }}
+                  >
+                    {row.coffee.image_url ? (
+                      <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" />
+                    ) : (
+                      <span className="brew-pantry-fallback" aria-hidden="true">{row.coffee.nombre.slice(0, 1).toUpperCase()}</span>
+                    )}
+                    <div className="brew-pantry-body">
+                      <strong>{row.coffee.nombre}</strong>
+                      <small>{row.remaining}G REST.</small>
+                      <div className="brew-pantry-progress" aria-hidden="true">
+                        <span style={{ width: `${Math.max(0, Math.min(100, row.progress * 100))}%` }} />
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="coffee-sub">{q ? "No hay coincidencias en tu despensa." : "Tu despensa está vacía."}</p>
+            )}
+          </div>
+
+          <input
+            className="search-wide search-input-standard brew-coffee-search"
+            value={brewCoffeeQuery}
+            onChange={(event) => setBrewCoffeeQuery(event.target.value)}
+            placeholder="Buscar café..."
+          />
+
+          <div className="brew-coffee-block-head">
+            <p className="section-title">Sugerencias</p>
+            <button type="button" className="text-button brew-add-coffee-link" onClick={onAddNotFoundCoffee}>
+              <UiIcon name="add" className="ui-icon" />
+              Crear mi café
+            </button>
+          </div>
+
+          {filteredSuggestions.length ? (
+            <ul className="brew-suggestions-list">
+              {filteredSuggestions.map((coffee) => (
+                <li key={coffee.id}>
+                  <button
+                    type="button"
+                    className={`brew-suggestion-card ${brewCoffeeId === coffee.id ? "is-active" : ""}`}
+                    onClick={() => {
+                      setBrewCoffeeId(coffee.id);
+                      setBrewStep("config");
+                    }}
+                  >
+                    {coffee.image_url ? (
+                      <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+                    ) : (
+                      <span className="brew-suggestion-fallback" aria-hidden="true">{coffee.nombre.slice(0, 1).toUpperCase()}</span>
+                    )}
+                    <span>
+                      <strong>{coffee.nombre}</strong>
+                      <small>{coffee.marca}</small>
+                    </span>
+                    <UiIcon name="add" className="ui-icon" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="coffee-sub">No hay sugerencias disponibles.</p>
+          )}
+        </section>
       ) : null}
 
       {brewStep === "config" ? (
-        <section className="config-card">
-          <p className="section-title">Configuracion</p>
-          <p className="feed-meta">Metodo: {brewMethod}</p>
-          <p className="feed-meta">Cafe: {selectedCoffee?.nombre ?? "No seleccionado"}</p>
+        <section className="brew-config-native">
+          <div className="brew-config-layout">
+            <div className="brew-config-main">
+              <p className="section-title brew-config-heading">AJUSTES TÉCNICOS</p>
+              <article className="brew-tech-card">
+                <div className="brew-tech-top">
+                  <div>
+                    <span>AGUA</span>
+                    <strong className="is-water">{waterMl} ml</strong>
+                  </div>
+                  <div>
+                    <span>CAFÉ</span>
+                    <strong>{coffeeGramsLabel} g</strong>
+                  </div>
+                </div>
 
-          <label className="slider-row">
-            Agua {waterMl} ml
-            <input type="range" min={150} max={600} step={10} value={waterMl} onChange={(event) => setWaterMl(Number(event.target.value))} />
-          </label>
+                <label className="brew-tech-slider">
+                  <span>CANTIDAD DE AGUA</span>
+                  <input
+                    className="brew-tech-range is-water"
+                    style={{ "--range-progress": `${waterProgress}%` } as CSSProperties}
+                    type="range"
+                    min={150}
+                    max={600}
+                    step={10}
+                    value={waterMl}
+                    onChange={(event) => setWaterMl(Number(event.target.value))}
+                  />
+                </label>
 
-          <label className="slider-row">
-            Ratio 1:{ratio}
-            <input type="range" min={12} max={20} step={1} value={ratio} onChange={(event) => setRatio(Number(event.target.value))} />
-          </label>
+                <label className="brew-tech-slider">
+                  <span>RATIO (INTENSIDAD)</span>
+                  <input
+                    className="brew-tech-range"
+                    style={{ "--range-progress": `${ratioProgress}%` } as CSSProperties}
+                    type="range"
+                    min={12}
+                    max={20}
+                    step={1}
+                    value={ratio}
+                    onChange={(event) => setRatio(Number(event.target.value))}
+                  />
+                </label>
 
-          <p className="metric-pill">Café recomendado: {coffeeGrams} g</p>
-          <button className="action-button" type="button" onClick={() => setBrewStep("brewing")}>Empezar preparacion</button>
+                <div className="brew-tech-advice">
+                  <UiIcon name="star-filled" className="ui-icon" />
+                  <p>{brewAdvice}</p>
+                </div>
+              </article>
+            </div>
+
+            <aside className="brew-barista-block">
+              <p className="section-title brew-config-heading">CONSEJOS DEL BARISTA</p>
+              <div className="brew-barista-grid">
+                <article className="brew-barista-tip">
+                  <span className="brew-barista-icon"><UiIcon name="grind" className="ui-icon" /></span>
+                  <div>
+                    <small>MOLIENDA</small>
+                    <strong>{baristaTips.grind}</strong>
+                  </div>
+                </article>
+                <article className="brew-barista-tip">
+                  <span className="brew-barista-icon"><UiIcon name="thermostat" className="ui-icon" /></span>
+                  <div>
+                    <small>TEMPERATURA</small>
+                    <strong>{baristaTips.temperature}</strong>
+                  </div>
+                </article>
+              </div>
+            </aside>
+          </div>
         </section>
       ) : null}
 
       {brewStep === "brewing" ? (
-        <section className="brew-timer">
-          <p className="section-title">Preparando {brewMethod}</p>
-          <strong className="timer-value">{timerSeconds}s</strong>
-          <div className="timer-actions">
-            <button className="action-button" type="button" onClick={() => setBrewRunning(!brewRunning)}>{brewRunning ? "Pausar" : "Iniciar"}</button>
-            <button className="action-button action-button-ghost" type="button" onClick={() => {
-              setBrewRunning(false);
-              setBrewStep("result");
-            }}>
-              Finalizar
+        <section className="brew-prep-screen">
+          <article className="brew-prep-card">
+            <div className="brew-prep-head">
+              <p className="brew-prep-phase">{currentPhase.label}</p>
+              <strong className={`brew-prep-clock ${remainingInPhase <= 5 && brewRunning ? "is-warning" : ""}`.trim()}>
+                {formatClock(remainingInPhase)}
+              </strong>
+              <p className="brew-prep-next">Siguiente: {nextPhase?.label ?? "Finalizar"}</p>
+            </div>
+
+            <div className="brew-prep-timeline">
+              <div className="brew-prep-time-labels" aria-hidden="true">
+                {brewTimeline.map((phase) => {
+                  const widthWeight = Math.max(phase.durationSeconds / Math.max(1, brewTotalSeconds), 0.08);
+                  return (
+                    <small key={`label-${phase.label}`} style={{ flexGrow: widthWeight }}>
+                      {phase.durationSeconds}s
+                    </small>
+                  );
+                })}
+              </div>
+              <div className="brew-prep-bars" aria-hidden="true">
+                {brewTimeline.map((phase, index) => {
+                  const widthWeight = Math.max(phase.durationSeconds / Math.max(1, brewTotalSeconds), 0.08);
+                  const elapsedBefore = brewTimeline.slice(0, index).reduce((acc, item) => acc + item.durationSeconds, 0);
+                  const progress = elapsedSeconds <= elapsedBefore
+                    ? 0
+                    : elapsedSeconds >= elapsedBefore + phase.durationSeconds
+                      ? 1
+                      : (elapsedSeconds - elapsedBefore) / phase.durationSeconds;
+                  return (
+                    <span key={`bar-${phase.label}-${index}`} className="brew-prep-bar" style={{ flexGrow: widthWeight }}>
+                      <i style={{ width: `${Math.max(0, Math.min(100, progress * 100))}%` }} />
+                    </span>
+                  );
+                })}
+              </div>
+              <div className="brew-prep-total">
+                <span>TOTAL {formatClock(brewTotalSeconds)}</span>
+                <strong>{formatClock(elapsedSeconds)}</strong>
+              </div>
+            </div>
+
+            <div className="brew-prep-instruction">
+              <p>{currentPhase.instruction}</p>
+            </div>
+          </article>
+
+          <div className={`brew-prep-actions ${elapsedSeconds > 0 ? "" : "is-single"}`.trim()}>
+            {elapsedSeconds > 0 ? (
+              <button
+                className="action-button action-button-ghost brew-prep-action-secondary"
+                type="button"
+                onClick={() => {
+                  setBrewRunning(false);
+                  setTimerSeconds(0);
+                }}
+              >
+                REINICIAR
+              </button>
+            ) : null}
+            <button
+              className={`action-button brew-prep-action-primary ${brewRunning ? "is-running" : ""}`.trim()}
+              type="button"
+              onClick={() => setBrewRunning(!brewRunning)}
+            >
+              {brewRunning ? "PAUSAR" : "INICIAR"}
             </button>
           </div>
         </section>
       ) : null}
 
       {brewStep === "result" ? (
-        <section className="config-card">
-          <p className="section-title">Resultado</p>
-          <p className="feed-meta">Metodo: {brewMethod}</p>
-          <p className="feed-meta">Cafe: {selectedCoffee?.nombre ?? "-"}</p>
-          <p className="metric-pill">Recomendacion: sube 1 click molienda para mas dulzor</p>
-          <button className="action-button" type="button" onClick={() => setBrewStep("method")}>Nueva preparacion</button>
+        <section className="brew-result-screen">
+          <article className="brew-result-card">
+            <p className="brew-result-title">QUE SABOR HAS OBTENIDO?</p>
+            <div className="brew-result-grid">
+              {tasteOptions.map((taste) => (
+                <button
+                  key={taste.label}
+                  type="button"
+                  className={`brew-taste-chip ${resultTaste === taste.label ? "is-active" : ""}`.trim()}
+                  onClick={() => setResultTaste(taste.label)}
+                >
+                  <UiIcon name={taste.icon} className="ui-icon" />
+                  <span>{taste.label.toUpperCase()}</span>
+                </button>
+              ))}
+            </div>
+            {resultRecommendation ? (
+              <div className="brew-result-reco">
+                <div className="brew-result-reco-head">
+                  <UiIcon name="star-filled" className="ui-icon" />
+                  <strong>Recomendacion</strong>
+                </div>
+                <p>{resultRecommendation}</p>
+              </div>
+            ) : null}
+          </article>
+
+          <div className="brew-result-actions">
+            <button
+              className="action-button action-button-ghost brew-result-action-secondary"
+              type="button"
+              onClick={() => {
+                setBrewRunning(false);
+                setTimerSeconds(0);
+                setBrewStep("method");
+              }}
+            >
+              REINICIAR
+            </button>
+            <button
+              className="action-button brew-result-action-primary"
+              type="button"
+              disabled={!selectedCoffee || !resultTaste || savingResult}
+              onClick={async () => {
+                if (!selectedCoffee || !resultTaste || savingResult) return;
+                setSavingResult(true);
+                try {
+                  await onSaveResultToDiary(resultTaste);
+                } finally {
+                  setSavingResult(false);
+                }
+              }}
+            >
+              {savingResult ? "GUARDANDO..." : "GUARDAR EN DIARIO"}
+            </button>
+          </div>
         </section>
       ) : null}
     </>
   );
 }
 
+function CreateCoffeeView({
+  draft,
+  imagePreviewUrl,
+  saving,
+  error,
+  countryOptions,
+  specialtyOptions,
+  onChange,
+  onPickImage,
+  onRemoveImage,
+  onClose,
+  onSave,
+  fullPage
+}: {
+  draft: {
+    name: string;
+    brand: string;
+    specialty: string;
+    country: string;
+    format: string;
+    roast: string;
+    variety: string;
+    hasCaffeine: boolean;
+    totalGrams: number;
+  };
+  imagePreviewUrl: string;
+  saving: boolean;
+  error: string | null;
+  countryOptions: string[];
+  specialtyOptions: string[];
+  onChange: (next: {
+    name: string;
+    brand: string;
+    specialty: string;
+    country: string;
+    format: string;
+    roast: string;
+    variety: string;
+    hasCaffeine: boolean;
+    totalGrams: number;
+  }) => void;
+  onPickImage: (file: File | null, previewUrl: string) => void;
+  onRemoveImage: () => void;
+  onClose: () => void;
+  onSave: () => void;
+  fullPage: boolean;
+}) {
+  const rootRef = useRef<HTMLElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const [attemptedSave, setAttemptedSave] = useState(false);
+  const requiredValues = [
+    draft.name.trim(),
+    draft.brand.trim(),
+    draft.specialty.trim(),
+    draft.country.trim(),
+    draft.format.trim()
+  ];
+  const missingRequiredCount = requiredValues.filter((value) => !value).length;
+  const canSave = missingRequiredCount === 0;
+  const nameMissing = attemptedSave && !draft.name.trim();
+  const brandMissing = attemptedSave && !draft.brand.trim();
+  const specialtyMissing = attemptedSave && !draft.specialty.trim();
+  const countryMissing = attemptedSave && !draft.country.trim();
+  const formatMissing = attemptedSave && !draft.format.trim();
+
+  const handleSaveAttempt = () => {
+    setAttemptedSave(true);
+    if (!canSave) {
+      const firstInvalid = rootRef.current?.querySelector<HTMLInputElement | HTMLSelectElement>(".is-invalid .search-wide");
+      firstInvalid?.focus();
+      return;
+    }
+    onSave();
+  };
+
+  const getSpecialtyIcon = (value: string): IconName => {
+    const key = normalizeLookupText(value);
+    if (key.includes("arabica")) return "leaf";
+    if (key.includes("mezcla") || key.includes("blend")) return "blend";
+    return "specialty";
+  };
+
+  const getRoastIcon = (value: string): IconName => {
+    const key = normalizeLookupText(value);
+    if (key.includes("ligero") || key.includes("claro") || key.includes("light")) return "roast-light";
+    if (key.includes("medio-oscuro") || key.includes("oscuro") || key.includes("dark")) return "roast-dark";
+    return "roast-medium";
+  };
+
+  const roastChoices = useMemo(
+    () => [
+      { label: "Ligero", value: "Ligero" },
+      { label: "Medio", value: "Medio" },
+      { label: "Medio-oscuro", value: "Medio-oscuro" }
+    ],
+    []
+  );
+
+  const formatChoices = useMemo(
+    () => [
+      { label: "Grano", value: "Grano" },
+      { label: "Molido", value: "Molido" },
+      { label: "Capsula", value: "Capsula" }
+    ],
+    []
+  );
+
+  return (
+    <section ref={rootRef} className={`create-coffee-view ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}>
+      <div className="create-coffee-head">
+        <p className="section-title">Datos del café</p>
+      </div>
+      <p className="create-coffee-hint">{attemptedSave ? (canSave ? "Listo para guardar" : `Faltan ${missingRequiredCount} campos obligatorios`) : ""}</p>
+      <div className="create-coffee-image create-coffee-image-top create-coffee-image-card">
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="file-input-hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0] ?? null;
+            if (!file) return;
+            const previewUrl = URL.createObjectURL(file);
+            onPickImage(file, previewUrl);
+            event.currentTarget.value = "";
+          }}
+        />
+        {imagePreviewUrl ? (
+          <div className="create-coffee-image-preview-wrap">
+            <img src={imagePreviewUrl} alt="Previsualización café" loading="lazy" />
+            <button type="button" className="icon-button" onClick={onRemoveImage} aria-label="Quitar imagen">
+              <UiIcon name="close" className="ui-icon" />
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="create-coffee-image-empty" onClick={() => imageInputRef.current?.click()}>
+            <span className="create-coffee-image-empty-icon" aria-hidden="true">
+              <UiIcon name="camera" className="ui-icon" />
+              <span className="create-coffee-image-empty-plus">+</span>
+            </span>
+            <span>Añadir foto</span>
+          </button>
+        )}
+        <div className="create-coffee-image-fields">
+          <div className={`create-coffee-inline-field ${nameMissing ? "is-invalid" : ""}`.trim()}>
+            <input
+              className="search-wide"
+              placeholder="Nombre del café"
+              value={draft.name}
+              onChange={(event) => onChange({ ...draft, name: event.target.value })}
+              aria-invalid={nameMissing}
+            />
+          </div>
+          <div className={`create-coffee-inline-field ${brandMissing ? "is-invalid" : ""}`.trim()}>
+            <input
+              className="search-wide"
+              placeholder="Marca"
+              value={draft.brand}
+              onChange={(event) => onChange({ ...draft, brand: event.target.value })}
+              aria-invalid={brandMissing}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="create-coffee-profile-origin">
+        <p className="create-coffee-block-title">Perfil y Origen</p>
+        <p className="create-coffee-block-subtitle">Especialidad</p>
+        <div className={`create-coffee-choice-grid create-coffee-choice-grid-specialty ${specialtyMissing ? "is-invalid" : ""}`.trim()}>
+          {specialtyOptions.length ? specialtyOptions.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={`create-coffee-choice ${draft.specialty === value ? "is-selected" : ""}`.trim()}
+              onClick={() => onChange({ ...draft, specialty: value })}
+              aria-pressed={draft.specialty === value}
+            >
+              <UiIcon name={getSpecialtyIcon(value)} className="ui-icon" />
+              <span>{value}</span>
+            </button>
+          )) : (
+            <p className="coffee-sub">Sin opciones</p>
+          )}
+        </div>
+        <p className="create-coffee-block-subtitle">Tueste</p>
+        <div className="create-coffee-choice-grid create-coffee-choice-grid-roast">
+          {roastChoices.map((choice) => (
+            <button
+              key={choice.value}
+              type="button"
+              className={`create-coffee-choice ${draft.roast === choice.value ? "is-selected" : ""}`.trim()}
+              onClick={() => onChange({ ...draft, roast: draft.roast === choice.value ? "" : choice.value })}
+              aria-pressed={draft.roast === choice.value}
+            >
+              <UiIcon name={getRoastIcon(choice.value)} className="ui-icon" />
+              <span>{choice.label}</span>
+            </button>
+          ))}
+        </div>
+        <label className={`create-coffee-country ${countryMissing ? "is-invalid" : ""}`.trim()}>
+          <span>País</span>
+          <select
+            className="search-wide"
+            value={draft.country}
+            onChange={(event) => onChange({ ...draft, country: event.target.value })}
+            aria-invalid={countryMissing}
+          >
+            <option value="">Selecciona</option>
+            {countryOptions.map((value) => (
+              <option key={value} value={value}>{value}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className={`create-coffee-format-block ${formatMissing ? "is-invalid" : ""}`.trim()}>
+        <p className="create-coffee-block-title">Formato</p>
+        <label className="create-coffee-caffeine-row">
+          <span>¿Tiene cafeína?</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={draft.hasCaffeine}
+            className={`create-coffee-caffeine-switch ${draft.hasCaffeine ? "is-on" : ""}`.trim()}
+            onClick={() => onChange({ ...draft, hasCaffeine: !draft.hasCaffeine })}
+          >
+            <span />
+          </button>
+        </label>
+        <p className="create-coffee-block-subtitle">Presentación</p>
+        <div className="create-coffee-choice-grid create-coffee-choice-grid-format">
+          {formatChoices.map((choice) => (
+            <button
+              key={choice.value}
+              type="button"
+              className={`create-coffee-choice ${draft.format === choice.value ? "is-selected" : ""}`.trim()}
+              onClick={() => onChange({ ...draft, format: choice.value })}
+              aria-pressed={draft.format === choice.value}
+            >
+              <UiIcon
+                name={
+                  choice.value === "Grano"
+                    ? "rugby"
+                    : choice.value === "Molido"
+                      ? "blend"
+                      : "recycle"
+                }
+                className="ui-icon"
+              />
+              <span>{choice.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {error ? <p className="create-coffee-error">{error}</p> : null}
+      {!fullPage ? (
+        <div className="create-coffee-actions">
+          <button type="button" className="action-button action-button-ghost" onClick={onClose} disabled={saving}>
+            Cancelar
+          </button>
+          <button type="button" className="action-button" onClick={handleSaveAttempt} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar"}
+          </button>
+        </div>
+      ) : null}
+      {fullPage ? (
+        <button type="button" className="action-button create-coffee-mobile-save" onClick={handleSaveAttempt} disabled={saving}>
+          {saving ? "Guardando..." : "Guardar café"}
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
 function DiaryView({
   tab,
   setTab,
+  period,
   entries,
-  pantryRows
+  pantryRows,
+  onDeleteEntry,
+  onEditEntry,
+  onUpdatePantryStock,
+  onRemovePantryItem,
+  onOpenCoffee
 }: {
   tab: "actividad" | "despensa";
   setTab: (value: "actividad" | "despensa") => void;
+  period: "hoy" | "7d" | "30d";
   entries: DiaryEntryRow[];
   pantryRows: Array<{ item: PantryItemRow; coffee?: CoffeeRow }>;
+  onDeleteEntry: (entryId: number) => Promise<void>;
+  onEditEntry: (entryId: number, amountMl: number, caffeineMg: number, preparationType: string) => Promise<void>;
+  onUpdatePantryStock: (coffeeId: string, totalGrams: number, gramsRemaining: number) => Promise<void>;
+  onRemovePantryItem: (coffeeId: string) => Promise<void>;
+  onOpenCoffee: (coffeeId: string) => void;
 }) {
-  const [period, setPeriod] = useState<"hoy" | "7d" | "30d">("hoy");
+  const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
+  const [editEntryId, setEditEntryId] = useState<number | null>(null);
+  const [editAmountMl, setEditAmountMl] = useState("");
+  const [editCaffeineMg, setEditCaffeineMg] = useState("");
+  const [editPreparationType, setEditPreparationType] = useState("");
+  const [savingEditEntry, setSavingEditEntry] = useState(false);
+  const [pantryOptionsCoffeeId, setPantryOptionsCoffeeId] = useState<string | null>(null);
+  const [pantryDeleteConfirmCoffeeId, setPantryDeleteConfirmCoffeeId] = useState<string | null>(null);
+  const [stockEditCoffeeId, setStockEditCoffeeId] = useState<string | null>(null);
+  const [stockEditTotal, setStockEditTotal] = useState("");
+  const [stockEditRemaining, setStockEditRemaining] = useState("");
+  const [savingStock, setSavingStock] = useState(false);
+  const [removingStock, setRemovingStock] = useState(false);
   const visibleEntries = useMemo(() => {
-    if (period === "hoy") return entries.filter((entry) => withinDays(entry.timestamp, 1));
-    if (period === "7d") return entries.filter((entry) => withinDays(entry.timestamp, 7));
-    return entries.filter((entry) => withinDays(entry.timestamp, 30));
+    const now = new Date();
+    const start = new Date(now);
+    if (period === "hoy") {
+      start.setHours(0, 0, 0, 0);
+    } else if (period === "7d") {
+      const day = start.getDay(); // Sunday=0
+      const diffToMonday = day === 0 ? 6 : day - 1;
+      start.setDate(start.getDate() - diffToMonday);
+      start.setHours(0, 0, 0, 0);
+    } else {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+    }
+    const startMs = start.getTime();
+    return entries
+      .filter((entry) => Number(entry.timestamp) >= startMs)
+      .sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
   }, [entries, period]);
 
   const analytics = useMemo(() => {
     const caffeine = visibleEntries.reduce((acc, entry) => acc + Math.max(0, entry.caffeine_mg || 0), 0);
+    const hydrationMl = visibleEntries
+      .filter((entry) => (entry.type || "").toUpperCase() === "WATER")
+      .reduce((acc, entry) => acc + Math.max(0, entry.amount_ml || 0), 0);
     const coffeeCups = visibleEntries.filter((entry) => (entry.type || "").toUpperCase() !== "WATER").length;
     const waterEntries = visibleEntries.filter((entry) => (entry.type || "").toUpperCase() === "WATER").length;
-    return { caffeine, coffeeCups, waterEntries };
+    const avgCaffeine = coffeeCups > 0 ? Math.round(caffeine / coffeeCups) : 0;
+    return { caffeine, hydrationMl, coffeeCups, waterEntries, avgCaffeine };
   }, [visibleEntries]);
+  const hydrationTargetMl = period === "hoy" ? 2000 : period === "7d" ? 14000 : 60000;
+  const caffeineTargetMg = period === "hoy" ? 160 : period === "7d" ? 1120 : 4800;
+  const hydrationProgressPct = Math.max(0, Math.min(100, Math.round((analytics.hydrationMl / hydrationTargetMl) * 100)));
+  const caffeineTrendPct = Math.round(((analytics.caffeine - caffeineTargetMg) / Math.max(1, caffeineTargetMg)) * 100);
+  const hydrationTrendPct = Math.round(((analytics.hydrationMl - hydrationTargetMl) / Math.max(1, hydrationTargetMl)) * 100);
+  const chartData = useMemo(() => {
+    if (period === "hoy") {
+      const byHour = new Map<number, { caffeine: number; water: number }>();
+      visibleEntries.forEach((entry) => {
+        const hour = new Date(entry.timestamp).getHours();
+        const prev = byHour.get(hour) ?? { caffeine: 0, water: 0 };
+        if ((entry.type || "").toUpperCase() === "WATER") {
+          prev.water += Math.max(0, entry.amount_ml || 0);
+        } else {
+          prev.caffeine += Math.max(0, entry.caffeine_mg || 0);
+        }
+        byHour.set(hour, prev);
+      });
+      return Array.from({ length: 24 }).map((_, idx) => {
+        const values = byHour.get(idx) ?? { caffeine: 0, water: 0 };
+        return { label: `${String(idx).padStart(2, "0")}`, caffeine: values.caffeine, water: values.water };
+      });
+    }
+
+    if (period === "7d") {
+      const dayLabels = ["L", "M", "X", "J", "V", "S", "D"];
+      const byDay = new Map<number, { caffeine: number; water: number }>();
+      visibleEntries.forEach((entry) => {
+        const jsDay = new Date(entry.timestamp).getDay(); // Sun=0..Sat=6
+        const mondayStartIndex = jsDay === 0 ? 6 : jsDay - 1;
+        const prev = byDay.get(mondayStartIndex) ?? { caffeine: 0, water: 0 };
+        if ((entry.type || "").toUpperCase() === "WATER") {
+          prev.water += Math.max(0, entry.amount_ml || 0);
+        } else {
+          prev.caffeine += Math.max(0, entry.caffeine_mg || 0);
+        }
+        byDay.set(mondayStartIndex, prev);
+      });
+      return dayLabels.map((label, idx) => {
+        const values = byDay.get(idx) ?? { caffeine: 0, water: 0 };
+        return { label, caffeine: values.caffeine, water: values.water };
+      });
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const byDay = new Map<number, { caffeine: number; water: number }>();
+    visibleEntries.forEach((entry) => {
+      const d = new Date(entry.timestamp);
+      const day = d.getDate();
+      const prev = byDay.get(day) ?? { caffeine: 0, water: 0 };
+      if ((entry.type || "").toUpperCase() === "WATER") {
+        prev.water += Math.max(0, entry.amount_ml || 0);
+      } else {
+        prev.caffeine += Math.max(0, entry.caffeine_mg || 0);
+      }
+      byDay.set(day, prev);
+    });
+    return Array.from({ length: daysInMonth }).map((_, idx) => {
+      const day = idx + 1;
+      const values = byDay.get(day) ?? { caffeine: 0, water: 0 };
+      return { label: String(day), caffeine: values.caffeine, water: values.water };
+    });
+  }, [period, visibleEntries]);
+  const chartScrollRef = useRef<HTMLDivElement | null>(null);
+  const chartPointerIdRef = useRef<number | null>(null);
+  const chartDragStartXRef = useRef(0);
+  const chartDragStartScrollRef = useRef(0);
+  const [chartDragging, setChartDragging] = useState(false);
+
+  useEffect(() => {
+    const node = chartScrollRef.current;
+    if (!node) return;
+    node.scrollLeft = 0;
+  }, [period, chartData.length]);
+  const sortedPantryRows = useMemo(
+    () => [...pantryRows].sort((a, b) => Number(b.item.last_updated || 0) - Number(a.item.last_updated || 0)),
+    [pantryRows]
+  );
+  const entryImageByCoffeeId = useMemo(() => {
+    const map = new Map<string, string>();
+    sortedPantryRows.forEach((row) => {
+      const id = String(row.item.coffee_id || "");
+      const image = row.coffee?.image_url || "";
+      if (id && image && !map.has(id)) map.set(id, image);
+    });
+    return map;
+  }, [sortedPantryRows]);
+  const entryBrandByCoffeeId = useMemo(() => {
+    const map = new Map<string, string>();
+    sortedPantryRows.forEach((row) => {
+      const id = String(row.item.coffee_id || "");
+      const brand = (row.coffee?.marca || "").trim();
+      if (id && brand && !map.has(id)) map.set(id, brand);
+    });
+    return map;
+  }, [sortedPantryRows]);
+  const diaryRows = useMemo(() => {
+    const rows: Array<{ type: "header"; key: string; label: string } | { type: "entry"; key: string; entry: DiaryEntryRow }> = [];
+    let lastDayKey = "";
+    visibleEntries.forEach((entry) => {
+      const date = new Date(entry.timestamp);
+      const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      if (period !== "hoy" && dayKey !== lastDayKey) {
+        rows.push({
+          type: "header",
+          key: `header-${dayKey}`,
+          label: date.toLocaleDateString("es-ES", { day: "numeric", month: "long" })
+        });
+        lastDayKey = dayKey;
+      }
+      rows.push({ type: "entry", key: `entry-${entry.id}`, entry });
+    });
+    return rows;
+  }, [period, visibleEntries]);
+  const stockEditTarget = useMemo(
+    () => sortedPantryRows.find((row) => row.item.coffee_id === stockEditCoffeeId) ?? null,
+    [sortedPantryRows, stockEditCoffeeId]
+  );
+  const editEntryTarget = useMemo(
+    () => visibleEntries.find((entry) => entry.id === editEntryId) ?? null,
+    [editEntryId, visibleEntries]
+  );
+  const editEntryIsWater = (editEntryTarget?.type || "").toUpperCase() === "WATER";
+  const parsedStockTotal = Number(stockEditTotal || 0);
+  const parsedStockRemaining = Number(stockEditRemaining || 0);
+  const canSaveStock =
+    Number.isFinite(parsedStockTotal) &&
+    Number.isFinite(parsedStockRemaining) &&
+    parsedStockTotal >= 1 &&
+    parsedStockRemaining >= 0 &&
+    parsedStockRemaining <= parsedStockTotal;
+  const stockValidationMessage =
+    (!Number.isFinite(parsedStockTotal) || !Number.isFinite(parsedStockRemaining))
+      ? "Introduce valores válidos."
+      : parsedStockTotal < 1
+      ? "El total debe ser mayor que 0."
+      : parsedStockRemaining < 0
+        ? "El restante no puede ser negativo."
+        : parsedStockRemaining > parsedStockTotal
+          ? "El restante no puede superar el total."
+          : "";
+  const parsedEditAmount = Number(editAmountMl || 0);
+  const parsedEditCaffeine = Number(editCaffeineMg || 0);
+  const canSaveEditEntry =
+    Number.isFinite(parsedEditAmount) &&
+    parsedEditAmount > 0 &&
+    (editEntryIsWater || (Number.isFinite(parsedEditCaffeine) && parsedEditCaffeine >= 0));
+  const editValidationMessage =
+    !Number.isFinite(parsedEditAmount)
+      ? "Introduce una cantidad válida."
+      : parsedEditAmount <= 0
+      ? "La cantidad debe ser mayor que 0 ml."
+      : (!editEntryIsWater && !Number.isFinite(parsedEditCaffeine))
+        ? "Introduce una cafeína válida."
+      : (!editEntryIsWater && parsedEditCaffeine < 0)
+        ? "La cafeína no puede ser negativa."
+        : "";
 
   return (
     <>
       <article className="diary-analytics-card">
-        <p className="section-title">Consumo de cafeina</p>
+        <div className="diary-analytics-top">
+          <div className="diary-analytics-head-block">
+            <p className="metric-label diary-analytics-label">
+              CAFEÍNA ESTIMADA
+              <span className="diary-analytics-info" aria-hidden="true">i</span>
+            </p>
+            <p className="analytics-value diary-analytics-main-value">{analytics.caffeine} mg</p>
+            <span className={`diary-analytics-trend ${caffeineTrendPct >= 0 ? "is-up" : "is-down"}`.trim()}>
+              {caffeineTrendPct >= 0 ? "↑" : "↓"} {Math.abs(caffeineTrendPct)}%
+            </span>
+          </div>
+          <div className="diary-analytics-head-block diary-analytics-hydration">
+            <p className="metric-label diary-analytics-label">HIDRATACIÓN</p>
+            <p className="analytics-value diary-analytics-main-value">{analytics.hydrationMl} ml</p>
+            <span className={`diary-analytics-trend is-water ${hydrationTrendPct >= 0 ? "is-up" : "is-down"}`.trim()}>
+              {hydrationTrendPct >= 0 ? "↑" : "↓"} {Math.abs(hydrationTrendPct)}%
+            </span>
+          </div>
+        </div>
+        <div
+          ref={chartScrollRef}
+          className={`diary-chart-scroll ${chartDragging ? "is-dragging" : ""}`.trim()}
+          aria-label="Gráfico de consumo"
+          onPointerDown={(event) => {
+            const node = chartScrollRef.current;
+            if (!node) return;
+            if (node.scrollWidth <= node.clientWidth) return;
+            event.preventDefault();
+            chartPointerIdRef.current = event.pointerId;
+            chartDragStartXRef.current = event.clientX;
+            chartDragStartScrollRef.current = node.scrollLeft;
+            setChartDragging(true);
+            node.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            const node = chartScrollRef.current;
+            if (!node || chartPointerIdRef.current !== event.pointerId) return;
+            event.preventDefault();
+            const delta = event.clientX - chartDragStartXRef.current;
+            node.scrollLeft = chartDragStartScrollRef.current - delta;
+          }}
+          onPointerUp={(event) => {
+            const node = chartScrollRef.current;
+            if (!node || chartPointerIdRef.current !== event.pointerId) return;
+            chartPointerIdRef.current = null;
+            setChartDragging(false);
+            if (node.hasPointerCapture(event.pointerId)) node.releasePointerCapture(event.pointerId);
+          }}
+          onPointerCancel={(event) => {
+            const node = chartScrollRef.current;
+            if (!node || chartPointerIdRef.current !== event.pointerId) return;
+            chartPointerIdRef.current = null;
+            setChartDragging(false);
+            if (node.hasPointerCapture(event.pointerId)) node.releasePointerCapture(event.pointerId);
+          }}
+          onPointerLeave={() => {
+            chartPointerIdRef.current = null;
+            setChartDragging(false);
+          }}
+        >
+          <div className="diary-chart">
+            {chartData.map((item) => {
+              const caffeineRatio = Math.max(0.08, Math.min(1, item.caffeine / 400));
+              const waterRatio = Math.max(0.08, Math.min(1, item.water / 2000));
+              return (
+                <div key={item.label} className="diary-chart-col">
+                  <div className="diary-chart-bars">
+                    <span className="diary-chart-bar caffeine" style={{ width: `${Math.max(8, Math.round(caffeineRatio * 16))}px` }} />
+                    <span className="diary-chart-bar water" style={{ width: `${Math.max(8, Math.round(waterRatio * 16))}px` }} />
+                  </div>
+                  <small>{item.label}</small>
+                </div>
+              );
+            })}
+          </div>
+        </div>
         <div className="analytics-grid">
-          <div>
-            <p className="metric-label">Total</p>
-            <p className="analytics-value">{analytics.caffeine} mg</p>
+          <div className="diary-metric-box">
+            <UiIcon name="star" className="ui-icon" />
+            <p className="analytics-value">{analytics.avgCaffeine} mg</p>
+            <p className="metric-label">MEDIA</p>
           </div>
-          <div>
-            <p className="metric-label">Cafe</p>
+          <div className="diary-metric-box">
+            <UiIcon name="coffee" className="ui-icon" />
             <p className="analytics-value">{analytics.coffeeCups}</p>
+            <p className="metric-label">TAZAS</p>
           </div>
-          <div>
-            <p className="metric-label">Agua</p>
-            <p className="analytics-value">{analytics.waterEntries}</p>
+          <div className="diary-metric-box">
+            <UiIcon name="taste-watery" className="ui-icon" />
+            <p className="analytics-value">{hydrationProgressPct}%</p>
+            <p className="metric-label">PROGRESO</p>
           </div>
         </div>
       </article>
 
-      <div className="period-row" role="tablist" aria-label="Periodo diario">
-        {(["hoy", "7d", "30d"] as const).map((item) => (
-          <button
-            key={item}
-            type="button"
-            className={`chip-button period-chip ${period === item ? "is-active" : ""}`}
-            role="tab"
-            aria-selected={period === item}
-            onClick={() => setPeriod(item)}
-          >
-            {item.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
-      <div className="premium-tabs" role="tablist" aria-label="Tabs diario">
+      <div className="premium-tabs diary-tabs" role="tablist" aria-label="Tabs diario">
         <button type="button" className={`premium-tab ${tab === "actividad" ? "is-active" : ""}`} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>ACTIVIDAD</button>
         <button type="button" className={`premium-tab ${tab === "despensa" ? "is-active" : ""}`} role="tab" aria-selected={tab === "despensa"} onClick={() => setTab("despensa")}>DESPENSA</button>
       </div>
 
       {tab === "actividad" ? (
         <ul className="diary-list">
-          {visibleEntries.length ? visibleEntries.map((entry) => (
-            <li key={entry.id} className="diary-card">
-              <div>
-                <p className="feed-user">{entry.coffee_name || "Entrada"}</p>
-                <p className="feed-meta">{entry.preparation_type || entry.type}</p>
-              </div>
-              <div className="score-pill">{entry.caffeine_mg} mg</div>
-              <p className="feed-meta">{toRelativeMinutes(entry.timestamp)}</p>
-            </li>
-          )) : <li className="diary-card">Sin actividad en el periodo</li>}
+          {diaryRows.length ? diaryRows.map((row) => {
+            if (row.type === "header") {
+              return <li key={row.key} className="diary-day-header">{row.label}</li>;
+            }
+            const entry = row.entry;
+            return (
+              <DiaryActivityRow
+                key={row.key}
+                entry={entry}
+                imageUrl={entry.coffee_id ? entryImageByCoffeeId.get(String(entry.coffee_id)) ?? "" : ""}
+                brand={entry.coffee_id ? entryBrandByCoffeeId.get(String(entry.coffee_id)) ?? "" : ""}
+                deleting={deletingEntryId === entry.id}
+                onOpenEdit={() => {
+                  const isWater = (entry.type || "").toUpperCase() === "WATER";
+                  setEditEntryId(entry.id);
+                  setEditAmountMl(String(Math.max(1, entry.amount_ml || 1)));
+                  setEditCaffeineMg(String(Math.max(0, entry.caffeine_mg || 0)));
+                  setEditPreparationType((entry.preparation_type || "").trim() || (isWater ? "Agua" : "Sin método"));
+                }}
+                onDelete={async () => {
+                  if (deletingEntryId === entry.id) return;
+                  setDeletingEntryId(entry.id);
+                  try {
+                    await new Promise((resolve) => window.setTimeout(resolve, 170));
+                    await onDeleteEntry(entry.id);
+                  } finally {
+                    setDeletingEntryId(null);
+                  }
+                }}
+              />
+            );
+          }) : <li className="diary-empty-card">Sin café o agua registrada</li>}
         </ul>
       ) : null}
 
       {tab === "despensa" ? (
-        <ul className="coffee-list">
-          {pantryRows.length ? pantryRows.map((row) => (
-            <li key={`${row.item.user_id}-${row.item.coffee_id}`} className="coffee-card">
-              <p className="coffee-origin">{row.coffee?.pais_origen ?? "Origen"}</p>
-              <strong>{row.coffee?.nombre ?? row.item.coffee_id}</strong>
-              <p className="coffee-sub">Stock {row.item.total_grams}g | restante {row.item.grams_remaining}g</p>
+        <ul className="diary-pantry-grid">
+          {sortedPantryRows.length ? sortedPantryRows.map((row) => (
+            <li
+              key={`${row.item.user_id}-${row.item.coffee_id}`}
+              className="diary-pantry-card"
+              onClick={() => {
+                if (!row.coffee?.id) return;
+                onOpenCoffee(row.coffee.id);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  if (!row.coffee?.id) return;
+                  onOpenCoffee(row.coffee.id);
+                }
+              }}
+            >
+              <div className="diary-pantry-media">
+                {row.coffee?.image_url ? (
+                  <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" />
+                ) : (
+                  <span className="diary-pantry-fallback" aria-hidden="true">{(row.coffee?.nombre || "C").slice(0, 1).toUpperCase()}</span>
+                )}
+                <div className="diary-pantry-overlay" />
+                <div className="diary-pantry-copy">
+                  <small>{(row.coffee?.marca || "").toUpperCase()}</small>
+                  <strong>{row.coffee?.nombre ?? row.item.coffee_id}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="diary-pantry-options"
+                  aria-label="Opciones"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setPantryOptionsCoffeeId(row.item.coffee_id);
+                  }}
+                >
+                  <UiIcon name="more" className="ui-icon" />
+                </button>
+              </div>
+              <div className="diary-pantry-foot">
+                <div className="diary-pantry-values">
+                  <span>{row.item.grams_remaining}g</span>
+                  <span>{row.item.total_grams > 0 ? Math.round((row.item.grams_remaining / row.item.total_grams) * 100) : 0}%</span>
+                </div>
+                <div className="diary-pantry-progress" aria-hidden="true">
+                  <i style={{ width: `${Math.max(0, Math.min(100, row.item.total_grams > 0 ? (row.item.grams_remaining / row.item.total_grams) * 100 : 0))}%` }} />
+                </div>
+              </div>
             </li>
-          )) : <li className="coffee-card">Sin items en despensa</li>}
+          )) : <li className="diary-empty-card">No hay café en tu despensa</li>}
         </ul>
       ) : null}
+
+      {pantryOptionsCoffeeId ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Opciones despensa" onClick={() => setPantryOptionsCoffeeId(null)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">OPCIONES DESPENSA</strong>
+            </header>
+            <div className="diary-sheet-list">
+              <button
+                type="button"
+                className="diary-sheet-action"
+                onClick={() => {
+                  const row = sortedPantryRows.find((item) => item.item.coffee_id === pantryOptionsCoffeeId);
+                  if (!row) return;
+                  setStockEditCoffeeId(row.item.coffee_id);
+                  setStockEditTotal(String(Math.max(1, row.item.total_grams)));
+                  setStockEditRemaining(String(Math.max(0, row.item.grams_remaining)));
+                  setPantryOptionsCoffeeId(null);
+                }}
+              >
+                <UiIcon name="edit" className="ui-icon" />
+                <span>Editar stock</span>
+                <UiIcon name="chevron-right" className="ui-icon" />
+              </button>
+              <button
+                type="button"
+                className="diary-sheet-action"
+                disabled={removingStock}
+                onClick={() => {
+                  setPantryDeleteConfirmCoffeeId(pantryOptionsCoffeeId);
+                  setPantryOptionsCoffeeId(null);
+                }}
+              >
+                <UiIcon name="trash" className="ui-icon" />
+                <span>Eliminar de despensa</span>
+                <UiIcon name="chevron-right" className="ui-icon" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pantryDeleteConfirmCoffeeId ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Confirmar eliminación" onClick={() => setPantryDeleteConfirmCoffeeId(null)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">ELIMINAR DE DESPENSA</strong>
+            </header>
+            <div className="diary-sheet-form">
+              <p className="feed-meta">¿Seguro que quieres eliminar este café de tu despensa?</p>
+              <div className="diary-sheet-form-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={() => setPantryDeleteConfirmCoffeeId(null)} disabled={removingStock}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  disabled={removingStock}
+                  onClick={async () => {
+                    if (removingStock) return;
+                    setRemovingStock(true);
+                    try {
+                      await onRemovePantryItem(pantryDeleteConfirmCoffeeId);
+                      setPantryDeleteConfirmCoffeeId(null);
+                    } finally {
+                      setRemovingStock(false);
+                    }
+                  }}
+                >
+                  {removingStock ? "Eliminando..." : "Eliminar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {stockEditTarget ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar stock" onClick={() => setStockEditCoffeeId(null)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">EDITAR STOCK</strong>
+            </header>
+            <div className="diary-sheet-form">
+              <label>
+                <span>Total (g)</span>
+                <input
+                  className="search-wide"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={stockEditTotal}
+                  onChange={(event) => {
+                    const nextTotal = event.target.value;
+                    setStockEditTotal(nextTotal);
+                    const parsedNextTotal = Number(nextTotal || 0);
+                    const parsedCurrentRemaining = Number(stockEditRemaining || 0);
+                    if (
+                      Number.isFinite(parsedNextTotal) &&
+                      parsedNextTotal >= 0 &&
+                      Number.isFinite(parsedCurrentRemaining) &&
+                      parsedCurrentRemaining > parsedNextTotal
+                    ) {
+                      setStockEditRemaining(String(parsedNextTotal));
+                    }
+                  }}
+                />
+              </label>
+              <label>
+                <span>Restante (g)</span>
+                <input
+                  className="search-wide"
+                  type="number"
+                  min={0}
+                  max={Math.max(0, parsedStockTotal || 0)}
+                  step={1}
+                  value={stockEditRemaining}
+                  onChange={(event) => setStockEditRemaining(event.target.value)}
+                />
+              </label>
+              {!canSaveStock && stockValidationMessage ? <p className="diary-inline-error">{stockValidationMessage}</p> : null}
+              <div className="diary-sheet-form-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={() => setStockEditCoffeeId(null)} disabled={savingStock}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  disabled={savingStock || !canSaveStock}
+                  onClick={async () => {
+                    if (savingStock || !canSaveStock) return;
+                    setSavingStock(true);
+                    try {
+                      await onUpdatePantryStock(
+                        stockEditTarget.item.coffee_id,
+                        parsedStockTotal,
+                        parsedStockRemaining
+                      );
+                      setStockEditCoffeeId(null);
+                    } finally {
+                      setSavingStock(false);
+                    }
+                  }}
+                >
+                  {savingStock ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editEntryTarget ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar entrada" onClick={() => setEditEntryId(null)}>
+          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">EDITAR REGISTRO</strong>
+            </header>
+            <div className="diary-sheet-form">
+              <label>
+                <span>{editEntryIsWater ? "Tipo" : "Preparación"}</span>
+                <input
+                  className="search-wide"
+                  value={editPreparationType}
+                  onChange={(event) => setEditPreparationType(event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Cantidad (ml)</span>
+                <input
+                  className="search-wide"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={editAmountMl}
+                  onChange={(event) => setEditAmountMl(event.target.value)}
+                />
+              </label>
+              {!editEntryIsWater ? (
+                <label>
+                  <span>Cafeína (mg)</span>
+                  <input
+                    className="search-wide"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={editCaffeineMg}
+                    onChange={(event) => setEditCaffeineMg(event.target.value)}
+                  />
+                </label>
+              ) : null}
+              {!canSaveEditEntry && editValidationMessage ? <p className="diary-inline-error">{editValidationMessage}</p> : null}
+              <div className="diary-sheet-form-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={() => setEditEntryId(null)} disabled={savingEditEntry}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  disabled={savingEditEntry || !canSaveEditEntry}
+                  onClick={async () => {
+                    if (savingEditEntry || !canSaveEditEntry) return;
+                    setSavingEditEntry(true);
+                    try {
+                      await onEditEntry(
+                        editEntryTarget.id,
+                        parsedEditAmount,
+                        editEntryIsWater ? 0 : parsedEditCaffeine,
+                        editPreparationType
+                      );
+                      setEditEntryId(null);
+                    } finally {
+                      setSavingEditEntry(false);
+                    }
+                  }}
+                >
+                  {savingEditEntry ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
+  );
+}
+
+function DiaryActivityRow({
+  entry,
+  imageUrl,
+  brand,
+  deleting,
+  onOpenEdit,
+  onDelete
+}: {
+  entry: DiaryEntryRow;
+  imageUrl: string;
+  brand?: string;
+  deleting: boolean;
+  onOpenEdit: () => void;
+  onDelete: () => Promise<void>;
+}) {
+  const isWaterEntry = (entry.type || "").toUpperCase() === "WATER";
+  const entryTitle = entry.coffee_name || (isWaterEntry ? "Agua" : "Entrada");
+  const entrySubtitle = (brand || (isWaterEntry ? "Agua" : "Café")).toUpperCase();
+  const prepValue = (entry.preparation_type || "").trim() || (isWaterEntry ? "Agua" : "-");
+  const doseFromPrep = ((entry.preparation_type || "").match(/(\d+(?:[.,]\d+)?)\s*g/i)?.[1] || "").replace(",", ".");
+  const doseValue = doseFromPrep ? `${Math.round(Number(doseFromPrep))} g` : (isWaterEntry ? "-" : "15 g");
+  const sizeValue = isWaterEntry
+    ? `${Math.max(0, entry.amount_ml || 0)} ml`
+    : (() => {
+      const ml = Math.max(0, entry.amount_ml || 0);
+      if (ml <= 45) return "Espresso";
+      if (ml <= 120) return "Corto";
+      if (ml <= 220) return "Mediano";
+      return "Largo";
+    })();
+  const timeValue = new Date(entry.timestamp).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  const metaItems: Array<{ key: string; icon: IconName; label: string; value: string }> = [];
+  if (!isWaterEntry && (entry.caffeine_mg || 0) > 0) {
+    metaItems.push({ key: "caffeine", icon: "caffeine", label: "Cafeína", value: `${Math.max(0, entry.caffeine_mg || 0)} mg` });
+  }
+  if (!isWaterEntry) {
+    metaItems.push({ key: "prep", icon: "coffee", label: "Preparación", value: prepValue });
+    metaItems.push({ key: "dose", icon: "grind", label: "Dosis", value: doseValue });
+  }
+  metaItems.push({ key: "size", icon: "stock", label: "Tamaño", value: sizeValue });
+  const [offsetX, setOffsetX] = useState(0);
+  const pointerIdRef = useRef<number | null>(null);
+  const startXRef = useRef(0);
+  const movedRef = useRef(false);
+  const threshold = -76;
+  const maxDrag = -124;
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLLIElement>) => {
+    if (deleting) return;
+    if (pointerIdRef.current != null) return;
+    pointerIdRef.current = event.pointerId;
+    startXRef.current = event.clientX;
+    movedRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLLIElement>) => {
+    if (pointerIdRef.current !== event.pointerId) return;
+    const dx = event.clientX - startXRef.current;
+    if (Math.abs(dx) > 6) movedRef.current = true;
+    if (dx >= 0) {
+      setOffsetX(0);
+      return;
+    }
+    setOffsetX(Math.max(maxDrag, dx));
+  };
+
+  const handlePointerEnd = async (event: ReactPointerEvent<HTMLLIElement>) => {
+    if (pointerIdRef.current !== event.pointerId) return;
+    pointerIdRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (offsetX <= threshold) {
+      setOffsetX(0);
+      await onDelete();
+      return;
+    }
+    setOffsetX(0);
+    window.setTimeout(() => {
+      movedRef.current = false;
+    }, 80);
+  };
+
+  return (
+    <li
+      className={`diary-card-swipe-wrap ${offsetX < -1 ? "is-swiping" : ""} ${deleting ? "is-dismissing" : ""}`.trim()}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={(event) => {
+        void handlePointerEnd(event);
+      }}
+      onPointerCancel={(event) => {
+        void handlePointerEnd(event);
+      }}
+      onClick={() => {
+        if (movedRef.current || deleting) return;
+        onOpenEdit();
+      }}
+    >
+      <div className="diary-swipe-bg" aria-hidden="true">
+        <UiIcon name="trash" className="ui-icon" />
+      </div>
+      <div className="diary-swipe-content" style={{ transform: `translateX(${offsetX}px)` }}>
+        <div className="diary-card">
+          <div className="diary-entry-head">
+            <div className="diary-entry-media">
+              {imageUrl ? (
+                <img src={imageUrl} alt={entryTitle} loading="lazy" />
+              ) : (
+                <span className="diary-entry-fallback" aria-hidden="true">
+                  <UiIcon name={isWaterEntry ? "stock" : "coffee"} className="ui-icon" />
+                </span>
+              )}
+            </div>
+            <div className="diary-entry-copy">
+              <p className="feed-user">{entryTitle}</p>
+              <p className="feed-meta diary-entry-brand">{entrySubtitle.toUpperCase()}</p>
+            </div>
+            <div className="diary-entry-time-pill">
+              <UiIcon name="clock" className="ui-icon" />
+              <span>{timeValue}</span>
+            </div>
+          </div>
+          <div className="diary-entry-meta-grid">
+            {metaItems.map((item) => (
+              <div key={item.key} className="diary-entry-meta-item">
+                <UiIcon name={item.icon} className="ui-icon" />
+                <span className="diary-entry-meta-label">{item.label}</span>
+                <strong className="diary-entry-meta-value">{item.value}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -5392,6 +7723,9 @@ function ProfileView({
 
   return content;
 }
+
+
+
 
 
 

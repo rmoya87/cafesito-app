@@ -1,8 +1,10 @@
 import { getSupabaseClient } from "../supabase";
 import type {
   CommentRow,
+  CoffeeRow,
   CoffeeReviewRow,
   CoffeeSensoryProfileRow,
+  DiaryEntryRow,
   FavoriteRow,
   FollowRow,
   InitialDataBundle,
@@ -28,7 +30,7 @@ export async function fetchInitialData(): Promise<InitialDataBundle> {
       "id,nombre,marca,pais_origen,descripcion,proceso,variedad_tipo,molienda_recomendada,product_url,cafeina,aroma,sabor,cuerpo,acidez,dulzura,especialidad,tueste,formato,image_url"
     )
     .order("nombre", { ascending: true })
-    .limit(300);
+    .limit(3000);
   const reviewsReq = supabase
     .from("reviews_db")
     .select("id,coffee_id,user_id,rating,comment,image_url,timestamp")
@@ -108,14 +110,60 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
     .select("coffee_id,user_id,saved_at")
     .eq("user_id", userId)
     .limit(500);
-
   const [diaryRes, pantryRes, favoritesRes] = await Promise.all([diaryReq, pantryReq, favoritesReq]);
   throwIfError(diaryRes.error ?? pantryRes.error ?? favoritesRes.error);
+
+  // custom_coffees is optional for web pantry merge. If this query fails
+  // (RLS/schema/env differences), user pantry still must load.
+  let customCoffees: CoffeeRow[] = [];
+  try {
+    const { data: customRows } = await supabase
+      .from("custom_coffees")
+      .select("id,user_id,name,brand,specialty,roast,variety,country,has_caffeine,format,image_url,total_grams")
+      .eq("user_id", userId)
+      .limit(500);
+
+    customCoffees = ((customRows ?? []) as Array<{
+      id: string;
+      name: string;
+      brand: string;
+      specialty: string | null;
+      roast: string | null;
+      variety: string | null;
+      country: string | null;
+      has_caffeine: boolean | null;
+      format: string | null;
+      image_url: string | null;
+    }>).map((item) => ({
+      id: item.id,
+      nombre: item.name ?? "Café personalizado",
+      marca: item.brand ?? "",
+      pais_origen: item.country ?? null,
+      descripcion: null,
+      proceso: null,
+      variedad_tipo: item.variety ?? null,
+      molienda_recomendada: null,
+      product_url: null,
+      cafeina: item.has_caffeine == null ? null : item.has_caffeine ? "Con cafeína" : "Sin cafeína",
+      aroma: null,
+      sabor: null,
+      cuerpo: null,
+      acidez: null,
+      dulzura: null,
+      especialidad: item.specialty ?? null,
+      tueste: item.roast ?? null,
+      formato: item.format ?? null,
+      image_url: item.image_url ?? ""
+    }));
+  } catch {
+    customCoffees = [];
+  }
 
   return {
     diaryEntries: (diaryRes.data ?? []) as UserDataBundle["diaryEntries"],
     pantryItems: (pantryRes.data ?? []) as UserDataBundle["pantryItems"],
-    favorites: (favoritesRes.data ?? []) as UserDataBundle["favorites"]
+    favorites: (favoritesRes.data ?? []) as UserDataBundle["favorites"],
+    customCoffees
   };
 }
 
@@ -349,5 +397,143 @@ export async function upsertPantryStock(payload: {
     .single();
   throwIfError(error);
   return data as PantryItemRow;
+}
+
+export async function deletePantryItem(coffeeId: string, userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from("pantry_items").delete().eq("coffee_id", coffeeId).eq("user_id", userId);
+  throwIfError(error);
+}
+
+export async function upsertCustomCoffee(payload: {
+  userId: number;
+  name: string;
+  brand: string;
+  specialty: string;
+  country: string;
+  format: string;
+  roast?: string | null;
+  variety?: string | null;
+  hasCaffeine: boolean;
+  imageUrl?: string;
+  totalGrams?: number;
+}): Promise<CoffeeRow> {
+  const supabase = getSupabaseClient();
+  const id = crypto.randomUUID();
+  const row = {
+    id,
+    user_id: payload.userId,
+    name: payload.name.trim(),
+    brand: payload.brand.trim(),
+    specialty: payload.specialty.trim(),
+    roast: payload.roast?.trim() || null,
+    variety: payload.variety?.trim() || null,
+    country: payload.country.trim(),
+    has_caffeine: payload.hasCaffeine,
+    format: payload.format.trim(),
+    image_url: payload.imageUrl ?? "",
+    total_grams: Math.max(1, Number(payload.totalGrams ?? 250))
+  };
+
+  const { data, error } = await supabase
+    .from("custom_coffees")
+    .upsert(row, { onConflict: "id" })
+    .select("id,name,brand,specialty,roast,variety,country,has_caffeine,format,image_url")
+    .single();
+  throwIfError(error);
+
+  const created = data as {
+    id: string;
+    name: string;
+    brand: string;
+    specialty: string;
+    roast: string | null;
+    variety: string | null;
+    country: string;
+    has_caffeine: boolean;
+    format: string;
+    image_url: string | null;
+  };
+
+  return {
+    id: created.id,
+    nombre: created.name ?? "",
+    marca: created.brand ?? "",
+    pais_origen: created.country ?? null,
+    descripcion: null,
+    proceso: null,
+    variedad_tipo: created.variety ?? null,
+    molienda_recomendada: null,
+    product_url: null,
+    cafeina: created.has_caffeine ? "Con cafeína" : "Sin cafeína",
+    aroma: null,
+    sabor: null,
+    cuerpo: null,
+    acidez: null,
+    dulzura: null,
+    especialidad: created.specialty ?? null,
+    tueste: created.roast ?? null,
+    formato: created.format ?? null,
+    image_url: created.image_url ?? ""
+  };
+}
+
+export async function createDiaryEntry(payload: {
+  userId: number;
+  coffeeId: string | null;
+  coffeeName: string;
+  amountMl: number;
+  caffeineMg: number;
+  preparationType: string;
+  type?: string;
+}): Promise<DiaryEntryRow> {
+  const supabase = getSupabaseClient();
+  const row = {
+    user_id: payload.userId,
+    coffee_id: payload.coffeeId,
+    coffee_name: payload.coffeeName,
+    caffeine_mg: Math.max(0, Math.round(payload.caffeineMg)),
+    amount_ml: Math.max(1, Math.round(payload.amountMl)),
+    preparation_type: payload.preparationType,
+    timestamp: Date.now(),
+    type: payload.type ?? "CUP"
+  };
+  const { data, error } = await supabase
+    .from("diary_entries")
+    .insert(row)
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,preparation_type,timestamp,type")
+    .single();
+  throwIfError(error);
+  return data as DiaryEntryRow;
+}
+
+export async function deleteDiaryEntry(entryId: number, userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from("diary_entries").delete().eq("id", entryId).eq("user_id", userId);
+  throwIfError(error);
+}
+
+export async function updateDiaryEntry(payload: {
+  entryId: number;
+  userId: number;
+  caffeineMg: number;
+  amountMl: number;
+  preparationType: string;
+}): Promise<DiaryEntryRow> {
+  const supabase = getSupabaseClient();
+  const row = {
+    caffeine_mg: Math.max(0, Math.round(payload.caffeineMg)),
+    amount_ml: Math.max(1, Math.round(payload.amountMl)),
+    preparation_type: payload.preparationType.trim() || "None"
+  };
+  const { data, error } = await supabase
+    .from("diary_entries")
+    .update(row)
+    .eq("id", payload.entryId)
+    .eq("user_id", payload.userId)
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,preparation_type,timestamp,type")
+    .single();
+  throwIfError(error);
+  return data as DiaryEntryRow;
 }
 

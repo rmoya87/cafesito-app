@@ -148,4 +148,5 @@ export type UserDataBundle = {
   diaryEntries: DiaryEntryRow[];
   pantryItems: PantryItemRow[];
   favorites: FavoriteRow[];
+  customCoffees: CoffeeRow[];
 };
