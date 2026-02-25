@@ -1,6 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { registerSW } from "virtual:pwa-register";
 import { App } from "./App";
 import "@fontsource-variable/material-symbols-outlined/fill.css";
 import "./styles.css";
@@ -39,8 +38,28 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-if (import.meta.env.PROD) {
-  registerSW({ immediate: true });
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error("[PWA] service worker registration failed", error);
+    });
+  });
+}
+
+if (import.meta.env.DEV && "serviceWorker" in navigator) {
+  void navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      void registration.unregister();
+    });
+  });
+  if ("caches" in window) {
+    void caches.keys().then((keys) => {
+      keys.forEach((key) => {
+        void caches.delete(key);
+      });
+    });
+  }
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
