@@ -39,7 +39,15 @@ google-services.json
 # Android Profiling
 *.hprof
 build_errors_2_utf8.txt
-.gitignore
 build_errors_utf8.txt
 build_errors.txt
 build_errors_2.txt
+
+# WebApp local artifacts
+webApp/node_modules/
+webApp/dist/
+webApp/.env
+webApp/src/*.js
+webApp/src/data/*.js
+webApp/src/*.bak
+webApp/tsconfig.tsbuildinfo
