@@ -22,6 +22,12 @@ class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
     @kotlinx.serialization.Serializable
+    private data class UserTokenUpsert(
+        @kotlinx.serialization.SerialName("user_id") val userId: Int,
+        @kotlinx.serialization.SerialName("fcm_token") val fcmToken: String
+    )
+
+    @kotlinx.serialization.Serializable
     private data class NotificationInsert(
         @kotlinx.serialization.SerialName("user_id") val userId: Int,
         val type: String,
@@ -68,7 +74,7 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     
-    
+
     suspend fun touchUserLastInteraction(userId: Int) {
         client.postgrest["users_db"].update(
             {
@@ -80,30 +86,22 @@ class SupabaseDataSource @Inject constructor(
     }
 
     suspend fun insertUserToken(token: UserTokenEntity) {
-        val upsertPayload = UserTokenUpsert(
-            userId = token.userId,
-            fcmToken = token.fcmToken
-        )
         try {
-            // Ruta normal: una fila por user_id.
+            // No enviamos `id` para evitar conflictos con PK autogenerada y forzar upsert por user_id.
+            // Para Supabase kt 2.6.1, onConflict es un parámetro opcional de la función upsert
             client.postgrest["user_fcm_tokens"].upsert(
-                value = upsertPayload,
+                value = UserTokenUpsert(
+                    userId = token.userId,
+                    fcmToken = token.fcmToken
+                ),
                 onConflict = "user_id"
             )
-        } catch (userConflictError: Exception) {
-            Log.w("SupabaseDataSource", "Upsert token by user_id failed, trying by fcm_token", userConflictError)
-            try {
-                // Si el token ya existe en otra fila/usuario, lo reasignamos al usuario activo.
-                client.postgrest["user_fcm_tokens"].upsert(
-                    value = upsertPayload,
-                    onConflict = "fcm_token"
-                )
-            } catch (tokenConflictError: Exception) {
-                Log.e("SupabaseDataSource", "Error upserting FCM token by both user_id and fcm_token", tokenConflictError)
-                throw tokenConflictError
-            }
+        } catch (e: Exception) {
+            Log.e("SupabaseDataSource", "Error upserting FCM token", e)
+            throw e
         }
     }
+
     // --- SEGUIMIENTOS ---
     suspend fun getAllFollows(): List<FollowEntity> = client.postgrest["follows"].select().decodeList<FollowEntity>()
     suspend fun insertFollow(follow: FollowEntity) { client.postgrest["follows"].insert(follow) }
@@ -124,7 +122,6 @@ class SupabaseDataSource @Inject constructor(
             }
             if (origin != null) eq("pais_origen", origin)
             if (roast != null) eq("tueste", roast)
-            eq("is_custom", false)
         }
         order("nombre", Order.ASCENDING) 
     }.decodeList<Coffee>()
@@ -151,7 +148,6 @@ class SupabaseDataSource @Inject constructor(
             if (specialties.isNotEmpty()) isIn("especialidad", specialties.toList())
             if (formats.isNotEmpty()) isIn("formato", formats.toList())
             if (minRating > 0) gte("puntuacion_total", minRating)
-            eq("is_custom", false)
         }
         order("nombre", Order.ASCENDING)
         range(from, to)
@@ -181,17 +177,12 @@ class SupabaseDataSource @Inject constructor(
     }
 
     // --- CAFÉS PERSONALIZADOS ---
-    suspend fun getCustomCoffees(userId: Int): List<Coffee> = client.postgrest["coffees"].select {
-        filter {
-            eq("user_id", userId)
-            eq("is_custom", true)
-        }
-    }.decodeList<Coffee>()
-
-    suspend fun upsertCustomCoffee(coffee: Coffee) = client.postgrest["coffees"].upsert(coffee)
-
+    suspend fun getCustomCoffees(userId: Int): List<Coffee> = client.postgrest["custom_coffees"].select { filter { eq("user_id", userId) } }.decodeList<Coffee>()
+    suspend fun insertCustomCoffee(coffee: Coffee) = client.postgrest["custom_coffees"].upsert(coffee)
+    suspend fun upsertCustomCoffee(coffee: Coffee) = client.postgrest["custom_coffees"].upsert(coffee)
+    
     suspend fun updateCustomCoffee(id: String, userId: Int, coffee: Coffee) {
-        client.postgrest["coffees"].update({
+        client.postgrest["custom_coffees"].update({
             set("nombre", coffee.nombre)
             set("marca", coffee.marca)
             set("especialidad", coffee.especialidad)
@@ -201,8 +192,6 @@ class SupabaseDataSource @Inject constructor(
             set("cafeina", coffee.cafeina)
             set("formato", coffee.formato)
             set("image_url", coffee.imageUrl)
-            set("is_custom", true)
-            set("user_id", userId)
         }) {
             filter {
                 eq("id", id)
@@ -212,11 +201,10 @@ class SupabaseDataSource @Inject constructor(
     }
 
     suspend fun deleteCustomCoffee(id: String, userId: Int) {
-        client.postgrest["coffees"].delete {
+        client.postgrest["custom_coffees"].delete {
             filter {
                 eq("id", id)
                 eq("user_id", userId)
-                eq("is_custom", true)
             }
         }
     }
@@ -328,8 +316,6 @@ class SupabaseDataSource @Inject constructor(
     }
 
     // --- FAVORITOS (OFICIALES) ---
-    suspend fun getAllFavorites(): List<LocalFavorite> = client.postgrest["local_favorites"].select().decodeList<LocalFavorite>()
-    
     suspend fun getFavoritesByUserId(userId: Int): List<LocalFavorite> = client.postgrest["local_favorites"].select {
         filter { eq("user_id", userId) }
     }.decodeList<LocalFavorite>()
@@ -378,9 +364,6 @@ class SupabaseDataSource @Inject constructor(
 
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
-        val requiresPushPipeline = notification.type.equals("MENTION", ignoreCase = true) ||
-            notification.type.equals("COMMENT", ignoreCase = true) ||
-            notification.type.equals("FOLLOW", ignoreCase = true)
         try {
             client.postgrest.rpc(
                 "create_notification",
@@ -394,17 +377,7 @@ class SupabaseDataSource @Inject constructor(
                 }
             )
         } catch (rpcError: Exception) {
-            Log.w(
-                "SupabaseDataSource",
-                "RPC create_notification failed for type=${notification.type} userId=${notification.userId}: ${rpcError.message}"
-            )
-            if (requiresPushPipeline) {
-                Log.e(
-                    "SupabaseDataSource",
-                    "Notification RPC is mandatory for push-capable notifications. Skipping direct insert to avoid silent push loss."
-                )
-                throw rpcError
-            }
+            Log.w("SupabaseDataSource", "RPC create_notification unavailable, falling back to direct insert: ${rpcError.message}")
             try {
                 client.postgrest["notifications_db"].insert(
                     NotificationInsert(
@@ -510,4 +483,3 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 }
-
