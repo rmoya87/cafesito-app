@@ -21,7 +21,8 @@ import {
   uploadImageFile,
   updateComment,
   updateDiaryEntry,
-  updatePost
+  updatePost,
+  updateUserProfile
 } from "./data/supabaseApi";
 import { getSupabaseClient, supabaseConfigError } from "./supabase";
 import type {
@@ -81,6 +82,7 @@ type IconName =
   | "arrow-right"
   | "more"
   | "coffee"
+  | "coffee-filled"
   | "camera"
   | "chat"
   | "at"
@@ -280,6 +282,7 @@ function MaterialSymbolIcon({
 }: {
   symbol:
     | "book"
+    | "auto_awesome"
     | "science"
     | "explore"
     | "globe"
@@ -501,7 +504,7 @@ function UiIcon({ name, className }: { name: IconName; className?: string }) {
   if (name === "caffeine") {
     return (
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M5 10h11a3 3 0 0 1 0 6H5zM7 7c0-1.4.8-2.2 2-3M11 7c0-1.4.8-2.2 2-3" />
+        <path d="M13.5 2 6 13h5l-1 9 8-12h-5.5z" />
       </svg>
     );
   }
@@ -587,6 +590,15 @@ function UiIcon({ name, className }: { name: IconName; className?: string }) {
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
         <path d="M3.5 7.5h12v5.2A4.3 4.3 0 0111.2 17H7.8a4.3 4.3 0 01-4.3-4.3z" />
         <path d="M15.4 8.8h2a2.8 2.8 0 010 5.6h-2" />
+        <path d="M6.2 19.4h7.6" />
+      </svg>
+    );
+  }
+  if (name === "coffee-filled") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+        <path d="M3.5 7.5h12v5.2A4.3 4.3 0 0111.2 17H7.8a4.3 4.3 0 01-4.3-4.3z" fill="currentColor" stroke="none" />
+        <path d="M15.4 8.8h2a2.8 2.8 0 010 5.6h-2" fill="currentColor" stroke="none" />
         <path d="M6.2 19.4h7.6" />
       </svg>
     );
@@ -955,6 +967,12 @@ export function App() {
   const [diaryPantryGramsDraft, setDiaryPantryGramsDraft] = useState("250");
   const [profileTab, setProfileTab] = useState<"posts" | "adn" | "favoritos">("posts");
   const [profileUsername, setProfileUsername] = useState<string | null>(initialRoute.profileUsername);
+  const [profileEditSignal, setProfileEditSignal] = useState(0);
+  useEffect(() => {
+    if (activeTab === "profile") return;
+    if (profileEditSignal === 0) return;
+    setProfileEditSignal(0);
+  }, [activeTab, profileEditSignal]);
 
   const [commentSheetPostId, setCommentSheetPostId] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState("");
@@ -993,6 +1011,7 @@ export function App() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const isMobileOsDevice = useMemo(() => /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
 
   const activeUser = useMemo(() => {
@@ -1195,6 +1214,15 @@ export function App() {
     }
   }, []);
 
+  const requestLogin = useCallback(() => {
+    setAuthError(null);
+    setShowAuthPrompt(true);
+  }, []);
+
+  useEffect(() => {
+    if (sessionEmail) setShowAuthPrompt(false);
+  }, [sessionEmail]);
+
   const handleSignOut = useCallback(async () => {
     if (supabaseConfigError) return;
     try {
@@ -1388,7 +1416,6 @@ export function App() {
   );
 
   const loadInitialData = useCallback(async () => {
-    if (!sessionEmail) return;
     try {
       const data = await fetchInitialData();
       setUsers(data.users);
@@ -1405,12 +1432,12 @@ export function App() {
     } catch (error) {
       setGlobalStatus(`Error: ${(error as Error).message}`);
     }
-  }, [sessionEmail]);
+  }, []);
 
   useEffect(() => {
-    if (!authReady || !sessionEmail) return;
+    if (!authReady) return;
     void loadInitialData();
-  }, [authReady, loadInitialData, sessionEmail]);
+  }, [authReady, loadInitialData]);
 
   useEffect(() => {
     if (activeTab === "diary") return;
@@ -1711,7 +1738,7 @@ export function App() {
 
   const diaryEntriesActivity = diaryEntries.slice(0, 80);
   const pantryCoffeeRows = pantryItems
-    .map((item) => ({ item, coffee: coffees.find((coffee) => coffee.id === item.coffee_id) }))
+    .map((item) => ({ item, coffee: brewCoffeeCatalog.find((coffee) => coffee.id === item.coffee_id) }))
     .filter((row) => row.coffee);
   const handleDeleteDiaryEntry = useCallback(
     async (entryId: number) => {
@@ -1765,11 +1792,11 @@ export function App() {
     pantryCoffeeRows.forEach((row) => {
       if (row.coffee?.id) map.set(row.coffee.id, row.coffee);
     });
-    coffees.forEach((coffee) => {
+    brewCoffeeCatalog.forEach((coffee) => {
       if (!map.has(coffee.id)) map.set(coffee.id, coffee);
     });
     return Array.from(map.values()).slice(0, 500);
-  }, [coffees, pantryCoffeeRows]);
+  }, [brewCoffeeCatalog, pantryCoffeeRows]);
   const selectedDiaryCoffee = useMemo(
     () => diaryCoffeeOptions.find((coffee) => coffee.id === diaryCoffeeIdDraft) ?? diaryCoffeeOptions[0] ?? null,
     [diaryCoffeeIdDraft, diaryCoffeeOptions]
@@ -1778,6 +1805,10 @@ export function App() {
     () => diaryCoffeeOptions.find((coffee) => coffee.id === diaryPantryCoffeeIdDraft) ?? diaryCoffeeOptions[0] ?? null,
     [diaryCoffeeOptions, diaryPantryCoffeeIdDraft]
   );
+  const bumpPantryGrams = (delta: number) => {
+    const next = Math.max(1, Math.round((Number(diaryPantryGramsDraft || 0) || 0) + delta));
+    setDiaryPantryGramsDraft(String(next));
+  };
 
   const profileUser = useMemo(() => {
     if (profileUsername) {
@@ -2228,6 +2259,43 @@ export function App() {
     }
     setTimelineBusyMessage(null);
   };
+  const handleUpdateProfile = async (
+    userId: number,
+    fullName: string,
+    bio: string,
+    avatarFile?: File | null,
+    removeAvatar?: boolean
+  ) => {
+    const trimmedName = fullName.trim();
+    const normalizedBio = bio.trim();
+    if (!trimmedName) return;
+    setTimelineBusyMessage("Actualizando perfil...");
+    try {
+      const avatarUrl = removeAvatar ? null : avatarFile ? await uploadImageFile("avatars", avatarFile) : undefined;
+      await updateUserProfile(userId, {
+        full_name: trimmedName,
+        bio: normalizedBio ? normalizedBio : null,
+        avatar_url: avatarUrl
+      });
+      setUsers((prev) =>
+        prev.map((row) =>
+          row.id === userId
+            ? {
+                ...row,
+                full_name: trimmedName,
+                bio: normalizedBio ? normalizedBio : null,
+                avatar_url: avatarUrl === undefined ? row.avatar_url : avatarUrl ?? ""
+              }
+            : row
+        )
+      );
+      setTimelineActionBanner("Perfil actualizado");
+    } catch (error) {
+      setGlobalStatus(`Error actualizando perfil: ${(error as Error).message}`);
+    } finally {
+      setTimelineBusyMessage(null);
+    }
+  };
 
   const handleRefreshTimeline = async () => {
     setTimelineRefreshing(true);
@@ -2516,21 +2584,59 @@ export function App() {
       reviewDraftRating={detailReviewRating}
       reviewDraftImagePreviewUrl={detailReviewImagePreviewUrl}
       onClose={closeCoffeePanel}
-      onToggleFavorite={() => void saveDetailFavorite()}
+      onToggleFavorite={() => {
+        if (!sessionEmail) {
+          requestLogin();
+          return;
+        }
+        void saveDetailFavorite();
+      }}
       onReviewTextChange={setDetailReviewText}
       onReviewRatingChange={setDetailReviewRating}
       onReviewImagePick={(file, previewUrl) => {
         setDetailReviewImageFile(file);
         setDetailReviewImagePreviewUrl(previewUrl);
       }}
-      onSaveReview={saveDetailReview}
-      onDeleteReview={removeDetailReview}
+      onSaveReview={async () => {
+        if (!sessionEmail) {
+          requestLogin();
+          return;
+        }
+        await saveDetailReview();
+      }}
+      onDeleteReview={async () => {
+        if (!sessionEmail) {
+          requestLogin();
+          return;
+        }
+        await removeDetailReview();
+      }}
       canDeleteReview={Boolean(detailCurrentUserReview)}
       onSensoryDraftChange={setDetailSensoryDraft}
-      onSaveSensory={saveDetailSensory}
+      onSaveSensory={async () => {
+        if (!sessionEmail) {
+          requestLogin();
+          return;
+        }
+        await saveDetailSensory();
+      }}
       onStockDraftChange={setDetailStockDraft}
-      onSaveStock={saveDetailStock}
-      onOpenUserProfile={(userId) => navigateToTab("profile", { profileUserId: userId })}
+      onSaveStock={async () => {
+        if (!sessionEmail) {
+          requestLogin();
+          return;
+        }
+        await saveDetailStock();
+      }}
+      onOpenUserProfile={(userId) => {
+        if (!sessionEmail) {
+          requestLogin();
+          return;
+        }
+        navigateToTab("profile", { profileUserId: userId });
+      }}
+      isGuest={!sessionEmail}
+      onRequireAuth={requestLogin}
       fullPage={false}
       externalOpenStockSignal={0}
     />
@@ -2611,6 +2717,10 @@ export function App() {
   }, [detailCoffee]);
 
   const handleNavClick = (tabId: TabId) => {
+    if (!sessionEmail) {
+      requestLogin();
+      return;
+    }
     setDetailCoffeeId(null);
     setDetailHostTab(null);
     setShowCreateCoffeeComposer(false);
@@ -2682,7 +2792,7 @@ export function App() {
     return <LoginGate loading message="Verificando sesion..." />;
   }
 
-  if (!sessionEmail) {
+  if (!sessionEmail && activeTab !== "coffee") {
     return (
       <LoginGate
         loading={authBusy}
@@ -2776,7 +2886,13 @@ export function App() {
           brewCreateCoffeeOpen={showCreateCoffeeComposer}
           onBrewCreateCoffeeBack={closeCreateCoffeeComposer}
           onProfileSignOut={handleSignOut}
+          profileMenuEnabled={Boolean(profileUser && activeUser && profileUser.id === activeUser.id)}
+          onProfileOpenEdit={() => setProfileEditSignal((prev) => prev + 1)}
           onCoffeeBack={() => {
+            if (!sessionEmail) {
+              requestLogin();
+              return;
+            }
             if (window.history.length > 1) {
               window.history.back();
               return;
@@ -2786,9 +2902,17 @@ export function App() {
           coffeeTopbarFavoriteActive={activeTab === "coffee" ? detailIsFavorite : false}
           coffeeTopbarStockActive={activeTab === "coffee" ? Boolean(detailPantryStock) : false}
           onCoffeeTopbarToggleFavorite={() => {
+            if (!sessionEmail) {
+              requestLogin();
+              return;
+            }
             void saveDetailFavorite();
           }}
           onCoffeeTopbarOpenStock={() => {
+            if (!sessionEmail) {
+              requestLogin();
+              return;
+            }
             setDetailOpenStockSignal((prev) => prev + 1);
           }}
         />
@@ -2928,21 +3052,59 @@ export function App() {
                   if (window.history.length > 1) window.history.back();
                   else navigateToTab("timeline", { replace: true });
                 }}
-                onToggleFavorite={() => void saveDetailFavorite()}
+                onToggleFavorite={() => {
+                  if (!sessionEmail) {
+                    requestLogin();
+                    return;
+                  }
+                  void saveDetailFavorite();
+                }}
                 onReviewTextChange={setDetailReviewText}
                 onReviewRatingChange={setDetailReviewRating}
                 onReviewImagePick={(file, previewUrl) => {
                   setDetailReviewImageFile(file);
                   setDetailReviewImagePreviewUrl(previewUrl);
                 }}
-                onSaveReview={saveDetailReview}
-                onDeleteReview={removeDetailReview}
+                onSaveReview={async () => {
+                  if (!sessionEmail) {
+                    requestLogin();
+                    return;
+                  }
+                  await saveDetailReview();
+                }}
+                onDeleteReview={async () => {
+                  if (!sessionEmail) {
+                    requestLogin();
+                    return;
+                  }
+                  await removeDetailReview();
+                }}
                 canDeleteReview={Boolean(detailCurrentUserReview)}
                 onSensoryDraftChange={setDetailSensoryDraft}
-                onSaveSensory={saveDetailSensory}
+                onSaveSensory={async () => {
+                  if (!sessionEmail) {
+                    requestLogin();
+                    return;
+                  }
+                  await saveDetailSensory();
+                }}
                 onStockDraftChange={setDetailStockDraft}
-                onSaveStock={saveDetailStock}
-                onOpenUserProfile={(userId) => navigateToTab("profile", { profileUserId: userId })}
+                onSaveStock={async () => {
+                  if (!sessionEmail) {
+                    requestLogin();
+                    return;
+                  }
+                  await saveDetailStock();
+                }}
+                onOpenUserProfile={(userId) => {
+                  if (!sessionEmail) {
+                    requestLogin();
+                    return;
+                  }
+                  navigateToTab("profile", { profileUserId: userId });
+                }}
+                isGuest={!sessionEmail}
+                onRequireAuth={requestLogin}
                 fullPage
                 externalOpenStockSignal={detailOpenStockSignal}
               />
@@ -2995,10 +3157,12 @@ export function App() {
           ) : null}
           {activeTab === "diary" ? (
             <DiaryView
+              mode={mode}
               tab={diaryTab}
               setTab={setDiaryTab}
               period={diaryPeriod}
               entries={diaryEntriesActivity}
+              coffeeCatalog={brewCoffeeCatalog}
               pantryRows={pantryCoffeeRows}
               onDeleteEntry={handleDeleteDiaryEntry}
               onEditEntry={handleUpdateDiaryEntry}
@@ -3010,13 +3174,41 @@ export function App() {
           {activeTab === "profile" && profileUser ? (
             <ProfileView
               user={profileUser}
+              mode={mode}
               tab={profileTab}
               setTab={setProfileTab}
               posts={profilePosts}
               favoriteCoffees={profileUser.id === activeUser?.id ? favoriteCoffees : []}
+              allCoffees={coffees}
+              coffeeReviews={coffeeReviews}
+              coffeeSensoryProfiles={coffeeSensoryProfiles}
               followers={followersCount}
               following={followingCount}
               onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "profile")}
+              onOpenUserProfile={(userId) => navigateToTab("profile", { profileUserId: userId })}
+              canEditProfile={profileUser.id === activeUser?.id}
+              canFollowProfile={Boolean(activeUser && profileUser.id !== activeUser.id)}
+              isFollowingProfile={Boolean(profileUser && followingIds.has(profileUser.id))}
+              onToggleFollowProfile={async () => {
+                if (!profileUser) return;
+                await handleToggleFollow(profileUser.id);
+              }}
+              onSaveProfile={handleUpdateProfile}
+              onRemoveFavorite={async (coffeeId) => {
+                if (!activeUser) return;
+                const exists = favorites.some((item) => item.user_id === activeUser.id && item.coffee_id === coffeeId);
+                if (!exists) return;
+                await toggleFavoriteCoffee(activeUser.id, coffeeId, true);
+                setFavorites((prev) => prev.filter((item) => !(item.user_id === activeUser.id && item.coffee_id === coffeeId)));
+              }}
+              onEditPost={handleEditPost}
+              onDeletePost={handleDeletePost}
+              onToggleLike={handleToggleLike}
+              onOpenComments={(postId) => {
+                setHighlightedCommentId(null);
+                setCommentSheetPostId(postId);
+              }}
+              externalEditProfileSignal={profileEditSignal}
               sidePanel={mode === "desktop" && !useRightRailDetail && detailHostTab === "profile" ? detailPanel : null}
             />
           ) : null}
@@ -3047,6 +3239,34 @@ export function App() {
       ) : null}
 
       {mode === "mobile" && !(activeTab === "brewlab" && showCreateCoffeeComposer) ? <footer className="bottom-tabs">{nav}</footer> : null}
+
+      {showAuthPrompt ? (
+        <div className="auth-prompt-overlay" role="dialog" aria-modal="true" aria-label="Acceso" onClick={() => setShowAuthPrompt(false)}>
+          <div className="auth-prompt-card" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="auth-prompt-close" aria-label="Cerrar" onClick={() => setShowAuthPrompt(false)}>
+              <UiIcon name="close" className="ui-icon" />
+            </button>
+            <div className="auth-prompt-avatar" aria-hidden="true">
+              <img src="/logo.png" alt="" loading="lazy" />
+            </div>
+            <p className="auth-prompt-copy">
+              Únete a la comunidad del cafe para descrubir, elaborar y compartir tu pasión.
+            </p>
+            <button
+              type="button"
+              className="action-button auth-prompt-primary"
+              disabled={authBusy}
+              onClick={() => {
+                void handleGoogleLogin();
+              }}
+            >
+              <span className="auth-prompt-google-g" aria-hidden="true">G</span>
+              <span>{authBusy ? "Conectando..." : "Continuar con Google"}</span>
+            </button>
+            {authError ? <p className="auth-prompt-error">{authError}</p> : null}
+          </div>
+        </div>
+      ) : null}
 
       <MobileBarcodeScannerSheet
         open={showBarcodeScannerSheet}
@@ -3863,33 +4083,63 @@ export function App() {
 
       {activeTab === "diary" && showDiaryCoffeeSheet ? (
         <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Registrar cafe" onClick={() => setShowDiaryCoffeeSheet(false)}>
-          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+          <div className="sheet-card diary-sheet diary-coffee-sheet" onClick={(event) => event.stopPropagation()}>
             <div className="sheet-handle" aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">REGISTRAR CAFÉ</strong>
             </header>
             <div className="diary-sheet-form">
+              <div className="diary-edit-entry-presets diary-coffee-method-presets">
+                {[
+                  { label: "Espresso", drawable: "maq_espresso.png" },
+                  { label: "V60", drawable: "maq_hario_v60.png" },
+                  { label: "Aeropress", drawable: "maq_aeropress.png" },
+                  { label: "Moka", drawable: "maq_italiana.png" }
+                ].map((method) => (
+                  <button
+                    key={method.label}
+                    type="button"
+                    className={`chip-button period-chip diary-edit-entry-method-chip ${normalizeLookupText(diaryCoffeePreparationDraft) === normalizeLookupText(method.label) ? "is-active" : ""}`.trim()}
+                    onClick={() => setDiaryCoffeePreparationDraft(method.label)}
+                  >
+                    <img src={`/android-drawable/${method.drawable}`} alt="" aria-hidden="true" />
+                    <span>{method.label}</span>
+                  </button>
+                ))}
+              </div>
               <label>
                 <span>Café</span>
-                <select
-                  className="search-wide"
-                  value={diaryCoffeeIdDraft}
-                  onChange={(event) => {
-                    const nextId = event.target.value;
-                    setDiaryCoffeeIdDraft(nextId);
-                    const selected = diaryCoffeeOptions.find((coffee) => coffee.id === nextId);
-                    if (selected) {
-                      const isDecaf = normalizeLookupText(selected.cafeina ?? "").includes("sin");
-                      setDiaryCoffeeCaffeineDraft(isDecaf ? "5" : "95");
-                    }
-                  }}
-                >
-                  {diaryCoffeeOptions.map((coffee) => (
-                    <option key={coffee.id} value={coffee.id}>
-                      {coffee.nombre} {coffee.marca ? `- ${coffee.marca}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <div className="diary-coffee-picker" role="listbox" aria-label="Seleccionar café">
+                  {diaryCoffeeOptions.map((coffee) => {
+                    const selected = coffee.id === diaryCoffeeIdDraft;
+                    return (
+                      <button
+                        key={coffee.id}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        className={`diary-coffee-picker-item ${selected ? "is-active" : ""}`.trim()}
+                        onClick={() => {
+                          setDiaryCoffeeIdDraft(coffee.id);
+                          const isDecaf = normalizeLookupText(coffee.cafeina ?? "").includes("sin");
+                          setDiaryCoffeeCaffeineDraft(isDecaf ? "5" : "95");
+                        }}
+                      >
+                        <span className="diary-coffee-picker-media">
+                          {coffee.image_url ? (
+                            <img src={coffee.image_url} alt="" loading="lazy" />
+                          ) : (
+                            <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" />
+                          )}
+                        </span>
+                        <span className="diary-coffee-picker-copy">
+                          <strong>{coffee.nombre}</strong>
+                          <em>{(coffee.marca || "CAFÉ").toUpperCase()}</em>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </label>
               <label>
                 <span>Preparación</span>
@@ -3902,21 +4152,60 @@ export function App() {
               <label>
                 <span>Cantidad (ml)</span>
                 <input
-                  className="search-wide"
+                  className="search-wide diary-edit-entry-input"
                   type="number"
+                  inputMode="numeric"
                   min={1}
                   value={diaryCoffeeMlDraft}
                   onChange={(event) => setDiaryCoffeeMlDraft(event.target.value)}
                 />
+                <input
+                  className="diary-edit-entry-slider"
+                  type="range"
+                  min={10}
+                  max={700}
+                  step={10}
+                  value={Math.max(10, Number(diaryCoffeeMlDraft || 10))}
+                  onChange={(event) => setDiaryCoffeeMlDraft(String(Math.max(10, Number(event.target.value || 10))))}
+                />
               </label>
+              <div className="diary-coffee-size-presets">
+                {[
+                  { label: "Espresso", ml: 30, drawable: "taza_espresso.png" },
+                  { label: "Peq.", ml: 180, drawable: "taza_pequeno.png" },
+                  { label: "Med.", ml: 275, drawable: "taza_mediano.png" },
+                  { label: "Gra.", ml: 375, drawable: "taza_grande.png" },
+                  { label: "XL", ml: 475, drawable: "taza_xl.png" }
+                ].map((size) => (
+                  <button
+                    key={size.label}
+                    type="button"
+                    className={`chip-button period-chip diary-coffee-size-chip ${Math.abs(Number(diaryCoffeeMlDraft || 0) - size.ml) <= 10 ? "is-active" : ""}`.trim()}
+                    onClick={() => setDiaryCoffeeMlDraft(String(size.ml))}
+                  >
+                    <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" />
+                    <span>{size.label}</span>
+                  </button>
+                ))}
+              </div>
               <label>
                 <span>Cafeína (mg)</span>
                 <input
-                  className="search-wide"
+                  className="search-wide diary-edit-entry-input"
                   type="number"
+                  inputMode="numeric"
                   min={0}
                   value={diaryCoffeeCaffeineDraft}
                   onChange={(event) => setDiaryCoffeeCaffeineDraft(event.target.value)}
+                />
+                <input
+                  className="diary-edit-entry-slider"
+                  type="range"
+                  min={0}
+                  max={350}
+                  step={5}
+                  value={Math.max(0, Number(diaryCoffeeCaffeineDraft || 0))}
+                  onChange={(event) => setDiaryCoffeeCaffeineDraft(String(Math.max(0, Number(event.target.value || 0))))}
                 />
               </label>
               <div className="diary-sheet-form-actions">
@@ -3952,43 +4241,115 @@ export function App() {
 
       {activeTab === "diary" && showDiaryAddPantrySheet ? (
         <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Añadir a despensa" onClick={() => setShowDiaryAddPantrySheet(false)}>
-          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+          <div className="sheet-card diary-sheet diary-pantry-sheet" onClick={(event) => event.stopPropagation()}>
             <div className="sheet-handle" aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">AÑADIR A DESPENSA</strong>
             </header>
             <div className="diary-sheet-form">
+              {selectedDiaryPantryCoffee ? (
+                <div className="diary-edit-entry-preview" aria-hidden="true">
+                  <div className="diary-entry-media">
+                    {selectedDiaryPantryCoffee.image_url ? (
+                      <img src={selectedDiaryPantryCoffee.image_url} alt={selectedDiaryPantryCoffee.nombre} loading="lazy" />
+                    ) : (
+                      <img className="diary-entry-fallback-drawable" src="/android-drawable/taza_mediano.png" alt="" aria-hidden="true" loading="lazy" />
+                    )}
+                  </div>
+                  <div className="diary-entry-copy">
+                    <p className="feed-user">{selectedDiaryPantryCoffee.nombre}</p>
+                    <p className="feed-meta diary-entry-brand">{(selectedDiaryPantryCoffee.marca || "CAFÉ").toUpperCase()}</p>
+                  </div>
+                </div>
+              ) : null}
               <label>
                 <span>Café</span>
-                <select
-                  className="search-wide"
-                  value={diaryPantryCoffeeIdDraft}
-                  onChange={(event) => setDiaryPantryCoffeeIdDraft(event.target.value)}
-                >
-                  {diaryCoffeeOptions.map((coffee) => (
-                    <option key={coffee.id} value={coffee.id}>
-                      {coffee.nombre} {coffee.marca ? `- ${coffee.marca}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <div className="diary-coffee-picker" role="listbox" aria-label="Seleccionar café para despensa">
+                  {diaryCoffeeOptions.map((coffee) => {
+                    const selected = coffee.id === diaryPantryCoffeeIdDraft;
+                    return (
+                      <button
+                        key={coffee.id}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        className={`diary-coffee-picker-item ${selected ? "is-active" : ""}`.trim()}
+                        onClick={() => setDiaryPantryCoffeeIdDraft(coffee.id)}
+                      >
+                        <span className="diary-coffee-picker-media">
+                          {coffee.image_url ? (
+                            <img src={coffee.image_url} alt="" loading="lazy" />
+                          ) : (
+                            <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" />
+                          )}
+                        </span>
+                        <span className="diary-coffee-picker-copy">
+                          <strong>{coffee.nombre}</strong>
+                          <em>{(coffee.marca || "CAFÉ").toUpperCase()}</em>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </label>
+              <div className="diary-water-presets diary-edit-entry-presets is-water">
+                {[100, 250, 500].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`chip-button period-chip ${Number(diaryPantryGramsDraft) === value ? "is-active" : ""}`.trim()}
+                    onClick={() => setDiaryPantryGramsDraft(String(value))}
+                  >
+                    {value} g
+                  </button>
+                ))}
+              </div>
               <label>
                 <span>Gramos a añadir</span>
+                <div className="diary-edit-entry-measure">
+                  <button
+                    type="button"
+                    className="diary-edit-entry-step"
+                    aria-label="Reducir gramos"
+                    onClick={() => bumpPantryGrams(-25)}
+                  >
+                    -
+                  </button>
+                  <input
+                    className="search-wide diary-edit-entry-input"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={diaryPantryGramsDraft}
+                    onChange={(event) => setDiaryPantryGramsDraft(event.target.value)}
+                  />
+                  <span className="diary-edit-entry-unit" aria-hidden="true">g</span>
+                  <button
+                    type="button"
+                    className="diary-edit-entry-step"
+                    aria-label="Aumentar gramos"
+                    onClick={() => bumpPantryGrams(25)}
+                  >
+                    +
+                  </button>
+                </div>
                 <input
-                  className="search-wide"
-                  type="number"
+                  className="diary-edit-entry-slider"
+                  type="range"
                   min={1}
-                  value={diaryPantryGramsDraft}
-                  onChange={(event) => setDiaryPantryGramsDraft(event.target.value)}
+                  max={2000}
+                  step={25}
+                  value={Math.max(1, Number(diaryPantryGramsDraft || 1))}
+                  onChange={(event) => setDiaryPantryGramsDraft(String(Math.max(1, Number(event.target.value || 1))))}
                 />
               </label>
               <div className="diary-sheet-form-actions">
-                <button type="button" className="action-button action-button-ghost" onClick={() => setShowDiaryAddPantrySheet(false)}>
+                <button type="button" className="action-button action-button-ghost diary-edit-entry-cancel" onClick={() => setShowDiaryAddPantrySheet(false)}>
                   Cancelar
                 </button>
                 <button
                   type="button"
-                  className="action-button"
+                  className="action-button diary-edit-entry-save"
                   onClick={async () => {
                     if (!activeUser) return;
                     if (!selectedDiaryPantryCoffee) return;
@@ -4314,6 +4675,8 @@ function TopBar({
   brewCreateCoffeeOpen,
   onBrewCreateCoffeeBack,
   onProfileSignOut,
+  profileMenuEnabled,
+  onProfileOpenEdit,
   onCoffeeBack,
   coffeeTopbarFavoriteActive,
   coffeeTopbarStockActive,
@@ -4348,6 +4711,8 @@ function TopBar({
   brewCreateCoffeeOpen: boolean;
   onBrewCreateCoffeeBack: () => void;
   onProfileSignOut: () => void;
+  profileMenuEnabled: boolean;
+  onProfileOpenEdit: () => void;
   onCoffeeBack: () => void;
   coffeeTopbarFavoriteActive: boolean;
   coffeeTopbarStockActive: boolean;
@@ -4357,6 +4722,7 @@ function TopBar({
   const [searchFocus, setSearchFocus] = useState(false);
   const [searchHintWord, setSearchHintWord] = useState<"marca" | "cafe">("marca");
   const [notificationPop, setNotificationPop] = useState(false);
+  const [showProfileOptions, setShowProfileOptions] = useState(false);
   const showSearchCancel = Boolean(searchQuery || searchFocus);
 
   useEffect(() => {
@@ -4373,6 +4739,10 @@ function TopBar({
     const id = window.setTimeout(() => setNotificationPop(false), 340);
     return () => window.clearTimeout(id);
   }, [activeTab, showNotificationsBadge]);
+
+  useEffect(() => {
+    setShowProfileOptions(false);
+  }, [activeTab]);
 
   if (activeTab === "search") {
     if (searchMode === "users") {
@@ -4528,10 +4898,10 @@ function TopBar({
         <div className="topbar-slot" />
         <h1 className="title title-upper topbar-title-center">MI DIARIO</h1>
         <div className="topbar-slot topbar-slot-end">
-          <button className="icon-button topbar-icon-button" type="button" aria-label="Agregar" onClick={onDiaryOpenQuickActions}>
+          <button className="icon-button topbar-icon-button diary-topbar-add" type="button" aria-label="Agregar" onClick={onDiaryOpenQuickActions}>
             <UiIcon name="add" className="ui-icon" />
           </button>
-          <button className="chip-button" type="button" onClick={onDiaryOpenPeriodSelector}>{periodLabel}</button>
+          <button className="chip-button diary-period-chip" type="button" onClick={onDiaryOpenPeriodSelector}>{periodLabel}</button>
         </div>
       </header>
     );
@@ -4539,10 +4909,58 @@ function TopBar({
 
   if (activeTab === "profile") {
     return (
-      <header className={`topbar ${scrolled ? "topbar-scrolled" : ""}`}>
-        <h1 className="title title-upper">PERFIL</h1>
-        <button className="icon-button" type="button" aria-label="Cerrar sesion" onClick={onProfileSignOut}><UiIcon name="settings" className="ui-icon" /></button>
-      </header>
+      <>
+        <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""}`}>
+          <div className="topbar-slot" />
+          <h1 className="title title-upper topbar-title-center">PERFIL</h1>
+          <div className="topbar-slot topbar-slot-end">
+            {profileMenuEnabled ? (
+              <button
+                className="icon-button profile-topbar-menu-trigger"
+                type="button"
+                aria-label="Opciones de perfil"
+                onClick={() => setShowProfileOptions(true)}
+              >
+                <UiIcon name="more" className="ui-icon" />
+              </button>
+            ) : null}
+          </div>
+        </header>
+        {showProfileOptions && profileMenuEnabled ? (
+          <div className="sheet-overlay profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onClick={() => setShowProfileOptions(false)}>
+            <div className="sheet-card profile-topbar-options-sheet" onClick={(event) => event.stopPropagation()}>
+              <div className="sheet-handle" aria-hidden="true" />
+              <div className="comment-action-list">
+                <p className="comment-action-title">OPCIONES</p>
+                <button
+                  type="button"
+                  className="comment-action-button"
+                  onClick={() => {
+                    setShowProfileOptions(false);
+                    onProfileOpenEdit();
+                  }}
+                >
+                  <UiIcon name="edit" className="ui-icon" />
+                  <span>Editar perfil</span>
+                  <UiIcon name="chevron-right" className="ui-icon trailing" />
+                </button>
+                <button
+                  type="button"
+                  className="comment-action-button is-danger"
+                  onClick={() => {
+                    setShowProfileOptions(false);
+                    onProfileSignOut();
+                  }}
+                >
+                  <UiIcon name="close" className="ui-icon" />
+                  <span>Cerrar sesión</span>
+                  <UiIcon name="chevron-right" className="ui-icon trailing" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </>
     );
   }
 
@@ -5008,7 +5426,7 @@ function TimelineView({
                   }}
                 >
                   <span className="like-icon-wrap">
-                    <UiIcon name="coffee" className="ui-icon" />
+                    <UiIcon name={card.likedByActiveUser ? "coffee-filled" : "coffee"} className="ui-icon" />
                     <span className="like-burst" aria-hidden="true">
                       <span />
                       <span />
@@ -5453,8 +5871,8 @@ function SearchView({
 
   if (sidePanel) {
     return (
-      <div className="split-with-side">
-        <div>{content}</div>
+      <div className="split-with-side profile-split-with-side">
+        <div className="profile-content-wrap">{content}</div>
         <aside className="timeline-side-column">{sidePanel}</aside>
       </div>
     );
@@ -5490,6 +5908,8 @@ function CoffeeDetailView({
   onStockDraftChange,
   onSaveStock,
   onOpenUserProfile,
+  isGuest,
+  onRequireAuth,
   fullPage,
   externalOpenStockSignal
 }: {
@@ -5519,6 +5939,8 @@ function CoffeeDetailView({
   onStockDraftChange: (value: { total: number; remaining: number }) => void;
   onSaveStock: () => Promise<void>;
   onOpenUserProfile: (userId: number) => void;
+  isGuest: boolean;
+  onRequireAuth: () => void;
   fullPage: boolean;
   externalOpenStockSignal: number;
 }) {
@@ -5611,6 +6033,10 @@ function CoffeeDetailView({
                 className={`icon-button topbar-icon-button coffee-detail-topbar-icon ${pantry ? "is-active" : ""}`.trim()}
                 aria-label="Añadir a stock"
                 onClick={() => {
+                  if (isGuest) {
+                    onRequireAuth();
+                    return;
+                  }
                   setStockSheetError(null);
                   setShowStockSheet(true);
                 }}
@@ -5661,6 +6087,10 @@ function CoffeeDetailView({
             type="button"
             className="text-button coffee-detail-inline-action"
             onClick={() => {
+              if (isGuest) {
+                onRequireAuth();
+                return;
+              }
               setSensorySheetError(null);
               setShowSensorySheet(true);
             }}
@@ -5710,6 +6140,10 @@ function CoffeeDetailView({
             type="button"
             className="coffee-detail-opinions-cta"
             onClick={() => {
+              if (isGuest) {
+                onRequireAuth();
+                return;
+              }
               setReviewSheetError(null);
               setShowReviewSheet(true);
             }}
@@ -5725,7 +6159,17 @@ function CoffeeDetailView({
             <p className="coffee-detail-opinion-label">Tu opinión</p>
             <div className="coffee-detail-opinion-head">
               {currentUser?.id ? (
-                <button type="button" className="coffee-detail-opinion-user-link" onClick={() => onOpenUserProfile(currentUser.id)}>
+                <button
+                  type="button"
+                  className="coffee-detail-opinion-user-link"
+                  onClick={() => {
+                    if (isGuest) {
+                      onRequireAuth();
+                      return;
+                    }
+                    onOpenUserProfile(currentUser.id);
+                  }}
+                >
                   <span className="coffee-detail-opinion-user">
                     {currentUser.avatar_url ? (
                       <img className="coffee-detail-opinion-avatar" src={currentUser.avatar_url} alt={currentUser.username} loading="lazy" />
@@ -5760,7 +6204,17 @@ function CoffeeDetailView({
             <li key={`${review.user_id}-${review.id ?? review.timestamp ?? 0}`} className="coffee-card coffee-detail-opinion-item">
               <div className="coffee-detail-opinion-head">
                 {review.user?.id ? (
-                  <button type="button" className="coffee-detail-opinion-user-link" onClick={() => onOpenUserProfile(review.user!.id)}>
+                  <button
+                    type="button"
+                    className="coffee-detail-opinion-user-link"
+                    onClick={() => {
+                      if (isGuest) {
+                        onRequireAuth();
+                        return;
+                      }
+                      onOpenUserProfile(review.user!.id);
+                    }}
+                  >
                     <span className="coffee-detail-opinion-user">
                       {review.user.avatar_url ? (
                         <img className="coffee-detail-opinion-avatar" src={review.user.avatar_url} alt={review.user.username} loading="lazy" />
@@ -6841,10 +7295,12 @@ function CreateCoffeeView({
 }
 
 function DiaryView({
+  mode,
   tab,
   setTab,
   period,
   entries,
+  coffeeCatalog,
   pantryRows,
   onDeleteEntry,
   onEditEntry,
@@ -6852,10 +7308,12 @@ function DiaryView({
   onRemovePantryItem,
   onOpenCoffee
 }: {
+  mode: "mobile" | "desktop";
   tab: "actividad" | "despensa";
   setTab: (value: "actividad" | "despensa") => void;
   period: "hoy" | "7d" | "30d";
   entries: DiaryEntryRow[];
+  coffeeCatalog: CoffeeRow[];
   pantryRows: Array<{ item: PantryItemRow; coffee?: CoffeeRow }>;
   onDeleteEntry: (entryId: number) => Promise<void>;
   onEditEntry: (entryId: number, amountMl: number, caffeineMg: number, preparationType: string) => Promise<void>;
@@ -6876,6 +7334,17 @@ function DiaryView({
   const [stockEditRemaining, setStockEditRemaining] = useState("");
   const [savingStock, setSavingStock] = useState(false);
   const [removingStock, setRemovingStock] = useState(false);
+  const [showCaffeineInfo, setShowCaffeineInfo] = useState(false);
+  const editPrepScrollRef = useRef<HTMLDivElement | null>(null);
+  const editSizeScrollRef = useRef<HTMLDivElement | null>(null);
+  const editScrollPointerIdRef = useRef<number | null>(null);
+  const editScrollStartXRef = useRef(0);
+  const editScrollStartLeftRef = useRef(0);
+  const editScrollTargetRef = useRef<HTMLDivElement | null>(null);
+  const editScrollActiveRef = useRef(false);
+  const editScrollRafRef = useRef<number | null>(null);
+  const editScrollPendingLeftRef = useRef(0);
+  const [editChipsDragging, setEditChipsDragging] = useState(false);
   const visibleEntries = useMemo(() => {
     const now = new Date();
     const start = new Date(now);
@@ -6989,22 +7458,32 @@ function DiaryView({
   );
   const entryImageByCoffeeId = useMemo(() => {
     const map = new Map<string, string>();
+    coffeeCatalog.forEach((coffee) => {
+      const id = String(coffee.id || "");
+      const image = String(coffee.image_url || "");
+      if (id && image && !map.has(id)) map.set(id, image);
+    });
     sortedPantryRows.forEach((row) => {
       const id = String(row.item.coffee_id || "");
       const image = row.coffee?.image_url || "";
       if (id && image && !map.has(id)) map.set(id, image);
     });
     return map;
-  }, [sortedPantryRows]);
+  }, [coffeeCatalog, sortedPantryRows]);
   const entryBrandByCoffeeId = useMemo(() => {
     const map = new Map<string, string>();
+    coffeeCatalog.forEach((coffee) => {
+      const id = String(coffee.id || "");
+      const brand = String((coffee.marca || "").trim());
+      if (id && brand && !map.has(id)) map.set(id, brand);
+    });
     sortedPantryRows.forEach((row) => {
       const id = String(row.item.coffee_id || "");
       const brand = (row.coffee?.marca || "").trim();
       if (id && brand && !map.has(id)) map.set(id, brand);
     });
     return map;
-  }, [sortedPantryRows]);
+  }, [coffeeCatalog, sortedPantryRows]);
   const diaryRows = useMemo(() => {
     const rows: Array<{ type: "header"; key: string; label: string } | { type: "entry"; key: string; entry: DiaryEntryRow }> = [];
     let lastDayKey = "";
@@ -7032,6 +7511,29 @@ function DiaryView({
     [editEntryId, visibleEntries]
   );
   const editEntryIsWater = (editEntryTarget?.type || "").toUpperCase() === "WATER";
+  const editEntryTime = editEntryTarget
+    ? new Date(editEntryTarget.timestamp).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+    : "";
+  const editMethodOptions = [
+    { label: "Espresso", drawable: "maq_espresso.png" },
+    { label: "Americano", drawable: "maq_manual.png" },
+    { label: "Cappuccino", drawable: "maq_espresso.png" },
+    { label: "V60", drawable: "maq_hario_v60.png" },
+    { label: "Aeropress", drawable: "maq_aeropress.png" },
+    { label: "Chemex", drawable: "maq_chemex.png" },
+    { label: "Prensa francesa", drawable: "maq_prensa_francesa.png" },
+    { label: "Moka", drawable: "maq_italiana.png" },
+    { label: "Goteo", drawable: "maq_goteo.png" },
+    { label: "Sifón", drawable: "maq_sifon.png" },
+    { label: "Turco", drawable: "maq_turco.png" },
+    { label: "Manual", drawable: "maq_manual.png" }
+  ];
+  const editSizeOptions = [
+    { label: "Espresso", range: "25-30 ml", ml: 30, drawable: "taza_espresso.png" },
+    { label: "Pequeño", range: "150-200 ml", ml: 175, drawable: "taza_pequeno.png" },
+    { label: "Mediano", range: "250-300 ml", ml: 275, drawable: "taza_mediano.png" },
+    { label: "Grande", range: "320-400 ml", ml: 360, drawable: "taza_grande.png" }
+  ];
   const parsedStockTotal = Number(stockEditTotal || 0);
   const parsedStockRemaining = Number(stockEditRemaining || 0);
   const canSaveStock =
@@ -7052,6 +7554,7 @@ function DiaryView({
           : "";
   const parsedEditAmount = Number(editAmountMl || 0);
   const parsedEditCaffeine = Number(editCaffeineMg || 0);
+  const parsedEditDose = ((editPreparationType || "").match(/(\d+(?:[.,]\d+)?)\s*g/i)?.[1] || "15").replace(",", ".");
   const canSaveEditEntry =
     Number.isFinite(parsedEditAmount) &&
     parsedEditAmount > 0 &&
@@ -7066,6 +7569,155 @@ function DiaryView({
       : (!editEntryIsWater && parsedEditCaffeine < 0)
         ? "La cafeína no puede ser negativa."
         : "";
+  const handleEditScrollPointerDown = (event: ReactPointerEvent<HTMLDivElement>, section: "prep" | "size") => {
+    const node = section === "prep" ? editPrepScrollRef.current : editSizeScrollRef.current;
+    if (!node) return;
+    if (event.pointerType !== "mouse") return;
+    if (node.scrollWidth <= node.clientWidth) return;
+    editScrollPointerIdRef.current = event.pointerId;
+    editScrollTargetRef.current = node;
+    editScrollStartXRef.current = event.clientX;
+    editScrollStartLeftRef.current = node.scrollLeft;
+    editScrollActiveRef.current = false;
+  };
+  const handleEditScrollPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const node = editScrollTargetRef.current;
+    if (!node) return;
+    if (editScrollPointerIdRef.current !== event.pointerId) return;
+    const delta = event.clientX - editScrollStartXRef.current;
+    if (!editScrollActiveRef.current) {
+      if (Math.abs(delta) < 6) return;
+      editScrollActiveRef.current = true;
+      setEditChipsDragging(true);
+      if (!node.hasPointerCapture(event.pointerId)) {
+        node.setPointerCapture(event.pointerId);
+      }
+    }
+    event.preventDefault();
+    editScrollPendingLeftRef.current = editScrollStartLeftRef.current - delta;
+    if (editScrollRafRef.current != null) return;
+    editScrollRafRef.current = window.requestAnimationFrame(() => {
+      const target = editScrollTargetRef.current;
+      if (target) target.scrollLeft = editScrollPendingLeftRef.current;
+      editScrollRafRef.current = null;
+    });
+  };
+  const handleEditScrollPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const node = editScrollTargetRef.current;
+    if (!node) return;
+    if (editScrollPointerIdRef.current !== event.pointerId) return;
+    editScrollPointerIdRef.current = null;
+    editScrollTargetRef.current = null;
+    editScrollActiveRef.current = false;
+    setEditChipsDragging(false);
+    if (editScrollRafRef.current != null) {
+      window.cancelAnimationFrame(editScrollRafRef.current);
+      editScrollRafRef.current = null;
+    }
+    if (node.hasPointerCapture(event.pointerId)) {
+      node.releasePointerCapture(event.pointerId);
+    }
+  };
+  useEffect(() => {
+    return () => {
+      if (editScrollRafRef.current != null) {
+        window.cancelAnimationFrame(editScrollRafRef.current);
+        editScrollRafRef.current = null;
+      }
+    };
+  }, []);
+  const activityList = (
+    <ul className="diary-list">
+      {diaryRows.length ? diaryRows.map((row) => {
+        if (row.type === "header") {
+          return <li key={row.key} className="diary-day-header">{row.label}</li>;
+        }
+        const entry = row.entry;
+        return (
+          <DiaryActivityRow
+            key={row.key}
+            entry={entry}
+            imageUrl={entry.coffee_id ? entryImageByCoffeeId.get(String(entry.coffee_id)) ?? "" : ""}
+            brand={entry.coffee_id ? entryBrandByCoffeeId.get(String(entry.coffee_id)) ?? "" : ""}
+            deleting={deletingEntryId === entry.id}
+            onOpenEdit={() => {
+              const isWater = (entry.type || "").toUpperCase() === "WATER";
+              setEditEntryId(entry.id);
+              setEditAmountMl(String(Math.max(1, entry.amount_ml || 1)));
+              setEditCaffeineMg(String(Math.max(0, entry.caffeine_mg || 0)));
+              setEditPreparationType((entry.preparation_type || "").trim() || (isWater ? "Agua" : "Sin método"));
+            }}
+            onDelete={async () => {
+              if (deletingEntryId === entry.id) return;
+              setDeletingEntryId(entry.id);
+              try {
+                await new Promise((resolve) => window.setTimeout(resolve, 170));
+                await onDeleteEntry(entry.id);
+              } finally {
+                setDeletingEntryId(null);
+              }
+            }}
+          />
+        );
+      }) : <li className="diary-empty-card">Sin café o agua registrada</li>}
+    </ul>
+  );
+  const pantryList = (
+    <ul className="diary-pantry-grid">
+      {sortedPantryRows.length ? sortedPantryRows.map((row) => (
+        <li
+          key={`${row.item.user_id}-${row.item.coffee_id}`}
+          className="diary-pantry-card"
+          onClick={() => {
+            if (!row.coffee?.id) return;
+            onOpenCoffee(row.coffee.id);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              if (!row.coffee?.id) return;
+              onOpenCoffee(row.coffee.id);
+            }
+          }}
+        >
+          <div className="diary-pantry-media">
+            {row.coffee?.image_url ? (
+              <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" />
+            ) : (
+              <span className="diary-pantry-fallback" aria-hidden="true">{(row.coffee?.nombre || "C").slice(0, 1).toUpperCase()}</span>
+            )}
+            <div className="diary-pantry-overlay" />
+            <div className="diary-pantry-copy">
+              <small>{(row.coffee?.marca || "").toUpperCase()}</small>
+              <strong>{row.coffee?.nombre ?? row.item.coffee_id}</strong>
+            </div>
+            <button
+              type="button"
+              className="diary-pantry-options"
+              aria-label="Opciones"
+              onClick={(event) => {
+                event.stopPropagation();
+                setPantryOptionsCoffeeId(row.item.coffee_id);
+              }}
+            >
+              <UiIcon name="more" className="ui-icon" />
+            </button>
+          </div>
+          <div className="diary-pantry-foot">
+            <div className="diary-pantry-values">
+              <span>{row.item.grams_remaining}g</span>
+              <span>{row.item.total_grams > 0 ? Math.round((row.item.grams_remaining / row.item.total_grams) * 100) : 0}%</span>
+            </div>
+            <div className="diary-pantry-progress" aria-hidden="true">
+              <i style={{ width: `${Math.max(0, Math.min(100, row.item.total_grams > 0 ? (row.item.grams_remaining / row.item.total_grams) * 100 : 0))}%` }} />
+            </div>
+          </div>
+        </li>
+      )) : <li className="diary-empty-card">No hay café en tu despensa</li>}
+    </ul>
+  );
 
   return (
     <>
@@ -7074,7 +7726,25 @@ function DiaryView({
           <div className="diary-analytics-head-block">
             <p className="metric-label diary-analytics-label">
               CAFEÍNA ESTIMADA
-              <span className="diary-analytics-info" aria-hidden="true">i</span>
+              <span className="diary-analytics-info-wrap">
+                <button
+                  type="button"
+                  className="diary-analytics-info"
+                  aria-label="Información de cafeína estimada"
+                  aria-expanded={showCaffeineInfo}
+                  onClick={() => setShowCaffeineInfo((value) => !value)}
+                  onMouseEnter={() => setShowCaffeineInfo(true)}
+                  onMouseLeave={() => setShowCaffeineInfo(false)}
+                  onBlur={() => setShowCaffeineInfo(false)}
+                >
+                  i
+                </button>
+                {showCaffeineInfo ? (
+                  <span className="diary-analytics-tooltip" role="tooltip">
+                    Estimación basada en tus registros de consumo en el periodo seleccionado.
+                  </span>
+                ) : null}
+              </span>
             </p>
             <p className="analytics-value diary-analytics-main-value">{analytics.caffeine} mg</p>
             <span className={`diary-analytics-trend ${caffeineTrendPct >= 0 ? "is-up" : "is-down"}`.trim()}>
@@ -7130,15 +7800,42 @@ function DiaryView({
             setChartDragging(false);
           }}
         >
-          <div className="diary-chart">
+          <div className={`diary-chart ${period === "7d" ? "is-week" : ""}`.trim()}>
             {chartData.map((item) => {
-              const caffeineRatio = Math.max(0.08, Math.min(1, item.caffeine / 400));
-              const waterRatio = Math.max(0.08, Math.min(1, item.water / 2000));
+              const caffeineRatio = Math.min(1, item.caffeine / 400);
+              const waterRatio = Math.min(1, item.water / 2000);
+              const hasCaffeine = item.caffeine > 0;
+              const hasWater = item.water > 0;
+              const maxBarHeight = 136;
+              const minActiveBarHeight = 14;
+              const emptyBarHeight = 4;
+              const caffeineHeight = hasCaffeine
+                ? Math.max(minActiveBarHeight, Math.round(caffeineRatio * maxBarHeight))
+                : emptyBarHeight;
+              const waterHeight = hasWater
+                ? Math.max(minActiveBarHeight, Math.round(waterRatio * maxBarHeight))
+                : emptyBarHeight;
               return (
                 <div key={item.label} className="diary-chart-col">
                   <div className="diary-chart-bars">
-                    <span className="diary-chart-bar caffeine" style={{ width: `${Math.max(8, Math.round(caffeineRatio * 16))}px` }} />
-                    <span className="diary-chart-bar water" style={{ width: `${Math.max(8, Math.round(waterRatio * 16))}px` }} />
+                    <div className="diary-chart-bar-wrap">
+                      {hasCaffeine ? <small className="diary-chart-bar-value">{Math.round(item.caffeine)}</small> : null}
+                      <span
+                        className={`diary-chart-bar caffeine ${hasCaffeine ? "is-active" : ""}`.trim()}
+                        style={{ height: `${caffeineHeight}px` }}
+                        title={`Cafeína: ${Math.round(item.caffeine)} mg`}
+                        aria-label={`Cafeína ${Math.round(item.caffeine)} miligramos`}
+                      />
+                    </div>
+                    <div className="diary-chart-bar-wrap">
+                      {hasWater ? <small className="diary-chart-bar-value">{Math.round(item.water)}</small> : null}
+                      <span
+                        className={`diary-chart-bar water ${hasWater ? "is-active" : ""}`.trim()}
+                        style={{ height: `${waterHeight}px` }}
+                        title={`Agua: ${Math.round(item.water)} ml`}
+                        aria-label={`Agua ${Math.round(item.water)} mililitros`}
+                      />
+                    </div>
                   </div>
                   <small>{item.label}</small>
                 </div>
@@ -7165,104 +7862,27 @@ function DiaryView({
         </div>
       </article>
 
-      <div className="premium-tabs diary-tabs" role="tablist" aria-label="Tabs diario">
-        <button type="button" className={`premium-tab ${tab === "actividad" ? "is-active" : ""}`} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>ACTIVIDAD</button>
-        <button type="button" className={`premium-tab ${tab === "despensa" ? "is-active" : ""}`} role="tab" aria-selected={tab === "despensa"} onClick={() => setTab("despensa")}>DESPENSA</button>
-      </div>
-
-      {tab === "actividad" ? (
-        <ul className="diary-list">
-          {diaryRows.length ? diaryRows.map((row) => {
-            if (row.type === "header") {
-              return <li key={row.key} className="diary-day-header">{row.label}</li>;
-            }
-            const entry = row.entry;
-            return (
-              <DiaryActivityRow
-                key={row.key}
-                entry={entry}
-                imageUrl={entry.coffee_id ? entryImageByCoffeeId.get(String(entry.coffee_id)) ?? "" : ""}
-                brand={entry.coffee_id ? entryBrandByCoffeeId.get(String(entry.coffee_id)) ?? "" : ""}
-                deleting={deletingEntryId === entry.id}
-                onOpenEdit={() => {
-                  const isWater = (entry.type || "").toUpperCase() === "WATER";
-                  setEditEntryId(entry.id);
-                  setEditAmountMl(String(Math.max(1, entry.amount_ml || 1)));
-                  setEditCaffeineMg(String(Math.max(0, entry.caffeine_mg || 0)));
-                  setEditPreparationType((entry.preparation_type || "").trim() || (isWater ? "Agua" : "Sin método"));
-                }}
-                onDelete={async () => {
-                  if (deletingEntryId === entry.id) return;
-                  setDeletingEntryId(entry.id);
-                  try {
-                    await new Promise((resolve) => window.setTimeout(resolve, 170));
-                    await onDeleteEntry(entry.id);
-                  } finally {
-                    setDeletingEntryId(null);
-                  }
-                }}
-              />
-            );
-          }) : <li className="diary-empty-card">Sin café o agua registrada</li>}
-        </ul>
-      ) : null}
-
-      {tab === "despensa" ? (
-        <ul className="diary-pantry-grid">
-          {sortedPantryRows.length ? sortedPantryRows.map((row) => (
-            <li
-              key={`${row.item.user_id}-${row.item.coffee_id}`}
-              className="diary-pantry-card"
-              onClick={() => {
-                if (!row.coffee?.id) return;
-                onOpenCoffee(row.coffee.id);
-              }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  if (!row.coffee?.id) return;
-                  onOpenCoffee(row.coffee.id);
-                }
-              }}
-            >
-              <div className="diary-pantry-media">
-                {row.coffee?.image_url ? (
-                  <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" />
-                ) : (
-                  <span className="diary-pantry-fallback" aria-hidden="true">{(row.coffee?.nombre || "C").slice(0, 1).toUpperCase()}</span>
-                )}
-                <div className="diary-pantry-overlay" />
-                <div className="diary-pantry-copy">
-                  <small>{(row.coffee?.marca || "").toUpperCase()}</small>
-                  <strong>{row.coffee?.nombre ?? row.item.coffee_id}</strong>
-                </div>
-                <button
-                  type="button"
-                  className="diary-pantry-options"
-                  aria-label="Opciones"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setPantryOptionsCoffeeId(row.item.coffee_id);
-                  }}
-                >
-                  <UiIcon name="more" className="ui-icon" />
-                </button>
-              </div>
-              <div className="diary-pantry-foot">
-                <div className="diary-pantry-values">
-                  <span>{row.item.grams_remaining}g</span>
-                  <span>{row.item.total_grams > 0 ? Math.round((row.item.grams_remaining / row.item.total_grams) * 100) : 0}%</span>
-                </div>
-                <div className="diary-pantry-progress" aria-hidden="true">
-                  <i style={{ width: `${Math.max(0, Math.min(100, row.item.total_grams > 0 ? (row.item.grams_remaining / row.item.total_grams) * 100 : 0))}%` }} />
-                </div>
-              </div>
-            </li>
-          )) : <li className="diary-empty-card">No hay café en tu despensa</li>}
-        </ul>
-      ) : null}
+      {mode !== "desktop" ? (
+        <>
+          <div className="premium-tabs diary-tabs" role="tablist" aria-label="Tabs diario">
+            <button type="button" className={`premium-tab ${tab === "actividad" ? "is-active" : ""}`} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>ACTIVIDAD</button>
+            <button type="button" className={`premium-tab ${tab === "despensa" ? "is-active" : ""}`} role="tab" aria-selected={tab === "despensa"} onClick={() => setTab("despensa")}>DESPENSA</button>
+          </div>
+          {tab === "actividad" ? activityList : null}
+          {tab === "despensa" ? pantryList : null}
+        </>
+      ) : (
+        <section className="diary-desktop-columns" aria-label="Actividad y despensa">
+          <div className="diary-section-block">
+            <h3 className="diary-section-title">Actividad</h3>
+            {activityList}
+          </div>
+          <div className="diary-section-block">
+            <h3 className="diary-section-title">Despensa</h3>
+            {pantryList}
+          </div>
+        </section>
+      )}
 
       {pantryOptionsCoffeeId ? (
         <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Opciones despensa" onClick={() => setPantryOptionsCoffeeId(null)}>
@@ -7420,52 +8040,116 @@ function DiaryView({
 
       {editEntryTarget ? (
         <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar entrada" onClick={() => setEditEntryId(null)}>
-          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
+          <div className="sheet-card diary-sheet diary-edit-entry-sheet" onClick={(event) => event.stopPropagation()}>
             <div className="sheet-handle" aria-hidden="true" />
             <header className="sheet-header">
-              <strong className="sheet-title">EDITAR REGISTRO</strong>
+              <strong className="sheet-title">Editar registro de café</strong>
             </header>
             <div className="diary-sheet-form">
-              <label>
-                <span>{editEntryIsWater ? "Tipo" : "Preparación"}</span>
-                <input
-                  className="search-wide"
-                  value={editPreparationType}
-                  onChange={(event) => setEditPreparationType(event.target.value)}
-                />
-              </label>
-              <label>
-                <span>Cantidad (ml)</span>
-                <input
-                  className="search-wide"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={editAmountMl}
-                  onChange={(event) => setEditAmountMl(event.target.value)}
-                />
-              </label>
-              {!editEntryIsWater ? (
-                <label>
-                  <span>Cafeína (mg)</span>
-                  <input
-                    className="search-wide"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={editCaffeineMg}
-                    onChange={(event) => setEditCaffeineMg(event.target.value)}
-                  />
-                </label>
-              ) : null}
+              {editEntryIsWater ? (
+                <div className="diary-water-presets diary-edit-entry-presets is-water">
+                  {[250, 500, 750].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`chip-button period-chip ${Number(editAmountMl) === value ? "is-active" : ""}`.trim()}
+                      onClick={() => setEditAmountMl(String(value))}
+                    >
+                      {value} ml
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="diary-edit-entry-coffee-layout">
+                  <section className="diary-edit-entry-block">
+                    <h4 className="diary-edit-entry-block-title">Preparación</h4>
+                    <div
+                      ref={editPrepScrollRef}
+                      className={`diary-edit-entry-presets is-coffee ${editChipsDragging ? "is-dragging" : ""}`.trim()}
+                      onPointerDown={(event) => handleEditScrollPointerDown(event, "prep")}
+                      onPointerMove={handleEditScrollPointerMove}
+                      onPointerUp={handleEditScrollPointerEnd}
+                      onPointerCancel={handleEditScrollPointerEnd}
+                    >
+                      {editMethodOptions.map((method) => (
+                        <button
+                          key={method.label}
+                          type="button"
+                          className={`chip-button period-chip diary-edit-entry-method-chip ${normalizeLookupText(editPreparationType) === normalizeLookupText(method.label) ? "is-active" : ""}`.trim()}
+                          onClick={() => setEditPreparationType(method.label)}
+                        >
+                          <img src={`/android-drawable/${method.drawable}`} alt="" aria-hidden="true" />
+                          <span>{method.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="diary-edit-entry-metrics-grid">
+                    <label className="diary-edit-entry-metric-field">
+                      <span>Cafeína (mg)</span>
+                      <div className="diary-edit-entry-metric-value">
+                        <UiIcon name="caffeine" className="ui-icon" />
+                        <input
+                          className="diary-edit-entry-metric-input"
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          step={1}
+                          value={editCaffeineMg}
+                          placeholder="0"
+                          onChange={(event) => setEditCaffeineMg(event.target.value)}
+                        />
+                      </div>
+                    </label>
+                    <div className="diary-edit-entry-metric-field is-readonly">
+                      <span>Dosis (g)</span>
+                      <div className="diary-edit-entry-metric-value">
+                        <UiIcon name="grind" className="ui-icon" />
+                        <strong>{Number(parsedEditDose).toFixed(1).replace(".", ",")}</strong>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="diary-edit-entry-block">
+                    <h4 className="diary-edit-entry-block-title">Tamaño</h4>
+                    <div
+                      ref={editSizeScrollRef}
+                      className={`diary-coffee-size-presets diary-edit-entry-size-presets ${editChipsDragging ? "is-dragging" : ""}`.trim()}
+                      onPointerDown={(event) => handleEditScrollPointerDown(event, "size")}
+                      onPointerMove={handleEditScrollPointerMove}
+                      onPointerUp={handleEditScrollPointerEnd}
+                      onPointerCancel={handleEditScrollPointerEnd}
+                    >
+                      {editSizeOptions.map((size) => (
+                        <button
+                          key={size.label}
+                          type="button"
+                          className={`chip-button period-chip diary-coffee-size-chip ${Math.abs(Number(editAmountMl || 0) - size.ml) <= 20 ? "is-active" : ""}`.trim()}
+                          onClick={() => setEditAmountMl(String(size.ml))}
+                        >
+                          <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" />
+                          <span>{size.label}</span>
+                          <small>{size.range}</small>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="diary-edit-entry-metric-field is-readonly is-time">
+                    <span>Tiempo (HH:mm)</span>
+                    <div className="diary-edit-entry-metric-value">
+                      <UiIcon name="clock" className="ui-icon" />
+                      <strong>{editEntryTime}</strong>
+                    </div>
+                  </section>
+                </div>
+              )}
               {!canSaveEditEntry && editValidationMessage ? <p className="diary-inline-error">{editValidationMessage}</p> : null}
               <div className="diary-sheet-form-actions">
-                <button type="button" className="action-button action-button-ghost" onClick={() => setEditEntryId(null)} disabled={savingEditEntry}>
-                  Cancelar
-                </button>
                 <button
                   type="button"
-                  className="action-button"
+                  className="action-button diary-edit-entry-save"
                   disabled={savingEditEntry || !canSaveEditEntry}
                   onClick={async () => {
                     if (savingEditEntry || !canSaveEditEntry) return;
@@ -7483,7 +8167,7 @@ function DiaryView({
                     }
                   }}
                 >
-                  {savingEditEntry ? "Guardando..." : "Guardar"}
+                  {savingEditEntry ? "Guardando..." : "Guardar cambios"}
                 </button>
               </div>
             </div>
@@ -7525,35 +8209,85 @@ function DiaryActivityRow({
       return "Largo";
     })();
   const timeValue = new Date(entry.timestamp).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-  const metaItems: Array<{ key: string; icon: IconName; label: string; value: string }> = [];
-  if (!isWaterEntry && (entry.caffeine_mg || 0) > 0) {
-    metaItems.push({ key: "caffeine", icon: "caffeine", label: "Cafeína", value: `${Math.max(0, entry.caffeine_mg || 0)} mg` });
-  }
-  if (!isWaterEntry) {
-    metaItems.push({ key: "prep", icon: "coffee", label: "Preparación", value: prepValue });
-    metaItems.push({ key: "dose", icon: "grind", label: "Dosis", value: doseValue });
-  }
-  metaItems.push({ key: "size", icon: "stock", label: "Tamaño", value: sizeValue });
+  const prepDrawable = (() => {
+    const normalized = normalizeLookupText(prepValue);
+    if (normalized.includes("espresso")) return "maq_espresso.png";
+    if (normalized.includes("v60") || normalized.includes("hario")) return "maq_hario_v60.png";
+    if (normalized.includes("aero")) return "maq_aeropress.png";
+    if (normalized.includes("moka") || normalized.includes("italiana")) return "maq_italiana.png";
+    if (normalized.includes("chemex")) return "maq_chemex.png";
+    if (normalized.includes("prensa")) return "maq_prensa_francesa.png";
+    if (normalized.includes("goteo")) return "maq_goteo.png";
+    if (normalized.includes("sifon")) return "maq_sifon.png";
+    if (normalized.includes("turco")) return "maq_turco.png";
+    return "maq_manual.png";
+  })();
+  const sizeDrawable = (() => {
+    if (isWaterEntry) return null;
+    if (sizeValue === "Espresso") return "taza_espresso.png";
+    if (sizeValue === "Corto") return "taza_pequeno.png";
+    if (sizeValue === "Mediano") return "taza_mediano.png";
+    return "taza_grande.png";
+  })();
+  const metaItems: Array<{ key: string; icon?: IconName; drawable?: string; label: string; value: string }> = [
+    { key: "caffeine", icon: "caffeine", label: "Cafeína", value: `${Math.max(0, entry.caffeine_mg || 0)} mg` },
+    { key: "prep", drawable: prepDrawable, label: "Preparación", value: prepValue },
+    { key: "dose", icon: "grind", label: "Dosis", value: doseValue },
+    { key: "size", drawable: sizeDrawable ?? undefined, icon: sizeDrawable ? undefined : "stock", label: "Tamaño", value: sizeValue }
+  ];
+  const metaScrollRef = useRef<HTMLDivElement | null>(null);
+  const metaPointerIdRef = useRef<number | null>(null);
+  const metaDragStartXRef = useRef(0);
+  const metaDragStartScrollRef = useRef(0);
+  const metaRafRef = useRef<number | null>(null);
+  const metaPendingScrollRef = useRef(0);
+  const metaInteractingRef = useRef(false);
+  const [metaDragging, setMetaDragging] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
   const pointerIdRef = useRef<number | null>(null);
   const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const swipeActiveRef = useRef(false);
   const movedRef = useRef(false);
   const threshold = -76;
   const maxDrag = -124;
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLLIElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (metaInteractingRef.current || target?.closest(".diary-entry-meta-scroll")) return;
     if (deleting) return;
     if (pointerIdRef.current != null) return;
     pointerIdRef.current = event.pointerId;
     startXRef.current = event.clientX;
+    startYRef.current = event.clientY;
+    swipeActiveRef.current = false;
     movedRef.current = false;
-    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLLIElement>) => {
+    if (metaInteractingRef.current) return;
     if (pointerIdRef.current !== event.pointerId) return;
     const dx = event.clientX - startXRef.current;
-    if (Math.abs(dx) > 6) movedRef.current = true;
+    const dy = event.clientY - startYRef.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    if (!swipeActiveRef.current) {
+      if (absDx < 7 && absDy < 7) return;
+      if (absDy > absDx + 4) {
+        pointerIdRef.current = null;
+        setOffsetX(0);
+        return;
+      }
+      if (dx < 0 && absDx > absDy) {
+        swipeActiveRef.current = true;
+        movedRef.current = true;
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } else {
+        pointerIdRef.current = null;
+        setOffsetX(0);
+        return;
+      }
+    }
     if (dx >= 0) {
       setOffsetX(0);
       return;
@@ -7562,8 +8296,10 @@ function DiaryActivityRow({
   };
 
   const handlePointerEnd = async (event: ReactPointerEvent<HTMLLIElement>) => {
+    if (metaInteractingRef.current) return;
     if (pointerIdRef.current !== event.pointerId) return;
     pointerIdRef.current = null;
+    swipeActiveRef.current = false;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -7589,7 +8325,9 @@ function DiaryActivityRow({
       onPointerCancel={(event) => {
         void handlePointerEnd(event);
       }}
-      onClick={() => {
+      onClick={(event) => {
+        const target = event.target as HTMLElement | null;
+        if (metaInteractingRef.current || target?.closest(".diary-entry-meta-scroll")) return;
         if (movedRef.current || deleting) return;
         onOpenEdit();
       }}
@@ -7618,14 +8356,89 @@ function DiaryActivityRow({
               <span>{timeValue}</span>
             </div>
           </div>
-          <div className="diary-entry-meta-grid">
-            {metaItems.map((item) => (
-              <div key={item.key} className="diary-entry-meta-item">
-                <UiIcon name={item.icon} className="ui-icon" />
-                <span className="diary-entry-meta-label">{item.label}</span>
-                <strong className="diary-entry-meta-value">{item.value}</strong>
-              </div>
-            ))}
+          <div
+            ref={metaScrollRef}
+            className={`diary-entry-meta-scroll ${metaDragging ? "is-dragging" : ""}`.trim()}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              metaInteractingRef.current = true;
+              const node = metaScrollRef.current;
+              if (!node) return;
+              if (event.pointerType !== "mouse") return;
+              if (node.scrollWidth <= node.clientWidth) return;
+              event.preventDefault();
+              metaPointerIdRef.current = event.pointerId;
+              metaDragStartXRef.current = event.clientX;
+              metaDragStartScrollRef.current = node.scrollLeft;
+              setMetaDragging(true);
+              node.setPointerCapture(event.pointerId);
+            }}
+            onPointerMove={(event) => {
+              event.stopPropagation();
+              const node = metaScrollRef.current;
+              if (!node) return;
+              if (metaPointerIdRef.current !== event.pointerId) return;
+              event.preventDefault();
+              const delta = event.clientX - metaDragStartXRef.current;
+              metaPendingScrollRef.current = metaDragStartScrollRef.current - delta;
+              if (metaRafRef.current != null) return;
+              metaRafRef.current = window.requestAnimationFrame(() => {
+                const target = metaScrollRef.current;
+                if (target) target.scrollLeft = metaPendingScrollRef.current;
+                metaRafRef.current = null;
+              });
+            }}
+            onPointerUp={(event) => {
+              event.stopPropagation();
+              metaInteractingRef.current = false;
+              const node = metaScrollRef.current;
+              if (!node) return;
+              if (metaPointerIdRef.current !== event.pointerId) return;
+              metaPointerIdRef.current = null;
+              setMetaDragging(false);
+              if (metaRafRef.current != null) {
+                window.cancelAnimationFrame(metaRafRef.current);
+                metaRafRef.current = null;
+              }
+              if (node.hasPointerCapture(event.pointerId)) node.releasePointerCapture(event.pointerId);
+            }}
+            onPointerCancel={(event) => {
+              event.stopPropagation();
+              metaInteractingRef.current = false;
+              const node = metaScrollRef.current;
+              if (!node) return;
+              if (metaPointerIdRef.current !== event.pointerId) return;
+              metaPointerIdRef.current = null;
+              setMetaDragging(false);
+              if (metaRafRef.current != null) {
+                window.cancelAnimationFrame(metaRafRef.current);
+                metaRafRef.current = null;
+              }
+              if (node.hasPointerCapture(event.pointerId)) node.releasePointerCapture(event.pointerId);
+            }}
+            onPointerLeave={() => {
+              metaInteractingRef.current = false;
+              metaPointerIdRef.current = null;
+              setMetaDragging(false);
+              if (metaRafRef.current != null) {
+                window.cancelAnimationFrame(metaRafRef.current);
+                metaRafRef.current = null;
+              }
+            }}
+          >
+            <div className="diary-entry-meta-grid">
+              {metaItems.map((item) => (
+                <div key={item.key} className="diary-entry-meta-item">
+                  {item.drawable ? (
+                    <img className="diary-entry-meta-drawable" src={`/android-drawable/${item.drawable}`} alt="" aria-hidden="true" />
+                  ) : item.icon ? (
+                    <UiIcon name={item.icon} className="ui-icon" />
+                  ) : null}
+                  <span className="diary-entry-meta-label">{item.label}</span>
+                  <strong className="diary-entry-meta-value">{item.value}</strong>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -7633,81 +8446,981 @@ function DiaryActivityRow({
   );
 }
 
+function ProfileFavoriteItem({
+  coffee,
+  onOpenCoffee,
+  onRemoveFavorite
+}: {
+  coffee: CoffeeRow;
+  onOpenCoffee: (coffeeId: string) => void;
+  onRemoveFavorite: (coffeeId: string) => Promise<void>;
+}) {
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [offsetX, setOffsetX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const startXRef = useRef<number | null>(null);
+  const pointerIdRef = useRef<number | null>(null);
+  const offsetRef = useRef(0);
+  const swipeThreshold = -72;
+  const maxLeft = -110;
+
+  const resetSwipe = useCallback(() => {
+    setOffsetX(0);
+    setIsSwiping(false);
+    startXRef.current = null;
+    pointerIdRef.current = null;
+    offsetRef.current = 0;
+  }, []);
+  useEffect(() => {
+    offsetRef.current = offsetX;
+  }, [offsetX]);
+
+  return (
+    <li className="profile-favorite-item">
+      <div className="profile-favorite-swipe-bg" aria-hidden="true">
+        <UiIcon name="trash" className="ui-icon" />
+      </div>
+      <div
+        className={`coffee-card coffee-card-interactive profile-favorite-row ${offsetX < -1 ? "is-swiping" : ""}`.trim()}
+        style={{ transform: `translateX(${offsetX}px)` }}
+        role="button"
+        tabIndex={0}
+        onClick={(event) => {
+          if (Math.abs(offsetX) > 4 || isSwiping) {
+            event.preventDefault();
+            return;
+          }
+          onOpenCoffee(coffee.id);
+        }}
+        onPointerDown={(event) => {
+          if (isRemoving) return;
+          pointerIdRef.current = event.pointerId;
+          startXRef.current = event.clientX;
+          setIsSwiping(true);
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          if (!isSwiping || startXRef.current == null || pointerIdRef.current !== event.pointerId) return;
+          const delta = event.clientX - startXRef.current;
+          const next = Math.max(maxLeft, Math.min(0, offsetRef.current + delta));
+          setOffsetX(next);
+        }}
+        onPointerUp={async (event) => {
+          if (pointerIdRef.current !== event.pointerId) return;
+          const shouldDelete = offsetX <= swipeThreshold;
+          if (shouldDelete && !isRemoving) {
+            setIsRemoving(true);
+            try {
+              await onRemoveFavorite(coffee.id);
+            } finally {
+              setIsRemoving(false);
+              resetSwipe();
+            }
+            return;
+          }
+          resetSwipe();
+        }}
+        onPointerCancel={() => resetSwipe()}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onOpenCoffee(coffee.id);
+          }
+        }}
+      >
+        <span className="profile-favorite-media">
+          {coffee.image_url ? (
+            <img className="profile-favorite-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+          ) : (
+            <span className="profile-favorite-image profile-favorite-fallback" aria-hidden="true">{coffee.nombre.slice(0, 1).toUpperCase()}</span>
+          )}
+        </span>
+        <span className="profile-favorite-copy">
+          <strong>{coffee.nombre}</strong>
+          <em>{coffee.marca || "Marca"}</em>
+        </span>
+        <button
+          type="button"
+          className="profile-favorite-remove"
+          aria-label="Quitar de favoritos"
+          disabled={isRemoving}
+          onClick={async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (isRemoving) return;
+            setIsRemoving(true);
+            try {
+              await onRemoveFavorite(coffee.id);
+            } finally {
+              setIsRemoving(false);
+            }
+          }}
+        >
+          <UiIcon name="favorite-filled" className="ui-icon" />
+        </button>
+      </div>
+    </li>
+  );
+}
+
 function ProfileView({
   user,
+  mode,
   tab,
   setTab,
   posts,
   favoriteCoffees,
+  allCoffees,
+  coffeeReviews,
+  coffeeSensoryProfiles,
   followers,
   following,
   onOpenCoffee,
+  onOpenUserProfile,
+  canEditProfile,
+  canFollowProfile,
+  isFollowingProfile,
+  onToggleFollowProfile,
+  onSaveProfile,
+  onRemoveFavorite,
+  onEditPost,
+  onDeletePost,
+  onToggleLike,
+  onOpenComments,
+  externalEditProfileSignal,
   sidePanel
 }: {
   user: UserRow;
+  mode: ViewMode;
   tab: "posts" | "adn" | "favoritos";
   setTab: (value: "posts" | "adn" | "favoritos") => void;
   posts: TimelineCard[];
   favoriteCoffees: CoffeeRow[];
+  allCoffees: CoffeeRow[];
+  coffeeReviews: CoffeeReviewRow[];
+  coffeeSensoryProfiles: CoffeeSensoryProfileRow[];
   followers: number;
   following: number;
   onOpenCoffee: (coffeeId: string) => void;
+  onOpenUserProfile: (userId: number) => void;
+  canEditProfile: boolean;
+  canFollowProfile: boolean;
+  isFollowingProfile: boolean;
+  onToggleFollowProfile: () => Promise<void>;
+  onSaveProfile: (
+    userId: number,
+    fullName: string,
+    bio: string,
+    avatarFile?: File | null,
+    removeAvatar?: boolean
+  ) => Promise<void>;
+  onRemoveFavorite: (coffeeId: string) => Promise<void>;
+  onEditPost: (postId: string, newText: string, newImageUrl: string, imageFile?: File | null) => Promise<void>;
+  onDeletePost: (postId: string) => Promise<void>;
+  onToggleLike: (postId: string) => void;
+  onOpenComments: (postId: string) => void;
+  externalEditProfileSignal: number;
   sidePanel?: ReactNode;
 }) {
+  const initials = user.full_name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  const coffeesById = useMemo(() => {
+    const map = new Map<string, CoffeeRow>();
+    allCoffees.forEach((coffee) => map.set(coffee.id, coffee));
+    return map;
+  }, [allCoffees]);
+  const sensoryAverages = useMemo(() => {
+    type SensorySample = { aroma: number; sabor: number; cuerpo: number; acidez: number; dulzura: number };
+    const samples: SensorySample[] = [];
+    const addSample = (source: {
+      aroma?: number | null;
+      sabor?: number | null;
+      cuerpo?: number | null;
+      acidez?: number | null;
+      dulzura?: number | null;
+    } | null | undefined) => {
+      if (!source) return;
+      const sample = {
+        aroma: Math.max(0, Number(source.aroma ?? 0)),
+        sabor: Math.max(0, Number(source.sabor ?? 0)),
+        cuerpo: Math.max(0, Number(source.cuerpo ?? 0)),
+        acidez: Math.max(0, Number(source.acidez ?? 0)),
+        dulzura: Math.max(0, Number(source.dulzura ?? 0))
+      };
+      if (sample.aroma || sample.sabor || sample.cuerpo || sample.acidez || sample.dulzura) {
+        samples.push(sample);
+      }
+    };
+
+    favoriteCoffees.forEach((coffee) => addSample(coffee));
+    coffeeReviews
+      .filter((review) => review.user_id === user.id)
+      .forEach((review) => addSample(coffeesById.get(review.coffee_id)));
+    coffeeSensoryProfiles
+      .filter((profile) => profile.user_id === user.id)
+      .forEach((profile) => addSample(profile));
+
+    if (!samples.length) return { aroma: 0, sabor: 0, cuerpo: 0, acidez: 0, dulzura: 0, count: 0 };
+
+    const totals = samples.reduce(
+      (acc, coffee) => ({
+        aroma: acc.aroma + Math.max(0, Number(coffee.aroma ?? 0)),
+        sabor: acc.sabor + Math.max(0, Number(coffee.sabor ?? 0)),
+        cuerpo: acc.cuerpo + Math.max(0, Number(coffee.cuerpo ?? 0)),
+        acidez: acc.acidez + Math.max(0, Number(coffee.acidez ?? 0)),
+        dulzura: acc.dulzura + Math.max(0, Number(coffee.dulzura ?? 0))
+      }),
+      { aroma: 0, sabor: 0, cuerpo: 0, acidez: 0, dulzura: 0 }
+    );
+    const count = Math.max(1, samples.length);
+    return {
+      aroma: Number((totals.aroma / count).toFixed(1)),
+      sabor: Number((totals.sabor / count).toFixed(1)),
+      cuerpo: Number((totals.cuerpo / count).toFixed(1)),
+      acidez: Number((totals.acidez / count).toFixed(1)),
+      dulzura: Number((totals.dulzura / count).toFixed(1)),
+      count: samples.length
+    };
+  }, [coffeesById, coffeeReviews, coffeeSensoryProfiles, favoriteCoffees, user.id]);
+  const adnRadar = useMemo(() => {
+    const labels = ["Aroma", "Sabor", "Cuerpo", "Acidez", "Dulzura"];
+    const values = [sensoryAverages.aroma, sensoryAverages.sabor, sensoryAverages.cuerpo, sensoryAverages.acidez, sensoryAverages.dulzura]
+      .map((value) => Math.max(0, Math.min(10, Number(value) || 0)));
+    const cx = 120;
+    const cy = 90;
+    const radius = 60;
+    const angleStep = (Math.PI * 2) / labels.length;
+    const startAngle = -Math.PI / 2;
+    const rings = [1, 2, 3, 4, 5].map((level) => {
+      const factor = level / 5;
+      return labels.map((_, index) => {
+        const angle = startAngle + index * angleStep;
+        return {
+          x: cx + Math.cos(angle) * radius * factor,
+          y: cy + Math.sin(angle) * radius * factor
+        };
+      });
+    });
+    const axes = labels.map((_, index) => {
+      const angle = startAngle + index * angleStep;
+      return {
+        x1: cx,
+        y1: cy,
+        x2: cx + Math.cos(angle) * radius,
+        y2: cy + Math.sin(angle) * radius
+      };
+    });
+    const dataPoints = labels.map((_, index) => {
+      const angle = startAngle + index * angleStep;
+      const factor = values[index] / 10;
+      return {
+        x: cx + Math.cos(angle) * radius * factor,
+        y: cy + Math.sin(angle) * radius * factor
+      };
+    });
+    const labelPoints = labels.map((label, index) => {
+      const angle = startAngle + index * angleStep;
+      const dist = radius + 16;
+      return {
+        label,
+        x: cx + Math.cos(angle) * dist,
+        y: cy + Math.sin(angle) * dist
+      };
+    });
+    return { rings, axes, dataPoints, labelPoints };
+  }, [sensoryAverages.acidez, sensoryAverages.aroma, sensoryAverages.cuerpo, sensoryAverages.dulzura, sensoryAverages.sabor]);
+  const desktopPostColumns = useMemo(() => {
+    const cols: [TimelineCard[], TimelineCard[], TimelineCard[]] = [[], [], []];
+    posts.forEach((post, index) => {
+      cols[index % 3].push(post);
+    });
+    return cols;
+  }, [posts]);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editNameDraft, setEditNameDraft] = useState(user.full_name);
+  const [editBioDraft, setEditBioDraft] = useState(user.bio ?? "");
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState("");
+  const [removeAvatarDraft, setRemoveAvatarDraft] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [postMenuId, setPostMenuId] = useState<string | null>(null);
+  const [editPostId, setEditPostId] = useState<string | null>(null);
+  const [editPostText, setEditPostText] = useState("");
+  const [editPostImageUrl, setEditPostImageUrl] = useState("");
+  const [editPostImageFile, setEditPostImageFile] = useState<File | null>(null);
+  const [savingPostEdit, setSavingPostEdit] = useState(false);
+  const [togglingFollow, setTogglingFollow] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const [likeBurstPostId, setLikeBurstPostId] = useState<string | null>(null);
+  const [showAdnAnalysisSheet, setShowAdnAnalysisSheet] = useState(false);
+  const likeBurstTimerRef = useRef<number | null>(null);
+  const editAvatarInputRef = useRef<HTMLInputElement | null>(null);
+  const editPostImageInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    setEditNameDraft(user.full_name);
+    setEditBioDraft(user.bio ?? "");
+    setEditAvatarFile(null);
+    setEditAvatarPreview("");
+    setRemoveAvatarDraft(false);
+  }, [user.bio, user.full_name]);
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [user.avatar_url]);
+  useEffect(() => {
+    if (!canEditProfile) return;
+    if (externalEditProfileSignal <= 0) return;
+    setShowEditProfile(true);
+  }, [canEditProfile, externalEditProfileSignal]);
+  const closeEditProfileModal = useCallback(() => {
+    if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
+    setEditAvatarFile(null);
+    setEditAvatarPreview("");
+    setRemoveAvatarDraft(false);
+    setShowEditProfile(false);
+  }, [editAvatarPreview]);
+  useEffect(() => {
+    return () => {
+      if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
+    };
+  }, [editAvatarPreview]);
+  const closeEditPostModal = useCallback(() => {
+    if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
+    setEditPostId(null);
+    setEditPostImageFile(null);
+    setEditPostImageUrl("");
+    setEditPostText("");
+  }, [editPostImageUrl]);
+  const adnAnalysis = useMemo(() => {
+    const traits = [
+      { label: "Aroma", value: sensoryAverages.aroma },
+      { label: "Sabor", value: sensoryAverages.sabor },
+      { label: "Cuerpo", value: sensoryAverages.cuerpo },
+      { label: "Acidez", value: sensoryAverages.acidez },
+      { label: "Dulzura", value: sensoryAverages.dulzura }
+    ].sort((a, b) => b.value - a.value);
+    const highest = traits[0] ?? null;
+    const second = traits[1] ?? null;
+    const lead = highest
+      ? second && second.value > 3
+        ? `Tu paladar es una combinación experta de ${highest.label.toLowerCase()} y ${second.label.toLowerCase()}.`
+        : `Tu paladar destaca principalmente por preferir notas de ${highest.label.toLowerCase()}.`
+      : "Aún no hay datos suficientes para calcular tu paladar.";
+    const description = highest
+      ? highest.label === "Acidez"
+        ? "Buscas brillo en cada taza. Te apasionan los perfiles cítricos y vibrantes de cafés de altura (1500m+)."
+        : highest.label === "Dulzura"
+          ? "Eres amante de lo meloso. Prefieres cafés con procesos naturales que resaltan notas de chocolate, caramelo y frutas maduras."
+          : highest.label === "Cuerpo"
+            ? "Para ti, la textura lo es todo. Disfrutas de esa sensación aterciopelada y densa, típica de tuestes medios y perfiles clásicos."
+            : highest.label === "Aroma"
+              ? "Tu ritual empieza con el olfato. Te atraen las fragancias complejas, florales y especiadas que inundan la habitación."
+              : highest.label === "Sabor"
+                ? "Buscas la máxima intensidad y complejidad gustativa. Valoras la persistencia de las notas tras cada sorbo."
+                : "Disfrutas de una complejidad excepcional y un balance perfectamente equilibrado en tu ADN cafetero."
+      : "Marca cafés como favoritos y añade opiniones o reseñas para construir tu ADN sensorial.";
+    const recommendation = highest
+      ? highest.label === "Acidez"
+        ? { type: "Lavados de alta montaña", origin: "Etiopía o Colombia (Nariño)" }
+        : highest.label === "Dulzura"
+          ? { type: "Procesos Natural o Honey", origin: "Brasil o El Salvador" }
+          : highest.label === "Cuerpo"
+            ? { type: "Tuestes medios / Naturales", origin: "Sumatra o Guatemala" }
+            : highest.label === "Aroma"
+              ? { type: "Variedades florales / Geishas", origin: "Panamá o Ruanda" }
+              : highest.label === "Sabor"
+                ? { type: "Micro-lotes de especialidad", origin: "Costa Rica o Kenia" }
+                : { type: "Blends equilibrados", origin: "Cualquier origen de especialidad" }
+      : { type: "Blends equilibrados", origin: "Cualquier origen de especialidad" };
+    return { lead, description, recommendation };
+  }, [sensoryAverages.acidez, sensoryAverages.aroma, sensoryAverages.cuerpo, sensoryAverages.dulzura, sensoryAverages.sabor]);
+  useEffect(() => {
+    return () => {
+      if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
+    };
+  }, [editPostImageUrl]);
+  useEffect(() => {
+    return () => {
+      if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
+    };
+  }, []);
   const content = (
     <>
-      <article className="profile-hero">
-        <div className="avatar avatar-lg" aria-hidden="true">{user.full_name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</div>
-        <div>
-          <p className="feed-user">{user.full_name}</p>
-          <p className="feed-meta">@{user.username}</p>
+      <article className="profile-hero profile-hero-card">
+        <div className="profile-hero-main">
+          <div className="profile-avatar-wrap" aria-hidden="true">
+            {user.avatar_url && !avatarLoadFailed ? (
+              <img
+                className="profile-avatar-image"
+                src={user.avatar_url}
+                alt={user.username}
+                loading="lazy"
+                onError={() => setAvatarLoadFailed(true)}
+              />
+            ) : (
+              <div className="avatar avatar-lg profile-avatar-fallback">{initials}</div>
+            )}
+          </div>
+          <div className="profile-head-copy">
+            <p className="feed-user profile-name">{user.full_name}</p>
+            <p className="feed-meta profile-username">@{user.username}</p>
+            {user.bio ? <p className="profile-bio">{user.bio}</p> : null}
+          </div>
         </div>
-        <button className="action-button action-button-ghost" type="button">Editar</button>
+        {canFollowProfile ? (
+          <div className="profile-head-actions profile-head-actions-inline">
+            <button
+              className={`action-button profile-edit-button profile-follow-button ${isFollowingProfile ? "action-button-ghost is-following" : ""}`.trim()}
+              type="button"
+              disabled={togglingFollow}
+              onClick={async () => {
+                if (togglingFollow) return;
+                setTogglingFollow(true);
+                try {
+                  await onToggleFollowProfile();
+                } finally {
+                  setTogglingFollow(false);
+                }
+              }}
+            >
+              {togglingFollow ? "..." : isFollowingProfile ? "Siguiendo" : "Seguir"}
+            </button>
+          </div>
+        ) : null}
       </article>
 
-      <section className="metric-grid">
-        <article className="metric-card"><p className="metric-label">Posts</p><strong className="metric-value">{posts.length}</strong></article>
-        <article className="metric-card"><p className="metric-label">Seguidores</p><strong className="metric-value">{followers}</strong></article>
-        <article className="metric-card"><p className="metric-label">Siguiendo</p><strong className="metric-value">{following}</strong></article>
+      <section className="profile-stats-row" aria-label="Estadisticas de perfil">
+        <article className="profile-stat-item"><strong className="profile-stat-value">{posts.length}</strong><span className="profile-stat-label">POSTS</span></article>
+        <article className="profile-stat-item"><strong className="profile-stat-value">{followers}</strong><span className="profile-stat-label">SEGUIDORES</span></article>
+        <article className="profile-stat-item"><strong className="profile-stat-value">{following}</strong><span className="profile-stat-label">SIGUIENDO</span></article>
       </section>
 
-      <div className="premium-tabs" role="tablist" aria-label="Tabs perfil">
-        <button type="button" className={`premium-tab ${tab === "posts" ? "is-active" : ""}`} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>POSTS</button>
+      <div className="premium-tabs profile-tabs" role="tablist" aria-label="Tabs perfil">
+        <button type="button" className={`premium-tab ${tab === "posts" ? "is-active" : ""}`} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>Posts</button>
         <button type="button" className={`premium-tab ${tab === "adn" ? "is-active" : ""}`} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</button>
-        <button type="button" className={`premium-tab ${tab === "favoritos" ? "is-active" : ""}`} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>FAVORITOS</button>
+        <button type="button" className={`premium-tab ${tab === "favoritos" ? "is-active" : ""}`} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</button>
       </div>
 
       {tab === "posts" ? (
-        <ul className="feed-list">
-          {posts.length ? posts.map((post) => (
-            <li key={post.id} className="feed-card">
-              <p className="feed-text">{post.text || "Sin texto"}</p>
-              <p className="feed-meta">hace {post.minsAgoLabel}</p>
+        <>
+          <ul className="feed-list profile-post-list profile-post-list-mobile">
+            {posts.length ? posts.map((post, index) => (
+            <li key={post.id} className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
+              <article>
+                <header className="feed-head">
+                  <button type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
+                    {user.avatar_url ? (
+                      <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
+                    ) : (
+                      <div className="avatar" aria-hidden="true">{initials}</div>
+                    )}
+                    <div>
+                      <p className="feed-user">{user.full_name}</p>
+                      <p className="feed-meta">{post.minsAgoLabel.toUpperCase()}</p>
+                    </div>
+                  </button>
+                  {canEditProfile ? (
+                    <button type="button" className="icon-button post-menu-trigger" aria-label="Opciones" onClick={() => setPostMenuId(post.id)}>
+                      <UiIcon name="more" className="ui-icon" />
+                    </button>
+                  ) : null}
+                </header>
+                {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
+                {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" /> : null}
+                {post.coffeeTagName ? (
+                  <button type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
+                    <div className="coffee-tag-card-media">
+                      {post.coffeeImageUrl ? (
+                        <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" />
+                      ) : (
+                        <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
+                          <UiIcon name="coffee" className="ui-icon" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="coffee-tag-copy">
+                      <p className="coffee-origin">CAFE ETIQUETADO</p>
+                      <p className="coffee-tag-name">{post.coffeeTagName}</p>
+                      {post.coffeeTagBrand ? <p className="coffee-tag-brand">{post.coffeeTagBrand.toUpperCase()}</p> : null}
+                    </div>
+                    <UiIcon name="chevron-right" className="ui-icon" />
+                  </button>
+                ) : null}
+                <footer className="feed-stats">
+                  <button
+                    type="button"
+                    className={`inline-action action-like ${post.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === post.id ? "is-bursting" : ""}`.trim()}
+                    onClick={() => {
+                      if (!post.likedByActiveUser) {
+                        setLikeBurstPostId(post.id);
+                        if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
+                        likeBurstTimerRef.current = window.setTimeout(() => {
+                          setLikeBurstPostId(null);
+                          likeBurstTimerRef.current = null;
+                        }, 520);
+                      }
+                      onToggleLike(post.id);
+                    }}
+                  >
+                    <span className="like-icon-wrap">
+                      <UiIcon name={post.likedByActiveUser ? "coffee-filled" : "coffee"} className="ui-icon" />
+                      <span className="like-burst" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    </span>
+                    {post.likes > 0 ? <span>{post.likes}</span> : null}
+                  </button>
+                  <button type="button" className="inline-action" onClick={() => onOpenComments(post.id)}>
+                    <UiIcon name="chat" className="ui-icon" />
+                    {post.comments > 0 ? <span>{post.comments}</span> : null}
+                  </button>
+                </footer>
+              </article>
             </li>
-          )) : <li className="feed-card">Aun no hay publicaciones</li>}
-        </ul>
+            )) : <li className="feed-card profile-empty-card">Aún no hay publicaciones</li>}
+          </ul>
+          {posts.length ? (
+            <div className="profile-post-masonry-desktop">
+              {desktopPostColumns.map((column, columnIndex) => (
+                <ul key={`profile-col-${columnIndex}`} className="feed-list profile-post-column">
+                  {column.map((post, index) => (
+                    <li key={post.id} className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
+                      <article>
+                        <header className="feed-head">
+                          <button type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
+                            {user.avatar_url ? (
+                              <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
+                            ) : (
+                              <div className="avatar" aria-hidden="true">{initials}</div>
+                            )}
+                            <div>
+                              <p className="feed-user">{user.full_name}</p>
+                              <p className="feed-meta">{post.minsAgoLabel.toUpperCase()}</p>
+                            </div>
+                          </button>
+                          {canEditProfile ? (
+                            <button type="button" className="icon-button post-menu-trigger" aria-label="Opciones" onClick={() => setPostMenuId(post.id)}>
+                              <UiIcon name="more" className="ui-icon" />
+                            </button>
+                          ) : null}
+                        </header>
+                        {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
+                        {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" /> : null}
+                        {post.coffeeTagName ? (
+                          <button type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
+                            <div className="coffee-tag-card-media">
+                              {post.coffeeImageUrl ? (
+                                <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" />
+                              ) : (
+                                <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
+                                  <UiIcon name="coffee" className="ui-icon" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="coffee-tag-copy">
+                              <p className="coffee-origin">CAFE ETIQUETADO</p>
+                              <p className="coffee-tag-name">{post.coffeeTagName}</p>
+                              {post.coffeeTagBrand ? <p className="coffee-tag-brand">{post.coffeeTagBrand.toUpperCase()}</p> : null}
+                            </div>
+                            <UiIcon name="chevron-right" className="ui-icon" />
+                          </button>
+                        ) : null}
+                        <footer className="feed-stats">
+                          <button
+                            type="button"
+                            className={`inline-action action-like ${post.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === post.id ? "is-bursting" : ""}`.trim()}
+                            onClick={() => {
+                              if (!post.likedByActiveUser) {
+                                setLikeBurstPostId(post.id);
+                                if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
+                                likeBurstTimerRef.current = window.setTimeout(() => {
+                                  setLikeBurstPostId(null);
+                                  likeBurstTimerRef.current = null;
+                                }, 520);
+                              }
+                              onToggleLike(post.id);
+                            }}
+                          >
+                            <span className="like-icon-wrap">
+                              <UiIcon name={post.likedByActiveUser ? "coffee-filled" : "coffee"} className="ui-icon" />
+                              <span className="like-burst" aria-hidden="true">
+                                <span />
+                                <span />
+                                <span />
+                                <span />
+                                <span />
+                                <span />
+                              </span>
+                            </span>
+                            {post.likes > 0 ? <span>{post.likes}</span> : null}
+                          </button>
+                          <button type="button" className="inline-action" onClick={() => onOpenComments(post.id)}>
+                            <UiIcon name="chat" className="ui-icon" />
+                            {post.comments > 0 ? <span>{post.comments}</span> : null}
+                          </button>
+                        </footer>
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              ))}
+            </div>
+          ) : null}
+        </>
       ) : null}
 
       {tab === "adn" ? (
-        <article className="config-card">
-          <p className="section-title">Perfil sensorial</p>
-          <p className="metric-pill">Dulzor 0 | Acidez 0 | Cuerpo 0 | Amargor 0</p>
-          <p className="feed-meta">Calculado desde favoritos y reseñas.</p>
-        </article>
+        <div className={`profile-adn-layout ${mode === "desktop" ? "is-desktop" : ""}`.trim()}>
+          {mode === "desktop" ? (
+            <article className="config-card profile-adn-card profile-adn-radar-card is-static">
+              <div className="profile-adn-radar-wrap">
+                <svg className="profile-adn-radar" viewBox="0 0 240 190" aria-label="Perfil sensorial radar">
+                  {adnRadar.rings.map((ring, index) => (
+                    <polygon
+                      key={`ring-${index}`}
+                      points={ring.map((point) => `${point.x},${point.y}`).join(" ")}
+                      className="profile-adn-radar-ring"
+                    />
+                  ))}
+                  {adnRadar.axes.map((axis, index) => (
+                    <line key={`axis-${index}`} x1={axis.x1} y1={axis.y1} x2={axis.x2} y2={axis.y2} className="profile-adn-radar-axis" />
+                  ))}
+                  <polygon
+                    points={adnRadar.dataPoints.map((point) => `${point.x},${point.y}`).join(" ")}
+                    className="profile-adn-radar-shape"
+                  />
+                  {adnRadar.dataPoints.map((point, index) => (
+                    <circle key={`point-${index}`} cx={point.x} cy={point.y} r="3" className="profile-adn-radar-point" />
+                  ))}
+                  {adnRadar.labelPoints.map((point, index) => (
+                    <text key={`label-${index}`} x={point.x} y={point.y} className="profile-adn-radar-label" textAnchor="middle" dominantBaseline="middle">
+                      {point.label}
+                    </text>
+                  ))}
+                </svg>
+              </div>
+              <p className="profile-adn-caption">Tus gustos basados en favoritos, opiniones y reseñas.</p>
+            </article>
+          ) : (
+            <button
+              type="button"
+              className="config-card profile-adn-card profile-adn-radar-card profile-adn-open"
+              onClick={() => setShowAdnAnalysisSheet(true)}
+              aria-label="Abrir análisis de preferencia"
+            >
+              <div className="profile-adn-radar-wrap">
+                <svg className="profile-adn-radar" viewBox="0 0 240 190" aria-label="Perfil sensorial radar">
+                  {adnRadar.rings.map((ring, index) => (
+                    <polygon
+                      key={`ring-${index}`}
+                      points={ring.map((point) => `${point.x},${point.y}`).join(" ")}
+                      className="profile-adn-radar-ring"
+                    />
+                  ))}
+                  {adnRadar.axes.map((axis, index) => (
+                    <line key={`axis-${index}`} x1={axis.x1} y1={axis.y1} x2={axis.x2} y2={axis.y2} className="profile-adn-radar-axis" />
+                  ))}
+                  <polygon
+                    points={adnRadar.dataPoints.map((point) => `${point.x},${point.y}`).join(" ")}
+                    className="profile-adn-radar-shape"
+                  />
+                  {adnRadar.dataPoints.map((point, index) => (
+                    <circle key={`point-${index}`} cx={point.x} cy={point.y} r="3" className="profile-adn-radar-point" />
+                  ))}
+                  {adnRadar.labelPoints.map((point, index) => (
+                    <text key={`label-${index}`} x={point.x} y={point.y} className="profile-adn-radar-label" textAnchor="middle" dominantBaseline="middle">
+                      {point.label}
+                    </text>
+                  ))}
+                </svg>
+              </div>
+              <p className="profile-adn-caption">Tus gustos basados en favoritos, opiniones y reseñas.</p>
+            </button>
+          )}
+          {mode === "desktop" ? (
+            <article className="config-card profile-adn-analysis-panel">
+              <h3 className="profile-adn-analysis-title">ANÁLISIS DE PREFERENCIAS</h3>
+              <div className="profile-adn-analysis-body">
+                <p className="profile-adn-analysis-lead">{adnAnalysis.lead}</p>
+                <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
+                <article className="profile-adn-recommend-card">
+                  <div className="profile-adn-recommend-head">
+                    <MaterialSymbolIcon symbol="auto_awesome" filled={false} className="ui-icon" />
+                    <strong>RECOMENDACIÓN IDEAL</strong>
+                  </div>
+                  <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
+                  <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
+                </article>
+              </div>
+            </article>
+          ) : null}
+        </div>
       ) : null}
 
       {tab === "favoritos" ? (
-        <ul className="coffee-list">
-          {favoriteCoffees.length ? favoriteCoffees.map((coffee) => (
-            <li key={coffee.id}>
-              <button type="button" className="coffee-card coffee-card-interactive profile-coffee-link" onClick={() => onOpenCoffee(coffee.id)}>
-              <p className="coffee-origin">{coffee.pais_origen ?? "Origen"}</p>
-              <strong>{coffee.nombre}</strong>
-              <p className="coffee-sub">{coffee.marca}</p>
+        <>
+          <ul className="coffee-list profile-favorite-list">
+            {favoriteCoffees.length ? favoriteCoffees.map((coffee) => (
+              <ProfileFavoriteItem key={coffee.id} coffee={coffee} onOpenCoffee={onOpenCoffee} onRemoveFavorite={onRemoveFavorite} />
+            )) : <li className="coffee-card profile-empty-card">No hay cafés favoritos</li>}
+          </ul>
+        </>
+      ) : null}
+      {showEditProfile ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar perfil" onClick={closeEditProfileModal}>
+          <div className="sheet-card profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">Editar perfil</strong>
+            </header>
+            <div className="diary-sheet-form">
+              <input
+                ref={editAvatarInputRef}
+                type="file"
+                accept="image/*"
+                className="file-input-hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (!file) return;
+                  if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
+                  const preview = URL.createObjectURL(file);
+                  setEditAvatarFile(file);
+                  setEditAvatarPreview(preview);
+                  setRemoveAvatarDraft(false);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <div className="profile-edit-avatar-row">
+                <div className="profile-edit-avatar-preview" aria-hidden="true">
+                  {editAvatarPreview || (!removeAvatarDraft && user.avatar_url) ? (
+                    <img src={editAvatarPreview || user.avatar_url} alt={user.username} loading="lazy" />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                </div>
+                <div className="profile-edit-avatar-actions">
+                  <button type="button" className="action-button action-button-ghost" onClick={() => editAvatarInputRef.current?.click()}>
+                    Cambiar foto
+                  </button>
+                  {(editAvatarPreview || user.avatar_url) ? (
+                    <button
+                      type="button"
+                      className="action-button action-button-ghost"
+                      onClick={() => {
+                        if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
+                        setEditAvatarPreview("");
+                        setEditAvatarFile(null);
+                        setRemoveAvatarDraft(true);
+                      }}
+                    >
+                      Quitar foto
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              <label>
+                <span>Nombre</span>
+                <input
+                  className="search-wide"
+                  value={editNameDraft}
+                  maxLength={60}
+                  onChange={(event) => setEditNameDraft(event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Bio</span>
+                <textarea
+                  className="search-wide profile-edit-bio"
+                  rows={4}
+                  value={editBioDraft}
+                  maxLength={240}
+                  onChange={(event) => setEditBioDraft(event.target.value)}
+                />
+              </label>
+              <div className="diary-sheet-form-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={closeEditProfileModal} disabled={savingProfile}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  disabled={savingProfile || !editNameDraft.trim()}
+                  onClick={async () => {
+                    if (!editNameDraft.trim() || savingProfile) return;
+                    setSavingProfile(true);
+                    try {
+                      await onSaveProfile(user.id, editNameDraft, editBioDraft, editAvatarFile, removeAvatarDraft);
+                      closeEditProfileModal();
+                    } finally {
+                      setSavingProfile(false);
+                    }
+                  }}
+                >
+                  {savingProfile ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {showAdnAnalysisSheet && mode !== "desktop" ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onClick={() => setShowAdnAnalysisSheet(false)}>
+          <div className="sheet-card profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">ANÁLISIS DE PREFERENCIAS</strong>
+            </header>
+            <div className="profile-adn-analysis-body">
+              <p className="profile-adn-analysis-lead">{adnAnalysis.lead}</p>
+              <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
+              <article className="profile-adn-recommend-card">
+                <div className="profile-adn-recommend-head">
+                  <MaterialSymbolIcon symbol="auto_awesome" filled={false} className="ui-icon" />
+                  <strong>RECOMENDACIÓN IDEAL</strong>
+                </div>
+                <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
+                <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
+              </article>
+              <button
+                type="button"
+                className="action-button profile-adn-continue-button"
+                onClick={() => setShowAdnAnalysisSheet(false)}
+              >
+                CONTINUAR EXPLORANDO
               </button>
-            </li>
-          )) : <li className="coffee-card">No hay cafes favoritos</li>}
-        </ul>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {postMenuId && canEditProfile ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Opciones publicación" onClick={() => setPostMenuId(null)}>
+          <div className="sheet-card profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <div className="comment-action-list">
+              <p className="comment-action-title">OPCIONES</p>
+              <button
+                type="button"
+                className="comment-action-button is-danger"
+                onClick={async () => {
+                  const confirmed = window.confirm("Borrar publicación?");
+                  if (!confirmed) return;
+                  const postId = postMenuId;
+                  setPostMenuId(null);
+                  if (postId) await onDeletePost(postId);
+                }}
+              >
+                <UiIcon name="trash" className="ui-icon" />
+                <span>Borrar</span>
+                <UiIcon name="chevron-right" className="ui-icon trailing" />
+              </button>
+              <button
+                type="button"
+                className="comment-action-button"
+                onClick={() => {
+                  const post = posts.find((item) => item.id === postMenuId);
+                  if (!post) return;
+                  setEditPostId(post.id);
+                  setEditPostText(post.text || "");
+                  setEditPostImageUrl(post.imageUrl || "");
+                  setEditPostImageFile(null);
+                  setPostMenuId(null);
+                }}
+              >
+                <UiIcon name="edit" className="ui-icon" />
+                <span>Editar</span>
+                <UiIcon name="chevron-right" className="ui-icon trailing" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {editPostId ? (
+        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar publicación" onClick={closeEditPostModal}>
+          <div className="sheet-card profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <header className="sheet-header">
+              <strong className="sheet-title">Editar publicación</strong>
+            </header>
+            <div className="diary-sheet-form">
+              <input
+                ref={editPostImageInputRef}
+                type="file"
+                accept="image/*"
+                className="file-input-hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (!file) return;
+                  if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
+                  const preview = URL.createObjectURL(file);
+                  setEditPostImageFile(file);
+                  setEditPostImageUrl(preview);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <label>
+                <span>Texto</span>
+                <textarea
+                  className="search-wide profile-edit-bio"
+                  rows={4}
+                  maxLength={500}
+                  value={editPostText}
+                  onChange={(event) => setEditPostText(event.target.value)}
+                />
+              </label>
+              <div className="profile-edit-post-image-wrap">
+                {editPostImageUrl ? <img src={editPostImageUrl} alt="Previsualización" loading="lazy" /> : <p className="feed-meta">Sin imagen</p>}
+              </div>
+              <div className="profile-edit-post-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={() => editPostImageInputRef.current?.click()}>
+                  Cambiar imagen
+                </button>
+                {editPostImageUrl ? (
+                  <button
+                    type="button"
+                    className="action-button action-button-ghost"
+                    onClick={() => {
+                      if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
+                      setEditPostImageFile(null);
+                      setEditPostImageUrl("");
+                    }}
+                  >
+                    Quitar imagen
+                  </button>
+                ) : null}
+              </div>
+              <div className="diary-sheet-form-actions">
+                <button type="button" className="action-button action-button-ghost" onClick={closeEditPostModal} disabled={savingPostEdit}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  disabled={savingPostEdit}
+                  onClick={async () => {
+                    if (!editPostId || savingPostEdit) return;
+                    setSavingPostEdit(true);
+                    try {
+                      await onEditPost(editPostId, editPostText, editPostImageUrl, editPostImageFile);
+                      closeEditPostModal();
+                    } finally {
+                      setSavingPostEdit(false);
+                    }
+                  }}
+                >
+                  {savingPostEdit ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
     </>
   );
@@ -7715,7 +9428,7 @@ function ProfileView({
   if (sidePanel) {
     return (
       <div className="split-with-side">
-        <div>{content}</div>
+        <div className="profile-content-wrap">{content}</div>
         <aside className="timeline-side-column">{sidePanel}</aside>
       </div>
     );

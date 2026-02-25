@@ -253,6 +253,22 @@ export async function deleteComment(commentId: number): Promise<void> {
   throwIfError(error);
 }
 
+export async function updateUserProfile(
+  userId: number,
+  payload: { full_name: string; bio: string | null; avatar_url?: string | null }
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("users_db")
+    .update({
+      full_name: payload.full_name,
+      bio: payload.bio,
+      ...(payload.avatar_url !== undefined ? { avatar_url: payload.avatar_url } : {})
+    })
+    .eq("id", userId);
+  throwIfError(error);
+}
+
 export async function createPost(
   userId: number,
   text: string,
