@@ -97,18 +97,9 @@ class DiaryRepository @Inject constructor(
                     val remoteCoffee = supabaseDataSource.getCoffeesByIds(coffeeIds).firstOrNull()
                         ?: supabaseDataSource.getCustomCoffees(user.id).find { c -> c.id == item.coffeeId }
                     remoteCoffee?.let { c -> coffeeDao.insertCoffees(listOf(c)) }
-                } else if (localCoffee.isCustom && localCoffee.imageUrl.isNotBlank()) {
-                    // Si es custom y ya tiene imagen local, nos aseguramos de no perderla si el remoto viene vacío por delay de sync
-                    val remoteCoffee = supabaseDataSource.getCustomCoffees(user.id).find { it.id == item.coffeeId }
-                    if (remoteCoffee != null && remoteCoffee.imageUrl.isBlank()) {
-                        coffeeDao.insertCoffees(listOf(remoteCoffee.copy(imageUrl = localCoffee.imageUrl)))
-                    } else if (remoteCoffee != null) {
-                        coffeeDao.insertCoffees(listOf(remoteCoffee))
-                    }
                 }
                 diaryDao.upsertPantryItem(item)
             }
-            Log.d("DiaryRepository", "Pantry items synced: ${remoteItems.size}")
         } catch (e: Exception) {
             Log.e("DiaryRepository", "Error syncing pantry items", e)
         }
@@ -146,31 +137,25 @@ class DiaryRepository @Inject constructor(
                     lastUpdated = System.currentTimeMillis()
                 )
                 diaryDao.upsertPantryItem(updatedItem)
-                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-                    externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
-                }
+                externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
             }
         }
 
         externalScope.launch {
-            val isOnline = connectivityObserver.observe().first() == ConnectivityObserver.Status.Available
-            if (isOnline) {
-                try {
-                    supabaseDataSource.insertDiaryEntry(entryWithId)
-                    diaryDao.deletePendingDiarySync(entryWithId.id)
-                } catch (e: Exception) {
-                    Log.e("DiaryRepository", "Error syncing diary entry to Supabase", e)
-                    enqueueDiaryEntryForSync(entryWithId.id, e)
-                }
-            } else {
-                enqueueDiaryEntryForSync(entryWithId.id, IOException("No network available"))
+            try {
+                // Forzamos el user_id de la sesión activa para evitar violación de RLS
+                supabaseDataSource.insertDiaryEntry(entryWithId.copy(userId = user.id))
+                diaryDao.deletePendingDiarySync(entryWithId.id)
+            } catch (e: Exception) {
+                Log.e("DiaryRepository", "RLS Error or Sync Failure: ${e.message}")
+                enqueueDiaryEntryForSync(entryWithId.id, e)
             }
         }
     }
 
 
     private suspend fun enqueueDiaryEntryForSync(localEntryId: Long, error: Throwable?) {
-        val existing = diaryDao.getPendingDiarySyncEntries().firstOrNull { it.localEntryId == localEntryId }
+        val existing = diaryDao.getPendingDiarySyncEntries().find { it.localEntryId == localEntryId }
         diaryDao.upsertPendingDiarySync(
             PendingDiarySyncEntity(
                 localEntryId = localEntryId,
@@ -184,6 +169,7 @@ class DiaryRepository @Inject constructor(
 
     suspend fun syncPendingDiaryEntries() = withContext(Dispatchers.IO) {
         if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext
+        val user = userRepository.getActiveUser() ?: return@withContext
 
         val pendingEntries = diaryDao.getPendingDiarySyncEntries()
         pendingEntries.forEach { pending ->
@@ -194,10 +180,10 @@ class DiaryRepository @Inject constructor(
             }
 
             try {
-                supabaseDataSource.upsertDiaryEntry(localEntry)
+                supabaseDataSource.upsertDiaryEntry(localEntry.copy(userId = user.id))
                 diaryDao.deletePendingDiarySync(pending.localEntryId)
             } catch (e: Exception) {
-                enqueueDiaryEntryForSync(pending.localEntryId, e)
+                Log.e("DiaryRepository", "Retry failed for ${pending.localEntryId}: ${e.message}")
             }
         }
     }
@@ -214,9 +200,7 @@ class DiaryRepository @Inject constructor(
         if (imageBytes != null) {
             try {
                 imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$coffeeId.jpg", imageBytes)
-            } catch (e: Exception) {
-                Log.e("DiaryRepository", "Error uploading custom coffee image", e)
-            }
+            } catch (e: Exception) { }
         }
 
         val customCoffee = Coffee(
@@ -235,14 +219,9 @@ class DiaryRepository @Inject constructor(
         )
 
         coffeeDao.insertCoffees(listOf(customCoffee))
-
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try {
-                supabaseDataSource.upsertCustomCoffee(customCoffee)
-            } catch (e: Exception) {
-                Log.e("DiaryRepository", "Error syncing new custom coffee to remote", e)
-            }
-        }
+        try {
+            supabaseDataSource.upsertCustomCoffee(customCoffee)
+        } catch (e: Exception) { }
 
         coffeeId
     }
@@ -294,18 +273,14 @@ class DiaryRepository @Inject constructor(
         if (pantryItem != null) {
              val updatedItem = pantryItem.copy(totalGrams = totalGrams, lastUpdated = System.currentTimeMillis())
              diaryDao.upsertPantryItem(updatedItem)
-             if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-                 externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
-             }
+             externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
         }
 
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try {
-                    supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee)
-                } catch (e: Exception) {
-                    Log.e("DiaryRepository", "Error updating custom coffee in remote", e)
-                }
+        externalScope.launch {
+            try {
+                supabaseDataSource.updateCustomCoffee(id, user.id, customCoffee)
+            } catch (e: Exception) {
+                Log.e("DiaryRepository", "Error updating custom coffee in remote", e)
             }
         }
     }
@@ -314,41 +289,28 @@ class DiaryRepository @Inject constructor(
         val user = userRepository.getActiveUser() ?: return
         val item = PantryItemEntity(coffeeId, user.id, gramsRemaining, totalGrams)
         diaryDao.upsertPantryItem(item)
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.upsertPantryItem(item) } catch (e: Exception) { } }
-        }
-        userRepository.touchUserInteraction()
+        externalScope.launch { try { supabaseDataSource.upsertPantryItem(item) } catch (e: Exception) { } }
     }
 
     suspend fun addToPantry(coffeeId: String, totalGrams: Int) {
         val user = userRepository.getActiveUser() ?: return
         val existing = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == coffeeId }
         if (existing != null) {
-            val mergedTotal = (existing.totalGrams + totalGrams).coerceAtLeast(0)
-            val mergedRemaining = (existing.gramsRemaining + totalGrams).coerceAtLeast(0)
-            updatePantryStockFull(coffeeId, mergedTotal, mergedRemaining)
+            updatePantryStockFull(coffeeId, existing.totalGrams + totalGrams, existing.gramsRemaining + totalGrams)
         } else {
             updatePantryStockFull(coffeeId, totalGrams, totalGrams)
         }
     }
 
-
-
     suspend fun updateDiaryEntry(entry: DiaryEntryEntity) = withContext(Dispatchers.IO) {
+        val user = userRepository.getActiveUser() ?: return@withContext
         diaryDao.insertDiaryEntry(entry)
-
         externalScope.launch {
-            val isOnline = connectivityObserver.observe().first() == ConnectivityObserver.Status.Available
-            if (isOnline) {
-                try {
-                    supabaseDataSource.upsertDiaryEntry(entry)
-                    diaryDao.deletePendingDiarySync(entry.id)
-                } catch (e: Exception) {
-                    Log.e("DiaryRepository", "Error updating diary entry in Supabase", e)
-                    enqueueDiaryEntryForSync(entry.id, e)
-                }
-            } else {
-                enqueueDiaryEntryForSync(entry.id, IOException("No network available"))
+            try {
+                supabaseDataSource.upsertDiaryEntry(entry.copy(userId = user.id))
+                diaryDao.deletePendingDiarySync(entry.id)
+            } catch (e: Exception) {
+                enqueueDiaryEntryForSync(entry.id, e)
             }
         }
     }
@@ -356,31 +318,14 @@ class DiaryRepository @Inject constructor(
     suspend fun deleteDiaryEntry(entryId: Long) = withContext(Dispatchers.IO) {
         diaryDao.deletePendingDiarySync(entryId)
         diaryDao.deleteDiaryEntryById(entryId)
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.deleteDiaryEntry(entryId) } catch (e: Exception) { } }
-        }
+        externalScope.launch { try { supabaseDataSource.deleteDiaryEntry(entryId) } catch (e: Exception) { } }
     }
 
     suspend fun deletePantryItem(coffeeId: String) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
-        val localCoffee = coffeeDao.getCoffeeById(coffeeId)
-
         diaryDao.deletePantryItem(coffeeId, user.id)
-
-        if (localCoffee?.isCustom == true) {
-            coffeeDao.deleteCoffeeById(coffeeId)
-        }
-
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try { supabaseDataSource.deletePantryItem(coffeeId, user.id) } catch (e: Exception) { }
-                if (localCoffee?.isCustom == true) {
-                    try { supabaseDataSource.deleteCustomCoffee(coffeeId, user.id) } catch (e: Exception) { }
-                }
-            }
-        }
+        externalScope.launch { try { supabaseDataSource.deletePantryItem(coffeeId, user.id) } catch (e: Exception) { } }
     }
-
 
     private suspend fun syncLocalCustomCoffees() = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
@@ -388,10 +333,7 @@ class DiaryRepository @Inject constructor(
         localCustomCoffees.forEach { customCoffee ->
             try {
                 supabaseDataSource.upsertCustomCoffee(customCoffee)
-            } catch (e: Exception) {
-                Log.e("DiaryRepository", "Error backfilling custom coffee ${customCoffee.id} to remote", e)
-            }
+            } catch (e: Exception) { }
         }
     }
-
 }
