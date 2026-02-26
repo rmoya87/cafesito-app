@@ -1,0 +1,524 @@
+﻿import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
+import { MentionText } from "../../ui/MentionText";
+import { UiIcon } from "../../ui/iconography";
+export function TimelineView({
+  mode,
+  cards,
+  recommendations,
+  suggestions,
+  suggestionIndices,
+  followingIds,
+  followerCounts,
+  loading,
+  errorMessage,
+  refreshing,
+  activeUserId,
+  onOpenComments,
+  onToggleLike,
+  onToggleFollow,
+  onEditPost,
+  onDeletePost,
+  onRefresh,
+  onMentionClick,
+  onOpenUserProfile,
+  onOpenCoffee,
+  sidePanel
+}: {
+  mode: "mobile" | "desktop";
+  cards: TimelineCard[];
+  recommendations: CoffeeRow[];
+  suggestions: UserRow[];
+  suggestionIndices: number[];
+  followingIds: Set<number>;
+  followerCounts: Map<number, number>;
+  loading: boolean;
+  errorMessage: string | null;
+  refreshing: boolean;
+  activeUserId: number | null;
+  onOpenComments: (postId: string) => void;
+  onToggleLike: (postId: string) => void;
+  onToggleFollow: (userId: number) => void;
+  onEditPost: (postId: string, newText: string, newImageUrl: string, imageFile?: File | null) => Promise<void>;
+  onDeletePost: (postId: string) => Promise<void>;
+  onRefresh: () => Promise<void>;
+  onMentionClick: (username: string) => void;
+  onOpenUserProfile: (userId: number) => void;
+  onOpenCoffee: (coffeeId: string) => void;
+  sidePanel?: ReactNode;
+}) {
+  const [menuPostId, setMenuPostId] = useState<string | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [editingImageUrl, setEditingImageUrl] = useState("");
+  const [editingImageFile, setEditingImageFile] = useState<File | null>(null);
+  const [editingImagePreviewUrl, setEditingImagePreviewUrl] = useState("");
+  const [likeBurstPostId, setLikeBurstPostId] = useState<string | null>(null);
+  const [dismissingSuggestionIds, setDismissingSuggestionIds] = useState<Set<number>>(new Set());
+  const [pendingSuggestionFollowIds, setPendingSuggestionFollowIds] = useState<Set<number>>(new Set());
+  const [pullDistance, setPullDistance] = useState(0);
+  const editImageInputRef = useRef<HTMLInputElement | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const pullActive = useRef(false);
+  const likeBurstTimerRef = useRef<number | null>(null);
+  const visibleCards = cards;
+  const isDesktopTimeline = mode === "desktop";
+  const activeMenuPost = useMemo(
+    () => visibleCards.find((card) => card.id === menuPostId) ?? null,
+    [menuPostId, visibleCards]
+  );
+
+  const closeEditModal = useCallback(() => {
+    if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
+    setEditingPostId(null);
+    setEditingText("");
+    setEditingImageUrl("");
+    setEditingImageFile(null);
+    setEditingImagePreviewUrl("");
+  }, [editingImagePreviewUrl]);
+
+  const isMobileLike = typeof window !== "undefined" ? window.innerWidth < 900 : false;
+  const pullProgress = Math.min(1, pullDistance / 84);
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    if (!isMobileLike) return;
+    if (window.scrollY > 0) return;
+    touchStartY.current = event.touches[0]?.clientY ?? null;
+    pullActive.current = true;
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLElement>) => {
+    if (!pullActive.current) return;
+    const start = touchStartY.current;
+    const current = event.touches[0]?.clientY;
+    if (start == null || current == null) return;
+    const delta = Math.max(0, current - start);
+    if (delta <= 0) return;
+    setPullDistance(Math.min(120, delta * 0.55));
+  };
+
+  const handleTouchEnd = () => {
+    if (!pullActive.current) return;
+    pullActive.current = false;
+    touchStartY.current = null;
+    const shouldRefresh = pullDistance >= 76 && !refreshing;
+    setPullDistance(0);
+    if (shouldRefresh) void onRefresh();
+  };
+
+  useEffect(() => {
+    const onEsc = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuPostId(null);
+      if (editingPostId) closeEditModal();
+    };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [closeEditModal, editingPostId]);
+
+  useEffect(() => {
+    if (!editingPostId) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [editingPostId]);
+
+  useEffect(() => {
+    return () => {
+      if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
+    };
+  }, [editingImagePreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <ul className="feed-list">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <li key={item} className="feed-card shimmer-card" />
+        ))}
+      </ul>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <article className="timeline-empty timeline-error">
+        <h3>No pudimos cargar el timeline</h3>
+        <p>{errorMessage}</p>
+      </article>
+    );
+  }
+
+  const recommendationSection = recommendations.length ? (
+    <section className="suggestion-strip">
+      <p className="section-title">Recomendados para tu paladar</p>
+      <div className="horizontal-cards">
+        {recommendations.map((coffee) => (
+          <button
+            key={coffee.id}
+            type="button"
+            className="mini-card mini-coffee-card mini-coffee-link"
+            onClick={() => onOpenCoffee(coffee.id)}
+          >
+            {coffee.image_url ? <img className="mini-cover" src={coffee.image_url} alt={coffee.nombre} loading="lazy" /> : null}
+            <p className="coffee-origin">{coffee.pais_origen ?? "Origen"}</p>
+            <p className="feed-user">{coffee.nombre}</p>
+            <p className="coffee-sub">{coffee.marca}</p>
+          </button>
+        ))}
+      </div>
+    </section>
+  ) : null;
+
+  const userSuggestionsSection = suggestions.length ? (
+    <section className="suggestion-strip">
+      <p className="section-title">Personas que podrias seguir</p>
+      <div className="horizontal-cards">
+        {suggestions.map((user) => {
+          const isDismissing = dismissingSuggestionIds.has(user.id);
+          const isPendingFollow = pendingSuggestionFollowIds.has(user.id);
+          return (
+            <article key={user.id} className={`mini-card mini-user-card ${isDismissing ? "is-removing" : ""}`.trim()}>
+              <button type="button" className="mini-user-link" onClick={() => onOpenUserProfile(user.id)}>
+                {user.avatar_url ? <img className="mini-avatar" src={user.avatar_url} alt={user.username} loading="lazy" /> : <div className="avatar mini-avatar-fallback">{user.username.slice(0, 2).toUpperCase()}</div>}
+                <div className="mini-user-copy">
+                  <p className="feed-user">{user.full_name}</p>
+                  <p className="feed-meta">@{user.username}</p>
+                  <p className="coffee-sub">{followerCounts.get(user.id) ?? 0} seguidores</p>
+                </div>
+              </button>
+              <button
+                className={`action-button ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
+                type="button"
+                disabled={isPendingFollow}
+                onClick={async () => {
+                  if (isPendingFollow) return;
+                  setPendingSuggestionFollowIds((prev) => new Set(prev).add(user.id));
+                  setDismissingSuggestionIds((prev) => new Set(prev).add(user.id));
+                  await new Promise((resolve) => window.setTimeout(resolve, 190));
+                  await onToggleFollow(user.id);
+                  setPendingSuggestionFollowIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(user.id);
+                    return next;
+                  });
+                  setDismissingSuggestionIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(user.id);
+                    return next;
+                  });
+                }}
+              >
+                {followingIds.has(user.id) ? "Siguiendo" : "Seguir"}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  ) : null;
+
+  const desktopSideContent = sidePanel ? (
+    <aside className="timeline-side-column">{sidePanel}</aside>
+  ) : (userSuggestionsSection || recommendationSection) ? (
+    <aside className="timeline-side-column">
+      {userSuggestionsSection}
+      {recommendationSection}
+    </aside>
+  ) : null;
+
+  if (!cards.length) {
+    if (isDesktopTimeline) {
+      return (
+        <div className="timeline-shell timeline-shell-desktop">
+          <div className="timeline-desktop-columns">
+            <div className="timeline-main-column">
+              <article className="timeline-empty">
+                <h3>Tu timeline esta vacio</h3>
+                <p>Empieza siguiendo personas o publicando tu primer cafe.</p>
+                <button className="action-button" type="button">
+                  Publica tu primer cafe
+                </button>
+              </article>
+            </div>
+            {desktopSideContent}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <>
+        <article className="timeline-empty">
+          <h3>Tu timeline esta vacio</h3>
+          <p>Empieza siguiendo personas o publicando tu primer cafe.</p>
+          <button className="action-button" type="button">
+            Publica tu primer cafe
+          </button>
+        </article>
+        {userSuggestionsSection}
+        {recommendationSection}
+      </>
+    );
+  }
+
+  return (
+    <div
+      className={`timeline-shell ${isDesktopTimeline ? "timeline-shell-desktop" : ""}`.trim()}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div
+        className={`pull-indicator ${pullDistance > 2 ? "is-visible" : ""}`}
+        style={{ ["--pull-distance" as string]: `${pullDistance}px`, ["--pull-progress" as string]: `${pullProgress}` }}
+        aria-hidden="true"
+      >
+        <span className={`pull-dot ${pullProgress >= 1 ? "is-ready" : ""}`} />
+      </div>
+
+      {visibleCards.length ? (
+        <div className="timeline-desktop-columns">
+          <div className="timeline-main-column">
+            <ul className="feed-list">
+              {visibleCards.map((card, index) => (
+                <Fragment key={card.id}>
+                  {!isDesktopTimeline && recommendationSection && suggestionIndices[0] != null && index === suggestionIndices[0] ? (
+                    <li className="feed-inline-item">{recommendationSection}</li>
+                  ) : null}
+                  {!isDesktopTimeline && userSuggestionsSection && suggestionIndices[1] != null && index === suggestionIndices[1] ? (
+                    <li className="feed-inline-item">{userSuggestionsSection}</li>
+                  ) : null}
+                  <li className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
+                    <article>
+              <header className="feed-head">
+                <button
+                  type="button"
+                  className="feed-user-link"
+                  onClick={() => onOpenUserProfile(card.userId)}
+                >
+                  {card.avatarUrl ? (
+                    <img className="avatar avatar-photo" src={card.avatarUrl} alt={card.username} loading="lazy" />
+                  ) : (
+                    <div className="avatar" aria-hidden="true">
+                      {card.userName
+                        .split(" ")
+                        .map((part) => part[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="feed-user">{card.userName}</p>
+                    <p className="feed-meta">{card.minsAgoLabel.toUpperCase()}</p>
+                  </div>
+                </button>
+                {activeUserId === card.userId ? (
+                  <button
+                    type="button"
+                    className="icon-button post-menu-trigger"
+                    onClick={() => setMenuPostId(card.id)}
+                    aria-label="Opciones"
+                  >
+                    <UiIcon name="more" className="ui-icon" />
+                  </button>
+                ) : null}
+              </header>
+
+              {card.text ? (
+                <p className="feed-text">
+                  <MentionText text={card.text} onMentionClick={onMentionClick} />
+                </p>
+              ) : null}
+
+              {card.imageUrl ? <img className={`feed-image ${card.text ? "" : "feed-image-no-text"}`.trim()} src={card.imageUrl} alt="Publicacion" loading="lazy" /> : null}
+
+              {card.coffeeTagName ? (
+                <button type="button" className="coffee-tag-card" onClick={() => card.coffeeId && onOpenCoffee(card.coffeeId)} disabled={!card.coffeeId}>
+                  <div className="coffee-tag-card-media">
+                    {card.coffeeImageUrl ? (
+                      <img className="coffee-tag-image" src={card.coffeeImageUrl} alt={card.coffeeTagName} loading="lazy" />
+                    ) : (
+                      <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
+                        <UiIcon name="coffee" className="ui-icon" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="coffee-tag-copy">
+                    <p className="coffee-origin">CAFE ETIQUETADO</p>
+                    <p className="coffee-tag-name">{card.coffeeTagName}</p>
+                    {card.coffeeTagBrand ? <p className="coffee-tag-brand">{card.coffeeTagBrand.toUpperCase()}</p> : null}
+                  </div>
+                  <UiIcon name="chevron-right" className="ui-icon" />
+                </button>
+              ) : null}
+
+              <footer className="feed-stats">
+                <button
+                  type="button"
+                  className={`inline-action action-like ${card.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === card.id ? "is-bursting" : ""}`}
+                  onClick={() => {
+                    if (!card.likedByActiveUser) {
+                      setLikeBurstPostId(card.id);
+                      if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
+                      likeBurstTimerRef.current = window.setTimeout(() => {
+                        setLikeBurstPostId(null);
+                        likeBurstTimerRef.current = null;
+                      }, 520);
+                    }
+                    onToggleLike(card.id);
+                  }}
+                >
+                  <span className="like-icon-wrap">
+                    <UiIcon name={card.likedByActiveUser ? "coffee-filled" : "coffee"} className="ui-icon" />
+                    <span className="like-burst" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </span>
+                  {card.likes > 0 ? <span>{card.likes}</span> : null}
+                </button>
+                <button type="button" className="inline-action" onClick={() => onOpenComments(card.id)}>
+                  <UiIcon name="chat" className="ui-icon" />
+                  {card.comments > 0 ? <span>{card.comments}</span> : null}
+                </button>
+              </footer>
+                    </article>
+                  </li>
+                </Fragment>
+              ))}
+            </ul>
+          </div>
+          {isDesktopTimeline ? desktopSideContent : null}
+        </div>
+      ) : (
+        <article className="timeline-empty">
+          <h3>No hay publicaciones disponibles</h3>
+          <p>Publica tu primer cafe o sigue a mas personas.</p>
+        </article>
+      )}
+      {activeMenuPost ? (
+        <div className="sheet-overlay comment-action-overlay" onClick={() => setMenuPostId(null)}>
+          <div className="sheet-card comment-action-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <div className="comment-action-list">
+              <p className="comment-action-title">OPCIONES</p>
+              <button
+                type="button"
+                className="comment-action-button"
+                onClick={() => {
+                  setEditingPostId(activeMenuPost.id);
+                  setEditingText(activeMenuPost.text);
+                  const initialImage = activeMenuPost.imageUrl ?? "";
+                  setEditingImageUrl(initialImage);
+                  setEditingImageFile(null);
+                  setEditingImagePreviewUrl(initialImage);
+                  setMenuPostId(null);
+                }}
+              >
+                <UiIcon name="edit" className="ui-icon" />
+                <span>Editar</span>
+                <UiIcon name="chevron-right" className="ui-icon trailing" />
+              </button>
+              <button
+                type="button"
+                className="comment-action-button is-danger"
+                onClick={async () => {
+                  const confirmed = window.confirm("Borrar post definitivamente?");
+                  if (!confirmed) return;
+                  await onDeletePost(activeMenuPost.id);
+                  setMenuPostId(null);
+                }}
+              >
+                <UiIcon name="trash" className="ui-icon" />
+                <span>Borrar</span>
+                <UiIcon name="chevron-right" className="ui-icon trailing" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {editingPostId ? (
+        <div
+          className="sheet-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Editar publicacion"
+          onClick={closeEditModal}
+        >
+          <div className="sheet-card" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
+            <div className="create-post-body edit-post-sheet">
+              <h3 className="edit-post-title">Editar</h3>
+              <input
+                ref={editImageInputRef}
+                type="file"
+                accept="image/*"
+                className="file-input-hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (!file) return;
+                  if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
+                  const preview = URL.createObjectURL(file);
+                  setEditingImageFile(file);
+                  setEditingImagePreviewUrl(preview);
+                }}
+              />
+              <button
+                type="button"
+                className="edit-image-picker"
+                onClick={() => editImageInputRef.current?.click()}
+              >
+                {editingImagePreviewUrl.trim() ? (
+                  <img className="create-post-preview" src={editingImagePreviewUrl.trim()} alt="Previsualizacion" loading="lazy" />
+                ) : (
+                  <span className="edit-image-placeholder">Seleccionar imagen</span>
+                )}
+              </button>
+              <textarea
+                className="search-wide sheet-input"
+                placeholder="Descripción"
+                value={editingText}
+                rows={4}
+                onChange={(event) => setEditingText(event.target.value)}
+              />
+              <div className="create-post-actions edit-post-actions-native">
+                <button
+                  type="button"
+                  className="action-button action-button-ghost edit-post-cancel"
+                  onClick={closeEditModal}
+                >
+                  CANCELAR
+                </button>
+                <button
+                  type="button"
+                  className="action-button edit-post-save"
+                  disabled={!editingText.trim() && !editingImageUrl.trim() && !editingImageFile}
+                  onClick={async () => {
+                    await onEditPost(editingPostId, editingText.trim(), editingImageUrl.trim(), editingImageFile);
+                    closeEditModal();
+                  }}
+                >
+                  GUARDAR
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+

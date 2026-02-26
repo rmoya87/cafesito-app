@@ -1,0 +1,70 @@
+:root {
+  --font-family-base: "Segoe UI", sans-serif;
+  --font-sans: var(--font-family-base);
+  --font-size-2xs: 0.7rem;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.55;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --tracking-tight: 0.01em;
+  --tracking-label: 0.08em;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --duration-fast: 180ms;
+  --duration-normal: 260ms;
+  --duration-slow: 340ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --espresso-deep: #1a120b;
+  --espresso-medium: #3c2a21;
+  --caramel-accent: #6f4e37;
+  --pure-white: #ffffff;
+  --screen-light-background: #f7f7f7;
+  --border-light: rgba(224, 224, 224, 0.4);
+
+  --pure-black: #000000;
+  --screen-dark-background: #212121;
+  --caramel-soft: #d4a373;
+  --muted-cream: #bdb7b2;
+  --modal-surface-bg: #1f1f1f;
+  --modal-header-bg: rgba(31, 31, 31, 0.96);
+  --modal-field-bg: #161616;
+  --modal-field-border: rgba(255, 255, 255, 0.18);
+  --modal-text-main: #f3f0ec;
+  --modal-text-muted: #bdb7b2;
+
+  --surface: #121212;
+  --surface-elevated: #1a1a1a;
+  --surface-muted: rgba(255, 255, 255, 0.04);
+  --border-default: rgba(255, 255, 255, 0.18);
+  --border-strong: rgba(255, 255, 255, 0.24);
+  --text-main: #f3f0ec;
+  --text-subtle: #bdb7b2;
+  --text-muted: #d5d0ca;
+  --danger: #d63a3a;
+  --focus-ring: rgba(212, 163, 115, 0.24);
+  --icon-size-sm: 17px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+
+  --radius-pill: 999px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-card: 18px;
+  --topbar-height: 56px;
+}
