@@ -1,0 +1,206 @@
+import type {
+  CoffeeRow,
+  CoffeeReviewRow,
+  CoffeeSensoryProfileRow,
+  CommentRow,
+  DiaryEntryRow,
+  FavoriteRow,
+  FollowRow,
+  InitialDataBundle,
+  LikeRow,
+  PantryItemRow,
+  PostCoffeeTagRow,
+  PostRow,
+  UserDataBundle,
+  UserRow
+} from "../types";
+
+function toStringOrEmpty(value: unknown): string {
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+function toNullableString(value: unknown): string | null {
+  const text = toStringOrEmpty(value).trim();
+  return text ? text : null;
+}
+
+function toNumberOr(value: unknown, fallback: number): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function toTimestamp(value: unknown): number {
+  const parsed = toNumberOr(value, 0);
+  return parsed > 0 ? parsed : Date.now();
+}
+
+export function mapUserRow(input: unknown): UserRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    id: toNumberOr(row.id, 0),
+    username: toStringOrEmpty(row.username),
+    full_name: toStringOrEmpty(row.full_name),
+    avatar_url: toStringOrEmpty(row.avatar_url),
+    email: toStringOrEmpty(row.email),
+    bio: toNullableString(row.bio)
+  };
+}
+
+export function mapCoffeeRow(input: unknown): CoffeeRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    id: toStringOrEmpty(row.id),
+    nombre: toStringOrEmpty(row.nombre),
+    marca: toNullableString(row.marca),
+    pais_origen: toNullableString(row.pais_origen),
+    descripcion: toNullableString(row.descripcion),
+    proceso: toNullableString(row.proceso),
+    variedad_tipo: toNullableString(row.variedad_tipo),
+    molienda_recomendada: toNullableString(row.molienda_recomendada),
+    product_url: toNullableString(row.product_url),
+    cafeina: toNullableString(row.cafeina),
+    aroma: row.aroma == null ? null : toNumberOr(row.aroma, 0),
+    sabor: row.sabor == null ? null : toNumberOr(row.sabor, 0),
+    cuerpo: row.cuerpo == null ? null : toNumberOr(row.cuerpo, 0),
+    acidez: row.acidez == null ? null : toNumberOr(row.acidez, 0),
+    dulzura: row.dulzura == null ? null : toNumberOr(row.dulzura, 0),
+    especialidad: toNullableString(row.especialidad),
+    tueste: toNullableString(row.tueste),
+    formato: toNullableString(row.formato),
+    image_url: toStringOrEmpty(row.image_url)
+  };
+}
+
+export function mapReviewRow(input: unknown): CoffeeReviewRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    id: row.id == null ? undefined : toNumberOr(row.id, 0),
+    coffee_id: toStringOrEmpty(row.coffee_id),
+    user_id: row.user_id == null ? undefined : toNumberOr(row.user_id, 0),
+    rating: toNumberOr(row.rating, 0),
+    comment: toNullableString(row.comment),
+    image_url: toNullableString(row.image_url),
+    timestamp: toTimestamp(row.timestamp)
+  };
+}
+
+export function mapSensoryProfileRow(input: unknown): CoffeeSensoryProfileRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    coffee_id: toStringOrEmpty(row.coffee_id),
+    user_id: toNumberOr(row.user_id, 0),
+    aroma: toNumberOr(row.aroma, 0),
+    sabor: toNumberOr(row.sabor, 0),
+    cuerpo: toNumberOr(row.cuerpo, 0),
+    acidez: toNumberOr(row.acidez, 0),
+    dulzura: toNumberOr(row.dulzura, 0),
+    updated_at: toTimestamp(row.updated_at)
+  };
+}
+
+export function mapPostRow(input: unknown): PostRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    id: toStringOrEmpty(row.id),
+    user_id: toNumberOr(row.user_id, 0),
+    image_url: toStringOrEmpty(row.image_url),
+    comment: toStringOrEmpty(row.comment),
+    timestamp: toTimestamp(row.timestamp)
+  };
+}
+
+export function mapLikeRow(input: unknown): LikeRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    post_id: toStringOrEmpty(row.post_id),
+    user_id: toNumberOr(row.user_id, 0)
+  };
+}
+
+export function mapCommentRow(input: unknown): CommentRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    id: toNumberOr(row.id, 0),
+    post_id: toStringOrEmpty(row.post_id),
+    user_id: toNumberOr(row.user_id, 0),
+    text: toStringOrEmpty(row.text),
+    timestamp: toTimestamp(row.timestamp)
+  };
+}
+
+export function mapPostCoffeeTagRow(input: unknown): PostCoffeeTagRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    post_id: toStringOrEmpty(row.post_id),
+    coffee_id: toNullableString(row.coffee_id),
+    coffee_name: toStringOrEmpty(row.coffee_name),
+    coffee_brand: toStringOrEmpty(row.coffee_brand)
+  };
+}
+
+export function mapFollowRow(input: unknown): FollowRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    follower_id: toNumberOr(row.follower_id, 0),
+    followed_id: toNumberOr(row.followed_id, 0),
+    created_at: toTimestamp(row.created_at)
+  };
+}
+
+export function mapDiaryEntryRow(input: unknown): DiaryEntryRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    id: toNumberOr(row.id, 0),
+    user_id: toNumberOr(row.user_id, 0),
+    coffee_id: toNullableString(row.coffee_id),
+    coffee_name: toStringOrEmpty(row.coffee_name),
+    caffeine_mg: toNumberOr(row.caffeine_mg, 0),
+    amount_ml: toNumberOr(row.amount_ml, 0),
+    preparation_type: toStringOrEmpty(row.preparation_type),
+    timestamp: toTimestamp(row.timestamp),
+    type: toStringOrEmpty(row.type)
+  };
+}
+
+export function mapPantryItemRow(input: unknown): PantryItemRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    coffee_id: toStringOrEmpty(row.coffee_id),
+    user_id: toNumberOr(row.user_id, 0),
+    grams_remaining: toNumberOr(row.grams_remaining, 0),
+    total_grams: toNumberOr(row.total_grams, 0),
+    last_updated: toTimestamp(row.last_updated)
+  };
+}
+
+export function mapFavoriteRow(input: unknown): FavoriteRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    coffee_id: toStringOrEmpty(row.coffee_id),
+    user_id: toNumberOr(row.user_id, 0),
+    saved_at: toTimestamp(row.saved_at)
+  };
+}
+
+export function mapInitialDataBundle(input: InitialDataBundle): InitialDataBundle {
+  return {
+    users: input.users.map(mapUserRow),
+    coffees: input.coffees.map(mapCoffeeRow),
+    reviews: input.reviews.map(mapReviewRow),
+    sensoryProfiles: input.sensoryProfiles.map(mapSensoryProfileRow),
+    posts: input.posts.map(mapPostRow),
+    likes: input.likes.map(mapLikeRow),
+    comments: input.comments.map(mapCommentRow),
+    postCoffeeTags: input.postCoffeeTags.map(mapPostCoffeeTagRow),
+    follows: input.follows.map(mapFollowRow)
+  };
+}
+
+export function mapUserDataBundle(input: UserDataBundle): UserDataBundle {
+  return {
+    diaryEntries: input.diaryEntries.map(mapDiaryEntryRow),
+    pantryItems: input.pantryItems.map(mapPantryItemRow),
+    favorites: input.favorites.map(mapFavoriteRow),
+    customCoffees: input.customCoffees.map(mapCoffeeRow)
+  };
+}

@@ -14,6 +14,7 @@ import type {
   PostRow,
   UserDataBundle
 } from "../types";
+import { mapCoffeeRow, mapInitialDataBundle, mapUserDataBundle } from "../mappers/supabaseMappers";
 
 type SupabaseErrorLike = { message: string } | null;
 

@@ -9,8 +9,6 @@ import {
   deleteDiaryEntry,
   deletePantryItem,
   deletePost,
-  fetchInitialData,
-  fetchUserData,
   toggleFavoriteCoffee,
   upsertCoffeeReview,
   upsertCoffeeSensoryProfile,
@@ -27,11 +25,18 @@ import {
 import { BREW_METHODS, COMMENT_EMOJIS } from "./config/brew";
 import { NAV_ITEMS } from "./config/navigation";
 import { buildRoute, parseRoute, toCoffeeSlug } from "./core/routing";
-import { getBrewStepTitle, getBrewTimelineForMethod } from "./core/brew";
+import { shouldUseRightRailDetail, sidePanelForTab } from "./core/layouts";
+import { canAccessTabAsGuest } from "./core/guards";
+import { getBrewStepTitle } from "./core/brew";
 import { buildNormalizedOptions, normalizeLookupText, toEventTimestamp, toUiOptionValue } from "./core/text";
 import { toRelativeMinutes, withinDays } from "./core/time";
 import { useGlobalUiEvents } from "./hooks/useGlobalUiEvents";
 import { useResponsiveMode } from "./hooks/useResponsiveMode";
+import { useAuthSession } from "./hooks/domains/useAuthSession";
+import { useInitialDataLoader } from "./hooks/domains/useInitialDataLoader";
+import { useUserDataLoader } from "./hooks/domains/useUserDataLoader";
+import { useBrewTimer } from "./hooks/domains/useBrewTimer";
+import { useAuthActionGuard } from "./hooks/domains/useAuthActionGuard";
 import { getSupabaseClient, supabaseConfigError } from "./supabase";
 import { TopBar } from "./features/topbar/TopBar";
 import { TimelineView } from "./features/timeline/TimelineView";
@@ -194,11 +199,17 @@ export function App() {
   const [showCreatePostEmojiPanel, setShowCreatePostEmojiPanel] = useState(false);
   const newPostImageInputRef = useRef<HTMLInputElement | null>(null);
   const newPostCameraInputRef = useRef<HTMLInputElement | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
-  const [authBusy, setAuthBusy] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const {
+    authReady,
+    sessionEmail,
+    authBusy,
+    authError,
+    showAuthPrompt,
+    setAuthError,
+    setShowAuthPrompt,
+    handleGoogleLogin,
+    requestLogin
+  } = useAuthSession();
   const isMobileOsDevice = useMemo(() => /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
 
   const activeUser = useMemo(() => {
@@ -210,6 +221,42 @@ export function App() {
     }
     return users[0] ?? null;
   }, [sessionEmail, users]);
+  const { runWithAuth } = useAuthActionGuard({ sessionEmail, onRequireAuth: requestLogin });
+
+  const reloadInitialData = useInitialDataLoader({
+    authReady,
+    setUsers,
+    setCoffees,
+    setCoffeeReviews,
+    setCoffeeSensoryProfiles,
+    setPosts,
+    setLikes,
+    setComments,
+    setPostCoffeeTags,
+    setFollows,
+    setBrewCoffeeId,
+    setGlobalStatus
+  });
+
+  useUserDataLoader({
+    activeUser,
+    setDiaryEntries,
+    setPantryItems,
+    setFavorites,
+    setCustomCoffees,
+    setGlobalStatus
+  });
+
+  useBrewTimer({
+    brewRunning,
+    brewStep,
+    brewMethod,
+    waterMl,
+    timerSeconds,
+    setTimerSeconds,
+    setBrewRunning,
+    setBrewStep
+  });
 
   const navigateToTab = useCallback(
     (
@@ -337,62 +384,6 @@ export function App() {
       if (item.previewUrl.startsWith("blob:")) URL.revokeObjectURL(item.previewUrl);
     });
   }, [newPostGalleryItems, newPostImagePreviewUrl, showCreatePost]);
-
-  useEffect(() => {
-    if (supabaseConfigError) {
-      setAuthError(supabaseConfigError);
-      setAuthReady(true);
-      return;
-    }
-
-    const supabase = getSupabaseClient();
-    let mounted = true;
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
-      if (error) setAuthError(error.message);
-      setSessionEmail(data.session?.user?.email ?? null);
-      setAuthReady(true);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSessionEmail(session?.user?.email ?? null);
-      setAuthReady(true);
-    });
-
-    return () => {
-      mounted = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
-
-  const handleGoogleLogin = useCallback(async () => {
-    if (supabaseConfigError) return;
-    setAuthBusy(true);
-    setAuthError(null);
-    try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}${window.location.pathname}`
-        }
-      });
-      if (error) throw error;
-    } catch (error) {
-      setAuthError((error as Error).message);
-      setAuthBusy(false);
-      return;
-    }
-  }, []);
-
-  const requestLogin = useCallback(() => {
-    setAuthError(null);
-    setShowAuthPrompt(true);
-  }, []);
-
-  useEffect(() => {
-    if (sessionEmail) setShowAuthPrompt(false);
-  }, [sessionEmail]);
 
   const handleSignOut = useCallback(async () => {
     if (supabaseConfigError) return;
@@ -586,30 +577,6 @@ export function App() {
     []
   );
 
-  const loadInitialData = useCallback(async () => {
-    try {
-      const data = await fetchInitialData();
-      setUsers(data.users);
-      setCoffees(data.coffees);
-      setCoffeeReviews(data.reviews);
-      setCoffeeSensoryProfiles(data.sensoryProfiles);
-      setPosts(data.posts);
-      setLikes(data.likes);
-      setComments(data.comments);
-      setPostCoffeeTags(data.postCoffeeTags);
-      setFollows(data.follows);
-      setBrewCoffeeId((prev) => prev || data.coffees[0]?.id || "");
-      setGlobalStatus("Listo");
-    } catch (error) {
-      setGlobalStatus(`Error: ${(error as Error).message}`);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!authReady) return;
-    void loadInitialData();
-  }, [authReady, loadInitialData]);
-
   useEffect(() => {
     if (activeTab === "diary") return;
     setShowDiaryQuickActions(false);
@@ -619,21 +586,6 @@ export function App() {
     setShowDiaryAddPantrySheet(false);
   }, [activeTab]);
 
-  useEffect(() => {
-    if (!activeUser) return;
-    (async () => {
-      try {
-        const data = await fetchUserData(activeUser.id);
-        setDiaryEntries(data.diaryEntries);
-        setPantryItems(data.pantryItems);
-        setFavorites(data.favorites);
-        setCustomCoffees(data.customCoffees);
-      } catch (error) {
-        setGlobalStatus(`Error: ${(error as Error).message}`);
-      }
-    })();
-  }, [activeUser]);
-
   const brewCoffeeCatalog = useMemo(() => {
     if (!customCoffees.length) return coffees;
     const byId = new Map<string, CoffeeRow>();
@@ -641,18 +593,6 @@ export function App() {
     customCoffees.forEach((coffee) => byId.set(String(coffee.id), coffee));
     return Array.from(byId.values());
   }, [coffees, customCoffees]);
-
-  useEffect(() => {
-    if (!brewRunning || brewStep !== "brewing") return;
-    const totalDuration = getBrewTimelineForMethod(brewMethod, waterMl).reduce((acc, phase) => acc + phase.durationSeconds, 0);
-    if (totalDuration > 0 && timerSeconds >= totalDuration) {
-      setBrewRunning(false);
-      setBrewStep("result");
-      return;
-    }
-    const id = window.setTimeout(() => setTimerSeconds((prev) => prev + 1), 1000);
-    return () => window.clearTimeout(id);
-  }, [brewMethod, brewRunning, brewStep, timerSeconds, waterMl]);
 
   const usersById = useMemo(() => {
     const map = new Map<number, UserRow>();
@@ -1471,7 +1411,7 @@ export function App() {
   const handleRefreshTimeline = async () => {
     setTimelineRefreshing(true);
     setTimelineBusyMessage("Actualizando timeline...");
-    await loadInitialData();
+    await reloadInitialData();
     setTimelineRefreshing(false);
     setTimelineBusyMessage(null);
     setTimelineActionBanner("Timeline actualizado");
@@ -1963,7 +1903,7 @@ export function App() {
     return <LoginGate loading message="Verificando sesion..." />;
   }
 
-  if (!sessionEmail && activeTab !== "coffee") {
+  if (!sessionEmail && !canAccessTabAsGuest(activeTab)) {
     return (
       <LoginGate
         loading={authBusy}
@@ -1974,14 +1914,19 @@ export function App() {
     );
   }
 
-  const isWideDesktop = mode === "desktop" && viewportWidth >= 1520;
-  const useRightRailDetail = Boolean(
-    isWideDesktop &&
-      detailPanel &&
-      ((activeTab === "timeline" && detailHostTab === "timeline") ||
-        (activeTab === "search" && detailHostTab === "search") ||
-        (activeTab === "profile" && detailHostTab === "profile"))
-  );
+  const useRightRailDetail = shouldUseRightRailDetail({
+    mode,
+    viewportWidth,
+    hasDetailPanel: Boolean(detailPanel),
+    activeTab,
+    detailHostTab
+  });
+  const activeSidePanelTarget = sidePanelForTab({
+    mode,
+    activeTab,
+    detailHostTab,
+    useRightRailDetail
+  });
   const isDesktopComposer = mode === "desktop";
 
   return (
@@ -2061,31 +2006,25 @@ export function App() {
           profileMenuEnabled={Boolean(profileUser && activeUser && profileUser.id === activeUser.id)}
           onProfileOpenEdit={() => setProfileEditSignal((prev) => prev + 1)}
           onCoffeeBack={() => {
-            if (!sessionEmail) {
-              requestLogin();
-              return;
-            }
-            if (window.history.length > 1) {
-              window.history.back();
-              return;
-            }
-            navigateToTab("timeline", { replace: true });
+            void runWithAuth(async () => {
+              if (window.history.length > 1) {
+                window.history.back();
+                return;
+              }
+              navigateToTab("timeline", { replace: true });
+            });
           }}
           coffeeTopbarFavoriteActive={activeTab === "coffee" ? detailIsFavorite : false}
           coffeeTopbarStockActive={activeTab === "coffee" ? Boolean(detailPantryStock) : false}
           onCoffeeTopbarToggleFavorite={() => {
-            if (!sessionEmail) {
-              requestLogin();
-              return;
-            }
-            void saveDetailFavorite();
+            void runWithAuth(async () => {
+              await saveDetailFavorite();
+            });
           }}
           onCoffeeTopbarOpenStock={() => {
-            if (!sessionEmail) {
-              requestLogin();
-              return;
-            }
-            setDetailOpenStockSignal((prev) => prev + 1);
+            void runWithAuth(async () => {
+              setDetailOpenStockSignal((prev) => prev + 1);
+            });
           }}
         />
 
@@ -2119,7 +2058,7 @@ export function App() {
               onOpenCoffee={(coffeeId) => {
                 openCoffeeDetail(coffeeId, "timeline");
               }}
-              sidePanel={mode === "desktop" && !useRightRailDetail && detailHostTab === "timeline" ? detailPanel : null}
+              sidePanel={activeSidePanelTarget === "timeline" ? detailPanel : null}
             />
           ) : null}
           {activeTab === "search" ? (
@@ -2201,7 +2140,7 @@ export function App() {
               onToggleFollow={handleToggleFollow}
               focusCoffeeProfile={searchFocusCoffeeProfile}
               onExitCoffeeFocus={() => setSearchFocusCoffeeProfile(false)}
-              sidePanel={mode === "desktop" && !useRightRailDetail && detailHostTab === "search" ? detailPanel : null}
+              sidePanel={activeSidePanelTarget === "search" ? detailPanel : null}
             />
           ) : null}
           {activeTab === "coffee" ? (
@@ -2225,11 +2164,9 @@ export function App() {
                   else navigateToTab("timeline", { replace: true });
                 }}
                 onToggleFavorite={() => {
-                  if (!sessionEmail) {
-                    requestLogin();
-                    return;
-                  }
-                  void saveDetailFavorite();
+                  void runWithAuth(async () => {
+                    await saveDetailFavorite();
+                  });
                 }}
                 onReviewTextChange={setDetailReviewText}
                 onReviewRatingChange={setDetailReviewRating}
@@ -2238,42 +2175,32 @@ export function App() {
                   setDetailReviewImagePreviewUrl(previewUrl);
                 }}
                 onSaveReview={async () => {
-                  if (!sessionEmail) {
-                    requestLogin();
-                    return;
-                  }
-                  await saveDetailReview();
+                  await runWithAuth(async () => {
+                    await saveDetailReview();
+                  });
                 }}
                 onDeleteReview={async () => {
-                  if (!sessionEmail) {
-                    requestLogin();
-                    return;
-                  }
-                  await removeDetailReview();
+                  await runWithAuth(async () => {
+                    await removeDetailReview();
+                  });
                 }}
                 canDeleteReview={Boolean(detailCurrentUserReview)}
                 onSensoryDraftChange={setDetailSensoryDraft}
                 onSaveSensory={async () => {
-                  if (!sessionEmail) {
-                    requestLogin();
-                    return;
-                  }
-                  await saveDetailSensory();
+                  await runWithAuth(async () => {
+                    await saveDetailSensory();
+                  });
                 }}
                 onStockDraftChange={setDetailStockDraft}
                 onSaveStock={async () => {
-                  if (!sessionEmail) {
-                    requestLogin();
-                    return;
-                  }
-                  await saveDetailStock();
+                  await runWithAuth(async () => {
+                    await saveDetailStock();
+                  });
                 }}
                 onOpenUserProfile={(userId) => {
-                  if (!sessionEmail) {
-                    requestLogin();
-                    return;
-                  }
-                  navigateToTab("profile", { profileUserId: userId });
+                  void runWithAuth(async () => {
+                    navigateToTab("profile", { profileUserId: userId });
+                  });
                 }}
                 isGuest={!sessionEmail}
                 onRequireAuth={requestLogin}
@@ -2381,7 +2308,7 @@ export function App() {
                 setCommentSheetPostId(postId);
               }}
               externalEditProfileSignal={profileEditSignal}
-              sidePanel={mode === "desktop" && !useRightRailDetail && detailHostTab === "profile" ? detailPanel : null}
+              sidePanel={activeSidePanelTarget === "profile" ? detailPanel : null}
             />
           ) : null}
         </section>
