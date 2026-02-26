@@ -2,7 +2,7 @@
 import { MentionText } from "../../ui/MentionText";
 import { normalizeLookupText } from "../../core/text";
 import { UiIcon, type IconName } from "../../ui/iconography";
-import { Button, TabButton, Tabs } from "../../ui/components";
+import { Button, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs } from "../../ui/components";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow } from "../../types";
 
 export function DiaryView({
@@ -404,7 +404,7 @@ export function DiaryView({
               <small>{(row.coffee?.marca || "").toUpperCase()}</small>
               <strong>{row.coffee?.nombre ?? row.item.coffee_id}</strong>
             </div>
-            <button
+            <Button variant="plain"
               type="button"
               className="diary-pantry-options"
               aria-label="Opciones"
@@ -414,7 +414,7 @@ export function DiaryView({
               }}
             >
               <UiIcon name="more" className="ui-icon" />
-            </button>
+            </Button>
           </div>
           <div className="diary-pantry-foot">
             <div className="diary-pantry-values">
@@ -438,7 +438,7 @@ export function DiaryView({
             <p className="metric-label diary-analytics-label">
               CAFEÍNA ESTIMADA
               <span className="diary-analytics-info-wrap">
-                <button
+                <Button variant="plain"
                   type="button"
                   className="diary-analytics-info"
                   aria-label="Información de cafeína estimada"
@@ -449,7 +449,7 @@ export function DiaryView({
                   onBlur={() => setShowCaffeineInfo(false)}
                 >
                   i
-                </button>
+                </Button>
                 {showCaffeineInfo ? (
                   <span className="diary-analytics-tooltip" role="tooltip">
                     Estimación basada en tus registros de consumo en el periodo seleccionado.
@@ -596,14 +596,14 @@ export function DiaryView({
       )}
 
       {pantryOptionsCoffeeId ? (
-        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Opciones despensa" onClick={() => setPantryOptionsCoffeeId(null)}>
-          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => setPantryOptionsCoffeeId(null)} onClick={() => setPantryOptionsCoffeeId(null)}>
+          <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">OPCIONES DESPENSA</strong>
             </header>
             <div className="diary-sheet-list">
-              <button
+              <Button variant="plain"
                 type="button"
                 className="diary-sheet-action"
                 onClick={() => {
@@ -618,8 +618,8 @@ export function DiaryView({
                 <UiIcon name="edit" className="ui-icon" />
                 <span>Editar stock</span>
                 <UiIcon name="chevron-right" className="ui-icon" />
-              </button>
-              <button
+              </Button>
+              <Button variant="plain"
                 type="button"
                 className="diary-sheet-action"
                 disabled={removingStock}
@@ -631,26 +631,26 @@ export function DiaryView({
                 <UiIcon name="trash" className="ui-icon" />
                 <span>Eliminar de despensa</span>
                 <UiIcon name="chevron-right" className="ui-icon" />
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
 
       {pantryDeleteConfirmCoffeeId ? (
-        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Confirmar eliminación" onClick={() => setPantryDeleteConfirmCoffeeId(null)}>
-          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Confirmar eliminación" onDismiss={() => setPantryDeleteConfirmCoffeeId(null)} onClick={() => setPantryDeleteConfirmCoffeeId(null)}>
+          <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">ELIMINAR DE DESPENSA</strong>
             </header>
             <div className="diary-sheet-form">
               <p className="feed-meta">¿Seguro que quieres eliminar este café de tu despensa?</p>
               <div className="diary-sheet-form-actions">
-                <button type="button" className="action-button action-button-ghost" onClick={() => setPantryDeleteConfirmCoffeeId(null)} disabled={removingStock}>
+                <Button variant="plain" type="button" className="action-button action-button-ghost" onClick={() => setPantryDeleteConfirmCoffeeId(null)} disabled={removingStock}>
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button variant="plain"
                   type="button"
                   className="action-button"
                   disabled={removingStock}
@@ -666,24 +666,24 @@ export function DiaryView({
                   }}
                 >
                   {removingStock ? "Eliminando..." : "Eliminar"}
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
 
       {stockEditTarget ? (
-        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar stock" onClick={() => setStockEditCoffeeId(null)}>
-          <div className="sheet-card diary-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar stock" onDismiss={() => setStockEditCoffeeId(null)} onClick={() => setStockEditCoffeeId(null)}>
+          <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">EDITAR STOCK</strong>
             </header>
             <div className="diary-sheet-form">
               <label>
                 <span>Total (g)</span>
-                <input
+                <Input
                   className="search-wide"
                   type="number"
                   min={1}
@@ -707,7 +707,7 @@ export function DiaryView({
               </label>
               <label>
                 <span>Restante (g)</span>
-                <input
+                <Input
                   className="search-wide"
                   type="number"
                   min={0}
@@ -719,10 +719,10 @@ export function DiaryView({
               </label>
               {!canSaveStock && stockValidationMessage ? <p className="diary-inline-error">{stockValidationMessage}</p> : null}
               <div className="diary-sheet-form-actions">
-                <button type="button" className="action-button action-button-ghost" onClick={() => setStockEditCoffeeId(null)} disabled={savingStock}>
+                <Button variant="plain" type="button" className="action-button action-button-ghost" onClick={() => setStockEditCoffeeId(null)} disabled={savingStock}>
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button variant="plain"
                   type="button"
                   className="action-button"
                   disabled={savingStock || !canSaveStock}
@@ -742,17 +742,17 @@ export function DiaryView({
                   }}
                 >
                   {savingStock ? "Guardando..." : "Guardar"}
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
 
       {editEntryTarget ? (
-        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar entrada" onClick={() => setEditEntryId(null)}>
-          <div className="sheet-card diary-sheet diary-edit-entry-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar entrada" onDismiss={() => setEditEntryId(null)} onClick={() => setEditEntryId(null)}>
+          <SheetCard className="diary-sheet diary-edit-entry-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">Editar registro de café</strong>
             </header>
@@ -760,8 +760,7 @@ export function DiaryView({
               {editEntryIsWater ? (
                 <div className="diary-water-presets diary-edit-entry-presets is-water">
                   {[250, 500, 750].map((value) => (
-                    <Button
-                      variant="chip"
+                    <Button variant="chip"
                       key={value}
                       className={`chip-button period-chip ${Number(editAmountMl) === value ? "is-active" : ""}`.trim()}
                       onClick={() => setEditAmountMl(String(value))}
@@ -783,8 +782,7 @@ export function DiaryView({
                       onPointerCancel={handleEditScrollPointerEnd}
                     >
                       {editMethodOptions.map((method) => (
-                        <Button
-                          variant="chip"
+                        <Button variant="chip"
                           key={method.label}
                           className={`chip-button period-chip diary-edit-entry-method-chip ${normalizeLookupText(editPreparationType) === normalizeLookupText(method.label) ? "is-active" : ""}`.trim()}
                           onClick={() => setEditPreparationType(method.label)}
@@ -801,7 +799,7 @@ export function DiaryView({
                       <span>Cafeína (mg)</span>
                       <div className="diary-edit-entry-metric-value">
                         <UiIcon name="caffeine" className="ui-icon" />
-                        <input
+                        <Input
                           className="diary-edit-entry-metric-input"
                           type="number"
                           inputMode="numeric"
@@ -833,8 +831,7 @@ export function DiaryView({
                       onPointerCancel={handleEditScrollPointerEnd}
                     >
                       {editSizeOptions.map((size) => (
-                        <Button
-                          variant="chip"
+                        <Button variant="chip"
                           key={size.label}
                           className={`chip-button period-chip diary-coffee-size-chip ${Math.abs(Number(editAmountMl || 0) - size.ml) <= 20 ? "is-active" : ""}`.trim()}
                           onClick={() => setEditAmountMl(String(size.ml))}
@@ -858,7 +855,7 @@ export function DiaryView({
               )}
               {!canSaveEditEntry && editValidationMessage ? <p className="diary-inline-error">{editValidationMessage}</p> : null}
               <div className="diary-sheet-form-actions">
-                <button
+                <Button variant="plain"
                   type="button"
                   className="action-button diary-edit-entry-save"
                   disabled={savingEditEntry || !canSaveEditEntry}
@@ -879,11 +876,11 @@ export function DiaryView({
                   }}
                 >
                   {savingEditEntry ? "Guardando..." : "Guardar cambios"}
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
     </>
   );
@@ -1156,4 +1153,8 @@ function DiaryActivityRow({
     </li>
   );
 }
+
+
+
+
 

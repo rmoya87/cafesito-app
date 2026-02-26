@@ -4,7 +4,7 @@ test("login mantiene boton principal accesible por teclado", async ({ page }) =>
   await page.goto("/");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
-  const googleButton = page.getByRole("button", { name: /continuar con google/i });
+  const googleButton = page.getByRole("button", { name: /continuar con google|empezar ahora/i });
   await expect(googleButton).toBeVisible();
 });
 

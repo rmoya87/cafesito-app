@@ -13,12 +13,23 @@ export default defineConfig({
     command: "npm run dev -- --host 127.0.0.1 --port 4173",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: true,
-    timeout: 120_000
+    timeout: 120_000,
+    env: {
+      ...process.env,
+      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL ?? "https://127.0.0.1",
+      VITE_SUPABASE_ANON_KEY:
+        process.env.VITE_SUPABASE_ANON_KEY ??
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvY2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE2MDAwMDAwMDB9.signature"
+    }
   },
   projects: [
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] }
+    },
+    {
+      name: "mobile-chrome",
+      use: { ...devices["Pixel 7"] }
     }
   ]
 });

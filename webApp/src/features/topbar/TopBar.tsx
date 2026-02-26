@@ -273,8 +273,8 @@ export function TopBar({
               <SheetHandle aria-hidden="true" />
               <div className="comment-action-list">
                 <p className="comment-action-title">OPCIONES</p>
-                <button
-                  type="button"
+                <Button
+                  variant="plain"
                   className="comment-action-button"
                   onClick={() => {
                     setShowProfileOptions(false);
@@ -284,9 +284,9 @@ export function TopBar({
                   <UiIcon name="edit" className="ui-icon" />
                   <span>Editar perfil</span>
                   <UiIcon name="chevron-right" className="ui-icon trailing" />
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="plain"
                   className="comment-action-button is-danger"
                   onClick={() => {
                     setShowProfileOptions(false);
@@ -296,7 +296,7 @@ export function TopBar({
                   <UiIcon name="close" className="ui-icon" />
                   <span>Cerrar sesión</span>
                   <UiIcon name="chevron-right" className="ui-icon trailing" />
-                </button>
+                </Button>
               </div>
             </SheetCard>
           </SheetOverlay>

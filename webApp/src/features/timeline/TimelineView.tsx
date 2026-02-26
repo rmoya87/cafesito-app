@@ -2,6 +2,7 @@
 import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
+import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
 export function TimelineView({
   mode,
   cards,
@@ -161,9 +162,9 @@ export function TimelineView({
       <p className="section-title">Recomendados para tu paladar</p>
       <div className="horizontal-cards">
         {recommendations.map((coffee) => (
-          <button
+          <Button
             key={coffee.id}
-            type="button"
+            variant="plain"
             className="mini-card mini-coffee-card mini-coffee-link"
             onClick={() => onOpenCoffee(coffee.id)}
           >
@@ -171,7 +172,7 @@ export function TimelineView({
             <p className="coffee-origin">{coffee.pais_origen ?? "Origen"}</p>
             <p className="feed-user">{coffee.nombre}</p>
             <p className="coffee-sub">{coffee.marca}</p>
-          </button>
+          </Button>
         ))}
       </div>
     </section>
@@ -186,17 +187,16 @@ export function TimelineView({
           const isPendingFollow = pendingSuggestionFollowIds.has(user.id);
           return (
             <article key={user.id} className={`mini-card mini-user-card ${isDismissing ? "is-removing" : ""}`.trim()}>
-              <button type="button" className="mini-user-link" onClick={() => onOpenUserProfile(user.id)}>
+              <Button variant="plain" type="button" className="mini-user-link" onClick={() => onOpenUserProfile(user.id)}>
                 {user.avatar_url ? <img className="mini-avatar" src={user.avatar_url} alt={user.username} loading="lazy" /> : <div className="avatar mini-avatar-fallback">{user.username.slice(0, 2).toUpperCase()}</div>}
                 <div className="mini-user-copy">
                   <p className="feed-user">{user.full_name}</p>
                   <p className="feed-meta">@{user.username}</p>
                   <p className="coffee-sub">{followerCounts.get(user.id) ?? 0} seguidores</p>
                 </div>
-              </button>
-              <button
+              </Button>
+              <Button variant="primary"
                 className={`action-button ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
-                type="button"
                 disabled={isPendingFollow}
                 onClick={async () => {
                   if (isPendingFollow) return;
@@ -217,7 +217,7 @@ export function TimelineView({
                 }}
               >
                 {followingIds.has(user.id) ? "Siguiendo" : "Seguir"}
-              </button>
+              </Button>
             </article>
           );
         })}
@@ -243,9 +243,9 @@ export function TimelineView({
               <article className="timeline-empty">
                 <h3>Tu timeline esta vacio</h3>
                 <p>Empieza siguiendo personas o publicando tu primer cafe.</p>
-                <button className="action-button" type="button">
+                <Button variant="primary" className="action-button">
                   Publica tu primer cafe
-                </button>
+                </Button>
               </article>
             </div>
             {desktopSideContent}
@@ -258,9 +258,9 @@ export function TimelineView({
         <article className="timeline-empty">
           <h3>Tu timeline esta vacio</h3>
           <p>Empieza siguiendo personas o publicando tu primer cafe.</p>
-          <button className="action-button" type="button">
+          <Button variant="primary" className="action-button">
             Publica tu primer cafe
-          </button>
+          </Button>
         </article>
         {userSuggestionsSection}
         {recommendationSection}
@@ -298,7 +298,7 @@ export function TimelineView({
                   <li className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
                     <article>
               <header className="feed-head">
-                <button
+                <Button variant="plain"
                   type="button"
                   className="feed-user-link"
                   onClick={() => onOpenUserProfile(card.userId)}
@@ -319,16 +319,16 @@ export function TimelineView({
                     <p className="feed-user">{card.userName}</p>
                     <p className="feed-meta">{card.minsAgoLabel.toUpperCase()}</p>
                   </div>
-                </button>
+                </Button>
                 {activeUserId === card.userId ? (
-                  <button
-                    type="button"
-                    className="icon-button post-menu-trigger"
+                  <IconButton
+                    tone="default"
+                    className="post-menu-trigger"
                     onClick={() => setMenuPostId(card.id)}
                     aria-label="Opciones"
                   >
                     <UiIcon name="more" className="ui-icon" />
-                  </button>
+                  </IconButton>
                 ) : null}
               </header>
 
@@ -341,7 +341,7 @@ export function TimelineView({
               {card.imageUrl ? <img className={`feed-image ${card.text ? "" : "feed-image-no-text"}`.trim()} src={card.imageUrl} alt="Publicacion" loading="lazy" /> : null}
 
               {card.coffeeTagName ? (
-                <button type="button" className="coffee-tag-card" onClick={() => card.coffeeId && onOpenCoffee(card.coffeeId)} disabled={!card.coffeeId}>
+                <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => card.coffeeId && onOpenCoffee(card.coffeeId)} disabled={!card.coffeeId}>
                   <div className="coffee-tag-card-media">
                     {card.coffeeImageUrl ? (
                       <img className="coffee-tag-image" src={card.coffeeImageUrl} alt={card.coffeeTagName} loading="lazy" />
@@ -357,11 +357,11 @@ export function TimelineView({
                     {card.coffeeTagBrand ? <p className="coffee-tag-brand">{card.coffeeTagBrand.toUpperCase()}</p> : null}
                   </div>
                   <UiIcon name="chevron-right" className="ui-icon" />
-                </button>
+                </Button>
               ) : null}
 
               <footer className="feed-stats">
-                <button
+                <Button variant="plain"
                   type="button"
                   className={`inline-action action-like ${card.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === card.id ? "is-bursting" : ""}`}
                   onClick={() => {
@@ -388,11 +388,11 @@ export function TimelineView({
                     </span>
                   </span>
                   {card.likes > 0 ? <span>{card.likes}</span> : null}
-                </button>
-                <button type="button" className="inline-action" onClick={() => onOpenComments(card.id)}>
+                </Button>
+                <Button variant="plain" type="button" className="inline-action" onClick={() => onOpenComments(card.id)}>
                   <UiIcon name="chat" className="ui-icon" />
                   {card.comments > 0 ? <span>{card.comments}</span> : null}
-                </button>
+                </Button>
               </footer>
                     </article>
                   </li>
@@ -409,13 +409,12 @@ export function TimelineView({
         </article>
       )}
       {activeMenuPost ? (
-        <div className="sheet-overlay comment-action-overlay" onClick={() => setMenuPostId(null)}>
-          <div className="sheet-card comment-action-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay className="comment-action-overlay" onDismiss={() => setMenuPostId(null)} onClick={() => setMenuPostId(null)}>
+          <SheetCard className="comment-action-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <div className="comment-action-list">
               <p className="comment-action-title">OPCIONES</p>
-              <button
-                type="button"
+              <Button variant="plain"
                 className="comment-action-button"
                 onClick={() => {
                   setEditingPostId(activeMenuPost.id);
@@ -430,9 +429,8 @@ export function TimelineView({
                 <UiIcon name="edit" className="ui-icon" />
                 <span>Editar</span>
                 <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button variant="plain"
                 className="comment-action-button is-danger"
                 onClick={async () => {
                   const confirmed = window.confirm("Borrar post definitivamente?");
@@ -444,24 +442,24 @@ export function TimelineView({
                 <UiIcon name="trash" className="ui-icon" />
                 <span>Borrar</span>
                 <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
       {editingPostId ? (
-        <div
-          className="sheet-overlay"
+        <SheetOverlay
           role="dialog"
           aria-modal="true"
           aria-label="Editar publicacion"
+          onDismiss={closeEditModal}
           onClick={closeEditModal}
         >
-          <div className="sheet-card" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+          <SheetCard onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <div className="create-post-body edit-post-sheet">
               <h3 className="edit-post-title">Editar</h3>
-              <input
+              <Input
                 ref={editImageInputRef}
                 type="file"
                 accept="image/*"
@@ -475,7 +473,7 @@ export function TimelineView({
                   setEditingImagePreviewUrl(preview);
                 }}
               />
-              <button
+              <Button variant="plain"
                 type="button"
                 className="edit-image-picker"
                 onClick={() => editImageInputRef.current?.click()}
@@ -485,8 +483,8 @@ export function TimelineView({
                 ) : (
                   <span className="edit-image-placeholder">Seleccionar imagen</span>
                 )}
-              </button>
-              <textarea
+              </Button>
+              <Textarea
                 className="search-wide sheet-input"
                 placeholder="Descripción"
                 value={editingText}
@@ -494,15 +492,13 @@ export function TimelineView({
                 onChange={(event) => setEditingText(event.target.value)}
               />
               <div className="create-post-actions edit-post-actions-native">
-                <button
-                  type="button"
+                <Button variant="ghost"
                   className="action-button action-button-ghost edit-post-cancel"
                   onClick={closeEditModal}
                 >
                   CANCELAR
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button variant="primary"
                   className="action-button edit-post-save"
                   disabled={!editingText.trim() && !editingImageUrl.trim() && !editingImageFile}
                   onClick={async () => {
@@ -511,14 +507,17 @@ export function TimelineView({
                   }}
                 >
                   GUARDAR
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
     </div>
   );
 }
+
+
+
 
 

@@ -104,8 +104,8 @@ export function NotificationRow({
       </div>
       <div className="notifications-swipe-content" style={{ transform: `translateX(${offsetX}px)` }}>
         <div className="sheet-item-head notifications-item-head">
-          <button
-            type="button"
+          <Button
+            variant="plain"
             className="notifications-user-link"
             onClick={(event) => {
               event.stopPropagation();
@@ -126,7 +126,7 @@ export function NotificationRow({
               <p className="feed-user notifications-user">@{user?.username ?? `user${item.userId}`}</p>
               <p className="feed-meta notifications-subtitle">{item.text}</p>
             </div>
-          </button>
+          </Button>
           {item.type === "follow" ? (
             <Button
               variant="primary"

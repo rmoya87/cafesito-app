@@ -1,0 +1,33 @@
+.filter-chip {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e6e0db;
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-chip-count {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--caramel-soft);
+  color: #101010;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.filter-chip.is-active {
+  color: var(--text-main);
+  border-color: rgba(212, 163, 115, 0.44);
+  background: rgba(212, 163, 115, 0.14);
+}

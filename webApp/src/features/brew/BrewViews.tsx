@@ -3,7 +3,7 @@ import { BREW_METHODS } from "../../config/brew";
 import { formatClock, getBrewDialRecommendation, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
-import { Button, Input } from "../../ui/components";
+import { Button, Input, Select, Switch } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
 export function BrewLabView({
   brewStep,
@@ -185,8 +185,7 @@ export function BrewLabView({
             {filteredPantry.length ? (
               <div className="brew-pantry-row">
                 {filteredPantry.map((row) => (
-                  <Button
-                    variant="plain"
+                  <Button variant="plain"
                     key={`${row.coffee.id}-pantry`}
                     className="brew-pantry-card"
                     onClick={() => {
@@ -234,8 +233,7 @@ export function BrewLabView({
             <ul className="brew-suggestions-list">
               {filteredSuggestions.map((coffee) => (
                 <li key={coffee.id}>
-                  <Button
-                    variant="plain"
+                  <Button variant="plain"
                     type="button"
                     className={`brew-suggestion-card ${brewCoffeeId === coffee.id ? "is-active" : ""}`}
                     onClick={() => {
@@ -282,7 +280,7 @@ export function BrewLabView({
 
                 <label className="brew-tech-slider">
                   <span>CANTIDAD DE AGUA</span>
-                  <input
+                  <Input
                     className="brew-tech-range is-water"
                     style={{ "--range-progress": `${waterProgress}%` } as CSSProperties}
                     type="range"
@@ -296,7 +294,7 @@ export function BrewLabView({
 
                 <label className="brew-tech-slider">
                   <span>RATIO (INTENSIDAD)</span>
-                  <input
+                  <Input
                     className="brew-tech-range"
                     style={{ "--range-progress": `${ratioProgress}%` } as CSSProperties}
                     type="range"
@@ -389,8 +387,7 @@ export function BrewLabView({
 
           <div className={`brew-prep-actions ${elapsedSeconds > 0 ? "" : "is-single"}`.trim()}>
             {elapsedSeconds > 0 ? (
-              <Button
-                variant="plain"
+              <Button variant="plain"
                 className="action-button action-button-ghost brew-prep-action-secondary"
                 onClick={() => {
                   setBrewRunning(false);
@@ -400,8 +397,7 @@ export function BrewLabView({
                 REINICIAR
               </Button>
             ) : null}
-            <Button
-              variant="plain"
+            <Button variant="plain"
               className={`action-button brew-prep-action-primary ${brewRunning ? "is-running" : ""}`.trim()}
               onClick={() => setBrewRunning(!brewRunning)}
             >
@@ -417,8 +413,7 @@ export function BrewLabView({
             <p className="brew-result-title">QUE SABOR HAS OBTENIDO?</p>
             <div className="brew-result-grid">
               {tasteOptions.map((taste) => (
-                <Button
-                  variant="plain"
+                <Button variant="plain"
                   key={taste.label}
                   className={`brew-taste-chip ${resultTaste === taste.label ? "is-active" : ""}`.trim()}
                   onClick={() => setResultTaste(taste.label)}
@@ -440,8 +435,7 @@ export function BrewLabView({
           </article>
 
           <div className="brew-result-actions">
-            <Button
-              variant="plain"
+            <Button variant="plain"
               className="action-button action-button-ghost brew-result-action-secondary"
               onClick={() => {
                 setBrewRunning(false);
@@ -451,8 +445,7 @@ export function BrewLabView({
             >
               REINICIAR
             </Button>
-            <Button
-              variant="plain"
+            <Button variant="plain"
               className="action-button brew-result-action-primary"
               disabled={!selectedCoffee || !resultTaste || savingResult}
               onClick={async () => {
@@ -588,7 +581,7 @@ export function CreateCoffeeView({
       </div>
       <p className="create-coffee-hint">{attemptedSave ? (canSave ? "Listo para guardar" : `Faltan ${missingRequiredCount} campos obligatorios`) : ""}</p>
       <div className="create-coffee-image create-coffee-image-top create-coffee-image-card">
-        <input
+        <Input
           ref={imageInputRef}
           type="file"
           accept="image/*"
@@ -645,8 +638,7 @@ export function CreateCoffeeView({
         <p className="create-coffee-block-subtitle">Especialidad</p>
         <div className={`create-coffee-choice-grid create-coffee-choice-grid-specialty ${specialtyMissing ? "is-invalid" : ""}`.trim()}>
           {specialtyOptions.length ? specialtyOptions.map((value) => (
-            <Button
-              variant="plain"
+            <Button variant="plain"
               key={value}
               className={`create-coffee-choice ${draft.specialty === value ? "is-selected" : ""}`.trim()}
               onClick={() => onChange({ ...draft, specialty: value })}
@@ -662,8 +654,7 @@ export function CreateCoffeeView({
         <p className="create-coffee-block-subtitle">Tueste</p>
         <div className="create-coffee-choice-grid create-coffee-choice-grid-roast">
           {roastChoices.map((choice) => (
-            <Button
-              variant="plain"
+            <Button variant="plain"
               key={choice.value}
               className={`create-coffee-choice ${draft.roast === choice.value ? "is-selected" : ""}`.trim()}
               onClick={() => onChange({ ...draft, roast: draft.roast === choice.value ? "" : choice.value })}
@@ -676,7 +667,7 @@ export function CreateCoffeeView({
         </div>
         <label className={`create-coffee-country ${countryMissing ? "is-invalid" : ""}`.trim()}>
           <span>País</span>
-          <select
+          <Select
             className="search-wide"
             value={draft.country}
             onChange={(event) => onChange({ ...draft, country: event.target.value })}
@@ -686,28 +677,23 @@ export function CreateCoffeeView({
             {countryOptions.map((value) => (
               <option key={value} value={value}>{value}</option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
       <div className={`create-coffee-format-block ${formatMissing ? "is-invalid" : ""}`.trim()}>
         <p className="create-coffee-block-title">Formato</p>
         <label className="create-coffee-caffeine-row">
           <span>¿Tiene cafeína?</span>
-          <Button
-            variant="plain"
-            role="switch"
-            aria-checked={draft.hasCaffeine}
-            className={`create-coffee-caffeine-switch ${draft.hasCaffeine ? "is-on" : ""}`.trim()}
+          <Switch
+            checked={draft.hasCaffeine}
+            className="create-coffee-caffeine-switch"
             onClick={() => onChange({ ...draft, hasCaffeine: !draft.hasCaffeine })}
-          >
-            <span />
-          </Button>
+          />
         </label>
         <p className="create-coffee-block-subtitle">Presentación</p>
         <div className="create-coffee-choice-grid create-coffee-choice-grid-format">
           {formatChoices.map((choice) => (
-            <Button
-              variant="plain"
+            <Button variant="plain"
               key={choice.value}
               className={`create-coffee-choice ${draft.format === choice.value ? "is-selected" : ""}`.trim()}
               onClick={() => onChange({ ...draft, format: choice.value })}
@@ -747,5 +733,8 @@ export function CreateCoffeeView({
     </section>
   );
 }
+
+
+
 
 

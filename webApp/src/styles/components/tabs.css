@@ -1,0 +1,35 @@
+.premium-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.premium-tab {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #d4cec8;
+  padding: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.premium-tab.is-active {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(212, 163, 115, 0.12);
+  color: var(--caramel-soft);
+}
+
+.premium-tabs.profile-tabs {
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.premium-tabs.profile-tabs .premium-tab {
+  border-radius: 9999px;
+}

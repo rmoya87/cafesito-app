@@ -1,7 +1,7 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MentionText } from "../../ui/MentionText";
-import { MaterialSymbolIcon, UiIcon } from "../../ui/iconography";
-import { TabButton, Tabs } from "../../ui/components";
+import { UiIcon } from "../../ui/iconography";
+import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
 import type { CoffeeRow, CoffeeReviewRow, CoffeeSensoryProfileRow, TimelineCard, UserRow, ViewMode } from "../../types";
 
 function ProfileFavoriteItem({
@@ -97,7 +97,7 @@ function ProfileFavoriteItem({
           <strong>{coffee.nombre}</strong>
           <em>{coffee.marca || "Marca"}</em>
         </span>
-        <button
+        <Button variant="plain"
           type="button"
           className="profile-favorite-remove"
           aria-label="Quitar de favoritos"
@@ -115,7 +115,7 @@ function ProfileFavoriteItem({
           }}
         >
           <UiIcon name="favorite-filled" className="ui-icon" />
-        </button>
+        </Button>
       </div>
     </li>
   );
@@ -430,9 +430,8 @@ export function ProfileView({
         </div>
         {canFollowProfile ? (
           <div className="profile-head-actions profile-head-actions-inline">
-            <button
+            <Button variant="primary"
               className={`action-button profile-edit-button profile-follow-button ${isFollowingProfile ? "action-button-ghost is-following" : ""}`.trim()}
-              type="button"
               disabled={togglingFollow}
               onClick={async () => {
                 if (togglingFollow) return;
@@ -445,7 +444,7 @@ export function ProfileView({
               }}
             >
               {togglingFollow ? "..." : isFollowingProfile ? "Siguiendo" : "Seguir"}
-            </button>
+            </Button>
           </div>
         ) : null}
       </article>
@@ -469,7 +468,7 @@ export function ProfileView({
             <li key={post.id} className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
               <article>
                 <header className="feed-head">
-                  <button type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
+                  <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
                     {user.avatar_url ? (
                       <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
                     ) : (
@@ -479,17 +478,17 @@ export function ProfileView({
                       <p className="feed-user">{user.full_name}</p>
                       <p className="feed-meta">{post.minsAgoLabel.toUpperCase()}</p>
                     </div>
-                  </button>
+                  </Button>
                   {canEditProfile ? (
-                    <button type="button" className="icon-button post-menu-trigger" aria-label="Opciones" onClick={() => setPostMenuId(post.id)}>
+                    <IconButton tone="default" className="post-menu-trigger" aria-label="Opciones" onClick={() => setPostMenuId(post.id)}>
                       <UiIcon name="more" className="ui-icon" />
-                    </button>
+                    </IconButton>
                   ) : null}
                 </header>
                 {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
                 {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" /> : null}
                 {post.coffeeTagName ? (
-                  <button type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
+                  <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
                     <div className="coffee-tag-card-media">
                       {post.coffeeImageUrl ? (
                         <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" />
@@ -505,10 +504,10 @@ export function ProfileView({
                       {post.coffeeTagBrand ? <p className="coffee-tag-brand">{post.coffeeTagBrand.toUpperCase()}</p> : null}
                     </div>
                     <UiIcon name="chevron-right" className="ui-icon" />
-                  </button>
+                  </Button>
                 ) : null}
                 <footer className="feed-stats">
-                  <button
+                  <Button variant="plain"
                     type="button"
                     className={`inline-action action-like ${post.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === post.id ? "is-bursting" : ""}`.trim()}
                     onClick={() => {
@@ -535,11 +534,11 @@ export function ProfileView({
                       </span>
                     </span>
                     {post.likes > 0 ? <span>{post.likes}</span> : null}
-                  </button>
-                  <button type="button" className="inline-action" onClick={() => onOpenComments(post.id)}>
+                  </Button>
+                  <Button variant="plain" type="button" className="inline-action" onClick={() => onOpenComments(post.id)}>
                     <UiIcon name="chat" className="ui-icon" />
                     {post.comments > 0 ? <span>{post.comments}</span> : null}
-                  </button>
+                  </Button>
                 </footer>
               </article>
             </li>
@@ -553,7 +552,7 @@ export function ProfileView({
                     <li key={post.id} className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
                       <article>
                         <header className="feed-head">
-                          <button type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
+                          <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
                             {user.avatar_url ? (
                               <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
                             ) : (
@@ -563,17 +562,17 @@ export function ProfileView({
                               <p className="feed-user">{user.full_name}</p>
                               <p className="feed-meta">{post.minsAgoLabel.toUpperCase()}</p>
                             </div>
-                          </button>
+                          </Button>
                           {canEditProfile ? (
-                            <button type="button" className="icon-button post-menu-trigger" aria-label="Opciones" onClick={() => setPostMenuId(post.id)}>
+                            <IconButton tone="default" className="post-menu-trigger" aria-label="Opciones" onClick={() => setPostMenuId(post.id)}>
                               <UiIcon name="more" className="ui-icon" />
-                            </button>
+                            </IconButton>
                           ) : null}
                         </header>
                         {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
                         {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" /> : null}
                         {post.coffeeTagName ? (
-                          <button type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
+                          <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
                             <div className="coffee-tag-card-media">
                               {post.coffeeImageUrl ? (
                                 <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" />
@@ -589,10 +588,10 @@ export function ProfileView({
                               {post.coffeeTagBrand ? <p className="coffee-tag-brand">{post.coffeeTagBrand.toUpperCase()}</p> : null}
                             </div>
                             <UiIcon name="chevron-right" className="ui-icon" />
-                          </button>
+                          </Button>
                         ) : null}
                         <footer className="feed-stats">
-                          <button
+                          <Button variant="plain"
                             type="button"
                             className={`inline-action action-like ${post.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === post.id ? "is-bursting" : ""}`.trim()}
                             onClick={() => {
@@ -619,11 +618,11 @@ export function ProfileView({
                               </span>
                             </span>
                             {post.likes > 0 ? <span>{post.likes}</span> : null}
-                          </button>
-                          <button type="button" className="inline-action" onClick={() => onOpenComments(post.id)}>
+                          </Button>
+                          <Button variant="plain" type="button" className="inline-action" onClick={() => onOpenComments(post.id)}>
                             <UiIcon name="chat" className="ui-icon" />
                             {post.comments > 0 ? <span>{post.comments}</span> : null}
-                          </button>
+                          </Button>
                         </footer>
                       </article>
                     </li>
@@ -668,7 +667,7 @@ export function ProfileView({
               <p className="profile-adn-caption">Tus gustos basados en favoritos, opiniones y reseñas.</p>
             </article>
           ) : (
-            <button
+            <Button variant="plain"
               type="button"
               className="config-card profile-adn-card profile-adn-radar-card profile-adn-open"
               onClick={() => setShowAdnAnalysisSheet(true)}
@@ -701,7 +700,7 @@ export function ProfileView({
                 </svg>
               </div>
               <p className="profile-adn-caption">Tus gustos basados en favoritos, opiniones y reseñas.</p>
-            </button>
+            </Button>
           )}
           {mode === "desktop" ? (
             <article className="config-card profile-adn-analysis-panel">
@@ -711,7 +710,7 @@ export function ProfileView({
                 <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
                 <article className="profile-adn-recommend-card">
                   <div className="profile-adn-recommend-head">
-                    <MaterialSymbolIcon symbol="auto_awesome" filled={false} className="ui-icon" />
+                    <UiIcon name="sparkles" className="ui-icon" />
                     <strong>RECOMENDACIÓN IDEAL</strong>
                   </div>
                   <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
@@ -733,14 +732,14 @@ export function ProfileView({
         </>
       ) : null}
       {showEditProfile ? (
-        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar perfil" onClick={closeEditProfileModal}>
-          <div className="sheet-card profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar perfil" onDismiss={closeEditProfileModal} onClick={closeEditProfileModal}>
+          <SheetCard className="profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">Editar perfil</strong>
             </header>
             <div className="diary-sheet-form">
-              <input
+              <Input
                 ref={editAvatarInputRef}
                 type="file"
                 accept="image/*"
@@ -765,12 +764,11 @@ export function ProfileView({
                   )}
                 </div>
                 <div className="profile-edit-avatar-actions">
-                  <button type="button" className="action-button action-button-ghost" onClick={() => editAvatarInputRef.current?.click()}>
+                  <Button variant="ghost" className="action-button action-button-ghost" onClick={() => editAvatarInputRef.current?.click()}>
                     Cambiar foto
-                  </button>
+                  </Button>
                   {(editAvatarPreview || user.avatar_url) ? (
-                    <button
-                      type="button"
+                    <Button variant="ghost"
                       className="action-button action-button-ghost"
                       onClick={() => {
                         if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
@@ -780,13 +778,13 @@ export function ProfileView({
                       }}
                     >
                       Quitar foto
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               </div>
               <label>
                 <span>Nombre</span>
-                <input
+                <Input
                   className="search-wide"
                   value={editNameDraft}
                   maxLength={60}
@@ -795,7 +793,7 @@ export function ProfileView({
               </label>
               <label>
                 <span>Bio</span>
-                <textarea
+                <Textarea
                   className="search-wide profile-edit-bio"
                   rows={4}
                   value={editBioDraft}
@@ -804,11 +802,10 @@ export function ProfileView({
                 />
               </label>
               <div className="diary-sheet-form-actions">
-                <button type="button" className="action-button action-button-ghost" onClick={closeEditProfileModal} disabled={savingProfile}>
+                <Button variant="ghost" className="action-button action-button-ghost" onClick={closeEditProfileModal} disabled={savingProfile}>
                   Cancelar
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button variant="primary"
                   className="action-button"
                   disabled={savingProfile || !editNameDraft.trim()}
                   onClick={async () => {
@@ -823,16 +820,16 @@ export function ProfileView({
                   }}
                 >
                   {savingProfile ? "Guardando..." : "Guardar"}
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
       {showAdnAnalysisSheet && mode !== "desktop" ? (
-        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onClick={() => setShowAdnAnalysisSheet(false)}>
-          <div className="sheet-card profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => setShowAdnAnalysisSheet(false)} onClick={() => setShowAdnAnalysisSheet(false)}>
+          <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">ANÁLISIS DE PREFERENCIAS</strong>
             </header>
@@ -841,31 +838,29 @@ export function ProfileView({
               <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
               <article className="profile-adn-recommend-card">
                 <div className="profile-adn-recommend-head">
-                  <MaterialSymbolIcon symbol="auto_awesome" filled={false} className="ui-icon" />
+                  <UiIcon name="sparkles" className="ui-icon" />
                   <strong>RECOMENDACIÓN IDEAL</strong>
                 </div>
                 <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
                 <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
               </article>
-              <button
-                type="button"
+              <Button variant="primary"
                 className="action-button profile-adn-continue-button"
                 onClick={() => setShowAdnAnalysisSheet(false)}
               >
                 CONTINUAR EXPLORANDO
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
       {postMenuId && canEditProfile ? (
-        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Opciones publicación" onClick={() => setPostMenuId(null)}>
-          <div className="sheet-card profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setPostMenuId(null)} onClick={() => setPostMenuId(null)}>
+          <SheetCard className="profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <div className="comment-action-list">
               <p className="comment-action-title">OPCIONES</p>
-              <button
-                type="button"
+              <Button variant="plain"
                 className="comment-action-button is-danger"
                 onClick={async () => {
                   const confirmed = window.confirm("Borrar publicación?");
@@ -878,9 +873,8 @@ export function ProfileView({
                 <UiIcon name="trash" className="ui-icon" />
                 <span>Borrar</span>
                 <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button variant="plain"
                 className="comment-action-button"
                 onClick={() => {
                   const post = posts.find((item) => item.id === postMenuId);
@@ -895,20 +889,20 @@ export function ProfileView({
                 <UiIcon name="edit" className="ui-icon" />
                 <span>Editar</span>
                 <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
       {editPostId ? (
-        <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Editar publicación" onClick={closeEditPostModal}>
-          <div className="sheet-card profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar publicación" onDismiss={closeEditPostModal} onClick={closeEditPostModal}>
+          <SheetCard className="profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">Editar publicación</strong>
             </header>
             <div className="diary-sheet-form">
-              <input
+              <Input
                 ref={editPostImageInputRef}
                 type="file"
                 accept="image/*"
@@ -925,7 +919,7 @@ export function ProfileView({
               />
               <label>
                 <span>Texto</span>
-                <textarea
+                <Textarea
                   className="search-wide profile-edit-bio"
                   rows={4}
                   maxLength={500}
@@ -937,12 +931,11 @@ export function ProfileView({
                 {editPostImageUrl ? <img src={editPostImageUrl} alt="Previsualización" loading="lazy" /> : <p className="feed-meta">Sin imagen</p>}
               </div>
               <div className="profile-edit-post-actions">
-                <button type="button" className="action-button action-button-ghost" onClick={() => editPostImageInputRef.current?.click()}>
+                <Button variant="ghost" className="action-button action-button-ghost" onClick={() => editPostImageInputRef.current?.click()}>
                   Cambiar imagen
-                </button>
+                </Button>
                 {editPostImageUrl ? (
-                  <button
-                    type="button"
+                  <Button variant="ghost"
                     className="action-button action-button-ghost"
                     onClick={() => {
                       if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
@@ -951,15 +944,14 @@ export function ProfileView({
                     }}
                   >
                     Quitar imagen
-                  </button>
+                  </Button>
                 ) : null}
               </div>
               <div className="diary-sheet-form-actions">
-                <button type="button" className="action-button action-button-ghost" onClick={closeEditPostModal} disabled={savingPostEdit}>
+                <Button variant="ghost" className="action-button action-button-ghost" onClick={closeEditPostModal} disabled={savingPostEdit}>
                   Cancelar
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button variant="primary"
                   className="action-button"
                   disabled={savingPostEdit}
                   onClick={async () => {
@@ -974,11 +966,11 @@ export function ProfileView({
                   }}
                 >
                   {savingPostEdit ? "Guardando..." : "Guardar"}
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
     </>
   );
@@ -994,3 +986,11 @@ export function ProfileView({
 
   return content;
 }
+
+
+
+
+
+
+
+

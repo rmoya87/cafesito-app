@@ -71,6 +71,32 @@ export function mapCoffeeRow(input: unknown): CoffeeRow {
   };
 }
 
+export function mapCustomCoffeeRow(input: unknown): CoffeeRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  const hasCaffeine = row.has_caffeine;
+  return {
+    id: toStringOrEmpty(row.id),
+    nombre: toStringOrEmpty(row.name),
+    marca: toNullableString(row.brand),
+    pais_origen: toNullableString(row.country),
+    descripcion: null,
+    proceso: null,
+    variedad_tipo: toNullableString(row.variety),
+    molienda_recomendada: null,
+    product_url: null,
+    cafeina: hasCaffeine == null ? null : Boolean(hasCaffeine) ? "Con cafeina" : "Sin cafeina",
+    aroma: null,
+    sabor: null,
+    cuerpo: null,
+    acidez: null,
+    dulzura: null,
+    especialidad: toNullableString(row.specialty),
+    tueste: toNullableString(row.roast),
+    formato: toNullableString(row.format),
+    image_url: toStringOrEmpty(row.image_url)
+  };
+}
+
 export function mapReviewRow(input: unknown): CoffeeReviewRow {
   const row = (input ?? {}) as Record<string, unknown>;
   return {

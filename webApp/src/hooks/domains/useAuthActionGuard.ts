@@ -9,12 +9,12 @@ export function useAuthActionGuard({ sessionEmail, onRequireAuth }: GuardOptions
   const canUseProtectedActions = Boolean(sessionEmail);
 
   const runWithAuth = useCallback(
-    async (action: () => void | Promise<void>) => {
+    async <T,>(action: () => T | Promise<T>): Promise<T | null> => {
       if (!canUseProtectedActions) {
         onRequireAuth();
-        return;
+        return null;
       }
-      await action();
+      return await action();
     },
     [canUseProtectedActions, onRequireAuth]
   );

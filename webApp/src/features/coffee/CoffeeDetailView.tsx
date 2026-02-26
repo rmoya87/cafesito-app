@@ -1,8 +1,8 @@
 ﻿import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { toRelativeMinutes } from "../../core/time";
 import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserRow } from "../../types";
-import { Button, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
-import { MaterialSymbolIcon, UiIcon, type IconName } from "../../ui/iconography";
+import { Button, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay, Textarea } from "../../ui/components";
+import { UiIcon, type IconName } from "../../ui/iconography";
 export function CoffeeDetailView({
   coffee,
   reviews,
@@ -205,8 +205,7 @@ export function CoffeeDetailView({
       <section className="coffee-detail-section">
         <div className="coffee-detail-section-head">
           <h3 className="section-title">Perfil sensorial</h3>
-          <Button
-            variant="text"
+          <Button variant="text"
             className="coffee-detail-inline-action"
             onClick={() => {
               if (isGuest) {
@@ -258,8 +257,7 @@ export function CoffeeDetailView({
       <section className="coffee-detail-section coffee-detail-opinions-section">
         <div className="coffee-detail-section-head">
           <h3 className="section-title">Opiniones</h3>
-          <Button
-            variant="plain"
+          <Button variant="plain"
             className="coffee-detail-opinions-cta"
             onClick={() => {
               if (isGuest) {
@@ -281,8 +279,7 @@ export function CoffeeDetailView({
             <p className="coffee-detail-opinion-label">Tu opinión</p>
             <div className="coffee-detail-opinion-head">
               {currentUser?.id ? (
-                <Button
-                  variant="plain"
+                <Button variant="plain"
                   className="coffee-detail-opinion-user-link"
                   onClick={() => {
                     if (isGuest) {
@@ -326,8 +323,7 @@ export function CoffeeDetailView({
             <li key={`${review.user_id}-${review.id ?? review.timestamp ?? 0}`} className="coffee-card coffee-detail-opinion-item">
               <div className="coffee-detail-opinion-head">
                 {review.user?.id ? (
-                  <Button
-                    variant="plain"
+                  <Button variant="plain"
                     className="coffee-detail-opinion-user-link"
                     onClick={() => {
                       if (isGuest) {
@@ -410,8 +406,7 @@ export function CoffeeDetailView({
               ))}
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions">
-              <Button
-                variant="plain"
+              <Button variant="plain"
                 className="action-button coffee-detail-sensory-submit"
                 disabled={savingSensory}
                 onClick={async () => {
@@ -478,8 +473,7 @@ export function CoffeeDetailView({
               {stockSheetError ? <p className="coffee-detail-sheet-error">{stockSheetError}</p> : null}
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions">
-              <Button
-                variant="plain"
+              <Button variant="plain"
                 className="action-button action-button-ghost"
                 disabled={savingStock}
                 onClick={() => {
@@ -490,8 +484,7 @@ export function CoffeeDetailView({
               >
                 Cancelar
               </Button>
-              <Button
-                variant="plain"
+              <Button variant="plain"
                 className="action-button"
                 disabled={!canSaveStock || savingStock}
                 onClick={async () => {
@@ -543,8 +536,7 @@ export function CoffeeDetailView({
                 </span>
                 <div className="coffee-detail-rating-stars" role="radiogroup" aria-label="Seleccionar nota">
                   {[1, 2, 3, 4, 5].map((value) => (
-                    <Button
-                      variant="plain"
+                    <Button variant="plain"
                       key={value}
                       className={`coffee-detail-rating-star ${reviewDraftRating >= value ? "is-active" : ""}`.trim()}
                       onClick={() => {
@@ -584,8 +576,7 @@ export function CoffeeDetailView({
                     </Button>
                   ))}
                   {reviewDraftRating > 0 ? (
-                    <Button
-                      variant="text"
+                    <Button variant="text"
                       className="text-button coffee-detail-rating-clear"
                       onClick={() => {
                         onReviewRatingChange(0);
@@ -597,7 +588,7 @@ export function CoffeeDetailView({
                   ) : null}
                 </div>
               </label>
-              <textarea
+              <Textarea
                 className="search-wide sheet-input"
                 rows={3}
                 value={reviewDraftText}
@@ -629,8 +620,7 @@ export function CoffeeDetailView({
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions">
               {canDeleteReview ? (
-                <Button
-                  variant="plain"
+                <Button variant="plain"
                   className="action-button action-button-ghost"
                   disabled={savingReview || deletingReview}
                   onClick={async () => {
@@ -646,8 +636,7 @@ export function CoffeeDetailView({
                   {deletingReview ? "Borrando..." : "Borrar reseña"}
                 </Button>
               ) : null}
-              <Button
-                variant="plain"
+              <Button variant="plain"
                 className="action-button"
                 disabled={!canSaveReview || savingReview || deletingReview}
                 onClick={async () => {
@@ -675,6 +664,9 @@ export function CoffeeDetailView({
     </article>
   );
 }
+
+
+
 
 
 

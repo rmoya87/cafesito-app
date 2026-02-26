@@ -1,0 +1,27 @@
+.search-wide {
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  padding: 10px 12px;
+  font-size: var(--font-size-md);
+}
+
+.search-wide:focus {
+  outline: none;
+  border-color: var(--caramel-soft);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.search-input-standard {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.search-input-standard:hover {
+  border-width: 1px;
+  border-color: var(--caramel-accent);
+}

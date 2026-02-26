@@ -1,4 +1,4 @@
-﻿import { Fragment } from "react";
+﻿import { Button } from "./components";
 
 export function MentionText({ text, onMentionClick }: { text: string; onMentionClick?: (username: string) => void }) {
   const mentionRegex = /@([A-Za-z0-9._-]{2,30})/g;
@@ -28,9 +28,9 @@ export function MentionText({ text, onMentionClick }: { text: string; onMentionC
     <>
       {parts.map((part) =>
         part.mention ? (
-          <button key={part.key} type="button" className="mention-button" onClick={() => onMentionClick?.(part.value.slice(1))}>
+          <Button key={part.key} variant="plain" type="button" className="mention-button" onClick={() => onMentionClick?.(part.value.slice(1))}>
             {part.value}
-          </button>
+          </Button>
         ) : (
           <span key={part.key}>{part.value}</span>
         )

@@ -1,0 +1,13 @@
+.card,
+.coffee-card,
+.config-card {
+  border-radius: var(--radius-card);
+  border: none;
+  background: linear-gradient(180deg, #171717, #0f0f0f);
+}
+
+.card,
+.coffee-card,
+.config-card {
+  padding: 12px;
+}

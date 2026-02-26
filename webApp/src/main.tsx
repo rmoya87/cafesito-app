@@ -1,6 +1,7 @@
-import React from "react";
+﻿import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
+import { Button } from "./ui/components";
 import "@fontsource-variable/material-symbols-outlined/fill.css";
 import "./styles.css";
 
@@ -30,9 +31,9 @@ class RootErrorBoundary extends React.Component<
       <div className="coffee-detail-empty coffee-detail-empty-full" style={{ minHeight: "100vh", paddingTop: 28 }}>
         <h1 className="title">Se produjo un error</h1>
         <p className="coffee-sub">{this.state.message || "No se pudo renderizar la aplicación."}</p>
-        <button type="button" className="action-button" onClick={() => window.location.reload()}>
+        <Button variant="primary" onClick={() => window.location.reload()}>
           Recargar
-        </button>
+        </Button>
       </div>
     );
   }
@@ -69,3 +70,4 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </RootErrorBoundary>
   </React.StrictMode>
 );
+

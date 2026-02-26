@@ -43,6 +43,8 @@
   | "smile"
   | "chevron-right"
   | "send"
+  | "sparkles"
+  | "check-circle-filled"
   | "edit"
   | "trash"
   | "shop"
@@ -445,6 +447,16 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
         <path d="M4 11.5L20 4l-4.8 16-3.4-5.2L4 11.5z" />
         <path d="M20 4L11.8 14.8" />
       </svg>
+    );
+  }
+  if (name === "sparkles") {
+    return <MaterialSymbolIcon symbol="auto_awesome" filled={false} className={className} />;
+  }
+  if (name === "check-circle-filled") {
+    return (
+      <span className={`${className ?? ""} material-symbol-icon is-filled`.trim()} aria-hidden="true">
+        check_circle
+      </span>
     );
   }
   if (name === "edit") {

@@ -1,0 +1,126 @@
+.ui-button-sm {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: var(--font-size-xs);
+}
+
+.ui-button-md {
+  min-height: 38px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.ui-button-lg {
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: var(--font-size-md);
+}
+
+.action-button {
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: rgba(212, 163, 115, 0.2);
+  color: var(--caramel-soft);
+  font-weight: 600;
+}
+
+.action-button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.action-button-ghost {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.text-button {
+  border: none;
+  background: transparent;
+  color: var(--caramel-soft);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  letter-spacing: var(--tracking-tight);
+}
+
+.icon-button,
+.chip-button {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  min-width: 42px;
+  min-height: 40px;
+  background: var(--surface);
+  color: var(--caramel-soft);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-label);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button.is-active {
+  border-color: var(--border-strong);
+  background: rgba(212, 163, 115, 0.14);
+}
+
+.topbar-icon-button {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 999px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-main);
+}
+
+.topbar-icon-button.is-active {
+  color: #f4e7db;
+  background: rgba(111, 78, 55, 0.5);
+}
+
+.topbar-icon-button .ui-icon,
+.search-users-back .ui-icon,
+.notifications-back .ui-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.chip-button {
+  border-radius: var(--radius-pill);
+  min-width: 64px;
+  min-height: 34px;
+  padding: 6px 12px;
+}
+
+.ui-switch {
+  width: 46px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.ui-switch-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  transform: translateX(0);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.ui-switch.is-on {
+  background: #1a120b;
+  border-color: #1a120b;
+}
+
+.ui-switch.is-on .ui-switch-thumb {
+  transform: translateX(18px);
+}

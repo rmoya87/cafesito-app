@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "../supabase";
+﻿import { getSupabaseClient } from "../supabase";
 import type {
   CommentRow,
   CoffeeRow,
@@ -14,7 +14,17 @@ import type {
   PostRow,
   UserDataBundle
 } from "../types";
-import { mapCoffeeRow, mapInitialDataBundle, mapUserDataBundle } from "../mappers/supabaseMappers";
+import {
+  mapCommentRow,
+  mapCustomCoffeeRow,
+  mapDiaryEntryRow,
+  mapInitialDataBundle,
+  mapPantryItemRow,
+  mapPostRow,
+  mapReviewRow,
+  mapSensoryProfileRow,
+  mapUserDataBundle
+} from "../mappers/supabaseMappers";
 
 type SupabaseErrorLike = { message: string } | null;
 
@@ -78,7 +88,7 @@ export async function fetchInitialData(): Promise<InitialDataBundle> {
       followsRes.error
   );
 
-  return {
+  return mapInitialDataBundle({
     users: (usersRes.data ?? []) as InitialDataBundle["users"],
     coffees: (coffeesRes.data ?? []) as InitialDataBundle["coffees"],
     reviews: (reviewsRes.data ?? []) as InitialDataBundle["reviews"],
@@ -88,7 +98,7 @@ export async function fetchInitialData(): Promise<InitialDataBundle> {
     comments: (commentsRes.data ?? []) as InitialDataBundle["comments"],
     postCoffeeTags: (tagsRes.data ?? []) as InitialDataBundle["postCoffeeTags"],
     follows: (followsRes.data ?? []) as InitialDataBundle["follows"]
-  };
+  });
 }
 
 export async function fetchUserData(userId: number): Promise<UserDataBundle> {
@@ -124,48 +134,17 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
       .eq("user_id", userId)
       .limit(500);
 
-    customCoffees = ((customRows ?? []) as Array<{
-      id: string;
-      name: string;
-      brand: string;
-      specialty: string | null;
-      roast: string | null;
-      variety: string | null;
-      country: string | null;
-      has_caffeine: boolean | null;
-      format: string | null;
-      image_url: string | null;
-    }>).map((item) => ({
-      id: item.id,
-      nombre: item.name ?? "Café personalizado",
-      marca: item.brand ?? "",
-      pais_origen: item.country ?? null,
-      descripcion: null,
-      proceso: null,
-      variedad_tipo: item.variety ?? null,
-      molienda_recomendada: null,
-      product_url: null,
-      cafeina: item.has_caffeine == null ? null : item.has_caffeine ? "Con cafeína" : "Sin cafeína",
-      aroma: null,
-      sabor: null,
-      cuerpo: null,
-      acidez: null,
-      dulzura: null,
-      especialidad: item.specialty ?? null,
-      tueste: item.roast ?? null,
-      formato: item.format ?? null,
-      image_url: item.image_url ?? ""
-    }));
+    customCoffees = (customRows ?? []).map(mapCustomCoffeeRow);
   } catch {
     customCoffees = [];
   }
 
-  return {
+  return mapUserDataBundle({
     diaryEntries: (diaryRes.data ?? []) as UserDataBundle["diaryEntries"],
     pantryItems: (pantryRes.data ?? []) as UserDataBundle["pantryItems"],
     favorites: (favoritesRes.data ?? []) as UserDataBundle["favorites"],
     customCoffees
-  };
+  });
 }
 
 export async function toggleLike(postId: string, userId: number, alreadyLiked: boolean): Promise<LikeRow | null> {
@@ -198,7 +177,7 @@ export async function createComment(postId: string, userId: number, text: string
     .single();
 
   throwIfError(error);
-  return data as CommentRow;
+  return mapCommentRow(data);
 }
 
 export async function toggleFollow(
@@ -288,7 +267,7 @@ export async function createPost(
     .select("id,user_id,image_url,comment,timestamp")
     .single();
   throwIfError(error);
-  return data as PostRow;
+  return mapPostRow(data);
 }
 
 export async function addPostCoffeeTag(tag: PostCoffeeTagRow): Promise<void> {
@@ -355,7 +334,7 @@ export async function upsertCoffeeReview(payload: {
     .select("id,coffee_id,user_id,rating,comment,image_url,timestamp")
     .single();
   throwIfError(error);
-  return data as CoffeeReviewRow;
+  return mapReviewRow(data);
 }
 
 export async function deleteCoffeeReview(coffeeId: string, userId: number): Promise<void> {
@@ -390,7 +369,7 @@ export async function upsertCoffeeSensoryProfile(payload: {
     .select("coffee_id,user_id,aroma,sabor,cuerpo,acidez,dulzura,updated_at")
     .single();
   throwIfError(error);
-  return data as CoffeeSensoryProfileRow;
+  return mapSensoryProfileRow(data);
 }
 
 export async function upsertPantryStock(payload: {
@@ -413,7 +392,7 @@ export async function upsertPantryStock(payload: {
     .select("coffee_id,user_id,grams_remaining,total_grams,last_updated")
     .single();
   throwIfError(error);
-  return data as PantryItemRow;
+  return mapPantryItemRow(data);
 }
 
 export async function deletePantryItem(coffeeId: string, userId: number): Promise<void> {
@@ -459,40 +438,7 @@ export async function upsertCustomCoffee(payload: {
     .single();
   throwIfError(error);
 
-  const created = data as {
-    id: string;
-    name: string;
-    brand: string;
-    specialty: string;
-    roast: string | null;
-    variety: string | null;
-    country: string;
-    has_caffeine: boolean;
-    format: string;
-    image_url: string | null;
-  };
-
-  return {
-    id: created.id,
-    nombre: created.name ?? "",
-    marca: created.brand ?? "",
-    pais_origen: created.country ?? null,
-    descripcion: null,
-    proceso: null,
-    variedad_tipo: created.variety ?? null,
-    molienda_recomendada: null,
-    product_url: null,
-    cafeina: created.has_caffeine ? "Con cafeína" : "Sin cafeína",
-    aroma: null,
-    sabor: null,
-    cuerpo: null,
-    acidez: null,
-    dulzura: null,
-    especialidad: created.specialty ?? null,
-    tueste: created.roast ?? null,
-    formato: created.format ?? null,
-    image_url: created.image_url ?? ""
-  };
+  return mapCustomCoffeeRow(data);
 }
 
 export async function createDiaryEntry(payload: {
@@ -521,7 +467,7 @@ export async function createDiaryEntry(payload: {
     .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,preparation_type,timestamp,type")
     .single();
   throwIfError(error);
-  return data as DiaryEntryRow;
+  return mapDiaryEntryRow(data);
 }
 
 export async function deleteDiaryEntry(entryId: number, userId: number): Promise<void> {
@@ -551,6 +497,7 @@ export async function updateDiaryEntry(payload: {
     .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,preparation_type,timestamp,type")
     .single();
   throwIfError(error);
-  return data as DiaryEntryRow;
+  return mapDiaryEntryRow(data);
 }
+
 
