@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MentionText } from "../../ui/MentionText";
 import { MaterialSymbolIcon, UiIcon } from "../../ui/iconography";
+import { TabButton, Tabs } from "../../ui/components";
 import type { CoffeeRow, CoffeeReviewRow, CoffeeSensoryProfileRow, TimelineCard, UserRow, ViewMode } from "../../types";
 
 function ProfileFavoriteItem({
@@ -455,11 +456,11 @@ export function ProfileView({
         <article className="profile-stat-item"><strong className="profile-stat-value">{following}</strong><span className="profile-stat-label">SIGUIENDO</span></article>
       </section>
 
-      <div className="premium-tabs profile-tabs" role="tablist" aria-label="Tabs perfil">
-        <button type="button" className={`premium-tab ${tab === "posts" ? "is-active" : ""}`} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>Posts</button>
-        <button type="button" className={`premium-tab ${tab === "adn" ? "is-active" : ""}`} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</button>
-        <button type="button" className={`premium-tab ${tab === "favoritos" ? "is-active" : ""}`} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</button>
-      </div>
+      <Tabs className="profile-tabs" aria-label="Tabs perfil">
+        <TabButton active={tab === "posts"} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>Posts</TabButton>
+        <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</TabButton>
+        <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</TabButton>
+      </Tabs>
 
       {tab === "posts" ? (
         <>

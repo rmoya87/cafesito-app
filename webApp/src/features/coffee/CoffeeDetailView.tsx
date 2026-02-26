@@ -1,6 +1,7 @@
 ﻿import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { toRelativeMinutes } from "../../core/time";
 import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserRow } from "../../types";
+import { Button, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 import { MaterialSymbolIcon, UiIcon, type IconName } from "../../ui/iconography";
 export function CoffeeDetailView({
   coffee,
@@ -137,21 +138,21 @@ export function CoffeeDetailView({
         <div className="coffee-detail-overlay" />
         {!fullPage ? (
           <div className="coffee-detail-hero-top-actions">
-            <button type="button" className="icon-button topbar-icon-button coffee-detail-topbar-icon" aria-label="Cerrar detalle" onClick={onClose}>
+            <IconButton tone="topbar" className="coffee-detail-topbar-icon" aria-label="Cerrar detalle" onClick={onClose}>
               <UiIcon name="close" className="ui-icon" />
-            </button>
+            </IconButton>
             <div className="coffee-detail-topbar-actions">
-              <button
-                type="button"
-                className={`icon-button topbar-icon-button coffee-detail-topbar-icon ${isFavorite ? "is-active" : ""}`.trim()}
+              <IconButton
+                tone="topbar"
+                className={`coffee-detail-topbar-icon ${isFavorite ? "is-active" : ""}`.trim()}
                 aria-label={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
                 onClick={onToggleFavorite}
               >
                 <UiIcon name={isFavorite ? "favorite-filled" : "favorite"} className="ui-icon" />
-              </button>
-              <button
-                type="button"
-                className={`icon-button topbar-icon-button coffee-detail-topbar-icon ${pantry ? "is-active" : ""}`.trim()}
+              </IconButton>
+              <IconButton
+                tone="topbar"
+                className={`coffee-detail-topbar-icon ${pantry ? "is-active" : ""}`.trim()}
                 aria-label="Añadir a stock"
                 onClick={() => {
                   if (isGuest) {
@@ -163,7 +164,7 @@ export function CoffeeDetailView({
                 }}
               >
                 <UiIcon name="stock" className="ui-icon" />
-              </button>
+              </IconButton>
             </div>
           </div>
         ) : null}
@@ -204,9 +205,9 @@ export function CoffeeDetailView({
       <section className="coffee-detail-section">
         <div className="coffee-detail-section-head">
           <h3 className="section-title">Perfil sensorial</h3>
-          <button
-            type="button"
-            className="text-button coffee-detail-inline-action"
+          <Button
+            variant="text"
+            className="coffee-detail-inline-action"
             onClick={() => {
               if (isGuest) {
                 onRequireAuth();
@@ -217,7 +218,7 @@ export function CoffeeDetailView({
             }}
           >
             Editar
-          </button>
+          </Button>
         </div>
         {sensoryEditorsCount > 0 ? (
           <p className="coffee-detail-sensory-note">
@@ -257,8 +258,8 @@ export function CoffeeDetailView({
       <section className="coffee-detail-section coffee-detail-opinions-section">
         <div className="coffee-detail-section-head">
           <h3 className="section-title">Opiniones</h3>
-          <button
-            type="button"
+          <Button
+            variant="plain"
             className="coffee-detail-opinions-cta"
             onClick={() => {
               if (isGuest) {
@@ -270,7 +271,7 @@ export function CoffeeDetailView({
             }}
           >
             {currentUserReview ? "EDITAR" : "+ AÑADIR"}
-          </button>
+          </Button>
         </div>
         {!hasAnyOpinions ? (
           <p className="coffee-detail-opinions-empty">No hay opiniones aún. ¡Sé el primero!</p>
@@ -280,8 +281,8 @@ export function CoffeeDetailView({
             <p className="coffee-detail-opinion-label">Tu opinión</p>
             <div className="coffee-detail-opinion-head">
               {currentUser?.id ? (
-                <button
-                  type="button"
+                <Button
+                  variant="plain"
                   className="coffee-detail-opinion-user-link"
                   onClick={() => {
                     if (isGuest) {
@@ -304,7 +305,7 @@ export function CoffeeDetailView({
                       <span className="feed-meta">{toRelativeMinutes(currentUserReview.timestamp ?? 0)}</span>
                     </span>
                   </span>
-                </button>
+                </Button>
               ) : (
                 <div className="coffee-detail-opinion-user">
                   <div className="coffee-detail-opinion-avatar" aria-hidden="true">TU</div>
@@ -325,8 +326,8 @@ export function CoffeeDetailView({
             <li key={`${review.user_id}-${review.id ?? review.timestamp ?? 0}`} className="coffee-card coffee-detail-opinion-item">
               <div className="coffee-detail-opinion-head">
                 {review.user?.id ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="plain"
                     className="coffee-detail-opinion-user-link"
                     onClick={() => {
                       if (isGuest) {
@@ -349,7 +350,7 @@ export function CoffeeDetailView({
                         <span className="feed-meta">{toRelativeMinutes(review.timestamp ?? 0)}</span>
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 ) : (
                   <div className="coffee-detail-opinion-user">
                     <div className="coffee-detail-opinion-avatar" aria-hidden="true">US</div>
@@ -369,8 +370,7 @@ export function CoffeeDetailView({
       </section>
 
       {showSensorySheet ? (
-        <div
-          className="sheet-overlay"
+        <SheetOverlay
           role="dialog"
           aria-modal="true"
           aria-label="Editar perfil sensorial"
@@ -380,8 +380,8 @@ export function CoffeeDetailView({
             setShowSensorySheet(false);
           }}
         >
-          <div className="sheet-card coffee-detail-sheet coffee-detail-sensory-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
+          <SheetCard className="coffee-detail-sheet coffee-detail-sensory-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <header className="coffee-detail-sensory-sheet-head">
               <h3 className="coffee-detail-sensory-sheet-title">Perfil sensorial</h3>
               <p className="coffee-detail-sensory-sheet-copy">Tu opinión se unirá a la media de todas las valoraciones</p>
@@ -395,7 +395,7 @@ export function CoffeeDetailView({
                   </span>
                   <span className="coffee-detail-sensory-slider-row">
                     <small>0</small>
-                    <input
+                    <Input
                       style={{ "--sensory-progress": `${Math.max(0, Math.min(100, (sensoryDraft[key] / 10) * 100))}%` } as CSSProperties}
                       type="range"
                       min={0}
@@ -410,8 +410,8 @@ export function CoffeeDetailView({
               ))}
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions">
-              <button
-                type="button"
+              <Button
+                variant="plain"
                 className="action-button coffee-detail-sensory-submit"
                 disabled={savingSensory}
                 onClick={async () => {
@@ -428,16 +428,15 @@ export function CoffeeDetailView({
                 }}
               >
                 {savingSensory ? "Guardando..." : "Listo"}
-              </button>
+              </Button>
             </div>
             {sensorySheetError ? <p className="coffee-detail-sheet-error">{sensorySheetError}</p> : null}
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
 
       {showStockSheet ? (
-        <div
-          className="sheet-overlay"
+        <SheetOverlay
           role="dialog"
           aria-modal="true"
           aria-label="Editar stock"
@@ -447,13 +446,14 @@ export function CoffeeDetailView({
             setShowStockSheet(false);
           }}
         >
-          <div className="sheet-card coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
-            <header className="sheet-header">
+          <SheetCard className="coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
+            <SheetHeader>
               <strong className="sheet-title">STOCK EN DESPENSA</strong>
-            </header>
+            </SheetHeader>
             <div className="coffee-detail-sheet-body coffee-detail-stock">
-              <input
+              <Input
+                variant="search"
                 className="search-wide search-input-standard"
                 type="number"
                 min={0}
@@ -464,7 +464,7 @@ export function CoffeeDetailView({
                 }}
                 placeholder="Total gramos"
               />
-              <input
+              <Input
                 className="search-wide"
                 type="number"
                 min={0}
@@ -478,8 +478,8 @@ export function CoffeeDetailView({
               {stockSheetError ? <p className="coffee-detail-sheet-error">{stockSheetError}</p> : null}
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions">
-              <button
-                type="button"
+              <Button
+                variant="plain"
                 className="action-button action-button-ghost"
                 disabled={savingStock}
                 onClick={() => {
@@ -489,9 +489,9 @@ export function CoffeeDetailView({
                 }}
               >
                 Cancelar
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="plain"
                 className="action-button"
                 disabled={!canSaveStock || savingStock}
                 onClick={async () => {
@@ -514,15 +514,14 @@ export function CoffeeDetailView({
                 }}
               >
                 {savingStock ? "Guardando..." : "Guardar stock"}
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
 
       {showReviewSheet ? (
-        <div
-          className="sheet-overlay"
+        <SheetOverlay
           role="dialog"
           aria-modal="true"
           aria-label="Escribir reseña"
@@ -531,11 +530,11 @@ export function CoffeeDetailView({
             setShowReviewSheet(false);
           }}
         >
-          <div className="sheet-card coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" aria-hidden="true" />
-            <header className="sheet-header">
+          <SheetCard className="coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
+            <SheetHeader>
               <strong className="sheet-title">TU OPINIÓN</strong>
-            </header>
+            </SheetHeader>
             <div className="coffee-detail-sheet-body coffee-detail-review-editor">
               <label className="coffee-detail-rating-field">
                 <span className="coffee-detail-slider-label">
@@ -544,9 +543,9 @@ export function CoffeeDetailView({
                 </span>
                 <div className="coffee-detail-rating-stars" role="radiogroup" aria-label="Seleccionar nota">
                   {[1, 2, 3, 4, 5].map((value) => (
-                    <button
+                    <Button
+                      variant="plain"
                       key={value}
-                      type="button"
                       className={`coffee-detail-rating-star ${reviewDraftRating >= value ? "is-active" : ""}`.trim()}
                       onClick={() => {
                         onReviewRatingChange(value);
@@ -582,11 +581,11 @@ export function CoffeeDetailView({
                       aria-label={`${value} estrellas`}
                     >
                       <UiIcon name={reviewDraftRating >= value ? "star-filled" : "star"} className="ui-icon" />
-                    </button>
+                    </Button>
                   ))}
                   {reviewDraftRating > 0 ? (
-                    <button
-                      type="button"
+                    <Button
+                      variant="text"
                       className="text-button coffee-detail-rating-clear"
                       onClick={() => {
                         onReviewRatingChange(0);
@@ -594,7 +593,7 @@ export function CoffeeDetailView({
                       }}
                     >
                       Quitar
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               </label>
@@ -610,7 +609,7 @@ export function CoffeeDetailView({
               />
               <label className="action-button action-button-ghost coffee-detail-file coffee-detail-cta">
                 Adjuntar imagen
-                <input
+                <Input
                   type="file"
                   accept="image/*"
                   onChange={(event) => {
@@ -630,8 +629,8 @@ export function CoffeeDetailView({
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions">
               {canDeleteReview ? (
-                <button
-                  type="button"
+                <Button
+                  variant="plain"
                   className="action-button action-button-ghost"
                   disabled={savingReview || deletingReview}
                   onClick={async () => {
@@ -645,10 +644,10 @@ export function CoffeeDetailView({
                   }}
                 >
                   {deletingReview ? "Borrando..." : "Borrar reseña"}
-                </button>
+                </Button>
               ) : null}
-              <button
-                type="button"
+              <Button
+                variant="plain"
                 className="action-button"
                 disabled={!canSaveReview || savingReview || deletingReview}
                 onClick={async () => {
@@ -668,14 +667,15 @@ export function CoffeeDetailView({
                 }}
               >
                 {savingReview ? "Guardando..." : "Guardar reseña"}
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </SheetCard>
+        </SheetOverlay>
       ) : null}
     </article>
   );
 }
+
 
 
 

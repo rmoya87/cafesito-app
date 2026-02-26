@@ -2,6 +2,7 @@
 import { MentionText } from "../../ui/MentionText";
 import { normalizeLookupText } from "../../core/text";
 import { UiIcon, type IconName } from "../../ui/iconography";
+import { Button, TabButton, Tabs } from "../../ui/components";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow } from "../../types";
 
 export function DiaryView({
@@ -574,10 +575,10 @@ export function DiaryView({
 
       {mode !== "desktop" ? (
         <>
-          <div className="premium-tabs diary-tabs" role="tablist" aria-label="Tabs diario">
-            <button type="button" className={`premium-tab ${tab === "actividad" ? "is-active" : ""}`} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>ACTIVIDAD</button>
-            <button type="button" className={`premium-tab ${tab === "despensa" ? "is-active" : ""}`} role="tab" aria-selected={tab === "despensa"} onClick={() => setTab("despensa")}>DESPENSA</button>
-          </div>
+          <Tabs className="diary-tabs" aria-label="Tabs diario">
+            <TabButton active={tab === "actividad"} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>ACTIVIDAD</TabButton>
+            <TabButton active={tab === "despensa"} role="tab" aria-selected={tab === "despensa"} onClick={() => setTab("despensa")}>DESPENSA</TabButton>
+          </Tabs>
           {tab === "actividad" ? activityList : null}
           {tab === "despensa" ? pantryList : null}
         </>
@@ -759,14 +760,14 @@ export function DiaryView({
               {editEntryIsWater ? (
                 <div className="diary-water-presets diary-edit-entry-presets is-water">
                   {[250, 500, 750].map((value) => (
-                    <button
+                    <Button
+                      variant="chip"
                       key={value}
-                      type="button"
                       className={`chip-button period-chip ${Number(editAmountMl) === value ? "is-active" : ""}`.trim()}
                       onClick={() => setEditAmountMl(String(value))}
                     >
                       {value} ml
-                    </button>
+                    </Button>
                   ))}
                 </div>
               ) : (
@@ -782,15 +783,15 @@ export function DiaryView({
                       onPointerCancel={handleEditScrollPointerEnd}
                     >
                       {editMethodOptions.map((method) => (
-                        <button
+                        <Button
+                          variant="chip"
                           key={method.label}
-                          type="button"
                           className={`chip-button period-chip diary-edit-entry-method-chip ${normalizeLookupText(editPreparationType) === normalizeLookupText(method.label) ? "is-active" : ""}`.trim()}
                           onClick={() => setEditPreparationType(method.label)}
                         >
                           <img src={`/android-drawable/${method.drawable}`} alt="" aria-hidden="true" />
                           <span>{method.label}</span>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </section>
@@ -832,16 +833,16 @@ export function DiaryView({
                       onPointerCancel={handleEditScrollPointerEnd}
                     >
                       {editSizeOptions.map((size) => (
-                        <button
+                        <Button
+                          variant="chip"
                           key={size.label}
-                          type="button"
                           className={`chip-button period-chip diary-coffee-size-chip ${Math.abs(Number(editAmountMl || 0) - size.ml) <= 20 ? "is-active" : ""}`.trim()}
                           onClick={() => setEditAmountMl(String(size.ml))}
                         >
                           <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" />
                           <span>{size.label}</span>
                           <small>{size.range}</small>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </section>

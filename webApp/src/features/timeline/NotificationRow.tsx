@@ -1,5 +1,6 @@
 import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react";
 import { UiIcon } from "../../ui/iconography";
+import { Button } from "../../ui/components";
 import type { UserRow } from "../../types";
 
 export type TimelineNotificationItem = {
@@ -127,8 +128,8 @@ export function NotificationRow({
             </div>
           </button>
           {item.type === "follow" ? (
-            <button
-              type="button"
+            <Button
+              variant="primary"
               className={`action-button notification-follow-button notifications-action ${isFollowing ? "is-following" : ""}`}
               onClick={(event) => {
                 event.stopPropagation();
@@ -136,19 +137,19 @@ export function NotificationRow({
               }}
             >
               {isFollowing ? "SIGUIENDO" : "SEGUIR"}
-            </button>
+            </Button>
           ) : null}
           {item.type === "comment" ? (
-            <button
-              type="button"
-              className="action-button notifications-action notifications-reply"
+            <Button
+              variant="primary"
+              className="notifications-action notifications-reply"
               onClick={(event) => {
                 event.stopPropagation();
                 onReply();
               }}
             >
               RESPONDER
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>

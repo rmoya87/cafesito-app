@@ -1,6 +1,8 @@
 ﻿import { useEffect, useState } from "react";
 import type { BrewStep, TabId } from "../../types";
 import { UiIcon } from "../../ui/iconography";
+import { Button, Chip, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
+
 export function TopBar({
   activeTab,
   searchQuery,
@@ -106,15 +108,16 @@ export function TopBar({
       return (
         <header className={`topbar topbar-search-users ${showSearchCancel ? "has-cancel" : ""} ${scrolled ? "topbar-scrolled" : ""}`.trim()}>
           <div className="topbar-slot">
-            <button className="icon-button topbar-icon-button search-users-back" type="button" onClick={onSearchBack} aria-label="Atras">
+            <IconButton tone="topbar" className="search-users-back" onClick={onSearchBack} aria-label="Atras">
               <UiIcon name="arrow-left" className="ui-icon" />
-            </button>
+            </IconButton>
           </div>
           <div className="search-users-field">
             <UiIcon name="search" className="ui-icon search-users-leading-icon" />
-            <input
+            <Input
               id="quick-search"
-              className="search-wide search-input-standard search-users-input"
+              variant="search"
+              className="search-users-input"
               placeholder="Buscar usuarios..."
               value={searchQuery}
               onFocus={() => setSearchFocus(true)}
@@ -124,9 +127,9 @@ export function TopBar({
             />
           </div>
           <div className="topbar-slot topbar-slot-end search-users-cancel-slot">
-            <button
-              className={`text-button search-cancel-button ${showSearchCancel ? "is-visible" : ""}`}
-              type="button"
+            <Button
+              variant="text"
+              className={`search-cancel-button ${showSearchCancel ? "is-visible" : ""}`}
               onClick={() => {
                 onSearchCancel();
                 setSearchFocus(false);
@@ -137,7 +140,7 @@ export function TopBar({
               tabIndex={showSearchCancel ? 0 : -1}
             >
               Cancelar
-            </button>
+            </Button>
           </div>
         </header>
       );
@@ -155,9 +158,10 @@ export function TopBar({
               </span>
             </div>
           ) : null}
-          <input
+          <Input
             id="quick-search"
-            className="search-wide search-input-standard search-coffee-input"
+            variant="search"
+            className="search-coffee-input"
             placeholder=""
             value={searchQuery}
             onFocus={() => setSearchFocus(true)}
@@ -166,14 +170,14 @@ export function TopBar({
             aria-label="Busqueda"
           />
           {showSearchBarcodeButton ? (
-            <button type="button" className="icon-button search-coffee-trailing-button" aria-label="Escanear codigo" onClick={onSearchBarcodeClick}>
+            <IconButton className="search-coffee-trailing-button" aria-label="Escanear codigo" onClick={onSearchBarcodeClick}>
               <UiIcon name="barcode" className="ui-icon" />
-            </button>
+            </IconButton>
           ) : null}
         </div>
-        <button
-          className={`text-button search-cancel-button ${showSearchCancel ? "is-visible" : ""}`}
-          type="button"
+        <Button
+          variant="text"
+          className={`search-cancel-button ${showSearchCancel ? "is-visible" : ""}`}
           onClick={() => {
             onSearchCancel();
             setSearchFocus(false);
@@ -184,29 +188,14 @@ export function TopBar({
           tabIndex={showSearchCancel ? 0 : -1}
         >
           Cancelar
-        </button>
+        </Button>
         {showSearchCoffeeFilterChips ? (
           <div className="topbar-search-chips" role="tablist" aria-label="Filtros de busqueda">
-            <button type="button" className={`filter-chip ${searchOriginCount ? "is-active" : ""}`} onClick={() => onOpenSearchFilter("origen")}>
-              PAIS
-              {searchOriginCount ? <span className="filter-chip-count">{searchOriginCount}</span> : null}
-            </button>
-            <button type="button" className={`filter-chip ${searchSpecialtyCount ? "is-active" : ""}`} onClick={() => onOpenSearchFilter("especialidad")}>
-              ESPECIALIDAD
-              {searchSpecialtyCount ? <span className="filter-chip-count">{searchSpecialtyCount}</span> : null}
-            </button>
-            <button type="button" className={`filter-chip ${searchRoastCount ? "is-active" : ""}`} onClick={() => onOpenSearchFilter("tueste")}>
-              TUESTE
-              {searchRoastCount ? <span className="filter-chip-count">{searchRoastCount}</span> : null}
-            </button>
-            <button type="button" className={`filter-chip ${searchFormatCount ? "is-active" : ""}`} onClick={() => onOpenSearchFilter("formato")}>
-              FORMATO
-              {searchFormatCount ? <span className="filter-chip-count">{searchFormatCount}</span> : null}
-            </button>
-            <button type="button" className={`filter-chip ${searchHasRatingFilter ? "is-active" : ""}`} onClick={() => onOpenSearchFilter("nota")}>
-              NOTA
-              {searchHasRatingFilter ? <span className="filter-chip-count">1</span> : null}
-            </button>
+            <Chip active={Boolean(searchOriginCount)} onClick={() => onOpenSearchFilter("origen")}>PAIS{searchOriginCount ? <span className="filter-chip-count">{searchOriginCount}</span> : null}</Chip>
+            <Chip active={Boolean(searchSpecialtyCount)} onClick={() => onOpenSearchFilter("especialidad")}>ESPECIALIDAD{searchSpecialtyCount ? <span className="filter-chip-count">{searchSpecialtyCount}</span> : null}</Chip>
+            <Chip active={Boolean(searchRoastCount)} onClick={() => onOpenSearchFilter("tueste")}>TUESTE{searchRoastCount ? <span className="filter-chip-count">{searchRoastCount}</span> : null}</Chip>
+            <Chip active={Boolean(searchFormatCount)} onClick={() => onOpenSearchFilter("formato")}>FORMATO{searchFormatCount ? <span className="filter-chip-count">{searchFormatCount}</span> : null}</Chip>
+            <Chip active={searchHasRatingFilter} onClick={() => onOpenSearchFilter("nota")}>NOTA{searchHasRatingFilter ? <span className="filter-chip-count">1</span> : null}</Chip>
           </div>
         ) : null}
       </header>
@@ -218,9 +207,9 @@ export function TopBar({
       return (
         <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
           <div className="topbar-slot">
-            <button className="icon-button topbar-icon-button" type="button" onClick={onBrewCreateCoffeeBack} aria-label="Atras">
+            <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Atras">
               <UiIcon name="arrow-left" className="ui-icon" />
-            </button>
+            </IconButton>
           </div>
           <h1 className="title title-upper topbar-title-center">CREAR CAFE</h1>
           <div className="topbar-slot topbar-slot-end" />
@@ -231,17 +220,17 @@ export function TopBar({
       <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
         <div className="topbar-slot">
           {brewStep !== "method" ? (
-            <button className="icon-button topbar-icon-button" type="button" onClick={onBrewBack} aria-label="Atras">
+            <IconButton tone="topbar" onClick={onBrewBack} aria-label="Atras">
               <UiIcon name="arrow-left" className="ui-icon" />
-            </button>
+            </IconButton>
           ) : null}
         </div>
         <h1 className="title title-upper topbar-title-center">{brewStepTitle}</h1>
         <div className="topbar-slot topbar-slot-end">
           {brewStep === "config" ? (
-            <button className="icon-button topbar-icon-button" type="button" onClick={onBrewForward} aria-label="Empezar">
+            <IconButton tone="topbar" onClick={onBrewForward} aria-label="Empezar">
               <UiIcon name="arrow-right" className="ui-icon" />
-            </button>
+            </IconButton>
           ) : null}
         </div>
       </header>
@@ -255,10 +244,10 @@ export function TopBar({
         <div className="topbar-slot" />
         <h1 className="title title-upper topbar-title-center">MI DIARIO</h1>
         <div className="topbar-slot topbar-slot-end">
-          <button className="icon-button topbar-icon-button diary-topbar-add" type="button" aria-label="Agregar" onClick={onDiaryOpenQuickActions}>
+          <IconButton tone="topbar" className="diary-topbar-add" aria-label="Agregar" onClick={onDiaryOpenQuickActions}>
             <UiIcon name="add" className="ui-icon" />
-          </button>
-          <button className="chip-button diary-period-chip" type="button" onClick={onDiaryOpenPeriodSelector}>{periodLabel}</button>
+          </IconButton>
+          <Button variant="chip" className="diary-period-chip" onClick={onDiaryOpenPeriodSelector}>{periodLabel}</Button>
         </div>
       </header>
     );
@@ -272,21 +261,16 @@ export function TopBar({
           <h1 className="title title-upper topbar-title-center">PERFIL</h1>
           <div className="topbar-slot topbar-slot-end">
             {profileMenuEnabled ? (
-              <button
-                className="icon-button profile-topbar-menu-trigger"
-                type="button"
-                aria-label="Opciones de perfil"
-                onClick={() => setShowProfileOptions(true)}
-              >
+              <IconButton tone="menu" aria-label="Opciones de perfil" onClick={() => setShowProfileOptions(true)}>
                 <UiIcon name="more" className="ui-icon" />
-              </button>
+              </IconButton>
             ) : null}
           </div>
         </header>
         {showProfileOptions && profileMenuEnabled ? (
-          <div className="sheet-overlay profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onClick={() => setShowProfileOptions(false)}>
-            <div className="sheet-card profile-topbar-options-sheet" onClick={(event) => event.stopPropagation()}>
-              <div className="sheet-handle" aria-hidden="true" />
+          <SheetOverlay className="profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onClick={() => setShowProfileOptions(false)}>
+            <SheetCard className="profile-topbar-options-sheet" onClick={(event) => event.stopPropagation()}>
+              <SheetHandle aria-hidden="true" />
               <div className="comment-action-list">
                 <p className="comment-action-title">OPCIONES</p>
                 <button
@@ -314,8 +298,8 @@ export function TopBar({
                   <UiIcon name="chevron-right" className="ui-icon trailing" />
                 </button>
               </div>
-            </div>
-          </div>
+            </SheetCard>
+          </SheetOverlay>
         ) : null}
       </>
     );
@@ -325,28 +309,18 @@ export function TopBar({
     return (
       <header className={`topbar topbar-timeline topbar-centered topbar-coffee ${scrolled ? "topbar-scrolled" : ""}`}>
         <div className="topbar-slot">
-          <button className="icon-button topbar-icon-button" type="button" onClick={onCoffeeBack} aria-label="Volver">
+          <IconButton tone="topbar" onClick={onCoffeeBack} aria-label="Volver">
             <UiIcon name="arrow-left" className="ui-icon" />
-          </button>
+          </IconButton>
         </div>
         <h1 className="title title-upper topbar-title-center">CAFE</h1>
         <div className="topbar-slot topbar-slot-end">
-          <button
-            className={`icon-button topbar-icon-button ${coffeeTopbarFavoriteActive ? "is-active" : ""}`.trim()}
-            type="button"
-            aria-label={coffeeTopbarFavoriteActive ? "Quitar de favoritos" : "Guardar en favoritos"}
-            onClick={onCoffeeTopbarToggleFavorite}
-          >
+          <IconButton tone="topbar" className={coffeeTopbarFavoriteActive ? "is-active" : ""} aria-label={coffeeTopbarFavoriteActive ? "Quitar de favoritos" : "Guardar en favoritos"} onClick={onCoffeeTopbarToggleFavorite}>
             <UiIcon name={coffeeTopbarFavoriteActive ? "favorite-filled" : "favorite"} className="ui-icon" />
-          </button>
-          <button
-            className={`icon-button topbar-icon-button ${coffeeTopbarStockActive ? "is-active" : ""}`.trim()}
-            type="button"
-            aria-label="Añadir a stock"
-            onClick={onCoffeeTopbarOpenStock}
-          >
+          </IconButton>
+          <IconButton tone="topbar" className={coffeeTopbarStockActive ? "is-active" : ""} aria-label="Añadir a stock" onClick={onCoffeeTopbarOpenStock}>
             <UiIcon name="stock" className="ui-icon" />
-          </button>
+          </IconButton>
         </div>
       </header>
     );
@@ -355,24 +329,17 @@ export function TopBar({
   return (
     <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""}`}>
       <div className="topbar-slot">
-        <button className="icon-button topbar-icon-button" type="button" aria-label="Buscar Usuarios" onClick={onTimelineSearchUsers}>
+        <IconButton tone="topbar" aria-label="Buscar Usuarios" onClick={onTimelineSearchUsers}>
           <UiIcon name="search" className="ui-icon" />
-        </button>
+        </IconButton>
       </div>
       <h1 className="title title-upper topbar-title-center topbar-brand-title">CAFESITO</h1>
       <div className="topbar-slot topbar-slot-end">
-        <button
-          className={`icon-button topbar-icon-button ${notificationPop ? "notification-pop" : ""}`}
-          type="button"
-          aria-label="Notificaciones"
-          onClick={onTimelineNotifications}
-        >
+        <IconButton tone="topbar" className={notificationPop ? "notification-pop" : ""} aria-label="Notificaciones" onClick={onTimelineNotifications}>
           <UiIcon name="notifications" className="ui-icon" />
           {showNotificationsBadge ? <span className="badge-dot" aria-hidden="true" /> : null}
-        </button>
+        </IconButton>
       </div>
     </header>
   );
 }
-
-

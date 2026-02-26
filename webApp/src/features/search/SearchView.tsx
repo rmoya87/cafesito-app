@@ -1,5 +1,6 @@
 ﻿import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import type { CoffeeRow, UserRow } from "../../types";
+import { Button, Chip, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
 export function SearchView({
   mode,
@@ -110,7 +111,7 @@ export function SearchView({
           {users.length ? (
             users.map((user) => (
               <li key={user.id} className="search-users-row">
-                <button type="button" className="search-users-link" onClick={() => onSelectUser(user.id)}>
+                <Button variant="plain" className="search-users-link" onClick={() => onSelectUser(user.id)}>
                   {user.avatar_url ? (
                     <img className="avatar avatar-photo search-users-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
                   ) : (
@@ -122,14 +123,14 @@ export function SearchView({
                     <p className="search-users-username">{user.username}</p>
                     <p className="search-users-fullname">{user.full_name}</p>
                   </div>
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="plain"
                   className={`action-button search-users-follow ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
                   onClick={() => onToggleFollow(user.id)}
                 >
                   {followingIds.has(user.id) ? "Siguiendo" : "Seguir"}
-                </button>
+                </Button>
               </li>
             ))
           ) : (
@@ -146,15 +147,15 @@ export function SearchView({
             <section className="search-recent">
               <div className="search-recent-head">
                 <p className="search-recent-title">Busquedas recientes</p>
-                <button type="button" className="text-button search-recent-clear" onClick={clearRecentSearches}>
+                <Button variant="text" className="search-recent-clear" onClick={clearRecentSearches}>
                   Limpiar
-                </button>
+                </Button>
               </div>
               <div className="search-recent-list">
                 {recentSearches.map((term) => (
-                  <button
+                  <Button
                     key={term}
-                    type="button"
+                    variant="plain"
                     className="search-recent-chip"
                     onClick={() => {
                       onSearchQueryChange(term);
@@ -162,7 +163,7 @@ export function SearchView({
                     }}
                   >
                     {term}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
@@ -173,9 +174,9 @@ export function SearchView({
               {focusCoffeeProfile ? (
                 <div className="coffee-profile-head">
                   <p className="coffee-profile-badge">PERFIL DE CAFE</p>
-                  <button type="button" className="text-button" onClick={onExitCoffeeFocus}>
+                  <Button variant="text" onClick={onExitCoffeeFocus}>
                     Ver todos
-                  </button>
+                  </Button>
                 </div>
               ) : null}
               {selectedCoffee.image_url ? <img className="coffee-profile-image" src={selectedCoffee.image_url} alt={selectedCoffee.nombre} loading="lazy" /> : null}
@@ -190,8 +191,8 @@ export function SearchView({
           <ul className="coffee-list">
             {coffees.map((coffee) => (
               <li key={coffee.id}>
-                <button
-                  type="button"
+                <Button
+                  variant="plain"
                   className={`coffee-card coffee-card-row coffee-card-interactive ${selectedCoffee?.id === coffee.id ? "is-selected" : ""}`}
                   onClick={() => {
                     if (searchQuery.trim()) saveRecentSearch(searchQuery);
@@ -211,17 +212,17 @@ export function SearchView({
                     <p className="coffee-origin">{coffee.pais_origen ?? "Origen desconocido"}</p>
                   </div>
                   <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
           {!coffees.length ? <p className="search-coffee-empty">No encontramos cafes con esos filtros.</p> : null}
 
           {activeFilterType ? (
-            <div className="sheet-overlay" role="dialog" aria-modal="true" aria-label="Filtros" onClick={() => onSetActiveFilterType(null)}>
-              <div className="sheet-card search-filter-sheet" onClick={(event) => event.stopPropagation()}>
-                <div className="sheet-handle" aria-hidden="true" />
-                <header className="sheet-header">
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Filtros" onClick={() => onSetActiveFilterType(null)}>
+              <SheetCard className="search-filter-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <SheetHeader>
                   <strong className="sheet-title">
                     {activeFilterType === "origen"
                       ? "FILTRAR POR PAIS"
@@ -233,16 +234,16 @@ export function SearchView({
                             ? "FILTRAR POR FORMATO"
                             : "FILTRAR POR NOTA"}
                   </strong>
-                </header>
+                </SheetHeader>
                 <div className="search-filter-actions">
-                  <button type="button" className="text-button" onClick={onClearCoffeeFilters}>
+                  <Button variant="text" onClick={onClearCoffeeFilters}>
                     Limpiar filtros
-                  </button>
+                  </Button>
                 </div>
                 {activeFilterType === "nota" ? (
                   <div className="search-rating-filter">
                     <p className="search-rating-label">{minRating > 0 ? `Nota minima: ${minRating}+` : "Cualquier nota"}</p>
-                    <input
+                    <Input
                       type="range"
                       min={0}
                       max={5}
@@ -274,8 +275,7 @@ export function SearchView({
                               : selectedFormats.has(option);
                       return (
                         <li key={option}>
-                          <button
-                            type="button"
+                          <Chip
                             className={`search-filter-item ${checked ? "is-selected" : ""}`.trim()}
                             onClick={() => {
                               if (activeFilterType === "origen") onToggleOrigin(option);
@@ -286,14 +286,14 @@ export function SearchView({
                           >
                             <input type="checkbox" readOnly checked={checked} aria-hidden="true" tabIndex={-1} />
                             <span>{option}</span>
-                          </button>
+                          </Chip>
                         </li>
                       );
                     })}
                   </ul>
                 )}
-              </div>
-            </div>
+              </SheetCard>
+            </SheetOverlay>
           ) : null}
         </div>
       ) : null}
@@ -311,5 +311,8 @@ export function SearchView({
 
   return content;
 }
+
+
+
 
 

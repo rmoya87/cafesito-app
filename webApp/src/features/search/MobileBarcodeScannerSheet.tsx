@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Button, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 
 type BarcodeDetectorResult = { rawValue?: string };
 type BarcodeDetectorInstance = {
@@ -109,12 +110,12 @@ export function MobileBarcodeScannerSheet({
   if (!open) return null;
 
   return (
-    <div className="sheet-overlay barcode-scanner-overlay" role="dialog" aria-modal="true" aria-label="Escanear codigo" onClick={onClose}>
-      <div className="sheet-card barcode-scanner-sheet" onClick={(event) => event.stopPropagation()}>
-        <div className="sheet-handle" aria-hidden="true" />
-        <header className="sheet-header">
+    <SheetOverlay className="barcode-scanner-overlay" role="dialog" aria-modal="true" aria-label="Escanear codigo" onClick={onClose}>
+      <SheetCard className="barcode-scanner-sheet" onClick={(event) => event.stopPropagation()}>
+        <SheetHandle aria-hidden="true" />
+        <SheetHeader>
           <strong className="sheet-title">ESCANEAR CODIGO</strong>
-        </header>
+        </SheetHeader>
         <div className="barcode-scanner-body">
           {errorMessage ? (
             <p className="barcode-scanner-error">{errorMessage}</p>
@@ -124,11 +125,11 @@ export function MobileBarcodeScannerSheet({
               <div className="barcode-scanner-frame" aria-hidden="true" />
             </div>
           )}
-          <button type="button" className="action-button action-button-ghost barcode-scanner-close" onClick={onClose}>
+          <Button variant="ghost" className="barcode-scanner-close" onClick={onClose}>
             Cerrar
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </SheetCard>
+    </SheetOverlay>
   );
 }

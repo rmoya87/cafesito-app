@@ -3,6 +3,7 @@ import { BREW_METHODS } from "../../config/brew";
 import { formatClock, getBrewDialRecommendation, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
+import { Button, Input } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
 export function BrewLabView({
   brewStep,
@@ -165,14 +166,14 @@ export function BrewLabView({
       {brewStep === "method" ? (
         <div className="brew-method-grid-native">
           {BREW_METHODS.map((method) => (
-            <button key={method.name} type="button" className={`brew-method-card-native ${brewMethod === method.name ? "is-active" : ""}`} onClick={() => {
+            <Button variant="plain" key={method.name} className={`brew-method-card-native ${brewMethod === method.name ? "is-active" : ""}`} onClick={() => {
               setBrewMethod(method.name);
               setBrewCoffeeId("");
               setBrewStep("coffee");
             }}>
               <img src={method.icon} alt={method.name} loading="lazy" />
               <strong>{method.name.toUpperCase()}</strong>
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}
@@ -184,9 +185,9 @@ export function BrewLabView({
             {filteredPantry.length ? (
               <div className="brew-pantry-row">
                 {filteredPantry.map((row) => (
-                  <button
+                  <Button
+                    variant="plain"
                     key={`${row.coffee.id}-pantry`}
-                    type="button"
                     className="brew-pantry-card"
                     onClick={() => {
                       setBrewCoffeeId(row.coffee.id);
@@ -205,7 +206,7 @@ export function BrewLabView({
                         <span style={{ width: `${Math.max(0, Math.min(100, row.progress * 100))}%` }} />
                       </div>
                     </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : (
@@ -213,7 +214,8 @@ export function BrewLabView({
             )}
           </div>
 
-          <input
+          <Input
+            variant="search"
             className="search-wide search-input-standard brew-coffee-search"
             value={brewCoffeeQuery}
             onChange={(event) => setBrewCoffeeQuery(event.target.value)}
@@ -222,17 +224,18 @@ export function BrewLabView({
 
           <div className="brew-coffee-block-head">
             <p className="section-title">Sugerencias</p>
-            <button type="button" className="text-button brew-add-coffee-link" onClick={onAddNotFoundCoffee}>
+            <Button variant="text" className="brew-add-coffee-link" onClick={onAddNotFoundCoffee}>
               <UiIcon name="add" className="ui-icon" />
               Crear mi café
-            </button>
+            </Button>
           </div>
 
           {filteredSuggestions.length ? (
             <ul className="brew-suggestions-list">
               {filteredSuggestions.map((coffee) => (
                 <li key={coffee.id}>
-                  <button
+                  <Button
+                    variant="plain"
                     type="button"
                     className={`brew-suggestion-card ${brewCoffeeId === coffee.id ? "is-active" : ""}`}
                     onClick={() => {
@@ -250,7 +253,7 @@ export function BrewLabView({
                       <small>{coffee.marca}</small>
                     </span>
                     <UiIcon name="add" className="ui-icon" />
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -386,24 +389,24 @@ export function BrewLabView({
 
           <div className={`brew-prep-actions ${elapsedSeconds > 0 ? "" : "is-single"}`.trim()}>
             {elapsedSeconds > 0 ? (
-              <button
+              <Button
+                variant="plain"
                 className="action-button action-button-ghost brew-prep-action-secondary"
-                type="button"
                 onClick={() => {
                   setBrewRunning(false);
                   setTimerSeconds(0);
                 }}
               >
                 REINICIAR
-              </button>
+              </Button>
             ) : null}
-            <button
+            <Button
+              variant="plain"
               className={`action-button brew-prep-action-primary ${brewRunning ? "is-running" : ""}`.trim()}
-              type="button"
               onClick={() => setBrewRunning(!brewRunning)}
             >
               {brewRunning ? "PAUSAR" : "INICIAR"}
-            </button>
+            </Button>
           </div>
         </section>
       ) : null}
@@ -414,15 +417,15 @@ export function BrewLabView({
             <p className="brew-result-title">QUE SABOR HAS OBTENIDO?</p>
             <div className="brew-result-grid">
               {tasteOptions.map((taste) => (
-                <button
+                <Button
+                  variant="plain"
                   key={taste.label}
-                  type="button"
                   className={`brew-taste-chip ${resultTaste === taste.label ? "is-active" : ""}`.trim()}
                   onClick={() => setResultTaste(taste.label)}
                 >
                   <UiIcon name={taste.icon} className="ui-icon" />
                   <span>{taste.label.toUpperCase()}</span>
-                </button>
+                </Button>
               ))}
             </div>
             {resultRecommendation ? (
@@ -437,9 +440,9 @@ export function BrewLabView({
           </article>
 
           <div className="brew-result-actions">
-            <button
+            <Button
+              variant="plain"
               className="action-button action-button-ghost brew-result-action-secondary"
-              type="button"
               onClick={() => {
                 setBrewRunning(false);
                 setTimerSeconds(0);
@@ -447,10 +450,10 @@ export function BrewLabView({
               }}
             >
               REINICIAR
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="plain"
               className="action-button brew-result-action-primary"
-              type="button"
               disabled={!selectedCoffee || !resultTaste || savingResult}
               onClick={async () => {
                 if (!selectedCoffee || !resultTaste || savingResult) return;
@@ -463,7 +466,7 @@ export function BrewLabView({
               }}
             >
               {savingResult ? "GUARDANDO..." : "GUARDAR EN DIARIO"}
-            </button>
+            </Button>
           </div>
         </section>
       ) : null}
@@ -601,22 +604,23 @@ export function CreateCoffeeView({
         {imagePreviewUrl ? (
           <div className="create-coffee-image-preview-wrap">
             <img src={imagePreviewUrl} alt="Previsualización café" loading="lazy" />
-            <button type="button" className="icon-button" onClick={onRemoveImage} aria-label="Quitar imagen">
+            <Button variant="plain" className="icon-button" onClick={onRemoveImage} aria-label="Quitar imagen">
               <UiIcon name="close" className="ui-icon" />
-            </button>
+            </Button>
           </div>
         ) : (
-          <button type="button" className="create-coffee-image-empty" onClick={() => imageInputRef.current?.click()}>
+          <Button variant="plain" className="create-coffee-image-empty" onClick={() => imageInputRef.current?.click()}>
             <span className="create-coffee-image-empty-icon" aria-hidden="true">
               <UiIcon name="camera" className="ui-icon" />
               <span className="create-coffee-image-empty-plus">+</span>
             </span>
             <span>Añadir foto</span>
-          </button>
+          </Button>
         )}
         <div className="create-coffee-image-fields">
           <div className={`create-coffee-inline-field ${nameMissing ? "is-invalid" : ""}`.trim()}>
-            <input
+            <Input
+              variant="default"
               className="search-wide"
               placeholder="Nombre del café"
               value={draft.name}
@@ -625,7 +629,8 @@ export function CreateCoffeeView({
             />
           </div>
           <div className={`create-coffee-inline-field ${brandMissing ? "is-invalid" : ""}`.trim()}>
-            <input
+            <Input
+              variant="default"
               className="search-wide"
               placeholder="Marca"
               value={draft.brand}
@@ -640,16 +645,16 @@ export function CreateCoffeeView({
         <p className="create-coffee-block-subtitle">Especialidad</p>
         <div className={`create-coffee-choice-grid create-coffee-choice-grid-specialty ${specialtyMissing ? "is-invalid" : ""}`.trim()}>
           {specialtyOptions.length ? specialtyOptions.map((value) => (
-            <button
+            <Button
+              variant="plain"
               key={value}
-              type="button"
               className={`create-coffee-choice ${draft.specialty === value ? "is-selected" : ""}`.trim()}
               onClick={() => onChange({ ...draft, specialty: value })}
               aria-pressed={draft.specialty === value}
             >
               <UiIcon name={getSpecialtyIcon(value)} className="ui-icon" />
               <span>{value}</span>
-            </button>
+            </Button>
           )) : (
             <p className="coffee-sub">Sin opciones</p>
           )}
@@ -657,16 +662,16 @@ export function CreateCoffeeView({
         <p className="create-coffee-block-subtitle">Tueste</p>
         <div className="create-coffee-choice-grid create-coffee-choice-grid-roast">
           {roastChoices.map((choice) => (
-            <button
+            <Button
+              variant="plain"
               key={choice.value}
-              type="button"
               className={`create-coffee-choice ${draft.roast === choice.value ? "is-selected" : ""}`.trim()}
               onClick={() => onChange({ ...draft, roast: draft.roast === choice.value ? "" : choice.value })}
               aria-pressed={draft.roast === choice.value}
             >
               <UiIcon name={getRoastIcon(choice.value)} className="ui-icon" />
               <span>{choice.label}</span>
-            </button>
+            </Button>
           ))}
         </div>
         <label className={`create-coffee-country ${countryMissing ? "is-invalid" : ""}`.trim()}>
@@ -688,22 +693,22 @@ export function CreateCoffeeView({
         <p className="create-coffee-block-title">Formato</p>
         <label className="create-coffee-caffeine-row">
           <span>¿Tiene cafeína?</span>
-          <button
-            type="button"
+          <Button
+            variant="plain"
             role="switch"
             aria-checked={draft.hasCaffeine}
             className={`create-coffee-caffeine-switch ${draft.hasCaffeine ? "is-on" : ""}`.trim()}
             onClick={() => onChange({ ...draft, hasCaffeine: !draft.hasCaffeine })}
           >
             <span />
-          </button>
+          </Button>
         </label>
         <p className="create-coffee-block-subtitle">Presentación</p>
         <div className="create-coffee-choice-grid create-coffee-choice-grid-format">
           {formatChoices.map((choice) => (
-            <button
+            <Button
+              variant="plain"
               key={choice.value}
-              type="button"
               className={`create-coffee-choice ${draft.format === choice.value ? "is-selected" : ""}`.trim()}
               onClick={() => onChange({ ...draft, format: choice.value })}
               aria-pressed={draft.format === choice.value}
@@ -719,25 +724,25 @@ export function CreateCoffeeView({
                 className="ui-icon"
               />
               <span>{choice.label}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </div>
       {error ? <p className="create-coffee-error">{error}</p> : null}
       {!fullPage ? (
         <div className="create-coffee-actions">
-          <button type="button" className="action-button action-button-ghost" onClick={onClose} disabled={saving}>
+          <Button variant="plain" className="action-button action-button-ghost" onClick={onClose} disabled={saving}>
             Cancelar
-          </button>
-          <button type="button" className="action-button" onClick={handleSaveAttempt} disabled={saving}>
+          </Button>
+          <Button variant="plain" className="action-button" onClick={handleSaveAttempt} disabled={saving}>
             {saving ? "Guardando..." : "Guardar"}
-          </button>
+          </Button>
         </div>
       ) : null}
       {fullPage ? (
-        <button type="button" className="action-button create-coffee-mobile-save" onClick={handleSaveAttempt} disabled={saving}>
+        <Button variant="plain" className="action-button create-coffee-mobile-save" onClick={handleSaveAttempt} disabled={saving}>
           {saving ? "Guardando..." : "Guardar café"}
-        </button>
+        </Button>
       ) : null}
     </section>
   );
