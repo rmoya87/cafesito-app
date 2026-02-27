@@ -49,16 +49,18 @@ export function useAuthSession(): UseAuthSessionResult {
   }, []);
 
   const handleGoogleLogin = useCallback(async () => {
-    if (supabaseConfigError) return;
+    if (supabaseConfigError) {
+      setAuthError(supabaseConfigError);
+      return;
+    }
     setAuthBusy(true);
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
+      const redirectTo = `${window.location.origin}${window.location.pathname || "/"}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}${window.location.pathname}`
-        }
+        options: { redirectTo }
       });
       if (error) throw error;
     } catch (error) {
