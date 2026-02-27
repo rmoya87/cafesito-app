@@ -1,17 +1,25 @@
 .search-wide {
   width: 100%;
   border: 1px solid var(--search-border-inactive);
-  border-radius: 14px;
+  border-radius: 999px;
   background: var(--surface);
   color: inherit;
   padding: 10px 12px;
   font-size: var(--font-size-md);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
 }
 
 .search-wide:focus {
   outline: none;
-  border-color: var(--caramel-soft);
+  border: 1px solid var(--caramel-accent);
   box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.search-wide:not(:placeholder-shown) {
+  border: 1px solid var(--caramel-accent);
 }
 
 .search-input-standard {

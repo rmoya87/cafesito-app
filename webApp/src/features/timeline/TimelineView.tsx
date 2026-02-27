@@ -1,4 +1,4 @@
-﻿import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
@@ -486,7 +486,7 @@ export function TimelineView({
               </Button>
               <Textarea
                 className="search-wide sheet-input"
-                placeholder="DescripciÃ³n"
+                placeholder="Descripción"
                 value={editingText}
                 rows={4}
                 onChange={(event) => setEditingText(event.target.value)}

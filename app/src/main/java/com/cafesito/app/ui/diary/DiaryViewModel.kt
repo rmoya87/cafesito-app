@@ -6,6 +6,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
+import com.cafesito.shared.domain.diary.DiaryAnalyticsTargets
+import com.cafesito.shared.domain.diary.DiaryPeriod as SharedDiaryPeriod
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +32,12 @@ data class DiaryAnalytics(
     val cupsCount: Int,
     val totalCaffeine: Int,
     val averageCaffeine: Int,
-    val comparisonPercentage: Int,
+    /** Porcentaje de tendencia cafeína vs objetivo (lógica compartida con webApp). */
+    val caffeineTrendPct: Int,
+    /** Porcentaje de tendencia hidratación vs objetivo (lógica compartida con webApp). */
+    val hydrationTrendPct: Int,
+    /** Progreso hidratación 0..100 (lógica compartida con webApp). */
+    val hydrationProgressPct: Int,
     val period: DiaryPeriod
 )
 
@@ -115,9 +122,17 @@ class DiaryViewModel @Inject constructor(
 
         val totalCaffeine = currentEntries.filter { it.type == "CUP" }.sumOf { it.caffeineAmount }
         val totalWaterMl = currentEntries.filter { it.type == "WATER" }.sumOf { it.amountMl }
-        
-        val prevTotal = previousEntries.filter { it.type == "CUP" }.sumOf { it.caffeineAmount }
-        val comp = if (prevTotal == 0) 0 else ((totalCaffeine - prevTotal).toFloat() / prevTotal * 100).toInt()
+
+        val sharedPeriod = when (period) {
+            DiaryPeriod.HOY -> SharedDiaryPeriod.HOY
+            DiaryPeriod.SEMANA -> SharedDiaryPeriod.SEMANA
+            DiaryPeriod.MES -> SharedDiaryPeriod.MES
+        }
+        val caffeineTarget = DiaryAnalyticsTargets.caffeineTargetMg(sharedPeriod)
+        val hydrationTarget = DiaryAnalyticsTargets.hydrationTargetMl(sharedPeriod)
+        val caffeineTrendPct = DiaryAnalyticsTargets.trendPercent(totalCaffeine, caffeineTarget)
+        val hydrationTrendPct = DiaryAnalyticsTargets.trendPercent(totalWaterMl, hydrationTarget)
+        val hydrationProgressPct = DiaryAnalyticsTargets.hydrationProgressPercent(totalWaterMl, sharedPeriod)
 
         val chartData = when (period) {
             DiaryPeriod.HOY -> {
@@ -156,13 +171,15 @@ class DiaryViewModel @Inject constructor(
         }
 
         DiaryAnalytics(
-            chartData = chartData, 
-            waterCount = currentEntries.count { it.type == "WATER" }, 
+            chartData = chartData,
+            waterCount = currentEntries.count { it.type == "WATER" },
             totalWaterMl = totalWaterMl,
-            cupsCount = currentEntries.count { it.type == "CUP" }, 
-            totalCaffeine = totalCaffeine, 
-            averageCaffeine = averageValue, 
-            comparisonPercentage = comp, 
+            cupsCount = currentEntries.count { it.type == "CUP" },
+            totalCaffeine = totalCaffeine,
+            averageCaffeine = averageValue,
+            caffeineTrendPct = caffeineTrendPct,
+            hydrationTrendPct = hydrationTrendPct,
+            hydrationProgressPct = hydrationProgressPct,
             period = period
         )
     }

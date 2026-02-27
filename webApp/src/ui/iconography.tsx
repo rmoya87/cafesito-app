@@ -1,4 +1,4 @@
-﻿export type IconName =
+export type IconName =
   | "auto_graph"
   | "home"
   | "search"
@@ -45,6 +45,7 @@
   | "chevron-right"
   | "send"
   | "sparkles"
+  | "bolt"
   | "check-circle-filled"
   | "edit"
   | "trash"
@@ -101,7 +102,8 @@ export function MaterialSymbolIcon({
   | "device_thermostat"
   | "waves"
   | "water_drop"
-  | "favorite";
+  | "favorite"
+  | "coffee";
   filled: boolean;
   className?: string;
 }) {
@@ -390,22 +392,10 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     );
   }
   if (name === "coffee") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M3.5 7.5h12v5.2A4.3 4.3 0 0111.2 17H7.8a4.3 4.3 0 01-4.3-4.3z" />
-        <path d="M15.4 8.8h2a2.8 2.8 0 010 5.6h-2" />
-        <path d="M6.2 19.4h7.6" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="coffee" filled={false} className={className} />;
   }
   if (name === "coffee-filled") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M3.5 7.5h12v5.2A4.3 4.3 0 0111.2 17H7.8a4.3 4.3 0 01-4.3-4.3z" fill="currentColor" stroke="none" />
-        <path d="M15.4 8.8h2a2.8 2.8 0 010 5.6h-2" fill="currentColor" stroke="none" />
-        <path d="M6.2 19.4h7.6" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="coffee" filled={true} className={className} />;
   }
   if (name === "camera") {
     return (
@@ -456,6 +446,13 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
   }
   if (name === "sparkles") {
     return <MaterialSymbolIcon symbol="auto_awesome" filled={false} className={className} />;
+  }
+  if (name === "bolt") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
+        <path d="M14 2L10 11h3l-2 10 8-10h-3l2-10z" />
+      </svg>
+    );
   }
   if (name === "check-circle-filled") {
     return (

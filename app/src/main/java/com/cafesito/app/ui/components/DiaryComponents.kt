@@ -123,7 +123,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
-                    ComparisonPill(analytics.comparisonPercentage)
+                    ComparisonPill(analytics.caffeineTrendPct)
                 }
 
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
@@ -134,7 +134,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
-                    ComparisonPill(-2, Color(0xFF2196F3))
+                    ComparisonPill(analytics.hydrationTrendPct, Color(0xFF2196F3))
                 }
             }
 
@@ -145,7 +145,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MetricBoxPremium("Media", "${analytics.averageCaffeine} mg", Icons.Default.AutoGraph, Modifier.weight(1f))
                 MetricBoxPremium("Tazas", "${analytics.cupsCount}", Icons.Default.Coffee, Modifier.weight(1f))
-                MetricBoxPremium("Progreso", "85%", Icons.Default.WaterDrop, Modifier.weight(1f))
+                MetricBoxPremium("Progreso", "${analytics.hydrationProgressPct}%", Icons.Default.WaterDrop, Modifier.weight(1f))
             }
         }
     }

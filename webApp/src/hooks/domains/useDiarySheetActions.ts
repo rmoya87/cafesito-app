@@ -10,6 +10,7 @@ export function useDiarySheetActions({
   selectedDiaryPantryCoffee,
   diaryWaterMlDraft,
   diaryCoffeeMlDraft,
+  diaryCoffeeGramsDraft,
   diaryCoffeeCaffeineDraft,
   diaryCoffeePreparationDraft,
   diaryPantryGramsDraft,
@@ -27,7 +28,8 @@ export function useDiarySheetActions({
   setDiaryCoffeeMlDraft,
   setDiaryCoffeePreparationDraft,
   setDiaryPantryCoffeeIdDraft,
-  setDiaryPantryGramsDraft
+  setDiaryPantryGramsDraft,
+  setLastCreatedCoffeeNameForSheet
 }: {
   activeUser: UserRow | null;
   diaryCoffeeOptions: CoffeeRow[];
@@ -35,6 +37,7 @@ export function useDiarySheetActions({
   selectedDiaryPantryCoffee: CoffeeRow | null;
   diaryWaterMlDraft: string;
   diaryCoffeeMlDraft: string;
+  diaryCoffeeGramsDraft: string;
   diaryCoffeeCaffeineDraft: string;
   diaryCoffeePreparationDraft: string;
   diaryPantryGramsDraft: string;
@@ -53,6 +56,7 @@ export function useDiarySheetActions({
   setDiaryCoffeePreparationDraft: (value: string) => void;
   setDiaryPantryCoffeeIdDraft: (value: string) => void;
   setDiaryPantryGramsDraft: (value: string) => void;
+  setLastCreatedCoffeeNameForSheet?: ((value: string | null) => void) | null;
 }) {
   const openWaterSheet = useCallback(() => {
     setDiaryWaterMlDraft("250");
@@ -118,28 +122,54 @@ export function useDiarySheetActions({
     setShowDiaryWaterSheet(false);
   }, [activeUser, diaryWaterMlDraft, setDiaryEntries, setShowDiaryWaterSheet]);
 
-  const saveCoffee = useCallback(async () => {
-    if (!activeUser || !selectedDiaryCoffee) return;
-    const created = await createDiaryEntry({
-      userId: activeUser.id,
-      coffeeId: selectedDiaryCoffee.id,
-      coffeeName: selectedDiaryCoffee.nombre,
-      amountMl: Math.max(1, Number(diaryCoffeeMlDraft || 0)),
-      caffeineMg: Math.max(0, Number(diaryCoffeeCaffeineDraft || 0)),
-      preparationType: diaryCoffeePreparationDraft.trim() || "Manual",
-      type: "CUP"
-    });
-    setDiaryEntries((prev) => [created, ...prev]);
-    setShowDiaryCoffeeSheet(false);
-  }, [
-    activeUser,
-    diaryCoffeeCaffeineDraft,
-    diaryCoffeeMlDraft,
-    diaryCoffeePreparationDraft,
-    selectedDiaryCoffee,
-    setDiaryEntries,
-    setShowDiaryCoffeeSheet
-  ]);
+  const saveCoffee = useCallback(
+    async (payload?: {
+      coffeeId: string | null;
+      coffeeName: string;
+      coffeeBrand?: string;
+      amountMl: number;
+      caffeineMg: number;
+      coffeeGrams?: number;
+      preparationType: string;
+      sizeLabel?: string | null;
+    }) => {
+      if (!activeUser) return;
+      const coffeeId = payload?.coffeeId ?? selectedDiaryCoffee?.id ?? null;
+      const coffeeName = payload?.coffeeName ?? selectedDiaryCoffee?.nombre ?? "Registro rápido";
+      const coffeeBrand = payload?.coffeeBrand ?? selectedDiaryCoffee?.marca ?? "";
+      const amountMl = payload?.amountMl ?? Math.max(1, Number(diaryCoffeeMlDraft || 0));
+      const caffeineMg = payload?.caffeineMg ?? Math.max(0, Number(diaryCoffeeCaffeineDraft || 0));
+      const coffeeGrams = payload?.coffeeGrams ?? Math.max(0, Math.round(Number(diaryCoffeeGramsDraft || 0) || 0));
+      const preparationType = payload?.preparationType ?? (diaryCoffeePreparationDraft.trim() || "Manual");
+      const sizeLabel = payload?.sizeLabel ?? null;
+      const created = await createDiaryEntry({
+        userId: activeUser.id,
+        coffeeId,
+        coffeeName,
+        coffeeBrand,
+        amountMl,
+        caffeineMg,
+        coffeeGrams,
+        preparationType,
+        sizeLabel,
+        type: "CUP"
+      });
+      setDiaryEntries((prev) => [created, ...prev]);
+      setLastCreatedCoffeeNameForSheet?.(null);
+      setShowDiaryCoffeeSheet(false);
+    },
+    [
+      activeUser,
+      diaryCoffeeCaffeineDraft,
+      diaryCoffeeGramsDraft,
+      diaryCoffeeMlDraft,
+      diaryCoffeePreparationDraft,
+      selectedDiaryCoffee,
+      setDiaryEntries,
+      setLastCreatedCoffeeNameForSheet,
+      setShowDiaryCoffeeSheet
+    ]
+  );
 
   const savePantry = useCallback(async () => {
     if (!activeUser || !selectedDiaryPantryCoffee) return;

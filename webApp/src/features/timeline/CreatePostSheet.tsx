@@ -1,4 +1,4 @@
-﻿import type { MutableRefObject } from "react";
+import { useState, type MutableRefObject } from "react";
 import type { CoffeeRow, UserRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea, Topbar } from "../../ui/components";
@@ -66,6 +66,9 @@ export function CreatePostSheet({
   selectedCoffeeId: string;
   onSelectCoffee: (coffeeId: string) => void;
 }) {
+  const [coffeeSearchFocus, setCoffeeSearchFocus] = useState(false);
+  const showCoffeeSearchCancel = Boolean(coffeeQuery || coffeeSearchFocus);
+
   return (
     <>
       {open ? (
@@ -250,7 +253,33 @@ export function CreatePostSheet({
               <strong className="sheet-title">SELECCIONAR CAFE</strong>
             </header>
             <div className="create-post-coffee-body">
-              <Input className="search-wide" placeholder="Buscar cafe" value={coffeeQuery} onChange={(event) => setCoffeeQuery(event.target.value)} />
+              <div className={`search-row-with-cancel ${showCoffeeSearchCancel ? "has-cancel" : ""}`.trim()}>
+                <Input
+                  variant="search"
+                  className="search-wide"
+                  placeholder="Buscar cafe"
+                  value={coffeeQuery}
+                  onChange={(event) => setCoffeeQuery(event.target.value)}
+                  onFocus={() => setCoffeeSearchFocus(true)}
+                  onBlur={() => setCoffeeSearchFocus(false)}
+                  aria-label="Buscar cafe"
+                />
+                <Button
+                  variant="text"
+                  type="button"
+                  className={`search-cancel-button ${showCoffeeSearchCancel ? "is-visible" : ""}`}
+                  onClick={() => {
+                    setCoffeeQuery("");
+                    setCoffeeSearchFocus(false);
+                    const el = document.activeElement;
+                    if (el instanceof HTMLElement) el.blur();
+                  }}
+                  aria-hidden={!showCoffeeSearchCancel}
+                  tabIndex={showCoffeeSearchCancel ? 0 : -1}
+                >
+                  Cancelar
+                </Button>
+              </div>
               <ul className="create-post-coffee-list">
                 {filteredCoffees.map((coffee) => (
                   <li key={coffee.id}>

@@ -86,6 +86,8 @@ import com.cafesito.app.ui.profile.ProfileViewModel
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
+import kotlin.text.Regex
+import kotlin.text.RegexOption
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.io.File
@@ -848,6 +850,13 @@ fun DiaryEntryItem(
 ) {
     val datePattern = if (selectedPeriod == DiaryPeriod.HOY || selectedPeriod == DiaryPeriod.SEMANA || selectedPeriod == DiaryPeriod.MES) "HH:mm" else "dd/MM | HH:mm"
     val dateStr = SimpleDateFormat(datePattern, Locale.getDefault()).format(Date(entry.timestamp))
+    val coffeeNameNorm = entry.coffeeName.trim().lowercase()
+    val isRegistroRapido = entry.type == "CUP" && (
+        entry.coffeeId.isNullOrBlank() ||
+        coffeeNameNorm == "registro r\u00E1pido" ||
+        coffeeNameNorm == "registro rapido" ||
+        Regex("registro\\s*rapido", RegexOption.IGNORE_CASE).containsMatchIn(coffeeNameNorm)
+    )
     val cardColor by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surface,
         animationSpec = tween(320),
@@ -866,7 +875,7 @@ fun DiaryEntryItem(
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (entry.type == "CUP" && !coffeeImageUrl.isNullOrBlank()) {
+                if (entry.type == "CUP" && !coffeeImageUrl.isNullOrBlank() && !isRegistroRapido) {
                     AsyncImage(
                         model = coffeeImageUrl,
                         contentDescription = null,
@@ -886,7 +895,11 @@ fun DiaryEntryItem(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            if (entry.type == "WATER") Icons.Default.WaterDrop else Icons.Default.Coffee,
+                            when {
+                                entry.type == "WATER" -> Icons.Default.WaterDrop
+                                isRegistroRapido -> Icons.Filled.LocalCafe
+                                else -> Icons.Default.Coffee
+                            },
                             null,
                             tint = if (entry.type == "WATER") Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
@@ -897,7 +910,11 @@ fun DiaryEntryItem(
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = if (entry.type == "WATER") "Agua" else entry.coffeeName.toCoffeeNameFormat(),
+                        text = when {
+                            entry.type == "WATER" -> "Agua"
+                            isRegistroRapido -> entry.preparationType.trim().ifBlank { "Registro r\u00E1pido" }.toCoffeeNameFormat()
+                            else -> entry.coffeeName.toCoffeeNameFormat()
+                        },
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         maxLines = 1,
@@ -906,7 +923,7 @@ fun DiaryEntryItem(
                     )
                     if (entry.type != "WATER") {
                         Text(
-                            text = entry.coffeeBrand.ifBlank { "Café" }.toCoffeeBrandFormat(),
+                            text = if (isRegistroRapido) "CAFÉ" else entry.coffeeBrand.ifBlank { "Café" }.toCoffeeBrandFormat(),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

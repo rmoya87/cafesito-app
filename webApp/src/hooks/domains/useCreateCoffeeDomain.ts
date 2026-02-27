@@ -47,16 +47,17 @@ export function useCreateCoffeeDomain({
     setShowCreateCoffeeComposer(true);
   }, []);
 
-  const saveCreateCoffee = useCallback(async () => {
-    if (!activeUser) return;
+  const saveCreateCoffee = useCallback(async (options?: { fromDiarySheet?: boolean }): Promise<{ id: string; name: string } | null> => {
+    if (!activeUser) return null;
     if (!createCoffeeDraft.name.trim() || !createCoffeeDraft.brand.trim()) {
       setCreateCoffeeError("Nombre y marca son obligatorios.");
-      return;
+      return null;
     }
     if (!createCoffeeDraft.specialty.trim() || !createCoffeeDraft.country.trim() || !createCoffeeDraft.format.trim()) {
       setCreateCoffeeError("Completa especialidad, país y formato.");
-      return;
+      return null;
     }
+    const fromDiarySheet = options?.fromDiarySheet === true;
     setCreateCoffeeSaving(true);
     setCreateCoffeeError(null);
     try {
@@ -85,15 +86,19 @@ export function useCreateCoffeeDomain({
 
       setCustomCoffees((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
       setPantryItems((prev) => [pantryRow, ...prev.filter((item) => !(item.coffee_id === pantryRow.coffee_id && item.user_id === pantryRow.user_id))]);
-      setBrewCoffeeId(created.id);
-      setBrewStep("config");
-      setShowCreateCoffeeComposer(false);
+      if (!fromDiarySheet) {
+        setBrewCoffeeId(created.id);
+        setBrewStep("config");
+        setShowCreateCoffeeComposer(false);
+      }
       setCreateCoffeeDraft(initialDraft);
       if (createCoffeeImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(createCoffeeImagePreviewUrl);
       setCreateCoffeeImageFile(null);
       setCreateCoffeeImagePreviewUrl("");
+      return { id: created.id, name: created.nombre };
     } catch (error) {
       setCreateCoffeeError((error as Error).message);
+      return null;
     } finally {
       setCreateCoffeeSaving(false);
     }

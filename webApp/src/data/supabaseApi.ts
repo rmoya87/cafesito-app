@@ -1,4 +1,4 @@
-﻿import { getSupabaseClient } from "../supabase";
+import { getSupabaseClient } from "../supabase";
 import type {
   CommentRow,
   CoffeeRow,
@@ -446,13 +446,16 @@ export async function createDiaryEntry(payload: {
   userId: number;
   coffeeId: string | null;
   coffeeName: string;
+  coffeeBrand?: string;
   amountMl: number;
   caffeineMg: number;
+  coffeeGrams?: number;
   preparationType: string;
+  sizeLabel?: string | null;
   type?: string;
 }): Promise<DiaryEntryRow> {
   const supabase = getSupabaseClient();
-  const row = {
+  const row: Record<string, unknown> = {
     user_id: payload.userId,
     coffee_id: payload.coffeeId,
     coffee_name: payload.coffeeName,
@@ -462,6 +465,9 @@ export async function createDiaryEntry(payload: {
     timestamp: Date.now(),
     type: payload.type ?? "CUP"
   };
+  if (payload.coffeeBrand !== undefined) row.coffee_brand = payload.coffeeBrand;
+  if (payload.coffeeGrams !== undefined) row.coffee_grams = Math.max(0, Math.round(payload.coffeeGrams));
+  if (payload.sizeLabel !== undefined) row.size_label = payload.sizeLabel ?? null;
   const { data, error } = await supabase
     .from("diary_entries")
     .insert(row)

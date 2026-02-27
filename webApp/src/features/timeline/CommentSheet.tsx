@@ -91,6 +91,7 @@ export function CommentSheet({
                         </div>
                       )}
                       <div className="comment-copy">
+                        {user?.full_name ? <p className="comment-author-name">{user.full_name}</p> : null}
                         <p className="comment-author">@{user?.username ?? `user${row.user_id}`}</p>
                       </div>
                       {isOwnComment ? (
@@ -105,7 +106,7 @@ export function CommentSheet({
                   </li>
                 );
               })
-            : <li className="sheet-item comments-empty">No hay comentarios todavia</li>}
+            : <li className="sheet-item comments-empty">No hay comentarios todavía</li>}
         </ul>
 
         {activeMenuRow ? (
@@ -187,7 +188,7 @@ export function CommentSheet({
               ) : null}
               <Textarea
                 className="search-wide sheet-input"
-                placeholder="Anade un comentario..."
+                placeholder="Añade un comentario..."
                 value={commentDraft}
                 rows={2}
                 onChange={(event) => {

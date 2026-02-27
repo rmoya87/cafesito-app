@@ -1,9 +1,39 @@
 import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { MentionText } from "../../ui/MentionText";
+import {
+  caffeineTargetMg,
+  hydrationProgressPercent,
+  hydrationTargetMl,
+  trendPercent
+} from "../../core/diaryAnalytics";
 import { normalizeLookupText } from "../../core/text";
 import { UiIcon, type IconName } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs } from "../../ui/components";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow } from "../../types";
+
+// Strings con acentos generados en runtime para evitar problemas de encoding del archivo
+const _c = (code: number) => String.fromCharCode(code);
+const DIARY_STR = {
+  CAFEINA_ESTIMADA: "CAFE" + _c(0x00CD) + "NA ESTIMADA",
+  ARIA_CAFEINA: "Informaci" + _c(0x00F3) + "n de cafe" + _c(0x00ED) + "na estimada",
+  TOOLTIP_ESTIMACION: "Estimaci" + _c(0x00F3) + "n basada en tus registros de consumo en el periodo seleccionado.",
+  HIDRATACION: "HIDRATACI" + _c(0x00D3) + "N",
+  GRAFICO_CONSUMO: "Gr" + _c(0x00E1) + "fico de consumo",
+  CONFIRMAR_ELIMINACION: "Confirmar eliminaci" + _c(0x00F3) + "n",
+  EDITAR_REGISTRO_CAFE: "Editar registro de caf" + _c(0x00E9),
+  PREPARACION: "Preparaci" + _c(0x00F3) + "n",
+  CAFEINA: "Cafe" + _c(0x00ED) + "na",
+  CAFEINA_MG: "Cafe" + _c(0x00ED) + "na (mg)",
+  TAMANO: "Tama" + _c(0x00F1) + "o",
+  PEQUENO: "Peque" + _c(0x00F1) + "o",
+  SIN_METODO: "Sin m" + _c(0x00E9) + "todo",
+  SIN_CAFE_AGUA: "Sin caf" + _c(0x00E9) + " o agua registrada",
+  NO_HAY_CAFE_DESPENSA: "No hay caf" + _c(0x00E9) + " en tu despensa",
+  SIFON: "Sif" + _c(0x00F3) + "n",
+  CAFE_LABEL: "Caf" + _c(0x00E9),
+  REGISTRO_RAPIDO: "Registro r" + _c(0x00E1) + "pido",
+  CAFE_BRAND: "CAF" + _c(0x00C9),
+} as const;
 
 export function DiaryView({
   mode,
@@ -88,11 +118,11 @@ export function DiaryView({
     const avgCaffeine = coffeeCups > 0 ? Math.round(caffeine / coffeeCups) : 0;
     return { caffeine, hydrationMl, coffeeCups, waterEntries, avgCaffeine };
   }, [visibleEntries]);
-  const hydrationTargetMl = period === "hoy" ? 2000 : period === "7d" ? 14000 : 60000;
-  const caffeineTargetMg = period === "hoy" ? 160 : period === "7d" ? 1120 : 4800;
-  const hydrationProgressPct = Math.max(0, Math.min(100, Math.round((analytics.hydrationMl / hydrationTargetMl) * 100)));
-  const caffeineTrendPct = Math.round(((analytics.caffeine - caffeineTargetMg) / Math.max(1, caffeineTargetMg)) * 100);
-  const hydrationTrendPct = Math.round(((analytics.hydrationMl - hydrationTargetMl) / Math.max(1, hydrationTargetMl)) * 100);
+  const hydrationTarget = hydrationTargetMl(period);
+  const caffeineTarget = caffeineTargetMg(period);
+  const hydrationProgressPct = hydrationProgressPercent(analytics.hydrationMl, period);
+  const caffeineTrendPct = trendPercent(analytics.caffeine, caffeineTarget);
+  const hydrationTrendPct = trendPercent(analytics.hydrationMl, hydrationTarget);
   const chartData = useMemo(() => {
     if (period === "hoy") {
       const byHour = new Map<number, { caffeine: number; water: number }>();
@@ -237,13 +267,13 @@ export function DiaryView({
     { label: "Prensa francesa", drawable: "maq_prensa_francesa.png" },
     { label: "Moka", drawable: "maq_italiana.png" },
     { label: "Goteo", drawable: "maq_goteo.png" },
-    { label: "SifÛn", drawable: "maq_sifon.png" },
+    { label: DIARY_STR.SIFON, drawable: "maq_sifon.png" },
     { label: "Turco", drawable: "maq_turco.png" },
     { label: "Manual", drawable: "maq_manual.png" }
   ];
   const editSizeOptions = [
     { label: "Espresso", range: "25-30 ml", ml: 30, drawable: "taza_espresso.png" },
-    { label: "PequeÒo", range: "150-200 ml", ml: 175, drawable: "taza_pequeno.png" },
+    { label: DIARY_STR.PEQUENO, range: "150-200 ml", ml: 175, drawable: "taza_pequeno.png" },
     { label: "Mediano", range: "250-300 ml", ml: 275, drawable: "taza_mediano.png" },
     { label: "Grande", range: "320-400 ml", ml: 360, drawable: "taza_grande.png" }
   ];
@@ -257,7 +287,7 @@ export function DiaryView({
     parsedStockRemaining <= parsedStockTotal;
   const stockValidationMessage =
     (!Number.isFinite(parsedStockTotal) || !Number.isFinite(parsedStockRemaining))
-      ? "Introduce valores v·lidos."
+      ? "Introduce valores vùlidos."
       : parsedStockTotal < 1
       ? "El total debe ser mayor que 0."
       : parsedStockRemaining < 0
@@ -274,18 +304,17 @@ export function DiaryView({
     (editEntryIsWater || (Number.isFinite(parsedEditCaffeine) && parsedEditCaffeine >= 0));
   const editValidationMessage =
     !Number.isFinite(parsedEditAmount)
-      ? "Introduce una cantidad v·lida."
+      ? "Introduce una cantidad vùlida."
       : parsedEditAmount <= 0
       ? "La cantidad debe ser mayor que 0 ml."
       : (!editEntryIsWater && !Number.isFinite(parsedEditCaffeine))
-        ? "Introduce una cafeÌna v·lida."
+        ? "Introduce una cafeùna vùlida."
       : (!editEntryIsWater && parsedEditCaffeine < 0)
-        ? "La cafeÌna no puede ser negativa."
+        ? "La cafeùna no puede ser negativa."
         : "";
   const handleEditScrollPointerDown = (event: ReactPointerEvent<HTMLDivElement>, section: "prep" | "size") => {
     const node = section === "prep" ? editPrepScrollRef.current : editSizeScrollRef.current;
     if (!node) return;
-    if (event.pointerType !== "mouse") return;
     if (node.scrollWidth <= node.clientWidth) return;
     editScrollPointerIdRef.current = event.pointerId;
     editScrollTargetRef.current = node;
@@ -299,7 +328,7 @@ export function DiaryView({
     if (editScrollPointerIdRef.current !== event.pointerId) return;
     const delta = event.clientX - editScrollStartXRef.current;
     if (!editScrollActiveRef.current) {
-      if (Math.abs(delta) < 6) return;
+      if (Math.abs(delta) < 4) return;
       editScrollActiveRef.current = true;
       setEditChipsDragging(true);
       if (!node.hasPointerCapture(event.pointerId)) {
@@ -358,7 +387,7 @@ export function DiaryView({
               setEditEntryId(entry.id);
               setEditAmountMl(String(Math.max(1, entry.amount_ml || 1)));
               setEditCaffeineMg(String(Math.max(0, entry.caffeine_mg || 0)));
-              setEditPreparationType((entry.preparation_type || "").trim() || (isWater ? "Agua" : "Sin mÈtodo"));
+              setEditPreparationType((entry.preparation_type || "").trim() || (isWater ? "Agua" : DIARY_STR.SIN_METODO));
             }}
             onDelete={async () => {
               if (deletingEntryId === entry.id) return;
@@ -372,7 +401,7 @@ export function DiaryView({
             }}
           />
         );
-      }) : <li className="diary-empty-card">Sin cafÈ o agua registrada</li>}
+      }) : <li className="diary-empty-card">{DIARY_STR.SIN_CAFE_AGUA}</li>}
     </ul>
   );
   const pantryList = (
@@ -428,28 +457,22 @@ export function DiaryView({
             </div>
           </div>
         </li>
-      )) : <li className="diary-empty-card">No hay cafÈ en tu despensa</li>}
+      )) : <li className="diary-empty-card">{DIARY_STR.NO_HAY_CAFE_DESPENSA}</li>}
     </ul>
   );
 
   return (
     <>
       <article className="diary-analytics-card">
-        <div className="diary-analytics-head">
-          <strong className="diary-analytics-card-title">ESTADO ACTUAL</strong>
-          <Button variant="plain" className="diary-analytics-add" onClick={onOpenQuickActions} aria-label="Nuevo registro">
-            <UiIcon name="add" className="ui-icon" />
-          </Button>
-        </div>
         <div className="diary-analytics-top">
           <div className="diary-analytics-head-block">
             <p className="metric-label diary-analytics-label">
-              CAFEÕNA ESTIMADA
+              {DIARY_STR.CAFEINA_ESTIMADA}
               <span className="diary-analytics-info-wrap">
                 <Button variant="plain"
                   type="button"
                   className="diary-analytics-info"
-                  aria-label="InformaciÛn de cafeÌna estimada"
+                  aria-label={DIARY_STR.ARIA_CAFEINA}
                   aria-expanded={showCaffeineInfo}
                   onClick={() => setShowCaffeineInfo((value) => !value)}
                   onMouseEnter={() => setShowCaffeineInfo(true)}
@@ -460,28 +483,28 @@ export function DiaryView({
                 </Button>
                 {showCaffeineInfo ? (
                   <span className="diary-analytics-tooltip" role="tooltip">
-                    EstimaciÛn basada en tus registros de consumo en el periodo seleccionado.
+                    {DIARY_STR.TOOLTIP_ESTIMACION}
                   </span>
                 ) : null}
               </span>
             </p>
             <p className="analytics-value diary-analytics-main-value">{analytics.caffeine} mg</p>
-            <span className={`diary-analytics-trend ${caffeineTrendPct >= 0 ? "is-up" : "is-down"}`.trim()}>
-              {caffeineTrendPct >= 0 ? "?" : "?"} {Math.abs(caffeineTrendPct)}%
+            <span className={`diary-analytics-trend ${caffeineTrendPct >= 0 ? "is-up" : "is-down"}`.trim()} aria-hidden="true">
+              {caffeineTrendPct >= 0 ? "\u2191" : "\u2193"} {Math.abs(caffeineTrendPct)}%
             </span>
           </div>
           <div className="diary-analytics-head-block diary-analytics-hydration">
-            <p className="metric-label diary-analytics-label">HIDRATACI”N</p>
+            <p className="metric-label diary-analytics-label">{DIARY_STR.HIDRATACION}</p>
             <p className="analytics-value diary-analytics-main-value">{analytics.hydrationMl} ml</p>
-            <span className={`diary-analytics-trend is-water ${hydrationTrendPct >= 0 ? "is-up" : "is-down"}`.trim()}>
-              {hydrationTrendPct >= 0 ? "?" : "?"} {Math.abs(hydrationTrendPct)}%
+            <span className={`diary-analytics-trend is-water ${hydrationTrendPct >= 0 ? "is-up" : "is-down"}`.trim()} aria-hidden="true">
+              {hydrationTrendPct >= 0 ? "\u2191" : "\u2193"} {Math.abs(hydrationTrendPct)}%
             </span>
           </div>
         </div>
         <div
           ref={chartScrollRef}
           className={`diary-chart-scroll ${chartDragging ? "is-dragging" : ""}`.trim()}
-          aria-label="Gr·fico de consumo"
+          aria-label={DIARY_STR.GRAFICO_CONSUMO}
           onPointerDown={(event) => {
             const node = chartScrollRef.current;
             if (!node) return;
@@ -498,7 +521,8 @@ export function DiaryView({
             if (!node || chartPointerIdRef.current !== event.pointerId) return;
             event.preventDefault();
             const delta = event.clientX - chartDragStartXRef.current;
-            node.scrollLeft = chartDragStartScrollRef.current - delta;
+            const newLeft = chartDragStartScrollRef.current - delta;
+            node.scrollLeft = Math.max(0, Math.min(node.scrollWidth - node.clientWidth, newLeft));
           }}
           onPointerUp={(event) => {
             const node = chartScrollRef.current;
@@ -542,8 +566,8 @@ export function DiaryView({
                       <span
                         className={`diary-chart-bar caffeine ${hasCaffeine ? "is-active" : ""}`.trim()}
                         style={{ height: `${caffeineHeight}px` }}
-                        title={`CafeÌna: ${Math.round(item.caffeine)} mg`}
-                        aria-label={`CafeÌna ${Math.round(item.caffeine)} miligramos`}
+                        title={`Cafeùna: ${Math.round(item.caffeine)} mg`}
+                        aria-label={`Cafeùna ${Math.round(item.caffeine)} miligramos`}
                       />
                     </div>
                     <div className="diary-chart-bar-wrap">
@@ -646,14 +670,14 @@ export function DiaryView({
       ) : null}
 
       {pantryDeleteConfirmCoffeeId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Confirmar eliminaciÛn" onDismiss={() => setPantryDeleteConfirmCoffeeId(null)} onClick={() => setPantryDeleteConfirmCoffeeId(null)}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label={DIARY_STR.CONFIRMAR_ELIMINACION} onDismiss={() => setPantryDeleteConfirmCoffeeId(null)} onClick={() => setPantryDeleteConfirmCoffeeId(null)}>
           <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">ELIMINAR DE DESPENSA</strong>
             </header>
             <div className="diary-sheet-form">
-              <p className="feed-meta">øSeguro que quieres eliminar este cafÈ de tu despensa?</p>
+              <p className="feed-meta">ùSeguro que quieres eliminar este cafù de tu despensa?</p>
               <div className="diary-sheet-form-actions">
                 <Button variant="plain" type="button" className="action-button action-button-ghost" onClick={() => setPantryDeleteConfirmCoffeeId(null)} disabled={removingStock}>
                   Cancelar
@@ -762,7 +786,7 @@ export function DiaryView({
           <SheetCard className="diary-sheet diary-edit-entry-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
-              <strong className="sheet-title">Editar registro de cafÈ</strong>
+              <strong className="sheet-title">{DIARY_STR.EDITAR_REGISTRO_CAFE}</strong>
             </header>
             <div className="diary-sheet-form">
               {editEntryIsWater ? (
@@ -780,7 +804,7 @@ export function DiaryView({
               ) : (
                 <div className="diary-edit-entry-coffee-layout">
                   <section className="diary-edit-entry-block">
-                    <h4 className="diary-edit-entry-block-title">PreparaciÛn</h4>
+                    <h4 className="diary-edit-entry-block-title">{DIARY_STR.PREPARACION}</h4>
                     <div
                       ref={editPrepScrollRef}
                       className={`diary-edit-entry-presets is-coffee ${editChipsDragging ? "is-dragging" : ""}`.trim()}
@@ -803,8 +827,8 @@ export function DiaryView({
                   </section>
 
                   <section className="diary-edit-entry-metrics-grid">
-                    <label className="diary-edit-entry-metric-field">
-                      <span>CafeÌna (mg)</span>
+                    <label className="diary-edit-entry-metric-field is-caffeine">
+                      <span>{DIARY_STR.CAFEINA_MG}</span>
                       <div className="diary-edit-entry-metric-value">
                         <UiIcon name="caffeine" className="ui-icon" />
                         <Input
@@ -829,7 +853,7 @@ export function DiaryView({
                   </section>
 
                   <section className="diary-edit-entry-block">
-                    <h4 className="diary-edit-entry-block-title">TamaÒo</h4>
+                    <h4 className="diary-edit-entry-block-title">{DIARY_STR.TAMANO}</h4>
                     <div
                       ref={editSizeScrollRef}
                       className={`diary-coffee-size-presets diary-edit-entry-size-presets ${editChipsDragging ? "is-dragging" : ""}`.trim()}
@@ -910,8 +934,18 @@ function DiaryActivityRow({
   onDelete: () => Promise<void>;
 }) {
   const isWaterEntry = (entry.type || "").toUpperCase() === "WATER";
-  const entryTitle = entry.coffee_name || (isWaterEntry ? "Agua" : "Entrada");
-  const entrySubtitle = (brand || (isWaterEntry ? "Agua" : "CafÈ")).toUpperCase();
+  const coffeeNameNorm = (entry.coffee_name || "").trim().toLowerCase();
+  const isRegistroRapido = !isWaterEntry && (
+    (entry.coffee_id == null || entry.coffee_id === "") ||
+    coffeeNameNorm === DIARY_STR.REGISTRO_RAPIDO.toLowerCase() ||
+    /registro\s*rapido/i.test(coffeeNameNorm)
+  );
+  const entryTitle = isRegistroRapido
+    ? (entry.preparation_type || "").trim() || DIARY_STR.REGISTRO_RAPIDO
+    : entry.coffee_name || (isWaterEntry ? "Agua" : "Entrada");
+  const entrySubtitle = isRegistroRapido
+    ? DIARY_STR.CAFE_BRAND
+    : (brand || (isWaterEntry ? "Agua" : DIARY_STR.CAFE_LABEL)).toUpperCase();
   const prepValue = (entry.preparation_type || "").trim() || (isWaterEntry ? "Agua" : "-");
   const doseFromPrep = ((entry.preparation_type || "").match(/(\d+(?:[.,]\d+)?)\s*g/i)?.[1] || "").replace(",", ".");
   const doseValue = doseFromPrep ? `${Math.round(Number(doseFromPrep))} g` : (isWaterEntry ? "-" : "15 g");
@@ -946,10 +980,10 @@ function DiaryActivityRow({
     return "taza_grande.png";
   })();
   const metaItems: Array<{ key: string; icon?: IconName; drawable?: string; label: string; value: string }> = [
-    { key: "caffeine", icon: "caffeine", label: "CafeÌna", value: `${Math.max(0, entry.caffeine_mg || 0)} mg` },
-    { key: "prep", drawable: prepDrawable, label: "PreparaciÛn", value: prepValue },
+    { key: "caffeine", icon: "caffeine", label: DIARY_STR.CAFEINA, value: `${Math.max(0, entry.caffeine_mg || 0)} mg` },
+    { key: "prep", drawable: prepDrawable, label: DIARY_STR.PREPARACION, value: prepValue },
     { key: "dose", icon: "grind", label: "Dosis", value: doseValue },
-    { key: "size", drawable: sizeDrawable ?? undefined, icon: sizeDrawable ? undefined : "stock", label: "TamaÒo", value: sizeValue }
+    { key: "size", drawable: sizeDrawable ?? undefined, icon: sizeDrawable ? undefined : "stock", label: DIARY_STR.TAMANO, value: sizeValue }
   ];
   const metaScrollRef = useRef<HTMLDivElement | null>(null);
   const metaPointerIdRef = useRef<number | null>(null);
@@ -1055,11 +1089,11 @@ function DiaryActivityRow({
         <div className="diary-card">
           <div className="diary-entry-head">
             <div className="diary-entry-media">
-              {imageUrl ? (
+              {imageUrl && !isRegistroRapido ? (
                 <img src={imageUrl} alt={entryTitle} loading="lazy" />
               ) : (
                 <span className="diary-entry-fallback" aria-hidden="true">
-                  <UiIcon name={isWaterEntry ? "stock" : "coffee"} className="ui-icon" />
+                  <UiIcon name={isWaterEntry ? "stock" : isRegistroRapido ? "coffee-filled" : "coffee"} className="ui-icon" />
                 </span>
               )}
             </div>
@@ -1080,7 +1114,6 @@ function DiaryActivityRow({
               metaInteractingRef.current = true;
               const node = metaScrollRef.current;
               if (!node) return;
-              if (event.pointerType !== "mouse") return;
               if (node.scrollWidth <= node.clientWidth) return;
               event.preventDefault();
               metaPointerIdRef.current = event.pointerId;

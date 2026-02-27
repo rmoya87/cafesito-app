@@ -1,4 +1,4 @@
-﻿import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { BREW_METHODS } from "../../config/brew";
 import { formatClock, getBrewDialRecommendation, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
@@ -49,7 +49,9 @@ export function BrewLabView({
   onSaveResultToDiary: (taste: string) => Promise<void>;
 }) {
   const [brewCoffeeQuery, setBrewCoffeeQuery] = useState("");
+  const [brewSearchFocus, setBrewSearchFocus] = useState(false);
   const [resultTaste, setResultTaste] = useState("");
+  const showBrewSearchCancel = Boolean(brewCoffeeQuery || brewSearchFocus);
   const [savingResult, setSavingResult] = useState(false);
   const q = normalizeLookupText(brewCoffeeQuery);
   const filteredPantry = useMemo(
@@ -213,13 +215,33 @@ export function BrewLabView({
             )}
           </div>
 
-          <Input
-            variant="search"
-            className="search-wide search-input-standard brew-coffee-search"
-            value={brewCoffeeQuery}
-            onChange={(event) => setBrewCoffeeQuery(event.target.value)}
-            placeholder="Buscar café..."
-          />
+          <div className={`search-row-with-cancel ${showBrewSearchCancel ? "has-cancel" : ""}`.trim()}>
+            <Input
+              variant="search"
+              className="search-wide search-input-standard brew-coffee-search"
+              value={brewCoffeeQuery}
+              onChange={(event) => setBrewCoffeeQuery(event.target.value)}
+              onFocus={() => setBrewSearchFocus(true)}
+              onBlur={() => setBrewSearchFocus(false)}
+              placeholder="Buscar café..."
+              aria-label="Buscar café"
+            />
+            <Button
+              variant="text"
+              type="button"
+              className={`search-cancel-button ${showBrewSearchCancel ? "is-visible" : ""}`}
+              onClick={() => {
+                setBrewCoffeeQuery("");
+                setBrewSearchFocus(false);
+                const el = document.activeElement;
+                if (el instanceof HTMLElement) el.blur();
+              }}
+              aria-hidden={!showBrewSearchCancel}
+              tabIndex={showBrewSearchCancel ? 0 : -1}
+            >
+              Cancelar
+            </Button>
+          </div>
 
           <div className="brew-coffee-block-head">
             <p className="section-title">Sugerencias</p>
@@ -479,7 +501,9 @@ export function CreateCoffeeView({
   onRemoveImage,
   onClose,
   onSave,
-  fullPage
+  fullPage,
+  hideActions,
+  hideHead
 }: {
   draft: {
     name: string;
@@ -513,6 +537,8 @@ export function CreateCoffeeView({
   onClose: () => void;
   onSave: () => void;
   fullPage: boolean;
+  hideActions?: boolean;
+  hideHead?: boolean;
 }) {
   const rootRef = useRef<HTMLElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -576,9 +602,11 @@ export function CreateCoffeeView({
 
   return (
     <section ref={rootRef} className={`create-coffee-view ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}>
-      <div className="create-coffee-head">
-        <p className="section-title">Datos del café</p>
-      </div>
+      {!hideHead ? (
+        <div className="create-coffee-head">
+          <p className="section-title">Datos del café</p>
+        </div>
+      ) : null}
       <p className="create-coffee-hint">{attemptedSave ? (canSave ? "Listo para guardar" : `Faltan ${missingRequiredCount} campos obligatorios`) : ""}</p>
       <div className="create-coffee-image create-coffee-image-top create-coffee-image-card">
         <Input
@@ -715,7 +743,7 @@ export function CreateCoffeeView({
         </div>
       </div>
       {error ? <p className="create-coffee-error">{error}</p> : null}
-      {!fullPage ? (
+      {!hideActions && !fullPage ? (
         <div className="create-coffee-actions">
           <Button variant="plain" className="action-button action-button-ghost" onClick={onClose} disabled={saving}>
             Cancelar
@@ -725,7 +753,7 @@ export function CreateCoffeeView({
           </Button>
         </div>
       ) : null}
-      {fullPage ? (
+      {!hideActions && fullPage ? (
         <Button variant="plain" className="action-button create-coffee-mobile-save" onClick={handleSaveAttempt} disabled={saving}>
           {saving ? "Guardando..." : "Guardar café"}
         </Button>
