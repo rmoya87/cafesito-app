@@ -22,12 +22,24 @@ export function LoginGate({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    video.setAttribute("webkit-playsinline", "true");
+    video.muted = true;
     const play = () => {
+      video.muted = true;
       video.play().catch(() => {});
     };
-    if (video.readyState >= 2) play();
-    else video.addEventListener("loadeddata", play);
-    return () => video.removeEventListener("loadeddata", play);
+    const tryPlay = () => {
+      requestAnimationFrame(() => play());
+    };
+    tryPlay();
+    video.addEventListener("loadeddata", tryPlay);
+    video.addEventListener("canplay", tryPlay);
+    video.addEventListener("canplaythrough", tryPlay);
+    return () => {
+      video.removeEventListener("loadeddata", tryPlay);
+      video.removeEventListener("canplay", tryPlay);
+      video.removeEventListener("canplaythrough", tryPlay);
+    };
   }, []);
 
   const authContent = (

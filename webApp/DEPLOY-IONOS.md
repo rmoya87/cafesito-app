@@ -31,15 +31,34 @@ Si al desplegar en Ionos ves **500** en `registerSW.js`, `assets/index-*.js`, `i
 4. **Comprobar en Ionos**
    - Si Ionos desactiva `.htaccess` (AllowOverride), las reglas no se aplicarán. En ese caso, usa el panel de Ionos para configurar reescritura o contacta con soporte para que los estáticos se sirvan sin pasar por PHP.
 
+### «Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY» (iOS / producción)
+
+Ese mensaje aparece cuando la app se ejecuta sin la configuración de Supabase. Tienes **dos opciones**:
+
+1. **Build con variables de entorno (recomendado)**  
+   Crea en `webApp/` un archivo `.env` con:
+   ```
+   VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJ...tu_anon_key...
+   ```
+   Luego ejecuta `npm run build` en esa carpeta. Las variables se embeben en el build y no hace falta tocar el HTML en el servidor.
+
+2. **Config en runtime (sin volver a hacer build)**  
+   Si no puedes pasar env en el build, la app puede leer la config desde `window.__SUPABASE_CONFIG__`. En el **index.html desplegado** (el que está en `dist/` o en el servidor), añade **antes** del `<script>` que carga la app algo así:
+   ```html
+   <script>
+   window.__SUPABASE_CONFIG__ = {
+     url: "https://TU_PROYECTO.supabase.co",
+     anonKey: "eyJ...tu_anon_key..."
+   };
+   </script>
+   ```
+   Así el login con Google funcionará sin recompilar.
+
 ### Login: video de fondo y botón «Continuar con Google»
 
-- **Video de fondo**: Usa ruta relativa (`base`) y reproducción programática al cargar, para que funcione en el servidor y en móviles.
-- **Botón Google**: Si al pulsar no ocurre nada, revisa:
-  1. **Variables de entorno en el build**: La build debe tener `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`. Si faltan, se mostrará el mensaje de error bajo el botón.
-  2. **URL de redirección en Supabase**: En el proyecto de Supabase → Authentication → URL Configuration, añade en **Redirect URLs** la URL exacta de tu app en producción, por ejemplo:
-     - `https://cafesitoapp.com/`
-     - o `https://cafesitoapp.com/app/` si la app está en un subdirectorio.
-     Sin esa URL, tras iniciar sesión con Google el usuario no podrá volver correctamente.
+- **Video de fondo**: Usa ruta relativa y reproducción programática (incl. iOS con `webkit-playsinline`). Si en iOS no se reproduce, el navegador puede estar bloqueando el autoplay hasta la primera interacción.
+- **Botón Google**: Además de la config anterior, en Supabase → Authentication → URL Configuration añade en **Redirect URLs** la URL exacta de tu app (p. ej. `https://cafesitoapp.com/` o `https://cafesitoapp.com/app/`).
 
 ### CSP y fuente externa
 
