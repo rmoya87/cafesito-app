@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toggleFavoriteCoffee } from "../data/supabaseApi";
 import { BREW_METHODS, COMMENT_EMOJIS } from "../config/brew";
-import { parseRoute } from "../core/routing";
+import { getAppRootPath, parseRoute } from "../core/routing";
 import { shouldUseRightRailDetail, sidePanelForTab } from "../core/layouts";
 import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
 import { getBrewStepTitle } from "../core/brew";
@@ -350,9 +350,11 @@ export function AppContainer() {
   });
 
   useRouteCanonicalSync();
+  const loginRootPath = useMemo(() => getAppRootPath(window.location.pathname) || "/", []);
   useRouteGuardSync({
     isAuthenticated: Boolean(sessionEmail),
-    onBlocked: requestLogin
+    onBlocked: requestLogin,
+    fallbackPath: loginRootPath
   });
 
   useGlobalUiEvents({

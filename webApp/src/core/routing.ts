@@ -1,4 +1,4 @@
-﻿import type { TabId } from "../types";
+import type { TabId } from "../types";
 import { normalizeLookupText } from "./text";
 
 export function parseRoute(pathname: string) {
@@ -34,6 +34,17 @@ export function parseRoute(pathname: string) {
     };
   }
   return { tab: "timeline" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null };
+}
+
+const TAB_SEGMENTS = ["timeline", "search", "brewlab", "diary", "profile", "coffee"];
+
+/** Pathname de la raíz de la app (para mostrar login en URL raíz, no /timeline). */
+export function getAppRootPath(pathname: string): string {
+  const segments = pathname.replace(/^\/|\/$/g, "").split("/").filter(Boolean);
+  const idx = segments.findIndex((s) => TAB_SEGMENTS.includes(s));
+  if (idx < 0) return pathname || "/";
+  if (idx === 0) return "/";
+  return "/" + segments.slice(0, idx).join("/");
 }
 
 export function toCoffeeSlug(name: string): string {
