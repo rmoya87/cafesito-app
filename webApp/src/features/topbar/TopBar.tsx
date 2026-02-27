@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { BrewStep, TabId } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Chip, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -26,6 +26,7 @@ export function TopBar({
   onDiaryOpenQuickActions,
   onDiaryOpenPeriodSelector,
   scrolled,
+  hidden = false,
   brewStep,
   brewStepTitle,
   onBrewBack,
@@ -63,6 +64,7 @@ export function TopBar({
   onDiaryOpenQuickActions: () => void;
   onDiaryOpenPeriodSelector: () => void;
   scrolled: boolean;
+  hidden?: boolean;
   brewStep: BrewStep;
   brewStepTitle: string;
   onBrewBack: () => void;
@@ -106,7 +108,7 @@ export function TopBar({
   if (activeTab === "search") {
     if (searchMode === "users") {
       return (
-        <header className={`topbar topbar-search-users ${showSearchCancel ? "has-cancel" : ""} ${scrolled ? "topbar-scrolled" : ""}`.trim()}>
+        <header className={`topbar topbar-search-users ${showSearchCancel ? "has-cancel" : ""} ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
           <div className="topbar-slot">
             <IconButton tone="topbar" className="search-users-back" onClick={onSearchBack} aria-label="Atras">
               <UiIcon name="arrow-left" className="ui-icon" />
@@ -147,7 +149,7 @@ export function TopBar({
     }
 
     return (
-      <header className={`topbar topbar-search ${showSearchCancel ? "has-cancel" : ""} ${scrolled ? "topbar-scrolled" : ""}`.trim()}>
+      <header className={`topbar topbar-search ${showSearchCancel ? "has-cancel" : ""} ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
         <div className="search-coffee-field">
           <UiIcon name="search" className="ui-icon search-coffee-leading-icon" />
           {!searchQuery && !searchFocus ? (
@@ -205,7 +207,7 @@ export function TopBar({
   if (activeTab === "brewlab") {
     if (brewCreateCoffeeOpen) {
       return (
-        <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
+        <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
           <div className="topbar-slot">
             <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Atras">
               <UiIcon name="arrow-left" className="ui-icon" />
@@ -240,7 +242,7 @@ export function TopBar({
   if (activeTab === "diary") {
     const periodLabel = diaryPeriod === "hoy" ? "HOY" : diaryPeriod === "7d" ? "SEMANA" : "MES";
     return (
-      <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""}`}>
+      <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
         <div className="topbar-slot" />
         <h1 className="title title-upper topbar-title-center">MI DIARIO</h1>
         <div className="topbar-slot topbar-slot-end">
@@ -256,7 +258,7 @@ export function TopBar({
   if (activeTab === "profile") {
     return (
       <>
-        <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""}`}>
+        <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
           <div className="topbar-slot" />
           <h1 className="title title-upper topbar-title-center">PERFIL</h1>
           <div className="topbar-slot topbar-slot-end">
@@ -307,7 +309,7 @@ export function TopBar({
 
   if (activeTab === "coffee") {
     return (
-      <header className={`topbar topbar-timeline topbar-centered topbar-coffee ${scrolled ? "topbar-scrolled" : ""}`}>
+      <header className={`topbar topbar-timeline topbar-centered topbar-coffee ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
         <div className="topbar-slot">
           <IconButton tone="topbar" onClick={onCoffeeBack} aria-label="Volver">
             <UiIcon name="arrow-left" className="ui-icon" />
@@ -327,7 +329,7 @@ export function TopBar({
   }
 
   return (
-    <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""}`}>
+    <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
       <div className="topbar-slot">
         <IconButton tone="topbar" aria-label="Buscar Usuarios" onClick={onTimelineSearchUsers}>
           <UiIcon name="search" className="ui-icon" />

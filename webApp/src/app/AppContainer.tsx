@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toggleFavoriteCoffee } from "../data/supabaseApi";
 import { BREW_METHODS, COMMENT_EMOJIS } from "../config/brew";
 import { parseRoute } from "../core/routing";
@@ -232,6 +232,8 @@ export function AppContainer() {
   } = useTimelineComposerDomain();
   const [handledTimelineDeepLink, setHandledTimelineDeepLink] = useState(false);
   const [topbarScrolled, setTopbarScrolled] = useState(false);
+  const [topbarHidden, setTopbarHidden] = useState(false);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
   const [timelineActionBanner, setTimelineActionBanner] = useState<string | null>(null);
   const [timelineRefreshing, setTimelineRefreshing] = useState(false);
   const [timelineBusyMessage, setTimelineBusyMessage] = useState<string | null>(null);
@@ -360,6 +362,34 @@ export function AppContainer() {
     },
     onTopbarScroll: setTopbarScrolled
   });
+
+  useEffect(() => {
+    const el = mainScrollRef.current;
+    if (!el) return;
+    const threshold = 24;
+    let lastScrollTop = el.scrollTop;
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const st = el.scrollTop;
+          setTopbarScrolled(st > 18);
+          if (st <= threshold) {
+            setTopbarHidden(false);
+          } else if (st > lastScrollTop) {
+            setTopbarHidden(true);
+          } else {
+            setTopbarHidden(false);
+          }
+          lastScrollTop = st;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     if (supabaseConfigError) return;
@@ -1390,6 +1420,7 @@ export function AppContainer() {
           onDiaryOpenQuickActions={topbarActions.onDiaryOpenQuickActions}
           onDiaryOpenPeriodSelector={topbarActions.onDiaryOpenPeriodSelector}
           scrolled={topbarScrolled}
+          hidden={topbarHidden}
           brewStep={brewStep}
           brewStepTitle={getBrewStepTitle(brewStep)}
           onBrewBack={topbarActions.onBrewBack}
@@ -1413,7 +1444,7 @@ export function AppContainer() {
           onCoffeeTopbarToggleFavorite={topbarActions.onCoffeeTopbarToggleFavorite}
           onCoffeeTopbarOpenStock={topbarActions.onCoffeeTopbarOpenStock}
         />
-        <div className="main-shell-scroll">
+        <div ref={mainScrollRef} className="main-shell-scroll">
           <AppContentRouter
           activeTab={guardedActiveTab}
           mode={mode}

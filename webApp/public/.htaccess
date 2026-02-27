@@ -1,0 +1,21 @@
+# Ionos / Apache: SPA + servir estáticos sin 500
+# Copiado a la raíz de dist en el build (Vite copia public/ a dist/)
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  # No reescribir si existe un fichero o directorio (evita 500 en assets, sw, manifest, etc.)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Tipos MIME para que el servidor sirva bien los estáticos
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType text/css .css
+  AddType application/manifest+json .webmanifest
+  AddType image/png .png
+  AddType image/svg+xml .svg
+</IfModule>
+
