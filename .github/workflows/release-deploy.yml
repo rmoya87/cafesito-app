@@ -1,33 +1,87 @@
-name: Release Android to Google Play
+# Workflow único: release Android (Play Console) y deploy web (Ionos) según rama.
+# - main: no hace nada (solo unificación de código).
+# - Interna / Alpha / Beta / Producción: solo actúa si hay cambios en los paths correspondientes.
+
+name: Release & Deploy
 
 on:
   push:
     branches:
-      - main
+      - Interna
       - Alpha
       - Beta
-      - Interna
+      - Producción
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Rama a usar (Interna, Alpha, Beta, Producción)'
+        required: true
+        default: 'Beta'
+        type: choice
+        options:
+          - Interna
+          - Alpha
+          - Beta
+          - Producción
 
 permissions:
   contents: write
   pull-requests: read
 
 concurrency:
-  group: play-release
+  group: release-deploy-${{ github.ref_name }}
   cancel-in-progress: true
 
+env:
+  TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name }}
+
 jobs:
-  release:
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+  # Detecta qué ha cambiado para no subir por subir (en manual trigger se asume que hay cambios)
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      android: ${{ steps.filter.outputs.android || steps.manual.outputs.android }}
+      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set changes for manual run
+        if: github.event_name == 'workflow_dispatch'
+        id: manual
+        run: |
+          echo "android=true" >> "$GITHUB_OUTPUT"
+          echo "web=true" >> "$GITHUB_OUTPUT"
+
+      - uses: dorny/paths-filter@v3
+        if: github.event_name == 'push'
+        id: filter
+        with:
+          base: ${{ github.event.before }}
+          ref: ${{ github.sha }}
+          filters: |
+            android:
+              - 'app/**'
+              - 'shared/**'
+            web:
+              - 'webApp/**'
+
+  # Subida a Google Play solo si hay cambios en Android
+  release-android:
+    needs: changes
+    if: |
+      needs.changes.outputs.android == 'true' &&
+      (env.TARGET_BRANCH == 'Interna' || env.TARGET_BRANCH == 'Alpha' || env.TARGET_BRANCH == 'Beta' || env.TARGET_BRANCH == 'Producción')
     runs-on: ubuntu-latest
     env:
-      TARGET_BRANCH: ${{ github.ref_name }}
+      TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/heads/{0}', env.TARGET_BRANCH) || github.sha }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -36,7 +90,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
 
       - name: Configure keystore
         env:
@@ -49,7 +103,7 @@ jobs:
             echo "Missing ANDROID_KEYSTORE_BASE64 secret" >&2
             exit 1
           fi
-          python - <<'PY'
+          python3 - <<'PY'
           import base64
           import os
           data = os.environ.get("KEYSTORE_BASE64", "")
@@ -104,7 +158,7 @@ jobs:
       - name: Determine Play track
         id: track
         run: |
-          BRANCH="${GITHUB_REF_NAME}"
+          BRANCH="${TARGET_BRANCH}"
           TRACK=""
           case "${BRANCH}" in
             Interna)
@@ -116,11 +170,11 @@ jobs:
             Beta)
               TRACK="beta"
               ;;
-            main)
+            Producción)
               TRACK="production"
               ;;
             *)
-              echo "Branch ${BRANCH} not supported" >&2
+              echo "Branch ${BRANCH} not supported for Play" >&2
               exit 1
               ;;
           esac
@@ -131,22 +185,6 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const sha = context.payload.after;
-            let notes = '';
-            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner,
-              repo,
-              commit_sha: sha,
-            });
-            if (prs.data.length) {
-              notes = prs.data.map(pr => `- #${pr.number} ${pr.title}`).join('\n');
-            } else if (context.payload.head_commit?.message) {
-              notes = `- ${context.payload.head_commit.message}`;
-            } else {
-              notes = '- Release automático';
-            }
             const promo = [
               '¡Nueva versión disponible! ☕️',
               'Mejoramos el rendimiento y la estabilidad para una experiencia más fluida.',
@@ -165,3 +203,42 @@ jobs:
           track: ${{ steps.track.outputs.track }}
           status: completed
           whatsNewDirectory: release-notes
+
+  # Deploy web a Ionos solo si hay cambios en webApp (Beta y Producción)
+  deploy-web:
+    needs: changes
+    if: |
+      needs.changes.outputs.web == 'true' &&
+      (env.TARGET_BRANCH == 'Beta' || env.TARGET_BRANCH == 'Producción')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: webApp/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Ionos (cafesito-web/app)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.IONOS_FTP_SERVER }}
+          username: ${{ secrets.IONOS_FTP_USER }}
+          password: ${{ secrets.IONOS_FTP_PASSWORD }}
+          local-dir: ./webApp/dist/
+          server-dir: cafesito-web/app
+          dangerous-clean-slate: false
