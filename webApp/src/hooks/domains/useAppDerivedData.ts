@@ -312,8 +312,9 @@ export function useAppDerivedData({
   const createCoffeeCountryOptions = useMemo(() => {
     const fromCatalog = searchOriginOptions;
     try {
-      if (typeof Intl !== "undefined" && typeof (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf === "function") {
-        const codes = (Intl as { supportedValuesOf: (key: string) => string[] }).supportedValuesOf("region").filter((c) => c.length === 2);
+      const IntlWithRegion = Intl as unknown as { supportedValuesOf?: (key: string) => string[] };
+      if (typeof Intl !== "undefined" && typeof IntlWithRegion.supportedValuesOf === "function") {
+        const codes = IntlWithRegion.supportedValuesOf("region").filter((c) => c.length === 2);
         const displayNames = new Intl.DisplayNames(["es"], { type: "region" });
         const names = new Set<string>(fromCatalog);
         codes.forEach((code) => {
@@ -407,7 +408,7 @@ export function useAppDerivedData({
   const diaryEntriesActivity = diaryEntries.slice(0, 80);
   const pantryCoffeeRows = pantryItems
     .map((item) => ({ item, coffee: brewCoffeeCatalog.find((coffee) => coffee.id === item.coffee_id) }))
-    .filter((row) => row.coffee);
+    .filter((row): row is { item: PantryItemRow; coffee: CoffeeRow } => row.coffee != null);
 
   const diaryCoffeeOptions = useMemo(() => {
     const map = new Map<string, CoffeeRow>();
