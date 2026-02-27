@@ -17,7 +17,7 @@ import type {
 } from "../types";
 import {
   mapCommentRow,
-  mapCustomCoffeeRow,
+  mapCoffeeRow,
   mapDiaryEntryRow,
   mapInitialDataBundle,
   mapPantryItemRow,
@@ -125,17 +125,17 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
   const [diaryRes, pantryRes, favoritesRes] = await Promise.all([diaryReq, pantryReq, favoritesReq]);
   throwIfError(diaryRes.error ?? pantryRes.error ?? favoritesRes.error);
 
-  // custom_coffees is optional for web pantry merge. If this query fails
-  // (RLS/schema/env differences), user pantry still must load.
+  // Custom coffees live in coffees with is_custom = true and user_id set.
   let customCoffees: CoffeeRow[] = [];
   try {
     const { data: customRows } = await supabase
-      .from("custom_coffees")
-      .select("id,user_id,name,brand,specialty,roast,variety,country,has_caffeine,format,image_url,total_grams")
+      .from("coffees")
+      .select("id,nombre,marca,pais_origen,descripcion,proceso,variedad_tipo,molienda_recomendada,product_url,cafeina,aroma,sabor,cuerpo,acidez,dulzura,especialidad,tueste,formato,image_url")
+      .eq("is_custom", true)
       .eq("user_id", userId)
       .limit(500);
 
-    customCoffees = (customRows ?? []).map(mapCustomCoffeeRow);
+    customCoffees = (customRows ?? []).map(mapCoffeeRow);
   } catch {
     customCoffees = [];
   }
@@ -420,26 +420,26 @@ export async function upsertCustomCoffee(payload: {
   const row = {
     id,
     user_id: payload.userId,
-    name: payload.name.trim(),
-    brand: payload.brand.trim(),
-    specialty: payload.specialty.trim(),
-    roast: payload.roast?.trim() || null,
-    variety: payload.variety?.trim() || null,
-    country: payload.country.trim(),
-    has_caffeine: payload.hasCaffeine,
-    format: payload.format.trim(),
+    nombre: payload.name.trim(),
+    marca: payload.brand.trim(),
+    especialidad: payload.specialty.trim(),
+    tueste: payload.roast?.trim() || null,
+    variedad_tipo: payload.variety?.trim() || null,
+    pais_origen: payload.country.trim(),
+    cafeina: payload.hasCaffeine ? "Sí" : "No",
+    formato: payload.format.trim(),
     image_url: payload.imageUrl ?? "",
-    total_grams: Math.max(1, Number(payload.totalGrams ?? 250))
+    is_custom: true
   };
 
   const { data, error } = await supabase
-    .from("custom_coffees")
+    .from("coffees")
     .upsert(row, { onConflict: "id" })
-    .select("id,name,brand,specialty,roast,variety,country,has_caffeine,format,image_url")
+    .select("id,nombre,marca,pais_origen,especialidad,tueste,variedad_tipo,cafeina,formato,image_url")
     .single();
   throwIfError(error);
 
-  return mapCustomCoffeeRow(data);
+  return mapCoffeeRow(data);
 }
 
 export async function createDiaryEntry(payload: {

@@ -22,6 +22,7 @@ export function useDiarySheetActions({
   setShowDiaryWaterSheet,
   setShowDiaryCoffeeSheet,
   setShowDiaryAddPantrySheet,
+  setPantrySheetStep,
   setDiaryWaterMlDraft,
   setDiaryCoffeeIdDraft,
   setDiaryCoffeeCaffeineDraft,
@@ -49,6 +50,7 @@ export function useDiarySheetActions({
   setShowDiaryWaterSheet: (value: boolean) => void;
   setShowDiaryCoffeeSheet: (value: boolean) => void;
   setShowDiaryAddPantrySheet: (value: boolean) => void;
+  setPantrySheetStep: (value: "select" | "form" | "createCoffee") => void;
   setDiaryWaterMlDraft: (value: string) => void;
   setDiaryCoffeeIdDraft: (value: string) => void;
   setDiaryCoffeeCaffeineDraft: (value: string) => void;
@@ -89,12 +91,12 @@ export function useDiarySheetActions({
   ]);
 
   const openAddPantrySheet = useCallback(() => {
-    const defaultCoffee = diaryCoffeeOptions[0];
-    setDiaryPantryCoffeeIdDraft(defaultCoffee?.id ?? "");
+    setDiaryPantryCoffeeIdDraft("");
     setDiaryPantryGramsDraft("250");
+    setPantrySheetStep("select");
     setShowDiaryQuickActions(false);
     setShowDiaryAddPantrySheet(true);
-  }, [diaryCoffeeOptions, setDiaryPantryCoffeeIdDraft, setDiaryPantryGramsDraft, setShowDiaryAddPantrySheet, setShowDiaryQuickActions]);
+  }, [setDiaryPantryCoffeeIdDraft, setDiaryPantryGramsDraft, setPantrySheetStep, setShowDiaryAddPantrySheet, setShowDiaryQuickActions]);
 
   const setDiaryCoffeeDraftWithCaffeine = useCallback(
     (coffeeId: string) => {

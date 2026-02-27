@@ -64,6 +64,8 @@ export type IconName =
   | "taste-salty"
   | "taste-watery"
   | "taste-sweet"
+  | "water"
+  | "bottle"
   | "clock";
 
 type TimelineNotificationItem = {
@@ -340,6 +342,16 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
   }
   if (name === "taste-watery") {
     return <MaterialSymbolIcon symbol="water_drop" filled={true} className={className} />;
+  }
+  if (name === "water") {
+    return <MaterialSymbolIcon symbol="water_drop" filled={true} className={className} />;
+  }
+  if (name === "bottle") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
+        <path d="M15 2H9v2H7v2h10V4h-2V2zm0 4H9v1.5c-2.2.3-4 2.2-4 4.5v10c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V12c0-2.3-1.8-4.2-4-4.5V6zm-2 2v1.5c1.2.2 2 1.2 2 2.5v1H9v-1c0-1.3.8-2.3 2-2.5V8h2z" />
+      </svg>
+    );
   }
   if (name === "taste-sweet") {
     return <MaterialSymbolIcon symbol="favorite" filled={true} className={className} />;

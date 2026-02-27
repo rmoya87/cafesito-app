@@ -503,7 +503,8 @@ export function CreateCoffeeView({
   onSave,
   fullPage,
   hideActions,
-  hideHead
+  hideHead,
+  showQuantityField = false
 }: {
   draft: {
     name: string;
@@ -539,6 +540,7 @@ export function CreateCoffeeView({
   fullPage: boolean;
   hideActions?: boolean;
   hideHead?: boolean;
+  showQuantityField?: boolean;
 }) {
   const rootRef = useRef<HTMLElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -741,6 +743,29 @@ export function CreateCoffeeView({
             </Button>
           ))}
         </div>
+        {showQuantityField ? (
+          <>
+            <p className="create-coffee-block-subtitle">Cantidad a añadir (g)</p>
+            <label className="create-coffee-quantity-row">
+              <Input
+                variant="default"
+                className="search-wide create-coffee-quantity-input"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={5000}
+                value={draft.totalGrams > 0 ? String(draft.totalGrams) : ""}
+                onChange={(event) => {
+                  const v = event.target.value;
+                  const n = v === "" ? 0 : Math.max(0, Math.min(5000, parseInt(v, 10) || 0));
+                  onChange({ ...draft, totalGrams: n });
+                }}
+                placeholder="250"
+                aria-label="Gramos a añadir a despensa"
+              />
+            </label>
+          </>
+        ) : null}
       </div>
       {error ? <p className="create-coffee-error">{error}</p> : null}
       {!hideActions && !fullPage ? (

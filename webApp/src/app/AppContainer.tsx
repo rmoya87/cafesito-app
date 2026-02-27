@@ -169,6 +169,7 @@ export function AppContainer() {
   const [diaryCoffeeCaffeineDraft, setDiaryCoffeeCaffeineDraft] = useState("95");
   const [diaryCoffeePreparationDraft, setDiaryCoffeePreparationDraft] = useState("Manual");
   const [showDiaryAddPantrySheet, setShowDiaryAddPantrySheet] = useState(false);
+  const [pantrySheetStep, setPantrySheetStep] = useState<"select" | "form" | "createCoffee">("select");
   const [diaryPantryCoffeeIdDraft, setDiaryPantryCoffeeIdDraft] = useState("");
   const [diaryPantryGramsDraft, setDiaryPantryGramsDraft] = useState("250");
   const [lastCreatedCoffeeNameForSheet, setLastCreatedCoffeeNameForSheet] = useState<string | null>(null);
@@ -257,6 +258,7 @@ export function AppContainer() {
     requestLogin
   } = useAuthSession();
   const isMobileOsDevice = useMemo(() => /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
+  const isIOS = useMemo(() => /iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
 
   const activeUser = useMemo(() => {
     if (!users.length) return null;
@@ -394,6 +396,7 @@ export function AppContainer() {
     timelineCards,
     filteredCoffees,
     searchOriginOptions,
+    createCoffeeCountryOptions,
     searchRoastOptions,
     searchSpecialtyOptions,
     searchFormatOptions,
@@ -497,7 +500,10 @@ export function AppContainer() {
     [diaryCoffeeIdDraft, diaryCoffeeOptions]
   );
   const selectedDiaryPantryCoffee = useMemo(
-    () => diaryCoffeeOptions.find((coffee) => coffee.id === diaryPantryCoffeeIdDraft) ?? diaryCoffeeOptions[0] ?? null,
+    () =>
+      diaryPantryCoffeeIdDraft
+        ? diaryCoffeeOptions.find((coffee) => coffee.id === diaryPantryCoffeeIdDraft) ?? null
+        : null,
     [diaryCoffeeOptions, diaryPantryCoffeeIdDraft]
   );
   const bumpPantryGrams = (delta: number) => {
@@ -531,6 +537,7 @@ export function AppContainer() {
     setShowDiaryWaterSheet,
     setShowDiaryCoffeeSheet,
     setShowDiaryAddPantrySheet,
+    setPantrySheetStep,
     setDiaryWaterMlDraft,
     setDiaryCoffeeIdDraft,
     setDiaryCoffeeCaffeineDraft,
@@ -811,6 +818,35 @@ export function AppContainer() {
     />
   );
 
+  const isCreateCoffeeFormValid =
+    createCoffeeDraft.name.trim() !== "" &&
+    createCoffeeDraft.brand.trim() !== "" &&
+    createCoffeeDraft.specialty.trim() !== "" &&
+    createCoffeeDraft.country.trim() !== "" &&
+    createCoffeeDraft.format.trim() !== "";
+
+  const createCoffeeFormForPantrySheet = (
+    <CreateCoffeeView
+      draft={createCoffeeDraft}
+      imagePreviewUrl={createCoffeeImagePreviewUrl}
+      saving={createCoffeeSaving}
+      error={createCoffeeError}
+      countryOptions={createCoffeeCountryOptions}
+      specialtyOptions={searchSpecialtyOptions}
+      onChange={setCreateCoffeeDraft}
+      onPickImage={onPickCreateCoffeeImage}
+      onRemoveImage={onRemoveCreateCoffeeImage}
+      onClose={() => setPantrySheetStep("select")}
+      onSave={async () => {
+        await handleCreateCoffeeNextForPantry();
+      }}
+      fullPage={false}
+      hideActions={true}
+      hideHead={true}
+      showQuantityField={true}
+    />
+  );
+
   const handleCreateCoffeeNext = useCallback(async () => {
     const result = await saveCreateCoffee({ fromDiarySheet: true });
     if (result) {
@@ -819,6 +855,14 @@ export function AppContainer() {
       setCoffeeSheetStep("dose");
     }
   }, [saveCreateCoffee, setDiaryCoffeeDraftWithCaffeine, setCoffeeSheetStep]);
+
+  const handleCreateCoffeeNextForPantry = useCallback(async () => {
+    const result = await saveCreateCoffee();
+    if (result) {
+      setPantrySheetStep("select");
+      setShowDiaryAddPantrySheet(false);
+    }
+  }, [saveCreateCoffee, setPantrySheetStep, setShowDiaryAddPantrySheet]);
 
   useCoffeeSeoMeta(detailCoffee);
 
@@ -1261,7 +1305,10 @@ export function AppContainer() {
         setLastCreatedCoffeeNameForSheet(null);
         setShowDiaryCoffeeSheet(false);
       }}
-      onCloseAddPantrySheet={() => setShowDiaryAddPantrySheet(false)}
+      onCloseAddPantrySheet={() => {
+        setPantrySheetStep("select");
+        setShowDiaryAddPantrySheet(false);
+      }}
       onOpenWaterSheet={openWaterSheet}
       onOpenCoffeeSheet={() => {
         setCoffeeSheetStep("select");
@@ -1284,6 +1331,9 @@ export function AppContainer() {
       setDiaryCoffeeGramsDraft={setDiaryCoffeeGramsDraft}
       createCoffeeFormContent={createCoffeeFormForSheet}
       onCreateCoffeeNext={handleCreateCoffeeNext}
+      createCoffeeFormForPantrySheet={createCoffeeFormForPantrySheet}
+      onCreateCoffeeNextForPantry={handleCreateCoffeeNextForPantry}
+      isCreateCoffeeFormValid={isCreateCoffeeFormValid}
       diaryCoffeePreparationDraft={diaryCoffeePreparationDraft}
       setDiaryCoffeePreparationDraft={setDiaryCoffeePreparationDraft}
       diaryCoffeeMlDraft={diaryCoffeeMlDraft}
@@ -1292,6 +1342,8 @@ export function AppContainer() {
       setDiaryCoffeeCaffeineDraft={setDiaryCoffeeCaffeineDraft}
       onSaveCoffee={saveCoffee}
       lastCreatedCoffeeNameForSheet={lastCreatedCoffeeNameForSheet}
+      pantrySheetStep={pantrySheetStep}
+      setPantrySheetStep={setPantrySheetStep}
       diaryPantryCoffeeIdDraft={diaryPantryCoffeeIdDraft}
       setDiaryPantryCoffeeIdDraft={setDiaryPantryCoffeeIdDraft}
       diaryPantryGramsDraft={diaryPantryGramsDraft}
@@ -1309,7 +1361,7 @@ export function AppContainer() {
     />
   );
   return (
-    <div className={`layout ${mode}`.trim()}>
+    <div className={`layout ${mode}${isIOS ? " is-ios" : ""}`.trim()}>
       {mode === "desktop" ? navRail : null}
       <main className="main-shell">
         <TopBar

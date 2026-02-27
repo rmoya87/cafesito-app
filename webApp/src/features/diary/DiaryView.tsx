@@ -33,6 +33,7 @@ const DIARY_STR = {
   CAFE_LABEL: "Caf" + _c(0x00E9),
   REGISTRO_RAPIDO: "Registro r" + _c(0x00E1) + "pido",
   CAFE_BRAND: "CAF" + _c(0x00C9),
+  CANTIDAD: "Cantidad",
 } as const;
 
 export function DiaryView({
@@ -287,7 +288,7 @@ export function DiaryView({
     parsedStockRemaining <= parsedStockTotal;
   const stockValidationMessage =
     (!Number.isFinite(parsedStockTotal) || !Number.isFinite(parsedStockRemaining))
-      ? "Introduce valores vùlidos."
+      ? "Introduce valores vÔøΩlidos."
       : parsedStockTotal < 1
       ? "El total debe ser mayor que 0."
       : parsedStockRemaining < 0
@@ -304,13 +305,13 @@ export function DiaryView({
     (editEntryIsWater || (Number.isFinite(parsedEditCaffeine) && parsedEditCaffeine >= 0));
   const editValidationMessage =
     !Number.isFinite(parsedEditAmount)
-      ? "Introduce una cantidad vùlida."
+      ? "Introduce una cantidad vÔøΩlida."
       : parsedEditAmount <= 0
       ? "La cantidad debe ser mayor que 0 ml."
       : (!editEntryIsWater && !Number.isFinite(parsedEditCaffeine))
-        ? "Introduce una cafeùna vùlida."
+        ? "Introduce una cafeÔøΩna vÔøΩlida."
       : (!editEntryIsWater && parsedEditCaffeine < 0)
-        ? "La cafeùna no puede ser negativa."
+        ? "La cafeÔøΩna no puede ser negativa."
         : "";
   const handleEditScrollPointerDown = (event: ReactPointerEvent<HTMLDivElement>, section: "prep" | "size") => {
     const node = section === "prep" ? editPrepScrollRef.current : editSizeScrollRef.current;
@@ -566,8 +567,8 @@ export function DiaryView({
                       <span
                         className={`diary-chart-bar caffeine ${hasCaffeine ? "is-active" : ""}`.trim()}
                         style={{ height: `${caffeineHeight}px` }}
-                        title={`Cafeùna: ${Math.round(item.caffeine)} mg`}
-                        aria-label={`Cafeùna ${Math.round(item.caffeine)} miligramos`}
+                        title={`CafeÔøΩna: ${Math.round(item.caffeine)} mg`}
+                        aria-label={`CafeÔøΩna ${Math.round(item.caffeine)} miligramos`}
                       />
                     </div>
                     <div className="diary-chart-bar-wrap">
@@ -629,15 +630,15 @@ export function DiaryView({
 
       {pantryOptionsCoffeeId ? (
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => setPantryOptionsCoffeeId(null)} onClick={() => setPantryOptionsCoffeeId(null)}>
-          <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
+          <SheetCard className="diary-sheet diary-sheet-pantry-options" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
-              <strong className="sheet-title">OPCIONES DESPENSA</strong>
+              <strong className="sheet-title">Opciones</strong>
             </header>
             <div className="diary-sheet-list">
               <Button variant="plain"
                 type="button"
-                className="diary-sheet-action"
+                className="diary-sheet-action diary-sheet-action-pantry"
                 onClick={() => {
                   const row = sortedPantryRows.find((item) => item.item.coffee_id === pantryOptionsCoffeeId);
                   if (!row) return;
@@ -653,7 +654,7 @@ export function DiaryView({
               </Button>
               <Button variant="plain"
                 type="button"
-                className="diary-sheet-action"
+                className="diary-sheet-action diary-sheet-action-pantry is-delete"
                 disabled={removingStock}
                 onClick={() => {
                   setPantryDeleteConfirmCoffeeId(pantryOptionsCoffeeId);
@@ -661,7 +662,7 @@ export function DiaryView({
                 }}
               >
                 <UiIcon name="trash" className="ui-icon" />
-                <span>Eliminar de despensa</span>
+                <span>Eliminar de la despensa</span>
                 <UiIcon name="chevron-right" className="ui-icon" />
               </Button>
             </div>
@@ -670,21 +671,21 @@ export function DiaryView({
       ) : null}
 
       {pantryDeleteConfirmCoffeeId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label={DIARY_STR.CONFIRMAR_ELIMINACION} onDismiss={() => setPantryDeleteConfirmCoffeeId(null)} onClick={() => setPantryDeleteConfirmCoffeeId(null)}>
-          <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar de la despensa" onDismiss={() => setPantryDeleteConfirmCoffeeId(null)} onClick={() => setPantryDeleteConfirmCoffeeId(null)}>
+          <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">ELIMINAR DE DESPENSA</strong>
-            </header>
-            <div className="diary-sheet-form">
-              <p className="feed-meta">ùSeguro que quieres eliminar este cafù de tu despensa?</p>
-              <div className="diary-sheet-form-actions">
-                <Button variant="plain" type="button" className="action-button action-button-ghost" onClick={() => setPantryDeleteConfirmCoffeeId(null)} disabled={removingStock}>
+            <div className="diary-delete-confirm-body">
+              <h2 className="diary-delete-confirm-title">Eliminar de la despensa</h2>
+              <p className="diary-delete-confirm-text">
+                ¬øEst√°s seguro de eliminar este caf√©? Se borrar√° tu stock actual.
+              </p>
+              <div className="diary-delete-confirm-actions">
+                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setPantryDeleteConfirmCoffeeId(null)} disabled={removingStock}>
                   Cancelar
                 </Button>
                 <Button variant="plain"
                   type="button"
-                  className="action-button"
+                  className="diary-delete-confirm-submit"
                   disabled={removingStock}
                   onClick={async () => {
                     if (removingStock) return;
@@ -979,12 +980,13 @@ function DiaryActivityRow({
     if (sizeValue === "Mediano") return "taza_mediano.png";
     return "taza_grande.png";
   })();
-  const metaItems: Array<{ key: string; icon?: IconName; drawable?: string; label: string; value: string }> = [
+  const metaItemsBase: Array<{ key: string; icon?: IconName; drawable?: string; label: string; value: string }> = [
     { key: "caffeine", icon: "caffeine", label: DIARY_STR.CAFEINA, value: `${Math.max(0, entry.caffeine_mg || 0)} mg` },
     { key: "prep", drawable: prepDrawable, label: DIARY_STR.PREPARACION, value: prepValue },
     { key: "dose", icon: "grind", label: "Dosis", value: doseValue },
-    { key: "size", drawable: sizeDrawable ?? undefined, icon: sizeDrawable ? undefined : "stock", label: DIARY_STR.TAMANO, value: sizeValue }
+    { key: "size", drawable: sizeDrawable ?? undefined, icon: isWaterEntry ? "bottle" : (sizeDrawable ? undefined : "stock"), label: isWaterEntry ? DIARY_STR.CANTIDAD : DIARY_STR.TAMANO, value: sizeValue }
   ];
+  const metaItems = isWaterEntry ? metaItemsBase.filter((item) => item.key === "size") : metaItemsBase;
   const metaScrollRef = useRef<HTMLDivElement | null>(null);
   const metaPointerIdRef = useRef<number | null>(null);
   const metaDragStartXRef = useRef(0);
@@ -1088,12 +1090,12 @@ function DiaryActivityRow({
       <div className="diary-swipe-content" style={{ transform: `translateX(${offsetX}px)` }}>
         <div className="diary-card">
           <div className="diary-entry-head">
-            <div className="diary-entry-media">
+            <div className={`diary-entry-media ${isWaterEntry ? "is-water" : ""}`.trim()}>
               {imageUrl && !isRegistroRapido ? (
                 <img src={imageUrl} alt={entryTitle} loading="lazy" />
               ) : (
                 <span className="diary-entry-fallback" aria-hidden="true">
-                  <UiIcon name={isWaterEntry ? "stock" : isRegistroRapido ? "coffee-filled" : "coffee"} className="ui-icon" />
+                  <UiIcon name={isWaterEntry ? "water" : isRegistroRapido ? "coffee-filled" : "coffee"} className="ui-icon" />
                 </span>
               )}
             </div>

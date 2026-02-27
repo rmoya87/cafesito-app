@@ -52,6 +52,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
@@ -941,7 +942,7 @@ fun DiaryEntryItem(
             if (entry.type == "WATER") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     MetricPill(
-                        icon = Icons.Default.LocalDrink,
+                        icon = vectorResource(R.drawable.ic_bottle),
                         label = "Cantidad",
                         value = "${entry.amountMl} ml",
                         modifier = Modifier.weight(1f)
@@ -1176,7 +1177,7 @@ fun DiaryEntryEditBottomSheet(
                     value = amountText,
                     onValueChange = { amountText = it.filter(Char::isDigit) },
                     label = { Text("Cantidad (ml)") },
-                    leadingIcon = { Icon(Icons.Default.LocalDrink, null) },
+                    leadingIcon = { Icon(vectorResource(R.drawable.ic_bottle), null) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()

@@ -309,6 +309,29 @@ export function useAppDerivedData({
     [coffees]
   );
 
+  const createCoffeeCountryOptions = useMemo(() => {
+    const fromCatalog = searchOriginOptions;
+    try {
+      if (typeof Intl !== "undefined" && typeof (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf === "function") {
+        const codes = (Intl as { supportedValuesOf: (key: string) => string[] }).supportedValuesOf("region").filter((c) => c.length === 2);
+        const displayNames = new Intl.DisplayNames(["es"], { type: "region" });
+        const names = new Set<string>(fromCatalog);
+        codes.forEach((code) => {
+          try {
+            const name = displayNames.of(code);
+            if (name) names.add(name);
+          } catch {
+            // ignore invalid code
+          }
+        });
+        return Array.from(names).sort((a, b) => a.localeCompare(b, "es"));
+      }
+    } catch {
+      // fallback
+    }
+    return fromCatalog;
+  }, [searchOriginOptions]);
+
   const searchRoastOptions = useMemo(
     () => buildNormalizedOptions(coffees.map((coffee) => coffee.tueste)),
     [coffees]
@@ -640,6 +663,7 @@ export function useAppDerivedData({
     timelineCards,
     filteredCoffees,
     searchOriginOptions,
+    createCoffeeCountryOptions,
     searchRoastOptions,
     searchSpecialtyOptions,
     searchFormatOptions,

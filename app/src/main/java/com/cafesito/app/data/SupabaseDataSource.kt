@@ -176,13 +176,19 @@ class SupabaseDataSource @Inject constructor(
         return client.postgrest.rpc("get_coffee_recommendations", mapOf("target_user_id" to userId)).decodeList<Coffee>()
     }
 
-    // --- CAFÉS PERSONALIZADOS ---
-    suspend fun getCustomCoffees(userId: Int): List<Coffee> = client.postgrest["custom_coffees"].select { filter { eq("user_id", userId) } }.decodeList<Coffee>()
-    suspend fun insertCustomCoffee(coffee: Coffee) = client.postgrest["custom_coffees"].upsert(coffee)
-    suspend fun upsertCustomCoffee(coffee: Coffee) = client.postgrest["custom_coffees"].upsert(coffee)
-    
+    // --- CAFÉS PERSONALIZADOS (tabla coffees con is_custom = true y user_id) ---
+    suspend fun getCustomCoffees(userId: Int): List<Coffee> = client.postgrest["coffees"].select {
+        filter {
+            eq("is_custom", true)
+            eq("user_id", userId)
+        }
+    }.decodeList<Coffee>()
+
+    suspend fun insertCustomCoffee(coffee: Coffee) = client.postgrest["coffees"].upsert(coffee)
+    suspend fun upsertCustomCoffee(coffee: Coffee) = client.postgrest["coffees"].upsert(coffee)
+
     suspend fun updateCustomCoffee(id: String, userId: Int, coffee: Coffee) {
-        client.postgrest["custom_coffees"].update({
+        client.postgrest["coffees"].update({
             set("nombre", coffee.nombre)
             set("marca", coffee.marca)
             set("especialidad", coffee.especialidad)
@@ -201,7 +207,7 @@ class SupabaseDataSource @Inject constructor(
     }
 
     suspend fun deleteCustomCoffee(id: String, userId: Int) {
-        client.postgrest["custom_coffees"].delete {
+        client.postgrest["coffees"].delete {
             filter {
                 eq("id", id)
                 eq("user_id", userId)
