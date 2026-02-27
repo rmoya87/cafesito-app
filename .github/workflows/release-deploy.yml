@@ -1,6 +1,16 @@
 # Workflow único: release Android (Play Console) y deploy web (Ionos) según rama.
-# - main: no hace nada (solo unificación de código).
-# - Interna / Alpha / Beta / Producción: solo actúa si hay cambios en los paths correspondientes.
+#
+# RAMAS Y COMPORTAMIENTO
+# - main: no se dispara (solo unificación de código).
+# - Interna: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas internas).
+# - Alpha: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas cerradas).
+# - Beta: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (cafesito-web/app).
+# - Producción: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (cafesito-web/app).
+#
+# EJECUCIÓN MANUAL (Actions → Release & Deploy → Run workflow)
+# Permite forzar release Android + deploy web sin hacer push: elige la rama y se ejecutan ambos jobs.
+#
+# Ver documentación en docs/RELEASE_DEPLOY_WORKFLOW.md
 
 name: Release & Deploy
 
@@ -204,12 +214,10 @@ jobs:
           status: completed
           whatsNewDirectory: release-notes
 
-  # Deploy web a Ionos solo si hay cambios en webApp (Beta y Producción)
+  # Deploy web a Ionos: SIEMPRE en Beta y Producción (sube al servidor cafesito-web/app)
   deploy-web:
     needs: changes
-    if: |
-      needs.changes.outputs.web == 'true' &&
-      (contains(fromJSON('["Beta","Producción"]'), github.event.inputs.branch || github.ref_name))
+    if: contains(fromJSON('["Beta","Producción"]'), github.event.inputs.branch || github.ref_name)
     runs-on: ubuntu-latest
     defaults:
       run:
