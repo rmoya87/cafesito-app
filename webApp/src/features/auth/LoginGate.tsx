@@ -26,7 +26,8 @@ export function LoginGate({
     video.muted = true;
     const play = () => {
       video.muted = true;
-      video.play().catch(() => {});
+      const p = video.play();
+      if (p != null && typeof p.catch === "function") p.catch(() => {});
     };
     const tryPlay = () => {
       requestAnimationFrame(() => play());
