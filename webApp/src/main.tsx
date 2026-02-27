@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { Button } from "./ui/components";
@@ -41,7 +41,7 @@ class RootErrorBoundary extends React.Component<
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((error) => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => {
       // eslint-disable-next-line no-console
       console.error("[PWA] service worker registration failed", error);
     });
