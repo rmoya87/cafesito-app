@@ -57,9 +57,10 @@ En **Settings → Secrets and variables → Actions**:
 
 ### Web (Ionos)
 
-- `IONOS_FTP_SERVER` – Servidor FTP (ej. `ftp.tudominio.com`).
-- `IONOS_FTP_USER` – Usuario FTP.
-- `IONOS_FTP_PASSWORD` – Contraseña FTP.
+- `IONOS_SSH_HOST` – Host/servidor FTP o SFTP (ej. `ftp.tudominio.com`).
+- `IONOS_SSH_USER` – Usuario FTP/SFTP.
+- `IONOS_SSH_PASSWORD` – Contraseña.
+- `IONOS_SSH_PORT` – Puerto (opcional; si no se define, se usa el por defecto del protocolo).
 
 El deploy web sube a la ruta remota **`cafesito-web/app`**.
 

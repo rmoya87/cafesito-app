@@ -241,12 +241,29 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check Ionos SSH/FTP secrets
+        run: |
+          if [[ -z "${{ secrets.IONOS_SSH_HOST }}" ]]; then
+            echo "::error::Falta el secret IONOS_SSH_HOST. Añádelo en Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          if [[ -z "${{ secrets.IONOS_SSH_USER }}" ]]; then
+            echo "::error::Falta el secret IONOS_SSH_USER. Añádelo en Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          if [[ -z "${{ secrets.IONOS_SSH_PASSWORD }}" ]]; then
+            echo "::error::Falta el secret IONOS_SSH_PASSWORD. Añádelo en Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "Secrets de Ionos configurados."
+
       - name: Deploy to Ionos (cafesito-web/app)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.IONOS_FTP_SERVER }}
-          username: ${{ secrets.IONOS_FTP_USER }}
-          password: ${{ secrets.IONOS_FTP_PASSWORD }}
+          server: ${{ secrets.IONOS_SSH_HOST }}
+          username: ${{ secrets.IONOS_SSH_USER }}
+          password: ${{ secrets.IONOS_SSH_PASSWORD }}
+          port: ${{ secrets.IONOS_SSH_PORT }}
           local-dir: ./webApp/dist/
           server-dir: cafesito-web/app
           dangerous-clean-slate: false

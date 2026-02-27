@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -942,7 +943,7 @@ fun DiaryEntryItem(
             if (entry.type == "WATER") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     MetricPill(
-                        icon = vectorResource(R.drawable.ic_bottle),
+                        icon = painterResource(R.drawable.ic_bottle),
                         label = "Cantidad",
                         value = "${entry.amountMl} ml",
                         modifier = Modifier.weight(1f)
@@ -1177,7 +1178,7 @@ fun DiaryEntryEditBottomSheet(
                     value = amountText,
                     onValueChange = { amountText = it.filter(Char::isDigit) },
                     label = { Text("Cantidad (ml)") },
-                    leadingIcon = { Icon(vectorResource(R.drawable.ic_bottle), null) },
+                    leadingIcon = { Icon(painter = painterResource(R.drawable.ic_bottle), contentDescription = null) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -1289,6 +1290,42 @@ private fun updateTimestampWithHourMinute(currentTimestamp: Long, hourMinute: St
 
 @Composable
 private fun MetricPill(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    MetricPillContent(icon = icon, label = label, value = value, modifier = modifier)
+}
+
+@Composable
+private fun MetricPill(
+    icon: Painter,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(painter = icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Column {
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricPillContent(
     icon: ImageVector,
     label: String,
     value: String,
