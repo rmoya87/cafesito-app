@@ -181,6 +181,12 @@ input {
   border: none;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(10px);
+  transition: transform 0.2s ease-out, margin-bottom 0.2s ease-out;
+}
+
+.topbar-is-hidden {
+  transform: translateY(-100%);
+  margin-bottom: calc(-1 * var(--topbar-height));
 }
 
 .topbar-scrolled {
