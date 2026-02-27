@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UiIcon } from "../../ui/iconography";
 import { Button, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
+
+const loginVideoSrc = `${import.meta.env.BASE_URL}login_bg.mp4`;
+const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
 
 export function LoginGate({
   loading,
@@ -14,6 +17,18 @@ export function LoginGate({
   onGoogleLogin?: () => void;
 }) {
   const [showMobileSheet, setShowMobileSheet] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const play = () => {
+      video.play().catch(() => {});
+    };
+    if (video.readyState >= 2) play();
+    else video.addEventListener("loadeddata", play);
+    return () => video.removeEventListener("loadeddata", play);
+  }, []);
 
   const authContent = (
     <>
@@ -24,9 +39,10 @@ export function LoginGate({
         Al continuar, aceptas nuestros Términos y Condiciones.
       </p>
       <Button
+        type="button"
         variant="primary"
         className="google-login-button"
-        onClick={onGoogleLogin}
+        onClick={onGoogleLogin ? () => onGoogleLogin() : undefined}
         disabled={loading || !onGoogleLogin}
       >
         <span className="auth-prompt-google-g" aria-hidden="true">
@@ -43,9 +59,16 @@ export function LoginGate({
     <main className="login-gate" aria-label="Inicio de sesión">
       <section className="login-shell">
         <section className="login-left-pane">
-          <video className="login-background-video" autoPlay muted loop playsInline preload="metadata">
-            <source src="/login_bg.mp4" type="video/mp4" />
-          </video>
+          <video
+            ref={videoRef}
+            className="login-background-video"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            src={loginVideoSrc}
+          />
           <div className="login-background-layer" />
           <div className="login-content">
             <header className="login-hero">
@@ -100,7 +123,7 @@ export function LoginGate({
         </section>
 
         <section className="login-desktop-auth" aria-label="Acceso desktop">
-          <img src="/logo.png" alt="Logo Cafesito" className="login-desktop-logo" loading="lazy" />
+          <img src={logoSrc} alt="Logo Cafesito" className="login-desktop-logo" loading="lazy" />
           <div className="login-desktop-auth-content">{authContent}</div>
         </section>
       </section>

@@ -31,6 +31,16 @@ Si al desplegar en Ionos ves **500** en `registerSW.js`, `assets/index-*.js`, `i
 4. **Comprobar en Ionos**
    - Si Ionos desactiva `.htaccess` (AllowOverride), las reglas no se aplicarán. En ese caso, usa el panel de Ionos para configurar reescritura o contacta con soporte para que los estáticos se sirvan sin pasar por PHP.
 
+### Login: video de fondo y botón «Continuar con Google»
+
+- **Video de fondo**: Usa ruta relativa (`base`) y reproducción programática al cargar, para que funcione en el servidor y en móviles.
+- **Botón Google**: Si al pulsar no ocurre nada, revisa:
+  1. **Variables de entorno en el build**: La build debe tener `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`. Si faltan, se mostrará el mensaje de error bajo el botón.
+  2. **URL de redirección en Supabase**: En el proyecto de Supabase → Authentication → URL Configuration, añade en **Redirect URLs** la URL exacta de tu app en producción, por ejemplo:
+     - `https://cafesitoapp.com/`
+     - o `https://cafesitoapp.com/app/` si la app está en un subdirectorio.
+     Sin esa URL, tras iniciar sesión con Google el usuario no podrá volver correctamente.
+
 ### CSP y fuente externa
 
 Si en consola aparece un aviso de **Content Security Policy** sobre una fuente en `r2cdn.perplexity.ai`: suele ser una extensión del navegador (p. ej. Perplexity) que inyecta esa fuente. En este proyecto la CSP ya permite ese origen en `font-src` para evitar el aviso; la app no usa esa fuente.
