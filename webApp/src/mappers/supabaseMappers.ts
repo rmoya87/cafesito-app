@@ -8,6 +8,7 @@ import type {
   FollowRow,
   InitialDataBundle,
   LikeRow,
+  NotificationRow,
   PantryItemRow,
   PostCoffeeTagRow,
   PostRow,
@@ -205,6 +206,20 @@ export function mapFavoriteRow(input: unknown): FavoriteRow {
     coffee_id: toStringOrEmpty(row.coffee_id),
     user_id: toNumberOr(row.user_id, 0),
     saved_at: toTimestamp(row.saved_at)
+  };
+}
+
+export function mapNotificationRow(input: unknown): NotificationRow {
+  const row = (input ?? {}) as Record<string, unknown>;
+  return {
+    id: toNumberOr(row.id, 0),
+    user_id: toNumberOr(row.user_id, 0),
+    type: toStringOrEmpty(row.type),
+    from_username: toStringOrEmpty(row.from_username),
+    message: toStringOrEmpty(row.message),
+    timestamp: toTimestamp(row.timestamp),
+    is_read: Boolean(row.is_read),
+    related_id: toNullableString(row.related_id)
   };
 }
 

@@ -1927,5 +1927,157 @@ Registro obligatorio:
 
 ---
 
-**Fin Fase 5.**  
-Esperando confirmación para continuar con **FASE 6 — Testing, Operación y Documentación Viva**.
+# 6) FASE 6 — Testing, Operación y Documentación Viva
+
+## 6.1 Estrategia de Testing Multiplataforma
+
+### 6.1.1 Pirámide de Tests y Responsabilidades
+El objetivo no es el 100% de cobertura teórica, sino la **validación de invariantes de negocio y paridad funcional**.
+
+1.  **Unit Tests (80% lógica de dominio):**
+    *   **Ubicación:** `shared/commonTest`, `app/src/test`, `webApp/src/**/*.test.ts`.
+    *   **Foco:** Reglas de cálculo, validaciones de entrada, conversores/mappers.
+    *   **Enforcement:** Fallo en unit test bloquea el avance del pipeline.
+
+2.  **Integration Tests (Mallas de contrato):**
+    *   **Ubicación:** `shared/commonTest` (con suites específicas por plataforma si el interop es complejo).
+    *   **Foco:** Persistencia (SQLDelight/Room), integración con Supabase (via mocks realistas o contenedores), flujos de Use Case completos.
+    *   **Regla Crítica:** Todo Use Case en `/shared` debe tener al menos un test de integración que simule éxito y error.
+
+3.  **UI & Snapshot Tests:**
+    *   **Android:** Compose Preview tests + Screenshot testing (Paparazzi o similar).
+    *   **iOS:** SnapshotTesting (Point-Free).
+    *   **Web:** Storybook interactions + Chromatic (opcional).
+    *   **Foco:** Regresiones visuales, estados de carga y error, accesibilidad básica.
+
+4.  **E2E (End-to-End):**
+    *   **Android/iOS:** Maestro o Appium para flujos críticos (Auth -> Post -> Feed).
+    *   **Web:** Playwright en `webApp/e2e`.
+    *   **Foco:** Smoke tests de usuario real.
+
+---
+
+### 6.1.2 Tests de Paridad (Detección de Drift)
+Para garantizar que la WebApp y Android se comportan igual ante cambios en `/shared`:
+*   **Contrato de Datos Común:** Uso de fixtures JSON compartidos en `shared/commonTest/resources`.
+*   **Runner Dual:** Un job de CI que ejecuta el mismo set de inputs contra la implementación Kotlin (Android) y la adaptación TypeScript (Web) y compara el output.
+*   **Trigger:** Cambio en `shared/domain` o `shared/data`.
+
+---
+
+### 6.1.3 Performance Budgets (Revisiones Técnicas)
+*   **Web:** Lighthouse CI integrado. Límite: Performance < 90 en mobile = Warning.
+*   **Android:** Macrobenchmark para scroll de timeline. Límite: Jank > 5% = Bloqueo.
+*   **Backend:** Latencia de Edge Functions < 300ms (p75).
+
+---
+
+## 6.2 Operación: Runbook de Diagnóstico y Respuesta
+
+### 6.2.1 Diagnóstico de Autenticación
+*   **Síntoma:** Usuario no puede entrar o pierde sesión.
+*   **Checklist:**
+    1.  Verificar estado de Supabase Auth (Dashboard).
+    2.  Check de expiración de token en cliente (Console/Logcat).
+    3.  Validar si hay bloqueo por IP o Rate Limit en Supabase.
+    4.  Verificar si ha habido cambio de secretos en CI que haya roto la `anon_key`.
+
+### 6.2.2 Diagnóstico de RLS (Permisos)
+*   **Síntoma:** Error 401/403 o lista vacía inesperada.
+*   **Checklist:**
+    1.  Ejecutar query manual en Supabase SQL Editor con el `user_id` afectado: `SET request.jwt.claims = '{"sub": "UUID"}'; SELECT * FROM table;`.
+    2.  Verificar si la columna `user_id` o `owner_id` está poblada correctamente.
+    3.  Validar si la tabla tiene `RLS ENABLED`.
+
+### 6.2.3 Diagnóstico de Builds y Despliegue
+*   **Síntoma:** El pipeline falla en `shared` o `web`.
+*   **Checklist:**
+    1.  Check de compatibilidad de versiones de Kotlin/Compose (si hubo actualización de Gradle).
+    2.  Validar caché de dependencias (limpiar `.gradle` o `node_modules`).
+    3.  Verificar cuotas de GitHub Actions o proveedores de hosting.
+
+---
+
+## 6.3 Analíticas y Estrategia de Marketing Técnico
+
+### 6.3.1 Medición de Componentes (Data-Driven)
+**Regla:** Ningún componente interactivo nuevo va a producción sin eventos de analítica.
+*   **Nivel 1 (Básico):** Impresión de componente (View).
+*   **Nivel 2 (Interacción):** Click, Swipe, Errores de validación.
+*   **Nivel 3 (Negocio):** Conversión (ej. tiempo desde "ver detalle café" hasta "añadir a favoritos").
+
+**Framework de Analíticas:**
+*   Se abstrae en `/shared` con una interfaz `AnalyticsProvider`.
+*   Implementación en plataformas (Firebase Analytics para Android/iOS, Plausible/Mixpanel para Web).
+
+### 6.3.2 Marketing Técnico y SEO de Crecimiento
+*   **Público:** SEO dinámico en detalle de café (`webApp`). Uso de JSON-LD para datos estructurados de productos (cafés, cafeterías).
+*   **Retención:** Estrategia de Push Notifications segmentada desde Supabase Edge Functions (triggers por inactividad calculados en `/shared`).
+*   **Referidos:** Deep links universales que funcionen igual en web y abran la app nativa si está instalada (Android App Links / iOS Universal Links).
+
+---
+
+## 6.4 Documentación Viva: Fuente de la Verdad
+
+### 6.4.1 Estructura de `/docs`
+*   `/docs/adr/`: Architectural Decision Records (ADRs).
+*   `/docs/api/`: Contratos de API y esquemas de base de datos.
+*   `/docs/runbooks/`: Guías de resolución de incidentes específicos.
+*   `/docs/ux/`: Tokens, guías de estilo y componentes.
+
+### 6.4.2 Mantenimiento de este Documento
+Este documento **NO es estático**. Debe actualizarse cuando:
+1.  Se cambie una tecnología core (ej. cambio de base de datos o framework de UI).
+2.  Se detecte una desviación sistemática (drift) de la arquitectura.
+3.  Se añada un nuevo proceso de gobernanza o CI/CD.
+4.  Se resuelva un incidente grave cuya causa raíz fue una falta de definición aquí.
+
+**Versionado:**
+`MAJOR.MINOR.PATCH`
+*   `MAJOR`: Cambio estructural de arquitectura.
+*   `MINOR`: Nueva sección o actualización de fase.
+*   `PATCH`: Corrección de erratas o aclaraciones.
+
+---
+
+## 6.5 Checklist Final de Pre-Release (Gatekeeper)
+
+Antes de mover cualquier tag a `main` o `Prod`:
+*   [ ] **Tests:** Unitarios, integración y E2E playbooks en verde.
+*   [ ] **Paridad:** Confirmado que `/shared` no tiene duplicados en Web.
+*   [ ] **Seguridad:** RLS verificado y secrets rotados si aplica.
+*   [ ] **A11y:** Checklist AA cumplido en nuevas pantallas.
+*   [ ] **Performance:** Budgets dentro de rango.
+*   [ ] **Docs:** Versión de este documento actualizada en la cabecera.
+
+---
+
+# 7) APÉNDICE — Evolución, Calidad y Escalabilidad Progresiva
+
+## 7.1 Internacionalización (i18n) Centralizada
+Para garantizar que Cafesito hable el mismo idioma en todas las plataformas:
+*   **Fuente Única:** Los recursos de texto (`strings`) deben residir en `/shared` (ej. usando `moko-resources` o similar).
+*   **Consumo:** Android, iOS y Web consumen la misma clave de traducción.
+*   **Regla:** No se permiten textos "hardcoded" en las vistas de plataforma. Todo texto debe pasar por el sistema de i18n centralizado.
+
+## 7.2 Feature Flagging y Remote Config
+Para desacoplar el despliegue de código de la activación de funcionalidades:
+*   **Capa Shared:** Interfaz `FeatureManager` definida en `/shared`.
+*   **Backend:** Configuración gestionada en Supabase (tabla `remote_config` o similar).
+*   **Caso de Uso:** Desactivar el "Timeline" globalmente si se detecta un fallo crítico sin requerir una nueva versión en las stores.
+
+## 7.3 Observabilidad Técnica (Error Reporting)
+Más allá de las analíticas de negocio, necesitamos el pulso técnico:
+*   **Crash Reporting:** Integración de **Sentry** o **Firebase Crashlytics**.
+*   **Shared Errors:** Los errores capturados en el código compartido (`/shared`) deben reportarse con paridad de contexto entre plataformas.
+*   **Enforcement:** Cada release debe tener una tasa de sesiones libres de errores > 99.9%.
+
+## 7.4 Protocolo de "Boy Scout Rule" (Manejo de Deuda)
+El proyecto ha evolucionado y existe código "legado" que no cumple este documento maestro:
+*   **Regla del 20%:** Al tocar cualquier fichero para una nueva funcionalidad, el 20% del esfuerzo debe dedicarse a refactorizarlo para alinearlo con este Documento Maestro.
+*   **Legacy Warnings:** Si un componente antiguo viola una regla de seguridad o paridad, debe marcarse con `@Deprecated` o equivalente y crear un ticket de remediación vinculado.
+
+---
+
+**Fin del Documento Maestro de Arquitectura y Gobernanza.**
+*Este documento es la fuente de la verdad para Cafesito. Su cumplimiento garantiza la escalabilidad a 5+ años y la excelencia técnica multiplataforma.*

@@ -275,7 +275,7 @@ export function CoffeeDetailView({
           <p className="coffee-detail-opinions-empty">No hay opiniones aún. ¡Sé el primero!</p>
         ) : null}
         {currentUserReview ? (
-          <article className="coffee-detail-opinion-preview">
+          <article className="coffee-card coffee-detail-opinion-preview">
             <p className="coffee-detail-opinion-label">Tu opinión</p>
             <div className="coffee-detail-opinion-head">
               {currentUser?.id ? (

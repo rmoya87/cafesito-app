@@ -44,11 +44,9 @@ export function NotificationRow({
   const maxDrag = -124;
   const isActionTarget = (target: EventTarget | null) =>
     target instanceof Element && Boolean(target.closest(".notifications-action"));
-  const isUserLinkTarget = (target: EventTarget | null) =>
-    target instanceof Element && Boolean(target.closest(".notifications-user-link"));
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLLIElement>) => {
-    if (isActionTarget(event.target) || isUserLinkTarget(event.target)) return;
+    if (isActionTarget(event.target)) return;
     if (pointerIdRef.current != null) return;
     pointerIdRef.current = event.pointerId;
     startXRef.current = event.clientX;
@@ -57,7 +55,7 @@ export function NotificationRow({
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLLIElement>) => {
-    if (isActionTarget(event.target) || isUserLinkTarget(event.target)) return;
+    if (isActionTarget(event.target)) return;
     if (pointerIdRef.current !== event.pointerId) return;
     const dx = event.clientX - startXRef.current;
     if (Math.abs(dx) > 6) movedRef.current = true;
@@ -69,7 +67,7 @@ export function NotificationRow({
   };
 
   const endDrag = (event: ReactPointerEvent<HTMLLIElement>) => {
-    if (isActionTarget(event.target) || isUserLinkTarget(event.target)) return;
+    if (isActionTarget(event.target)) return;
     if (pointerIdRef.current !== event.pointerId) return;
     pointerIdRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -94,7 +92,7 @@ export function NotificationRow({
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       onClick={(event) => {
-        if (isUserLinkTarget(event.target) || isActionTarget(event.target)) return;
+        if (isActionTarget(event.target)) return;
         if (movedRef.current || isDismissing) return;
         onOpen();
       }}
@@ -109,6 +107,10 @@ export function NotificationRow({
             className="notifications-user-link"
             onClick={(event) => {
               event.stopPropagation();
+              if (movedRef.current || isDismissing) {
+                event.preventDefault();
+                return;
+              }
               onOpenUserProfile();
             }}
           >

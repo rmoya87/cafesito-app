@@ -317,7 +317,7 @@ export function TimelineView({
                   )}
                   <div>
                     <p className="feed-user">{card.userName}</p>
-                    <p className="feed-meta">{card.minsAgoLabel.toUpperCase()}</p>
+                    <div className="feed-meta-row" style={{ display: "flex", alignItems: "center", gap: "8px" }}><p className="feed-meta">{card.minsAgoLabel.toUpperCase()}</p>{card.rating ? (<span className="feed-card-rating" style={{ display: "inline-flex", alignItems: "center", gap: "2px", color: "var(--caramel-soft)", fontSize: "var(--font-size-xs)", fontWeight: "bold" }}><UiIcon name="star" className="ui-icon" />{card.rating.toFixed(1)}</span>) : null}</div>
                   </div>
                 </Button>
                 {activeUserId === card.userId ? (
@@ -486,7 +486,7 @@ export function TimelineView({
               </Button>
               <Textarea
                 className="search-wide sheet-input"
-                placeholder="Descripción"
+                placeholder="DescripciÃ³n"
                 value={editingText}
                 rows={4}
                 onChange={(event) => setEditingText(event.target.value)}

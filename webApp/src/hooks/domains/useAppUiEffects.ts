@@ -214,7 +214,10 @@ export function useAppUiEffects({
   useEffect(() => {
     if (!showNotificationsPanel) return;
     const latestSeen = visibleTimelineNotifications.reduce((max, item) => Math.max(max, item.timestamp), 0);
-    if (latestSeen > notificationsLastSeenAt) setNotificationsLastSeenAt(latestSeen);
+    if (latestSeen > notificationsLastSeenAt) {
+      setNotificationsLastSeenAt(latestSeen);
+      localStorage.setItem("notifications_last_seen_at", String(latestSeen));
+    }
   }, [notificationsLastSeenAt, setNotificationsLastSeenAt, showNotificationsPanel, visibleTimelineNotifications]);
 
   useEffect(() => {

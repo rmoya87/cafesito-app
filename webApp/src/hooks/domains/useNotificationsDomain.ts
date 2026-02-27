@@ -2,17 +2,22 @@ import { useCallback, useRef, useState } from "react";
 
 export function useNotificationsDomain() {
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
-  const [notificationsLastSeenAt, setNotificationsLastSeenAt] = useState(0);
+  const [notificationsLastSeenAt, setNotificationsLastSeenAt] = useState(() => {
+    const saved = localStorage.getItem("notifications_last_seen_at");
+    return saved ? Number(saved) : 0;
+  });
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState<Set<string>>(new Set());
   const [dismissingNotificationIds, setDismissingNotificationIds] = useState<Set<string>>(new Set());
   const dismissNotificationTimersRef = useRef<number[]>([]);
 
   const closeNotificationsPanel = useCallback(() => {
-    setNotificationsLastSeenAt(Date.now());
+    const now = Date.now();
+    setNotificationsLastSeenAt(now);
+    localStorage.setItem("notifications_last_seen_at", String(now));
     setShowNotificationsPanel(false);
   }, []);
 
-  const dismissNotification = useCallback((id: string) => {
+  const dismissNotification = useCallback((id: string, onDismissed?: (id: string) => void) => {
     setDismissingNotificationIds((prev) => {
       if (prev.has(id)) return prev;
       const next = new Set(prev);
@@ -30,6 +35,7 @@ export function useNotificationsDomain() {
         next.delete(id);
         return next;
       });
+      if (onDismissed) onDismissed(id);
       dismissNotificationTimersRef.current = dismissNotificationTimersRef.current.filter((value) => value !== timer);
     }, 220);
     dismissNotificationTimersRef.current.push(timer);

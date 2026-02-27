@@ -9,6 +9,7 @@ import type {
   FollowRow,
   InitialDataBundle,
   LikeRow,
+  NotificationRow,
   PantryItemRow,
   PostCoffeeTagRow,
   PostRow,
@@ -77,15 +78,15 @@ export async function fetchInitialData(): Promise<InitialDataBundle> {
   ]);
 
   throwIfError(
-      usersRes.error ??
-      coffeesRes.error ??
-      reviewsRes.error ??
-      sensoryRes.error ??
-      postsRes.error ??
-      likesRes.error ??
-      commentsRes.error ??
-      tagsRes.error ??
-      followsRes.error
+    usersRes.error ??
+    coffeesRes.error ??
+    reviewsRes.error ??
+    sensoryRes.error ??
+    postsRes.error ??
+    likesRes.error ??
+    commentsRes.error ??
+    tagsRes.error ??
+    followsRes.error
   );
 
   return mapInitialDataBundle({
@@ -499,5 +500,43 @@ export async function updateDiaryEntry(payload: {
   throwIfError(error);
   return mapDiaryEntryRow(data);
 }
+
+export async function fetchNotifications(userId: number): Promise<NotificationRow[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("notifications_db")
+    .select("id,user_id,type,from_username,message,timestamp,is_read,related_id")
+    .eq("user_id", userId)
+    .order("timestamp", { ascending: false })
+    .limit(50);
+  throwIfError(error);
+  return (data ?? []).map((row) => ({
+    id: Number(row.id),
+    user_id: Number(row.user_id),
+    type: String(row.type),
+    from_username: String(row.from_username),
+    message: String(row.message),
+    timestamp: Number(row.timestamp),
+    is_read: Boolean(row.is_read),
+    related_id: row.related_id ? String(row.related_id) : null
+  }));
+}
+
+export async function markNotificationsAsRead(userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("notifications_db")
+    .update({ is_read: true })
+    .eq("user_id", userId)
+    .eq("is_read", false);
+  throwIfError(error);
+}
+
+export async function deleteNotification(notificationId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from("notifications_db").delete().eq("id", notificationId);
+  throwIfError(error);
+}
+
 
 

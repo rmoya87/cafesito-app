@@ -20,7 +20,8 @@ export function useTopBarActions({
   setBrewRunning,
   runWithAuth,
   setDetailOpenStockSignal,
-  saveDetailFavorite
+  saveDetailFavorite,
+  activeUserId
 }: {
   searchMode: "coffees" | "users";
   resetSearchUi: () => void;
@@ -41,6 +42,7 @@ export function useTopBarActions({
   runWithAuth: <T>(fn: () => Promise<T>) => Promise<T | null>;
   setDetailOpenStockSignal: (updater: (prev: number) => number) => void;
   saveDetailFavorite: () => Promise<void>;
+  activeUserId: number | null;
 }) {
   return useMemo(
     () => ({
@@ -62,8 +64,17 @@ export function useTopBarActions({
       },
       onTimelineNotifications: () => {
         setShowNotificationsPanel(true);
-        const latestSeen = visibleTimelineNotifications.reduce((max, item) => Math.max(max, item.timestamp), 0);
-        setNotificationsLastSeenAt((prev) => Math.max(prev, latestSeen));
+        const now = Date.now();
+        setNotificationsLastSeenAt(() => {
+          localStorage.setItem("notifications_last_seen_at", String(now));
+          return now;
+        });
+
+        if (activeUserId) {
+          void import("../../data/supabaseApi").then((m) => {
+            void m.markNotificationsAsRead(activeUserId);
+          });
+        }
       },
       onDiaryOpenQuickActions: () => setShowDiaryQuickActions(true),
       onDiaryOpenPeriodSelector: () => setShowDiaryPeriodSheet(true),
@@ -113,7 +124,8 @@ export function useTopBarActions({
       setShowNotificationsPanel,
       setTimerSeconds,
       showCreateCoffeeComposer,
-      visibleTimelineNotifications
+      visibleTimelineNotifications,
+      activeUserId
     ]
   );
 }

@@ -114,6 +114,17 @@ export type FollowRow = {
   created_at: number;
 };
 
+export type NotificationRow = {
+  id: number;
+  user_id: number;
+  type: string;
+  from_username: string;
+  message: string;
+  timestamp: number;
+  is_read: boolean;
+  related_id: string | null;
+};
+
 export type TimelineCard = {
   id: string;
   userId: number;
@@ -130,6 +141,8 @@ export type TimelineCard = {
   coffeeTagBrand: string | null;
   coffeeImageUrl: string | null;
   likedByActiveUser: boolean;
+  rating?: number;
+  timestamp: number;
 };
 
 export type InitialDataBundle = {

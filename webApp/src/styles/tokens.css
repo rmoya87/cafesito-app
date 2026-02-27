@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --font-family-base: "Segoe UI", sans-serif;
   --font-sans: var(--font-family-base);
   --font-size-2xs: 0.7rem;
@@ -67,4 +67,17 @@
   --radius-lg: 16px;
   --radius-card: 18px;
   --topbar-height: 56px;
+
+  /* Google Button Tokens */
+  --google-btn-bg: var(--espresso-deep);
+  --google-btn-text: var(--pure-white);
+  --search-border-inactive: #e0e0e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --google-btn-bg: var(--caramel-soft);
+    --google-btn-text: var(--pure-black);
+    --search-border-inactive: #000000;
+  }
 }

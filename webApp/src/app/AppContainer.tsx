@@ -65,6 +65,7 @@ import type {
   FavoriteRow,
   FollowRow,
   LikeRow,
+  NotificationRow,
   PantryItemRow,
   PostCoffeeTagRow,
   PostRow,
@@ -93,6 +94,7 @@ export function AppContainer() {
   const [pantryItems, setPantryItems] = useState<PantryItemRow[]>([]);
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
   const [follows, setFollows] = useState<FollowRow[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
 
   const {
     searchQuery,
@@ -283,6 +285,7 @@ export function AppContainer() {
     setPantryItems,
     setFavorites,
     setCustomCoffees,
+    setNotifications,
     setGlobalStatus
   });
 
@@ -453,7 +456,8 @@ export function AppContainer() {
     commentMenuId,
     dismissedNotificationIds,
     notificationsLastSeenAt,
-    detailCoffeeId
+    detailCoffeeId,
+    notifications
   });
 
   useCoffeeRouteSync({
@@ -543,7 +547,7 @@ export function AppContainer() {
     setDetailSensoryDraft
   });
 
- 
+
   const commentListRef = useRef<HTMLUListElement | null>(null);
   const commentImageInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -802,7 +806,8 @@ export function AppContainer() {
     setBrewRunning,
     runWithAuth,
     setDetailOpenStockSignal,
-    saveDetailFavorite
+    saveDetailFavorite,
+    activeUserId: activeUser?.id ?? null
   });
 
   if (!authReady) {
@@ -1009,6 +1014,7 @@ export function AppContainer() {
         onUpdatePantryStock={handleUpdatePantryStock}
         onRemovePantryItem={handleRemovePantryItem}
         onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "diary")}
+        onOpenQuickActions={() => setShowDiaryQuickActions(true)}
       />
     ) : null;
   const profileContent =
@@ -1166,7 +1172,17 @@ export function AppContainer() {
       followingIds={followingIds}
       dismissingNotificationIds={dismissingNotificationIds}
       onClose={closeNotificationsPanel}
-      onDismiss={dismissNotification}
+      onDismiss={(id) => {
+        dismissNotification(id, async (dismissedId) => {
+          try {
+            const { deleteNotification: apiDelete } = await import("../data/supabaseApi");
+            await apiDelete(Number(dismissedId));
+            setNotifications((prev) => prev.filter((n) => String(n.id) !== dismissedId));
+          } catch (err) {
+            console.error("Failed to delete notification:", err);
+          }
+        });
+      }}
       onToggleFollow={handleToggleFollow}
       onOpenCommentThread={(postId, commentId) => {
         setCommentSheetPostId(postId);

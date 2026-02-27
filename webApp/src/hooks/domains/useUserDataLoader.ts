@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { fetchUserData } from "../../data/supabaseApi";
-import type { CoffeeRow, DiaryEntryRow, FavoriteRow, PantryItemRow, UserRow } from "../../types";
+import type { CoffeeRow, DiaryEntryRow, FavoriteRow, NotificationRow, PantryItemRow, UserRow } from "../../types";
 
 type Params = {
   activeUser: UserRow | null;
@@ -8,6 +8,7 @@ type Params = {
   setPantryItems: (value: PantryItemRow[]) => void;
   setFavorites: (value: FavoriteRow[]) => void;
   setCustomCoffees: (value: CoffeeRow[]) => void;
+  setNotifications: (value: NotificationRow[]) => void;
   setGlobalStatus: (value: string) => void;
 };
 
@@ -17,6 +18,7 @@ export function useUserDataLoader({
   setPantryItems,
   setFavorites,
   setCustomCoffees,
+  setNotifications,
   setGlobalStatus
 }: Params): void {
   useEffect(() => {
@@ -24,13 +26,17 @@ export function useUserDataLoader({
     (async () => {
       try {
         const data = await fetchUserData(activeUser.id);
+        const { fetchNotifications } = await import("../../data/supabaseApi");
+        const notifications = await fetchNotifications(activeUser.id);
+
         setDiaryEntries(data.diaryEntries);
         setPantryItems(data.pantryItems);
         setFavorites(data.favorites);
         setCustomCoffees(data.customCoffees);
+        setNotifications(notifications);
       } catch (error) {
         setGlobalStatus(`Error: ${(error as Error).message}`);
       }
     })();
-  }, [activeUser, setCustomCoffees, setDiaryEntries, setFavorites, setGlobalStatus, setPantryItems]);
+  }, [activeUser, setCustomCoffees, setDiaryEntries, setFavorites, setGlobalStatus, setNotifications, setPantryItems]);
 }

@@ -11,6 +11,7 @@ import type {
   FavoriteRow,
   FollowRow,
   LikeRow,
+  NotificationRow,
   PantryItemRow,
   PostCoffeeTagRow,
   PostRow,
@@ -50,7 +51,8 @@ export function useAppDerivedData({
   commentMenuId,
   dismissedNotificationIds,
   notificationsLastSeenAt,
-  detailCoffeeId
+  detailCoffeeId,
+  notifications
 }: {
   users: UserRow[];
   coffees: CoffeeRow[];
@@ -83,6 +85,7 @@ export function useAppDerivedData({
   dismissedNotificationIds: Set<string>;
   notificationsLastSeenAt: number;
   detailCoffeeId: string | null;
+  notifications: NotificationRow[];
 }) {
   const brewCoffeeCatalog = useMemo(() => {
     if (!customCoffees.length) return coffees;
@@ -165,46 +168,90 @@ export function useAppDerivedData({
     return { bySlug, byId };
   }, [coffees]);
 
-  const timelineCards: TimelineCard[] = useMemo(
-    () =>
-      posts.map((post) => {
-        const user = usersById.get(post.user_id);
-        const postLikes = likesByPostId.get(post.id) ?? 0;
-        const postComments = commentsByPostId.get(post.id)?.length ?? 0;
-        const likedByActiveUser =
-          activeUser != null &&
-          likes.some((like) => like.post_id === post.id && like.user_id === activeUser.id);
-        const tag = tagsByPostId.get(post.id);
-        const normalizedTagBrand = normalizeLookupText(tag?.coffee_brand);
-        const normalizedTagName = normalizeLookupText(tag?.coffee_name);
-        const coffeeKey = tag ? `${normalizedTagBrand}|${normalizedTagName}` : "";
-        const coffeeId =
-          (tag?.coffee_id ? tag.coffee_id : null) ??
-          (coffeeKey ? coffeeIdByNameBrand.byNameBrand.get(coffeeKey) : null) ??
-          (normalizedTagName ? coffeeIdByNameBrand.byName.get(normalizedTagName) : null) ??
-          null;
-        const coffee = coffeeId ? coffeesById.get(coffeeId) ?? null : null;
+  const timelineCards: TimelineCard[] = useMemo(() => {
+    const postCards: TimelineCard[] = posts.map((post) => {
+      const user = usersById.get(post.user_id);
+      const postLikes = likesByPostId.get(post.id) ?? 0;
+      const postComments = commentsByPostId.get(post.id)?.length ?? 0;
+      const likedByActiveUser =
+        activeUser != null &&
+        likes.some((like) => like.post_id === post.id && like.user_id === activeUser.id);
+      const tag = tagsByPostId.get(post.id);
+      const normalizedTagBrand = normalizeLookupText(tag?.coffee_brand);
+      const normalizedTagName = normalizeLookupText(tag?.coffee_name);
+      const coffeeKey = tag ? `${normalizedTagBrand}|${normalizedTagName}` : "";
+      const coffeeId =
+        (tag?.coffee_id ? tag.coffee_id : null) ??
+        (coffeeKey ? coffeeIdByNameBrand.byNameBrand.get(coffeeKey) : null) ??
+        (normalizedTagName ? coffeeIdByNameBrand.byName.get(normalizedTagName) : null) ??
+        null;
+      const coffee = coffeeId ? coffeesById.get(coffeeId) ?? null : null;
 
-        return {
-          id: post.id,
-          userId: post.user_id,
-          userName: user?.full_name ?? `Usuario ${post.user_id}`,
-          username: user?.username ?? `user${post.user_id}`,
-          avatarUrl: user?.avatar_url ?? "",
-          text: post.comment,
-          imageUrl: post.image_url,
-          minsAgoLabel: toRelativeMinutes(post.timestamp),
-          likes: postLikes,
-          comments: postComments,
-          coffeeId,
-          coffeeTagName: tag?.coffee_name ?? null,
-          coffeeTagBrand: tag?.coffee_brand ?? null,
-          coffeeImageUrl: coffee?.image_url ?? null,
-          likedByActiveUser
-        };
-      }),
-    [activeUser, coffeeIdByNameBrand, coffeesById, commentsByPostId, likes, likesByPostId, posts, tagsByPostId, usersById]
-  );
+      return {
+        id: post.id,
+        userId: post.user_id,
+        userName: user?.full_name ?? `Usuario ${post.user_id}`,
+        username: user?.username ?? `user${post.user_id}`,
+        avatarUrl: user?.avatar_url ?? "",
+        text: post.comment,
+        imageUrl: post.image_url,
+        minsAgoLabel: toRelativeMinutes(post.timestamp ?? 0),
+        timestamp: post.timestamp ?? 0,
+        likes: postLikes,
+        comments: postComments,
+        coffeeId,
+        coffeeTagName: tag?.coffee_name ?? null,
+        coffeeTagBrand: tag?.coffee_brand ?? null,
+        coffeeImageUrl: coffee?.image_url ?? null,
+        likedByActiveUser
+      };
+    });
+
+    const combined = [...postCards];
+
+    // Map reviews as cards too
+    coffeeReviews.forEach((review) => {
+      const user = usersById.get(review.user_id ?? -1);
+      const coffee = coffeesById.get(review.coffee_id);
+      if (!coffee) return;
+
+      const reviewId = `review-${review.id || review.timestamp}`;
+      // Note: Reviews don't have likes/comments in the same way in the current DB schema
+      // but we can show the rating.
+      combined.push({
+        id: reviewId,
+        userId: review.user_id ?? -1,
+        userName: user?.full_name ?? `Usuario ${review.user_id}`,
+        username: user?.username ?? `user${review.user_id}`,
+        avatarUrl: user?.avatar_url ?? "",
+        text: review.comment || "",
+        imageUrl: review.image_url || "",
+        minsAgoLabel: toRelativeMinutes(review.timestamp ?? 0),
+        timestamp: review.timestamp ?? 0,
+        likes: 0,
+        comments: 0,
+        coffeeId: review.coffee_id,
+        coffeeTagName: coffee.nombre,
+        coffeeTagBrand: coffee.marca,
+        coffeeImageUrl: coffee.image_url,
+        likedByActiveUser: false,
+        rating: review.rating // We might need to add this to TimelineCard type
+      });
+    });
+
+    return combined.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+  }, [
+    activeUser,
+    coffeeIdByNameBrand,
+    coffeesById,
+    commentsByPostId,
+    likes,
+    likesByPostId,
+    posts,
+    tagsByPostId,
+    usersById,
+    coffeeReviews
+  ]);
 
   const filteredCoffees = useMemo(() => {
     const q = normalizeLookupText(searchQuery);
@@ -558,44 +605,25 @@ export function useAppDerivedData({
   const timelineNotifications = useMemo<TimelineNotificationItem[]>(() => {
     if (!activeUser) return [];
 
-    const followEvents = follows
-      .filter((follow) => follow.followed_id === activeUser.id && follow.follower_id !== activeUser.id)
-      .map((follow) => ({
-        id: `follow-${follow.follower_id}-${follow.followed_id}`,
-        type: "follow" as const,
-        userId: follow.follower_id,
-        text: "ha comenzado a seguirte",
-        timestamp: toEventTimestamp(follow.created_at)
-      }));
+    return notifications.map((n) => {
+      const type = n.type.toLowerCase();
+      const isComment = type === "comment" || type === "mention";
+      const isFollow = type === "follow";
 
-    const commentEvents = comments
-      .filter((comment) => comment.user_id !== activeUser.id)
-      .slice(0, 40)
-      .map((comment) => {
-        const post = posts.find((entry) => entry.id === comment.post_id);
-        if (!post || post.user_id !== activeUser.id) return null;
-        return {
-          id: `comment-${comment.id}`,
-          type: "comment" as const,
-          userId: comment.user_id,
-          text: "ha comentado en tu publicacion",
-          timestamp: toEventTimestamp(comment.timestamp),
-          postId: comment.post_id,
-          commentId: comment.id
-        };
-      })
-      .filter(
-        (event): event is { id: string; type: "comment"; userId: number; text: string; timestamp: number; postId: string; commentId: number } =>
-          Boolean(event)
-      );
-
-    return [...followEvents, ...commentEvents]
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 24);
-  }, [activeUser, comments, follows, posts]);
+      return {
+        id: String(n.id),
+        type: isFollow ? "follow" : "comment",
+        userId: n.user_id,
+        text: n.message,
+        timestamp: n.timestamp,
+        postId: isComment ? n.related_id : undefined,
+        commentId: isComment ? Number(n.related_id) : undefined // Simplification
+      } as TimelineNotificationItem;
+    });
+  }, [activeUser, notifications]);
 
   const visibleTimelineNotifications = useMemo(
-    () => timelineNotifications.filter((item) => !dismissedNotificationIds.has(item.id)),
+    () => timelineNotifications.filter((item) => !dismissedNotificationIds.has(String(item.id))),
     [dismissedNotificationIds, timelineNotifications]
   );
 

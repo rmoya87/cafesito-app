@@ -1,4 +1,5 @@
 ﻿export type IconName =
+  | "auto_graph"
   | "home"
   | "search"
   | "barcode"
@@ -80,26 +81,27 @@ export function MaterialSymbolIcon({
   className
 }: {
   symbol:
-    | "book"
-    | "auto_awesome"
-    | "science"
-    | "explore"
-    | "globe"
-    | "verified"
-    | "auto_awesome_mosaic"
-    | "local_fire_department"
-    | "whatshot"
-    | "fireplace"
-    | "grain"
-    | "energy_savings_leaf"
-    | "sports_rugby"
-    | "settings"
-    | "lens_blur"
-    | "storefront"
-    | "device_thermostat"
-    | "waves"
-    | "water_drop"
-    | "favorite";
+  | "auto_graph"
+  | "book"
+  | "auto_awesome"
+  | "science"
+  | "explore"
+  | "globe"
+  | "verified"
+  | "auto_awesome_mosaic"
+  | "local_fire_department"
+  | "whatshot"
+  | "fireplace"
+  | "grain"
+  | "energy_savings_leaf"
+  | "sports_rugby"
+  | "settings"
+  | "lens_blur"
+  | "storefront"
+  | "device_thermostat"
+  | "waves"
+  | "water_drop"
+  | "favorite";
   filled: boolean;
   className?: string;
 }) {
@@ -114,6 +116,9 @@ export function MaterialSymbolIcon({
 }
 
 export function UiIcon({ name, className }: { name: IconName; className?: string }) {
+  if (name === "auto_graph") {
+    return <MaterialSymbolIcon symbol="auto_graph" filled={true} className={className} />;
+  }
   if (name === "nav-home-outline") {
     return (
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
@@ -482,7 +487,3 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     </svg>
   );
 }
-
-
-
-
