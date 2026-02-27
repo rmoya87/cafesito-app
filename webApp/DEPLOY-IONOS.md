@@ -1,33 +1,35 @@
 # Despliegue en Ionos
 
-## Errores 500 en assets / registerSW.js / manifest
+## Errores 500 en assets / registerSW.js / logo.png
 
-Si al desplegar en Ionos ves **500** en `registerSW.js`, `assets/index-*.js`, `index-*.css`, `logo.png` o `manifest.webmanifest`, suele deberse a que el servidor (Apache) no está sirviendo esos ficheros como estáticos y los reescribe o los pasa a un script que falla.
+Si al desplegar en Ionos ves **500** en `registerSW.js`, `assets/index-*.js`, `index-*.css` o `logo.png`, suele deberse a:
 
-### Qué hacer
+- El servidor reescribe todas las peticiones (incluidas las de estáticos) a un script que devuelve 500.
+- La app está en un **subdirectorio** (p. ej. `https://cafesitoapp.com/app/`) pero los recursos se piden a la raíz (`/assets/`, `/logo.png`) y ahí no existen o pasan por un handler que falla.
 
-1. **Subir el contenido de `dist/`, no la carpeta `dist`**
-   - En la raíz del sitio (p. ej. `public_html` o la carpeta que asigne Ionos a tu dominio) deben estar:
-     - `index.html`
-     - carpeta `assets/` (con los .js y .css con hash)
-     - `logo.png`, `favicon.svg`
-     - `sw.js`, `registerSW.js`, `manifest.webmanifest` (generados por Vite PWA)
-     - `.htaccess` (incluido en este proyecto en `public/`, Vite lo copia a `dist/` al hacer build)
+### Solución aplicada en el proyecto
 
-2. **Comprobar que `.htaccess` está en la raíz del sitio**
-   - El `.htaccess` hace que las peticiones a ficheros que **existen** se sirvan como estáticos y que el resto vaya a `index.html` (SPA). Si no está, créalo desde `webApp/public/.htaccess` o vuelve a hacer build y subir.
+- **Base relativa (`base: "./"`)**: Los recursos (JS, CSS, logo, PWA) se piden con rutas relativas. Así, si la app está en `https://cafesitoapp.com/app/`, todo se carga desde `/app/` (p. ej. `/app/assets/...`, `/app/logo.png`) y el servidor sirve los ficheros que realmente subiste.
+- **`.htaccess`**: Reglas para no reescribir `/assets/` ni peticiones a `.js`, `.css`, `.png`, etc., y que el resto vaya a `index.html` (SPA).
 
-3. **Build local**
+### Qué hacer al desplegar
+
+1. **Build**
    ```bash
    cd webApp
    npm ci
    npm run build
    ```
-   Luego sube **todo** lo que haya dentro de `webApp/dist/` a la raíz del sitio en Ionos (FTP o gestor de archivos).
 
-4. **Si la app está en un subdirectorio** (p. ej. `https://tudominio.com/app/`)
-   - En `vite.config.ts` define `base: '/app/'`.
-   - Vuelve a hacer `npm run build` y sube el contenido de `dist/` dentro de la carpeta `app/` en el servidor.
+2. **Subir todo el contenido de `dist/`**
+   - Si la app va en la **raíz** del dominio: sube el contenido de `dist/` a la raíz del sitio en Ionos (p. ej. `public_html`).
+   - Si la app va en un **subdirectorio** (p. ej. `https://cafesitoapp.com/app/`): sube el contenido de `dist/` **dentro** de la carpeta `app/` (así que en el servidor existan `app/index.html`, `app/assets/`, `app/logo.png`, `app/registerSW.js`, etc.).
+
+3. **Incluir el `.htaccess`**
+   - Vite ya copia `public/.htaccess` a `dist/`. Asegúrate de subir también el `.htaccess` que queda en `dist/` al mismo nivel que `index.html` (raíz del sitio o dentro de `app/`).
+
+4. **Comprobar en Ionos**
+   - Si Ionos desactiva `.htaccess` (AllowOverride), las reglas no se aplicarán. En ese caso, usa el panel de Ionos para configurar reescritura o contacta con soporte para que los estáticos se sirvan sin pasar por PHP.
 
 ### CSP y fuente externa
 
