@@ -33,7 +33,7 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 
 3. **deploy-web**  
    - Condición: rama `Beta` o `Producción`.
-   - Ejecuta `npm ci`, `npm test`, `npm run build` en `webApp` y sube el contenido de `webApp/dist/` por FTP a Ionos en `/cafesito-web/app/`.
+   - Ejecuta `npm ci`, `npm test`, `npm run build` en `webApp` y sube el contenido de `webApp/dist/` por **SFTP** (SSH) a Ionos en `/cafesito-web/app/`.
 
 ## Forzar release sin push
 
@@ -55,12 +55,14 @@ En **Settings → Secrets and variables → Actions**:
 - `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
 - `GOOGLE_SERVICES_JSON` – Contenido de `google-services.json`.
 
-### Web (Ionos)
+### Web (Ionos, SFTP)
 
-- `IONOS_SSH_HOST` – Host/servidor FTP o SFTP (ej. `ftp.tudominio.com`).
-- `IONOS_SSH_USER` – Usuario FTP/SFTP.
+El deploy usa **SFTP** (no FTP); Ionos suele ofrecer acceso por SSH/SFTP.
+
+- `IONOS_SSH_HOST` – Host del servidor (ej. `ssh.tudominio.com` o la IP).
+- `IONOS_SSH_USER` – Usuario SFTP/SSH.
 - `IONOS_SSH_PASSWORD` – Contraseña.
-- `IONOS_SSH_PORT` – Puerto (opcional; si no se define, se usa el por defecto del protocolo).
+- `IONOS_SSH_PORT` – Puerto (opcional; por defecto 22).
 
 El deploy web sube a la ruta remota **`/cafesito-web/app/`**.
 

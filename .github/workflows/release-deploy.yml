@@ -257,13 +257,14 @@ jobs:
           fi
           echo "Secrets de Ionos configurados."
 
-      - name: Deploy to Ionos (/cafesito-web/app/)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Deploy to Ionos via SFTP (/cafesito-web/app/)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
           server: ${{ secrets.IONOS_SSH_HOST }}
           username: ${{ secrets.IONOS_SSH_USER }}
+          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
           password: ${{ secrets.IONOS_SSH_PASSWORD }}
-          port: ${{ secrets.IONOS_SSH_PORT }}
-          local-dir: ./webApp/dist/
-          server-dir: /cafesito-web/app/
-          dangerous-clean-slate: false
+          local_path: ./webApp/dist/*
+          remote_path: /cafesito-web/app/
+          sftp_only: true
+          delete_remote_files: false
