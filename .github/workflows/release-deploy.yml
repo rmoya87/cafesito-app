@@ -4,8 +4,8 @@
 # - main: no se dispara (solo unificación de código).
 # - Interna: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas internas).
 # - Alpha: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas cerradas).
-# - Beta: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (cafesito-web/app).
-# - Producción: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (cafesito-web/app).
+# - Beta: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
+# - Producción: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
 #
 # EJECUCIÓN MANUAL (Actions → Release & Deploy → Run workflow)
 # Permite forzar release Android + deploy web sin hacer push: elige la rama y se ejecutan ambos jobs.
@@ -214,7 +214,7 @@ jobs:
           status: completed
           whatsNewDirectory: release-notes
 
-  # Deploy web a Ionos: SIEMPRE en Beta y Producción (sube al servidor cafesito-web/app)
+  # Deploy web a Ionos: SIEMPRE en Beta y Producción (sube a /cafesito-web/app/)
   deploy-web:
     needs: changes
     if: contains(fromJSON('["Beta","Producción"]'), github.event.inputs.branch || github.ref_name)
@@ -257,7 +257,7 @@ jobs:
           fi
           echo "Secrets de Ionos configurados."
 
-      - name: Deploy to Ionos (cafesito-web/app)
+      - name: Deploy to Ionos (/cafesito-web/app/)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.IONOS_SSH_HOST }}
@@ -265,5 +265,5 @@ jobs:
           password: ${{ secrets.IONOS_SSH_PASSWORD }}
           port: ${{ secrets.IONOS_SSH_PORT }}
           local-dir: ./webApp/dist/
-          server-dir: cafesito-web/app
+          server-dir: /cafesito-web/app/
           dangerous-clean-slate: false
