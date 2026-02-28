@@ -58,11 +58,14 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      // En producción usar VITE_SITE_URL (definida en CI) para no depender de origin y evitar redirect a localhost.
-      const baseOrigin = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim() || window.location.origin;
-      const basePath = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
-      const pathToTimeline = `${basePath}/timeline`.replace(/\/+/g, "/");
-      const redirectTo = `${baseOrigin.replace(/\/+$/, "")}${pathToTimeline}`;
+      // En producción usar VITE_SITE_URL (definida en CI) como URL base completa (incl. path) para no depender de
+      // window.location: en PWA "Añadir a página de inicio" (iOS) el pathname puede ser "/" y el redirect iría
+      // a /timeline en la raíz → 404/500. VITE_SITE_URL debe ser la URL pública de la app (ej. https://cafesitoapp.com/cafesito-web/app).
+      const siteUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim();
+      const base = siteUrl
+        ? siteUrl.replace(/\/+$/, "")
+        : `${window.location.origin}${(getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || ""}`.replace(/\/+$/, "");
+      const redirectTo = `${base}/timeline`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo }

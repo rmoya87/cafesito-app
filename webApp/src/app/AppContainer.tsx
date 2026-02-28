@@ -368,7 +368,8 @@ export function AppContainer() {
   useEffect(() => {
     const el = mainScrollRef.current;
     if (!el) return;
-    const threshold = 24;
+    const threshold = 24; // por debajo de esto la topbar siempre visible
+    const scrollDelta = 12; // mínimo desplazamiento para ocultar/mostrar (evita parpadeos)
     lastScrollTopRef.current = el.scrollTop;
     let ticking = false;
     const onScroll = () => {
@@ -381,9 +382,9 @@ export function AppContainer() {
           setTopbarScrolled(st > 18);
           if (st <= threshold) {
             setTopbarHidden(false);
-          } else if (st > last) {
+          } else if (st > last + scrollDelta) {
             setTopbarHidden(true);
-          } else {
+          } else if (st < last - scrollDelta) {
             setTopbarHidden(false);
           }
           ticking = false;

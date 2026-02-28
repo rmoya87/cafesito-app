@@ -9,7 +9,8 @@ Si al desplegar en Ionos ves **500** en `registerSW.js`, `assets/index-*.js`, `i
 
 ### Solución aplicada en el proyecto
 
-- **Base relativa (`base: "./"`)**: Los recursos (JS, CSS, logo, PWA) se piden con rutas relativas. Así, si la app está en `https://cafesitoapp.com/app/`, todo se carga desde `/app/` (p. ej. `/app/assets/...`, `/app/logo.png`) y el servidor sirve los ficheros que realmente subiste.
+- **Base relativa (`base: "./"`)**: Los recursos (JS, CSS, logo, PWA) se piden con rutas relativas.
+- **`.htaccess`**: Excluye `registerSW.js` y `assets/` de la reescritura para que el servidor no devuelva 500. Así, si la app está en `https://cafesitoapp.com/app/`, todo se carga desde `/app/` (p. ej. `/app/assets/...`, `/app/logo.png`) y el servidor sirve los ficheros que realmente subiste.
 - **`.htaccess`**: Reglas para no reescribir `/assets/` ni peticiones a `.js`, `.css`, `.png`, etc., y que el resto vaya a `index.html` (SPA).
 
 ### Qué hacer al desplegar
@@ -66,10 +67,11 @@ Tienes **dos opciones** para configurar Supabase:
 ### Login: video de fondo y botón «Continuar con Google»
 
 - **Video de fondo**: Usa ruta relativa y reproducción programática (incl. iOS con `webkit-playsinline`). Si en iOS no se reproduce, el navegador puede estar bloqueando el autoplay hasta la primera interacción.
-- **Botón Google**: El redirect tras el login va a **timeline** (p. ej. `https://cafesitoapp.com/app/timeline`). En Supabase → Authentication → URL Configuration:
-  - **Site URL**: pon la URL pública de la app (p. ej. `https://cafesitoapp.com`). Si está en `localhost`, el redirect tras OAuth puede ir a localhost.
-  - **Redirect URLs**: añade la URL de timeline y la raíz donde sirves la app, p. ej. `https://cafesitoapp.com/app/timeline`, `https://cafesitoapp.com/app/`.
-- **Variable opcional**: En CI (GitHub Actions) se usa `VITE_SITE_URL` (por defecto `https://cafesitoapp.com`) para construir el redirect y evitar que vuelva a localhost. Puedes definir la variable `VITE_SITE_URL` en el repo si tu dominio es otro.
+- **Botón Google (y PWA «Añadir a página de inicio» en iOS)**: El redirect tras el login va a **timeline**. Si la app está en un subdirectorio (p. ej. `/cafesito-web/app/`), **VITE_SITE_URL debe ser la URL base completa incluyendo ese path** (p. ej. `https://cafesitoapp.com/cafesito-web/app`). Si no, al abrir desde «página de inicio» en iOS el redirect puede ir a `https://cafesitoapp.com/timeline` y el servidor devolverá 404/500.
+  - En Supabase → Authentication → URL Configuration:
+    - **Site URL**: la URL pública de la app (con path si aplica), p. ej. `https://cafesitoapp.com/cafesito-web/app`.
+    - **Redirect URLs**: añade la URL de timeline y la raíz de la app, p. ej. `https://cafesitoapp.com/cafesito-web/app/timeline`, `https://cafesitoapp.com/cafesito-web/app/`.
+  - En CI (GitHub Actions) se usa `VITE_SITE_URL` (por defecto `https://cafesitoapp.com/cafesito-web/app`). Define la variable `VITE_SITE_URL` en el repo si tu despliegue usa otro path.
 
 ### CSP y fuente externa
 
