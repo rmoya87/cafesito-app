@@ -33,7 +33,9 @@ Si al desplegar en Ionos ves **500** en `registerSW.js`, `assets/index-*.js`, `i
 
 ### «Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY» (iOS / producción)
 
-Ese mensaje aparece cuando la app se ejecuta sin la configuración de Supabase. Tienes **dos opciones**:
+Ese mensaje aparece cuando la app se ejecuta sin la configuración de Supabase. Si despliegas con **GitHub Actions** (Release & Deploy), añade en el repo **Settings → Secrets and variables → Actions** las variables (o secrets) `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`; el workflow las inyecta en el build. Si no están ahí, el build se genera sin ellas y el botón de Google mostrará ese error en producción.
+
+Tienes **dos opciones** para configurar Supabase:
 
 1. **Build con variables de entorno (recomendado)**  
    Crea en `webApp/` un archivo `.env` con:

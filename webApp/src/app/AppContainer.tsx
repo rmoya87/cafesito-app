@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toggleFavoriteCoffee } from "../data/supabaseApi";
 import { BREW_METHODS, COMMENT_EMOJIS } from "../config/brew";
 import { getAppRootPath, parseRoute } from "../core/routing";
@@ -903,6 +903,16 @@ export function AppContainer() {
   };
 
   const guardedActiveTab = resolveGuardedTab(activeTab, Boolean(sessionEmail));
+  const showingLogin = !authReady || (!sessionEmail && !canAccessTabAsGuest(guardedActiveTab));
+  useLayoutEffect(() => {
+    if (!showingLogin) return;
+    const pathname = window.location.pathname;
+    const root = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
+    const current = pathname.replace(/\/+$/, "") || "/";
+    if (current !== root) {
+      window.history.replaceState({}, "", `${root}${window.location.search}${window.location.hash}`);
+    }
+  }, [showingLogin]);
   const nav = <BottomNav activeTab={guardedActiveTab} onNavClick={handleNavClick} />;
   const navRail = <DesktopNavRail activeTab={guardedActiveTab} onNavClick={handleNavClick} />;
   const topbarActions = useTopBarActions({

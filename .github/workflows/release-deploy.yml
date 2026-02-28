@@ -33,25 +33,29 @@ on:
           - Alpha
           - Beta
           - Producción
+  # Webhook desde Supabase: al crear/editar/eliminar un café se puede llamar a este evento para regenerar páginas estáticas.
+  # Ver docs/supabase/webhook-coffees-trigger-build.md
+  repository_dispatch:
+    types: [supabase-coffees-changed]
 
 permissions:
   contents: write
   pull-requests: read
 
 concurrency:
-  group: release-deploy-${{ github.ref_name }}
+  group: release-deploy-${{ github.event.inputs.branch || github.event.client_payload.branch || github.ref_name }}
   cancel-in-progress: true
 
 env:
-  TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name }}
+  TARGET_BRANCH: ${{ github.event.inputs.branch || github.event.client_payload.branch || github.ref_name }}
 
 jobs:
   # Detecta qué ha cambiado para no subir por subir (en manual trigger se asume que hay cambios)
   changes:
     runs-on: ubuntu-latest
     outputs:
-      android: ${{ steps.filter.outputs.android || steps.manual.outputs.android }}
-      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web }}
+      android: ${{ steps.filter.outputs.android || steps.manual.outputs.android || steps.webhook.outputs.android }}
+      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web || steps.webhook.outputs.web }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,6 +66,13 @@ jobs:
         id: manual
         run: |
           echo "android=true" >> "$GITHUB_OUTPUT"
+          echo "web=true" >> "$GITHUB_OUTPUT"
+
+      - name: Set changes for Supabase webhook (solo deploy web)
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'supabase-coffees-changed'
+        id: webhook
+        run: |
+          echo "android=false" >> "$GITHUB_OUTPUT"
           echo "web=true" >> "$GITHUB_OUTPUT"
 
       - uses: dorny/paths-filter@v3
@@ -217,13 +228,15 @@ jobs:
   # Deploy web a Ionos: SIEMPRE en Beta y Producción (sube a /cafesito-web/app/)
   deploy-web:
     needs: changes
-    if: contains(fromJSON('["Beta","Producción"]'), github.event.inputs.branch || github.ref_name)
+    if: contains(fromJSON('["Beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: webApp
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ (github.event_name == 'repository_dispatch' && github.event.client_payload.branch) && format('refs/heads/{0}', github.event.client_payload.branch) || (github.event_name == 'workflow_dispatch' && github.event.inputs.branch && format('refs/heads/{0}', github.event.inputs.branch)) || '' }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
