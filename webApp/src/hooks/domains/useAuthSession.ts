@@ -67,12 +67,17 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      // En producción usar VITE_SITE_URL (definida en CI): raíz del sitio (ej. https://cafesitoapp.com) o path si la app está en subdirectorio.
-      // Tras login Google, Supabase redirige a {VITE_SITE_URL}/timeline (ej. https://cafesitoapp.com/timeline).
+      // Redirect tras login Google: siempre https://cafesitoapp.com/timeline en producción.
+      // VITE_SITE_URL (build) tiene prioridad; si no está y estamos en cafesitoapp.com, usar la raíz del dominio (no el path actual /cafesito-web/app/).
       const siteUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim();
-      const base = siteUrl
-        ? siteUrl.replace(/\/+$/, "")
-        : `${window.location.origin}${(getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || ""}`.replace(/\/+$/, "");
+      let base: string;
+      if (siteUrl) {
+        base = siteUrl.replace(/\/+$/, "");
+      } else if (typeof window !== "undefined" && window.location.hostname === "cafesitoapp.com") {
+        base = "https://cafesitoapp.com";
+      } else {
+        base = `${window.location.origin}${(getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || ""}`.replace(/\/+$/, "");
+      }
       const redirectTo = `${base}/timeline`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
