@@ -5,16 +5,17 @@ import { canNavigateToTab } from "../../core/guards";
 export function useRouteCanonicalSync(isAuthenticated?: boolean) {
   useEffect(() => {
     const pathname = window.location.pathname;
+    const base = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
     if (!isAuthenticated) {
-      const root = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
       const current = pathname.replace(/\/+$/, "") || "/";
-      if (current !== root) {
-        window.history.replaceState({}, "", `${root}${window.location.search}${window.location.hash}`);
+      if (current !== base) {
+        window.history.replaceState({}, "", `${base}${window.location.search}${window.location.hash}`);
       }
       return;
     }
     const route = parseRoute(pathname);
-    const normalized = buildRoute(route.tab, route.searchMode, route.profileUsername, route.coffeeSlug);
+    const routePath = buildRoute(route.tab, route.searchMode, route.profileUsername, route.coffeeSlug);
+    const normalized = base === "/" ? routePath : `${base}${routePath}`;
     if (pathname !== normalized) {
       window.history.replaceState({}, "", `${normalized}${window.location.search}${window.location.hash}`);
     }
@@ -50,7 +51,8 @@ export function useCoffeeRouteSync({
   setDetailHostTab: (value: "timeline" | "search" | "profile" | null) => void;
 }) {
   useEffect(() => {
-    const route = parseRoute(window.location.pathname);
+    const pathname = window.location.pathname;
+    const route = parseRoute(pathname);
     if (route.tab !== "coffee") return;
     if (!route.coffeeSlug) return;
 
@@ -58,6 +60,10 @@ export function useCoffeeRouteSync({
     if (coffeeId) {
       setDetailCoffeeId(coffeeId);
       setDetailHostTab(null);
+      return;
     }
+    const base = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
+    const searchPath = base === "/" ? "/search" : `${base}/search`;
+    window.location.replace(`${searchPath}${window.location.search}${window.location.hash}`);
   }, [coffeeSlugToId, setDetailCoffeeId, setDetailHostTab]);
 }
