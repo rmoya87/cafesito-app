@@ -3,7 +3,7 @@
 # RAMAS Y COMPORTAMIENTO
 # - main: no se dispara (solo unificación de código).
 # - Interna: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas internas).
-# - Alpha: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas cerradas).
+# - Alpha: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
 # - Beta: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
 # - Producción: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
 #
@@ -227,10 +227,10 @@ jobs:
           status: completed
           whatsNewDirectory: release-notes
 
-  # Deploy web a Ionos: SIEMPRE en Beta y Producción (sube a /cafesito-web/app/)
+  # Deploy web a Ionos: SIEMPRE en Alpha, Beta y Producción (sube a /cafesito-web/app/)
   deploy-web:
     needs: changes
-    if: contains(fromJSON('["Beta","beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
+    if: contains(fromJSON('["Alpha","alpha","Beta","beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
     runs-on: ubuntu-latest
     defaults:
       run:

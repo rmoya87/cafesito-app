@@ -13,12 +13,12 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 |-------------|-------------------------------------|----------------------------------|
 | **main**    | No se ejecuta el workflow           | —                                |
 | **Interna** | Solo si hay cambios en `app/` o `shared/` → pruebas internas | No |
-| **Alpha**   | Solo si hay cambios en `app/` o `shared/` → pruebas cerradas | No |
+| **Alpha**   | Solo si hay cambios en `app/` o `shared/` → pruebas cerradas | **Siempre** → `/cafesito-web/app/` |
 | **Beta**    | Solo si hay cambios en `app/` o `shared/` → pruebas abiertas | **Siempre** → `/cafesito-web/app/` |
 | **Producción** | Solo si hay cambios en `app/` o `shared/` → producción | **Siempre** → `/cafesito-web/app/` |
 
 - **Android**: no se sube por subir; solo se construye y se publica en Play cuando el push incluye cambios en `app/` o `shared/`.
-- **Web**: en Beta y Producción el job de deploy web **siempre** se ejecuta y sube el build de `webApp` al servidor Ionos en la ruta `/cafesito-web/app/`.
+- **Web**: en Alpha, Beta y Producción el job de deploy web **siempre** se ejecuta y sube el build de `webApp` al servidor Ionos en la ruta `/cafesito-web/app/`.
 
 ## Jobs del workflow
 
@@ -32,7 +32,7 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
    - Configura keystore y `google-services.json`, hace bump de versión, build del AAB y subida a la pista de Play correspondiente.
 
 3. **deploy-web**  
-   - Condición: rama `Beta` o `Producción`.
+   - Condición: rama `Alpha`, `Beta` o `Producción`.
    - Ejecuta `npm ci`, `npm test`, `npm run build` en `webApp` y sube el contenido de `webApp/dist/` por **SFTP** (SSH) a Ionos en `/cafesito-web/app/`.
 
 ## Forzar release sin push
@@ -70,5 +70,5 @@ El deploy web sube a la ruta remota **`/cafesito-web/app/`**.
 
 - **main**: no hace nada.
 - **Interna / Alpha**: solo release Android si cambian `app/` o `shared/`.
-- **Beta / Producción**: release Android si cambian `app/` o `shared/`; **deploy web siempre** a Ionos `/cafesito-web/app/`.
+- **Alpha / Beta / Producción**: release Android si cambian `app/` o `shared/`; **deploy web siempre** a Ionos `/cafesito-web/app/`.
 - Para forzar todo: **Run workflow** manual con la rama elegida.
