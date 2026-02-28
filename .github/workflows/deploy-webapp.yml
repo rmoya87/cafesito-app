@@ -1,0 +1,88 @@
+# Deploy solo de la webapp a Ionos. Útil para ver el deploy por separado y lanzarlo a mano.
+#
+# Se ejecuta:
+# - Al hacer push a Alpha (cualquier cambio).
+# - Manualmente: Actions → Deploy Webapp → Run workflow → elegir rama (default Alpha).
+#
+# Sube el contenido de webApp/dist/ a /cafesito-web/app/ en el servidor (Ionos).
+# Requiere los mismos secrets que Release & Deploy: VITE_SUPABASE_*, IONOS_SSH_*.
+
+name: Deploy Webapp
+
+on:
+  push:
+    branches:
+      - Alpha
+      - alpha
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Rama a desplegar'
+        required: true
+        default: 'Alpha'
+        type: choice
+        options:
+          - Alpha
+          - Beta
+          - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webApp
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/heads/{0}', github.event.inputs.branch) || github.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: webApp/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
+
+      - name: Hash lista cafés (prerender)
+        id: coffee_hash
+        run: |
+          HASH=$(node scripts/get-coffee-prerender-hash.mjs)
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Prerender cafés
+        run: node scripts/prerender-coffee-pages.mjs
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Deploy to Ionos
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.IONOS_SSH_HOST }}
+          username: ${{ secrets.IONOS_SSH_USER }}
+          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          password: ${{ secrets.IONOS_SSH_PASSWORD }}
+          local_path: ./webApp/dist/*
+          remote_path: /cafesito-web/app/
+          sftp_only: true
+          delete_remote_files: true
