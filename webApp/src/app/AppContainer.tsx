@@ -377,12 +377,25 @@ export function AppContainer() {
   });
 
   const lastScrollTopRef = useRef(0);
+  const THRESHOLD = 24;
+  const SCROLL_DELTA = 10;
+
+  const applyScrollState = useCallback((scrollTop: number, lastScroll: number) => {
+    setTopbarScrolled(scrollTop > 18);
+    if (scrollTop <= THRESHOLD) {
+      setTopbarHidden(false);
+    } else if (scrollTop > lastScroll + SCROLL_DELTA) {
+      setTopbarHidden(true);
+    } else if (scrollTop < lastScroll - SCROLL_DELTA) {
+      setTopbarHidden(false);
+    }
+  }, []);
+
   useEffect(() => {
     const el = mainScrollRef.current;
     if (!el) return;
-    const threshold = 24; // por debajo de esto la topbar siempre visible
-    const scrollDelta = 12; // mínimo desplazamiento para ocultar/mostrar (evita parpadeos)
     lastScrollTopRef.current = el.scrollTop;
+    applyScrollState(el.scrollTop, 0);
     let ticking = false;
     const onScroll = () => {
       if (!ticking) {
@@ -391,21 +404,14 @@ export function AppContainer() {
           const st = el.scrollTop;
           const last = lastScrollTopRef.current;
           lastScrollTopRef.current = st;
-          setTopbarScrolled(st > 18);
-          if (st <= threshold) {
-            setTopbarHidden(false);
-          } else if (st > last + scrollDelta) {
-            setTopbarHidden(true);
-          } else if (st < last - scrollDelta) {
-            setTopbarHidden(false);
-          }
+          applyScrollState(st, last);
           ticking = false;
         });
       }
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [applyScrollState]);
 
   const handleSignOut = useCallback(async () => {
     if (supabaseConfigError) return;
@@ -917,6 +923,17 @@ export function AppContainer() {
   };
 
   const guardedActiveTab = resolveGuardedTab(activeTab, Boolean(sessionEmail));
+
+  // Al cambiar de vista: reiniciar scroll y mostrar topbar para que en timeline y buscador se comporte igual
+  useEffect(() => {
+    const el = mainScrollRef.current;
+    if (!el) return;
+    el.scrollTop = 0;
+    lastScrollTopRef.current = 0;
+    setTopbarScrolled(false);
+    setTopbarHidden(false);
+  }, [guardedActiveTab]);
+
   const showingLogin = !authReady || (!sessionEmail && !canAccessTabAsGuest(guardedActiveTab));
   useLayoutEffect(() => {
     if (!showingLogin) return;

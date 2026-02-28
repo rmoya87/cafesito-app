@@ -1,7 +1,10 @@
-﻿import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import type { CoffeeRow, UserRow } from "../../types";
 import { Button, Chip, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
+
+const SEARCH_PAGE_SIZE = 15;
+const SEARCH_LOAD_MORE_AT_INDEX = 12; // al llegar al 12.º elemento, cargar siguientes 15 (nunca todo el resultado de golpe)
 export function SearchView({
   mode,
   searchQuery,
@@ -70,6 +73,29 @@ export function SearchView({
   sidePanel?: ReactNode;
 }) {
   const selectedCoffeeRef = useRef<HTMLElement | null>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
+  const [visibleCount, setVisibleCount] = useState(SEARCH_PAGE_SIZE);
+
+  useEffect(() => {
+    setVisibleCount(SEARCH_PAGE_SIZE);
+  }, [mode, searchQuery]);
+
+  // Carga progresiva: solo sumar 15 cada vez que el centinela se ve (nunca mostrar todo el resultado de golpe)
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    const listLength = mode === "coffees" ? coffees.length : users.length;
+    if (!sentinel || visibleCount >= listLength) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        setVisibleCount((prev) => prev + SEARCH_PAGE_SIZE); // siempre +15; el slice(0, visibleCount) no pasará de listLength
+      },
+      { root: null, rootMargin: "100px", threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [mode, coffees.length, users.length, visibleCount]);
+
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -104,35 +130,52 @@ export function SearchView({
     selectedCoffeeRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [focusCoffeeProfile, selectedCoffee?.id]);
 
+  const visibleUsers = users.slice(0, visibleCount);
+  const showUsersSentinel = mode === "users" && users.length > SEARCH_LOAD_MORE_AT_INDEX && visibleCount < users.length;
+  const usersBeforeSentinel = showUsersSentinel ? visibleUsers.slice(0, SEARCH_LOAD_MORE_AT_INDEX) : visibleUsers;
+  const usersAfterSentinel = showUsersSentinel ? visibleUsers.slice(SEARCH_LOAD_MORE_AT_INDEX) : [];
+
+  const renderUserRow = (user: UserRow) => (
+    <li key={user.id} className="search-users-row">
+      <Button variant="plain" className="search-users-link" onClick={() => onSelectUser(user.id)}>
+        {user.avatar_url ? (
+          <img className="avatar avatar-photo search-users-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
+        ) : (
+          <div className="avatar search-users-avatar-fallback" aria-hidden="true">
+            {user.username.slice(0, 2).toUpperCase()}
+          </div>
+        )}
+        <div className="search-users-copy">
+          <p className="search-users-username">{user.username}</p>
+          <p className="search-users-fullname">{user.full_name}</p>
+        </div>
+      </Button>
+      <Button
+        variant="plain"
+        className={`action-button search-users-follow ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
+        onClick={() => onToggleFollow(user.id)}
+      >
+        {followingIds.has(user.id) ? "Siguiendo" : "Seguir"}
+      </Button>
+    </li>
+  );
+
   const content = (
     <>
       {mode === "users" ? (
         <ul className="search-users-list">
           {users.length ? (
-            users.map((user) => (
-              <li key={user.id} className="search-users-row">
-                <Button variant="plain" className="search-users-link" onClick={() => onSelectUser(user.id)}>
-                  {user.avatar_url ? (
-                    <img className="avatar avatar-photo search-users-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
-                  ) : (
-                    <div className="avatar search-users-avatar-fallback" aria-hidden="true">
-                      {user.username.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="search-users-copy">
-                    <p className="search-users-username">{user.username}</p>
-                    <p className="search-users-fullname">{user.full_name}</p>
-                  </div>
-                </Button>
-                <Button
-                  variant="plain"
-                  className={`action-button search-users-follow ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
-                  onClick={() => onToggleFollow(user.id)}
-                >
-                  {followingIds.has(user.id) ? "Siguiendo" : "Seguir"}
-                </Button>
-              </li>
-            ))
+            <>
+              {usersBeforeSentinel.map(renderUserRow)}
+              {showUsersSentinel ? (
+                <>
+                  <li key="sentinel-users" aria-hidden="true" style={{ height: 1, listStyle: "none" }}>
+                    <div ref={loadMoreSentinelRef} style={{ height: 1 }} />
+                  </li>
+                  {usersAfterSentinel.map(renderUserRow)}
+                </>
+              ) : null}
+            </>
           ) : (
             <li className="search-users-empty">
               {searchQuery.trim() ? "No se encontraron usuarios" : "Busca amigos para seguir"}
@@ -188,34 +231,75 @@ export function SearchView({
             </article>
           ) : null}
 
-          <ul className="coffee-list">
-            {coffees.map((coffee) => (
-              <li key={coffee.id}>
-                <Button
-                  variant="plain"
-                  className={`coffee-card coffee-card-row coffee-card-interactive ${selectedCoffee?.id === coffee.id ? "is-selected" : ""}`}
-                  onClick={() => {
-                    if (searchQuery.trim()) saveRecentSearch(searchQuery);
-                    onSelectCoffee(coffee.id);
-                  }}
-                >
-                  {coffee.image_url ? (
-                    <img className="search-coffee-thumb" src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
-                  ) : (
-                    <div className="search-coffee-thumb search-coffee-thumb-fallback" aria-hidden="true">
-                      <UiIcon name="coffee" className="ui-icon" />
-                    </div>
-                  )}
-                  <div className="search-coffee-copy">
-                    <strong>{coffee.nombre}</strong>
-                    <p className="coffee-sub">{coffee.marca || "Marca"}</p>
-                    <p className="coffee-origin">{coffee.pais_origen ?? "Origen desconocido"}</p>
-                  </div>
-                  <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
-                </Button>
-              </li>
-            ))}
-          </ul>
+          {(() => {
+            const visibleCoffees = coffees.slice(0, visibleCount);
+            const showCoffeesSentinel = mode === "coffees" && coffees.length > SEARCH_LOAD_MORE_AT_INDEX && visibleCount < coffees.length;
+            const coffeesBeforeSentinel = showCoffeesSentinel ? visibleCoffees.slice(0, SEARCH_LOAD_MORE_AT_INDEX) : visibleCoffees;
+            const coffeesAfterSentinel = showCoffeesSentinel ? visibleCoffees.slice(SEARCH_LOAD_MORE_AT_INDEX) : [];
+            return (
+              <ul className="coffee-list">
+                {coffeesBeforeSentinel.map((coffee) => (
+                  <li key={coffee.id}>
+                    <Button
+                      variant="plain"
+                      className={`coffee-card coffee-card-row coffee-card-interactive ${selectedCoffee?.id === coffee.id ? "is-selected" : ""}`}
+                      onClick={() => {
+                        if (searchQuery.trim()) saveRecentSearch(searchQuery);
+                        onSelectCoffee(coffee.id);
+                      }}
+                    >
+                      {coffee.image_url ? (
+                        <img className="search-coffee-thumb" src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+                      ) : (
+                        <div className="search-coffee-thumb search-coffee-thumb-fallback" aria-hidden="true">
+                          <UiIcon name="coffee" className="ui-icon" />
+                        </div>
+                      )}
+                      <div className="search-coffee-copy">
+                        <strong>{coffee.nombre}</strong>
+                        <p className="coffee-sub">{coffee.marca || "Marca"}</p>
+                        <p className="coffee-origin">{coffee.pais_origen ?? "Origen desconocido"}</p>
+                      </div>
+                      <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
+                    </Button>
+                  </li>
+                ))}
+                {showCoffeesSentinel ? (
+                  <>
+                    <li key="sentinel-coffees" aria-hidden="true" style={{ height: 1, listStyle: "none" }}>
+                      <div ref={loadMoreSentinelRef} style={{ height: 1 }} />
+                    </li>
+                    {coffeesAfterSentinel.map((coffee) => (
+                      <li key={coffee.id}>
+                        <Button
+                          variant="plain"
+                          className={`coffee-card coffee-card-row coffee-card-interactive ${selectedCoffee?.id === coffee.id ? "is-selected" : ""}`}
+                          onClick={() => {
+                            if (searchQuery.trim()) saveRecentSearch(searchQuery);
+                            onSelectCoffee(coffee.id);
+                          }}
+                        >
+                          {coffee.image_url ? (
+                            <img className="search-coffee-thumb" src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+                          ) : (
+                            <div className="search-coffee-thumb search-coffee-thumb-fallback" aria-hidden="true">
+                              <UiIcon name="coffee" className="ui-icon" />
+                            </div>
+                          )}
+                          <div className="search-coffee-copy">
+                            <strong>{coffee.nombre}</strong>
+                            <p className="coffee-sub">{coffee.marca || "Marca"}</p>
+                            <p className="coffee-origin">{coffee.pais_origen ?? "Origen desconocido"}</p>
+                          </div>
+                          <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
+                        </Button>
+                      </li>
+                    ))}
+                  </>
+                ) : null}
+              </ul>
+            );
+          })()}
           {!coffees.length ? <p className="search-coffee-empty">No encontramos cafes con esos filtros.</p> : null}
 
           {activeFilterType ? (

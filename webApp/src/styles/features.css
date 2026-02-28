@@ -6685,6 +6685,10 @@ input {
   padding: 24px 24px 24px;
 }
 
+.layout.desktop .brew-method-grid-native {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .brew-method-card-native {
   width: 100%;
   min-height: 140px;
