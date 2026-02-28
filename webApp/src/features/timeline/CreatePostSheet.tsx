@@ -131,7 +131,7 @@ export function CreatePostSheet({
                 <>
                   <Button variant="plain" type="button" className="create-post-image-stage" onClick={() => imageInputRef.current?.click()} aria-label="Seleccionar imagen">
                     {imagePreviewUrl ? (
-                      <img className="create-post-preview" src={imagePreviewUrl} alt="Previsualizacion" loading="lazy" />
+                      <img className="create-post-preview" src={imagePreviewUrl} alt="Previsualizacion" loading="lazy" decoding="async" />
                     ) : (
                       <span className="create-post-image-placeholder">Selecciona una foto</span>
                     )}
@@ -157,7 +157,7 @@ export function CreatePostSheet({
                             const isSelected = item.id === selectedImageId;
                             return (
                               <Button variant="plain" key={item.id} type="button" role="listitem" className={`create-post-gallery-item ${isSelected ? "is-selected" : ""}`} onClick={() => onSelectGalleryItem(item.id)}>
-                                <img src={item.previewUrl} alt="Miniatura galeria" loading="lazy" />
+                                <img src={item.previewUrl} alt="Miniatura galeria" loading="lazy" decoding="async" />
                                 {isSelected ? <UiIcon name="check-circle-filled" className="create-post-gallery-check" /> : null}
                               </Button>
                             );
@@ -173,7 +173,7 @@ export function CreatePostSheet({
                 <>
                   {activeUser ? (
                     <div className="create-post-user-row">
-                      {activeUser.avatar_url ? <img src={activeUser.avatar_url} alt={activeUser.username} loading="lazy" /> : <div className="create-post-user-fallback">{activeUser.username.slice(0, 1).toUpperCase()}</div>}
+                      {activeUser.avatar_url ? <img src={activeUser.avatar_url} alt={activeUser.username} loading="lazy" decoding="async" /> : <div className="create-post-user-fallback">{activeUser.username.slice(0, 1).toUpperCase()}</div>}
                       <div>
                         <p>{activeUser.full_name}</p>
                         <span>@{activeUser.username}</span>
@@ -203,7 +203,7 @@ export function CreatePostSheet({
                               setText(`${parts.join(" ")} `);
                             }}
                           >
-                            {user.avatar_url ? <img className="mention-chip-avatar" src={user.avatar_url} alt={user.username} loading="lazy" /> : <span className="mention-chip-fallback">{user.username.slice(0, 1).toUpperCase()}</span>}
+                            {user.avatar_url ? <img className="mention-chip-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" /> : <span className="mention-chip-fallback">{user.username.slice(0, 1).toUpperCase()}</span>}
                             <span>@{user.username}</span>
                           </Button>
                         ))}
@@ -226,7 +226,7 @@ export function CreatePostSheet({
                   </Button>
                   {imagePreviewUrl ? (
                     <div className="create-post-image-detail-wrap">
-                      <img className="create-post-preview create-post-preview-detail" src={imagePreviewUrl} alt="Previsualizacion" loading="lazy" />
+                      <img className="create-post-preview create-post-preview-detail" src={imagePreviewUrl} alt="Previsualizacion" loading="lazy" decoding="async" />
                       <Button variant="plain" type="button" className="create-post-image-remove" onClick={onRemoveSelectedImage} aria-label="Quitar foto">
                         <UiIcon name="close" className="ui-icon" />
                       </Button>
@@ -284,7 +284,7 @@ export function CreatePostSheet({
                 {filteredCoffees.map((coffee) => (
                   <li key={coffee.id}>
                     <Button variant="plain" type="button" className={`create-post-coffee-item ${coffee.id === selectedCoffeeId ? "is-selected" : ""}`} onClick={() => onSelectCoffee(coffee.id)}>
-                      {coffee.image_url ? <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" /> : <span className="create-post-coffee-fallback">{coffee.nombre.slice(0, 1).toUpperCase()}</span>}
+                      {coffee.image_url ? <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : <span className="create-post-coffee-fallback">{coffee.nombre.slice(0, 1).toUpperCase()}</span>}
                       <div>
                         <p>{coffee.nombre}</p>
                         <span>{coffee.marca}</span>

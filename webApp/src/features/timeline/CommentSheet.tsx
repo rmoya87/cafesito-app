@@ -84,7 +84,7 @@ export function CommentSheet({
                   <li key={row.id} data-comment-id={row.id} className={`sheet-item ${highlightedCommentId === row.id ? "is-highlighted" : ""}`}>
                     <div className="sheet-item-head">
                       {user?.avatar_url ? (
-                        <img className="comment-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
+                        <img className="comment-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
                       ) : (
                         <div className="comment-avatar comment-avatar-fallback" aria-hidden="true">
                           {(user?.username ?? "us").slice(0, 2).toUpperCase()}
@@ -177,7 +177,7 @@ export function CommentSheet({
                       }}
                     >
                       {user.avatar_url ? (
-                        <img className="mention-chip-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
+                        <img className="mention-chip-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
                       ) : (
                         <span className="mention-chip-fallback">{user.username.slice(0, 1).toUpperCase()}</span>
                       )}
@@ -222,7 +222,7 @@ export function CommentSheet({
                       className="comment-image-thumb"
                       src={commentImagePreviewUrl}
                       alt="Miniatura comentario"
-                      loading="lazy"
+                      loading="lazy" decoding="async"
                       onError={() => setCommentImagePreviewError(true)}
                     />
                   )}

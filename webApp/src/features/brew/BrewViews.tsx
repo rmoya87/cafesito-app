@@ -173,7 +173,7 @@ export function BrewLabView({
               setBrewCoffeeId("");
               setBrewStep("coffee");
             }}>
-              <img src={method.icon} alt={method.name} loading="lazy" />
+              <img src={method.icon} alt={method.name} loading="lazy" decoding="async" />
               <strong>{method.name.toUpperCase()}</strong>
             </Button>
           ))}
@@ -196,7 +196,7 @@ export function BrewLabView({
                     }}
                   >
                     {row.coffee.image_url ? (
-                      <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" />
+                      <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" decoding="async" />
                     ) : (
                       <span className="brew-pantry-fallback" aria-hidden="true">{row.coffee.nombre.slice(0, 1).toUpperCase()}</span>
                     )}
@@ -264,7 +264,7 @@ export function BrewLabView({
                     }}
                   >
                     {coffee.image_url ? (
-                      <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+                      <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
                     ) : (
                       <span className="brew-suggestion-fallback" aria-hidden="true">{coffee.nombre.slice(0, 1).toUpperCase()}</span>
                     )}
@@ -626,7 +626,7 @@ export function CreateCoffeeView({
         />
         {imagePreviewUrl ? (
           <div className="create-coffee-image-preview-wrap">
-            <img src={imagePreviewUrl} alt="Previsualización café" loading="lazy" />
+            <img src={imagePreviewUrl} alt="Previsualización café" loading="lazy" decoding="async" />
             <Button variant="plain" className="icon-button" onClick={onRemoveImage} aria-label="Quitar imagen">
               <UiIcon name="close" className="ui-icon" />
             </Button>

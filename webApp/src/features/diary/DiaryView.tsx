@@ -427,7 +427,7 @@ export function DiaryView({
         >
           <div className="diary-pantry-media">
             {row.coffee?.image_url ? (
-              <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" />
+              <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" decoding="async" />
             ) : (
               <span className="diary-pantry-fallback" aria-hidden="true">{(row.coffee?.nombre || "C").slice(0, 1).toUpperCase()}</span>
             )}
@@ -1092,7 +1092,7 @@ function DiaryActivityRow({
           <div className="diary-entry-head">
             <div className={`diary-entry-media ${isWaterEntry ? "is-water" : ""}`.trim()}>
               {imageUrl && !isRegistroRapido ? (
-                <img src={imageUrl} alt={entryTitle} loading="lazy" />
+                <img src={imageUrl} alt={entryTitle} loading="lazy" decoding="async" />
               ) : (
                 <span className="diary-entry-fallback" aria-hidden="true">
                   <UiIcon name={isWaterEntry ? "water" : isRegistroRapido ? "coffee-filled" : "coffee"} className="ui-icon" />

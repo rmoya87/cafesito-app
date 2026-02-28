@@ -47,6 +47,39 @@ select {
   line-height: var(--line-height-normal);
 }
 
+/* Barras de scroll: finas, fondo transparente, gris oscuro visible */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #5c5c5c transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #5c5c5c;
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #5c5c5c;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Optimización: imágenes fuera de viewport no bloquean; decoding async se añade en JSX */
+img {
+  content-visibility: auto;
+}
+
 :where(
   button,
   [role="button"],

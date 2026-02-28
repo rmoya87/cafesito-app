@@ -139,7 +139,7 @@ export function SearchView({
     <li key={user.id} className="search-users-row">
       <Button variant="plain" className="search-users-link" onClick={() => onSelectUser(user.id)}>
         {user.avatar_url ? (
-          <img className="avatar avatar-photo search-users-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
+          <img className="avatar avatar-photo search-users-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
         ) : (
           <div className="avatar search-users-avatar-fallback" aria-hidden="true">
             {user.username.slice(0, 2).toUpperCase()}
@@ -222,7 +222,7 @@ export function SearchView({
                   </Button>
                 </div>
               ) : null}
-              {selectedCoffee.image_url ? <img className="coffee-profile-image" src={selectedCoffee.image_url} alt={selectedCoffee.nombre} loading="lazy" /> : null}
+              {selectedCoffee.image_url ? <img className="coffee-profile-image" src={selectedCoffee.image_url} alt={selectedCoffee.nombre} loading="lazy" decoding="async" /> : null}
               <div className="coffee-profile-copy">
                 <p className="coffee-origin">{selectedCoffee.pais_origen ?? "Origen desconocido"}</p>
                 <h3 className="coffee-profile-title">{selectedCoffee.nombre}</h3>
@@ -249,7 +249,7 @@ export function SearchView({
                       }}
                     >
                       {coffee.image_url ? (
-                        <img className="search-coffee-thumb" src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+                        <img className="search-coffee-thumb" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
                       ) : (
                         <div className="search-coffee-thumb search-coffee-thumb-fallback" aria-hidden="true">
                           <UiIcon name="coffee" className="ui-icon" />
@@ -280,7 +280,7 @@ export function SearchView({
                           }}
                         >
                           {coffee.image_url ? (
-                            <img className="search-coffee-thumb" src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+                            <img className="search-coffee-thumb" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
                           ) : (
                             <div className="search-coffee-thumb search-coffee-thumb-fallback" aria-hidden="true">
                               <UiIcon name="coffee" className="ui-icon" />

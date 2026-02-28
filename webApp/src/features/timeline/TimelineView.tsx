@@ -168,7 +168,7 @@ export function TimelineView({
             className="mini-card mini-coffee-card mini-coffee-link"
             onClick={() => onOpenCoffee(coffee.id)}
           >
-            {coffee.image_url ? <img className="mini-cover" src={coffee.image_url} alt={coffee.nombre} loading="lazy" /> : null}
+            {coffee.image_url ? <img className="mini-cover" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
             <p className="coffee-origin">{coffee.pais_origen ?? "Origen"}</p>
             <p className="feed-user">{coffee.nombre}</p>
             <p className="coffee-sub">{coffee.marca}</p>
@@ -188,7 +188,7 @@ export function TimelineView({
           return (
             <article key={user.id} className={`mini-card mini-user-card ${isDismissing ? "is-removing" : ""}`.trim()}>
               <Button variant="plain" type="button" className="mini-user-link" onClick={() => onOpenUserProfile(user.id)}>
-                {user.avatar_url ? <img className="mini-avatar" src={user.avatar_url} alt={user.username} loading="lazy" /> : <div className="avatar mini-avatar-fallback">{user.username.slice(0, 2).toUpperCase()}</div>}
+                {user.avatar_url ? <img className="mini-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" /> : <div className="avatar mini-avatar-fallback">{user.username.slice(0, 2).toUpperCase()}</div>}
                 <div className="mini-user-copy">
                   <p className="feed-user">{user.full_name}</p>
                   <p className="feed-meta">@{user.username}</p>
@@ -304,7 +304,7 @@ export function TimelineView({
                   onClick={() => onOpenUserProfile(card.userId)}
                 >
                   {card.avatarUrl ? (
-                    <img className="avatar avatar-photo" src={card.avatarUrl} alt={card.username} loading="lazy" />
+                    <img className="avatar avatar-photo" src={card.avatarUrl} alt={card.username} loading="lazy" decoding="async" />
                   ) : (
                     <div className="avatar" aria-hidden="true">
                       {card.userName
@@ -338,13 +338,13 @@ export function TimelineView({
                 </p>
               ) : null}
 
-              {card.imageUrl ? <img className={`feed-image ${card.text ? "" : "feed-image-no-text"}`.trim()} src={card.imageUrl} alt="Publicacion" loading="lazy" /> : null}
+              {card.imageUrl ? <img className={`feed-image ${card.text ? "" : "feed-image-no-text"}`.trim()} src={card.imageUrl} alt="Publicacion" loading="lazy" decoding="async" /> : null}
 
               {card.coffeeTagName ? (
                 <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => card.coffeeId && onOpenCoffee(card.coffeeId)} disabled={!card.coffeeId}>
                   <div className="coffee-tag-card-media">
                     {card.coffeeImageUrl ? (
-                      <img className="coffee-tag-image" src={card.coffeeImageUrl} alt={card.coffeeTagName} loading="lazy" />
+                      <img className="coffee-tag-image" src={card.coffeeImageUrl} alt={card.coffeeTagName} loading="lazy" decoding="async" />
                     ) : (
                       <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
                         <UiIcon name="coffee" className="ui-icon" />
@@ -479,7 +479,7 @@ export function TimelineView({
                 onClick={() => editImageInputRef.current?.click()}
               >
                 {editingImagePreviewUrl.trim() ? (
-                  <img className="create-post-preview" src={editingImagePreviewUrl.trim()} alt="Previsualizacion" loading="lazy" />
+                  <img className="create-post-preview" src={editingImagePreviewUrl.trim()} alt="Previsualizacion" loading="lazy" decoding="async" />
                 ) : (
                   <span className="edit-image-placeholder">Seleccionar imagen</span>
                 )}

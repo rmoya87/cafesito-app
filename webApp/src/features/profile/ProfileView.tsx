@@ -1,4 +1,4 @@
-﻿import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
@@ -88,7 +88,7 @@ function ProfileFavoriteItem({
       >
         <span className="profile-favorite-media">
           {coffee.image_url ? (
-            <img className="profile-favorite-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+            <img className="profile-favorite-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
           ) : (
             <span className="profile-favorite-image profile-favorite-fallback" aria-hidden="true">{coffee.nombre.slice(0, 1).toUpperCase()}</span>
           )}
@@ -415,7 +415,7 @@ export function ProfileView({
                 className="profile-avatar-image"
                 src={user.avatar_url}
                 alt={user.username}
-                loading="lazy"
+                loading="lazy" decoding="async"
                 onError={() => setAvatarLoadFailed(true)}
               />
             ) : (
@@ -470,7 +470,7 @@ export function ProfileView({
                 <header className="feed-head">
                   <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
                     {user.avatar_url ? (
-                      <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
+                      <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
                     ) : (
                       <div className="avatar" aria-hidden="true">{initials}</div>
                     )}
@@ -486,12 +486,12 @@ export function ProfileView({
                   ) : null}
                 </header>
                 {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
-                {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" /> : null}
+                {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" decoding="async" /> : null}
                 {post.coffeeTagName ? (
                   <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
                     <div className="coffee-tag-card-media">
                       {post.coffeeImageUrl ? (
-                        <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" />
+                        <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" decoding="async" />
                       ) : (
                         <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
                           <UiIcon name="coffee" className="ui-icon" />
@@ -554,7 +554,7 @@ export function ProfileView({
                         <header className="feed-head">
                           <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
                             {user.avatar_url ? (
-                              <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
+                              <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
                             ) : (
                               <div className="avatar" aria-hidden="true">{initials}</div>
                             )}
@@ -570,12 +570,12 @@ export function ProfileView({
                           ) : null}
                         </header>
                         {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
-                        {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" /> : null}
+                        {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" decoding="async" /> : null}
                         {post.coffeeTagName ? (
                           <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
                             <div className="coffee-tag-card-media">
                               {post.coffeeImageUrl ? (
-                                <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" />
+                                <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" decoding="async" />
                               ) : (
                                 <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
                                   <UiIcon name="coffee" className="ui-icon" />
@@ -758,7 +758,7 @@ export function ProfileView({
               <div className="profile-edit-avatar-row">
                 <div className="profile-edit-avatar-preview" aria-hidden="true">
                   {editAvatarPreview || (!removeAvatarDraft && user.avatar_url) ? (
-                    <img src={editAvatarPreview || user.avatar_url} alt={user.username} loading="lazy" />
+                    <img src={editAvatarPreview || user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
                   ) : (
                     <span>{initials}</span>
                   )}
@@ -928,7 +928,7 @@ export function ProfileView({
                 />
               </label>
               <div className="profile-edit-post-image-wrap">
-                {editPostImageUrl ? <img src={editPostImageUrl} alt="Previsualización" loading="lazy" /> : <p className="feed-meta">Sin imagen</p>}
+                {editPostImageUrl ? <img src={editPostImageUrl} alt="Previsualización" loading="lazy" decoding="async" /> : <p className="feed-meta">Sin imagen</p>}
               </div>
               <div className="profile-edit-post-actions">
                 <Button variant="ghost" className="action-button action-button-ghost" onClick={() => editPostImageInputRef.current?.click()}>

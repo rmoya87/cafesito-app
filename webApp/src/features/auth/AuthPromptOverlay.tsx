@@ -1,4 +1,4 @@
-﻿import { Button, IconButton, SheetCard, SheetOverlay } from "../../ui/components";
+import { Button, IconButton, SheetCard, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
 
 export function AuthPromptOverlay({
@@ -23,7 +23,7 @@ export function AuthPromptOverlay({
           <UiIcon name="close" className="ui-icon" />
         </IconButton>
         <div className="auth-prompt-avatar" aria-hidden="true">
-          <img src="/logo.png" alt="" loading="lazy" />
+          <img src="/logo.png" alt="" loading="lazy" decoding="async" />
         </div>
         <p className="auth-prompt-copy">
           Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.

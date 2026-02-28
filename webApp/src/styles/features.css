@@ -21,7 +21,7 @@ input {
 
 .layout.desktop {
   display: grid;
-  grid-template-columns: 88px minmax(0, 860px) 88px;
+  grid-template-columns: 56px minmax(0, 860px) 56px;
   justify-content: center;
   gap: 0;
   width: 100%;
@@ -31,7 +31,7 @@ input {
   border-right: 1px solid #2a2a2a;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(12px);
-  padding: 24px 14px;
+  padding: 24px 10px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -95,12 +95,12 @@ input {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 20px 18px 120px;
+  padding: 20px 12px 120px;
 }
 
 @media (max-width: 899px) {
   .main-shell-scroll {
-    padding: 14px 10px calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 8px calc(72px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -136,8 +136,8 @@ input {
 .detail-rail-fixed {
   position: fixed;
   top: 62px;
-  left: calc(50% + 438px);
-  width: min(352px, calc(100vw - (50% + 438px) - 20px));
+  left: calc(50% + 430px);
+  width: min(352px, calc(100vw - (50% + 430px) - 12px));
   max-height: calc(100vh - 70px);
   overflow: auto;
   padding: 0 8px 10px;
@@ -408,6 +408,26 @@ input {
   margin-top: 1px;
   margin-bottom: 0;
   padding: 0;
+}
+
+/* Mobile: filtros en una sola línea, carrusel horizontal arrastrable */
+@media (max-width: 899px) {
+  .topbar-search-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
+    margin-left: -2px;
+    margin-right: -2px;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .topbar-search-chips .filter-chip {
+    flex-shrink: 0;
+  }
 }
 
 .topbar-centered {

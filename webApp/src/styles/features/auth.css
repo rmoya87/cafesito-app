@@ -52,7 +52,7 @@
   justify-content: space-between;
   width: min(520px, 100%);
   margin: 0 auto;
-  padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
 }
 
 .login-shell {
@@ -174,9 +174,9 @@
   border-radius: 20px 20px 0 0;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  padding: 12px 20px max(28px, env(safe-area-inset-bottom));
-  padding-left: max(20px, env(safe-area-inset-left));
-  padding-right: max(20px, env(safe-area-inset-right));
+  padding: 12px 12px max(28px, env(safe-area-inset-bottom));
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
   display: grid;
   gap: 16px;
   text-align: center;
@@ -202,7 +202,7 @@
   width: min(720px, 100%);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  padding: 24px 24px max(28px, env(safe-area-inset-bottom));
+  padding: 24px 16px max(28px, env(safe-area-inset-bottom));
   display: grid;
   gap: 18px;
   text-align: center;
@@ -311,7 +311,7 @@
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
-    padding: 28px 32px 24px;
+    padding: 28px 20px 24px;
   }
 
   .login-left-pane {
@@ -338,7 +338,7 @@
     width: 100%;
     background: #ffffff;
     color: #1a120b;
-    padding: 44px 40px;
+    padding: 44px 28px;
     box-shadow: none;
     align-self: center;
     min-height: 100vh;
@@ -395,7 +395,7 @@
   .login-sheet {
     width: min(560px, 100%);
     border-radius: 28px;
-    padding: 28px;
+    padding: 28px 20px;
     margin-bottom: 28px;
   }
 }

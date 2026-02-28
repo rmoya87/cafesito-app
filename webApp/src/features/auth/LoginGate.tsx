@@ -150,7 +150,7 @@ export function LoginGate({
         </section>
 
         <section className="login-desktop-auth" aria-label="Acceso desktop">
-          <img src={logoSrc} alt="Logo Cafesito" className="login-desktop-logo" loading="lazy" />
+          <img src={logoSrc} alt="Logo Cafesito" className="login-desktop-logo" loading="eager" fetchPriority="high" decoding="async" />
           <div className="login-desktop-auth-content">{authContent}</div>
         </section>
       </section>

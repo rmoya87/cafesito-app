@@ -1,4 +1,4 @@
-﻿import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { toRelativeMinutes } from "../../core/time";
 import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserRow } from "../../types";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay, Textarea } from "../../ui/components";
@@ -134,7 +134,7 @@ export function CoffeeDetailView({
   return (
     <article className={`coffee-detail ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}>
       <header className="coffee-detail-hero">
-        {coffee.image_url ? <img className="coffee-detail-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" /> : null}
+        {coffee.image_url ? <img className="coffee-detail-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
         <div className="coffee-detail-overlay" />
         {!fullPage ? (
           <div className="coffee-detail-hero-top-actions">
@@ -291,7 +291,7 @@ export function CoffeeDetailView({
                 >
                   <span className="coffee-detail-opinion-user">
                     {currentUser.avatar_url ? (
-                      <img className="coffee-detail-opinion-avatar" src={currentUser.avatar_url} alt={currentUser.username} loading="lazy" />
+                      <img className="coffee-detail-opinion-avatar" src={currentUser.avatar_url} alt={currentUser.username} loading="lazy" decoding="async" />
                     ) : (
                       <span className="coffee-detail-opinion-avatar" aria-hidden="true">
                         {(currentUser.username ?? "tu").slice(0, 2).toUpperCase()}
@@ -315,7 +315,7 @@ export function CoffeeDetailView({
               <p className="feed-meta coffee-detail-opinion-rating"><UiIcon name="star" className="ui-icon" />{currentUserReview.rating.toFixed(1)} / 5</p>
             </div>
             {currentUserReview.comment ? <p className="feed-text">{currentUserReview.comment}</p> : null}
-            {currentUserReview.image_url ? <img className="coffee-detail-review-image" src={currentUserReview.image_url} alt="Tu reseña" loading="lazy" /> : null}
+            {currentUserReview.image_url ? <img className="coffee-detail-review-image" src={currentUserReview.image_url} alt="Tu reseña" loading="lazy" decoding="async" /> : null}
           </article>
         ) : null}
         <ul className="coffee-list">
@@ -335,7 +335,7 @@ export function CoffeeDetailView({
                   >
                     <span className="coffee-detail-opinion-user">
                       {review.user.avatar_url ? (
-                        <img className="coffee-detail-opinion-avatar" src={review.user.avatar_url} alt={review.user.username} loading="lazy" />
+                        <img className="coffee-detail-opinion-avatar" src={review.user.avatar_url} alt={review.user.username} loading="lazy" decoding="async" />
                       ) : (
                         <span className="coffee-detail-opinion-avatar" aria-hidden="true">
                           {(review.user.username ?? "us").slice(0, 2).toUpperCase()}
@@ -359,7 +359,7 @@ export function CoffeeDetailView({
                 <p className="feed-meta coffee-detail-opinion-rating"><UiIcon name="star" className="ui-icon" />{review.rating.toFixed(1)} / 5</p>
               </div>
               {review.comment ? <p className="feed-text">{review.comment}</p> : null}
-              {review.image_url ? <img className="coffee-detail-review-image" src={review.image_url} alt="Imagen reseña" loading="lazy" /> : null}
+              {review.image_url ? <img className="coffee-detail-review-image" src={review.image_url} alt="Imagen reseña" loading="lazy" decoding="async" /> : null}
             </li>
           ))}
         </ul>
@@ -614,7 +614,7 @@ export function CoffeeDetailView({
                 />
               </label>
               {reviewDraftImagePreviewUrl ? (
-                <img className="coffee-detail-review-image" src={reviewDraftImagePreviewUrl} alt="Previsualización reseña" loading="lazy" />
+                <img className="coffee-detail-review-image" src={reviewDraftImagePreviewUrl} alt="Previsualización reseña" loading="lazy" decoding="async" />
               ) : null}
               {reviewSheetError ? <p className="coffee-detail-sheet-error">{reviewSheetError}</p> : null}
             </div>

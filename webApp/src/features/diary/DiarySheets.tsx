@@ -361,9 +361,9 @@ function DiarySheets({
                           >
                             <span className="diary-coffee-select-pantry-card-img">
                               {row.coffee.image_url ? (
-                                <img src={row.coffee.image_url} alt="" loading="lazy" />
+                                <img src={row.coffee.image_url} alt="" loading="lazy" decoding="async" />
                               ) : (
-                                <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" />
+                                <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" />
                               )}
                             </span>
                             <div className="diary-coffee-select-pantry-copy">
@@ -444,9 +444,9 @@ function DiarySheets({
                             }}
                           >
                             {coffee.image_url ? (
-                              <img src={coffee.image_url} alt="" loading="lazy" />
+                              <img src={coffee.image_url} alt="" loading="lazy" decoding="async" />
                             ) : (
-                              <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" />
+                              <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" />
                             )}
                             <div className="diary-coffee-select-item-copy">
                               <strong>{coffee.nombre}</strong>
@@ -588,7 +588,7 @@ function DiarySheets({
                           onClick={() => setDiaryCoffeePreparationDraft(label)}
                         >
                           <span className="diary-tipo-card-icon">
-                            <img src={`/android-drawable/${drawable}`} alt="" aria-hidden="true" loading="lazy" />
+                            <img src={`/android-drawable/${drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
                           </span>
                           <span className="diary-tipo-card-label">{label}</span>
                         </Button>
@@ -660,7 +660,7 @@ function DiarySheets({
                           onClick={() => setDiaryCoffeeMlDraft(String(size.ml))}
                         >
                           <span className="diary-tamaño-card-icon">
-                            <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" loading="lazy" />
+                            <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
                           </span>
                           <span className="diary-tamaño-card-label">{size.label}</span>
                           <span className="diary-tamaño-card-range">{size.rangeLabel}</span>
@@ -731,9 +731,9 @@ function DiarySheets({
                         >
                           <span className="diary-pantry-select-card-img">
                             {coffee.image_url ? (
-                              <img src={coffee.image_url} alt="" loading="lazy" />
+                              <img src={coffee.image_url} alt="" loading="lazy" decoding="async" />
                             ) : (
-                              <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" />
+                              <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" />
                             )}
                           </span>
                           <div className="diary-pantry-select-card-copy">
@@ -784,9 +784,9 @@ function DiarySheets({
                     <div className="diary-edit-entry-preview" aria-hidden="true">
                       <div className="diary-entry-media">
                         {selectedDiaryPantryCoffee.image_url ? (
-                          <img src={selectedDiaryPantryCoffee.image_url} alt={selectedDiaryPantryCoffee.nombre} loading="lazy" />
+                          <img src={selectedDiaryPantryCoffee.image_url} alt={selectedDiaryPantryCoffee.nombre} loading="lazy" decoding="async" />
                         ) : (
-                          <img className="diary-entry-fallback-drawable" src="/android-drawable/taza_mediano.png" alt="" aria-hidden="true" loading="lazy" />
+                          <img className="diary-entry-fallback-drawable" src="/android-drawable/taza_mediano.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
                         )}
                       </div>
                       <div className="diary-entry-copy">
