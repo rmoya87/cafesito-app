@@ -23,7 +23,7 @@ export function useCoffeeSeoMeta(detailCoffee: CoffeeRow | null) {
     }
 
     if (!isCoffeeRoute) {
-      document.title = "Cafesito Web";
+      document.title = "Cafesito";
       descriptionMeta.content = "Comunidad de cafe para compartir timeline, explorar cafes y seguir perfiles.";
       return;
     }

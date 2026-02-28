@@ -223,6 +223,15 @@
   line-height: 1.35;
 }
 
+.login-sheet-terms .login-legal-link {
+  color: var(--caramel-soft, #c9a86c);
+  text-decoration: underline;
+}
+
+.login-desktop-auth .login-sheet-terms .login-legal-link {
+  color: #1f6f4a;
+}
+
 .google-login-button.action-button {
   width: 100%;
   border: none;

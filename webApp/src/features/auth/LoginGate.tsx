@@ -58,7 +58,12 @@ export function LoginGate({
         Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.
       </p>
       <p className="login-sheet-terms">
-        Al continuar, aceptas nuestros Términos y Condiciones.
+        Al continuar, aceptas nuestra{" "}
+        <a href={assetBase + "legal/privacidad.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Política de Privacidad</a>
+        , las{" "}
+        <a href={assetBase + "legal/condiciones.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Condiciones del Servicio</a>
+        {" "}y{" "}
+        <a href={assetBase + "legal/eliminacion-cuenta.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Eliminación de datos</a>.
       </p>
       <Button
         type="button"

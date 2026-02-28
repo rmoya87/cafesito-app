@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.access
 
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.view.ViewGroup
@@ -15,8 +16,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -297,7 +301,32 @@ fun LoginScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(stringResource(R.string.login_terms_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center)
+                val legalBase = stringResource(R.string.legal_url_base)
+                val termsAnnotated = buildAnnotatedString {
+                    append("Al continuar, aceptas nuestra ")
+                    pushStringAnnotation("url", "$legalBase/privacidad.html")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_privacidad)) }
+                    pop()
+                    append(", las ")
+                    pushStringAnnotation("url", "$legalBase/condiciones.html")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_condiciones)) }
+                    pop()
+                    append(" y ")
+                    pushStringAnnotation("url", "$legalBase/eliminacion-cuenta.html")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_eliminacion)) }
+                    pop()
+                    append(".")
+                }
+                ClickableText(
+                    text = termsAnnotated,
+                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { offset ->
+                        termsAnnotated.getStringAnnotations("url", offset, offset + 1).firstOrNull()?.item?.let { url ->
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        }
+                    }
+                )
             }
         }
     }

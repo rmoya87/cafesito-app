@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
+      includeAssets: ["favicon.svg", "logo.png"],
       manifest: {
         name: "Cafesito",
         short_name: "Cafesito",
@@ -23,9 +23,16 @@ export default defineConfig({
         start_url: ".",
         icons: [
           {
-            src: "/favicon.svg",
-            sizes: "any",
-            type: "image/svg+xml"
+            src: "logo.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "logo.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable"
           }
         ]
       },

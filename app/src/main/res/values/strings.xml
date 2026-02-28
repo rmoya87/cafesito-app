@@ -25,7 +25,11 @@
     <string name="login_no_google_accounts">No se encontraron cuentas de Google.</string>
     <string name="login_connection_error">Error de conexión: %1$s</string>
     <string name="login_continue_with_google">Continuar con Google</string>
-    <string name="login_terms_note">Al continuar, aceptas nuestros Términos y Condiciones.</string>
+    <string name="login_terms_note">Al continuar, aceptas nuestra Política de Privacidad, las Condiciones del Servicio y Eliminación de datos.</string>
+    <string name="login_legal_privacidad">Política de Privacidad</string>
+    <string name="login_legal_condiciones">Condiciones del Servicio</string>
+    <string name="login_legal_eliminacion">Eliminación de datos</string>
+    <string name="legal_url_base">https://cafesitoapp.com/app/legal</string>
 
     <string name="add_stock_title">AÑADIR STOCK</string>
     <string name="add_stock_weight_label">Peso total (g)</string>
