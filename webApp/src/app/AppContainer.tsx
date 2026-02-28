@@ -260,7 +260,6 @@ export function AppContainer() {
     requestLogin
   } = useAuthSession();
   const isMobileOsDevice = useMemo(() => /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
-  const isIOS = useMemo(() => /iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
 
   const activeUser = useMemo(() => {
     if (!users.length) return null;
@@ -1403,7 +1402,7 @@ export function AppContainer() {
     />
   );
   return (
-    <div className={`layout ${mode}${isIOS ? " is-ios" : ""}`.trim()}>
+    <div className={`layout ${mode}`.trim()}>
       {mode === "desktop" ? navRail : null}
       <main className="main-shell">
         <TopBar

@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -321,9 +322,9 @@ fun LoginScreen(
                     text = termsAnnotated,
                     style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center),
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { offset ->
-                        termsAnnotated.getStringAnnotations("url", offset, offset + 1).firstOrNull()?.item?.let { url ->
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    onClick = { offset: Int ->
+                        termsAnnotated.getStringAnnotations("url", offset, offset + 1).firstOrNull()?.let { range ->
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(range.item)))
                         }
                     }
                 )
