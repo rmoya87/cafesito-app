@@ -74,7 +74,7 @@ export function useTimelineActions({
   setCommentImagePreviewUrl: (value: string) => void;
   setCommentMenuId: (value: number | null) => void;
   reloadInitialData: () => Promise<void>;
-  navigateToTab: (tab: TabId, options?: { searchMode?: "coffees" | "users" }) => void;
+  navigateToTab: (tab: TabId, options?: { searchMode?: "coffees" | "users"; profileUsername?: string | null }) => void;
   setSearchQuery: (value: string) => void;
 }) {
   const handleToggleLike = useCallback(
@@ -308,13 +308,9 @@ export function useTimelineActions({
   const handleMentionNavigation = useCallback(
     (username: string) => {
       if (!username) return;
-      navigateToTab("search", { searchMode: "users" });
-      setSearchQuery(username);
-      window.requestAnimationFrame(() => {
-        document.getElementById("quick-search")?.focus();
-      });
+      navigateToTab("profile", { profileUsername: username });
     },
-    [navigateToTab, setSearchQuery]
+    [navigateToTab]
   );
 
   return {

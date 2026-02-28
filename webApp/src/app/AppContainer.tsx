@@ -364,28 +364,30 @@ export function AppContainer() {
     onTopbarScroll: setTopbarScrolled
   });
 
+  const lastScrollTopRef = useRef(0);
   useEffect(() => {
     const el = mainScrollRef.current;
     if (!el) return;
     const threshold = 24;
-    let lastScrollTop = el.scrollTop;
+    lastScrollTopRef.current = el.scrollTop;
     let ticking = false;
     const onScroll = () => {
       if (!ticking) {
+        ticking = true;
         window.requestAnimationFrame(() => {
           const st = el.scrollTop;
+          const last = lastScrollTopRef.current;
+          lastScrollTopRef.current = st;
           setTopbarScrolled(st > 18);
           if (st <= threshold) {
             setTopbarHidden(false);
-          } else if (st > lastScrollTop) {
+          } else if (st > last) {
             setTopbarHidden(true);
           } else {
             setTopbarHidden(false);
           }
-          lastScrollTop = st;
           ticking = false;
         });
-        ticking = true;
       }
     };
     el.addEventListener("scroll", onScroll, { passive: true });

@@ -31,9 +31,15 @@ Si al desplegar en Ionos ves **500** en `registerSW.js`, `assets/index-*.js`, `i
 4. **Comprobar en Ionos**
    - Si Ionos desactiva `.htaccess` (AllowOverride), las reglas no se aplicarán. En ese caso, usa el panel de Ionos para configurar reescritura o contacta con soporte para que los estáticos se sirvan sin pasar por PHP.
 
-### «Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY» (iOS / producción)
+### «Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY»
 
-Ese mensaje aparece cuando la app se ejecuta sin la configuración de Supabase. Si despliegas con **GitHub Actions** (Release & Deploy), añade en el repo **Settings → Secrets and variables → Actions** las variables (o secrets) `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`; el workflow las inyecta en el build. Si no están ahí, el build se genera sin ellas y el botón de Google mostrará ese error en producción.
+Ese mensaje aparece cuando la app se ejecuta sin la configuración de Supabase.
+
+- **En local (npm run dev)**  
+  Asegúrate de tener `webApp/.env` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, de ejecutar desde la carpeta `webApp/` (`npm run dev`) y de **reiniciar el servidor** después de crear o cambiar el `.env`. Si usas `npm run preview`, estás sirviendo el build (que se generó sin .env si lo hiciste en CI); para probar con .env usa `npm run dev`.
+
+- **En producción / CI**  
+  Si despliegas con **GitHub Actions**, añade en el repo **Settings → Secrets and variables → Actions** las variables (o secrets) `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`; el workflow las inyecta en el build. Si no están ahí, el build se genera sin ellas y el botón de Google mostrará ese error en producción.
 
 Tienes **dos opciones** para configurar Supabase:
 
