@@ -91,7 +91,7 @@ export function useTopBarActions({
       onBrewForward: () => {
         if (brewStep !== "config") return;
         setTimerSeconds(0);
-        setBrewRunning(true);
+        setBrewRunning(false);
         setBrewStep("brewing");
       },
       onCoffeeTopbarToggleFavorite: () => {

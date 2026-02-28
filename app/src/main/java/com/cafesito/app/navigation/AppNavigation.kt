@@ -52,6 +52,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.UserRepository
+import com.cafesito.app.ui.components.ModernAvatar
 import com.cafesito.app.ui.access.*
 import com.cafesito.app.ui.brewlab.*
 import com.cafesito.app.ui.detail.DetailScreen
@@ -139,7 +140,8 @@ fun AppNavigation(
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
-    
+    val activeUser by userRepository.getActiveUserFlow().collectAsState(initial = null)
+
     LaunchedEffect(currentRoute) {
         if (currentRoute.isNotEmpty()) analyticsHelper.trackScreenView(currentRoute)
     }
@@ -186,17 +188,21 @@ fun AppNavigation(
                                 }
                             },
                             icon = {
-                                Icon(
-                                    imageVector = if (isSelected) icon else when (label) {
-                                        "Inicio" -> Icons.Outlined.Home
-                                        "Explorar" -> Icons.Outlined.Explore
-                                        "Elabora" -> Icons.Outlined.Science
-                                        "Diario" -> Icons.Outlined.Book
-                                        "Perfil" -> Icons.Outlined.Person
-                                        else -> icon
-                                    },
-                                    contentDescription = label
-                                )
+                                if (route == "profile" && !activeUser?.avatarUrl.isNullOrBlank()) {
+                                    ModernAvatar(imageUrl = activeUser?.avatarUrl, size = 24.dp)
+                                } else {
+                                    Icon(
+                                        imageVector = if (isSelected) icon else when (label) {
+                                            "Inicio" -> Icons.Outlined.Home
+                                            "Explorar" -> Icons.Outlined.Explore
+                                            "Elabora" -> Icons.Outlined.Science
+                                            "Diario" -> Icons.Outlined.Book
+                                            "Perfil" -> Icons.Outlined.Person
+                                            else -> icon
+                                        },
+                                        contentDescription = label
+                                    )
+                                }
                             }
                         )
                     }
@@ -598,17 +604,21 @@ fun AppNavigation(
                             val isSelected = currentRoute.startsWith(route)
                             NavigationBarItem(
                                 icon = {
-                                    Icon(
-                                        imageVector = if (isSelected) icon else when (label) {
-                                            "Inicio" -> Icons.Outlined.Home
-                                            "Explorar" -> Icons.Outlined.Explore
-                                            "Elabora" -> Icons.Outlined.Science
-                                            "Diario" -> Icons.Outlined.Book
-                                            "Perfil" -> Icons.Outlined.Person
-                                            else -> icon
-                                        },
-                                        contentDescription = label
-                                    )
+                                    if (route == "profile" && !activeUser?.avatarUrl.isNullOrBlank()) {
+                                        ModernAvatar(imageUrl = activeUser?.avatarUrl, size = 24.dp)
+                                    } else {
+                                        Icon(
+                                            imageVector = if (isSelected) icon else when (label) {
+                                                "Inicio" -> Icons.Outlined.Home
+                                                "Explorar" -> Icons.Outlined.Explore
+                                                "Elabora" -> Icons.Outlined.Science
+                                                "Diario" -> Icons.Outlined.Book
+                                                "Perfil" -> Icons.Outlined.Person
+                                                else -> icon
+                                            },
+                                            contentDescription = label
+                                        )
+                                    }
                                 },
                                 selected = isSelected,
                                 colors = NavigationBarItemDefaults.colors(

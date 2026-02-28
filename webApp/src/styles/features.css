@@ -1313,55 +1313,6 @@ input {
   color: var(--text-subtle);
 }
 
-.coffee-detail-sensory-slider-row input[type="range"] {
-  appearance: none;
-  width: 100%;
-  height: 12px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: transparent;
-}
-
-.coffee-detail-sensory-slider-row input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(90deg,
-      #1a120b 0%,
-      #1a120b var(--sensory-progress, 0%),
-      rgba(255, 255, 255, 0.2) var(--sensory-progress, 0%),
-      rgba(255, 255, 255, 0.2) 100%);
-}
-
-.coffee-detail-sensory-slider-row input[type="range"]::-webkit-slider-thumb {
-  appearance: none;
-  margin-top: -4px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  border: none;
-  background: #d8d3ce;
-}
-
-.coffee-detail-sensory-slider-row input[type="range"]::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.coffee-detail-sensory-slider-row input[type="range"]::-moz-range-progress {
-  height: 4px;
-  border-radius: 999px;
-  background: #1a120b;
-}
-
-.coffee-detail-sensory-slider-row input[type="range"]::-moz-range-thumb {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  border: none;
-  background: #d8d3ce;
-}
-
 .coffee-detail-sensory-submit {
   width: 100%;
   min-height: 52px;
@@ -2051,10 +2002,6 @@ input {
   margin: 0;
   font-size: 0.92rem;
   font-weight: 700;
-}
-
-.search-rating-filter input[type="range"] {
-  width: 100%;
 }
 
 .search-rating-scale {
@@ -3632,43 +3579,6 @@ input {
   box-shadow: none;
 }
 
-.diary-edit-entry-slider {
-  width: 100%;
-  margin-top: 6px;
-  accent-color: var(--caramel-soft);
-}
-
-.diary-edit-entry-slider::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.diary-edit-entry-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  margin-top: -5px;
-  background: var(--caramel-soft);
-  border: 2px solid #1a120b;
-}
-
-.diary-edit-entry-slider::-moz-range-track {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.diary-edit-entry-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: var(--caramel-soft);
-  border: 2px solid #1a120b;
-}
-
 .diary-edit-entry-sheet .diary-sheet-form-actions {
   margin-top: 2px;
   display: block;
@@ -4199,58 +4109,6 @@ input {
   }
 }
 
-.diary-water-slider {
-  --water-blue: #2196f3;
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 20px;
-  margin: 0;
-  background: transparent;
-}
-
-.diary-water-slider::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: 999px;
-  background: linear-gradient(to right, #2196f3 0, #2196f3 var(--water-progress, 0%), rgba(0, 0, 0, 0.12) var(--water-progress, 0%) 100%);
-}
-
-.diary-water-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 6px;
-  height: 20px;
-  border-radius: 2px;
-  background: var(--water-blue);
-  margin-top: -7px;
-  cursor: grab;
-}
-
-.diary-water-slider::-webkit-slider-thumb:active {
-  cursor: grabbing;
-}
-
-.diary-water-slider::-moz-range-track {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.diary-water-slider::-moz-range-progress {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--water-blue);
-}
-
-.diary-water-slider::-moz-range-thumb {
-  width: 6px;
-  height: 20px;
-  border-radius: 2px;
-  border: none;
-  background: var(--water-blue);
-  cursor: grab;
-}
-
 /* Pantalla DOSIS (café): misma estructura que agua, colores café */
 .diary-dose-sheet-header {
   display: grid;
@@ -4396,58 +4254,6 @@ input {
   border-radius: 50%;
   background: var(--caramel-accent);
   pointer-events: none;
-}
-
-.diary-dose-slider {
-  --dose-brown: var(--caramel-accent);
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 20px;
-  margin: 0;
-  background: transparent;
-}
-
-.diary-dose-slider::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: 999px;
-  background: linear-gradient(to right, var(--dose-brown) 0, var(--dose-brown) var(--dose-progress, 0%), rgba(0, 0, 0, 0.12) var(--dose-progress, 0%) 100%);
-}
-
-.diary-dose-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 6px;
-  height: 20px;
-  border-radius: 2px;
-  background: var(--dose-brown);
-  margin-top: -7px;
-  cursor: grab;
-}
-
-.diary-dose-slider::-webkit-slider-thumb:active {
-  cursor: grabbing;
-}
-
-.diary-dose-slider::-moz-range-track {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.diary-dose-slider::-moz-range-progress {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--dose-brown);
-}
-
-.diary-dose-slider::-moz-range-thumb {
-  width: 6px;
-  height: 20px;
-  border-radius: 2px;
-  border: none;
-  background: var(--dose-brown);
-  cursor: grab;
 }
 
 /* Paso TIPO: grid de tipos de café (igual que app Android) */
@@ -6189,13 +5995,15 @@ input {
 
 .brew-coffee-search {
   border-radius: 999px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .brew-coffee-block-head {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-top: 24px;
+  margin-bottom: -8px;
 }
 
 .brew-coffee-block-head .section-title {
@@ -6852,9 +6660,20 @@ input {
   font-weight: 700;
 }
 
-.brew-tech-range {
+/* ========== Slider de rango unificado (config, diario, filtros, perfil sensorial) ========== */
+/* Una sola clase base .app-range; variante de color: .app-range--water (azul), .app-range--caramel */
+.app-range.search-wide,
+.app-range.search-wide:focus,
+.app-range.search-wide:not(:placeholder-shown) {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0;
+}
+
+.app-range {
   --range-progress: 50%;
-  --range-active: #1a120b;
+  --slider-color: #1a120b;
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -6863,46 +6682,55 @@ input {
   background: transparent;
 }
 
-.brew-tech-range.is-water {
-  --range-active: #2196f3;
-}
-
-.brew-tech-range::-webkit-slider-runnable-track {
-  height: 7px;
+.app-range::-webkit-slider-runnable-track {
+  height: 6px;
   border-radius: 999px;
-  background:
-    linear-gradient(to right, var(--range-active) 0 var(--range-progress), #ececec var(--range-progress) 100%);
+  background: linear-gradient(to right, var(--slider-color) 0, var(--slider-color) var(--range-progress), rgba(0, 0, 0, 0.12) var(--range-progress) 100%);
 }
 
-.brew-tech-range::-webkit-slider-thumb {
+.app-range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: #d9d9d9;
-  border: 2px solid #d9d9d9;
-  margin-top: -3px;
+  width: 6px;
+  height: 20px;
+  border-radius: 2px;
+  border: none;
+  background: var(--slider-color);
+  margin-top: -7px;
+  cursor: grab;
 }
 
-.brew-tech-range::-moz-range-track {
-  height: 7px;
+.app-range::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+.app-range::-moz-range-track {
+  height: 6px;
   border-radius: 999px;
-  background: #ececec;
+  background: rgba(0, 0, 0, 0.12);
 }
 
-.brew-tech-range::-moz-range-progress {
-  height: 7px;
+.app-range::-moz-range-progress {
+  height: 6px;
   border-radius: 999px;
-  background: var(--range-active);
+  background: var(--slider-color);
 }
 
-.brew-tech-range::-moz-range-thumb {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  border: 2px solid #d9d9d9;
-  background: #d9d9d9;
+.app-range::-moz-range-thumb {
+  width: 6px;
+  height: 20px;
+  border-radius: 2px;
+  border: none;
+  background: var(--slider-color);
+  cursor: grab;
+}
+
+.app-range--water {
+  --slider-color: #2196f3;
+}
+
+.app-range--caramel {
+  --slider-color: var(--caramel-soft);
 }
 
 .brew-tech-slider input {
@@ -7131,6 +6959,11 @@ input {
 
 .brew-prep-actions {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.brew-prep-actions.is-single {
   grid-template-columns: 1fr;
   gap: 12px;
 }
@@ -7311,21 +7144,22 @@ input {
     padding: 22px 24px 12px;
   }
 
+  .brew-prep-clock {
+    font-size: clamp(4.5rem, 14vw, 7rem);
+  }
+
   .brew-prep-timeline {
     padding: 0 24px 16px;
+  }
+
+  .brew-prep-total strong {
+    font-size: 1.25rem;
   }
 
   .brew-prep-instruction {
     padding: 20px 24px;
   }
 
-  .brew-prep-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .brew-prep-actions.is-single {
-    grid-template-columns: 1fr;
-  }
 }
 
 .action-button.brew-prep-action-primary,
@@ -7457,6 +7291,14 @@ input {
   width: 24px;
   height: 24px;
   stroke-width: 2.2;
+}
+
+.nav-glyph .nav-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 
 .nav-item:not(.is-active) .nav-glyph .ui-icon {
@@ -9573,30 +9415,6 @@ input {
     color: #2a231d;
   }
 
-  .coffee-detail-sensory-slider-row input[type="range"]::-webkit-slider-runnable-track {
-    background: linear-gradient(90deg,
-        #1e1712 0%,
-        #1e1712 var(--sensory-progress, 0%),
-        rgba(26, 18, 11, 0.14) var(--sensory-progress, 0%),
-        rgba(26, 18, 11, 0.14) 100%);
-  }
-
-  .coffee-detail-sensory-slider-row input[type="range"]::-webkit-slider-thumb {
-    background: #1e1712;
-  }
-
-  .coffee-detail-sensory-slider-row input[type="range"]::-moz-range-track {
-    background: rgba(26, 18, 11, 0.16);
-  }
-
-  .coffee-detail-sensory-slider-row input[type="range"]::-moz-range-progress {
-    background: #1e1712;
-  }
-
-  .coffee-detail-sensory-slider-row input[type="range"]::-moz-range-thumb {
-    background: #1e1712;
-  }
-
   .coffee-detail .coffee-detail-sheet-actions .coffee-detail-sensory-submit,
   .coffee-detail .coffee-detail-sheet-actions .coffee-detail-sensory-submit:disabled,
   .sheet-card .coffee-detail-sheet-actions .coffee-detail-sensory-submit,
@@ -9730,19 +9548,16 @@ input {
     color: #15120f;
   }
 
-  .brew-tech-range::-webkit-slider-runnable-track {
-    background:
-      linear-gradient(to right, var(--range-active) 0 var(--range-progress), #ededed var(--range-progress) 100%);
+  .app-range {
+    --slider-color: #1a120b;
   }
 
-  .brew-tech-range::-moz-range-track {
-    background: #ededed;
+  .app-range--water {
+    --slider-color: #2196f3;
   }
 
-  .brew-tech-range::-webkit-slider-thumb,
-  .brew-tech-range::-moz-range-thumb {
-    background: #dcdcdc;
-    border-color: #dcdcdc;
+  .app-range--caramel {
+    --slider-color: var(--caramel-accent);
   }
 
   .brew-tech-advice {
@@ -10144,24 +9959,6 @@ input {
     background: #ffffff;
     border: 1px solid #6f4e37;
     color: #1a120b;
-  }
-
-  .diary-edit-entry-slider::-webkit-slider-runnable-track {
-    background: rgba(26, 18, 11, 0.14);
-  }
-
-  .diary-edit-entry-slider::-webkit-slider-thumb {
-    background: #1a120b;
-    border-color: #ffffff;
-  }
-
-  .diary-edit-entry-slider::-moz-range-track {
-    background: rgba(26, 18, 11, 0.14);
-  }
-
-  .diary-edit-entry-slider::-moz-range-thumb {
-    background: #1a120b;
-    border-color: #ffffff;
   }
 
   .diary-edit-entry-presets .period-chip.is-active {

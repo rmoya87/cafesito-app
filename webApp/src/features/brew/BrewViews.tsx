@@ -215,6 +215,14 @@ export function BrewLabView({
             )}
           </div>
 
+          <div className="brew-coffee-block-head">
+            <p className="section-title">Sugerencias</p>
+            <Button variant="text" className="brew-add-coffee-link" onClick={onAddNotFoundCoffee}>
+              <UiIcon name="add" className="ui-icon" />
+              Crear mi café
+            </Button>
+          </div>
+
           <div className={`search-row-with-cancel ${showBrewSearchCancel ? "has-cancel" : ""}`.trim()}>
             <Input
               variant="search"
@@ -240,14 +248,6 @@ export function BrewLabView({
               tabIndex={showBrewSearchCancel ? 0 : -1}
             >
               Cancelar
-            </Button>
-          </div>
-
-          <div className="brew-coffee-block-head">
-            <p className="section-title">Sugerencias</p>
-            <Button variant="text" className="brew-add-coffee-link" onClick={onAddNotFoundCoffee}>
-              <UiIcon name="add" className="ui-icon" />
-              Crear mi café
             </Button>
           </div>
 
@@ -303,7 +303,7 @@ export function BrewLabView({
                 <label className="brew-tech-slider">
                   <span>CANTIDAD DE AGUA</span>
                   <Input
-                    className="brew-tech-range is-water"
+                    className="app-range app-range--water"
                     style={{ "--range-progress": `${waterProgress}%` } as CSSProperties}
                     type="range"
                     min={150}
@@ -317,7 +317,7 @@ export function BrewLabView({
                 <label className="brew-tech-slider">
                   <span>RATIO (INTENSIDAD)</span>
                   <Input
-                    className="brew-tech-range"
+                    className="app-range"
                     style={{ "--range-progress": `${ratioProgress}%` } as CSSProperties}
                     type="range"
                     min={12}

@@ -291,13 +291,13 @@ function DiarySheets({
               {(() => {
                 const sliderVal = Math.max(50, Math.min(1000, Number(diaryWaterMlDraft) || 250));
                 const waterProgressStyle: Record<string, string> = {
-                  "--water-progress": `${((sliderVal - 50) / 950) * 100}%`,
+                  "--range-progress": `${((sliderVal - 50) / 950) * 100}%`,
                 };
                 return (
                   <div className="diary-water-slider-wrap">
                     <input
                       type="range"
-                      className="diary-water-slider"
+                      className="app-range app-range--water"
                       min={50}
                       max={1000}
                       step={10}
@@ -522,13 +522,13 @@ function DiarySheets({
                   {(() => {
                     const sliderVal = Math.max(doseSliderMin, Math.min(doseSliderMax, Number(diaryCoffeeGramsDraft) || 15));
                     const doseProgressStyle: Record<string, string> = {
-                      "--dose-progress": `${((sliderVal - doseSliderMin) / (doseSliderMax - doseSliderMin)) * 100}%`,
+                      "--range-progress": `${((sliderVal - doseSliderMin) / (doseSliderMax - doseSliderMin)) * 100}%`,
                     };
                     return (
                       <div className="diary-dose-slider-wrap">
                         <input
                           type="range"
-                          className="diary-dose-slider"
+                          className="app-range app-range--caramel"
                           min={doseSliderMin}
                           max={doseSliderMax}
                           step={doseSliderStep}
@@ -827,12 +827,13 @@ function DiarySheets({
                       </Button>
                     </div>
                     <Input
-                      className="diary-edit-entry-slider"
+                      className="app-range app-range--caramel"
                       type="range"
                       min={1}
                       max={2000}
                       step={25}
                       value={Math.max(1, Number(diaryPantryGramsDraft || 1))}
+                      style={{ "--range-progress": `${((Math.max(1, Number(diaryPantryGramsDraft || 1)) - 1) / 1999) * 100}%` } as React.CSSProperties}
                       onChange={(event) => setDiaryPantryGramsDraft(String(Math.max(1, Number(event.target.value || 1))))}
                     />
                   </label>

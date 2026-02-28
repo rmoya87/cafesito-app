@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toggleFavoriteCoffee } from "../data/supabaseApi";
 import { BREW_METHODS, COMMENT_EMOJIS } from "../config/brew";
-import { getAppRootPath, parseRoute } from "../core/routing";
+import { buildRoute, getAppRootPath, parseRoute } from "../core/routing";
+import { sendPageView } from "../core/ga4";
 import { shouldUseRightRailDetail, sidePanelForTab } from "../core/layouts";
 import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
 import { getBrewStepTitle } from "../core/brew";
@@ -411,7 +412,7 @@ export function AppContainer() {
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [applyScrollState]);
+  }, [applyScrollState, sessionEmail]);
 
   const handleSignOut = useCallback(async () => {
     if (supabaseConfigError) return;
@@ -924,6 +925,23 @@ export function AppContainer() {
 
   const guardedActiveTab = resolveGuardedTab(activeTab, Boolean(sessionEmail));
 
+  // GA4: enviar page_view en cada cambio de ruta (SPA)
+  const coffeeSlugForGa =
+    guardedActiveTab === "coffee" && detailCoffeeId ? coffeeSlugIndex.byId.get(detailCoffeeId) ?? null : null;
+  const gaPagePath = buildRoute(guardedActiveTab, searchMode, profileUsername, coffeeSlugForGa);
+  useEffect(() => {
+    const titles: Partial<Record<TabId, string>> = {
+      timeline: "Inicio",
+      search: "Explorar",
+      brewlab: "Elabora",
+      diary: "Diario",
+      profile: "Perfil",
+      coffee: detailCoffee?.nombre ? `Café · ${detailCoffee.nombre}` : "Café"
+    };
+    const pageTitle = titles[guardedActiveTab] ?? "Cafesito";
+    sendPageView(gaPagePath, `Cafesito - ${pageTitle}`);
+  }, [gaPagePath, guardedActiveTab]);
+
   // Al cambiar de vista: reiniciar scroll y mostrar topbar para que en timeline y buscador se comporte igual
   useEffect(() => {
     const el = mainScrollRef.current;
@@ -944,8 +962,8 @@ export function AppContainer() {
       window.history.replaceState({}, "", `${root}${window.location.search}${window.location.hash}`);
     }
   }, [showingLogin]);
-  const nav = <BottomNav activeTab={guardedActiveTab} onNavClick={handleNavClick} />;
-  const navRail = <DesktopNavRail activeTab={guardedActiveTab} onNavClick={handleNavClick} />;
+  const nav = <BottomNav activeTab={guardedActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
+  const navRail = <DesktopNavRail activeTab={guardedActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
   const topbarActions = useTopBarActions({
     searchMode,
     resetSearchUi,

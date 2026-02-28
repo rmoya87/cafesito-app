@@ -392,7 +392,8 @@ export function CoffeeDetailView({
                   <span className="coffee-detail-sensory-slider-row">
                     <small>0</small>
                     <Input
-                      style={{ "--sensory-progress": `${Math.max(0, Math.min(100, (sensoryDraft[key] / 10) * 100))}%` } as CSSProperties}
+                      className="app-range"
+                      style={{ "--range-progress": `${Math.max(0, Math.min(100, (sensoryDraft[key] / 10) * 100))}%` } as CSSProperties}
                       type="range"
                       min={0}
                       max={10}

@@ -328,6 +328,8 @@ export function SearchView({
                   <div className="search-rating-filter">
                     <p className="search-rating-label">{minRating > 0 ? `Nota minima: ${minRating}+` : "Cualquier nota"}</p>
                     <Input
+                      className="app-range"
+                      style={{ "--range-progress": `${(minRating / 5) * 100}%` } as React.CSSProperties}
                       type="range"
                       min={0}
                       max={5}
