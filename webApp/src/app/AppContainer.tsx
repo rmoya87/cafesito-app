@@ -349,7 +349,7 @@ export function AppContainer() {
     onRequireAuth: requestLogin
   });
 
-  useRouteCanonicalSync();
+  useRouteCanonicalSync(Boolean(sessionEmail));
   const loginRootPath = useMemo(() => getAppRootPath(window.location.pathname) || "/", []);
   useRouteGuardSync({
     isAuthenticated: Boolean(sessionEmail),
