@@ -67,11 +67,27 @@ Tienes **dos opciones** para configurar Supabase:
 ### Login: video de fondo y botón «Continuar con Google»
 
 - **Video de fondo**: Usa ruta relativa y reproducción programática (incl. iOS con `webkit-playsinline`). Si en iOS no se reproduce, el navegador puede estar bloqueando el autoplay hasta la primera interacción.
-- **Botón Google (y PWA «Añadir a página de inicio» en iOS)**: El redirect tras el login va a **timeline**. Si la app está en un subdirectorio (p. ej. `/cafesito-web/app/`), **VITE_SITE_URL debe ser la URL base completa incluyendo ese path** (p. ej. `https://cafesitoapp.com/cafesito-web/app`). Si no, al abrir desde «página de inicio» en iOS el redirect puede ir a `https://cafesitoapp.com/timeline` y el servidor devolverá 404/500.
+- **Botón Google (y PWA «Añadir a página de inicio» en iOS)**: El redirect tras el login va a **{VITE_SITE_URL}/timeline**. Por defecto la app está en la raíz del dominio.
   - En Supabase → Authentication → URL Configuration:
-    - **Site URL**: la URL pública de la app (con path si aplica), p. ej. `https://cafesitoapp.com/cafesito-web/app`.
-    - **Redirect URLs**: añade la URL de timeline y la raíz de la app, p. ej. `https://cafesitoapp.com/cafesito-web/app/timeline`, `https://cafesitoapp.com/cafesito-web/app/`.
-  - En CI (GitHub Actions) se usa `VITE_SITE_URL` (por defecto `https://cafesitoapp.com/cafesito-web/app`). Define la variable `VITE_SITE_URL` en el repo si tu despliegue usa otro path.
+    - **Site URL**: la URL pública de la app, p. ej. `https://cafesitoapp.com` (raíz) o `https://cafesitoapp.com/cafesito-web/app` si está en subdirectorio.
+    - **Redirect URLs**: añade la URL de timeline y la raíz de la app, p. ej. `https://cafesitoapp.com/timeline`, `https://cafesitoapp.com/` (si la app está en raíz).
+  - En CI (GitHub Actions) `VITE_SITE_URL` por defecto es `https://cafesitoapp.com`. Si la app está en un subdirectorio, define la variable `VITE_SITE_URL` en el repo con la URL completa (ej. `https://cafesitoapp.com/cafesito-web/app`).
+
+### Desarrollo local: configurar Supabase para que el login funcione
+
+Aunque tu `webApp/.env` tenga los mismos datos que producción, **Supabase debe autorizar las URLs de localhost** como redirección tras el login. Si no, Google te redirige pero Supabase rechaza la URL y el login falla.
+
+1. **Supabase Dashboard** → **Authentication** → **URL Configuration**.
+2. En **Redirect URLs** añade (una línea por URL):
+   - `http://localhost:4173/timeline`
+   - `http://localhost:4173/`
+   - `http://localhost:4174/timeline`
+   - `http://localhost:4174/`
+   (4173 es el puerto por defecto de la webapp; si Vite usa otro, añade ese puerto también.)
+3. **Guarda** los cambios.
+4. Opcional: en **Site URL** puedes dejar la de producción; Supabase usa la lista de Redirect URLs para aceptar a dónde redirigir.
+
+**Clave anon**: La anon key de Supabase suele ser un JWT largo que empieza por `eyJ...`. Si en tu `.env` usas otro formato y el login falla, copia la clave desde **Supabase → Settings → API → Project API keys → anon public**.
 
 ### CSP y fuente externa
 

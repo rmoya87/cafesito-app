@@ -67,9 +67,8 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      // En producción usar VITE_SITE_URL (definida en CI) como URL base completa (incl. path) para no depender de
-      // window.location: en PWA "Añadir a página de inicio" (iOS) el pathname puede ser "/" y el redirect iría
-      // a /timeline en la raíz → 404/500. VITE_SITE_URL debe ser la URL pública de la app (ej. https://cafesitoapp.com/cafesito-web/app).
+      // En producción usar VITE_SITE_URL (definida en CI): raíz del sitio (ej. https://cafesitoapp.com) o path si la app está en subdirectorio.
+      // Tras login Google, Supabase redirige a {VITE_SITE_URL}/timeline (ej. https://cafesitoapp.com/timeline).
       const siteUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim();
       const base = siteUrl
         ? siteUrl.replace(/\/+$/, "")

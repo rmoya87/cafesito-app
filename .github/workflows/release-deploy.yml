@@ -270,8 +270,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
-          # URL pública de la web incl. path donde está la app (evita redirect a /timeline en raíz → 500 en PWA iOS).
-          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com/cafesito-web/app' }}
+          # URL pública de la web (raíz o path). Tras login Google redirige a {VITE_SITE_URL}/timeline (ej. https://cafesitoapp.com/timeline).
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
       - name: Hash lista cafés (para caché prerender)
         id: coffee_hash
