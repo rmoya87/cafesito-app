@@ -19,7 +19,9 @@ on:
     branches:
       - Interna
       - Alpha
+      - alpha
       - Beta
+      - beta
       - Producción
   workflow_dispatch:
     inputs:
@@ -93,7 +95,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.android == 'true' &&
-      (contains(fromJSON('["Interna","Alpha","Beta","Producción"]'), github.event.inputs.branch || github.ref_name))
+      (contains(fromJSON('["Interna","Alpha","alpha","Beta","beta","Producción"]'), github.event.inputs.branch || github.ref_name))
     runs-on: ubuntu-latest
     env:
       TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name }}
@@ -185,10 +187,10 @@ jobs:
             Interna)
               TRACK="internal"
               ;;
-            Alpha)
+            Alpha|alpha)
               TRACK="alpha"
               ;;
-            Beta)
+            Beta|beta)
               TRACK="beta"
               ;;
             Producción)
@@ -228,7 +230,7 @@ jobs:
   # Deploy web a Ionos: SIEMPRE en Beta y Producción (sube a /cafesito-web/app/)
   deploy-web:
     needs: changes
-    if: contains(fromJSON('["Beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
+    if: contains(fromJSON('["Beta","beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
     runs-on: ubuntu-latest
     defaults:
       run:
