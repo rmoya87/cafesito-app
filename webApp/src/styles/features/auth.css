@@ -296,6 +296,7 @@
     flex: unset;
     min-height: unset;
     align-content: unset;
+    align-self: end;
     margin: 0 0 32px;
     overflow: visible;
   }

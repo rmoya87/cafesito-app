@@ -1,15 +1,24 @@
 import { useEffect } from "react";
-import { buildRoute, parseRoute } from "../../core/routing";
+import { buildRoute, getAppRootPath, parseRoute } from "../../core/routing";
 import { canNavigateToTab } from "../../core/guards";
 
-export function useRouteCanonicalSync() {
+export function useRouteCanonicalSync(isAuthenticated?: boolean) {
   useEffect(() => {
-    const route = parseRoute(window.location.pathname);
+    const pathname = window.location.pathname;
+    if (!isAuthenticated) {
+      const root = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
+      const current = pathname.replace(/\/+$/, "") || "/";
+      if (current !== root) {
+        window.history.replaceState({}, "", `${root}${window.location.search}${window.location.hash}`);
+      }
+      return;
+    }
+    const route = parseRoute(pathname);
     const normalized = buildRoute(route.tab, route.searchMode, route.profileUsername, route.coffeeSlug);
-    if (window.location.pathname !== normalized) {
+    if (pathname !== normalized) {
       window.history.replaceState({}, "", `${normalized}${window.location.search}${window.location.hash}`);
     }
-  }, []);
+  }, [isAuthenticated]);
 }
 
 export function useRouteGuardSync({

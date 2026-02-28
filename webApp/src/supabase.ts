@@ -16,7 +16,7 @@ const supabaseAnonKey = (fromEnv.anonKey || fromWindow?.anonKey)?.trim() || unde
 
 export const supabaseConfigError =
   !supabaseUrl || !supabaseAnonKey
-    ? "Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. Configura .env al hacer build o inyecta window.__SUPABASE_CONFIG__ en el HTML."
+    ? "Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. En producción el build suele hacerse sin .env (p. ej. en CI). Añade las variables en el pipeline de build o inyecta window.__SUPABASE_CONFIG__ en el index.html (ver DEPLOY-IONOS.md)."
     : null;
 
 let supabaseClient: SupabaseClient | null = null;

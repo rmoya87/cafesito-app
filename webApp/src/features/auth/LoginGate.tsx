@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getAppRootPath } from "../../core/routing";
 import { UiIcon } from "../../ui/iconography";
 import { Button, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 
-const loginVideoSrc = `${import.meta.env.BASE_URL}login_bg.mp4`;
-const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
+function useLoginAssetBase() {
+  return useMemo(() => {
+    if (typeof window === "undefined") return (import.meta.env.BASE_URL || "./").replace(/\/?$/, "") + "/";
+    const r = getAppRootPath(window.location.pathname) || "/";
+    return r.endsWith("/") ? r : r + "/";
+  }, []);
+}
 
 export function LoginGate({
   loading,
@@ -18,6 +24,9 @@ export function LoginGate({
 }) {
   const [showMobileSheet, setShowMobileSheet] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const assetBase = useLoginAssetBase();
+  const loginVideoSrc = assetBase + "login_bg.mp4";
+  const logoSrc = assetBase + "logo.png";
 
   useEffect(() => {
     const video = videoRef.current;
