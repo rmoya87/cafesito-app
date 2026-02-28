@@ -253,7 +253,29 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Acepta Secrets o Variables de repo (Settings → Secrets and variables → Actions)
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Hash lista cafés (para caché prerender)
+        id: coffee_hash
+        run: |
+          HASH=$(node scripts/get-coffee-prerender-hash.mjs)
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Restaurar / generar páginas estáticas café
+        uses: actions/cache@v4
+        id: prerender_cache
+        with:
+          path: webApp/dist/coffee
+          key: coffee-prerender-${{ hashFiles('webApp/dist/index.html') }}-${{ steps.coffee_hash.outputs.hash }}
+
+      - name: Prerender cafés (solo si no había caché)
+        if: steps.prerender_cache.outputs.cache-hit != 'true'
+        run: node scripts/prerender-coffee-pages.mjs
+        env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
 
