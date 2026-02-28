@@ -28,6 +28,15 @@ export function useAuthSession(): UseAuthSessionResult {
       return;
     }
 
+    // Si el callback OAuth devolvió error en el hash (ej. 500, server_error), mostrarlo para que el contenedor redirija a /timeline
+    const hash = window.location.hash?.replace(/^#/, "") || "";
+    const params = new URLSearchParams(hash);
+    const hashError = params.get("error") || params.get("error_description");
+    if (hashError) {
+      setAuthError(decodeURIComponent(hashError));
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+
     const supabase = getSupabaseClient();
     let mounted = true;
     void supabase.auth.getSession().then(({ data, error }) => {

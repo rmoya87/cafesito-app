@@ -356,6 +356,18 @@ export function AppContainer() {
     fallbackPath: loginRootPath
   });
 
+  // Si hay error de auth (login fallido, 500, callback con error), llevar a /timeline para no dejar en URL de error
+  useEffect(() => {
+    if (!authError) return;
+    const pathname = window.location.pathname;
+    const base = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "";
+    const timelinePath = (base ? `${base}/timeline` : "/timeline").replace(/\/+/g, "/");
+    if (pathname.replace(/\/+$/, "") !== timelinePath.replace(/\/+$/, "")) {
+      window.history.replaceState(null, "", `${timelinePath}${window.location.search}${window.location.hash}`);
+      setActiveTab("timeline");
+    }
+  }, [authError]);
+
   useGlobalUiEvents({
     onOpenSearch: () => {
       navigateToTab("search", { searchMode: "coffees" });

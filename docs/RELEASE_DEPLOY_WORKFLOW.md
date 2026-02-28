@@ -72,3 +72,11 @@ El deploy web sube a la ruta remota **`/cafesito-web/app/`**.
 - **Interna / Alpha**: solo release Android si cambian `app/` o `shared/`.
 - **Alpha / Beta / Producción**: release Android si cambian `app/` o `shared/`; **deploy web siempre** a Ionos `/cafesito-web/app/`.
 - Para forzar todo: **Run workflow** manual con la rama elegida.
+
+## Registro de cambios de despliegue
+
+Se documentan aquí los despliegues relevantes (push a main + Alpha/Beta/Producción) para trazabilidad.
+
+| Fecha       | Ramas        | Descripción |
+|------------|--------------|-------------|
+| 2026-02-28 | main, Alpha  | **Webapp**: redirect OAuth con path completo (fix 500 PWA iOS), topbar hide on scroll down / show on scroll up, .htaccess excluye `registerSW.js`. Ver `docs/commit-notes/commit-20260228-webapp-main-alpha.md`. |
