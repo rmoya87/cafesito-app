@@ -238,11 +238,24 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Verificar config Supabase para build
+        run: |
+          if [[ -z "${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}" ]]; then
+            echo "::error::Falta VITE_SUPABASE_URL. Añádela en Settings → Secrets and variables → Actions (como Secret o como Variable)."
+            exit 1
+          fi
+          if [[ -z "${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}" ]]; then
+            echo "::error::Falta VITE_SUPABASE_ANON_KEY. Añádela en Settings → Secrets and variables → Actions (como Secret o como Variable)."
+            exit 1
+          fi
+          echo "VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY configuradas."
+
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Acepta Secrets o Variables de repo (Settings → Secrets and variables → Actions)
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
 
       - name: Check Ionos SSH/FTP secrets
         run: |
