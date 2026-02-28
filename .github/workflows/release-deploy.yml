@@ -323,4 +323,5 @@ jobs:
           local_path: ./webApp/dist/*
           remote_path: /cafesito-web/app/
           sftp_only: true
-          delete_remote_files: false
+          # Borrar contenido remoto antes de subir para que cada deploy sea limpio y no queden archivos viejos en caché
+          delete_remote_files: true

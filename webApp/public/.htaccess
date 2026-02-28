@@ -23,3 +23,11 @@
   AddType image/svg+xml .svg
 </IfModule>
 
+# Que el navegador no cachee index.html ni el service worker: cada deploy se ve al instante
+<IfModule mod_headers.c>
+  <FilesMatch "index\.html|sw\.js|registerSW\.js|workbox-.*\.js|workbox-.*\.mjs">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+  </FilesMatch>
+</IfModule>
+
