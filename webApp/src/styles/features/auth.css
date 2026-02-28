@@ -265,6 +265,23 @@
   color: #ff8f87;
 }
 
+.login-dev-link.login-dev-button {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--modal-text-muted);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.login-dev-link.login-dev-button:hover {
+  color: var(--color-primary, #1f6f4a);
+}
+
 @media (min-width: 900px) {
   .login-gate {
     padding: 0;
