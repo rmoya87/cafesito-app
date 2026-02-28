@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { getAppRootPath } from "../../core/routing";
 import { getSupabaseClient, supabaseConfigError } from "../../supabase";
 
 type UseAuthSessionResult = {
@@ -57,7 +58,11 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      const redirectTo = `${window.location.origin}${window.location.pathname || "/"}`;
+      // En producción usar VITE_SITE_URL (definida en CI) para no depender de origin y evitar redirect a localhost.
+      const baseOrigin = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim() || window.location.origin;
+      const basePath = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
+      const pathToTimeline = `${basePath}/timeline`.replace(/\/+/g, "/");
+      const redirectTo = `${baseOrigin.replace(/\/+$/, "")}${pathToTimeline}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo }

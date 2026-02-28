@@ -268,6 +268,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          # URL pública de la web (evita redirect a localhost tras OAuth). Opcional: variable VITE_SITE_URL en el repo.
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
       - name: Hash lista cafés (para caché prerender)
         id: coffee_hash
@@ -278,12 +280,13 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
 
+      # Clave estable: fuentes + lista cafés. No usar dist/index.html (cambia en cada build por hashes de assets).
       - name: Restaurar / generar páginas estáticas café
         uses: actions/cache@v4
         id: prerender_cache
         with:
           path: webApp/dist/coffee
-          key: coffee-prerender-${{ hashFiles('webApp/dist/index.html') }}-${{ steps.coffee_hash.outputs.hash }}
+          key: coffee-prerender-${{ hashFiles('webApp/index.html', 'webApp/scripts/prerender-coffee-pages.mjs', 'webApp/scripts/get-coffee-prerender-hash.mjs', 'webApp/vite.config.ts', 'webApp/package.json', 'webApp/package-lock.json', 'webApp/src/**', 'webApp/public/**') }}-${{ steps.coffee_hash.outputs.hash }}
 
       - name: Prerender cafés (solo si no había caché)
         if: steps.prerender_cache.outputs.cache-hit != 'true'

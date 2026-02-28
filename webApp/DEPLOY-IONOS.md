@@ -60,7 +60,10 @@ Tienes **dos opciones** para configurar Supabase:
 ### Login: video de fondo y botón «Continuar con Google»
 
 - **Video de fondo**: Usa ruta relativa y reproducción programática (incl. iOS con `webkit-playsinline`). Si en iOS no se reproduce, el navegador puede estar bloqueando el autoplay hasta la primera interacción.
-- **Botón Google**: Además de la config anterior, en Supabase → Authentication → URL Configuration añade en **Redirect URLs** la URL exacta de tu app (p. ej. `https://cafesitoapp.com/` o `https://cafesitoapp.com/app/`).
+- **Botón Google**: El redirect tras el login va a **timeline** (p. ej. `https://cafesitoapp.com/app/timeline`). En Supabase → Authentication → URL Configuration:
+  - **Site URL**: pon la URL pública de la app (p. ej. `https://cafesitoapp.com`). Si está en `localhost`, el redirect tras OAuth puede ir a localhost.
+  - **Redirect URLs**: añade la URL de timeline y la raíz donde sirves la app, p. ej. `https://cafesitoapp.com/app/timeline`, `https://cafesitoapp.com/app/`.
+- **Variable opcional**: En CI (GitHub Actions) se usa `VITE_SITE_URL` (por defecto `https://cafesitoapp.com`) para construir el redirect y evitar que vuelva a localhost. Puedes definir la variable `VITE_SITE_URL` en el repo si tu dominio es otro.
 
 ### CSP y fuente externa
 
