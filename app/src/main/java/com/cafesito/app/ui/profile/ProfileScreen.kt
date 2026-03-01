@@ -170,6 +170,7 @@ fun ProfileScreen(
 
                     when (selectedTabIndex) {
                         0 -> {
+                            val usersByUsername = state.allUsers.associateBy { it.username.lowercase() }
                             if (state.posts.isEmpty()) {
                                 item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("Aún no hay publicaciones", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                             } else {
@@ -183,7 +184,8 @@ fun ProfileScreen(
                                             onUserClick = { onUserClick(post.post.userId) },
                                             onEditClick = { postToEdit = post },
                                             onDeleteClick = { itemToDelete = post },
-                                            isOwnPost = state.isCurrentUser
+                                            isOwnPost = state.isCurrentUser,
+                                            resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
                                         )
                                     }
                                 }

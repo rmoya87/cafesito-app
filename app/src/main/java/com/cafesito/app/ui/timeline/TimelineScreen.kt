@@ -221,6 +221,7 @@ fun TimelineScreen(
                 }
                 is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
                 is TimelineUiState.Success -> {
+                    val usersByUsername = remember(state.allUsers) { state.allUsers.associateBy { it.username.lowercase() } }
                     if (state.items.isEmpty()) {
                         TimelineEmptyState(
                             suggestedUsers = state.suggestedUsers,
@@ -295,7 +296,8 @@ fun TimelineScreen(
                                                             else onUserClick(mentionedUserId)
                                                         }
                                                     }
-                                                }
+                                                },
+                                                resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
                                             )
                                             is TimelineItem.ReviewItem -> {
                                                 val isOwnReview = item.reviewInfo.review.userId == state.activeUser.id

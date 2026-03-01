@@ -39,6 +39,7 @@ export type IconName =
   | "coffee"
   | "coffee-filled"
   | "camera"
+  | "camera-filled"
   | "chat"
   | "at"
   | "smile"
@@ -106,7 +107,8 @@ export function MaterialSymbolIcon({
   | "waves"
   | "water_drop"
   | "favorite"
-  | "coffee";
+  | "coffee"
+  | "photo_camera";
   filled: boolean;
   className?: string;
 }) {
@@ -413,6 +415,9 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
         <circle cx="12" cy="13" r="3.2" />
       </svg>
     );
+  }
+  if (name === "camera-filled") {
+    return <MaterialSymbolIcon symbol="photo_camera" filled={true} className={className} />;
   }
   if (name === "chat") {
     return (

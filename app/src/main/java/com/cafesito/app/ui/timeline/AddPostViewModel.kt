@@ -96,6 +96,9 @@ class AddPostViewModel @Inject constructor(
     val rating: StateFlow<Float> = _rating.asStateFlow()
 
     private val _mentionQuery = MutableStateFlow("")
+    val allUsers: StateFlow<List<UserEntity>> = userRepository.getAllUsersFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     val mentionSuggestions: StateFlow<List<UserEntity>> = _mentionQuery
         .debounce(120)

@@ -29,6 +29,8 @@ function NavGlyph({
           className="nav-avatar"
           loading="lazy"
           decoding="async"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           onError={() => setAvatarError(true)}
         />
       ) : (

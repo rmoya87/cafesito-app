@@ -23,6 +23,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -56,6 +58,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -70,6 +74,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.cafesito.app.R
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.CommentWithAuthor
@@ -124,6 +129,8 @@ fun CommentsSheet(
     val keyboardController = LocalSoftwareKeyboardController.current
     val comments by viewModel.comments.collectAsState()
     val suggestions by viewModel.mentionSuggestions.collectAsState()
+    val allUsers by viewModel.allUsers.collectAsState()
+    val usersByUsername = remember(allUsers) { allUsers.associateBy { it.username.lowercase() } }
     val activeUser by viewModel.activeUser.collectAsState()
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -177,7 +184,8 @@ fun CommentsSheet(
                                 scope.launch {
                                     viewModel.getUserIdByUsername(username)?.let(onNavigateToProfile)
                                 }
-                            }
+                            },
+                            resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
                         )
                     }
                 }
@@ -199,15 +207,13 @@ fun CommentsSheet(
                 }
             }
 
-            var composerHeight by remember { mutableStateOf(0) }
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 // Main Composer Container
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .onSizeChanged { composerHeight = it.height }
                         .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                        .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color.Transparent, RoundedCornerShape(16.dp))
                 ) {
                     // Suggestions/Emojis moved inside at the top
                     AnimatedVisibility(
@@ -255,22 +261,17 @@ fun CommentsSheet(
                         }
                     }
 
-                    OutlinedTextField(
+                    MentionComposerField(
                         value = textValue,
                         onValueChange = {
                             textValue = it
                             viewModel.onTextChanged(it.text)
                             if (it.text.endsWith("@")) showEmojiPanel = false
                         },
-                        placeholder = { Text("Añade un comentario...") },
+                        placeholder = "Añade un comentario...",
+                        validUsers = allUsers,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent
-                        )
+                        minHeight = 72.dp
                     )
 
                     Row(
@@ -609,7 +610,8 @@ private fun CommentRow(
     onNavigateToProfile: (Int) -> Unit,
     onDeleteClick: () -> Unit,
     onEditClick: () -> Unit,
-    onMentionClick: (String) -> Unit
+    onMentionClick: (String) -> Unit,
+    resolveMentionUser: (String) -> UserEntity?
 ) {
     val author = commentWithAuthor.author
     val comment = commentWithAuthor.comment
@@ -647,7 +649,8 @@ private fun CommentRow(
             MentionText(
                 text = comment.text,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                onMentionClick = onMentionClick
+                onMentionClick = onMentionClick,
+                resolveMentionUser = resolveMentionUser
             )
         }
 
@@ -674,53 +677,285 @@ private fun CommentRow(
 
 }
 
-private fun buildAnnotatedStringWithMentions(text: String, mentionColor: Color): AnnotatedString {
-    return buildAnnotatedString {
-        val regex = Regex("@([A-Za-z0-9._-]{2,30})")
-        var lastIndex = 0
-
-        regex.findAll(text).forEach { matchResult ->
-            append(text.substring(lastIndex, matchResult.range.first))
-            val username = matchResult.groupValues[1]
-            pushStringAnnotation(tag = "MENTION", annotation = username)
-            withStyle(style = SpanStyle(color = mentionColor, fontWeight = FontWeight.Bold)) {
-                append(matchResult.value)
-            }
-            pop()
-            lastIndex = matchResult.range.last + 1
-        }
-        if (lastIndex < text.length) {
-            append(text.substring(lastIndex))
-        }
-    }
-}
-
 @Composable
 fun MentionText(
     text: String,
     style: TextStyle,
     onMentionClick: (String) -> Unit,
+    resolveMentionUser: (String) -> UserEntity? = { null },
     modifier: Modifier = Modifier
 ) {
-    val mentionColor = MaterialTheme.colorScheme.primary
-    val annotatedContent = remember(text, mentionColor) { buildAnnotatedStringWithMentions(text, mentionColor) }
-    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val mentionRegex = remember { Regex("@([A-Za-z0-9._-]{2,30})") }
+    val visual = remember(text, onMentionClick, resolveMentionUser) {
+        val inline = linkedMapOf<String, InlineTextContent>()
+        val annotated = buildAnnotatedString {
+            var lastIndex = 0
+            var mentionIndex = 0
+            mentionRegex.findAll(text).forEach { match ->
+                if (match.range.first > lastIndex) {
+                    append(text.substring(lastIndex, match.range.first))
+                }
+                val username = match.groupValues[1]
+                val id = "mention-display-$mentionIndex-$username"
+                inline[id] = InlineTextContent(
+                    placeholder = Placeholder(
+                        width = ((username.length + 6) * 7f).sp,
+                        height = 22.sp,
+                        placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                    )
+                ) {
+                    val mentionUser = resolveMentionUser(username)
+                    Surface(
+                        onClick = { onMentionClick(username) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = CaramelSoft.copy(alpha = 0.08f),
+                        border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.38f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .height(22.dp)
+                                .padding(horizontal = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val fallbackChar = (mentionUser?.username ?: username).take(1).uppercase()
+                            if (mentionUser?.avatarUrl.isNullOrBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .background(CaramelAccent.copy(alpha = 0.14f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = fallbackChar,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CaramelAccent,
+                                        maxLines = 1
+                                    )
+                                }
+                            } else {
+                                SubcomposeAsyncImage(
+                                    model = mentionUser?.avatarUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape),
+                                    loading = {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(CaramelAccent.copy(alpha = 0.14f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = fallbackChar,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = CaramelAccent,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    },
+                                    error = {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(CaramelAccent.copy(alpha = 0.14f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = fallbackChar,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = CaramelAccent,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                            Spacer(Modifier.width(5.dp))
+                            Text(
+                                text = "@$username",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CaramelAccent,
+                                lineHeight = 12.sp,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+                appendInlineContent(id, "@$username")
+                lastIndex = match.range.last + 1
+                mentionIndex += 1
+            }
+            if (lastIndex < text.length) {
+                append(text.substring(lastIndex))
+            }
+        }
+        ComposerMentionVisual(annotated = annotated, inlineContent = inline)
+    }
 
     Text(
-        text = annotatedContent,
+        text = visual.annotated,
+        inlineContent = visual.inlineContent,
         style = style,
-        modifier = modifier.pointerInput(annotatedContent) {
-            detectTapGestures { tapOffset ->
-                val layoutResult = textLayoutResult ?: return@detectTapGestures
-                val offset = layoutResult.getOffsetForPosition(tapOffset)
-                annotatedContent
-                    .getStringAnnotations(tag = "MENTION", start = offset, end = offset)
-                    .firstOrNull()
-                    ?.let { onMentionClick(it.item) }
-            }
-        },
-        onTextLayout = { textLayoutResult = it }
+        modifier = modifier
     )
+}
+
+private data class ComposerMentionVisual(
+    val annotated: AnnotatedString,
+    val inlineContent: Map<String, InlineTextContent>
+)
+
+@Composable
+private fun ComposerMentionPill(user: UserEntity) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = CaramelSoft.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.38f))
+    ) {
+        Row(
+            modifier = Modifier
+                .height(22.dp)
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val fallbackContent: @Composable () -> Unit = {
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .background(CaramelAccent.copy(alpha = 0.14f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = user.username.take(1).uppercase(),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CaramelAccent,
+                        maxLines = 1
+                    )
+                }
+            }
+            if (user.avatarUrl.isNullOrBlank()) {
+                fallbackContent()
+            } else {
+                SubcomposeAsyncImage(
+                    model = user.avatarUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clip(CircleShape),
+                    loading = { fallbackContent() },
+                    error = { fallbackContent() }
+                )
+            }
+            Spacer(Modifier.width(5.dp))
+            Text(
+                text = "@${user.username}",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = CaramelAccent,
+                lineHeight = 12.sp,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+private fun buildComposerMentionVisual(
+    text: String,
+    validUsers: List<UserEntity>
+): ComposerMentionVisual {
+    val usersByUsername = validUsers.associateBy { it.username.lowercase() }
+    val mentionRegex = Regex("(^|\\s)@([A-Za-z0-9._-]{2,30})(?=\\s|$)")
+    val inline = linkedMapOf<String, InlineTextContent>()
+    val annotated = buildAnnotatedString {
+        var lastIndex = 0
+        var mentionIndex = 0
+        mentionRegex.findAll(text).forEach { match ->
+            val leading = match.groupValues.getOrElse(1) { "" }
+            val username = match.groupValues.getOrElse(2) { "" }
+            val mentionStart = match.range.first + leading.length
+            val mentionEnd = match.range.last + 1
+            if (mentionStart > lastIndex) {
+                append(text.substring(lastIndex, mentionStart))
+            }
+            val user = usersByUsername[username.lowercase()]
+            if (user != null) {
+                val id = "mention-inline-$mentionIndex-${user.id}"
+                inline[id] = InlineTextContent(
+                    placeholder = Placeholder(
+                        width = ((username.length + 6) * 7f).sp,
+                        height = 22.sp,
+                        placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                    )
+                ) {
+                    ComposerMentionPill(user = user)
+                }
+                appendInlineContent(id, "@$username")
+            } else {
+                append(text.substring(mentionStart, mentionEnd))
+            }
+            lastIndex = mentionEnd
+            mentionIndex += 1
+        }
+        if (lastIndex < text.length) {
+            append(text.substring(lastIndex))
+        }
+    }
+    return ComposerMentionVisual(annotated = annotated, inlineContent = inline)
+}
+
+@Composable
+fun MentionComposerField(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    placeholder: String,
+    validUsers: List<UserEntity>,
+    modifier: Modifier = Modifier,
+    minHeight: Dp = 120.dp
+) {
+    val textColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+    val visual = remember(value.text, validUsers) {
+        buildComposerMentionVisual(text = value.text, validUsers = validUsers)
+    }
+
+    Box(modifier = modifier) {
+        if (value.text.isNotEmpty()) {
+            Text(
+                text = visual.annotated,
+                inlineContent = visual.inlineContent,
+                style = MaterialTheme.typography.bodyLarge.copy(color = textColor),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            )
+        }
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = minHeight),
+            shape = RoundedCornerShape(16.dp),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = if (value.text.isEmpty()) textColor else Color.Transparent
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedTextColor = Color.Transparent,
+                unfocusedTextColor = Color.Transparent,
+                cursorColor = textColor
+            )
+        )
+    }
 }
 
 @Composable
@@ -728,15 +963,15 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        color = CaramelSoft.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.38f))
     ) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape))
             Spacer(Modifier.width(8.dp))
-            Text(user.username, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("@${user.username}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CaramelAccent)
         }
     }
 }

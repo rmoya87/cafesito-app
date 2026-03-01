@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.cafesito.app.data.PostWithDetails
+import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.utils.formatRelativeTime
 import com.cafesito.app.ui.theme.*
 import kotlinx.coroutines.delay
@@ -67,7 +68,8 @@ fun PostCard(
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
     onCoffeeClick: (String) -> Unit = {},
-    onMentionClick: (String) -> Unit = {}
+    onMentionClick: (String) -> Unit = {},
+    resolveMentionUser: (String) -> UserEntity? = { null }
 ) {
     val post = details.post
     val author = details.author
@@ -131,7 +133,8 @@ fun PostCard(
                     MentionText(
                         text = post.comment,
                         style = MaterialTheme.typography.bodyLarge.copy(color = postTextColor, lineHeight = 22.sp),
-                        onMentionClick = onMentionClick
+                        onMentionClick = onMentionClick,
+                        resolveMentionUser = resolveMentionUser
                     )
                     Spacer(Modifier.height(16.dp))
                 }

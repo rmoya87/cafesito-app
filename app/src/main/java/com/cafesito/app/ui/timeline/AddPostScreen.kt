@@ -353,6 +353,7 @@ private fun PostDetailsStepPremium(
     val imageSource = viewModel.imageSource.collectAsState().value as? Uri
     val comment by viewModel.comment.collectAsState()
     val mentionSuggestions by viewModel.mentionSuggestions.collectAsState()
+    val allUsers by viewModel.allUsers.collectAsState()
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val coffeeList by viewModel.coffeeList.collectAsState()
@@ -406,29 +407,21 @@ private fun PostDetailsStepPremium(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(if (isSystemInDarkTheme()) Color.Black else Color.White, RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                    .border(1.dp, Color.Transparent, RoundedCornerShape(16.dp))
             ) {
-                    OutlinedTextField(
+                    MentionComposerField(
                         value = commentValue,
                         onValueChange = {
                             commentValue = it
                             viewModel.onCommentChanged(it.text)
                             if (it.text.endsWith("@")) showEmojiPanel = false
                         },
-                        placeholder = { Text("¿Qué estás pensando?") },
+                        placeholder = "¿Qué estás pensando?",
+                        validUsers = allUsers,
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 120.dp)
                             .focusRequester(focusRequester),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                            unfocusedTextColor = if (isSystemInDarkTheme()) Color.White else Color.Black
-                        )
                     )
 
                     // Suggestions/Emojis moved inside above icons

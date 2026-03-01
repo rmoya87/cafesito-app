@@ -1,7 +1,7 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { toRelativeMinutes } from "../../core/time";
 import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserRow } from "../../types";
-import { Button, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay, Textarea } from "../../ui/components";
+import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
 export function CoffeeDetailView({
   coffee,
@@ -291,7 +291,7 @@ export function CoffeeDetailView({
                 >
                   <span className="coffee-detail-opinion-user">
                     {currentUser.avatar_url ? (
-                      <img className="coffee-detail-opinion-avatar" src={currentUser.avatar_url} alt={currentUser.username} loading="lazy" decoding="async" />
+                      <img className="coffee-detail-opinion-avatar" src={currentUser.avatar_url} alt={currentUser.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                     ) : (
                       <span className="coffee-detail-opinion-avatar" aria-hidden="true">
                         {(currentUser.username ?? "tu").slice(0, 2).toUpperCase()}
@@ -335,7 +335,7 @@ export function CoffeeDetailView({
                   >
                     <span className="coffee-detail-opinion-user">
                       {review.user.avatar_url ? (
-                        <img className="coffee-detail-opinion-avatar" src={review.user.avatar_url} alt={review.user.username} loading="lazy" decoding="async" />
+                        <img className="coffee-detail-opinion-avatar" src={review.user.avatar_url} alt={review.user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                       ) : (
                         <span className="coffee-detail-opinion-avatar" aria-hidden="true">
                           {(review.user.username ?? "us").slice(0, 2).toUpperCase()}
@@ -574,58 +574,58 @@ export function CoffeeDetailView({
                   ))}
                 </div>
               </label>
-              <div className="sheet-input-shell coffee-detail-review-input-shell">
-                <Textarea
-                  className="search-wide sheet-input coffee-detail-review-textarea"
-                  rows={3}
-                  value={reviewDraftText}
-                  onChange={(event) => {
-                    onReviewTextChange(event.target.value);
-                    if (reviewSheetError) setReviewSheetError(null);
-                  }}
-                  placeholder="Escribe tu reseña"
-                />
-                <div className="sheet-composer-bottom coffee-detail-review-input-tools">
-                  <div className="sheet-composer-tools-inline">
-                    <label className="coffee-detail-file coffee-detail-review-camera" aria-label="Adjuntar imagen">
-                      <UiIcon name="camera" className="ui-icon" />
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        className="file-input-hidden"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0] ?? null;
-                          if (!file) {
-                            onReviewImagePick(null, "");
-                            return;
-                          }
-                          onReviewImagePick(file, URL.createObjectURL(file));
-                          event.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-                {reviewDraftImagePreviewUrl ? (
-                  <div className="comment-image-thumb-wrap coffee-detail-review-thumb-wrap">
-                    <img
-                      className="comment-image-thumb"
-                      src={reviewDraftImagePreviewUrl}
-                      alt="Previsualización reseña"
-                      loading="lazy"
-                      decoding="async"
+              <ComposerInputShell
+                value={reviewDraftText}
+                onChange={(value) => {
+                  onReviewTextChange(value);
+                  if (reviewSheetError) setReviewSheetError(null);
+                }}
+                placeholder="Escribe tu reseña"
+                rows={3}
+                shellClassName="coffee-detail-review-input-shell"
+                textareaClassName="coffee-detail-review-textarea"
+                bottomClassName="coffee-detail-review-input-tools"
+                toolsContent={
+                  <label className="coffee-detail-file coffee-detail-review-camera" aria-label="Adjuntar imagen">
+                    <UiIcon name="camera" className="ui-icon" />
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      className="file-input-hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+                        if (!file) {
+                          onReviewImagePick(null, "");
+                          return;
+                        }
+                        onReviewImagePick(file, URL.createObjectURL(file));
+                        event.currentTarget.value = "";
+                      }}
                     />
-                    <Button
-                      variant="plain"
-                      className="comment-image-remove"
-                      onClick={() => onReviewImagePick(null, "")}
-                      aria-label="Quitar imagen"
-                    >
-                      x
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
+                  </label>
+                }
+                extraContent={
+                  reviewDraftImagePreviewUrl ? (
+                    <div className="comment-image-thumb-wrap coffee-detail-review-thumb-wrap">
+                      <img
+                        className="comment-image-thumb"
+                        src={reviewDraftImagePreviewUrl}
+                        alt="Previsualización reseña"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <Button
+                        variant="plain"
+                        className="comment-image-remove"
+                        onClick={() => onReviewImagePick(null, "")}
+                        aria-label="Quitar imagen"
+                      >
+                        x
+                      </Button>
+                    </div>
+                  ) : null
+                }
+              />
               {reviewSheetError ? <p className="coffee-detail-sheet-error">{reviewSheetError}</p> : null}
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions coffee-detail-review-actions">

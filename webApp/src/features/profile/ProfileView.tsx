@@ -145,6 +145,7 @@ export function ProfileView({
   onDeletePost,
   onToggleLike,
   onOpenComments,
+  resolveMentionUser,
   externalEditProfileSignal,
   sidePanel
 }: {
@@ -177,6 +178,7 @@ export function ProfileView({
   onDeletePost: (postId: string) => Promise<void>;
   onToggleLike: (postId: string) => void;
   onOpenComments: (postId: string) => void;
+  resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
   externalEditProfileSignal: number;
   sidePanel?: ReactNode;
 }) {
@@ -416,6 +418,8 @@ export function ProfileView({
                 src={user.avatar_url}
                 alt={user.username}
                 loading="lazy" decoding="async"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
                 onError={() => setAvatarLoadFailed(true)}
               />
             ) : (
@@ -470,7 +474,7 @@ export function ProfileView({
                 <header className="feed-head">
                   <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
                     {user.avatar_url ? (
-                      <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
+                      <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                     ) : (
                       <div className="avatar" aria-hidden="true">{initials}</div>
                     )}
@@ -485,7 +489,7 @@ export function ProfileView({
                     </IconButton>
                   ) : null}
                 </header>
-                {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
+                {post.text ? <p className="feed-text"><MentionText text={post.text} resolveMentionUser={resolveMentionUser} /></p> : null}
                 {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" decoding="async" /> : null}
                 {post.coffeeTagName ? (
                   <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
@@ -554,7 +558,7 @@ export function ProfileView({
                         <header className="feed-head">
                           <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
                             {user.avatar_url ? (
-                              <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
+                              <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                             ) : (
                               <div className="avatar" aria-hidden="true">{initials}</div>
                             )}
@@ -569,7 +573,7 @@ export function ProfileView({
                             </IconButton>
                           ) : null}
                         </header>
-                        {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
+                        {post.text ? <p className="feed-text"><MentionText text={post.text} resolveMentionUser={resolveMentionUser} /></p> : null}
                         {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" decoding="async" /> : null}
                         {post.coffeeTagName ? (
                           <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
@@ -758,7 +762,7 @@ export function ProfileView({
               <div className="profile-edit-avatar-row">
                 <div className="profile-edit-avatar-preview" aria-hidden="true">
                   {editAvatarPreview || (!removeAvatarDraft && user.avatar_url) ? (
-                    <img src={editAvatarPreview || user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
+                    <img src={editAvatarPreview || user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   ) : (
                     <span>{initials}</span>
                   )}

@@ -116,7 +116,7 @@ export function NotificationRow({
           >
             <div className="notifications-avatar-wrap">
               {user?.avatar_url ? (
-                <img className="avatar avatar-photo notifications-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
+                <img className="avatar avatar-photo notifications-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
               ) : (
                 <div className="avatar notifications-avatar" aria-hidden="true">
                   {(user?.username ?? "us").slice(0, 2).toUpperCase()}

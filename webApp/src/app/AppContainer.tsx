@@ -207,8 +207,6 @@ export function AppContainer() {
     commentImagePreviewUrl,
     setCommentImagePreviewUrl,
     showCreatePost,
-    newPostStep,
-    setNewPostStep,
     newPostText,
     setNewPostText,
     newPostImageFile,
@@ -228,7 +226,6 @@ export function AppContainer() {
     showCreatePostEmojiPanel,
     setShowCreatePostEmojiPanel,
     newPostImageInputRef,
-    newPostCameraInputRef,
     resetCreatePostComposer,
     openCreatePostComposer,
     appendNewPostFiles
@@ -692,7 +689,6 @@ export function AppContainer() {
     closeCommentSheet,
     pickCommentImage,
     removeCommentImage,
-    selectCreatePostGalleryItem,
     removeSelectedCreatePostImage
   } = useTimelineSheetActions({
     commentImagePreviewUrl,
@@ -966,6 +962,21 @@ export function AppContainer() {
       window.history.replaceState({}, "", `${root}${window.location.search}${window.location.hash}`);
     }
   }, [isNotFoundRoute, showingLogin]);
+  const mentionUsersByUsername = useMemo(() => {
+    const map = new Map<string, UserRow>();
+    users.forEach((user) => {
+      const key = String(user.username || "").trim().toLowerCase();
+      if (!key) return;
+      if (!map.has(key)) map.set(key, user);
+    });
+    return map;
+  }, [users]);
+  const resolveMentionUser = useCallback((username: string) => {
+    const key = String(username || "").trim().toLowerCase();
+    const user = mentionUsersByUsername.get(key);
+    if (!user) return null;
+    return { username: user.username, avatarUrl: user.avatar_url };
+  }, [mentionUsersByUsername]);
   const nav = <BottomNav activeTab={guardedActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
   const navRail = <DesktopNavRail activeTab={guardedActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
   const topbarActions = useTopBarActions({
@@ -1079,6 +1090,7 @@ export function AppContainer() {
         onDeletePost={handleDeletePost}
         onRefresh={handleRefreshTimeline}
         onMentionClick={handleMentionNavigation}
+        resolveMentionUser={resolveMentionUser}
         onOpenUserProfile={(userId) => {
           navigateToTab("profile", { profileUserId: userId });
         }}
@@ -1279,6 +1291,7 @@ export function AppContainer() {
           setHighlightedCommentId(null);
           setCommentSheetPostId(postId);
         }}
+        resolveMentionUser={resolveMentionUser}
         externalEditProfileSignal={profileEditSignal}
         sidePanel={activeSidePanelTarget === "profile" ? detailPanel : null}
       />
@@ -1347,6 +1360,7 @@ export function AppContainer() {
       setShowEmojiPanel={setShowCommentEmojiPanel}
       mentionSuggestions={commentMentionSuggestions}
       onMentionNavigate={handleMentionNavigation}
+      resolveMentionUser={resolveMentionUser}
       commentImageInputRef={commentImageInputRef}
       commentListRef={commentListRef}
       onPickImage={pickCommentImage}
@@ -1363,25 +1377,19 @@ export function AppContainer() {
     <CreatePostSheet
       open={showCreatePost}
       onClose={resetCreatePostComposer}
-      step={newPostStep}
-      setStep={setNewPostStep}
       imageFile={newPostImageFile}
       text={newPostText}
       setText={setNewPostText}
       onPublish={handleCreatePost}
       imageInputRef={newPostImageInputRef}
-      cameraInputRef={newPostCameraInputRef}
       onAppendFiles={appendNewPostFiles}
       imagePreviewUrl={newPostImagePreviewUrl}
-      isDesktopComposer={isDesktopComposer}
-      galleryItems={newPostGalleryItems}
-      selectedImageId={newPostSelectedImageId}
-      onSelectGalleryItem={selectCreatePostGalleryItem}
       onRemoveSelectedImage={removeSelectedCreatePostImage}
       activeUser={activeUser}
       showEmojiPanel={showCreatePostEmojiPanel}
       setShowEmojiPanel={setShowCreatePostEmojiPanel}
       mentionSuggestions={createPostMentionSuggestions}
+      resolveMentionUser={resolveMentionUser}
       onOpenCoffeePicker={() => setShowCreatePostCoffeeSheet(true)}
       selectedCoffee={selectedCreatePostCoffee}
       showCoffeeSheet={showCreatePostCoffeeSheet}

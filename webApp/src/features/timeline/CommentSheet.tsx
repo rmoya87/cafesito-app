@@ -2,7 +2,7 @@ import type { MutableRefObject } from "react";
 import type { CommentRow, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
-import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
+import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 
 export function CommentSheet({
   open,
@@ -25,6 +25,7 @@ export function CommentSheet({
   setShowEmojiPanel,
   mentionSuggestions,
   onMentionNavigate,
+  resolveMentionUser,
   commentImageInputRef,
   commentListRef,
   onPickImage,
@@ -56,6 +57,7 @@ export function CommentSheet({
   setShowEmojiPanel: (value: boolean) => void;
   mentionSuggestions: UserRow[];
   onMentionNavigate: (username: string) => void;
+  resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
   commentImageInputRef: MutableRefObject<HTMLInputElement | null>;
   commentListRef?: MutableRefObject<HTMLUListElement | null>;
   onPickImage: (file: File) => void;
@@ -84,7 +86,7 @@ export function CommentSheet({
                   <li key={row.id} data-comment-id={row.id} className={`sheet-item ${highlightedCommentId === row.id ? "is-highlighted" : ""}`}>
                     <div className="sheet-item-head">
                       {user?.avatar_url ? (
-                        <img className="comment-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
+                        <img className="comment-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                       ) : (
                         <div className="comment-avatar comment-avatar-fallback" aria-hidden="true">
                           {(user?.username ?? "us").slice(0, 2).toUpperCase()}
@@ -101,7 +103,7 @@ export function CommentSheet({
                       ) : null}
                     </div>
                     <p className="sheet-item-text">
-                      <MentionText text={row.text} onMentionClick={onMentionNavigate} />
+                      <MentionText text={row.text} onMentionClick={onMentionNavigate} resolveMentionUser={resolveMentionUser} />
                     </p>
                   </li>
                 );
@@ -153,51 +155,27 @@ export function CommentSheet({
                 event.currentTarget.value = "";
               }}
             />
-            <div className="sheet-input-shell">
-              {showEmojiPanel ? (
-                <div className="comment-inline-panel emoji-panel">
-                  {emojis.map((emoji) => (
-                    <Button key={emoji} variant="plain" className="emoji-chip" onClick={() => setCommentDraft(`${commentDraft}${emoji}`)}>
-                      {emoji}
-                    </Button>
-                  ))}
-                </div>
-              ) : mentionSuggestions.length ? (
-                <div className="comment-inline-panel mention-suggestions">
-                  {mentionSuggestions.map((user) => (
-                    <Button
-                      key={user.id}
-                      variant="plain"
-                      className="mention-chip"
-                      onClick={() => {
-                        const parts = commentDraft.split(/\s+/);
-                        parts[parts.length - 1] = `@${user.username}`;
-                        setCommentDraft(`${parts.join(" ")} `);
-                        setShowEmojiPanel(false);
-                      }}
-                    >
-                      {user.avatar_url ? (
-                        <img className="mention-chip-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
-                      ) : (
-                        <span className="mention-chip-fallback">{user.username.slice(0, 1).toUpperCase()}</span>
-                      )}
-                      <span>@{user.username}</span>
-                    </Button>
-                  ))}
-                </div>
-              ) : null}
-              <Textarea
-                className="search-wide sheet-input"
-                placeholder="Añade un comentario..."
-                value={commentDraft}
-                rows={2}
-                onChange={(event) => {
-                  setCommentDraft(event.target.value);
-                  if (event.target.value.endsWith("@")) setShowEmojiPanel(false);
-                }}
-              />
-              <div className="sheet-composer-bottom">
-                <div className="sheet-composer-tools-inline">
+            <ComposerInputShell
+              value={commentDraft}
+              onChange={(value) => {
+                setCommentDraft(value);
+                if (value.endsWith("@")) setShowEmojiPanel(false);
+              }}
+              placeholder="Añade un comentario..."
+              rows={2}
+              showEmojiPanel={showEmojiPanel}
+              emojis={emojis}
+              onEmojiSelect={(emoji) => setCommentDraft(`${commentDraft}${emoji}`)}
+              mentionSuggestions={mentionSuggestions}
+              onInsertMention={(username) => {
+                const parts = commentDraft.split(/\s+/);
+                parts[parts.length - 1] = `@${username}`;
+                setCommentDraft(`${parts.join(" ")} `);
+                setShowEmojiPanel(false);
+              }}
+              resolveMentionUser={resolveMentionUser}
+              toolsContent={
+                <>
                   <IconButton type="button" tone="default" onClick={() => commentImageInputRef.current?.click()} aria-label="Agregar foto">
                     <UiIcon name="camera" className="ui-icon" />
                   </IconButton>
@@ -207,31 +185,36 @@ export function CommentSheet({
                   <IconButton type="button" tone="default" className={showEmojiPanel ? "is-active" : ""} onClick={() => setShowEmojiPanel(!showEmojiPanel)}>
                     <UiIcon name="smile" className="ui-icon" />
                   </IconButton>
-                </div>
+                </>
+              }
+              actionContent={
                 <Button variant="plain" type="button" className="send-button" onClick={editingCommentId ? onUpdateComment : onAddComment}>
                   <UiIcon name="send" className="ui-icon" />
                   {editingCommentId ? "Guardar" : "Enviar"}
                 </Button>
-              </div>
-              {commentImagePreviewUrl ? (
-                <div className="comment-image-thumb-wrap">
-                  {commentImagePreviewError ? (
-                    <div className="comment-image-thumb-fallback">{commentImageName || "Imagen seleccionada"}</div>
-                  ) : (
-                    <img
-                      className="comment-image-thumb"
-                      src={commentImagePreviewUrl}
-                      alt="Miniatura comentario"
-                      loading="lazy" decoding="async"
-                      onError={() => setCommentImagePreviewError(true)}
-                    />
-                  )}
-                  <Button variant="plain" className="comment-image-remove" onClick={onRemoveImage} aria-label="Quitar imagen">
-                    x
-                  </Button>
-                </div>
-              ) : null}
-            </div>
+              }
+              extraContent={
+                commentImagePreviewUrl ? (
+                  <div className="comment-image-thumb-wrap">
+                    {commentImagePreviewError ? (
+                      <div className="comment-image-thumb-fallback">{commentImageName || "Imagen seleccionada"}</div>
+                    ) : (
+                      <img
+                        className="comment-image-thumb"
+                        src={commentImagePreviewUrl}
+                        alt="Miniatura comentario"
+                        loading="lazy"
+                        decoding="async"
+                        onError={() => setCommentImagePreviewError(true)}
+                      />
+                    )}
+                    <Button variant="plain" className="comment-image-remove" onClick={onRemoveImage} aria-label="Quitar imagen">
+                      x
+                    </Button>
+                  </div>
+                ) : null
+              }
+            />
           </div>
         </div>
       </SheetCard>

@@ -24,6 +24,8 @@ if (supabaseUrl && /your_project|YOUR_PROJECT|xxxxx/i.test(supabaseUrl)) {
   supabaseUrl = undefined;
 }
 
+export const resolvedSupabaseUrl = supabaseUrl ?? "";
+
 const isDev = import.meta.env.DEV;
 export const supabaseConfigError =
   !supabaseUrl || !supabaseAnonKey

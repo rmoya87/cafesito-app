@@ -3,6 +3,32 @@ import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
+
+function SuggestionAvatar({
+  avatarUrl,
+  username
+}: {
+  avatarUrl: string | null | undefined;
+  username: string;
+}) {
+  const [loadFailed, setLoadFailed] = useState(false);
+  if (!avatarUrl || loadFailed) {
+    return <div className="avatar mini-avatar-fallback">{username.slice(0, 2).toUpperCase()}</div>;
+  }
+  return (
+    <img
+      className="mini-avatar"
+      src={avatarUrl}
+      alt={username}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      crossOrigin="anonymous"
+      onError={() => setLoadFailed(true)}
+    />
+  );
+}
+
 export function TimelineView({
   mode,
   cards,
@@ -22,6 +48,7 @@ export function TimelineView({
   onDeletePost,
   onRefresh,
   onMentionClick,
+  resolveMentionUser,
   onOpenUserProfile,
   onOpenCoffee,
   sidePanel
@@ -44,6 +71,7 @@ export function TimelineView({
   onDeletePost: (postId: string) => Promise<void>;
   onRefresh: () => Promise<void>;
   onMentionClick: (username: string) => void;
+  resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
   onOpenUserProfile: (userId: number) => void;
   onOpenCoffee: (coffeeId: string) => void;
   sidePanel?: ReactNode;
@@ -188,7 +216,7 @@ export function TimelineView({
           return (
             <article key={user.id} className={`mini-card mini-user-card ${isDismissing ? "is-removing" : ""}`.trim()}>
               <Button variant="plain" type="button" className="mini-user-link" onClick={() => onOpenUserProfile(user.id)}>
-                {user.avatar_url ? <img className="mini-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" /> : <div className="avatar mini-avatar-fallback">{user.username.slice(0, 2).toUpperCase()}</div>}
+                <SuggestionAvatar avatarUrl={user.avatar_url} username={user.username} />
                 <div className="mini-user-copy">
                   <p className="feed-user">{user.full_name}</p>
                   <p className="feed-meta">@{user.username}</p>
@@ -304,7 +332,7 @@ export function TimelineView({
                   onClick={() => onOpenUserProfile(card.userId)}
                 >
                   {card.avatarUrl ? (
-                    <img className="avatar avatar-photo" src={card.avatarUrl} alt={card.username} loading="lazy" decoding="async" />
+                    <img className="avatar avatar-photo" src={card.avatarUrl} alt={card.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   ) : (
                     <div className="avatar" aria-hidden="true">
                       {card.userName
@@ -334,7 +362,7 @@ export function TimelineView({
 
               {card.text ? (
                 <p className="feed-text">
-                  <MentionText text={card.text} onMentionClick={onMentionClick} />
+                  <MentionText text={card.text} onMentionClick={onMentionClick} resolveMentionUser={resolveMentionUser} />
                 </p>
               ) : null}
 

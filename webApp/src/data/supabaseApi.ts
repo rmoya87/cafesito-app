@@ -35,7 +35,7 @@ function throwIfError(error: SupabaseErrorLike): void {
 
 export async function fetchInitialData(): Promise<InitialDataBundle> {
   const supabase = getSupabaseClient();
-  const usersReq = supabase.from("users_db").select("id,username,full_name,avatar_url,email,bio").limit(80);
+  const usersReq = supabase.from("users_db").select("id,username,full_name,avatar_url,email,bio").limit(3000);
   const coffeesReq = supabase
     .from("coffees")
     .select(

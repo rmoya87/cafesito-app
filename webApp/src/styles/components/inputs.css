@@ -14,12 +14,12 @@
 
 .search-wide:focus {
   outline: none;
-  border: 1px solid var(--caramel-accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  border: 1px solid var(--search-border-inactive);
+  box-shadow: none;
 }
 
 .search-wide:not(:placeholder-shown) {
-  border: 1px solid var(--caramel-accent);
+  border: 1px solid var(--search-border-inactive);
 }
 
 .search-input-standard {

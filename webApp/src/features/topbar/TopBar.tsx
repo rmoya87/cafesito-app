@@ -242,14 +242,15 @@ export function TopBar({
   if (activeTab === "diary") {
     const periodLabel = diaryPeriod === "hoy" ? "HOY" : diaryPeriod === "7d" ? "SEMANA" : "MES";
     return (
-      <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
-        <div className="topbar-slot" />
+      <header className={`topbar topbar-centered topbar-timeline topbar-diary ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
+        <div className="topbar-slot">
+          <Button variant="chip" className="diary-period-chip" onClick={onDiaryOpenPeriodSelector}>{periodLabel}</Button>
+        </div>
         <h1 className="title title-upper topbar-title-center">MI DIARIO</h1>
         <div className="topbar-slot topbar-slot-end">
           <IconButton tone="topbar" className="diary-topbar-add" aria-label="Agregar" onClick={onDiaryOpenQuickActions}>
             <UiIcon name="add" className="ui-icon" />
           </IconButton>
-          <Button variant="chip" className="diary-period-chip" onClick={onDiaryOpenPeriodSelector}>{periodLabel}</Button>
         </div>
       </header>
     );

@@ -15,7 +15,6 @@ export function useTimelineComposerDomain() {
   const [commentImagePreviewUrl, setCommentImagePreviewUrl] = useState("");
 
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [newPostStep, setNewPostStep] = useState<0 | 1>(0);
   const [newPostText, setNewPostText] = useState("");
   const [newPostImageFile, setNewPostImageFile] = useState<File | null>(null);
   const [newPostImagePreviewUrl, setNewPostImagePreviewUrl] = useState("");
@@ -26,7 +25,6 @@ export function useTimelineComposerDomain() {
   const [createPostCoffeeQuery, setCreatePostCoffeeQuery] = useState("");
   const [showCreatePostEmojiPanel, setShowCreatePostEmojiPanel] = useState(false);
   const newPostImageInputRef = useRef<HTMLInputElement | null>(null);
-  const newPostCameraInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setEditingCommentId(null);
@@ -41,12 +39,12 @@ export function useTimelineComposerDomain() {
   }, [showCreatePost]);
 
   useEffect(() => {
-    if (!showCreatePost || newPostStep !== 1) return;
+    if (!showCreatePost) return;
     const id = window.requestAnimationFrame(() => {
       document.getElementById("new-post-text")?.focus();
     });
     return () => window.cancelAnimationFrame(id);
-  }, [newPostStep, showCreatePost]);
+  }, [showCreatePost]);
 
   useEffect(() => {
     if (showCreatePost) return;
@@ -60,7 +58,6 @@ export function useTimelineComposerDomain() {
       if (item.previewUrl.startsWith("blob:")) URL.revokeObjectURL(item.previewUrl);
     });
     setShowCreatePost(false);
-    setNewPostStep(0);
     setNewPostText("");
     setNewPostImageFile(null);
     setNewPostImagePreviewUrl("");
@@ -74,7 +71,6 @@ export function useTimelineComposerDomain() {
 
   const openCreatePostComposer = useCallback(() => {
     setShowCreatePost(true);
-    setNewPostStep(0);
   }, []);
 
   const appendNewPostFiles = useCallback((files: File[]) => {
@@ -116,8 +112,6 @@ export function useTimelineComposerDomain() {
     setCommentImagePreviewUrl,
     showCreatePost,
     setShowCreatePost,
-    newPostStep,
-    setNewPostStep,
     newPostText,
     setNewPostText,
     newPostImageFile,
@@ -137,7 +131,6 @@ export function useTimelineComposerDomain() {
     showCreatePostEmojiPanel,
     setShowCreatePostEmojiPanel,
     newPostImageInputRef,
-    newPostCameraInputRef,
     resetCreatePostComposer,
     openCreatePostComposer,
     appendNewPostFiles

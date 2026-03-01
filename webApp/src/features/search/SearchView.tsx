@@ -139,7 +139,7 @@ export function SearchView({
     <li key={user.id} className="search-users-row">
       <Button variant="plain" className="search-users-link" onClick={() => onSelectUser(user.id)}>
         {user.avatar_url ? (
-          <img className="avatar avatar-photo search-users-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" />
+          <img className="avatar avatar-photo search-users-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
         ) : (
           <div className="avatar search-users-avatar-fallback" aria-hidden="true">
             {user.username.slice(0, 2).toUpperCase()}

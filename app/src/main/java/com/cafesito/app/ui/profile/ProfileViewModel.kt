@@ -31,7 +31,8 @@ private data class ProfilePrimaryData(
     val activeUser: UserEntity?,
     val targetUser: UserEntity?,
     val userPosts: List<PostWithDetails>,
-    val allCoffees: List<CoffeeWithDetails>
+    val allCoffees: List<CoffeeWithDetails>,
+    val allUsers: List<UserEntity>
 )
 
 private data class ProfileSecondaryData(
@@ -58,7 +59,8 @@ sealed interface ProfileUiState {
         val usernameError: String?,
         val myFavoriteIds: Set<String>,
         val activeUser: UserEntity?,
-        val sensoryProfile: Map<String, Float>
+        val sensoryProfile: Map<String, Float>,
+        val allUsers: List<UserEntity>
     ) : ProfileUiState
     data object LoggedOut : ProfileUiState
 }
@@ -102,8 +104,8 @@ class ProfileViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<ProfileUiState> = combine(
-        combine(activeUserFlow, targetUserFlow, userPostsFlow, coffeeRepository.allCoffees) { activeUser, targetUser, userPosts, allCoffees ->
-            ProfilePrimaryData(activeUser, targetUser, userPosts, allCoffees)
+        combine(activeUserFlow, targetUserFlow, userPostsFlow, coffeeRepository.allCoffees, userRepository.getAllUsersFlow()) { activeUser, targetUser, userPosts, allCoffees, allUsers ->
+            ProfilePrimaryData(activeUser, targetUser, userPosts, allCoffees, allUsers)
         },
         combine(coffeeRepository.allReviews, userRepository.followingMap, coffeeRepository.favorites, internalStateFlow) { allReviews, followingMap, myFavorites, internalState ->
             ProfileSecondaryData(allReviews, followingMap, myFavorites, internalState)
@@ -113,6 +115,7 @@ class ProfileViewModel @Inject constructor(
         val targetUser = primary.targetUser
         val userPosts = primary.userPosts
         val allCoffees = primary.allCoffees
+        val allUsers = primary.allUsers
         val allReviews = secondary.allReviews
         val followingMap = secondary.followingMap
         val myFavorites = secondary.myFavorites
@@ -176,7 +179,8 @@ class ProfileViewModel @Inject constructor(
             usernameError = usernameError,
             myFavoriteIds = myFavorites.map { it.coffeeId }.toSet(),
             activeUser = activeUser,
-            sensoryProfile = sensoryProfile
+            sensoryProfile = sensoryProfile,
+            allUsers = allUsers
         )
     }
     .catch { e -> 
