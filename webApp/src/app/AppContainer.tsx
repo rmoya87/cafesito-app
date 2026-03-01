@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toggleFavoriteCoffee } from "../data/supabaseApi";
 import { BREW_METHODS, COMMENT_EMOJIS } from "../config/brew";
-import { buildRoute, getAppRootPath, parseRoute } from "../core/routing";
+import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/routing";
 import { sendPageView } from "../core/ga4";
 import { shouldUseRightRailDetail, sidePanelForTab } from "../core/layouts";
 import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
@@ -50,6 +50,7 @@ import { BrewLabView, CreateCoffeeView } from "../features/brew/BrewViews";
 import { DiaryView } from "../features/diary/DiaryView";
 import { DiarySheets } from "../features/diary/DiarySheets";
 import { ProfileView } from "../features/profile/ProfileView";
+import { NotFoundView } from "../features/errors/NotFoundView";
 import { BottomNav, DesktopNavRail } from "../features/navigation/NavControls";
 import { AppContentRouter } from "./AppContentRouter";
 import { AppOverlayLayers } from "./AppOverlayLayers";
@@ -76,6 +77,7 @@ import type {
 
 export function AppContainer() {
   const initialRoute = parseRoute(window.location.pathname);
+  const isNotFoundRoute = !isKnownRoute(window.location.pathname);
   const { mode, viewportWidth } = useResponsiveMode();
   const [activeTab, setActiveTab] = useState<TabId>(initialRoute.tab);
 
@@ -267,7 +269,7 @@ export function AppContainer() {
     if (sessionEmail) {
       const sessionEmailNormalized = normalizeLookupText(sessionEmail);
       const found = users.find((user) => normalizeLookupText(user.email) === sessionEmailNormalized);
-      if (found) return found;
+      return found ?? null;
     }
     return users[0] ?? null;
   }, [sessionEmail, users]);
@@ -952,8 +954,10 @@ export function AppContainer() {
     setTopbarHidden(false);
   }, [guardedActiveTab]);
 
-  const showingLogin = !authReady || (!sessionEmail && !canAccessTabAsGuest(guardedActiveTab));
+  const guestCanAccessCurrentTab = canAccessTabAsGuest(guardedActiveTab);
+  const showingLogin = (!authReady && !guestCanAccessCurrentTab) || (!sessionEmail && !guestCanAccessCurrentTab);
   useLayoutEffect(() => {
+    if (isNotFoundRoute) return;
     if (!showingLogin) return;
     const pathname = window.location.pathname;
     const root = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
@@ -961,7 +965,7 @@ export function AppContainer() {
     if (current !== root) {
       window.history.replaceState({}, "", `${root}${window.location.search}${window.location.hash}`);
     }
-  }, [showingLogin]);
+  }, [isNotFoundRoute, showingLogin]);
   const nav = <BottomNav activeTab={guardedActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
   const navRail = <DesktopNavRail activeTab={guardedActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
   const topbarActions = useTopBarActions({
@@ -987,11 +991,46 @@ export function AppContainer() {
     activeUserId: activeUser?.id ?? null
   });
 
-  if (!authReady) {
+  if (isNotFoundRoute) {
+    const openRandomCoffee = () => {
+      if (!coffees.length) {
+        window.location.replace(getAppRootPath(window.location.pathname) || "/");
+        return;
+      }
+      const randomCoffee = coffees[Math.floor(Math.random() * coffees.length)];
+      const slug = coffeeSlugIndex.byId.get(randomCoffee.id) ?? null;
+      const nextPath = buildRoute("coffee", "coffees", null, slug);
+      window.location.assign(nextPath);
+    };
+    return (
+      <div className={`layout ${mode}`.trim()}>
+        {mode === "desktop" ? navRail : null}
+        <main className="main-shell">
+          <NotFoundView
+            onGoHome={() => window.location.replace(getAppRootPath(window.location.pathname) || "/")}
+            onOpenRandomCoffee={openRandomCoffee}
+            randomCoffeeEnabled={coffees.length > 0}
+          />
+        </main>
+        {mode === "mobile" ? <footer className="bottom-tabs">{nav}</footer> : null}
+        <AuthPromptOverlay
+          open={showAuthPrompt}
+          authBusy={authBusy}
+          authError={authError}
+          onClose={() => setShowAuthPrompt(false)}
+          onGoogleLogin={() => {
+            void handleGoogleLogin();
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (!authReady && !guestCanAccessCurrentTab) {
     return <LoginGate loading message="Verificando sesion..." />;
   }
 
-  if (!sessionEmail && !canAccessTabAsGuest(guardedActiveTab)) {
+  if (!sessionEmail && !guestCanAccessCurrentTab) {
     return (
       <LoginGate
         loading={authBusy}
@@ -1221,9 +1260,17 @@ export function AppContainer() {
         onRemoveFavorite={async (coffeeId) => {
           if (!activeUser) return;
           const exists = favorites.some((item) => item.user_id === activeUser.id && item.coffee_id === coffeeId);
-          if (!exists) return;
-          await toggleFavoriteCoffee(activeUser.id, coffeeId, true);
-          setFavorites((prev) => prev.filter((item) => !(item.user_id === activeUser.id && item.coffee_id === coffeeId)));
+          const result = await toggleFavoriteCoffee(activeUser.id, coffeeId, exists);
+          setFavorites((prev) => {
+            if (exists) {
+              return prev.filter((item) => !(item.user_id === activeUser.id && item.coffee_id === coffeeId));
+            }
+            if (!result) return prev;
+            return [
+              result,
+              ...prev.filter((item) => !(item.user_id === result.user_id && item.coffee_id === result.coffee_id))
+            ];
+          });
         }}
         onEditPost={handleEditPost}
         onDeletePost={handleDeletePost}
@@ -1505,7 +1552,7 @@ export function AppContainer() {
           onCoffeeTopbarToggleFavorite={topbarActions.onCoffeeTopbarToggleFavorite}
           onCoffeeTopbarOpenStock={topbarActions.onCoffeeTopbarOpenStock}
         />
-        <div ref={mainScrollRef} className="main-shell-scroll">
+        <div ref={mainScrollRef} className={`main-shell-scroll ${guardedActiveTab === "coffee" ? "is-coffee" : ""}`.trim()}>
           <AppContentRouter
           activeTab={guardedActiveTab}
           mode={mode}

@@ -26,7 +26,7 @@ export function AppContentRouter({
 }) {
   return (
     <>
-      <section aria-live="polite" className="content">
+      <section aria-live="polite" className={`content content-${activeTab}`.trim()}>
         {activeTab === "timeline" ? timelineContent : null}
         {activeTab === "search" ? searchContent : null}
         {activeTab === "coffee" ? coffeeContent : null}

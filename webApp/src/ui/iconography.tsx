@@ -101,6 +101,7 @@ export function MaterialSymbolIcon({
   | "settings"
   | "lens_blur"
   | "storefront"
+  | "shelves"
   | "device_thermostat"
   | "waves"
   | "water_drop"
@@ -274,11 +275,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     );
   }
   if (name === "stock") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M4 7.5 12 4l8 3.5-8 3.5zM4 7.5V16l8 4 8-4V7.5M12 11v9" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="shelves" filled={true} className={className} />;
   }
   if (name === "origin") {
     return <MaterialSymbolIcon symbol="globe" filled={false} className={className} />;

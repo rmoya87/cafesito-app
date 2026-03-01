@@ -1,12 +1,17 @@
 import { useEffect } from "react";
-import { buildRoute, getAppRootPath, parseRoute } from "../../core/routing";
+import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../../core/routing";
 import { canNavigateToTab } from "../../core/guards";
 
 export function useRouteCanonicalSync(isAuthenticated?: boolean) {
   useEffect(() => {
     const pathname = window.location.pathname;
+    if (!isKnownRoute(pathname)) return;
     const base = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
     if (!isAuthenticated) {
+      const route = parseRoute(pathname);
+      if (canNavigateToTab(route.tab, false)) {
+        return;
+      }
       const current = pathname.replace(/\/+$/, "") || "/";
       if (current !== base) {
         window.history.replaceState({}, "", `${base}${window.location.search}${window.location.hash}`);
@@ -32,6 +37,7 @@ export function useRouteGuardSync({
   fallbackPath?: string;
 }) {
   useEffect(() => {
+    if (!isKnownRoute(window.location.pathname)) return;
     const route = parseRoute(window.location.pathname);
     if (canNavigateToTab(route.tab, isAuthenticated)) return;
     if (window.location.pathname !== fallbackPath) {
@@ -51,6 +57,8 @@ export function useCoffeeRouteSync({
   setDetailHostTab: (value: "timeline" | "search" | "profile" | null) => void;
 }) {
   useEffect(() => {
+    // Esperar a que haya catálogo cargado para resolver slug->id.
+    if (coffeeSlugToId.size === 0) return;
     const pathname = window.location.pathname;
     const route = parseRoute(pathname);
     if (route.tab !== "coffee") return;

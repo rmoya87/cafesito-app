@@ -1,3 +1,4 @@
+import React from "react";
 import type { TabId } from "../../types";
 import { NAV_ITEMS } from "../../config/navigation";
 import { UiIcon } from "../../ui/iconography";
@@ -14,15 +15,21 @@ function NavGlyph({
 }) {
   const isProfile = item.id === "profile";
   const showAvatar = isProfile && avatarUrl;
+  const [avatarError, setAvatarError] = React.useState(false);
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUrl]);
+  const showImg = showAvatar && !avatarError;
   return (
-    <span className="nav-glyph" aria-hidden="true">
-      {showAvatar ? (
+    <span className={`nav-glyph ${isProfile ? "is-profile" : ""} ${isProfile && isActive ? "is-profile-active" : ""}`.trim()} aria-hidden="true">
+      {showImg ? (
         <img
-          src={avatarUrl}
+          src={avatarUrl!}
           alt=""
           className="nav-avatar"
           loading="lazy"
           decoding="async"
+          onError={() => setAvatarError(true)}
         />
       ) : (
         <UiIcon name={isActive ? item.activeIcon : item.icon} className="ui-icon" />

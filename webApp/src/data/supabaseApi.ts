@@ -308,7 +308,11 @@ export async function toggleFavoriteCoffee(
     coffee_id: coffeeId,
     saved_at: Date.now()
   };
-  const { error } = await supabase.from("local_favorites").upsert(payload, { onConflict: "user_id,coffee_id" });
+  // No dependemos de una constraint UNIQUE en (user_id, coffee_id):
+  // limpiamos posibles duplicados y luego insertamos una fila fresca.
+  const { error: cleanupError } = await supabase.from("local_favorites").delete().eq("user_id", userId).eq("coffee_id", coffeeId);
+  throwIfError(cleanupError);
+  const { error } = await supabase.from("local_favorites").insert(payload);
   throwIfError(error);
   return payload;
 }

@@ -112,7 +112,7 @@ export function CoffeeDetailView({
     draftReviewText !== baseReviewText ||
     Math.abs(reviewDraftRating - baseReviewRating) > 0.001 ||
     draftReviewImage !== baseReviewImage;
-  const canSaveReview = reviewDraftRating > 0 && isReviewDirty;
+  const canSaveReview = reviewDraftRating > 0 && draftReviewText.length > 0 && isReviewDirty;
   const sensoryEditorsCount = new Set(reviews.map((review) => review.user_id).filter((value): value is number => typeof value === "number")).size;
   const hasAnyOpinions = Boolean(currentUserReview) || otherReviews.length > 0;
   const acquireLabel = useMemo(() => {
@@ -524,17 +524,13 @@ export function CoffeeDetailView({
             setShowReviewSheet(false);
           }}
         >
-          <SheetCard className="coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
+          <SheetCard className="coffee-detail-sheet coffee-detail-review-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <SheetHeader>
-              <strong className="sheet-title">TU OPINIÓN</strong>
+              <strong className="sheet-title">TU RESEÑA</strong>
             </SheetHeader>
             <div className="coffee-detail-sheet-body coffee-detail-review-editor">
-              <label className="coffee-detail-rating-field">
-                <span className="coffee-detail-slider-label">
-                  Nota
-                  <strong>{reviewDraftRating > 0 ? `${reviewDraftRating.toFixed(1)} / 5` : "Sin nota"}</strong>
-                </span>
+              <label className="coffee-detail-rating-field coffee-detail-review-rating-field">
                 <div className="coffee-detail-rating-stars" role="radiogroup" aria-label="Seleccionar nota">
                   {[1, 2, 3, 4, 5].map((value) => (
                     <Button variant="plain"
@@ -576,73 +572,85 @@ export function CoffeeDetailView({
                       <UiIcon name={reviewDraftRating >= value ? "star-filled" : "star"} className="ui-icon" />
                     </Button>
                   ))}
-                  {reviewDraftRating > 0 ? (
-                    <Button variant="text"
-                      className="text-button coffee-detail-rating-clear"
-                      onClick={() => {
-                        onReviewRatingChange(0);
-                        setReviewSheetError("Selecciona una nota para guardar.");
-                      }}
-                    >
-                      Quitar
-                    </Button>
-                  ) : null}
                 </div>
               </label>
-              <Textarea
-                className="search-wide sheet-input"
-                rows={3}
-                value={reviewDraftText}
-                onChange={(event) => {
-                  onReviewTextChange(event.target.value);
-                  if (reviewSheetError) setReviewSheetError(null);
-                }}
-                placeholder="Escribe tu reseña"
-              />
-              <label className="action-button action-button-ghost coffee-detail-file coffee-detail-cta">
-                Adjuntar imagen
-                <Input
-                  type="file"
-                  accept="image/*"
+              <div className="sheet-input-shell coffee-detail-review-input-shell">
+                <Textarea
+                  className="search-wide sheet-input coffee-detail-review-textarea"
+                  rows={3}
+                  value={reviewDraftText}
                   onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    if (!file) {
-                      onReviewImagePick(null, "");
-                      return;
-                    }
-                    onReviewImagePick(file, URL.createObjectURL(file));
+                    onReviewTextChange(event.target.value);
+                    if (reviewSheetError) setReviewSheetError(null);
                   }}
+                  placeholder="Escribe tu reseña"
                 />
-              </label>
-              {reviewDraftImagePreviewUrl ? (
-                <img className="coffee-detail-review-image" src={reviewDraftImagePreviewUrl} alt="Previsualización reseña" loading="lazy" decoding="async" />
-              ) : null}
+                <div className="sheet-composer-bottom coffee-detail-review-input-tools">
+                  <div className="sheet-composer-tools-inline">
+                    <label className="coffee-detail-file coffee-detail-review-camera" aria-label="Adjuntar imagen">
+                      <UiIcon name="camera" className="ui-icon" />
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="file-input-hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          if (!file) {
+                            onReviewImagePick(null, "");
+                            return;
+                          }
+                          onReviewImagePick(file, URL.createObjectURL(file));
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+                {reviewDraftImagePreviewUrl ? (
+                  <div className="comment-image-thumb-wrap coffee-detail-review-thumb-wrap">
+                    <img
+                      className="comment-image-thumb"
+                      src={reviewDraftImagePreviewUrl}
+                      alt="Previsualización reseña"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <Button
+                      variant="plain"
+                      className="comment-image-remove"
+                      onClick={() => onReviewImagePick(null, "")}
+                      aria-label="Quitar imagen"
+                    >
+                      x
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
               {reviewSheetError ? <p className="coffee-detail-sheet-error">{reviewSheetError}</p> : null}
             </div>
-            <div className="coffee-detail-actions coffee-detail-sheet-actions">
-              {canDeleteReview ? (
-                <Button variant="plain"
-                  className="action-button action-button-ghost"
-                  disabled={savingReview || deletingReview}
-                  onClick={async () => {
-                    setDeletingReview(true);
-                    try {
-                      await onDeleteReview();
-                      setReviewSheetError(null);
-                    } finally {
-                      setDeletingReview(false);
-                    }
-                  }}
-                >
-                  {deletingReview ? "Borrando..." : "Borrar reseña"}
-                </Button>
-              ) : null}
-              <Button variant="plain"
-                className="action-button"
+            <div className="coffee-detail-actions coffee-detail-sheet-actions coffee-detail-review-actions">
+              <Button
+                variant="ghost"
+                className="action-button action-button-ghost coffee-detail-review-cancel"
+                disabled={savingReview || deletingReview}
+                onClick={() => {
+                  if (savingReview || deletingReview) return;
+                  setReviewSheetError(null);
+                  setShowReviewSheet(false);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button variant="primary"
+                className="action-button coffee-detail-review-submit"
                 disabled={!canSaveReview || savingReview || deletingReview}
                 onClick={async () => {
                   if (reviewDraftRating <= 0) {
                     setReviewSheetError("Selecciona una nota para guardar.");
+                    return;
+                  }
+                  if (draftReviewText.length === 0) {
+                    setReviewSheetError("Escribe tu reseña antes de publicar.");
                     return;
                   }
                   if (!isReviewDirty) return;
@@ -656,9 +664,28 @@ export function CoffeeDetailView({
                   }
                 }}
               >
-                {savingReview ? "Guardando..." : "Guardar reseña"}
+                {savingReview ? "Publicando..." : "Publicar"}
               </Button>
             </div>
+            {canDeleteReview ? (
+              <div className="coffee-detail-review-delete-wrap">
+                <Button variant="text"
+                  className="text-button coffee-detail-review-delete"
+                  disabled={savingReview || deletingReview}
+                  onClick={async () => {
+                    setDeletingReview(true);
+                    try {
+                      await onDeleteReview();
+                      setReviewSheetError(null);
+                    } finally {
+                      setDeletingReview(false);
+                    }
+                  }}
+                >
+                  {deletingReview ? "Borrando..." : "Borrar reseña"}
+                </Button>
+              </div>
+            ) : null}
           </SheetCard>
         </SheetOverlay>
       ) : null}

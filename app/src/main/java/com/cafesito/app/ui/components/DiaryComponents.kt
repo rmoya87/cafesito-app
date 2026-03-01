@@ -321,7 +321,12 @@ fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoff
             )
             ModalMenuOption(title = "Agua", icon = Icons.Default.WaterDrop, color = Color(0xFF2196F3), onClick = onAddWater)
             ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = MaterialTheme.colorScheme.onSurface, onClick = onAddCoffee)
-            ModalMenuOption(title = "Añadir a Despensa", icon = Icons.Default.Inventory, color = MaterialTheme.colorScheme.primary, onClick = onAddPantry)
+            ModalMenuOption(
+                title = "Añadir a Despensa",
+                iconPainter = painterResource(id = R.drawable.shelves_24),
+                color = MaterialTheme.colorScheme.primary,
+                onClick = onAddPantry
+            )
         }
     }
 }

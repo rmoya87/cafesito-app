@@ -6,7 +6,7 @@
     <!-- CSP: script-src y connect-src incluyen GA4 (googletagmanager.com, google-analytics.com). -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' https://*.supabase.co ws://localhost:4173 http://localhost:4173 https://www.google-analytics.com https://www.googletagmanager.com; img-src 'self' data: blob: https:; font-src 'self' data: https://r2cdn.perplexity.ai; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com;"
+      content="default-src 'self'; connect-src 'self' https://*.supabase.co https://region1.google-analytics.com ws://localhost:4173 http://localhost:4173 https://www.google-analytics.com https://www.googletagmanager.com; img-src 'self' data: blob: https:; font-src 'self' data: https://r2cdn.perplexity.ai https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com;"
     />
     <meta name="description" content="Comunidad de café para compartir timeline, explorar cafés y seguir perfiles." />
     <link rel="preload" href="./logo.png" as="image" />
@@ -14,13 +14,22 @@
     <link rel="shortcut icon" href="./logo.png" />
     <link rel="apple-touch-icon" href="./logo.png" />
     <link rel="canonical" href="https://cafesito.app/" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&icon_names=shelves" />
     <title>Cafesito</title>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-521879463"></script>
     <script>
+      const ga4PropertyId = "521879463";
+      const ga4MeasurementId = ga4PropertyId.startsWith("G-") ? ga4PropertyId : `G-${ga4PropertyId}`;
+      const ga4Script = document.createElement("script");
+      ga4Script.async = true;
+      ga4Script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(ga4MeasurementId)}`;
+      document.head.appendChild(ga4Script);
+
       window.dataLayer = window.dataLayer || [];
       function gtag(){ dataLayer.push(arguments); }
+      window.gtag = gtag;
+      window.__GA4_MEASUREMENT_ID__ = ga4MeasurementId;
       gtag('js', new Date());
-      gtag('config', 'G-521879463', { send_page_view: false });
+      gtag('config', ga4MeasurementId, { send_page_view: false });
     </script>
   </head>
   <body>

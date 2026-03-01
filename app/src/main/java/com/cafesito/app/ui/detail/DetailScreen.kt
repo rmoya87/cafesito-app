@@ -36,9 +36,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.cafesito.app.R
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.PantryItemEntity
 import com.cafesito.app.data.ReviewEntity
@@ -388,7 +391,11 @@ private fun DetailContent(
         ) {
             GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = MaterialTheme.colorScheme.onSurface, onClick = onBackClick)
             Row {
-                GlassyIconButton(icon = Icons.Default.Inventory, iconColor = MaterialTheme.colorScheme.onSurface, onClick = { showStockDialog = true })
+                GlassyIconButton(
+                    iconPainter = painterResource(id = R.drawable.shelves_24),
+                    iconColor = MaterialTheme.colorScheme.onSurface,
+                    onClick = { showStockDialog = true }
+                )
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
                     icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
@@ -403,7 +410,8 @@ private fun DetailContent(
 
 @Composable
 fun GlassyIconButton(
-    icon: ImageVector,
+    icon: ImageVector? = null,
+    iconPainter: Painter? = null,
     iconColor: Color,
     premiumAnimated: Boolean = false,
     onClick: () -> Unit
@@ -455,20 +463,36 @@ fun GlassyIconButton(
         modifier = Modifier.size(44.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(
-                icon,
-                null,
-                tint = iconColor,
-                modifier = Modifier
-                    .size(20.dp)
-                    .graphicsLayer {
-                        scaleX = iconScale.value
-                        scaleY = iconScale.value
-                        rotationZ = iconRotation.value
-                        shadowElevation = 24f * iconGlow.value
-                        alpha = 0.84f + (0.16f * iconGlow.value)
-                    }
-            )
+            when {
+                iconPainter != null -> Icon(
+                    painter = iconPainter,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .graphicsLayer {
+                            scaleX = iconScale.value
+                            scaleY = iconScale.value
+                            rotationZ = iconRotation.value
+                            shadowElevation = 24f * iconGlow.value
+                            alpha = 0.84f + (0.16f * iconGlow.value)
+                        }
+                )
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .graphicsLayer {
+                            scaleX = iconScale.value
+                            scaleY = iconScale.value
+                            rotationZ = iconRotation.value
+                            shadowElevation = 24f * iconGlow.value
+                            alpha = 0.84f + (0.16f * iconGlow.value)
+                        }
+                )
+            }
         }
     }
 }

@@ -4,12 +4,20 @@
  * GA4 requiere page_location (URL completa) para que el hit aparezca en informes.
  */
 
-export const GA4_MEASUREMENT_ID = "G-521879463";
+const GA4_PROPERTY_ID = "521879463";
+
+function normalizeMeasurementId(rawId: string): string {
+  const trimmed = rawId.trim();
+  return trimmed.startsWith("G-") ? trimmed : `G-${trimmed}`;
+}
+
+export const GA4_MEASUREMENT_ID = normalizeMeasurementId(GA4_PROPERTY_ID);
 
 declare global {
   interface Window {
     dataLayer: unknown[];
     gtag: (...args: unknown[]) => void;
+    __GA4_MEASUREMENT_ID__?: string;
   }
 }
 

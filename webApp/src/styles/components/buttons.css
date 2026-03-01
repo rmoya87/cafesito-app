@@ -76,8 +76,8 @@
 }
 
 .topbar-icon-button.is-active {
-  color: #f4e7db;
-  background: rgba(111, 78, 55, 0.5);
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.16);
 }
 
 .topbar-icon-button .ui-icon,

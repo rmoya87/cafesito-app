@@ -10,13 +10,24 @@ function normalizeText(value) {
     .toLowerCase();
 }
 
-function toCoffeeSlug(name) {
-  const base = normalizeText(name)
+function slugifyText(value) {
+  return normalizeText(value)
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
-  return base || "cafe";
+}
+
+function toCoffeeSlug(name, brand, forceBrand = false) {
+  const baseFromName = slugifyText(name);
+  if (forceBrand && brand) {
+    const forced = slugifyText(`${name} ${brand}`);
+    return forced || baseFromName || "cafe";
+  }
+  if (baseFromName.length > 10) return baseFromName;
+
+  const baseWithBrand = slugifyText(`${name} ${brand ?? ""}`);
+  return baseWithBrand || baseFromName || "cafe";
 }
 
 async function readEnvFallback(key) {
@@ -44,12 +55,47 @@ function upsertTag(html, tagPattern, replacement) {
   return html.replace("</head>", `  ${replacement}\n  </head>`);
 }
 
+function ensureLeadingSlash(value) {
+  if (!value) return "/";
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
+function ensureTrailingSlash(value) {
+  return value.endsWith("/") ? value : `${value}/`;
+}
+
+function toAbsoluteAppAssetPath(appBasePath, assetRelativePath) {
+  const cleanBase = appBasePath === "/" ? "" : appBasePath.replace(/\/+$/, "");
+  const cleanAsset = assetRelativePath.replace(/^\.?\//, "");
+  return ensureLeadingSlash(`${cleanBase}/${cleanAsset}`.replace(/\/+/g, "/"));
+}
+
+function rewriteRelativeAssetUrls(html, appBasePath) {
+  const rewrites = [
+    ["./assets/", toAbsoluteAppAssetPath(appBasePath, "assets/")],
+    ["./manifest.webmanifest", toAbsoluteAppAssetPath(appBasePath, "manifest.webmanifest")],
+    ["./registerSW.js", toAbsoluteAppAssetPath(appBasePath, "registerSW.js")],
+    ["./logo.png", toAbsoluteAppAssetPath(appBasePath, "logo.png")]
+  ];
+  let output = html;
+  for (const [from, to] of rewrites) {
+    output = output.split(from).join(to);
+  }
+  return output;
+}
+
 async function main() {
   const distDir = path.resolve(process.cwd(), "dist");
   const indexPath = path.join(distDir, "index.html");
   const supabaseUrl = await readEnvFallback("VITE_SUPABASE_URL");
   const supabaseAnonKey = await readEnvFallback("VITE_SUPABASE_ANON_KEY");
-  const siteUrl = (await readEnvFallback("VITE_SITE_URL")) || "https://cafesito.app";
+  const siteUrlRaw = (await readEnvFallback("VITE_SITE_URL")) || "https://cafesito.app";
+  const siteUrl = siteUrlRaw.replace(/\/+$/, "");
+  const siteUrlObject = new URL(siteUrl);
+  const appBasePath = (() => {
+    const path = siteUrlObject.pathname.replace(/\/+$/, "");
+    return path && path !== "/" ? ensureLeadingSlash(path) : "/";
+  })();
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn("[prerender-coffee-pages] Missing VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY. Skipping prerender.");
@@ -76,21 +122,27 @@ async function main() {
     return String(a.id ?? "").localeCompare(String(b.id ?? ""));
   });
   const slugCounts = new Map();
+  const nameCounts = new Map();
   const urls = [];
+  coffees.forEach((coffee) => {
+    const key = normalizeText(coffee.nombre);
+    nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+  });
 
   for (const coffee of coffees) {
-    const base = toCoffeeSlug(coffee.nombre);
+    const hasDuplicatedName = (nameCounts.get(normalizeText(coffee.nombre)) ?? 0) > 1;
+    const base = toCoffeeSlug(coffee.nombre, coffee.marca, hasDuplicatedName);
     const count = (slugCounts.get(base) ?? 0) + 1;
     slugCounts.set(base, count);
     const slug = count > 1 ? `${base}-${count}` : base;
 
-    const coffeePath = `/coffee/${slug}`;
+    const coffeePath = `/coffee/${slug}/`;
     const canonical = `${siteUrl}${coffeePath}`;
     const title = `${coffee.nombre} | Cafesito`;
     const fallbackDescription = `${coffee.nombre} ${coffee.marca ?? ""}`.trim() || "Detalle de cafe en Cafesito";
     const description = (coffee.descripcion ?? fallbackDescription).slice(0, 160);
 
-    let html = indexHtml;
+    let html = rewriteRelativeAssetUrls(indexHtml, appBasePath);
     html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
     html = upsertTag(html, /<meta\s+name=["']description["'][^>]*>/i, `<meta name="description" content="${description}">`);
     html = upsertTag(html, /<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${canonical}">`);
@@ -114,18 +166,33 @@ async function main() {
     urls.push(canonical);
   }
 
-  if (urls.length) {
-    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
+  const staticRoot = appBasePath === "/" ? "/" : ensureTrailingSlash(appBasePath);
+  const staticPaths = [
+    staticRoot,
+    `${staticRoot}legal/privacidad.html`,
+    `${staticRoot}legal/condiciones.html`,
+    `${staticRoot}legal/eliminacion-cuenta.html`
+  ];
+  const staticUrls = staticPaths.map((p) => `${siteUrl}${p}`);
+  const urlSetXml = (allUrls) =>
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allUrls
       .map((url) => `  <url><loc>${url}</loc></url>`)
       .join("\n")}\n</urlset>\n`;
-    await fs.writeFile(path.join(distDir, "sitemap-coffee.xml"), sitemap, "utf8");
 
-    const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap><loc>${siteUrl}/sitemap-coffee.xml</loc></sitemap>\n</sitemapindex>\n`;
-    await fs.writeFile(path.join(distDir, "sitemap.xml"), sitemapIndex, "utf8");
-
-    const robots = `User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`;
-    await fs.writeFile(path.join(distDir, "robots.txt"), robots, "utf8");
+  await fs.writeFile(path.join(distDir, "sitemap-static.xml"), urlSetXml(staticUrls), "utf8");
+  if (urls.length) {
+    await fs.writeFile(path.join(distDir, "sitemap-coffee.xml"), urlSetXml(urls), "utf8");
   }
+
+  const sitemapLocations = [`${siteUrl}/sitemap-static.xml`];
+  if (urls.length) sitemapLocations.push(`${siteUrl}/sitemap-coffee.xml`);
+  const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapLocations
+    .map((loc) => `  <sitemap><loc>${loc}</loc></sitemap>`)
+    .join("\n")}\n</sitemapindex>\n`;
+  await fs.writeFile(path.join(distDir, "sitemap.xml"), sitemapIndex, "utf8");
+
+  const robots = `User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`;
+  await fs.writeFile(path.join(distDir, "robots.txt"), robots, "utf8");
 
   console.log(`[prerender-coffee-pages] Generated ${urls.length} coffee detail pages.`);
 }

@@ -290,12 +290,12 @@ jobs:
           path: webApp/dist/coffee
           key: coffee-prerender-${{ hashFiles('webApp/index.html', 'webApp/scripts/prerender-coffee-pages.mjs', 'webApp/scripts/get-coffee-prerender-hash.mjs', 'webApp/vite.config.ts', 'webApp/package.json', 'webApp/package-lock.json', 'webApp/src/**', 'webApp/public/**') }}-${{ steps.coffee_hash.outputs.hash }}
 
-      - name: Prerender cafés (solo si no había caché)
-        if: steps.prerender_cache.outputs.cache-hit != 'true'
+      - name: Prerender cafés (siempre, para sitemap/robots actualizados)
         run: node scripts/prerender-coffee-pages.mjs
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
       - name: Check Ionos SSH/FTP secrets
         run: |
@@ -325,3 +325,27 @@ jobs:
           sftp_only: true
           # Borrar contenido remoto antes de subir para que cada deploy sea limpio y no queden archivos viejos en caché
           delete_remote_files: true
+
+      - name: Publish sitemap and robots at domain root (/cafesito-web/)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.IONOS_SSH_HOST }}
+          username: ${{ secrets.IONOS_SSH_USER }}
+          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          password: ${{ secrets.IONOS_SSH_PASSWORD }}
+          local_path: ./webApp/dist/sitemap*
+          remote_path: /cafesito-web/
+          sftp_only: true
+          delete_remote_files: false
+
+      - name: Publish robots.txt at domain root (/cafesito-web/)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.IONOS_SSH_HOST }}
+          username: ${{ secrets.IONOS_SSH_USER }}
+          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          password: ${{ secrets.IONOS_SSH_PASSWORD }}
+          local_path: ./webApp/dist/robots.txt
+          remote_path: /cafesito-web/
+          sftp_only: true
+          delete_remote_files: false

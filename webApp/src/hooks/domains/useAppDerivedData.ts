@@ -152,13 +152,19 @@ export function useAppDerivedData({
     const bySlug = new Map<string, string>();
     const byId = new Map<string, string>();
     const counts = new Map<string, number>();
+    const nameCounts = new Map<string, number>();
     const sorted = [...coffees].sort((a, b) => {
       const nameCmp = a.nombre.localeCompare(b.nombre);
       if (nameCmp !== 0) return nameCmp;
       return a.id.localeCompare(b.id);
     });
     sorted.forEach((coffee) => {
-      const base = toCoffeeSlug(coffee.nombre);
+      const key = normalizeLookupText(coffee.nombre);
+      nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+    });
+    sorted.forEach((coffee) => {
+      const hasDuplicatedName = (nameCounts.get(normalizeLookupText(coffee.nombre)) ?? 0) > 1;
+      const base = toCoffeeSlug(coffee.nombre, coffee.marca, hasDuplicatedName);
       const count = (counts.get(base) ?? 0) + 1;
       counts.set(base, count);
       const slug = count > 1 ? `${base}-${count}` : base;

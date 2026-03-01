@@ -27,7 +27,7 @@ export function useCoffeeDetailNavigation({
     (coffeeId: string, sourceTab: "timeline" | "search" | "profile" | "diary") => {
       const coffee = coffeesById.get(coffeeId);
       if (!coffee) return;
-      const slug = coffeeSlugById.get(coffeeId) ?? toCoffeeSlug(coffee.nombre);
+      const slug = coffeeSlugById.get(coffeeId) ?? toCoffeeSlug(coffee.nombre, coffee.marca);
       setDetailCoffeeId(coffeeId);
       if (sourceTab === "diary") {
         setDetailHostTab(null);

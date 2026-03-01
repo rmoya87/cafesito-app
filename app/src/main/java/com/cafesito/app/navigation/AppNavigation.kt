@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
@@ -34,6 +36,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -164,6 +167,8 @@ fun AppNavigation(
         val isNotifications = currentRoute == "notifications"
         mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow && !isNotifications
     }
+    val selectedNavColor = MaterialTheme.colorScheme.secondary
+    val unselectedNavColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
 
     val useNavRail = LocalConfiguration.current.screenWidthDp >= 840
 
@@ -189,7 +194,12 @@ fun AppNavigation(
                             },
                             icon = {
                                 if (route == "profile" && !activeUser?.avatarUrl.isNullOrBlank()) {
-                                    ModernAvatar(imageUrl = activeUser?.avatarUrl, size = 24.dp)
+                                    val borderColor = if (isSelected) selectedNavColor else unselectedNavColor
+                                    ModernAvatar(
+                                        imageUrl = activeUser?.avatarUrl,
+                                        size = 24.dp,
+                                        modifier = Modifier.border(2.dp, borderColor, CircleShape)
+                                    )
                                 } else {
                                     Icon(
                                         imageVector = if (isSelected) icon else when (label) {
@@ -203,7 +213,12 @@ fun AppNavigation(
                                         contentDescription = label
                                     )
                                 }
-                            }
+                            },
+                            colors = NavigationRailItemDefaults.colors(
+                                indicatorColor = Color.Transparent,
+                                selectedIconColor = selectedNavColor,
+                                unselectedIconColor = unselectedNavColor
+                            )
                         )
                     }
                 }
@@ -605,7 +620,12 @@ fun AppNavigation(
                             NavigationBarItem(
                                 icon = {
                                     if (route == "profile" && !activeUser?.avatarUrl.isNullOrBlank()) {
-                                        ModernAvatar(imageUrl = activeUser?.avatarUrl, size = 24.dp)
+                                        val borderColor = if (isSelected) selectedNavColor else unselectedNavColor
+                                        ModernAvatar(
+                                            imageUrl = activeUser?.avatarUrl,
+                                            size = 24.dp,
+                                            modifier = Modifier.border(2.dp, borderColor, CircleShape)
+                                        )
                                     } else {
                                         Icon(
                                             imageVector = if (isSelected) icon else when (label) {
@@ -623,8 +643,8 @@ fun AppNavigation(
                                 selected = isSelected,
                                 colors = NavigationBarItemDefaults.colors(
                                     indicatorColor = Color.Transparent,
-                                    selectedIconColor = MaterialTheme.colorScheme.secondary,
-                                    unselectedIconColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
+                                    selectedIconColor = selectedNavColor,
+                                    unselectedIconColor = unselectedNavColor,
                                 ),
                                 onClick = {
                                     if (isSelected) return@NavigationBarItem

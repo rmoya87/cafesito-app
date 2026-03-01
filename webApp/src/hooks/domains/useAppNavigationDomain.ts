@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { buildRoute, parseRoute, toCoffeeSlug } from "../../core/routing";
 import { canNavigateToTab } from "../../core/guards";
+import { normalizeLookupText } from "../../core/text";
 import type { CoffeeRow, TabId, UserRow } from "../../types";
 
 export function useAppNavigationDomain({
@@ -80,14 +81,20 @@ export function useAppNavigationDomain({
           setDetailCoffeeId(null);
         } else {
           const counts = new Map<string, number>();
+          const nameCounts = new Map<string, number>();
           const sorted = [...coffees].sort((a, b) => {
             const nameCmp = a.nombre.localeCompare(b.nombre);
             if (nameCmp !== 0) return nameCmp;
             return a.id.localeCompare(b.id);
           });
+          sorted.forEach((item) => {
+            const key = normalizeLookupText(item.nombre);
+            nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+          });
           let found: string | null = null;
           for (const item of sorted) {
-            const base = toCoffeeSlug(item.nombre);
+            const hasDuplicatedName = (nameCounts.get(normalizeLookupText(item.nombre)) ?? 0) > 1;
+            const base = toCoffeeSlug(item.nombre, item.marca, hasDuplicatedName);
             const count = (counts.get(base) ?? 0) + 1;
             counts.set(base, count);
             const slug = count > 1 ? `${base}-${count}` : base;
