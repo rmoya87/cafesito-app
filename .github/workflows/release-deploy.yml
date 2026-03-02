@@ -1,18 +1,21 @@
-# Workflow único: release Android (Play Console) y deploy web (Ionos) según rama.
+# Workflow único: release Android (Play Console) y publicación webapp (Ionos) según rama.
+# Todo el release/deploy (Android + webapp) se hace desde aquí; no hay otro workflow de deploy.
 #
 # RAMAS Y COMPORTAMIENTO
 # - main: no se dispara (solo unificación de código).
 # - Interna: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas internas).
-# - Alpha: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
-# - Beta: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
-# - Producción: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
+# - Alpha: si hay cambios en app/ o shared/ → sube AAB a Play; publica webApp en Ionos (/cafesito-web/app/).
+# - Beta: si hay cambios en app/ o shared/ → sube AAB a Play; publica webApp en Ionos (/cafesito-web/app/).
+# - Producción: si hay cambios en app/ o shared/ → sube AAB a Play; publica webApp en Ionos (/cafesito-web/app/).
 #
-# Webapp: se generan HTML estáticos por café (prerender con caché) para SEO y previews.
-# Altas/bajas de cafés sin depender de Git: configurar webhook en Supabase (tabla coffees) que
-# llame a la Edge Function trigger-coffees-build → repository_dispatch → este workflow.
+# Webapp: los datos (cafés, etc.) se leen de Supabase en tiempo real; no hace falta desplegar por contenido.
+# Este workflow solo publica el build y los HTML estáticos por café (SEO/previews). Esos HTMLs se regeneran
+# cuando el webhook de Supabase (tabla coffees → Edge Function trigger-coffees-build → repository_dispatch)
+# dispara este workflow, o cuando hay push a Alpha/Beta/Producción (código nuevo). Configurar el webhook para
+# que altas/bajas de cafés actualicen SEO sin tocar Git.
 #
 # EJECUCIÓN MANUAL (Actions → Release & Deploy → Run workflow)
-# Permite forzar release Android + deploy web sin hacer push: elige la rama y se ejecutan ambos jobs.
+# Permite forzar release Android + publicación web sin hacer push: elige la rama y se ejecutan ambos jobs.
 #
 # Ver documentación en docs/RELEASE_DEPLOY_WORKFLOW.md
 
