@@ -140,7 +140,11 @@ export function useAuthSession(): UseAuthSessionResult {
       } else {
         base = window.location.origin;
       }
-      const redirectTo = `${base}/timeline`;
+      // Evita depender del fallback SPA del servidor para /timeline.
+      // Si el hosting falla al resolver rutas internas (500 en /timeline),
+      // el callback OAuth sigue entrando por "/" y la app enruta al timeline.
+      const appRoot = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
+      const redirectTo = `${base}${appRoot || "/"}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo }

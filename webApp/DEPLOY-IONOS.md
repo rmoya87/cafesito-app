@@ -49,10 +49,10 @@ En local, crea `webApp/.env` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`,
 ### Login: video de fondo y botón «Continuar con Google»
 
 - **Video de fondo**: Usa ruta relativa y reproducción programática (incl. iOS con `webkit-playsinline`). Si en iOS no se reproduce, el navegador puede estar bloqueando el autoplay hasta la primera interacción.
-- **Botón Google (y PWA «Añadir a página de inicio» en iOS)**: El redirect tras el login va a **{VITE_SITE_URL}/timeline**. Por defecto la app está en la raíz del dominio.
+- **Botón Google (y PWA «Añadir a página de inicio» en iOS)**: El redirect tras el login va a la **raíz de la app** (`{VITE_SITE_URL}/`). Así no depende de que el servidor resuelva `/timeline` como SPA fallback.
   - En Supabase → Authentication → URL Configuration:
     - **Site URL**: la URL pública de la app, p. ej. `https://cafesitoapp.com` (raíz) o `https://cafesitoapp.com/cafesito-web/app` si está en subdirectorio.
-    - **Redirect URLs**: añade la URL de timeline y la raíz de la app, p. ej. `https://cafesitoapp.com/timeline`, `https://cafesitoapp.com/` (si la app está en raíz).
+    - **Redirect URLs**: añade como mínimo la raíz de la app, p. ej. `https://cafesitoapp.com/` (y opcionalmente `https://cafesitoapp.com/timeline` si tu hosting soporta fallback SPA correctamente).
   - En CI (GitHub Actions) `VITE_SITE_URL` por defecto es `https://cafesitoapp.com`. Si la app está en un subdirectorio, define la variable `VITE_SITE_URL` en el repo con la URL completa (ej. `https://cafesitoapp.com/cafesito-web/app`).
 
 ### Desarrollo local: configurar Supabase para que el login funcione
