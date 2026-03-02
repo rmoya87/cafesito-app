@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CoffeeRow, UserRow } from "../../types";
 import { Button, Chip, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
@@ -302,72 +303,75 @@ export function SearchView({
           })()}
           {!coffees.length ? <p className="search-coffee-empty">No encontramos cafes con esos filtros.</p> : null}
 
-          {activeFilterType ? (
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Filtros" onClick={() => onSetActiveFilterType(null)}>
-              <SheetCard className="search-filter-sheet" onClick={(event) => event.stopPropagation()}>
-                <SheetHandle aria-hidden="true" />
-                <div className="search-filter-actions">
-                  <Button variant="text" onClick={onClearCoffeeFilters}>
-                    Limpiar filtros
-                  </Button>
-                </div>
-                {activeFilterType === "nota" ? (
-                  <div className="search-rating-filter">
-                    <p className="search-rating-label">{minRating > 0 ? `Nota minima: ${minRating}+` : "Cualquier nota"}</p>
-                    <Input
-                      className="app-range"
-                      style={{ "--range-progress": `${(minRating / 5) * 100}%` } as React.CSSProperties}
-                      type="range"
-                      min={0}
-                      max={5}
-                      step={1}
-                      value={minRating}
-                      onChange={(event) => onSetMinRating(Number(event.target.value))}
-                    />
-                    <div className="search-rating-scale">
-                      <span>0</span>
-                      <span>5</span>
+          {activeFilterType && typeof document !== "undefined"
+            ? createPortal(
+                <SheetOverlay role="dialog" aria-modal="true" aria-label="Filtros" onDismiss={() => onSetActiveFilterType(null)} onClick={() => onSetActiveFilterType(null)}>
+                  <SheetCard className="search-filter-sheet" onClick={(event) => event.stopPropagation()}>
+                    <SheetHandle aria-hidden="true" />
+                    <div className="search-filter-actions">
+                      <Button variant="text" onClick={onClearCoffeeFilters}>
+                        Limpiar filtros
+                      </Button>
                     </div>
-                  </div>
-                ) : (
-                  <ul className="search-filter-list">
-                    {(activeFilterType === "origen"
-                      ? originOptions
-                      : activeFilterType === "tueste"
-                        ? roastOptions
-                        : activeFilterType === "especialidad"
-                          ? specialtyOptions
-                          : formatOptions).map((option) => {
-                      const checked =
-                        activeFilterType === "origen"
-                          ? selectedOrigins.has(option)
+                    {activeFilterType === "nota" ? (
+                      <div className="search-rating-filter">
+                        <p className="search-rating-label">{minRating > 0 ? `Nota minima: ${minRating}+` : "Cualquier nota"}</p>
+                        <Input
+                          className="app-range"
+                          style={{ "--range-progress": `${(minRating / 5) * 100}%` } as React.CSSProperties}
+                          type="range"
+                          min={0}
+                          max={5}
+                          step={1}
+                          value={minRating}
+                          onChange={(event) => onSetMinRating(Number(event.target.value))}
+                        />
+                        <div className="search-rating-scale">
+                          <span>0</span>
+                          <span>5</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <ul className="search-filter-list">
+                        {(activeFilterType === "origen"
+                          ? originOptions
                           : activeFilterType === "tueste"
-                            ? selectedRoasts.has(option)
+                            ? roastOptions
                             : activeFilterType === "especialidad"
-                              ? selectedSpecialties.has(option)
-                              : selectedFormats.has(option);
-                      return (
-                        <li key={option}>
-                          <Chip
-                            className={`search-filter-item ${checked ? "is-selected" : ""}`.trim()}
-                            onClick={() => {
-                              if (activeFilterType === "origen") onToggleOrigin(option);
-                              else if (activeFilterType === "tueste") onToggleRoast(option);
-                              else if (activeFilterType === "especialidad") onToggleSpecialty(option);
-                              else onToggleFormat(option);
-                            }}
-                          >
-                            <input type="checkbox" readOnly checked={checked} aria-hidden="true" tabIndex={-1} />
-                            <span>{option}</span>
-                          </Chip>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </SheetCard>
-            </SheetOverlay>
-          ) : null}
+                              ? specialtyOptions
+                              : formatOptions).map((option) => {
+                          const checked =
+                            activeFilterType === "origen"
+                              ? selectedOrigins.has(option)
+                              : activeFilterType === "tueste"
+                                ? selectedRoasts.has(option)
+                                : activeFilterType === "especialidad"
+                                  ? selectedSpecialties.has(option)
+                                  : selectedFormats.has(option);
+                          return (
+                            <li key={option}>
+                              <Chip
+                                className={`search-filter-item ${checked ? "is-selected" : ""}`.trim()}
+                                onClick={() => {
+                                  if (activeFilterType === "origen") onToggleOrigin(option);
+                                  else if (activeFilterType === "tueste") onToggleRoast(option);
+                                  else if (activeFilterType === "especialidad") onToggleSpecialty(option);
+                                  else onToggleFormat(option);
+                                }}
+                              >
+                                <input type="checkbox" readOnly checked={checked} aria-hidden="true" tabIndex={-1} />
+                                <span>{option}</span>
+                              </Chip>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </SheetCard>
+                </SheetOverlay>,
+                document.body
+              )
+            : null}
         </div>
       ) : null}
     </>

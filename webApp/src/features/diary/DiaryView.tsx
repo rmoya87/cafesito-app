@@ -1,4 +1,4 @@
-import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MentionText } from "../../ui/MentionText";
 import {
   caffeineTargetMg,
@@ -69,6 +69,83 @@ export function DiaryView({
   onOpenCoffee: (coffeeId: string) => void;
   onOpenQuickActions: () => void;
 }) {
+  const swipeContainerRef = useRef<HTMLDivElement>(null);
+  const panelsWrapRef = useRef<HTMLDivElement>(null);
+  const [dragOffsetPx, setDragOffsetPx] = useState<number | null>(null);
+  const tabDragRefs = useRef({
+    startX: 0,
+    startY: 0,
+    startOffsetPx: 0,
+    wrapWidth: 0,
+    isDragging: false,
+    committed: false,
+    lastOffsetPx: 0
+  });
+  const COMMIT_THRESHOLD_PX = 10;
+
+  const onTabPanelsTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const wrap = panelsWrapRef.current;
+      if (!wrap) return;
+      const w = wrap.clientWidth;
+      tabDragRefs.current.wrapWidth = w;
+      tabDragRefs.current.startX = e.touches[0].clientX;
+      tabDragRefs.current.startY = e.touches[0].clientY;
+      tabDragRefs.current.startOffsetPx = tab === "actividad" ? 0 : -w;
+      tabDragRefs.current.isDragging = false;
+      tabDragRefs.current.committed = false;
+      tabDragRefs.current.lastOffsetPx = tab === "actividad" ? 0 : -w;
+    },
+    [tab]
+  );
+
+  const onTabPanelsTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const r = tabDragRefs.current;
+    const deltaX = e.touches[0].clientX - r.startX;
+    const deltaY = e.touches[0].clientY - r.startY;
+    if (!r.committed) {
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > COMMIT_THRESHOLD_PX) {
+        r.committed = true;
+        r.isDragging = true;
+        const next = Math.max(-r.wrapWidth, Math.min(0, r.startOffsetPx + deltaX));
+        r.lastOffsetPx = next;
+        setDragOffsetPx(next);
+      } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > COMMIT_THRESHOLD_PX) {
+        r.committed = true;
+      }
+      return;
+    }
+    if (!r.isDragging) return;
+    const next = Math.max(-r.wrapWidth, Math.min(0, r.startOffsetPx + deltaX));
+    r.lastOffsetPx = next;
+    setDragOffsetPx(next);
+  }, []);
+
+  const onTabPanelsTouchEnd = useCallback((e: React.TouchEvent) => {
+    const r = tabDragRefs.current;
+    if (!r.isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+    r.isDragging = false;
+    r.committed = false;
+    const current = r.lastOffsetPx;
+    const threshold = -r.wrapWidth / 2;
+    setTab(current > threshold ? "actividad" : "despensa");
+    setDragOffsetPx(null);
+  }, [setTab]);
+
+  useEffect(() => {
+    const el = swipeContainerRef.current;
+    if (!el) return;
+    const onMove = (e: TouchEvent) => {
+      if (tabDragRefs.current.isDragging && e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchmove", onMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onMove);
+  }, []);
+
   const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
   const [editEntryId, setEditEntryId] = useState<number | null>(null);
   const [editAmountMl, setEditAmountMl] = useState("");
@@ -698,14 +775,43 @@ export function DiaryView({
       </article>
 
       {mode !== "desktop" ? (
-        <>
+        <div
+          ref={swipeContainerRef}
+          className="diary-tab-swipe"
+          onTouchStart={onTabPanelsTouchStart}
+          onTouchMove={onTabPanelsTouchMove}
+          onTouchEnd={onTabPanelsTouchEnd}
+          onTouchCancel={onTabPanelsTouchEnd}
+        >
           <Tabs className="diary-tabs" aria-label="Tabs diario">
+            <span
+              className="tab-sliding-indicator"
+              style={{
+                transform: `translateX(${
+                  dragOffsetPx !== null && tabDragRefs.current.wrapWidth > 0
+                    ? `${(-dragOffsetPx / tabDragRefs.current.wrapWidth) * 100}%`
+                    : `${tab === "despensa" ? 100 : 0}%`
+                })`,
+                transition: dragOffsetPx !== null ? "none" : undefined
+              }}
+              aria-hidden="true"
+            />
             <TabButton active={tab === "actividad"} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>ACTIVIDAD</TabButton>
             <TabButton active={tab === "despensa"} role="tab" aria-selected={tab === "despensa"} onClick={() => setTab("despensa")}>DESPENSA</TabButton>
           </Tabs>
-          {tab === "actividad" ? activityList : null}
-          {tab === "despensa" ? pantryList : null}
-        </>
+          <div ref={panelsWrapRef} className="diary-tab-panels-wrap" aria-hidden="false">
+            <div
+              className="diary-tab-panels"
+              style={{
+                transform: dragOffsetPx !== null ? `translateX(${dragOffsetPx}px)` : `translateX(${tab === "actividad" ? 0 : -50}%)`,
+                transition: dragOffsetPx !== null ? "none" : undefined
+              }}
+            >
+              <div className="diary-tab-panel">{activityList}</div>
+              <div className="diary-tab-panel">{pantryList}</div>
+            </div>
+          </div>
+        </div>
       ) : (
         <section className="diary-desktop-columns" aria-label="Actividad y despensa">
           <div className="diary-section-block">

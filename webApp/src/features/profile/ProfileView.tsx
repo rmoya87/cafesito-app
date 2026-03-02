@@ -322,6 +322,89 @@ export function ProfileView({
   const likeBurstTimerRef = useRef<number | null>(null);
   const editAvatarInputRef = useRef<HTMLInputElement | null>(null);
   const editPostImageInputRef = useRef<HTMLInputElement | null>(null);
+  const profileSwipeContainerRef = useRef<HTMLDivElement>(null);
+  const profilePanelsWrapRef = useRef<HTMLDivElement>(null);
+  const [profileDragOffsetPx, setProfileDragOffsetPx] = useState<number | null>(null);
+  const profileTabDragRefs = useRef({
+    startX: 0,
+    startY: 0,
+    startOffsetPx: 0,
+    wrapWidth: 0,
+    isDragging: false,
+    committed: false,
+    lastOffsetPx: 0
+  });
+  const PROFILE_COMMIT_THRESHOLD_PX = 10;
+
+  const onProfilePanelsTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const wrap = profilePanelsWrapRef.current;
+      if (!wrap) return;
+      const w = wrap.clientWidth;
+      const startOffsetPx = tab === "posts" ? 0 : tab === "adn" ? -w : -2 * w;
+      profileTabDragRefs.current.wrapWidth = w;
+      profileTabDragRefs.current.startX = e.touches[0].clientX;
+      profileTabDragRefs.current.startY = e.touches[0].clientY;
+      profileTabDragRefs.current.startOffsetPx = startOffsetPx;
+      profileTabDragRefs.current.isDragging = false;
+      profileTabDragRefs.current.committed = false;
+      profileTabDragRefs.current.lastOffsetPx = startOffsetPx;
+    },
+    [tab]
+  );
+
+  const onProfilePanelsTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const r = profileTabDragRefs.current;
+    const deltaX = e.touches[0].clientX - r.startX;
+    const deltaY = e.touches[0].clientY - r.startY;
+    const maxOffset = -2 * r.wrapWidth;
+    if (!r.committed) {
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > PROFILE_COMMIT_THRESHOLD_PX) {
+        r.committed = true;
+        r.isDragging = true;
+        const next = Math.max(maxOffset, Math.min(0, r.startOffsetPx + deltaX));
+        r.lastOffsetPx = next;
+        setProfileDragOffsetPx(next);
+      } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > PROFILE_COMMIT_THRESHOLD_PX) {
+        r.committed = true;
+      }
+      return;
+    }
+    if (!r.isDragging) return;
+    const next = Math.max(maxOffset, Math.min(0, r.startOffsetPx + deltaX));
+    r.lastOffsetPx = next;
+    setProfileDragOffsetPx(next);
+  }, []);
+
+  const onProfilePanelsTouchEnd = useCallback((e: React.TouchEvent) => {
+    const r = profileTabDragRefs.current;
+    if (!r.isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+    r.isDragging = false;
+    r.committed = false;
+    const current = r.lastOffsetPx;
+    const w = r.wrapWidth;
+    const targetTab =
+      current > -w / 2 ? "posts" : current > -1.5 * w ? "adn" : "favoritos";
+    setTab(targetTab);
+    setProfileDragOffsetPx(null);
+  }, [setTab]);
+
+  useEffect(() => {
+    const el = profileSwipeContainerRef.current;
+    if (!el) return;
+    const onMove = (e: TouchEvent) => {
+      if (profileTabDragRefs.current.isDragging && e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchmove", onMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onMove);
+  }, []);
+
+  const profileTabOffset = tab === "posts" ? 0 : tab === "adn" ? 33.333 : 66.666;
+
   useEffect(() => {
     setEditNameDraft(user.full_name);
     setEditBioDraft(user.bio ?? "");
@@ -543,13 +626,40 @@ export function ProfileView({
         <article className="profile-stat-item"><strong className="profile-stat-value">{following}</strong><span className="profile-stat-label">SIGUIENDO</span></article>
       </section>
 
-      <Tabs className="profile-tabs" aria-label="Tabs perfil">
-        <TabButton active={tab === "posts"} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>Posts</TabButton>
-        <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</TabButton>
-        <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</TabButton>
-      </Tabs>
-
-      {tab === "posts" ? (
+      <div
+        ref={profileSwipeContainerRef}
+        className="profile-tab-swipe"
+        onTouchStart={onProfilePanelsTouchStart}
+        onTouchMove={onProfilePanelsTouchMove}
+        onTouchEnd={onProfilePanelsTouchEnd}
+        onTouchCancel={onProfilePanelsTouchEnd}
+      >
+        <Tabs className="profile-tabs" aria-label="Tabs perfil">
+          <span
+            className="tab-sliding-indicator"
+            style={{
+              transform: `translateX(${
+                profileDragOffsetPx !== null && profileTabDragRefs.current.wrapWidth > 0
+                  ? `${Math.min(200, Math.max(0, (-profileDragOffsetPx / profileTabDragRefs.current.wrapWidth) * 100))}%`
+                  : `${tab === "posts" ? 0 : tab === "adn" ? 100 : 200}%`
+              })`,
+              transition: profileDragOffsetPx !== null ? "none" : undefined
+            }}
+            aria-hidden="true"
+          />
+          <TabButton active={tab === "posts"} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>Posts</TabButton>
+          <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</TabButton>
+          <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</TabButton>
+        </Tabs>
+        <div ref={profilePanelsWrapRef} className="profile-tab-panels-wrap">
+          <div
+            className="profile-tab-panels"
+            style={{
+              transform: profileDragOffsetPx !== null ? `translateX(${profileDragOffsetPx}px)` : `translateX(-${profileTabOffset}%)`,
+              transition: profileDragOffsetPx !== null ? "none" : undefined
+            }}
+          >
+            <div className="profile-tab-panel" aria-hidden={tab !== "posts"}>
         <>
           <ul className="feed-list profile-post-list profile-post-list-mobile">
             {posts.length ? posts.map((post, index) => (
@@ -720,9 +830,8 @@ export function ProfileView({
             </div>
           ) : null}
         </>
-      ) : null}
-
-      {tab === "adn" ? (
+            </div>
+            <div className="profile-tab-panel" aria-hidden={tab !== "adn"}>
         <div className={`profile-adn-layout ${mode === "desktop" ? "is-desktop" : ""}`.trim()}>
           {mode === "desktop" ? (
             <article className="config-card profile-adn-card profile-adn-radar-card is-static">
@@ -808,17 +917,18 @@ export function ProfileView({
             </article>
           ) : null}
         </div>
-      ) : null}
-
-      {tab === "favoritos" ? (
-        <>
+            </div>
+            <div className="profile-tab-panel" aria-hidden={tab !== "favoritos"}>
           <ul className="coffee-list profile-favorite-list">
             {favoriteCoffees.length ? favoriteCoffees.map((coffee) => (
               <ProfileFavoriteItem key={coffee.id} coffee={coffee} onOpenCoffee={onOpenCoffee} onRemoveFavorite={onRemoveFavorite} />
             )) : <li className="coffee-card profile-empty-card">No hay cafés favoritos</li>}
           </ul>
-        </>
-      ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {showAdnAnalysisSheet && mode !== "desktop" ? (
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => setShowAdnAnalysisSheet(false)} onClick={() => setShowAdnAnalysisSheet(false)}>
           <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>

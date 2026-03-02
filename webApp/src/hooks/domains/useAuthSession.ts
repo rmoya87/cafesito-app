@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { getAppRootPath } from "../../core/routing";
 import { getSupabaseClient, supabaseConfigError } from "../../supabase";
 
 const SESSION_ACTIVITY_TTL_MS = 5 * 24 * 60 * 60 * 1000; // 5 días sin acceso → cierre de sesión
@@ -127,24 +126,16 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      // Redirect tras login: usar siempre la URL donde el usuario abrió la app (origin + app root).
-      // En producción (cafesitoapp.com) la app se sirve en la raíz; no usar VITE_SITE_URL ni path interno (/cafesito-web/app/) para evitar redirigir a una URL incorrecta.
-      const isLocalLikeHost =
-        typeof window !== "undefined" &&
-        /^(localhost|127\.0\.0\.1|::1)$/.test(window.location.hostname);
-      let base: string;
-      if (typeof window !== "undefined" && window.location.hostname === "cafesitoapp.com") {
-        base = "https://cafesitoapp.com";
-      } else if (isLocalLikeHost || !import.meta.env.PROD) {
-        base = `${window.location.origin}${(getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || ""}`.replace(/\/+$/, "");
-      } else {
-        base = window.location.origin;
-      }
-      // Evita depender del fallback SPA del servidor para /timeline.
-      // Si el hosting falla al resolver rutas internas (500 en /timeline),
-      // el callback OAuth sigue entrando por "/" y la app enruta al timeline.
-      const appRoot = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
-      const redirectTo = `${base}${appRoot || "/"}`;
+      // Redirect tras login: volver siempre a la misma URL donde el usuario abrió la app (nunca a producción si estás en local o IP).
+      // Solo usar cafesitoapp.com cuando el host es exactamente ese; en cualquier otro caso (localhost, 192.168.x.x, etc.) usar origin actual.
+      // En Supabase → Authentication → URL Configuration añade cada Redirect URL que uses (ej. https://192.168.1.123:4173/timeline para probar en red local).
+      const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const base =
+        hostname === "cafesitoapp.com"
+          ? "https://cafesitoapp.com"
+          : origin || "https://cafesitoapp.com";
+      const redirectTo = `${base.replace(/\/+$/, "")}/timeline`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo }

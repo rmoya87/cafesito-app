@@ -186,7 +186,7 @@
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
 }
 
-.login-sheet-overlay .sheet-handle {
+.login-sheet-overlay .sheet-handle-line {
   margin: 6px auto 4px;
   width: 36px;
   height: 4px;

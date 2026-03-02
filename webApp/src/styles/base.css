@@ -2,6 +2,12 @@
   box-sizing: border-box;
 }
 
+html {
+  /* iOS: no inflar fuentes en inputs ni cambiar tamaños por defecto */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html,
 body,
 #root {
@@ -17,10 +23,35 @@ body {
   letter-spacing: 0;
   background: var(--screen-dark-background);
   color: var(--pure-white);
-  /* Sensación app nativa en móvil: sin retardo de tap, sin highlight azul, sin overscroll */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   overscroll-behavior: none;
+}
+
+/* Enlaces: que no los pinte iOS/Safari de azul ni subrayado por defecto */
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/* iOS/Safari: no aplicar estilos nativos a controles; que use solo los nuestros */
+button,
+input,
+textarea,
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+input::-webkit-search-decoration,
+input::-webkit-search-cancel-button,
+input::-webkit-search-results-button,
+input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+select {
+  background-image: none;
 }
 
 h1,
@@ -101,4 +132,92 @@ img {
   outline: 2px solid var(--caramel-soft);
   outline-offset: 2px;
   box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* ========== iOS/Safari: que no cambie ningún estilo ya definido ========== */
+/* Respetar nuestros colores, tipografías y controles; desactivar comportamientos nativos */
+
+/* Sin resaltado nativo al tocar; sin callout de copiar/pegar por defecto en botones */
+a,
+button,
+input,
+textarea,
+select,
+[role="button"],
+[role="tab"],
+[role="option"] {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+}
+
+/* Enlaces: siempre heredar color y subrayado nuestros, nunca azul de iOS */
+a,
+a:link,
+a:visited,
+a:hover,
+a:active,
+a:focus {
+  color: inherit;
+  text-decoration: inherit;
+  -webkit-text-fill-color: inherit;
+}
+
+/* Controles de formulario: solo nuestra apariencia */
+input,
+textarea,
+select,
+button {
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+input[type="search"],
+input[type="number"],
+input[type="email"],
+input[type="tel"],
+input[type="url"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input::-webkit-search-decoration,
+input::-webkit-search-cancel-button,
+input::-webkit-search-results-button,
+input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+select {
+  background-image: none;
+}
+
+/* Sin outline nativo al tocar; nuestro outline solo en :focus-visible (teclado/accesibilidad) */
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Evitar que iOS altere bordes y sombras en inputs */
+input,
+textarea,
+select {
+  border-radius: inherit;
+  box-shadow: none;
+}
+
+/* Evitar zoom automático en inputs (iOS) manteniendo tamaño de fuente explícito en viewport */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: max(1rem, var(--font-size-md, 1rem));
+  }
 }

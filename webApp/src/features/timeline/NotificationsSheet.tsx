@@ -3,7 +3,7 @@ import type { TimelineNotificationItem } from "./NotificationRow";
 import { NotificationRow } from "./NotificationRow";
 import type { UserRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
-import { IconButton, SheetCard, SheetOverlay, Topbar } from "../../ui/components";
+import { IconButton, SheetCard, SheetHandle, SheetOverlay, Topbar } from "../../ui/components";
 
 export function NotificationsSheet({
   open,
@@ -80,6 +80,7 @@ export function NotificationsSheet({
       }}
     >
       <SheetCard className="notifications-panel" onClick={(event) => event.stopPropagation()}>
+        <SheetHandle aria-hidden="true" />
         <Topbar centered className="topbar-timeline notifications-header">
           <div className="topbar-slot">
             <IconButton

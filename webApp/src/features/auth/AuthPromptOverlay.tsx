@@ -1,4 +1,4 @@
-import { Button, IconButton, SheetCard, SheetOverlay } from "../../ui/components";
+import { Button, IconButton, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
 
 export function AuthPromptOverlay({
@@ -19,6 +19,7 @@ export function AuthPromptOverlay({
   return (
     <SheetOverlay className="auth-prompt-overlay" role="dialog" aria-modal="true" aria-label="Acceso" onDismiss={onClose} onClick={onClose}>
       <SheetCard className="auth-prompt-card" onClick={(event) => event.stopPropagation()}>
+        <SheetHandle aria-hidden="true" />
         <IconButton className="auth-prompt-close" aria-label="Cerrar" onClick={onClose}>
           <UiIcon name="close" className="ui-icon" />
         </IconButton>

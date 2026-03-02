@@ -79,6 +79,7 @@ input {
 
 .main-shell {
   --app-shell-gutter: 12px;
+  --topbar-translate-y: 0px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -92,17 +93,18 @@ input {
   flex-shrink: 0;
 }
 
+/* Espacio superior para el topbar (está en posición absoluta); evita que el contenido salte al ocultarlo */
 .main-shell-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 10px var(--app-shell-gutter) 120px;
+  padding: calc(10px + var(--topbar-height) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 120px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
 .main-shell-scroll.is-coffee {
-  padding-top: 0;
+  padding-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
 }
 
 @media (max-width: 899px) {
@@ -111,11 +113,11 @@ input {
   }
 
   .main-shell-scroll {
-    padding: 2px 0 calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: calc(2px + var(--topbar-height) + env(safe-area-inset-top, 0px)) 0 calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
   .main-shell-scroll.is-coffee {
-    padding-top: 0;
+    padding-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   }
 }
 
@@ -196,27 +198,30 @@ input {
   }
 }
 
+/* iOS PWA "Añadir a inicio": respetar safe area. Absoluto para que solo se mueva la barra, no el contenido. */
+/* will-change y -webkit-transform para que iOS pinte bien el topbar al actualizar --topbar-translate-y */
 .topbar {
-  --topbar-hide-offset: var(--topbar-height);
-  position: sticky;
+  --topbar-hide-offset: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  position: absolute;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 10;
   display: flex;
   gap: 12px;
   align-items: center;
   justify-content: space-between;
-  min-height: var(--topbar-height);
-  padding: var(--space-2) var(--app-shell-gutter);
+  min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) var(--space-2);
   border-radius: 0;
   border: none;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(10px);
-  transition: transform 0.2s ease-out, margin-bottom 0.2s ease-out;
-}
-
-.topbar-is-hidden {
-  transform: translateY(calc(-1 * var(--topbar-hide-offset)));
-  margin-bottom: calc(-1 * var(--topbar-hide-offset));
+  will-change: transform;
+  transform: translateY(calc(-1 * var(--topbar-translate-y, 0px)));
+  -webkit-transform: translateY(calc(-1 * var(--topbar-translate-y, 0px)));
+  transition: transform 0.15s ease-out;
+  -webkit-transition: -webkit-transform 0.15s ease-out;
 }
 
 .topbar-scrolled {
@@ -227,8 +232,8 @@ input {
 .topbar-timeline {
   top: 0;
   height: var(--topbar-height);
-  min-height: var(--topbar-height);
-  padding: var(--space-2) var(--app-shell-gutter);
+  min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) var(--space-2);
   border-radius: 0;
   box-sizing: border-box;
   background: rgba(33, 33, 33, 0.85);
@@ -239,7 +244,7 @@ input {
 }
 
 .topbar-search {
-  --topbar-hide-offset: calc(var(--topbar-height) + 44px);
+  --topbar-hide-offset: calc(var(--topbar-height) + 44px + env(safe-area-inset-top, 0px));
   display: grid;
   grid-template-columns: minmax(0, 1fr) 0;
   grid-template-rows: auto auto;
@@ -248,8 +253,8 @@ input {
   align-items: center;
   justify-content: stretch;
   gap: 6px var(--space-2);
-  min-height: var(--topbar-height);
-  padding: var(--space-2) var(--app-shell-gutter) 10px;
+  min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 10px;
   border-radius: 0;
   background: rgba(33, 33, 33, 0.82);
   backdrop-filter: blur(10px);
@@ -329,8 +334,8 @@ input {
   top: 0;
   margin-top: 0;
   height: var(--topbar-height);
-  min-height: var(--topbar-height);
-  padding: var(--space-2) var(--app-shell-gutter);
+  min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) var(--space-2);
   border-radius: 0;
   box-sizing: border-box;
   background: transparent;
@@ -2166,6 +2171,7 @@ input {
   min-width: 0;
   display: grid;
   gap: 1px;
+  color: var(--text-main);
 }
 
 .search-coffee-copy strong {
@@ -2174,6 +2180,7 @@ input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: inherit;
 }
 
 .search-coffee-copy .coffee-sub {
@@ -2265,11 +2272,12 @@ input {
 
 .search-filter-item {
   width: 100%;
+  min-height: 48px;
   border: 1px solid transparent;
   background: var(--pure-black);
   color: inherit;
   border-radius: 12px;
-  padding: 9px 8px;
+  padding: 12px 8px;
   display: grid;
   grid-template-columns: 22px 1fr;
   align-items: center;
@@ -2282,9 +2290,27 @@ input {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-.search-filter-item input {
-  width: 16px;
-  height: 16px;
+.search-filter-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+}
+.search-filter-item input[type="checkbox"]:checked {
+  border-color: var(--caramel-soft);
+  background: var(--caramel-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23101010' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: 12px 12px;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .search-filter-item.is-selected {
@@ -3797,7 +3823,7 @@ input {
   gap: 9px;
 }
 
-.diary-edit-entry-sheet .sheet-handle {
+.diary-edit-entry-sheet .sheet-handle-line {
   width: 42px;
   margin-top: 8px;
   margin-bottom: 6px;
@@ -6003,6 +6029,7 @@ input {
 }
 
 .profile-tabs {
+  position: relative;
   margin-top: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-radius: 9999px;
@@ -6014,11 +6041,26 @@ input {
   overflow: hidden;
 }
 
+.profile-tabs .tab-sliding-indicator {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  width: 33.333%;
+  border-radius: 9999px;
+  background: #1a120b;
+  transition: transform 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+
 .profile-content-wrap {
   min-width: 0;
 }
 
 .profile-tabs .premium-tab {
+  position: relative;
+  z-index: 1;
   min-height: 40px;
   border-radius: 9999px;
   border: 1px solid transparent;
@@ -6032,6 +6074,24 @@ input {
   border-color: rgba(0, 0, 0, 0.12);
   background: #1a120b;
   color: #ffffff;
+}
+
+.profile-tab-panels-wrap {
+  overflow: hidden;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.profile-tab-panels {
+  display: flex;
+  width: 300%;
+  transition: transform 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.profile-tab-panel {
+  flex: 0 0 33.333%;
+  width: 33.333%;
+  min-width: 33.333%;
 }
 
 .profile-section-head {
@@ -6630,6 +6690,7 @@ input {
 
 
 .diary-tabs {
+  position: relative;
   margin-top: 4px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   border-radius: 999px;
@@ -6639,7 +6700,22 @@ input {
   gap: 6px;
 }
 
+.diary-tabs .tab-sliding-indicator {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  width: 50%;
+  border-radius: 999px;
+  background: #1a120b;
+  transition: transform 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+
 .diary-tabs .premium-tab {
+  position: relative;
+  z-index: 1;
   min-height: 40px;
   border-radius: 999px;
   border: 1px solid transparent;
@@ -6653,6 +6729,24 @@ input {
   border-color: rgba(0, 0, 0, 0.12);
   background: #1a120b;
   color: #ffffff;
+}
+
+.diary-tab-panels-wrap {
+  overflow: hidden;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.diary-tab-panels {
+  display: flex;
+  width: 200%;
+  transition: transform 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.diary-tab-panel {
+  flex: 0 0 50%;
+  width: 50%;
+  min-width: 50%;
 }
 
 .diary-desktop-columns {
@@ -9892,13 +9986,13 @@ input {
   .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
     top: 6px;
     border-radius: 16px;
-    padding: 12px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 12px;
   }
 
   .topbar-timeline,
   .topbar-search-users {
-    min-height: 56px;
-    padding: var(--space-2) var(--space-3);
+    min-height: calc(56px + env(safe-area-inset-top, 0px));
+    padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--space-3) var(--space-2);
     gap: var(--space-2);
   }
 
@@ -11448,6 +11542,15 @@ input {
     border-color: var(--caramel-accent);
   }
 
+  .search-filter-item input[type="checkbox"] {
+    border-color: rgba(26, 18, 11, 0.35);
+  }
+  .search-filter-item input[type="checkbox"]:checked {
+    border-color: var(--caramel-accent);
+    background-color: var(--caramel-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  }
+
   .search-rating-scale {
     color: var(--espresso-medium);
   }
@@ -11583,7 +11686,7 @@ input {
     color: var(--caramel-accent);
   }
 
-  .sheet-handle {
+  .sheet-handle-line {
     background: rgba(60, 42, 33, 0.32);
   }
 
@@ -11939,13 +12042,13 @@ input {
 
   .topbar-timeline,
   .topbar-search-users {
-    padding: 7px var(--app-shell-gutter);
+    padding: calc(7px + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 7px;
     gap: 7px;
   }
 
   .topbar-search {
     gap: 5px 8px;
-    padding: 7px var(--app-shell-gutter) 9px;
+    padding: calc(7px + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 9px;
   }
 
   .topbar-search-chips {
@@ -11974,7 +12077,7 @@ input {
     max-height: 85vh;
   }
 
-  .sheet-handle {
+  .sheet-handle-line {
     width: 46px;
     height: 4px;
     margin: 9px auto 7px;
@@ -12124,4 +12227,43 @@ input {
 
 .notifications-unread-dot {
   background: var(--caramel-soft);
+}
+
+/* Solo en dev con ?safe-area=1: simula notch iOS (47px) para validar topbar sin desplegar ni iPhone */
+.dev-safe-area-sim .topbar {
+  --topbar-hide-offset: calc(var(--topbar-height) + 47px);
+  min-height: calc(var(--topbar-height) + 47px);
+  padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
+}
+.dev-safe-area-sim .topbar-timeline {
+  min-height: calc(var(--topbar-height) + 47px);
+  padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
+}
+.dev-safe-area-sim .topbar-search {
+  --topbar-hide-offset: calc(var(--topbar-height) + 44px + 47px);
+  min-height: calc(var(--topbar-height) + 47px);
+  padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) 10px;
+}
+.dev-safe-area-sim .topbar-search-users {
+  min-height: calc(var(--topbar-height) + 47px);
+  padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
+}
+@media (max-width: 899px) {
+  .dev-safe-area-sim .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
+    padding: calc(12px + 47px) 12px 12px;
+  }
+  .dev-safe-area-sim .topbar-timeline,
+  .dev-safe-area-sim .topbar-search-users {
+    min-height: calc(56px + 47px);
+    padding: calc(var(--space-2) + 47px) var(--space-3) var(--space-2);
+  }
+}
+@media (max-width: 899px) {
+  .dev-safe-area-sim .topbar-timeline,
+  .dev-safe-area-sim .topbar-search-users {
+    padding: calc(7px + 47px) var(--app-shell-gutter) 7px;
+  }
+  .dev-safe-area-sim .topbar-search {
+    padding: calc(7px + 47px) var(--app-shell-gutter) 9px;
+  }
 }

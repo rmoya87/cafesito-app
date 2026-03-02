@@ -66,6 +66,7 @@ export function CreatePostSheet({
       {open ? (
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Crear publicación" onDismiss={onClose} onClick={onClose}>
           <SheetCard className="create-post-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
             <Topbar centered className="topbar-timeline create-post-header">
               <div className="topbar-slot">
                 <IconButton

@@ -236,8 +236,8 @@ export function AppContainer() {
   } = useTimelineComposerDomain();
   const [handledTimelineDeepLink, setHandledTimelineDeepLink] = useState(false);
   const [topbarScrolled, setTopbarScrolled] = useState(false);
-  const [topbarHidden, setTopbarHidden] = useState(false);
   const mainScrollRef = useRef<HTMLDivElement>(null);
+  const TOPBAR_HIDE_SCROLL_PX = 100;
   const [timelineActionBanner, setTimelineActionBanner] = useState<string | null>(null);
   const [timelineRefreshing, setTimelineRefreshing] = useState(false);
   const [timelineBusyMessage, setTimelineBusyMessage] = useState<string | null>(null);
@@ -381,17 +381,13 @@ export function AppContainer() {
   });
 
   const lastScrollTopRef = useRef(0);
-  const THRESHOLD = 24;
-  const SCROLL_DELTA = 10;
 
-  const applyScrollState = useCallback((scrollTop: number, lastScroll: number) => {
+  const applyScrollState = useCallback((scrollTop: number) => {
     setTopbarScrolled(scrollTop > 18);
-    if (scrollTop <= THRESHOLD) {
-      setTopbarHidden(false);
-    } else if (scrollTop > lastScroll + SCROLL_DELTA) {
-      setTopbarHidden(true);
-    } else if (scrollTop < lastScroll - SCROLL_DELTA) {
-      setTopbarHidden(false);
+    const mainShell = mainScrollRef.current?.parentElement;
+    if (mainShell) {
+      const y = Math.min(scrollTop, TOPBAR_HIDE_SCROLL_PX);
+      mainShell.style.setProperty("--topbar-translate-y", `${y}px`);
     }
   }, []);
 
@@ -399,22 +395,41 @@ export function AppContainer() {
     const el = mainScrollRef.current;
     if (!el) return;
     lastScrollTopRef.current = el.scrollTop;
-    applyScrollState(el.scrollTop, 0);
-    let ticking = false;
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        window.requestAnimationFrame(() => {
-          const st = el.scrollTop;
-          const last = lastScrollTopRef.current;
-          lastScrollTopRef.current = st;
-          applyScrollState(st, last);
-          ticking = false;
-        });
-      }
+    applyScrollState(el.scrollTop);
+
+    let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
+    const SCROLL_END_MS = 100;
+
+    const syncFromScroll = () => {
+      const st = el.scrollTop;
+      lastScrollTopRef.current = st;
+      applyScrollState(st);
     };
+
+    const onScroll = () => {
+      syncFromScroll();
+      if (scrollEndTimer != null) clearTimeout(scrollEndTimer);
+      scrollEndTimer = setTimeout(() => {
+        scrollEndTimer = null;
+        syncFromScroll();
+      }, SCROLL_END_MS);
+    };
+
+    const onScrollEnd = () => {
+      if (scrollEndTimer != null) {
+        clearTimeout(scrollEndTimer);
+        scrollEndTimer = null;
+      }
+      syncFromScroll();
+    };
+
     el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
+    el.addEventListener("scrollend", onScrollEnd);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scrollend", onScrollEnd);
+      if (scrollEndTimer != null) clearTimeout(scrollEndTimer);
+    };
   }, [applyScrollState, sessionEmail]);
 
   const handleSignOut = useCallback(async () => {
@@ -977,14 +992,15 @@ export function AppContainer() {
     sendPageView(gaPagePath, `Cafesito - ${pageTitle}`);
   }, [gaPagePath, guardedActiveTab]);
 
-  // Al cambiar de vista: reiniciar scroll y mostrar topbar para que en timeline y buscador se comporte igual
+  // Al cambiar de vista: reiniciar scroll y mostrar topbar para que en timeline, perfil y resto se comporte igual
   useEffect(() => {
     const el = mainScrollRef.current;
     if (!el) return;
     el.scrollTop = 0;
     lastScrollTopRef.current = 0;
     setTopbarScrolled(false);
-    setTopbarHidden(false);
+    const mainShell = el.parentElement;
+    if (mainShell) mainShell.style.setProperty("--topbar-translate-y", "0px");
   }, [guardedActiveTab]);
 
   const guestCanAccessCurrentTab = canAccessTabAsGuest(guardedActiveTab);
@@ -1589,7 +1605,7 @@ export function AppContainer() {
           onDiaryOpenQuickActions={topbarActions.onDiaryOpenQuickActions}
           onDiaryOpenPeriodSelector={topbarActions.onDiaryOpenPeriodSelector}
           scrolled={topbarScrolled}
-          hidden={topbarHidden}
+          hidden={false}
           brewStep={brewStep}
           brewStepTitle={getBrewStepTitle(brewStep)}
           onBrewBack={topbarActions.onBrewBack}
