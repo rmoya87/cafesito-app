@@ -71,6 +71,7 @@ export function CommentSheet({
   onRemoveImage: () => void;
 }) {
   if (!open) return null;
+  const canSubmitComment = commentDraft.trim().length > 0 || Boolean(commentImagePreviewUrl);
   return (
     <SheetOverlay role="dialog" aria-modal="true" aria-label="Comentarios" onDismiss={onClose} onClick={onClose}>
       <SheetCard onClick={(event) => event.stopPropagation()}>
@@ -189,7 +190,13 @@ export function CommentSheet({
                 </>
               }
               actionContent={
-                <Button variant="plain" type="button" className="send-button" onClick={editingCommentId ? onUpdateComment : onAddComment}>
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="send-button"
+                  disabled={!canSubmitComment}
+                  onClick={editingCommentId ? onUpdateComment : onAddComment}
+                >
                   <UiIcon name="send" className="ui-icon" />
                   {editingCommentId ? "Guardar" : "Enviar"}
                 </Button>

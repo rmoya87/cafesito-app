@@ -30,6 +30,8 @@ class UserRepository @Inject constructor(
     private val sharedPreferences: SharedPreferences,
     private val externalScope: CoroutineScope
 ) {
+    enum class AccountLifecycleSyncResult { None, Reactivated, Deleted }
+
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
     private val prefsLock = Any()
 
@@ -95,6 +97,38 @@ class UserRepository @Inject constructor(
             triggerRefresh()
         } catch (e: Exception) {
             Log.e("UserRepository", "Logout failed", e)
+        }
+    }
+
+    suspend fun requestAccountDeletionAndLogout() {
+        val currentUser = getActiveUser() ?: return
+        ensureConnected()
+        val scheduledDeletionAt = System.currentTimeMillis() + ACCOUNT_DELETION_GRACE_MS
+        supabaseDataSource.requestAccountDeletion(currentUser.id, scheduledDeletionAt)
+        logout()
+    }
+
+    suspend fun syncAccountLifecycleOnLogin(userId: Int): AccountLifecycleSyncResult = withContext(Dispatchers.IO) {
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
+            return@withContext AccountLifecycleSyncResult.None
+        }
+        return@withContext try {
+            val info = supabaseDataSource.getAccountLifecycleInfo(userId) ?: return@withContext AccountLifecycleSyncResult.None
+            if (info.accountStatus != "inactive_pending_deletion") return@withContext AccountLifecycleSyncResult.None
+
+            val now = System.currentTimeMillis()
+            val scheduled = info.scheduledDeletionAt ?: 0L
+            if (scheduled > 0L && scheduled <= now) {
+                supabaseDataSource.hardDeleteAccountData(userId)
+                logout()
+                AccountLifecycleSyncResult.Deleted
+            } else {
+                supabaseDataSource.cancelAccountDeletion(userId)
+                AccountLifecycleSyncResult.Reactivated
+            }
+        } catch (e: Exception) {
+            // Si backend aún no tiene columnas de ciclo de vida, no bloqueamos login.
+            AccountLifecycleSyncResult.None
         }
     }
 
@@ -434,5 +468,6 @@ class UserRepository @Inject constructor(
 
     private companion object {
         const val KEY_PENDING_FCM_TOKEN = "pending_fcm_token"
+        const val ACCOUNT_DELETION_GRACE_MS = 30L * 24L * 60L * 60L * 1000L
     }
 }

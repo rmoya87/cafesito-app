@@ -324,7 +324,7 @@ fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoff
             ModalMenuOption(
                 title = "Añadir a Despensa",
                 iconPainter = painterResource(id = R.drawable.shelves_24),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = onAddPantry
             )
         }

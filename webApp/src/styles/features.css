@@ -97,6 +97,8 @@ input {
   min-height: 0;
   overflow: auto;
   padding: 10px var(--app-shell-gutter) 120px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .main-shell-scroll.is-coffee {
@@ -109,7 +111,7 @@ input {
   }
 
   .main-shell-scroll {
-    padding: 2px var(--app-shell-gutter) calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 2px 0 calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
   .main-shell-scroll.is-coffee {
@@ -120,6 +122,14 @@ input {
 @media (max-width: 899px) {
   .content {
     padding-top: 2px;
+  }
+
+  .content.content-timeline,
+  .content.content-search,
+  .content.content-diary,
+  .content.content-profile {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }
 
@@ -743,6 +753,13 @@ input {
 }
 
 .coffee-detail-topbar-icon.is-active {
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.16);
+  border-color: rgba(255, 59, 48, 0.34);
+}
+
+/* Corazón favorito en detalle de café: siempre rojo (igual que en preview del buscador) */
+.topbar-coffee .topbar-icon-button.coffee-topbar-favorite.is-active {
   color: #ff3b30;
   background: rgba(255, 59, 48, 0.16);
   border-color: rgba(255, 59, 48, 0.34);
@@ -3643,10 +3660,10 @@ input {
 .diary-delete-confirm-cancel {
   flex: 1;
   min-height: 56px;
-  border-radius: 16px;
-  border: 1px solid var(--caramel-accent);
+  border-radius: 999px;
+  border: 1px solid #111111;
   background: transparent;
-  color: var(--caramel-accent);
+  color: #111111;
   font-size: 0.875rem;
   font-weight: 700;
 }
@@ -3654,12 +3671,24 @@ input {
 .diary-delete-confirm-submit {
   flex: 1;
   min-height: 56px;
-  border-radius: 16px;
+  border-radius: 999px;
   border: none;
-  background: var(--caramel-accent);
+  background: #ff3b30;
   color: var(--pure-white);
   font-size: 0.875rem;
   font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  .diary-delete-confirm-cancel {
+    border-color: #ffffff;
+    color: #ffffff;
+  }
+
+  .diary-delete-confirm-submit {
+    background: #ffffff;
+    color: #111111;
+  }
 }
 
 .diary-sheet-form {
@@ -3778,12 +3807,42 @@ input {
   padding: 8px 14px 10px;
 }
 
+.diary-edit-entry-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
 .diary-edit-entry-sheet .sheet-title {
   font-size: 1.2rem;
   letter-spacing: 0;
   text-transform: none;
   font-weight: 700;
   text-align: center;
+}
+
+.diary-edit-entry-header-action {
+  border: none;
+  background: transparent;
+  padding: 0 2px;
+  min-height: auto;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.diary-edit-entry-header-action.is-cancel {
+  color: var(--text-main);
+  justify-self: start;
+}
+
+.diary-edit-entry-header-action.is-save {
+  color: var(--text-main);
+  justify-self: end;
+}
+
+.diary-edit-entry-header-action:disabled {
+  opacity: 0.45;
 }
 
 .diary-stock-edit-sheet .sheet-title {
@@ -4516,16 +4575,16 @@ input {
   align-items: center;
   width: 100%;
   max-width: 220px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: none;
   border-radius: 16px;
   padding: 18px 20px;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: none;
 }
 
 .diary-water-card-input-wrap:focus-within {
-  border-color: rgba(0, 0, 0, 0.2);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 /* Grid 1 fila × 2 columnas: [ cantidad | ml ] en la misma línea */
@@ -4640,6 +4699,11 @@ input {
 
   .diary-coffee-sheet-overlay .diary-coffee-sheet .sheet-handle {
     display: none;
+  }
+
+  .diary-coffee-sheet-overlay .diary-coffee-select-close {
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .diary-coffee-sheet-overlay .diary-coffee-sheet .diary-coffee-select-body,
@@ -5023,6 +5087,11 @@ input {
   justify-content: center;
   border: none;
   background: transparent;
+}
+
+.diary-coffee-select-close {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Modal SELECCIONA: scroll solo en el cuerpo, header fijo */
@@ -5723,7 +5792,70 @@ input {
 
 .profile-head-copy {
   min-width: 0;
+  width: min(560px, calc(100vw - 20px));
   text-align: center;
+}
+
+.profile-inline-edit {
+  width: min(560px, calc(100vw - 20px));
+  --profile-edit-control-width: min(340px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.profile-inline-metrics {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  width: min(460px, calc(100vw - 28px));
+  max-width: none;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.profile-inline-metrics .diary-edit-entry-metric-field {
+  background: #ffffff;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-inline-metrics .diary-edit-entry-metric-value {
+  gap: 0;
+  width: 100%;
+}
+
+.profile-inline-bio-field .diary-edit-entry-metric-value {
+  align-items: flex-start;
+}
+
+.profile-inline-metrics .profile-inline-name-input,
+.profile-inline-metrics .profile-inline-bio-input {
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: #ffffff;
+}
+
+.profile-inline-bio-input {
+  min-height: 84px;
+  line-height: 1.32;
+  resize: vertical;
+}
+
+.profile-inline-change-photo {
+  margin-top: -2px;
+  min-height: 30px;
+  padding: 0 12px;
+  align-self: center;
+  justify-self: center;
+  font-size: 0.8rem;
+  border-radius: 999px;
 }
 
 .profile-name {
@@ -5759,6 +5891,63 @@ input {
 
 .profile-head-actions-inline {
   margin-top: 4px;
+}
+
+.profile-inline-edit-actions {
+  margin-top: 8px;
+  width: min(340px, calc(100vw - 28px));
+  display: flex;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.profile-inline-save-button {
+  width: min(340px, 100%);
+  min-height: 52px;
+  border-radius: 999px;
+  background: #6f4e37;
+  color: #ffffff !important;
+}
+
+.profile-inline-save-button.action-button:hover,
+.profile-inline-save-button.action-button:focus-visible,
+.profile-inline-save-button.action-button:active {
+  color: #ffffff !important;
+}
+
+.profile-inline-save-button:disabled {
+  opacity: 0.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-inline-metrics .diary-edit-entry-metric-field {
+    background: #111111;
+    border-color: #ffffff;
+  }
+
+  .profile-inline-metrics .diary-edit-entry-metric-field > span {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  .profile-inline-metrics .profile-inline-name-input,
+  .profile-inline-metrics .profile-inline-bio-input {
+    background: #111111;
+    color: #ffffff;
+    border-color: #ffffff;
+  }
+
+  .profile-inline-save-button {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #111111 !important;
+  }
+
+  .profile-inline-save-button.action-button:hover,
+  .profile-inline-save-button.action-button:focus-visible,
+  .profile-inline-save-button.action-button:active {
+    color: #111111 !important;
+  }
 }
 
 .profile-edit-button {
@@ -6167,8 +6356,8 @@ input {
 }
 
 .profile-post-menu-sheet {
-  width: min(420px, 100%);
-  border-radius: 18px;
+  width: min(560px, 100%);
+  border-radius: 28px 28px 0 0;
 }
 
 .profile-topbar-options-overlay {
@@ -6176,8 +6365,18 @@ input {
 }
 
 .profile-topbar-options-sheet {
-  width: min(420px, 100%);
-  border-radius: 20px 20px 0 0;
+  width: min(560px, 100%);
+  border-radius: 28px 28px 0 0;
+}
+
+.profile-options-section-title {
+  margin: 0;
+  padding: 2px 4px 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
 }
 
 .profile-topbar-menu-trigger {
@@ -6307,6 +6506,12 @@ input {
   .profile-adn-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-inline-save-button {
+    width: 100%;
   }
 }
 
@@ -6536,10 +6741,10 @@ input {
 
 @media (max-width: 899px) {
   .brew-pantry-row {
-    margin-left: calc(-1 * var(--app-shell-gutter));
-    margin-right: calc(-1 * var(--app-shell-gutter));
-    padding-left: var(--app-shell-gutter);
-    padding-right: var(--app-shell-gutter);
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
   }
 }
 
@@ -8894,7 +9099,9 @@ input {
 }
 
 .send-button:disabled {
-  opacity: 0.5;
+  opacity: 1;
+  background: #2f2f2f;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .send-button .ui-icon {
@@ -8987,6 +9194,10 @@ input {
 
 .create-post-header .topbar-icon-button {
   color: var(--modal-text-main);
+}
+
+.create-post-close {
+  display: inline-flex;
 }
 
 .create-post-image-stage {
@@ -9343,6 +9554,11 @@ input {
 }
 
 @media (min-width: 900px) {
+  .create-post-close {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .create-post-sheet {
     max-height: min(88dvh, 780px);
     height: min(88dvh, 780px);
@@ -9668,7 +9884,7 @@ input {
   }
 
   .main-shell {
-    padding: 14px 8px 0;
+    padding: 14px 0 0;
     width: 100%;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -9710,8 +9926,8 @@ input {
   .tab-filters {
     margin-top: 0;
     margin-bottom: 12px;
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .coffee-card-row {
@@ -10209,6 +10425,12 @@ input {
   .topbar-icon-button.is-active {
     color: var(--caramel-accent);
     background: rgba(111, 78, 55, 0.14);
+  }
+
+  .topbar-coffee .topbar-icon-button.coffee-topbar-favorite.is-active {
+    color: #ff3b30;
+    background: rgba(255, 59, 48, 0.1);
+    border-color: rgba(255, 59, 48, 0.24);
   }
 
   .diary-topbar-add {

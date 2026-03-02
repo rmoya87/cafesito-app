@@ -724,7 +724,7 @@ private fun CommentRow(
 
         if (isOwnComment) {
             IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -1417,6 +1417,42 @@ fun DiaryEntryEditBottomSheet(
     var selectedPreparation by remember(entry.id) { mutableStateOf(entry.preparationType) }
     var errorText by remember(entry.id) { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    fun handleSaveEditEntry() {
+        val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, timeText)
+        if (updatedTimestamp == null) {
+            errorText = "Usa un formato de tiempo válido: HH:mm"
+            return
+        }
+
+        val updatedEntry = if (entry.type == "WATER") {
+            val amount = amountText.toIntOrNull()
+            if (amount == null || amount <= 0) {
+                errorText = "Cantidad inválida"
+                return
+            }
+            entry.copy(amountMl = amount, timestamp = updatedTimestamp)
+        } else {
+            val caffeine = caffeineText.toIntOrNull()
+            val grams = doseText.replace(',', '.').toFloatOrNull()
+            val normalizedPrep = selectedPreparation.trim()
+            val espressoRangeValid = !normalizedPrep.equals("Espresso", ignoreCase = true) || (grams != null && grams in 3f..30f)
+            if (caffeine == null || caffeine < 0 || grams == null || grams <= 0f || normalizedPrep.isBlank() || !espressoRangeValid) {
+                errorText = if (!espressoRangeValid) "Para espresso, la dosis debe estar entre 3.0 y 30.0 g" else "Completa todos los campos correctamente"
+                return
+            }
+            entry.copy(
+                caffeineAmount = caffeine,
+                coffeeGrams = grams.roundToInt(),
+                preparationType = selectedPreparation.trim(),
+                sizeLabel = selectedSize,
+                amountMl = sizeOptions.find { it.label == selectedSize }?.defaultMl ?: entry.amountMl,
+                timestamp = updatedTimestamp
+            )
+        }
+
+        errorText = null
+        onSave(updatedEntry)
+    }
 
     ModalBottomSheet(
         sheetState = sheetState,
@@ -1432,14 +1468,25 @@ fun DiaryEntryEditBottomSheet(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Editar",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancelar", fontWeight = FontWeight.SemiBold)
+                }
+                Text(
+                    text = "Editar",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = { handleSaveEditEntry() }) {
+                    Text("Guardar", fontWeight = FontWeight.SemiBold)
+                }
+            }
 
             if (entry.type == "CUP") {
                 Text(
@@ -1624,52 +1671,6 @@ fun DiaryEntryEditBottomSheet(
                 )
             }
 
-            Button(
-                onClick = {
-                    val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, timeText)
-                    if (updatedTimestamp == null) {
-                        errorText = "Usa un formato de tiempo válido: HH:mm"
-                        return@Button
-                    }
-
-                    val updatedEntry = if (entry.type == "WATER") {
-                        val amount = amountText.toIntOrNull()
-                        if (amount == null || amount <= 0) {
-                            errorText = "Cantidad inválida"
-                            return@Button
-                        }
-                        entry.copy(amountMl = amount, timestamp = updatedTimestamp)
-                    } else {
-                        val caffeine = caffeineText.toIntOrNull()
-                        val grams = doseText.replace(',', '.').toFloatOrNull()
-                        val normalizedPrep = selectedPreparation.trim()
-                        val espressoRangeValid = !normalizedPrep.equals("Espresso", ignoreCase = true) || (grams != null && grams in 3f..30f)
-                        if (caffeine == null || caffeine < 0 || grams == null || grams <= 0f || normalizedPrep.isBlank() || !espressoRangeValid) {
-                            errorText = if (!espressoRangeValid) "Para espresso, la dosis debe estar entre 3.0 y 30.0 g" else "Completa todos los campos correctamente"
-                            return@Button
-                        }
-                        entry.copy(
-                            caffeineAmount = caffeine,
-                            coffeeGrams = grams.roundToInt(),
-                            preparationType = selectedPreparation.trim(),
-                            sizeLabel = selectedSize,
-                            amountMl = sizeOptions.find { it.label == selectedSize }?.defaultMl ?: entry.amountMl,
-                            timestamp = updatedTimestamp
-                        )
-                    }
-
-                    errorText = null
-                    onSave(updatedEntry)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .imePadding()
-                    .navigationBarsPadding()
-                    .requiredHeight(52.dp),
-                shape = CircleShape
-            ) {
-                Text("Guardar cambios")
-            }
         }
     }
 }
@@ -2152,6 +2153,7 @@ fun ReviewOptionsBottomSheet(
 fun SettingsBottomSheet(
     onDismiss: () -> Unit, 
     onEditClick: () -> Unit, 
+    onDeleteAccountClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     ModalBottomSheet(
@@ -2173,6 +2175,12 @@ fun SettingsBottomSheet(
                 icon = Icons.Default.Edit,
                 color = MaterialTheme.colorScheme.primary,
                 onClick = { onDismiss(); onEditClick() }
+            )
+            ModalMenuOption(
+                title = "Eliminar mi cuenta y mis datos",
+                icon = Icons.Default.PersonRemove,
+                color = MaterialTheme.colorScheme.onSurface,
+                onClick = { onDismiss(); onDeleteAccountClick() }
             )
             ModalMenuOption(
                 title = "Cerrar Sesión",
@@ -2401,6 +2409,10 @@ fun DeleteConfirmationDialog(
     title: String,
     text: String
 ) {
+    val isDark = isSystemInDarkTheme()
+    val cancelColor = if (isDark) Color.White else Color.Black
+    val deleteContainer = if (isDark) Color.White else ElectricRed
+    val deleteContent = if (isDark) Color.Black else Color.White
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -2436,9 +2448,9 @@ fun DeleteConfirmationDialog(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, cancelColor),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Bold)
                 }
@@ -2450,8 +2462,11 @@ fun DeleteConfirmationDialog(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(16.dp)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = deleteContainer,
+                        contentColor = deleteContent
+                    ),
+                    shape = RoundedCornerShape(999.dp)
                 ) {
                     Text("ELIMINAR", fontWeight = FontWeight.Bold)
                 }

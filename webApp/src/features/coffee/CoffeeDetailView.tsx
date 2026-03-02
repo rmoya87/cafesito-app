@@ -171,7 +171,7 @@ export function CoffeeDetailView({
 
         <div className="coffee-detail-headline">
           <p className="coffee-origin">{coffee.marca ?? "Marca"}</p>
-          <h2 className="coffee-detail-title">{coffee.nombre}</h2>
+          <h1 className="coffee-detail-title">{coffee.nombre}</h1>
         </div>
         {avgRating > 0 ? (
           <span className="coffee-detail-rating-badge">

@@ -42,27 +42,9 @@ Ese mensaje aparece cuando la app se ejecuta sin la configuración de Supabase.
 - **En producción / CI**  
   Si despliegas con **GitHub Actions**, añade en el repo **Settings → Secrets and variables → Actions** las variables (o secrets) `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`; el workflow las inyecta en el build. Si no están ahí, el build se genera sin ellas y el botón de Google mostrará ese error en producción.
 
-Tienes **dos opciones** para configurar Supabase:
+**Configuración de Supabase en producción:** usa siempre variables de entorno en el pipeline de build (GitHub Actions → Secrets o Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). El build las embebe; no añadas credenciales en el HTML ni en el repositorio.
 
-1. **Build con variables de entorno (recomendado)**  
-   Crea en `webApp/` un archivo `.env` con:
-   ```
-   VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJ...tu_anon_key...
-   ```
-   Luego ejecuta `npm run build` en esa carpeta. Las variables se embeben en el build y no hace falta tocar el HTML en el servidor.
-
-2. **Config en runtime (sin volver a hacer build)**  
-   Si no puedes pasar env en el build, la app puede leer la config desde `window.__SUPABASE_CONFIG__`. En el **index.html desplegado** (el que está en `dist/` o en el servidor), añade **antes** del `<script>` que carga la app algo así:
-   ```html
-   <script>
-   window.__SUPABASE_CONFIG__ = {
-     url: "https://TU_PROYECTO.supabase.co",
-     anonKey: "eyJ...tu_anon_key..."
-   };
-   </script>
-   ```
-   Así el login con Google funcionará sin recompilar.
+En local, crea `webApp/.env` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, ejecuta desde `webApp/` y reinicia el servidor tras cambiar el `.env`.
 
 ### Login: video de fondo y botón «Continuar con Google»
 

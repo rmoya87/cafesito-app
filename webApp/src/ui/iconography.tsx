@@ -109,6 +109,7 @@ export function MaterialSymbolIcon({
   | "device_thermostat"
   | "waves"
   | "water_drop"
+  | "more_horiz"
   | "favorite"
   | "coffee"
   | "photo_camera";
@@ -399,13 +400,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     );
   }
   if (name === "more") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <circle cx="6" cy="12" r="1.8" />
-        <circle cx="12" cy="12" r="1.8" />
-        <circle cx="18" cy="12" r="1.8" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="more_horiz" filled={true} className={className} />;
   }
   if (name === "coffee") {
     return <MaterialSymbolIcon symbol="coffee" filled={false} className={className} />;

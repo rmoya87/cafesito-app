@@ -14,8 +14,8 @@ const fromEnv = {
   url: import.meta.env.VITE_SUPABASE_URL as string | undefined,
   anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 };
-const fromWindow = typeof window !== "undefined" ? window.__SUPABASE_CONFIG__ : undefined;
-// Prioridad: define (inyectado por Vite desde .env) > window > import.meta.env
+const fromWindow =
+  import.meta.env.DEV && typeof window !== "undefined" ? window.__SUPABASE_CONFIG__ : undefined;
 let supabaseUrl = (fromDefine.url?.trim() || fromWindow?.url || fromEnv.url)?.trim() || undefined;
 let supabaseAnonKey = (fromDefine.anonKey?.trim() || fromWindow?.anonKey || fromEnv.anonKey)?.trim() || undefined;
 
@@ -31,7 +31,7 @@ export const supabaseConfigError =
   !supabaseUrl || !supabaseAnonKey
     ? isDev
       ? "Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. Revisa webApp/.env y reinicia el servidor (npm run dev)."
-      : "Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. Configúralas en el pipeline de build o inyecta window.__SUPABASE_CONFIG__ (ver DEPLOY-IONOS.md)."
+      : "Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. Configúralas como variables de entorno en el pipeline de build (GitHub Actions Secrets/Variables)."
     : null;
 
 let supabaseClient: SupabaseClient | null = null;

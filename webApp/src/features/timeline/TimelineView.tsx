@@ -77,6 +77,8 @@ export function TimelineView({
   sidePanel?: ReactNode;
 }) {
   const [menuPostId, setMenuPostId] = useState<string | null>(null);
+  const [deletePostConfirmId, setDeletePostConfirmId] = useState<string | null>(null);
+  const [deletingPost, setDeletingPost] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [editingImageUrl, setEditingImageUrl] = useState("");
@@ -460,10 +462,8 @@ export function TimelineView({
               </Button>
               <Button variant="plain"
                 className="comment-action-button is-danger"
-                onClick={async () => {
-                  const confirmed = window.confirm("Borrar post definitivamente?");
-                  if (!confirmed) return;
-                  await onDeletePost(activeMenuPost.id);
+                onClick={() => {
+                  setDeletePostConfirmId(activeMenuPost.id);
                   setMenuPostId(null);
                 }}
               >
@@ -471,6 +471,42 @@ export function TimelineView({
                 <span>Borrar</span>
                 <UiIcon name="chevron-right" className="ui-icon trailing" />
               </Button>
+            </div>
+          </SheetCard>
+        </SheetOverlay>
+      ) : null}
+      {deletePostConfirmId ? (
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
+          <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
+            <div className="diary-delete-confirm-body">
+              <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
+              <p className="diary-delete-confirm-text">
+                ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
+              </p>
+              <div className="diary-delete-confirm-actions">
+                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setDeletePostConfirmId(null)} disabled={deletingPost}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="diary-delete-confirm-submit"
+                  disabled={deletingPost}
+                  onClick={async () => {
+                    if (deletingPost) return;
+                    setDeletingPost(true);
+                    try {
+                      await onDeletePost(deletePostConfirmId);
+                      setDeletePostConfirmId(null);
+                    } finally {
+                      setDeletingPost(false);
+                    }
+                  }}
+                >
+                  {deletingPost ? "Eliminando..." : "Eliminar"}
+                </Button>
+              </div>
             </div>
           </SheetCard>
         </SheetOverlay>

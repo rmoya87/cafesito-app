@@ -308,6 +308,8 @@ export function ProfileView({
   const [removeAvatarDraft, setRemoveAvatarDraft] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [postMenuId, setPostMenuId] = useState<string | null>(null);
+  const [deletePostConfirmId, setDeletePostConfirmId] = useState<string | null>(null);
+  const [deletingPost, setDeletingPost] = useState(false);
   const [editPostId, setEditPostId] = useState<string | null>(null);
   const [editPostText, setEditPostText] = useState("");
   const [editPostImageUrl, setEditPostImageUrl] = useState("");
@@ -407,15 +409,34 @@ export function ProfileView({
       if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
     };
   }, []);
+  const profileAvatarSrc = editAvatarPreview || (removeAvatarDraft ? "" : user.avatar_url);
   const content = (
     <>
       <article className="profile-hero profile-hero-card">
         <div className="profile-hero-main">
+          {canEditProfile && showEditProfile ? (
+            <Input
+              ref={editAvatarInputRef}
+              type="file"
+              accept="image/*"
+              className="file-input-hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                if (!file) return;
+                if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
+                const preview = URL.createObjectURL(file);
+                setEditAvatarFile(file);
+                setEditAvatarPreview(preview);
+                setRemoveAvatarDraft(false);
+                event.currentTarget.value = "";
+              }}
+            />
+          ) : null}
           <div className="profile-avatar-wrap" aria-hidden="true">
-            {user.avatar_url && !avatarLoadFailed ? (
+            {profileAvatarSrc && (!avatarLoadFailed || editAvatarPreview) ? (
               <img
                 className="profile-avatar-image"
-                src={user.avatar_url}
+                src={profileAvatarSrc}
                 alt={user.username}
                 loading="lazy" decoding="async"
                 referrerPolicy="no-referrer"
@@ -426,10 +447,54 @@ export function ProfileView({
               <div className="avatar avatar-lg profile-avatar-fallback">{initials}</div>
             )}
           </div>
+          {canEditProfile && showEditProfile ? (
+            <Button
+              variant="ghost"
+              type="button"
+              className="action-button action-button-ghost profile-inline-change-photo"
+              onClick={() => editAvatarInputRef.current?.click()}
+            >
+              Cambiar foto
+            </Button>
+          ) : null}
           <div className="profile-head-copy">
-            <p className="feed-user profile-name">{user.full_name}</p>
-            <p className="feed-meta profile-username">@{user.username}</p>
-            {user.bio ? <p className="profile-bio">{user.bio}</p> : null}
+            {canEditProfile && showEditProfile ? (
+              <div className="profile-inline-edit">
+                <section className="diary-edit-entry-metrics-grid profile-inline-metrics">
+                  <label className="diary-edit-entry-metric-field is-caffeine profile-inline-name-field">
+                    <span>Nombre</span>
+                    <div className="diary-edit-entry-metric-value">
+                      <Input
+                        className="search-wide diary-edit-entry-metric-input profile-inline-name-input"
+                        type="text"
+                        inputMode="text"
+                        value={editNameDraft}
+                        maxLength={120}
+                        onChange={(event) => setEditNameDraft(event.target.value)}
+                      />
+                    </div>
+                  </label>
+                  <label className="diary-edit-entry-metric-field is-caffeine profile-inline-bio-field">
+                    <span>Bio</span>
+                    <div className="diary-edit-entry-metric-value">
+                      <Textarea
+                        className="search-wide diary-edit-entry-metric-input profile-inline-bio-input"
+                        rows={3}
+                        value={editBioDraft}
+                        maxLength={500}
+                        onChange={(event) => setEditBioDraft(event.target.value)}
+                      />
+                    </div>
+                  </label>
+                </section>
+              </div>
+            ) : (
+              <>
+                <p className="feed-user profile-name">{user.full_name}</p>
+                <p className="feed-meta profile-username">@{user.username}</p>
+                {user.bio ? <p className="profile-bio">{user.bio}</p> : null}
+              </>
+            )}
           </div>
         </div>
         {canFollowProfile ? (
@@ -448,6 +513,25 @@ export function ProfileView({
               }}
             >
               {togglingFollow ? "..." : isFollowingProfile ? "Siguiendo" : "Seguir"}
+            </Button>
+          </div>
+        ) : canEditProfile && showEditProfile ? (
+          <div className="profile-head-actions profile-inline-edit-actions">
+            <Button variant="primary"
+              className="action-button profile-inline-save-button"
+              disabled={savingProfile || !editNameDraft.trim()}
+              onClick={async () => {
+                if (!editNameDraft.trim() || savingProfile) return;
+                setSavingProfile(true);
+                try {
+                  await onSaveProfile(user.id, editNameDraft, editBioDraft, editAvatarFile, removeAvatarDraft);
+                  closeEditProfileModal();
+                } finally {
+                  setSavingProfile(false);
+                }
+              }}
+            >
+              {savingProfile ? "Guardando..." : "Guardar"}
             </Button>
           </div>
         ) : null}
@@ -735,101 +819,6 @@ export function ProfileView({
           </ul>
         </>
       ) : null}
-      {showEditProfile ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar perfil" onDismiss={closeEditProfileModal} onClick={closeEditProfileModal}>
-          <SheetCard className="profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">Editar perfil</strong>
-            </header>
-            <div className="diary-sheet-form">
-              <Input
-                ref={editAvatarInputRef}
-                type="file"
-                accept="image/*"
-                className="file-input-hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null;
-                  if (!file) return;
-                  if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
-                  const preview = URL.createObjectURL(file);
-                  setEditAvatarFile(file);
-                  setEditAvatarPreview(preview);
-                  setRemoveAvatarDraft(false);
-                  event.currentTarget.value = "";
-                }}
-              />
-              <div className="profile-edit-avatar-row">
-                <div className="profile-edit-avatar-preview" aria-hidden="true">
-                  {editAvatarPreview || (!removeAvatarDraft && user.avatar_url) ? (
-                    <img src={editAvatarPreview || user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                  ) : (
-                    <span>{initials}</span>
-                  )}
-                </div>
-                <div className="profile-edit-avatar-actions">
-                  <Button variant="ghost" className="action-button action-button-ghost" onClick={() => editAvatarInputRef.current?.click()}>
-                    Cambiar foto
-                  </Button>
-                  {(editAvatarPreview || user.avatar_url) ? (
-                    <Button variant="ghost"
-                      className="action-button action-button-ghost"
-                      onClick={() => {
-                        if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
-                        setEditAvatarPreview("");
-                        setEditAvatarFile(null);
-                        setRemoveAvatarDraft(true);
-                      }}
-                    >
-                      Quitar foto
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-              <label>
-                <span>Nombre</span>
-                <Input
-                  className="search-wide"
-                  value={editNameDraft}
-                  maxLength={60}
-                  onChange={(event) => setEditNameDraft(event.target.value)}
-                />
-              </label>
-              <label>
-                <span>Bio</span>
-                <Textarea
-                  className="search-wide profile-edit-bio"
-                  rows={4}
-                  value={editBioDraft}
-                  maxLength={240}
-                  onChange={(event) => setEditBioDraft(event.target.value)}
-                />
-              </label>
-              <div className="diary-sheet-form-actions">
-                <Button variant="ghost" className="action-button action-button-ghost" onClick={closeEditProfileModal} disabled={savingProfile}>
-                  Cancelar
-                </Button>
-                <Button variant="primary"
-                  className="action-button"
-                  disabled={savingProfile || !editNameDraft.trim()}
-                  onClick={async () => {
-                    if (!editNameDraft.trim() || savingProfile) return;
-                    setSavingProfile(true);
-                    try {
-                      await onSaveProfile(user.id, editNameDraft, editBioDraft, editAvatarFile, removeAvatarDraft);
-                      closeEditProfileModal();
-                    } finally {
-                      setSavingProfile(false);
-                    }
-                  }}
-                >
-                  {savingProfile ? "Guardando..." : "Guardar"}
-                </Button>
-              </div>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
       {showAdnAnalysisSheet && mode !== "desktop" ? (
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => setShowAdnAnalysisSheet(false)} onClick={() => setShowAdnAnalysisSheet(false)}>
           <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
@@ -860,26 +849,23 @@ export function ProfileView({
       ) : null}
       {postMenuId && canEditProfile ? (
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setPostMenuId(null)} onClick={() => setPostMenuId(null)}>
-          <SheetCard className="profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
+          <SheetCard className="diary-sheet diary-sheet-pantry-options profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
-            <div className="comment-action-list">
-              <p className="comment-action-title">OPCIONES</p>
+            <div className="diary-sheet-list">
               <Button variant="plain"
-                className="comment-action-button is-danger"
-                onClick={async () => {
-                  const confirmed = window.confirm("Borrar publicación?");
-                  if (!confirmed) return;
-                  const postId = postMenuId;
+                className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                onClick={() => {
+                  if (!postMenuId) return;
+                  setDeletePostConfirmId(postMenuId);
                   setPostMenuId(null);
-                  if (postId) await onDeletePost(postId);
                 }}
               >
-                <UiIcon name="trash" className="ui-icon" />
+                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
                 <span>Borrar</span>
-                <UiIcon name="chevron-right" className="ui-icon trailing" />
+                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
               </Button>
               <Button variant="plain"
-                className="comment-action-button"
+                className="diary-sheet-action diary-sheet-action-pantry"
                 onClick={() => {
                   const post = posts.find((item) => item.id === postMenuId);
                   if (!post) return;
@@ -890,10 +876,52 @@ export function ProfileView({
                   setPostMenuId(null);
                 }}
               >
-                <UiIcon name="edit" className="ui-icon" />
+                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
                 <span>Editar</span>
-                <UiIcon name="chevron-right" className="ui-icon trailing" />
+                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
               </Button>
+            </div>
+          </SheetCard>
+        </SheetOverlay>
+      ) : null}
+      {deletePostConfirmId ? (
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
+          <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
+            <div className="diary-delete-confirm-body">
+              <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
+              <p className="diary-delete-confirm-text">
+                ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
+              </p>
+              <div className="diary-delete-confirm-actions">
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="diary-delete-confirm-cancel"
+                  onClick={() => setDeletePostConfirmId(null)}
+                  disabled={deletingPost}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="diary-delete-confirm-submit"
+                  disabled={deletingPost}
+                  onClick={async () => {
+                    if (deletingPost) return;
+                    setDeletingPost(true);
+                    try {
+                      await onDeletePost(deletePostConfirmId);
+                      setDeletePostConfirmId(null);
+                    } finally {
+                      setDeletingPost(false);
+                    }
+                  }}
+                >
+                  {deletingPost ? "Eliminando..." : "Eliminar"}
+                </Button>
+              </div>
             </div>
           </SheetCard>
         </SheetOverlay>

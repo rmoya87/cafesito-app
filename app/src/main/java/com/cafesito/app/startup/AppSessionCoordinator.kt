@@ -19,6 +19,8 @@ class AppSessionCoordinator @Inject constructor(
     fun onAuthenticated(userId: Int, scope: CoroutineScope) {
         scope.launch {
             try {
+                val lifecycleResult = userRepository.syncAccountLifecycleOnLogin(userId)
+                if (lifecycleResult == UserRepository.AccountLifecycleSyncResult.Deleted) return@launch
                 syncManager.syncAll()
             } catch (e: Exception) {
                 Log.e("Sync", "Error during initial sync", e)

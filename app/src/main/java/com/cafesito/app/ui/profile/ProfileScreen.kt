@@ -49,6 +49,8 @@ fun ProfileScreen(
     val context = LocalContext.current
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
+    var showDeleteAccountConfirm by rememberSaveable { mutableStateOf(false) }
+    var deletingAccount by rememberSaveable { mutableStateOf(false) }
     var showSensoryDetail by remember { mutableStateOf(false) }
 
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
@@ -70,7 +72,7 @@ fun ProfileScreen(
                     val state = uiState as? ProfileUiState.Success
                     if (state?.isCurrentUser == true) {
                         IconButton(onClick = { showSettingsSheet = true }) {
-                            Icon(Icons.Default.Tune, contentDescription = "Ajustes", tint = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -233,6 +235,7 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
+                        onDeleteAccountClick = { showDeleteAccountConfirm = true },
                         onLogoutClick = {
                             runWithBiometricReauth(
                                 context = context,
@@ -245,11 +248,33 @@ fun ProfileScreen(
                     )
                 }
 
+                if (showDeleteAccountConfirm) {
+                    DeleteConfirmationDialog(
+                        onDismissRequest = {
+                            if (!deletingAccount) showDeleteAccountConfirm = false
+                        },
+                        title = "Eliminar mi cuenta y mis datos",
+                        text = "Tu cuenta quedará inactiva durante 30 días y luego se eliminará con todos tus datos. Si vuelves a iniciar sesión antes, se cancelará el proceso.",
+                        onConfirm = {
+                            if (deletingAccount) return@DeleteConfirmationDialog
+                            deletingAccount = true
+                            viewModel.requestAccountDeletion()
+                            showDeleteAccountConfirm = false
+                            deletingAccount = false
+                        }
+                    )
+                }
+
                 itemToDelete?.let { item ->
+                    val isPostDelete = item is PostWithDetails
                     DeleteConfirmationDialog(
                         onDismissRequest = { itemToDelete = null },
-                        title = "Borrar",
-                        text = "Una vez borrado no se puede recuperar. ¿Estás seguro?",
+                        title = if (isPostDelete) "Eliminar publicación" else "Borrar",
+                        text = if (isPostDelete) {
+                            "¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer."
+                        } else {
+                            "Una vez borrado no se puede recuperar. ¿Estás seguro?"
+                        },
                         onConfirm = {
                             runWithBiometricReauth(
                                 context = context,

@@ -314,7 +314,13 @@ fun StatItem(label: String, value: String, onClick: (() -> Unit)? = null) {
             .padding(8.dp)
     ) {
         Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-        Text(text = label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, letterSpacing = 1.sp)
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 10.sp,
+            letterSpacing = 1.sp
+        )
     }
 }
 
@@ -488,33 +494,74 @@ fun EditProfileFields(
     onSave: () -> Unit,
     usernameError: String?
 ) {
+    val isDark = isSystemInDarkTheme()
+    val fieldBackground = if (isDark) Color.Black else Color.White
+    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val saveBackground = if (isDark) Color.White else CaramelAccent
+    val saveTextColor = if (isDark) Color.Black else Color.White
+    val editFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = fieldBackground,
+        unfocusedContainerColor = fieldBackground,
+        focusedBorderColor = Color.White,
+        unfocusedBorderColor = Color.White,
+        focusedTextColor = fieldTextColor,
+        unfocusedTextColor = fieldTextColor,
+        focusedLabelColor = fieldTextColor.copy(alpha = 0.78f),
+        unfocusedLabelColor = fieldTextColor.copy(alpha = 0.78f)
+    )
+    val editFieldTextStyle = MaterialTheme.typography.bodyLarge.copy(
+        fontWeight = FontWeight.Bold,
+        color = fieldTextColor
+    )
+
     Column(modifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = 8.dp)) {
         OutlinedTextField(
-            value = username, onValueChange = onUsernameChange, label = { Text("Usuario") },
-            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+            value = username,
+            onValueChange = { onUsernameChange(it.take(40)) },
+            label = { Text("Usuario") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
             isError = usernameError != null, supportingText = { if (usernameError != null) Text(usernameError) },
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+            singleLine = true,
+            textStyle = editFieldTextStyle,
+            colors = editFieldColors
         )
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
-            value = fullName, onValueChange = onFullNameChange, label = { Text("Nombre") },
-            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+            value = fullName,
+            onValueChange = { onFullNameChange(it.take(120)) },
+            label = { Text("Nombre") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            singleLine = true,
+            textStyle = editFieldTextStyle,
+            colors = editFieldColors
         )
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
-            value = bio, onValueChange = onBioChange, label = { Text("Bio") },
-            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), minLines = 3,
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+            value = bio,
+            onValueChange = { onBioChange(it.take(500)) },
+            label = { Text("Bio") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            minLines = 3,
+            maxLines = 6,
+            textStyle = editFieldTextStyle,
+            colors = editFieldColors
         )
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = onSave, modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.74f)
+                .align(Alignment.CenterHorizontally)
                 .height(54.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = CaramelAccent), shape = RoundedCornerShape(28.dp)
-        ) { Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Bold, color = Color.White) }
+            colors = ButtonDefaults.buttonColors(
+                containerColor = saveBackground,
+                contentColor = saveTextColor
+            ),
+            shape = RoundedCornerShape(28.dp)
+        ) { Text("GUARDAR", fontWeight = FontWeight.Bold, color = saveTextColor) }
     }
 }

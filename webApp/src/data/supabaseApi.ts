@@ -550,5 +550,94 @@ export async function deleteNotification(notificationId: number): Promise<void> 
   throwIfError(error);
 }
 
+const ACCOUNT_DELETION_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
+const ACCOUNT_STATUS_PENDING = "inactive_pending_deletion";
+const ACCOUNT_STATUS_ACTIVE = "active";
+
+type AccountLifecycleRow = {
+  account_status?: string | null;
+  scheduled_deletion_at?: number | null;
+};
+
+export async function requestAccountDeletion(userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const now = Date.now();
+  const scheduled = now + ACCOUNT_DELETION_GRACE_MS;
+  const { error } = await supabase
+    .from("users_db")
+    .update({
+      account_status: ACCOUNT_STATUS_PENDING,
+      deactivation_requested_at: now,
+      scheduled_deletion_at: scheduled
+    })
+    .eq("id", userId);
+  throwIfError(error);
+}
+
+async function reactivateAccount(userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("users_db")
+    .update({
+      account_status: ACCOUNT_STATUS_ACTIVE,
+      deactivation_requested_at: null,
+      scheduled_deletion_at: null
+    })
+    .eq("id", userId);
+  throwIfError(error);
+}
+
+async function hardDeleteAccountData(userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { data: postsRows } = await supabase.from("posts_db").select("id").eq("user_id", userId);
+  const postIds = ((postsRows ?? []) as Array<{ id?: string | null }>).map((row) => row.id).filter(Boolean) as string[];
+
+  if (postIds.length) {
+    const { error: tagsError } = await supabase.from("post_coffee_tags").delete().in("post_id", postIds);
+    throwIfError(tagsError);
+  }
+
+  const results = await Promise.all([
+    supabase.from("comments_db").delete().eq("user_id", userId),
+    supabase.from("likes_db").delete().eq("user_id", userId),
+    supabase.from("local_favorites").delete().eq("user_id", userId),
+    supabase.from("reviews_db").delete().eq("user_id", userId),
+    supabase.from("coffee_sensory_profiles").delete().eq("user_id", userId),
+    supabase.from("diary_entries").delete().eq("user_id", userId),
+    supabase.from("pantry_items").delete().eq("user_id", userId),
+    supabase.from("notifications_db").delete().eq("user_id", userId),
+    supabase.from("follows").delete().eq("follower_id", userId),
+    supabase.from("follows").delete().eq("followed_id", userId),
+    supabase.from("posts_db").delete().eq("user_id", userId),
+    supabase.from("users_db").delete().eq("id", userId)
+  ]);
+
+  results.forEach((result) => throwIfError(result.error as SupabaseErrorLike));
+}
+
+export async function syncAccountLifecycleAfterLogin(
+  userId: number
+): Promise<"none" | "reactivated" | "deleted"> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("users_db")
+    .select("account_status,scheduled_deletion_at")
+    .eq("id", userId)
+    .single<AccountLifecycleRow>();
+  throwIfError(error);
+
+  const status = String(data?.account_status ?? "");
+  const scheduled = Number(data?.scheduled_deletion_at ?? 0);
+  if (status !== ACCOUNT_STATUS_PENDING) return "none";
+
+  if (Number.isFinite(scheduled) && scheduled > 0 && scheduled <= Date.now()) {
+    await hardDeleteAccountData(userId);
+    return "deleted";
+  }
+
+  await reactivateAccount(userId);
+  return "reactivated";
+}
+
 
 

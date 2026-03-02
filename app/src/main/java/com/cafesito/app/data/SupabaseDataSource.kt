@@ -22,6 +22,11 @@ class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
     @kotlinx.serialization.Serializable
+    data class AccountLifecycleInfo(
+        @kotlinx.serialization.SerialName("account_status") val accountStatus: String? = null,
+        @kotlinx.serialization.SerialName("scheduled_deletion_at") val scheduledDeletionAt: Long? = null
+    )
+    @kotlinx.serialization.Serializable
     private data class UserTokenUpsert(
         @kotlinx.serialization.SerialName("user_id") val userId: Int,
         @kotlinx.serialization.SerialName("fcm_token") val fcmToken: String
@@ -83,6 +88,66 @@ class SupabaseDataSource @Inject constructor(
         ) {
             filter { eq("id", userId) }
         }
+    }
+
+    suspend fun requestAccountDeletion(userId: Int, scheduledDeletionAt: Long) {
+        val now = System.currentTimeMillis()
+        client.postgrest["users_db"].update(
+            {
+                set("account_status", "inactive_pending_deletion")
+                set("deactivation_requested_at", now)
+                set("scheduled_deletion_at", scheduledDeletionAt)
+            }
+        ) {
+            filter { eq("id", userId) }
+        }
+    }
+
+    suspend fun cancelAccountDeletion(userId: Int) {
+        client.postgrest["users_db"].update(
+            {
+                set("account_status", "active")
+                set("deactivation_requested_at", null as Long?)
+                set("scheduled_deletion_at", null as Long?)
+            }
+        ) {
+            filter { eq("id", userId) }
+        }
+    }
+
+    suspend fun getAccountLifecycleInfo(userId: Int): AccountLifecycleInfo? =
+        client.postgrest["users_db"]
+            .select {
+                filter { eq("id", userId) }
+            }
+            .decodeSingleOrNull<AccountLifecycleInfo>()
+
+    suspend fun hardDeleteAccountData(userId: Int) {
+        val postIds = client.postgrest["posts_db"]
+            .select {
+                filter { eq("user_id", userId) }
+            }
+            .decodeList<PostEntity>()
+            .map { it.id }
+
+        if (postIds.isNotEmpty()) {
+            client.postgrest["post_coffee_tags"].delete {
+                filter { isIn("post_id", postIds) }
+            }
+        }
+
+        client.postgrest["comments_db"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["likes_db"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["local_favorites"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["reviews_db"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["coffee_sensory_profiles"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["diary_entries"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["pantry_items"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["notifications_db"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["follows"].delete { filter { eq("follower_id", userId) } }
+        client.postgrest["follows"].delete { filter { eq("followed_id", userId) } }
+        client.postgrest["posts_db"].delete { filter { eq("user_id", userId) } }
+        client.postgrest["users_db"].delete { filter { eq("id", userId) } }
     }
 
     suspend fun insertUserToken(token: UserTokenEntity) {

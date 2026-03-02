@@ -17,6 +17,10 @@ body {
   letter-spacing: 0;
   background: var(--screen-dark-background);
   color: var(--pure-white);
+  /* Sensación app nativa en móvil: sin retardo de tap, sin highlight azul, sin overscroll */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
 }
 
 h1,
@@ -73,6 +77,11 @@ select {
 
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Fallback mínimo mientras se carga un chunk lazy (evita layout shift) */
+.app-content-loading {
+  min-height: 120px;
 }
 
 /* Optimización: imágenes fuera de viewport no bloquean; decoding async se añade en JSX */

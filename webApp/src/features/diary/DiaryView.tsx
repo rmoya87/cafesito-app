@@ -358,6 +358,23 @@ export function DiaryView({
         : (!editEntryIsWater && (!Number.isFinite(parsedEditDose) || parsedEditDose <= 0))
           ? "Introduce una dosis válida."
         : "";
+  const handleSaveEditEntry = async () => {
+    if (!editEntryTarget) return;
+    if (savingEditEntry || !canSaveEditEntry) return;
+    setSavingEditEntry(true);
+    try {
+      await onEditEntry(
+        editEntryTarget.id,
+        parsedEditAmount,
+        editEntryIsWater ? 0 : parsedEditCaffeine,
+        editEntryIsWater ? "Agua" : editPreparationType.trim(),
+        parsedEditTime ?? undefined
+      );
+      setEditEntryId(null);
+    } finally {
+      setSavingEditEntry(false);
+    }
+  };
   const handleEditScrollPointerDown = (event: ReactPointerEvent<HTMLDivElement>, section: "prep" | "size") => {
     const node = section === "prep" ? editPrepScrollRef.current : editSizeScrollRef.current;
     if (!node) return;
@@ -899,8 +916,26 @@ export function DiaryView({
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar entrada" onDismiss={() => setEditEntryId(null)} onClick={() => setEditEntryId(null)}>
           <SheetCard className="diary-sheet diary-edit-entry-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
-            <header className="sheet-header">
+            <header className="sheet-header diary-edit-entry-header">
+              <Button
+                variant="plain"
+                type="button"
+                className="diary-edit-entry-header-action is-cancel"
+                onClick={() => setEditEntryId(null)}
+                disabled={savingEditEntry}
+              >
+                Cancelar
+              </Button>
               <strong className="sheet-title">Editar</strong>
+              <Button
+                variant="plain"
+                type="button"
+                className="diary-edit-entry-header-action is-save"
+                onClick={() => void handleSaveEditEntry()}
+                disabled={savingEditEntry || !canSaveEditEntry}
+              >
+                {savingEditEntry ? "Guardando..." : "Guardar"}
+              </Button>
             </header>
             <div className="diary-sheet-form">
               {editEntryIsWater ? (
@@ -1033,31 +1068,6 @@ export function DiaryView({
                 </div>
               )}
               {!canSaveEditEntry && editValidationMessage ? <p className="diary-inline-error">{editValidationMessage}</p> : null}
-              <div className="diary-sheet-form-actions">
-                <Button variant="plain"
-                  type="button"
-                  className="action-button diary-edit-entry-save"
-                  disabled={savingEditEntry || !canSaveEditEntry}
-                  onClick={async () => {
-                    if (savingEditEntry || !canSaveEditEntry) return;
-                    setSavingEditEntry(true);
-                    try {
-                      await onEditEntry(
-                        editEntryTarget.id,
-                        parsedEditAmount,
-                        editEntryIsWater ? 0 : parsedEditCaffeine,
-                        editEntryIsWater ? "Agua" : editPreparationType.trim(),
-                        parsedEditTime ?? undefined
-                      );
-                      setEditEntryId(null);
-                    } finally {
-                      setSavingEditEntry(false);
-                    }
-                  }}
-                >
-                  {savingEditEntry ? "Guardando..." : "Guardar cambios"}
-                </Button>
-              </div>
             </div>
           </SheetCard>
         </SheetOverlay>

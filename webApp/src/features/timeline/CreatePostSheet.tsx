@@ -71,6 +71,7 @@ export function CreatePostSheet({
                 <IconButton
                   type="button"
                   tone="topbar"
+                  className="create-post-close"
                   aria-label="Cerrar"
                   onClick={onClose}
                 >

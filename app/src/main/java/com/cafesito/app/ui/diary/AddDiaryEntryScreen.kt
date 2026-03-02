@@ -135,7 +135,6 @@ fun AddDiaryEntryScreen(
                     )
                 },
                 navigationIcon = {
-                    val useCloseIcon = initialType == "WATER" || step == 1
                     IconButton(
                         onClick = {
                             if (initialType == "WATER") {
@@ -149,11 +148,7 @@ fun AddDiaryEntryScreen(
                             }
                         }
                     ) {
-                        if (useCloseIcon) {
-                            Icon(Icons.Default.Close, contentDescription = "Cerrar")
-                        } else {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {

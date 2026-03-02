@@ -1,11 +1,14 @@
-# Deploy solo de la webapp a Ionos. Útil para ver el deploy por separado y lanzarlo a mano.
+# Deploy solo de la webapp a Ionos.
 #
 # Se ejecuta:
-# - Al hacer push a Alpha (cualquier cambio).
-# - Manualmente: Actions → Deploy Webapp → Run workflow → elegir rama (default Alpha).
+# - Al hacer push a Alpha.
+# - Manualmente: Actions → Deploy Webapp → Run workflow (elegir rama).
 #
-# Sube el contenido de webApp/dist/ a /cafesito-web/app/ en el servidor (Ionos).
-# Requiere los mismos secrets que Release & Deploy: VITE_SUPABASE_*, IONOS_SSH_*.
+# Genera HTML estáticos por café (prerender con caché) para SEO y previews al compartir.
+# La caché evita regenerar si no cambió la lista de cafés ni el código; no dependes de Git
+# para cambios de contenido si usas el webhook de Supabase (tabla coffees → Edge Function →
+# repository_dispatch) para disparar este workflow o Release & Deploy al dar de alta/baja un café.
+# Requiere: VITE_SUPABASE_*, IONOS_SSH_*, y en servidor SPA fallback para rutas sin HTML estático.
 
 name: Deploy Webapp
 
@@ -69,11 +72,26 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Prerender cafés
+      - name: Restaurar caché páginas café
+        id: prerender_cache
+        uses: actions/cache@v4
+        with:
+          path: webApp/dist/coffee
+          key: coffee-prerender-${{ hashFiles('webApp/index.html', 'webApp/scripts/prerender-coffee-pages.mjs', 'webApp/scripts/get-coffee-prerender-hash.mjs', 'webApp/scripts/update-sitemap-from-dist.mjs', 'webApp/vite.config.ts', 'webApp/package.json', 'webApp/package-lock.json', 'webApp/src/**', 'webApp/public/**') }}-${{ steps.coffee_hash.outputs.hash }}
+
+      - name: Prerender cafés (solo si cambió la lista o el código)
+        if: steps.prerender_cache.outputs.cache-hit != 'true'
         run: node scripts/prerender-coffee-pages.mjs
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
+
+      - name: Actualizar sitemap/robots (si se usó caché)
+        if: steps.prerender_cache.outputs.cache-hit == 'true'
+        run: node scripts/update-sitemap-from-dist.mjs
+        env:
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
       - name: Deploy to Ionos
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6

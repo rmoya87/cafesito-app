@@ -237,6 +237,17 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun requestAccountDeletion() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                userRepository.requestAccountDeletionAndLogout()
+                _loggedOut.value = true
+            } catch (e: Exception) {
+                _error.value = "No se pudo iniciar la eliminación de la cuenta"
+            }
+        }
+    }
+
     fun toggleFollow() {
         viewModelScope.launch(Dispatchers.IO) {
             val me = userRepository.getActiveUser() ?: return@launch

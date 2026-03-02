@@ -213,7 +213,7 @@ function DiarySheets({
                 <UiIcon name="chevron-right" className="ui-icon" />
               </Button>
               <Button variant="plain" type="button" className="diary-sheet-action is-pantry" onClick={onOpenAddPantrySheet}>
-                <UiIcon name="add" className="ui-icon" />
+                <UiIcon name="stock" className="ui-icon" />
                 <span>Añadir a Despensa</span>
                 <UiIcon name="chevron-right" className="ui-icon" />
               </Button>

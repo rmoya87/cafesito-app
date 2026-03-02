@@ -85,6 +85,18 @@ export default defineConfig(({ mode }) => {
   return {
   base: "./",
   envDir: __dirname,
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) return "react";
+          if (id.includes("node_modules/@supabase/")) return "supabase";
+        }
+      }
+    },
+    cssCodeSplit: true,
+    sourcemap: false
+  },
   define: {
     __SUPABASE_URL__: JSON.stringify(supabaseConfig.url),
     __SUPABASE_ANON_KEY__: JSON.stringify(supabaseConfig.anonKey)
@@ -132,6 +144,14 @@ export default defineConfig(({ mode }) => {
             options: {
               cacheName: "supabase-rest-cache",
               networkTimeoutSeconds: 4
+            }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "supabase-storage-cache",
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 }
             }
           }
         ]

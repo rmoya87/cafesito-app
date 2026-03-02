@@ -1,4 +1,4 @@
-project_id = ""
+project_id = "ubcxjmagimjhpsehqync"
 
 [functions.trigger-coffees-build]
 verify_jwt = false
