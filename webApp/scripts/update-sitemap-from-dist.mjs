@@ -1,5 +1,5 @@
 /**
- * Actualiza solo sitemap.xml, sitemap-coffee.xml, sitemap-static.xml y robots.txt
+ * Actualiza solo sitemap.xml, sitemap-pages.xml, sitemap-coffee.xml y robots.txt
  * leyendo los slugs desde dist/coffee/ (ya generados). No llama a Supabase ni regenera HTMLs.
  * Útil cuando hay cache hit en CI: se restaura dist/coffee y solo se refrescan los sitemaps.
  */
@@ -70,11 +70,11 @@ async function main() {
       .map((url) => `  <url><loc>${url}</loc></url>`)
       .join("\n")}\n</urlset>\n`;
 
-  await fs.writeFile(path.join(distDir, "sitemap-static.xml"), urlSetXml(staticUrls), "utf8");
+  await fs.writeFile(path.join(distDir, "sitemap-pages.xml"), urlSetXml(staticUrls), "utf8");
   if (coffeeUrls.length) {
     await fs.writeFile(path.join(distDir, "sitemap-coffee.xml"), urlSetXml(coffeeUrls), "utf8");
   }
-  const sitemapLocations = [`${siteUrl}/sitemap-static.xml`];
+  const sitemapLocations = [`${siteUrl}/sitemap-pages.xml`];
   if (coffeeUrls.length) sitemapLocations.push(`${siteUrl}/sitemap-coffee.xml`);
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapLocations
     .map((loc) => `  <sitemap><loc>${loc}</loc></sitemap>`)

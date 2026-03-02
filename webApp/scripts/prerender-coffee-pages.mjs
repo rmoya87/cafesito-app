@@ -179,12 +179,12 @@ async function main() {
       .map((url) => `  <url><loc>${url}</loc></url>`)
       .join("\n")}\n</urlset>\n`;
 
-  await fs.writeFile(path.join(distDir, "sitemap-static.xml"), urlSetXml(staticUrls), "utf8");
+  await fs.writeFile(path.join(distDir, "sitemap-pages.xml"), urlSetXml(staticUrls), "utf8");
   if (urls.length) {
     await fs.writeFile(path.join(distDir, "sitemap-coffee.xml"), urlSetXml(urls), "utf8");
   }
 
-  const sitemapLocations = [`${siteUrl}/sitemap-static.xml`];
+  const sitemapLocations = [`${siteUrl}/sitemap-pages.xml`];
   if (urls.length) sitemapLocations.push(`${siteUrl}/sitemap-coffee.xml`);
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapLocations
     .map((loc) => `  <sitemap><loc>${loc}</loc></sitemap>`)

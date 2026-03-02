@@ -4,6 +4,8 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+  # favicon.ico → logo.png (evita 500 si el navegador pide /favicon.ico)
+  RewriteRule ^favicon\.ico$ logo.png [L]
   # No reescribir peticiones a assets ni a ficheros estáticos (evita 500)
   RewriteRule ^assets/ - [L]
   RewriteRule ^registerSW\.js$ - [L]

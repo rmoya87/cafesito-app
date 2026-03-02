@@ -1,5 +1,19 @@
 # Despliegue en Ionos
 
+## 500 en /profile/usuario o /favicon.ico
+
+Si ves **500 (Internal Server Error)** al abrir `https://cafesitoapp.com/profile/ramonmoyaromero` o `https://cafesitoapp.com/favicon.ico`, la causa está en la **configuración del servidor**, no en el código:
+
+1. **La raíz del dominio no es la carpeta de la app**  
+   El workflow sube la webapp a `/cafesito-web/app/`. Si el **document root** de `cafesitoapp.com` es otra carpeta (p. ej. `public_html`), las peticiones a `/profile/xxx` o `/favicon.ico` no llegan al `index.html` de la SPA y el servidor puede devolver 500.
+
+2. **Qué hacer en Ionos**
+   - **Opción A (recomendada):** Que el **document root** del dominio (o del subdominio) apunte a la carpeta donde está la app, es decir donde están `index.html` y el `.htaccess` (p. ej. la carpeta que contiene `cafesito-web/app/` o la propia `app/` si reestructuras). Así el `.htaccess` del proyecto se aplica y las rutas sin fichero físico devuelven `index.html` (SPA fallback) con 200.
+   - **Opción B:** Si la raíz no puede ser esa carpeta, en la raíz debe haber un **fallback SPA**: que cualquier ruta que no sea un fichero estático devuelva **200** con el contenido de `index.html` de la app (no 500). En Apache suele ser `FallbackResource /cafesito-web/app/index.html` (o la ruta correcta). En el panel de Ionos, revisar "Página de error 404" / "Rutas no encontradas" y que no apunte a un script que falle (eso genera 500).
+
+3. **favicon.ico**  
+   La app usa `./logo.png` como icono. Algunos navegadores piden igualmente `/favicon.ico`. Si el document root es la carpeta de la app, puedes añadir un `favicon.ico` ahí (o un redirect en el servidor a `logo.png`) para evitar 500 en esa petición.
+
 ## Errores 500 en assets / registerSW.js / logo.png
 
 Si al desplegar en Ionos ves **500** en `registerSW.js`, `assets/index-*.js`, `index-*.css` o `logo.png`, suele deberse a:
