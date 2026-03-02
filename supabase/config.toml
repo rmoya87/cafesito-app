@@ -1,0 +1,4 @@
+project_id = ""
+
+[functions.trigger-coffees-build]
+verify_jwt = false
