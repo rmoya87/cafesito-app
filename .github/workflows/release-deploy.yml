@@ -59,12 +59,12 @@ env:
   TARGET_BRANCH: ${{ github.event.inputs.branch || github.event.client_payload.branch || github.ref_name }}
 
 jobs:
-  # Detecta qué ha cambiado para no subir por subir (en manual trigger se asume que hay cambios)
+  # Detecta qué ha cambiado. En push a Alpha/Beta/Producción siempre sube Android para tener la build al día.
   changes:
     runs-on: ubuntu-latest
     outputs:
-      android: ${{ steps.filter.outputs.android || steps.manual.outputs.android || steps.webhook.outputs.android }}
-      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web || steps.webhook.outputs.web }}
+      android: ${{ steps.force_android.outputs.android || steps.filter.outputs.android || steps.manual.outputs.android || steps.webhook.outputs.android }}
+      web: ${{ steps.force_android.outputs.web || steps.filter.outputs.web || steps.manual.outputs.web || steps.webhook.outputs.web }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,6 +82,14 @@ jobs:
         id: webhook
         run: |
           echo "android=false" >> "$GITHUB_OUTPUT"
+          echo "web=true" >> "$GITHUB_OUTPUT"
+
+      # En push a Alpha/Beta/Producción siempre subir Android y web (ramas de release); así no se quedan desactualizados.
+      - name: Force Android and web on release branches (push)
+        if: github.event_name == 'push' && contains(fromJSON('["Alpha","alpha","Beta","beta","Producción"]'), github.ref_name)
+        id: force_android
+        run: |
+          echo "android=true" >> "$GITHUB_OUTPUT"
           echo "web=true" >> "$GITHUB_OUTPUT"
 
       - uses: dorny/paths-filter@v3
