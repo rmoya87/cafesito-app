@@ -127,19 +127,18 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      // Redirect tras login Google: siempre https://cafesitoapp.com/timeline en producción.
-      // VITE_SITE_URL (build) tiene prioridad; si no está y estamos en cafesitoapp.com, usar la raíz del dominio (no el path actual /cafesito-web/app/).
-      const siteUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim();
-      let base: string;
+      // Redirect tras login: usar siempre la URL donde el usuario abrió la app (origin + app root).
+      // En producción (cafesitoapp.com) la app se sirve en la raíz; no usar VITE_SITE_URL ni path interno (/cafesito-web/app/) para evitar redirigir a una URL incorrecta.
       const isLocalLikeHost =
         typeof window !== "undefined" &&
         /^(localhost|127\.0\.0\.1|::1)$/.test(window.location.hostname);
-      if (siteUrl && import.meta.env.PROD && !isLocalLikeHost) {
-        base = siteUrl.replace(/\/+$/, "");
-      } else if (typeof window !== "undefined" && window.location.hostname === "cafesitoapp.com") {
+      let base: string;
+      if (typeof window !== "undefined" && window.location.hostname === "cafesitoapp.com") {
         base = "https://cafesitoapp.com";
-      } else {
+      } else if (isLocalLikeHost || !import.meta.env.PROD) {
         base = `${window.location.origin}${(getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || ""}`.replace(/\/+$/, "");
+      } else {
+        base = window.location.origin;
       }
       const redirectTo = `${base}/timeline`;
       const { error } = await supabase.auth.signInWithOAuth({

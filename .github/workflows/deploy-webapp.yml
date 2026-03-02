@@ -72,12 +72,13 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
 
+      # Clave por resultado del build + lista de cafés: solo se regeneran HTMLs si cambia el build o los cafés.
       - name: Restaurar caché páginas café
         id: prerender_cache
         uses: actions/cache@v4
         with:
           path: webApp/dist/coffee
-          key: coffee-prerender-${{ hashFiles('webApp/index.html', 'webApp/scripts/prerender-coffee-pages.mjs', 'webApp/scripts/get-coffee-prerender-hash.mjs', 'webApp/scripts/update-sitemap-from-dist.mjs', 'webApp/vite.config.ts', 'webApp/package.json', 'webApp/package-lock.json', 'webApp/src/**', 'webApp/public/**') }}-${{ steps.coffee_hash.outputs.hash }}
+          key: coffee-prerender-${{ hashFiles('webApp/dist/index.html', 'webApp/dist/assets/**') }}-${{ steps.coffee_hash.outputs.hash }}
 
       - name: Prerender cafés (solo si cambió la lista o el código)
         if: steps.prerender_cache.outputs.cache-hit != 'true'
