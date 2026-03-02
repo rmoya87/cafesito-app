@@ -212,15 +212,42 @@ jobs:
 
       - name: Generate release notes
         uses: actions/github-script@v7
+        env:
+          COMMIT_BEFORE: ${{ github.event.before }}
         with:
           script: |
             const fs = require('fs');
-            const promo = [
-              '¡Nueva versión disponible! ☕️',
-              'Mejoramos el rendimiento y la estabilidad para una experiencia más fluida.',
-              'Nuevas mejoras en la app para que disfrutes más rápido tus funciones favoritas.',
-              '¡Actualiza ahora y descubre lo nuevo en Cafesito!',
-            ].join('\n');
+            const { execSync } = require('child_process');
+            const before = process.env.COMMIT_BEFORE;
+            let commits = [];
+            try {
+              if (before) {
+                const out = execSync(`git log ${before}..HEAD --pretty=format:%s --no-merges`, { encoding: 'utf8' });
+                commits = out.trim().split('\n').filter(Boolean);
+              }
+              if (commits.length === 0) {
+                const out = execSync('git log -12 --pretty=format:%s --no-merges', { encoding: 'utf8' });
+                commits = out.trim().split('\n').filter(Boolean);
+              }
+            } catch (e) { commits = []; }
+            const clean = (s) => (s || '')
+              .replace(/\s*\[skip ci\]\s*/gi, '')
+              .replace(/^(fix|feat|chore|docs|style|refactor|perf|test|build|ci)(\([^)]*\))?!?:\s*/i, '')
+              .trim()
+              .slice(0, 55);
+            const lines = commits.slice(0, 6).map(m => clean(m)).filter(Boolean);
+            const intros = [
+              '¡Esta actualización viene cargada de café! ☕',
+              '¿Listo para más Cafesito? Aquí va lo nuevo.',
+              'Mejoramos la app mientras tú mejoras tu café.',
+              'Más estabilidad, más sabor. Lo que sube en esta versión:',
+            ];
+            const intro = intros[Math.floor(Math.random() * intros.length)];
+            const bullets = lines.length
+              ? lines.map(l => '• ' + (l.charAt(0).toUpperCase() + l.slice(1)))
+              : ['Mejoras y ajustes para que tu experiencia sea más fluida.'];
+            let promo = [intro, '', ...bullets, '', '¡Gracias por usar Cafesito!'].join('\n');
+            if (promo.length > 500) promo = promo.slice(0, 497) + '…';
             fs.mkdirSync('release-notes', { recursive: true });
             fs.writeFileSync('release-notes/whatsnew-es-ES', promo);
 
