@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { buildNormalizedOptions, normalizeLookupText, toEventTimestamp, toUiOptionValue } from "../../core/text";
+import { buildNormalizedOptions, normalizeLookupText, splitAtomizedList, toEventTimestamp, toUiOptionValue } from "../../core/text";
 import { toCoffeeSlug } from "../../core/routing";
 import { toRelativeMinutes } from "../../core/time";
 import type {
@@ -98,6 +98,12 @@ export function useAppDerivedData({
   const usersById = useMemo(() => {
     const map = new Map<number, UserRow>();
     users.forEach((user) => map.set(user.id, user));
+    return map;
+  }, [users]);
+
+  const usersByUsername = useMemo(() => {
+    const map = new Map<string, UserRow>();
+    users.forEach((user) => map.set(normalizeLookupText(user.username), user));
     return map;
   }, [users]);
 
@@ -275,21 +281,21 @@ export function useAppDerivedData({
       const queryMatch = !q || byName || byBrand || byOrigin;
       if (!queryMatch) return false;
 
-      const origin = toUiOptionValue(coffee.pais_origen ?? "");
-      const originMatch =
-        !searchSelectedOrigins.size || (origin ? searchSelectedOrigins.has(origin) : false);
+      const origins = splitAtomizedList(coffee.pais_origen).map((item) => toUiOptionValue(item));
+      const originMatch = !searchSelectedOrigins.size || origins.some((item) => searchSelectedOrigins.has(item));
       if (!originMatch) return false;
 
-      const roast = toUiOptionValue(coffee.tueste ?? "");
-      const roastMatch = !searchSelectedRoasts.size || (roast ? searchSelectedRoasts.has(roast) : false);
+      const roasts = splitAtomizedList(coffee.tueste).map((item) => toUiOptionValue(item));
+      const roastMatch = !searchSelectedRoasts.size || roasts.some((item) => searchSelectedRoasts.has(item));
       if (!roastMatch) return false;
 
-      const specialty = toUiOptionValue(coffee.especialidad ?? "");
-      const specialtyMatch = !searchSelectedSpecialties.size || (specialty ? searchSelectedSpecialties.has(specialty) : false);
+      const specialties = splitAtomizedList(coffee.especialidad).map((item) => toUiOptionValue(item));
+      const specialtyMatch =
+        !searchSelectedSpecialties.size || specialties.some((item) => searchSelectedSpecialties.has(item));
       if (!specialtyMatch) return false;
 
-      const format = toUiOptionValue(coffee.formato ?? "");
-      const formatMatch = !searchSelectedFormats.size || (format ? searchSelectedFormats.has(format) : false);
+      const formats = splitAtomizedList(coffee.formato).map((item) => toUiOptionValue(item));
+      const formatMatch = !searchSelectedFormats.size || formats.some((item) => searchSelectedFormats.has(item));
       if (!formatMatch) return false;
 
       if (searchMinRating > 0) {
@@ -635,22 +641,51 @@ export function useAppDerivedData({
   const timelineNotifications = useMemo<TimelineNotificationItem[]>(() => {
     if (!activeUser) return [];
 
+    const normalizeNotificationText = (text: string) => {
+      const trimmed = text.trim().toLowerCase();
+      if (trimmed === "ha respondido en una publicación donde participas") {
+        return "respondió a una publicación";
+      }
+      return text;
+    };
+
+    const parseNotificationTarget = (relatedId: string | null): { postId?: string; commentId?: number } => {
+      if (!relatedId) return {};
+      const delimiter = relatedId.includes(":")
+        ? ":"
+        : relatedId.includes("|")
+          ? "|"
+          : relatedId.includes(";")
+            ? ";"
+            : null;
+      if (!delimiter) return { postId: relatedId };
+      const parts = relatedId.split(delimiter);
+      if (parts.length !== 2) return { postId: relatedId };
+      const commentId = Number(parts[1]);
+      return {
+        postId: parts[0],
+        commentId: Number.isFinite(commentId) ? commentId : undefined
+      };
+    };
+
     return notifications.map((n) => {
       const type = n.type.toLowerCase();
       const isComment = type === "comment" || type === "mention";
       const isFollow = type === "follow";
+      const sender = usersByUsername.get(normalizeLookupText(n.from_username)) ?? usersById.get(n.user_id);
+      const target = isComment ? parseNotificationTarget(n.related_id) : {};
 
       return {
         id: String(n.id),
         type: isFollow ? "follow" : "comment",
-        userId: n.user_id,
-        text: n.message,
+        userId: sender?.id ?? n.user_id,
+        text: normalizeNotificationText(n.message),
         timestamp: n.timestamp,
-        postId: isComment ? n.related_id : undefined,
-        commentId: isComment ? Number(n.related_id) : undefined // Simplification
+        postId: target.postId,
+        commentId: target.commentId
       } as TimelineNotificationItem;
     });
-  }, [activeUser, notifications]);
+  }, [activeUser, notifications, usersById, usersByUsername]);
 
   const visibleTimelineNotifications = useMemo(
     () => timelineNotifications.filter((item) => !dismissedNotificationIds.has(String(item.id))),

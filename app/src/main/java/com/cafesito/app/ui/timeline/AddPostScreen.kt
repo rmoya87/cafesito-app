@@ -619,7 +619,7 @@ private fun PostDetailsStepPremium(
                     },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(999.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White,
@@ -727,7 +727,7 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
                 }
             },
             modifier = Modifier.fillMaxWidth(), 
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(999.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedContainerColor = if (isSystemInDarkTheme()) Color.Black else Color.White,

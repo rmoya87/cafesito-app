@@ -430,7 +430,7 @@ class SocialRepository @Inject constructor(
                     userId = participant.id,
                     type = "COMMENT",
                     fromUsername = author.username,
-                    message = "ha respondido en una publicación donde participas",
+                    message = "respondió a una publicación",
                     timestamp = System.currentTimeMillis(),
                     relatedId = "${comment.postId}:${comment.id}"
                 )

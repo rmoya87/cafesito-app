@@ -493,12 +493,14 @@ export async function updateDiaryEntry(payload: {
   caffeineMg: number;
   amountMl: number;
   preparationType: string;
+  timestampMs?: number;
 }): Promise<DiaryEntryRow> {
   const supabase = getSupabaseClient();
   const row = {
     caffeine_mg: Math.max(0, Math.round(payload.caffeineMg)),
     amount_ml: Math.max(1, Math.round(payload.amountMl)),
-    preparation_type: payload.preparationType.trim() || "None"
+    preparation_type: payload.preparationType.trim() || "None",
+    ...(Number.isFinite(payload.timestampMs) ? { timestamp: Number(payload.timestampMs) } : {})
   };
   const { data, error } = await supabase
     .from("diary_entries")

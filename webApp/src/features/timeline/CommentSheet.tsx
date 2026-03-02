@@ -1,4 +1,5 @@
 import type { MutableRefObject } from "react";
+import { toRelativeMinutes } from "../../core/time";
 import type { CommentRow, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
@@ -94,7 +95,7 @@ export function CommentSheet({
                       )}
                       <div className="comment-copy">
                         {user?.full_name ? <p className="comment-author-name">{user.full_name}</p> : null}
-                        <p className="comment-author">@{user?.username ?? `user${row.user_id}`}</p>
+                        <p className="comment-author comment-time">{toRelativeMinutes(row.timestamp ?? 0).toUpperCase()}</p>
                       </div>
                       {isOwnComment ? (
                         <IconButton type="button" tone="default" className="post-menu-trigger" onClick={() => onOpenMenu(row.id)}>

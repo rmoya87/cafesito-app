@@ -1,4 +1,4 @@
-﻿import type { BrewStep } from "../types";
+import type { BrewStep } from "../types";
 import { normalizeLookupText } from "./text";
 
 export type BrewPhaseInfo = {
@@ -7,9 +7,15 @@ export type BrewPhaseInfo = {
   durationSeconds: number;
 };
 
+export type BrewBaristaTip = {
+  label: string;
+  value: string;
+  icon: "grind" | "thermostat" | "water" | "clock" | "coffee";
+};
+
 export function getBrewStepTitle(step: BrewStep): string {
   if (step === "method") return "ELABORACION";
-  if (step === "coffee") return "ELIGE CAFE";
+  if (step === "coffee") return "ELIGE TU CAFÉ";
   if (step === "config") return "CONFIGURA";
   if (step === "brewing") return "PROCESO EN CURSO";
   return "RESULTADO";
@@ -133,6 +139,124 @@ export function getBrewTimelineForMethod(method: string, waterMl: number): BrewP
       durationSeconds: 35
     }
   ];
+}
+
+export function getBrewBaristaTipsForMethod(method: string): BrewBaristaTip[] {
+  const key = normalizeLookupText(method);
+  const defaults: BrewBaristaTip[] = [
+    { label: "MOLIENDA", value: "Media", icon: "grind" },
+    { label: "TEMPERATURA", value: "92-96°C", icon: "thermostat" },
+    { label: "RATIO", value: "1:15 a 1:17", icon: "coffee" },
+    { label: "BLOOM", value: "30-45s con 2x de agua", icon: "water" },
+    { label: "VERTIDO", value: "Constante y en espiral", icon: "water" },
+    { label: "TIEMPO", value: "2:30-3:30", icon: "clock" },
+    { label: "AJUSTE ACIDEZ", value: "Muele más fino", icon: "grind" },
+    { label: "AJUSTE AMARGOR", value: "Muele más grueso", icon: "grind" }
+  ];
+  if (!key) return defaults;
+
+  if (key.includes("espresso")) {
+    return [
+      { label: "MOLIENDA", value: "Fina", icon: "grind" },
+      { label: "TEMPERATURA", value: "90-94°C", icon: "thermostat" },
+      { label: "RATIO", value: "1:2 (ej. 18g -> 36g)", icon: "coffee" },
+      { label: "TIEMPO", value: "25-32s", icon: "clock" },
+      { label: "DISTRIBUCIÓN", value: "Nivela antes del tamp", icon: "coffee" },
+      { label: "PREINFUSIÓN", value: "Suave para evitar canalización", icon: "water" },
+      { label: "AJUSTE RÁPIDO", value: "Si corre rápido, más fino", icon: "grind" },
+      { label: "AJUSTE LENTO", value: "Si se ahoga, más grueso", icon: "grind" }
+    ];
+  }
+  if (key.includes("italiana")) {
+    return [
+      { label: "MOLIENDA", value: "Media-fina", icon: "grind" },
+      { label: "AGUA", value: "Caliente en base", icon: "water" },
+      { label: "FUEGO", value: "Medio-bajo", icon: "thermostat" },
+      { label: "CORTE", value: "Retira al primer burbujeo", icon: "clock" },
+      { label: "FILTRO", value: "No compactar café", icon: "coffee" },
+      { label: "RATIO", value: "Más café para más cuerpo", icon: "coffee" },
+      { label: "AMARGOR", value: "Evita fuego alto", icon: "thermostat" }
+    ];
+  }
+  if (key.includes("aeropress")) {
+    return [
+      { label: "MOLIENDA", value: "Fina-media", icon: "grind" },
+      { label: "TEMPERATURA", value: "85-92°C", icon: "thermostat" },
+      { label: "INFUSIÓN", value: "1:30-2:00", icon: "clock" },
+      { label: "PRESION", value: "Suave y constante", icon: "coffee" },
+      { label: "REMOVIDO", value: "1-2 agitaciones suaves", icon: "water" },
+      { label: "PAPEL", value: "Más limpieza en taza", icon: "coffee" },
+      { label: "METAL", value: "Más cuerpo y textura", icon: "coffee" }
+    ];
+  }
+  if (key.includes("chemex")) {
+    return [
+      { label: "MOLIENDA", value: "Media-gruesa", icon: "grind" },
+      { label: "TEMPERATURA", value: "93-96°C", icon: "thermostat" },
+      { label: "FILTRO", value: "Enjuague generoso", icon: "water" },
+      { label: "TIEMPO", value: "3:30-4:30", icon: "clock" },
+      { label: "VERTIDO", value: "Pausado, sin colapsar filtro", icon: "water" },
+      { label: "RATIO", value: "1:15 a 1:16", icon: "coffee" },
+      { label: "AJUSTE LENTO", value: "Si drena lento, más grueso", icon: "grind" }
+    ];
+  }
+  if (key.includes("prensa")) {
+    return [
+      { label: "MOLIENDA", value: "Gruesa y uniforme", icon: "grind" },
+      { label: "TEMPERATURA", value: "93-96°C", icon: "thermostat" },
+      { label: "INFUSIÓN", value: "4:00", icon: "clock" },
+      { label: "PRENSADO", value: "Lento, sin golpear", icon: "coffee" },
+      { label: "COSTRA", value: "Romper y retirar espuma", icon: "water" },
+      { label: "RATIO", value: "1:14 a 1:16", icon: "coffee" },
+      { label: "DECANTAR", value: "Servir al terminar", icon: "clock" }
+    ];
+  }
+  if (key.includes("sifon")) {
+    return [
+      { label: "MOLIENDA", value: "Media", icon: "grind" },
+      { label: "TEMPERATURA", value: "91-94°C", icon: "thermostat" },
+      { label: "AGITACION", value: "Suave y breve", icon: "water" },
+      { label: "BAJADA", value: "45-60s al vacío", icon: "clock" },
+      { label: "HERVOR", value: "Controlado, no violento", icon: "thermostat" },
+      { label: "CONTACTO", value: "1:30-2:30 total", icon: "clock" },
+      { label: "FILTRO", value: "Limpio para evitar rancidez", icon: "coffee" }
+    ];
+  }
+  if (key.includes("turco")) {
+    return [
+      { label: "MOLIENDA", value: "Extra fina", icon: "grind" },
+      { label: "FUEGO", value: "Muy bajo", icon: "thermostat" },
+      { label: "ESPUMA", value: "3 levantamientos", icon: "coffee" },
+      { label: "AGUA", value: "Casi ebullición, no hervir", icon: "water" },
+      { label: "REMOVIDO", value: "Solo al inicio", icon: "water" },
+      { label: "DESCANSO", value: "Breve antes de servir", icon: "clock" },
+      { label: "DENSIDAD", value: "Taza corta y concentrada", icon: "coffee" }
+    ];
+  }
+  if (key.includes("goteo")) {
+    return [
+      { label: "MOLIENDA", value: "Media", icon: "grind" },
+      { label: "RATIO", value: "55-65g por litro", icon: "coffee" },
+      { label: "TEMPERATURA", value: "92-96°C", icon: "thermostat" },
+      { label: "SERVICIO", value: "Consumir recién hecho", icon: "clock" },
+      { label: "FILTRO", value: "Enjuagar antes de usar", icon: "water" },
+      { label: "CARGA", value: "Nivelar cama de café", icon: "coffee" },
+      { label: "PLACA", value: "Evitar sobrecalentamiento", icon: "thermostat" }
+    ];
+  }
+  if (key.includes("hario") || key.includes("v60") || key.includes("manual")) {
+    return [
+      { label: "MOLIENDA", value: "Media-fina", icon: "grind" },
+      { label: "BLOOM", value: "30-45s con 2x de agua", icon: "water" },
+      { label: "TEMPERATURA", value: "92-96°C", icon: "thermostat" },
+      { label: "TIEMPO", value: "2:30-3:15", icon: "clock" },
+      { label: "RATIO", value: "1:15 a 1:17", icon: "coffee" },
+      { label: "VERTIDO", value: "Pulsos cortos y constantes", icon: "water" },
+      { label: "AJUSTE ACIDEZ", value: "Muele más fino", icon: "grind" },
+      { label: "AJUSTE AMARGOR", value: "Muele más grueso", icon: "grind" }
+    ];
+  }
+  return defaults;
 }
 
 export function formatClock(totalSeconds: number): string {

@@ -71,7 +71,10 @@ export function useAuthSession(): UseAuthSessionResult {
       // VITE_SITE_URL (build) tiene prioridad; si no está y estamos en cafesitoapp.com, usar la raíz del dominio (no el path actual /cafesito-web/app/).
       const siteUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.trim();
       let base: string;
-      if (siteUrl) {
+      const isLocalLikeHost =
+        typeof window !== "undefined" &&
+        /^(localhost|127\.0\.0\.1|::1)$/.test(window.location.hostname);
+      if (siteUrl && import.meta.env.PROD && !isLocalLikeHost) {
         base = siteUrl.replace(/\/+$/, "");
       } else if (typeof window !== "undefined" && window.location.hostname === "cafesitoapp.com") {
         base = "https://cafesitoapp.com";

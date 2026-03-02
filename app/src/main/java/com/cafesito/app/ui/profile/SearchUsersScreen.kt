@@ -116,7 +116,7 @@ fun SearchUsersScreen(
                                             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                             focusedBorderColor = MaterialTheme.colorScheme.primary
                                         ),
-                                        shape = RoundedCornerShape(32.dp),
+                                        shape = RoundedCornerShape(999.dp),
                                     )
                                 }
                             )

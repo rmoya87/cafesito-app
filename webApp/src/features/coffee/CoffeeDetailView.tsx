@@ -445,37 +445,81 @@ export function CoffeeDetailView({
           <SheetCard className="coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <SheetHeader>
-              <strong className="sheet-title">STOCK EN DESPENSA</strong>
+              <strong className="sheet-title coffee-detail-stock-title">Editar Stock</strong>
             </SheetHeader>
             <div className="coffee-detail-sheet-body coffee-detail-stock">
-              <Input
-                variant="search"
-                className="search-wide search-input-standard"
-                type="number"
-                min={0}
-                value={stockDraft.total}
-                onChange={(event) => {
-                  onStockDraftChange({ ...stockDraft, total: Number(event.target.value) });
-                  if (stockSheetError) setStockSheetError(null);
-                }}
-                placeholder="Total gramos"
-              />
-              <Input
-                className="search-wide"
-                type="number"
-                min={0}
-                value={stockDraft.remaining}
-                onChange={(event) => {
-                  onStockDraftChange({ ...stockDraft, remaining: Number(event.target.value) });
-                  if (stockSheetError) setStockSheetError(null);
-                }}
-                placeholder="Restante gramos"
-              />
+              <section className="coffee-detail-stock-field">
+                <p className="coffee-detail-stock-label">Cantidad de cafe total (g)</p>
+                <Input
+                  className="coffee-detail-stock-value-input"
+                  type="text"
+                  inputMode="numeric"
+                  value={String(stockDraft.total)}
+                  onChange={(event) => {
+                    const nextTotal = Number(event.target.value.replace(/[^0-9]/g, "") || 0);
+                    onStockDraftChange({
+                      total: nextTotal,
+                      remaining: Math.min(Number.isFinite(stockDraft.remaining) ? Math.max(0, stockDraft.remaining) : 0, nextTotal)
+                    });
+                    if (stockSheetError) setStockSheetError(null);
+                  }}
+                  aria-label="Cantidad de cafe total"
+                />
+                <Input
+                  className="coffee-detail-stock-slider"
+                  type="range"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  value={Math.max(0, Math.min(1000, stockDraft.total))}
+                  onChange={(event) => {
+                    const nextTotal = Number(event.target.value);
+                    onStockDraftChange({
+                      total: nextTotal,
+                      remaining: Math.min(Number.isFinite(stockDraft.remaining) ? Math.max(0, stockDraft.remaining) : 0, nextTotal)
+                    });
+                    if (stockSheetError) setStockSheetError(null);
+                  }}
+                  aria-label="Deslizar cantidad total"
+                />
+              </section>
+
+              <section className="coffee-detail-stock-field">
+                <p className="coffee-detail-stock-label">Cantidad de cafe restante (g)</p>
+                <Input
+                  className="coffee-detail-stock-value-input"
+                  type="text"
+                  inputMode="numeric"
+                  value={String(stockDraft.remaining)}
+                  onChange={(event) => {
+                    const nextRemaining = Number(event.target.value.replace(/[^0-9]/g, "") || 0);
+                    onStockDraftChange({
+                      ...stockDraft,
+                      remaining: Math.min(nextRemaining, Math.max(0, stockDraft.total))
+                    });
+                    if (stockSheetError) setStockSheetError(null);
+                  }}
+                  aria-label="Cantidad de cafe restante"
+                />
+                <Input
+                  className="coffee-detail-stock-slider"
+                  type="range"
+                  min={0}
+                  max={Math.max(1, stockDraft.total)}
+                  step={1}
+                  value={Math.max(0, Math.min(stockDraft.remaining, Math.max(1, stockDraft.total)))}
+                  onChange={(event) => {
+                    onStockDraftChange({ ...stockDraft, remaining: Number(event.target.value) });
+                    if (stockSheetError) setStockSheetError(null);
+                  }}
+                  aria-label="Deslizar cantidad restante"
+                />
+              </section>
               {stockSheetError ? <p className="coffee-detail-sheet-error">{stockSheetError}</p> : null}
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions">
               <Button variant="plain"
-                className="action-button action-button-ghost"
+                className="action-button coffee-detail-stock-cancel"
                 disabled={savingStock}
                 onClick={() => {
                   if (savingStock) return;
@@ -483,10 +527,10 @@ export function CoffeeDetailView({
                   setShowStockSheet(false);
                 }}
               >
-                Cancelar
+                CANCELAR
               </Button>
               <Button variant="plain"
-                className="action-button"
+                className="action-button coffee-detail-stock-save"
                 disabled={!canSaveStock || savingStock}
                 onClick={async () => {
                   if (isStockDraftInvalid) {
@@ -507,7 +551,7 @@ export function CoffeeDetailView({
                   }
                 }}
               >
-                {savingStock ? "Guardando..." : "Guardar stock"}
+                {savingStock ? "GUARDANDO..." : "GUARDAR"}
               </Button>
             </div>
           </SheetCard>

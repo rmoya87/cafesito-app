@@ -35,7 +35,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -69,6 +71,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.input.KeyboardType
 import coil.compose.AsyncImage
 import com.cafesito.app.R
 import com.cafesito.app.data.Coffee
@@ -80,6 +83,7 @@ import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.brewlab.BrewLabViewModel
+import com.cafesito.app.ui.brewlab.BaristaTip
 import com.cafesito.app.ui.brewlab.BrewMethod
 import com.cafesito.app.ui.brewlab.BrewPhaseInfo
 import com.cafesito.app.ui.diary.DiaryAnalytics
@@ -183,14 +187,24 @@ fun ChooseCoffeeStep(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "TU DESPENSA",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
             Spacer(Modifier.height(12.dp))
             if (filteredPantry.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         if (searchQuery.isBlank()) "Tu despensa está vacía." else "No hay coincidencias en tu despensa.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -198,9 +212,15 @@ fun ChooseCoffeeStep(
                     )
                 }
             } else {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     items(filteredPantry, key = { it.coffee.id + "_pantry" }) { item ->
                         PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
+                    }
+                    item(key = "brewlab-add-pantry-card") {
+                        PantryAddActionCard(onClick = onAddNotFoundClick)
                     }
                 }
             }
@@ -211,7 +231,10 @@ fun ChooseCoffeeStep(
         }
 
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(horizontal = 24.dp)
+            ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.weight(1f))
@@ -226,7 +249,7 @@ fun ChooseCoffeeStep(
                     onValueChange = onSearchQueryChange,
                     placeholder = { Text("Buscar café...") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(999.dp),
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -240,11 +263,17 @@ fun ChooseCoffeeStep(
 
         if (filteredSuggestions.isEmpty()) {
             item {
-                Text("No hay sugerencias disponibles.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "No hay sugerencias disponibles.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
             }
         } else {
             items(filteredSuggestions, key = { it.coffee.id }) { item ->
-                SimpleCoffeeSelectionCard(item.coffee) { onCoffeeSelected(item.coffee, false) }
+                Box(modifier = Modifier.padding(horizontal = 24.dp)) {
+                    SimpleCoffeeSelectionCard(item.coffee) { onCoffeeSelected(item.coffee, false) }
+                }
             }
         }
         item { Spacer(Modifier.height(80.dp)) }
@@ -270,21 +299,24 @@ fun SimpleCoffeeSelectionCard(coffee: Coffee, onClick: () -> Unit) {
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             )
             Spacer(Modifier.width(16.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = coffee.nombre.toCoffeeNameFormat(),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 @Suppress("DEPRECATION")
                 Text(
                     text = coffee.marca.toCoffeeBrandFormat(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(Modifier.weight(1f))
             Icon(Icons.Filled.Add, null, tint = MaterialTheme.colorScheme.primary)
         }
     }
@@ -297,9 +329,27 @@ fun ConfigStep(
     ratio: Float,
     coffeeGrams: Float,
     valuation: String,
+    baristaTips: List<BaristaTip>,
     viewModel: BrewLabViewModel
 ) {
     val waterBlue = Color(0xFF2196F3)
+    var waterDraft by remember { mutableStateOf(water.roundToInt().toString()) }
+    var coffeeDraft by remember { mutableStateOf(formatDecimalWithComma(coffeeGrams)) }
+    LaunchedEffect(water) {
+        waterDraft = water.roundToInt().toString()
+    }
+    LaunchedEffect(coffeeGrams) {
+        coffeeDraft = formatDecimalWithComma(coffeeGrams)
+    }
+    val ratioProfile = remember(ratio) {
+        when {
+            ratio <= 13f -> "INTENSO"
+            ratio <= 15f -> "INTENSO"
+            ratio <= 17f -> "EQUILIBRADO"
+            ratio <= 19f -> "LIGERO"
+            else -> "MUY LIGERO"
+        }
+    }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier
             .weight(1f)
@@ -312,9 +362,38 @@ fun ConfigStep(
                 Column(Modifier.padding(24.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         if (method?.hasWaterAdjustment == true) {
-                            DataBlock("AGUA", "${water.roundToInt()} ml", waterBlue)
+                            BrewMetricInputBlock(
+                                label = "Agua (ml)",
+                                value = waterDraft,
+                                valueColor = waterBlue,
+                                keyboardType = KeyboardType.Number,
+                                modifier = Modifier.weight(1f),
+                                onValueChange = { raw ->
+                                    val filtered = raw.filter { it.isDigit() }
+                                    waterDraft = filtered
+                                    filtered.toFloatOrNull()?.let { parsed ->
+                                        viewModel.setWaterAmount(parsed.coerceIn(50f, 1000f))
+                                    }
+                                }
+                            )
+                            Spacer(Modifier.width(14.dp))
                         }
-                        DataBlock("CAFÉ", "${String.format("%.1f", coffeeGrams)} g", MaterialTheme.colorScheme.primary)
+                        BrewMetricInputBlock(
+                            label = "Café (g)",
+                            value = coffeeDraft,
+                            valueColor = MaterialTheme.colorScheme.primary,
+                            keyboardType = KeyboardType.Decimal,
+                            modifier = Modifier.weight(1f),
+                            onValueChange = { raw ->
+                                val normalized = raw.replace(",", ".")
+                                if (normalized.count { it == '.' } > 1) return@BrewMetricInputBlock
+                                if (normalized.any { !it.isDigit() && it != '.' }) return@BrewMetricInputBlock
+                                coffeeDraft = raw
+                                normalized.toFloatOrNull()?.let { parsed ->
+                                    viewModel.setCoffeeGrams(parsed)
+                                }
+                            }
+                        )
                     }
 
                     if (method?.hasWaterAdjustment == true) {
@@ -328,7 +407,7 @@ fun ConfigStep(
                     }
 
                     Spacer(Modifier.height(24.dp))
-                    val label = if (method?.hasWaterAdjustment == true) "RATIO (INTENSIDAD)" else "DOSIS DE CAFÉ"
+                    val label = "RATIO 1:${ratio.roundToInt()} · $ratioProfile"
                     val range = if (method?.hasWaterAdjustment == true) 10f..20f else 14f..22f
 
                     @Suppress("DEPRECATION")
@@ -371,11 +450,23 @@ fun ConfigStep(
             @Suppress("DEPRECATION")
             Text("CONSEJOS DEL BARISTA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                LocalDetailBlock("MOLIENDA", method?.grindSize ?: "Media", Icons.Default.Grain, Modifier.weight(1f))
-                LocalDetailBlock("TEMPERATURA", method?.tempRange ?: "92-96°C", Icons.Default.Thermostat, Modifier.weight(1f))
+            val baristaColumns = remember(baristaTips) { baristaTips.chunked(3) }
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(baristaColumns) { columnTips ->
+                    Column(
+                        modifier = Modifier.widthIn(min = 220.dp, max = 260.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        columnTips.forEach { tip ->
+                            BaristaTipPill(tip = tip, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
             }
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(28.dp))
         }
 
     }
@@ -887,6 +978,45 @@ fun DataBlock(label: String, value: String, valueColor: Color) {
 }
 
 @Composable
+fun BrewMetricInputBlock(
+    label: String,
+    value: String,
+    valueColor: Color,
+    keyboardType: KeyboardType,
+    modifier: Modifier = Modifier,
+    onValueChange: (String) -> Unit
+) {
+    Column(modifier = modifier) {
+        @Suppress("DEPRECATION")
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box(
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.Transparent)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.displaySmall.copy(
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Black,
+                    color = valueColor
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                modifier = Modifier.widthIn(min = 92.dp, max = 170.dp)
+            )
+        }
+    }
+}
+
+private fun formatDecimalWithComma(value: Float): String {
+    return String.format(Locale.US, "%.1f", value).replace('.', ',')
+}
+
+@Composable
 fun TasteOption(label: String, isSelected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
@@ -950,20 +1080,46 @@ fun WaterWaveAnimation(
 }
 
 @Composable
-fun LocalDetailBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+private fun baristaTipIcon(iconKey: String): ImageVector {
+    return when (iconKey) {
+        "grind" -> Icons.Default.Grain
+        "thermostat" -> Icons.Default.Thermostat
+        "water" -> Icons.Default.WaterDrop
+        "clock" -> Icons.Default.AccessTime
+        "coffee" -> Icons.Default.Coffee
+        else -> Icons.Default.AutoAwesome
+    }
+}
+
+@Composable
+fun BaristaTipPill(tip: BaristaTip, modifier: Modifier = Modifier) {
+    val icon = baristaTipIcon(tip.iconKey)
     PremiumCard(modifier = modifier) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .heightIn(min = 52.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(Modifier
-                .size(32.dp)
+                .size(26.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Column {
                 @Suppress("DEPRECATION")
-                Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
+                Text(text = tip.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
                 @Suppress("DEPRECATION")
-                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = tip.value,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 15.sp
+                )
             }
         }
     }

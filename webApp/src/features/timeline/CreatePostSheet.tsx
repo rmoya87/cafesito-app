@@ -27,6 +27,8 @@ export function CreatePostSheet({
   setCoffeeQuery,
   filteredCoffees,
   selectedCoffeeId,
+  showBarcodeButton,
+  onBarcodeClick,
   onSelectCoffee
 }: {
   open: boolean;
@@ -52,6 +54,8 @@ export function CreatePostSheet({
   setCoffeeQuery: (value: string) => void;
   filteredCoffees: CoffeeRow[];
   selectedCoffeeId: string;
+  showBarcodeButton?: boolean;
+  onBarcodeClick?: () => void;
   onSelectCoffee: (coffeeId: string) => void;
 }) {
   const [coffeeSearchFocus, setCoffeeSearchFocus] = useState(false);
@@ -169,16 +173,30 @@ export function CreatePostSheet({
             </header>
             <div className="create-post-coffee-body">
               <div className={`search-row-with-cancel ${showCoffeeSearchCancel ? "has-cancel" : ""}`.trim()}>
-                <Input
-                  variant="search"
-                  className="search-wide"
-                  placeholder="Buscar café"
-                  value={coffeeQuery}
-                  onChange={(event) => setCoffeeQuery(event.target.value)}
-                  onFocus={() => setCoffeeSearchFocus(true)}
-                  onBlur={() => setCoffeeSearchFocus(false)}
-                  aria-label="Buscar café"
-                />
+                <div className="search-coffee-field">
+                  <UiIcon name="search" className="ui-icon search-coffee-leading-icon" aria-hidden="true" />
+                  <Input
+                    variant="search"
+                    className="search-wide search-coffee-input"
+                    placeholder="Buscar café"
+                    value={coffeeQuery}
+                    onChange={(event) => setCoffeeQuery(event.target.value)}
+                    onFocus={() => setCoffeeSearchFocus(true)}
+                    onBlur={() => setCoffeeSearchFocus(false)}
+                    aria-label="Buscar café"
+                  />
+                  {showBarcodeButton && onBarcodeClick ? (
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="search-coffee-trailing-button"
+                      aria-label="Escanear código de barras"
+                      onClick={() => onBarcodeClick()}
+                    >
+                      <UiIcon name="barcode" className="ui-icon" />
+                    </Button>
+                  ) : null}
+                </div>
                 <Button
                   variant="text"
                   type="button"

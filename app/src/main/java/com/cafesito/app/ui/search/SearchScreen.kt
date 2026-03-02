@@ -20,6 +20,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -231,7 +232,7 @@ private fun SearchTopBar(
                                             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                             focusedBorderColor = MaterialTheme.colorScheme.primary
                                         ),
-                                        shape = RoundedCornerShape(32.dp),
+                                        shape = RoundedCornerShape(999.dp),
                                     )
                                 }
                             )
@@ -295,6 +296,7 @@ private fun FilterChipsRow(
     onFilterClick: (String) -> Unit,
     isLoading: Boolean
 ) {
+    val optionBackground = if (isSystemInDarkTheme()) PureBlack else PureWhite
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -307,8 +309,8 @@ private fun FilterChipsRow(
                 val count = filterCounts[filter] ?: 0
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (count > 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, if (count > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
+                    color = optionBackground,
+                    border = BorderStroke(1.dp, if (count > 0) CaramelAccent else MaterialTheme.colorScheme.outline),
                     modifier = Modifier.clickable { onFilterClick(filter) }
                 ) {
                     Row(
@@ -629,6 +631,7 @@ private fun FilterSelectionContent(
     onOptionToggle: (String) -> Unit,
     onClearAll: () -> Unit
 ) {
+    val optionBackground = if (isSystemInDarkTheme()) PureBlack else PureWhite
     Column {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
@@ -643,25 +646,37 @@ private fun FilterSelectionContent(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
         ) {
             items(options) { option ->
-                Row(
-                    Modifier
+                val isSelected = selectedValues.contains(option)
+                Surface(
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onOptionToggle(option) }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(vertical = 4.dp)
+                        .clickable { onOptionToggle(option) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = optionBackground,
+                    border = BorderStroke(1.dp, if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
                 ) {
-                    Checkbox(
-                        checked = selectedValues.contains(option),
-                        onCheckedChange = { onOptionToggle(option) },
-                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Text(
-                        text = option,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { onOptionToggle(option) },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = CaramelAccent,
+                                uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                checkmarkColor = PureWhite
+                            ),
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Text(
+                            text = option,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
                 }
             }
             item { 

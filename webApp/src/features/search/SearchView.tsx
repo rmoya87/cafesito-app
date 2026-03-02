@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import type { CoffeeRow, UserRow } from "../../types";
-import { Button, Chip, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
+import { Button, Chip, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
 
 const SEARCH_PAGE_SIZE = 15;
@@ -306,19 +306,6 @@ export function SearchView({
             <SheetOverlay role="dialog" aria-modal="true" aria-label="Filtros" onClick={() => onSetActiveFilterType(null)}>
               <SheetCard className="search-filter-sheet" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
-                <SheetHeader>
-                  <strong className="sheet-title">
-                    {activeFilterType === "origen"
-                      ? "FILTRAR POR PAIS"
-                      : activeFilterType === "tueste"
-                        ? "FILTRAR POR TUESTE"
-                        : activeFilterType === "especialidad"
-                          ? "FILTRAR POR ESPECIALIDAD"
-                          : activeFilterType === "formato"
-                            ? "FILTRAR POR FORMATO"
-                            : "FILTRAR POR NOTA"}
-                  </strong>
-                </SheetHeader>
                 <div className="search-filter-actions">
                   <Button variant="text" onClick={onClearCoffeeFilters}>
                     Limpiar filtros

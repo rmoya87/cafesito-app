@@ -50,7 +50,6 @@ function DiarySheets({
   setDiaryPantryCoffeeIdDraft,
   diaryPantryGramsDraft,
   setDiaryPantryGramsDraft,
-  bumpPantryGrams,
   onSavePantry,
   selectedDiaryPantryCoffee,
   createCoffeeFormContent,
@@ -114,7 +113,6 @@ function DiarySheets({
   setDiaryPantryCoffeeIdDraft: (value: string) => void;
   diaryPantryGramsDraft: string;
   setDiaryPantryGramsDraft: (value: string) => void;
-  bumpPantryGrams: (delta: number) => void;
   onSavePantry: () => Promise<void>;
   selectedDiaryPantryCoffee: CoffeeRow | null;
   createCoffeeFormContent?: ReactNode;
@@ -240,7 +238,7 @@ function DiarySheets({
                 <Button variant="plain"
                   key={option.value}
                   type="button"
-                  className={`diary-sheet-action ${diaryPeriod === option.value ? "is-active" : ""}`.trim()}
+                  className={`diary-sheet-action diary-period-option ${diaryPeriod === option.value ? "is-active" : ""}`.trim()}
                   onClick={() => {
                     setDiaryPeriod(option.value);
                     onClosePeriodSheet();
@@ -676,8 +674,15 @@ function DiarySheets({
       ) : null}
 
       {showAddPantrySheet ? (
-        <SheetOverlay className="diary-pantry-sheet-overlay" role="dialog" aria-modal="true" aria-label="Añadir a despensa" onDismiss={onCloseAddPantrySheet} onClick={onCloseAddPantrySheet}>
-          <SheetCard className="diary-sheet diary-pantry-sheet" onClick={(event) => event.stopPropagation()}>
+        <SheetOverlay
+          className={pantrySheetStep === "form" ? "diary-add-stock-overlay" : "diary-pantry-sheet-overlay"}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Añadir a despensa"
+          onDismiss={onCloseAddPantrySheet}
+          onClick={onCloseAddPantrySheet}
+        >
+          <SheetCard className={`diary-sheet ${pantrySheetStep === "form" ? "diary-add-stock-sheet" : "diary-pantry-sheet"}`.trim()} onClick={(event) => event.stopPropagation()}>
             {pantrySheetStep === "select" ? (
               <>
                 <SheetHandle aria-hidden="true" />
@@ -772,60 +777,21 @@ function DiarySheets({
             ) : (
               <>
                 <SheetHandle aria-hidden="true" />
-                <header className="sheet-header diary-pantry-form-header">
-                  <Button variant="plain" type="button" className="diary-pantry-form-back" onClick={() => setPantrySheetStep("select")} aria-label="Volver">
-                    <UiIcon name="arrow-left" className="ui-icon" />
-                  </Button>
-                  <strong className="sheet-title">AÑADIR A DESPENSA</strong>
-                  <span aria-hidden="true" />
+                <header className="sheet-header diary-add-stock-header">
+                  <strong className="sheet-title">AÑADIR STOCK</strong>
                 </header>
                 <div className="diary-sheet-form">
-                  {selectedDiaryPantryCoffee ? (
-                    <div className="diary-edit-entry-preview" aria-hidden="true">
-                      <div className="diary-entry-media">
-                        {selectedDiaryPantryCoffee.image_url ? (
-                          <img src={selectedDiaryPantryCoffee.image_url} alt={selectedDiaryPantryCoffee.nombre} loading="lazy" decoding="async" />
-                        ) : (
-                          <img className="diary-entry-fallback-drawable" src="/android-drawable/taza_mediano.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-                        )}
-                      </div>
-                      <div className="diary-entry-copy">
-                        <p className="feed-user">{selectedDiaryPantryCoffee.nombre}</p>
-                        <p className="feed-meta diary-entry-brand">{(selectedDiaryPantryCoffee.marca || "CAFÉ").toUpperCase()}</p>
-                      </div>
-                    </div>
-                  ) : null}
-                  <div className="diary-water-presets diary-edit-entry-presets is-water">
-                    {[100, 250, 500].map((value) => (
-                      <Button variant="plain"
-                        key={value}
-                        type="button"
-                        className={`chip-button period-chip ${Number(diaryPantryGramsDraft) === value ? "is-active" : ""}`.trim()}
-                        onClick={() => setDiaryPantryGramsDraft(String(value))}
-                      >
-                        {value} g
-                      </Button>
-                    ))}
-                  </div>
-                  <label>
-                    <span>Gramos a añadir</span>
-                    <div className="diary-edit-entry-measure">
-                      <Button variant="plain" type="button" className="diary-edit-entry-step" aria-label="Reducir gramos" onClick={() => bumpPantryGrams(-25)}>
-                        -
-                      </Button>
-                      <Input
-                        className="search-wide diary-edit-entry-input"
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        value={diaryPantryGramsDraft}
-                        onChange={(event) => setDiaryPantryGramsDraft(event.target.value)}
-                      />
-                      <span className="diary-edit-entry-unit" aria-hidden="true">g</span>
-                      <Button variant="plain" type="button" className="diary-edit-entry-step" aria-label="Aumentar gramos" onClick={() => bumpPantryGrams(25)}>
-                        +
-                      </Button>
-                    </div>
+                  <div className="diary-add-stock-simple" aria-hidden="true">
+                    <p className="diary-add-stock-simple-label">Peso total (g)</p>
+                    <Input
+                      className="diary-add-stock-simple-input"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      value={diaryPantryGramsDraft}
+                      onChange={(event) => setDiaryPantryGramsDraft(event.target.value)}
+                      aria-label="Peso total en gramos"
+                    />
                     <Input
                       className="app-range app-range--caramel"
                       type="range"
@@ -835,14 +801,12 @@ function DiarySheets({
                       value={Math.max(1, Number(diaryPantryGramsDraft || 1))}
                       style={{ "--range-progress": `${((Math.max(1, Number(diaryPantryGramsDraft || 1)) - 1) / 1999) * 100}%` } as React.CSSProperties}
                       onChange={(event) => setDiaryPantryGramsDraft(String(Math.max(1, Number(event.target.value || 1))))}
+                      aria-label="Selector de peso total"
                     />
-                  </label>
+                  </div>
                   <div className="diary-sheet-form-actions">
-                    <Button variant="plain" type="button" className="action-button action-button-ghost diary-edit-entry-cancel" onClick={onCloseAddPantrySheet}>
-                      Cancelar
-                    </Button>
-                    <Button variant="plain" type="button" className="action-button diary-edit-entry-save" disabled={!selectedDiaryPantryCoffee} onClick={() => void onSavePantry()}>
-                      Guardar
+                    <Button variant="plain" type="button" className="action-button diary-add-stock-save" disabled={!selectedDiaryPantryCoffee} onClick={() => void onSavePantry()}>
+                      GUARDAR EN DESPENSA
                     </Button>
                   </div>
                 </div>

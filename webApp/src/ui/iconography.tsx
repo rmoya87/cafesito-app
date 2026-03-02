@@ -1,5 +1,6 @@
 export type IconName =
   | "auto_graph"
+  | "insights"
   | "home"
   | "search"
   | "barcode"
@@ -32,6 +33,7 @@ export type IconName =
   | "process"
   | "variety"
   | "grind"
+  | "dose"
   | "caffeine"
   | "arrow-left"
   | "arrow-right"
@@ -86,6 +88,7 @@ export function MaterialSymbolIcon({
 }: {
   symbol:
   | "auto_graph"
+  | "insights"
   | "book"
   | "auto_awesome"
   | "science"
@@ -125,6 +128,9 @@ export function MaterialSymbolIcon({
 export function UiIcon({ name, className }: { name: IconName; className?: string }) {
   if (name === "auto_graph") {
     return <MaterialSymbolIcon symbol="auto_graph" filled={true} className={className} />;
+  }
+  if (name === "insights") {
+    return <MaterialSymbolIcon symbol="insights" filled={false} className={className} />;
   }
   if (name === "nav-home-outline") {
     return (
@@ -309,11 +315,10 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     return <MaterialSymbolIcon symbol="storefront" filled={false} className={className} />;
   }
   if (name === "caffeine") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M13.5 2 6 13h5l-1 9 8-12h-5.5z" />
-      </svg>
-    );
+    return <img src="/android-drawable/grano_cafe.png" className={className} alt="" aria-hidden="true" />;
+  }
+  if (name === "dose") {
+    return <img src="/android-drawable/portafiltro.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "leaf") {
     return <MaterialSymbolIcon symbol="energy_savings_leaf" filled={false} className={className} />;
@@ -459,7 +464,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     );
   }
   if (name === "sparkles") {
-    return <MaterialSymbolIcon symbol="auto_awesome" filled={false} className={className} />;
+    return <MaterialSymbolIcon symbol="auto_awesome" filled={true} className={className} />;
   }
   if (name === "bolt") {
     return (

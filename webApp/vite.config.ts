@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import mkcert from "vite-plugin-mkcert";
 import { fileURLToPath } from "url";
 import path from "path";
 import fs from "fs";
@@ -94,6 +95,7 @@ export default defineConfig(({ mode }) => {
   plugins: [
     injectSupabaseConfig,
     react(),
+    mkcert(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "logo.png"],
@@ -137,6 +139,7 @@ export default defineConfig(({ mode }) => {
     })
   ],
   server: {
+    https: mode === "development",
     host: "0.0.0.0",
     port: 4173
   },
@@ -161,7 +164,7 @@ export default defineConfig(({ mode }) => {
         const parsed = new URL(url, "http://localhost");
         const userId = parsed.searchParams.get("userId") ?? "1924119502";
         const host = req.headers.host ?? "localhost:4173";
-        const redirectTo = `http://${host}/timeline`;
+        const redirectTo = `https://${host}/timeline`;
         const { createClient } = await import("@supabase/supabase-js");
         const admin = createClient(supabaseUrl, serviceRoleKey, {
           auth: { autoRefreshToken: false, persistSession: false }

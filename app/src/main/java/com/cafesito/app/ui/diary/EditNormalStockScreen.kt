@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.cafesito.app.R
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.ui.theme.*
 import java.util.Locale
@@ -103,7 +105,13 @@ fun EditNormalStockScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                trailingIcon = { Icon(Icons.Default.Scale, null, tint = MaterialTheme.colorScheme.primary) },
+                                trailingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.portafiltro),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                             )

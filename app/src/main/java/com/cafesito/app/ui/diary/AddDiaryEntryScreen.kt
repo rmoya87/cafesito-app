@@ -411,7 +411,7 @@ fun CoffeeSelectionStepPremium(
                 onValueChange = onSearchQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Busca un café o marca") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(999.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedContainerColor = if (isDark) Color.Black else Color.White,

@@ -93,9 +93,11 @@ import com.cafesito.app.ui.profile.ProfileViewModel
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
+import com.cafesito.app.ui.utils.formatRelativeTime
 import kotlin.text.Regex
 import kotlin.text.RegexOption
 import kotlinx.coroutines.launch
+import java.text.Normalizer
 import java.text.SimpleDateFormat
 import java.io.File
 import java.util.Calendar
@@ -476,71 +478,88 @@ fun NotificationsBottomSheet(
                     Text("No tienes notificaciones", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
+                val groupedNotifications = remember(notifications) {
+                    groupNotificationsByRange(notifications)
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(notifications, key = { it.id }) { notification ->
-                        val isUnread = notification.id in unreadIds
-                        when (notification) {
-                            is TimelineNotification.Follow -> {
-                                NotificationRow(
-                                    avatarUrl = notification.user.avatarUrl,
-                                    title = "@${notification.user.username}",
-                                    subtitle = "ha comenzado a seguirte",
-                                    isUnread = isUnread,
-                                    trailingContent = {
-                                        val isFollowing = followingIds.contains(notification.user.id)
-                                        val buttonColors = if (isFollowing) {
-                                            ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        } else {
-                                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                        }
-                                        val buttonModifier = Modifier.height(32.dp)
-                                        if (isFollowing) {
-                                            OutlinedButton(
-                                                onClick = { onFollowToggle(notification.user.id) },
-                                                modifier = buttonModifier,
-                                                shape = RoundedCornerShape(12.dp),
-                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                                colors = buttonColors
-                                            ) {
-                                                Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    groupedNotifications.forEachIndexed { index, section ->
+                        item(key = "notif-header-${section.key}") {
+                            Text(
+                                text = section.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = if (index == 0) 2.dp else 10.dp, bottom = 2.dp)
+                            )
+                        }
+
+                        items(section.items, key = { it.id }) { notification ->
+                            val isUnread = notification.id in unreadIds
+                            when (notification) {
+                                is TimelineNotification.Follow -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = "ha comenzado a seguirte",
+                                        isUnread = isUnread,
+                                        trailingContent = {
+                                            val isFollowing = followingIds.contains(notification.user.id)
+                                            val buttonColors = if (isFollowing) {
+                                                ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            } else {
+                                                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                             }
-                                        } else {
-                                            Button(
-                                                onClick = { onFollowToggle(notification.user.id) },
-                                                modifier = buttonModifier,
-                                                shape = RoundedCornerShape(12.dp),
-                                                colors = buttonColors
-                                            ) {
-                                                Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
+                                            val buttonModifier = Modifier.height(32.dp)
+                                            if (isFollowing) {
+                                                OutlinedButton(
+                                                    onClick = { onFollowToggle(notification.user.id) },
+                                                    modifier = buttonModifier,
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                                    colors = buttonColors
+                                                ) {
+                                                    Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                }
+                                            } else {
+                                                Button(
+                                                    onClick = { onFollowToggle(notification.user.id) },
+                                                    modifier = buttonModifier,
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    colors = buttonColors
+                                                ) {
+                                                    Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
+                                                }
                                             }
-                                        }
-                                    },
-                                    onClick = { onNotificationClick(notification) }
-                                )
-                            }
-                            is TimelineNotification.Mention -> {
-                                NotificationRow(
-                                    avatarUrl = notification.user.avatarUrl,
-                                    title = "@${notification.user.username}",
-                                    subtitle = "Te han mencionado.",
-                                    isUnread = isUnread,
-                                    trailingContent = null,
-                                    onClick = { onNotificationClick(notification) }
-                                )
-                            }
-                            is TimelineNotification.Comment -> {
-                                NotificationRow(
-                                    avatarUrl = notification.user.avatarUrl,
-                                    title = "@${notification.user.username}",
-                                    subtitle = "Te ha escrito en un post",
-                                    isUnread = isUnread,
-                                    trailingContent = null,
-                                    onClick = { onNotificationClick(notification) }
-                                )
+                                        },
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
+                                is TimelineNotification.Mention -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = notification.commentText,
+                                        isUnread = isUnread,
+                                        trailingContent = null,
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
+                                is TimelineNotification.Comment -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = notification.message,
+                                        isUnread = isUnread,
+                                        trailingContent = null,
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -602,6 +621,49 @@ private fun NotificationRow(
     }
 }
 
+private data class NotificationSection(
+    val key: String,
+    val title: String,
+    val items: List<TimelineNotification>
+)
+
+private fun groupNotificationsByRange(notifications: List<TimelineNotification>): List<NotificationSection> {
+    if (notifications.isEmpty()) return emptyList()
+    val calendar = java.util.Calendar.getInstance().apply {
+        set(java.util.Calendar.HOUR_OF_DAY, 0)
+        set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0)
+        set(java.util.Calendar.MILLISECOND, 0)
+    }
+    val todayStart = calendar.timeInMillis
+    val oneDayMs = 24L * 60L * 60L * 1000L
+    val yesterdayStart = todayStart - oneDayMs
+    val last7Start = todayStart - oneDayMs * 7
+    val last30Start = todayStart - oneDayMs * 30
+
+    val today = mutableListOf<TimelineNotification>()
+    val yesterday = mutableListOf<TimelineNotification>()
+    val last7 = mutableListOf<TimelineNotification>()
+    val last30 = mutableListOf<TimelineNotification>()
+
+    notifications.forEach { notification ->
+        when {
+            notification.timestamp >= todayStart -> today += notification
+            notification.timestamp >= yesterdayStart -> yesterday += notification
+            notification.timestamp >= last7Start -> last7 += notification
+            notification.timestamp >= last30Start -> last30 += notification
+            else -> last30 += notification
+        }
+    }
+
+    return listOf(
+        NotificationSection("today", "Hoy", today),
+        NotificationSection("yesterday", "Ayer", yesterday),
+        NotificationSection("last7", "Últimos 7 días", last7),
+        NotificationSection("last30", "Últimos 30 días", last30)
+    ).filter { it.items.isNotEmpty() }
+}
+
 @Composable
 private fun CommentRow(
     commentWithAuthor: CommentWithAuthor,
@@ -644,6 +706,12 @@ private fun CommentRow(
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.clickable { author?.id?.let { onNavigateToProfile(it) } }
+            )
+            Text(
+                text = formatRelativeTime(comment.timestamp).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                fontWeight = FontWeight.Normal
             )
 
             MentionText(
@@ -1094,6 +1162,17 @@ fun DiaryEntryItem(
         coffeeNameNorm == "registro rapido" ||
         Regex("registro\\s*rapido", RegexOption.IGNORE_CASE).containsMatchIn(coffeeNameNorm)
     )
+    val rawPreparationType = entry.preparationType.trim()
+    val elaborationMethod = extractDiaryElaborationMethod(rawPreparationType)
+    val preparationValue = if (elaborationMethod != null) "BrewLab" else rawPreparationType.ifBlank { "-" }
+    val preparationDrawableName = diaryPreparationDrawableName(rawPreparationType)
+    val elaborationDrawableName = elaborationMethod?.let { diaryElaborationDrawableName(it) }
+    val sizeDrawableName = diarySizeDrawableName(entry.sizeLabel, entry.amountMl)
+    val preparationDrawablePainter = diaryDrawablePainter(preparationDrawableName)
+    val elaborationDrawablePainter = diaryDrawablePainter(elaborationDrawableName)
+    val sizeDrawablePainter = diaryDrawablePainter(sizeDrawableName)
+    val preparationIcon = diaryPreparationIcon(rawPreparationType)
+    val elaborationIcon = elaborationMethod?.let { diaryElaborationIcon(it) }
     val cardColor by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surface,
         animationSpec = tween(320),
@@ -1131,16 +1210,21 @@ fun DiaryEntryItem(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            when {
-                                entry.type == "WATER" -> Icons.Default.WaterDrop
-                                isRegistroRapido -> Icons.Filled.LocalCafe
-                                else -> Icons.Default.Coffee
-                            },
-                            null,
-                            tint = if (entry.type == "WATER") Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        if (entry.type == "WATER") {
+                            Icon(
+                                imageVector = Icons.Default.WaterDrop,
+                                contentDescription = null,
+                                tint = Color(0xFF2196F3),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else {
+                            Icon(
+                                if (isRegistroRapido) Icons.Filled.LocalCafe else Icons.Default.Coffee,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
 
@@ -1164,6 +1248,12 @@ fun DiaryEntryItem(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    } else {
+                        Text(
+                            text = "${entry.amountMl} ml",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
@@ -1175,47 +1265,85 @@ fun DiaryEntryItem(
                 )
             }
 
-            if (entry.type == "WATER") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    MetricPill(
-                        icon = painterResource(R.drawable.ic_bottle),
-                        label = "Cantidad",
-                        value = "${entry.amountMl} ml",
-                        modifier = Modifier.weight(1f)
-                    )
+            if (entry.type != "WATER") {
+                val metaRowState = rememberLazyListState()
+                val metaCarouselEnabled by remember {
+                    derivedStateOf {
+                        val info = metaRowState.layoutInfo
+                        val visible = info.visibleItemsInfo
+                        if (info.totalItemsCount == 0 || visible.isEmpty()) return@derivedStateOf true
+                        val firstVisible = visible.first().index == 0
+                        val lastVisible = visible.last().index == info.totalItemsCount - 1
+                        val lastItemEnd = visible.last().offset + visible.last().size
+                        !(firstVisible && lastVisible && lastItemEnd <= info.viewportEndOffset)
+                    }
                 }
-            } else {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    state = metaRowState,
+                    userScrollEnabled = metaCarouselEnabled,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     item {
                         MetricPill(
-                            icon = Icons.Default.Bolt,
-                            label = "Cafeína",
+                            icon = painterResource(R.drawable.grano_cafe),
+                            label = "CAFEÍNA",
                             value = "${entry.caffeineAmount} mg"
                         )
                     }
                     item {
                         MetricPill(
-                            icon = Icons.Default.CoffeeMaker,
-                            label = "Preparación",
-                            value = entry.preparationType
-                        )
-                    }
-                    item {
-                        MetricPill(
-                            icon = Icons.Default.Scale,
-                            label = "Dosis",
+                            icon = painterResource(R.drawable.portafiltro),
+                            label = "DOSIS",
                             value = "${entry.coffeeGrams} g"
                         )
                     }
                     item {
-                        MetricPill(
-                            icon = Icons.Default.LocalCafe,
-                            label = "Tamaño",
-                            value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
-                        )
+                        if (sizeDrawablePainter != null) {
+                            MetricPill(
+                                icon = sizeDrawablePainter,
+                                label = "TAMAÑO",
+                                value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
+                            )
+                        } else {
+                            MetricPill(
+                                icon = Icons.Default.LocalCafe,
+                                label = "TAMAÑO",
+                                value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
+                            )
+                        }
+                    }
+                    item {
+                        if (preparationDrawablePainter != null) {
+                            MetricPill(
+                                icon = preparationDrawablePainter,
+                                label = "PREPARACIÓN",
+                                value = preparationValue
+                            )
+                        } else {
+                            MetricPill(
+                                icon = preparationIcon,
+                                label = "PREPARACIÓN",
+                                value = preparationValue
+                            )
+                        }
+                    }
+                    if (elaborationMethod != null && elaborationIcon != null) {
+                        item {
+                            if (elaborationDrawablePainter != null) {
+                                MetricPill(
+                                    icon = elaborationDrawablePainter,
+                                    label = "MÉTODO",
+                                    value = elaborationMethod
+                                )
+                            } else {
+                                MetricPill(
+                                    icon = elaborationIcon,
+                                    label = "MÉTODO",
+                                    value = elaborationMethod
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1231,6 +1359,19 @@ fun DiaryEntryEditBottomSheet(
     onSave: (DiaryEntryEntity) -> Unit
 ) {
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
+    val fieldBackground = if (isDark) Color.Black else Color.White
+    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val editFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = fieldBackground,
+        unfocusedContainerColor = fieldBackground,
+        focusedBorderColor = CaramelAccent,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    )
+    val editFieldTextStyle = MaterialTheme.typography.bodyLarge.copy(
+        fontWeight = FontWeight.Bold,
+        color = fieldTextColor
+    )
     var amountText by remember(entry.id) { mutableStateOf(entry.amountMl.toString()) }
     var caffeineText by remember(entry.id) { mutableStateOf(entry.caffeineAmount.toString()) }
     var doseText by remember(entry.id) { mutableStateOf(String.format(Locale.getDefault(), "%.1f", entry.coffeeGrams.toFloat())) }
@@ -1292,10 +1433,12 @@ fun DiaryEntryEditBottomSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = if (entry.type == "WATER") "Editar registro de agua" else "Editar registro de café",
+                text = "Editar",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
 
             if (entry.type == "CUP") {
@@ -1305,7 +1448,7 @@ fun DiaryEntryEditBottomSheet(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
                         Surface(
@@ -1349,24 +1492,43 @@ fun DiaryEntryEditBottomSheet(
                         value = caffeineText,
                         onValueChange = { caffeineText = it.filter(Char::isDigit) },
                         label = { Text("Cafeína (mg)") },
-                        leadingIcon = { Icon(Icons.Default.Bolt, null) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.grano_cafe),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Unspecified
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        textStyle = editFieldTextStyle,
+                        colors = editFieldColors
                     )
 
                     OutlinedTextField(
                         value = doseText,
                         onValueChange = { value ->
-                            doseText = value.filter { it.isDigit() || it == '.' }.let { filtered ->
-                                if (filtered.count { it == '.' } <= 1) filtered else filtered.dropLast(1)
+                            doseText = value.filter { it.isDigit() || it == '.' || it == ',' }.let { filtered ->
+                                val normalized = filtered.replace(',', '.')
+                                if (normalized.count { it == '.' } <= 1) filtered else filtered.dropLast(1)
                             }
                         },
                         label = { Text("Dosis (g)") },
-                        leadingIcon = { Icon(Icons.Default.Scale, null) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.portafiltro),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Unspecified
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        textStyle = editFieldTextStyle,
+                        colors = editFieldColors
                     )
                 }
 
@@ -1376,7 +1538,7 @@ fun DiaryEntryEditBottomSheet(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
                         Surface(
@@ -1409,25 +1571,50 @@ fun DiaryEntryEditBottomSheet(
                     }
                 }
             } else {
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it.filter(Char::isDigit) },
-                    label = { Text("Cantidad (ml)") },
-                    leadingIcon = { Icon(painter = painterResource(R.drawable.ic_bottle), contentDescription = null) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = amountText,
+                        onValueChange = { amountText = it.filter(Char::isDigit) },
+                        label = { Text("Cantidad (ml)") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.WaterDrop,
+                                contentDescription = null,
+                                tint = Color(0xFF2196F3),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        textStyle = editFieldTextStyle,
+                        colors = editFieldColors
+                    )
+                    OutlinedTextField(
+                        value = timeText,
+                        onValueChange = { timeText = it.take(5) },
+                        label = { Text("Tiempo (HH:mm)") },
+                        leadingIcon = { Icon(Icons.Default.Schedule, null, modifier = Modifier.size(18.dp)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        textStyle = editFieldTextStyle,
+                        colors = editFieldColors
+                    )
+                }
             }
 
-            OutlinedTextField(
-                value = timeText,
-                onValueChange = { timeText = it.take(5) },
-                label = { Text("Tiempo (HH:mm)") },
-                leadingIcon = { Icon(Icons.Default.Schedule, null) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (entry.type != "WATER") {
+                OutlinedTextField(
+                    value = timeText,
+                    onValueChange = { timeText = it.take(5) },
+                    label = { Text("Tiempo (HH:mm)") },
+                    leadingIcon = { Icon(Icons.Default.Schedule, null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = editFieldTextStyle,
+                    colors = editFieldColors
+                )
+            }
 
             if (errorText != null) {
                 Text(
@@ -1454,7 +1641,7 @@ fun DiaryEntryEditBottomSheet(
                         entry.copy(amountMl = amount, timestamp = updatedTimestamp)
                     } else {
                         val caffeine = caffeineText.toIntOrNull()
-                        val grams = doseText.toFloatOrNull()
+                        val grams = doseText.replace(',', '.').toFloatOrNull()
                         val normalizedPrep = selectedPreparation.trim()
                         val espressoRangeValid = !normalizedPrep.equals("Espresso", ignoreCase = true) || (grams != null && grams in 3f..30f)
                         if (caffeine == null || caffeine < 0 || grams == null || grams <= 0f || normalizedPrep.isBlank() || !espressoRangeValid) {
@@ -1479,7 +1666,7 @@ fun DiaryEntryEditBottomSheet(
                     .imePadding()
                     .navigationBarsPadding()
                     .requiredHeight(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = CircleShape
             ) {
                 Text("Guardar cambios")
             }
@@ -1498,6 +1685,100 @@ private data class SizeOption(
     val defaultMl: Int,
     val drawableName: String
 )
+
+private fun extractDiaryElaborationMethod(preparationType: String): String? {
+    if (preparationType.isBlank()) return null
+    val match = Regex("""(?:^lab:\s*|^elaboracion:\s*)([^()]+?)(?:\s*\(|$)""", RegexOption.IGNORE_CASE).find(preparationType)
+    return match?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() }
+}
+
+private fun normalizeDiaryLookupText(value: String): String {
+    val normalized = Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+    return normalized.replace("\\p{M}+".toRegex(), "").lowercase(Locale.getDefault())
+}
+
+private fun diaryPreparationDrawableName(preparationType: String): String {
+    val normalized = normalizeDiaryLookupText(preparationType)
+    return when {
+        normalized.contains("americano") -> "americano"
+        normalized.contains("capuch") -> "capuchino"
+        normalized.contains("caramelo") && normalized.contains("macchi") -> "caramel_macchiato"
+        normalized.contains("corretto") -> "corretto"
+        normalized.contains("descafe") -> "descafeinado"
+        normalized.contains("espresso") -> "espresso"
+        normalized.contains("frapp") -> "frappuccino"
+        normalized.contains("freddo") -> "freddo"
+        normalized.contains("irland") -> "irlandes"
+        normalized.contains("latte macchi") -> "latte_macchiato"
+        normalized.contains("latte") -> "latte"
+        normalized.contains("chocolate") -> "leche_con_chocolate"
+        normalized.contains("macchiato") -> "macchiato"
+        normalized.contains("marro") -> "marroqui"
+        normalized.contains("moca") -> "moca"
+        normalized.contains("romano") -> "romano"
+        normalized.contains("vien") -> "vienes"
+        else -> "maq_manual"
+    }
+}
+
+private fun diaryElaborationDrawableName(method: String): String {
+    val normalized = normalizeDiaryLookupText(method)
+    return when {
+        normalized.contains("espresso") -> "maq_espresso"
+        normalized.contains("v60") || normalized.contains("hario") -> "maq_hario_v60"
+        normalized.contains("aero") -> "maq_aeropress"
+        normalized.contains("moka") || normalized.contains("italiana") -> "maq_italiana"
+        normalized.contains("chemex") -> "maq_chemex"
+        normalized.contains("prensa") -> "maq_prensa_francesa"
+        normalized.contains("goteo") -> "maq_goteo"
+        normalized.contains("sifon") -> "maq_sifon"
+        normalized.contains("turco") -> "maq_turco"
+        else -> "maq_manual"
+    }
+}
+
+private fun diarySizeDrawableName(sizeLabel: String?, amountMl: Int): String {
+    val normalized = normalizeDiaryLookupText(sizeLabel?.takeIf { it.isNotBlank() } ?: inferSizeLabel(amountMl))
+    return when {
+        normalized.contains("espresso") -> "taza_espresso"
+        normalized.contains("pequ") -> "taza_pequeno"
+        normalized.contains("mediano") -> "taza_mediano"
+        normalized.contains("grande") -> "taza_grande"
+        normalized.contains("tazon") || normalized.contains("xl") -> "taza_xl"
+        else -> "taza_mediano"
+    }
+}
+
+@Composable
+private fun diaryDrawablePainter(drawableName: String?): Painter? {
+    if (drawableName.isNullOrBlank()) return null
+    val context = LocalContext.current
+    val drawableRes = remember(drawableName) {
+        context.resources.getIdentifier(drawableName, "drawable", context.packageName)
+    }
+    return if (drawableRes != 0) painterResource(id = drawableRes) else null
+}
+
+private fun diaryPreparationIcon(preparationType: String): ImageVector {
+    val normalized = preparationType.trim().lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("espresso") ||
+            normalized.contains("americano") ||
+            normalized.contains("capuch") ||
+            normalized.contains("latte") ||
+            normalized.contains("macchi") -> Icons.Default.CoffeeMaker
+        else -> Icons.Default.LocalCafe
+    }
+}
+
+private fun diaryElaborationIcon(method: String): ImageVector {
+    val normalized = method.trim().lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("espresso") || normalized.contains("moka") -> Icons.Default.CoffeeMaker
+        normalized.contains("prensa") -> Icons.Default.LocalCafe
+        else -> Icons.Default.Coffee
+    }
+}
 
 private fun inferSizeLabel(amountMl: Int): String = when (amountMl) {
     in 20..60 -> "Espresso"
@@ -1548,9 +1829,21 @@ private fun MetricPill(
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(painter = icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Box(
+                modifier = Modifier
+                    .height(30.dp)
+                    .width(26.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
             Column {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1574,9 +1867,16 @@ private fun MetricPillContent(
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(icon, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Box(
+                modifier = Modifier
+                    .height(30.dp)
+                    .width(26.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+            }
             Column {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -2163,6 +2463,7 @@ fun DeleteConfirmationDialog(
 @Composable
 fun FadingLazyRow(
     modifier: Modifier = Modifier,
+    itemSpacing: Dp = 8.dp,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
 ) {
     val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -2200,7 +2501,7 @@ fun FadingLazyRow(
                     blendMode = BlendMode.DstIn
                 )
             },
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(itemSpacing),
         content = content
     )
 }

@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { BREW_METHODS } from "../../config/brew";
-import { formatClock, getBrewDialRecommendation, getBrewTimelineForMethod } from "../../core/brew";
+import { formatClock, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
 import { Button, Input, Select, Switch } from "../../ui/components";
@@ -25,7 +25,11 @@ export function BrewLabView({
   setBrewRunning,
   selectedCoffee,
   coffeeGrams,
-  onSaveResultToDiary
+  onSaveResultToDiary,
+  showBarcodeButton,
+  onBarcodeClick,
+  barcodeDetectedValue,
+  onClearBarcodeDetectedValue
 }: {
   brewStep: BrewStep;
   setBrewStep: (step: BrewStep) => void;
@@ -47,6 +51,10 @@ export function BrewLabView({
   selectedCoffee?: CoffeeRow;
   coffeeGrams: number;
   onSaveResultToDiary: (taste: string) => Promise<void>;
+  showBarcodeButton?: boolean;
+  onBarcodeClick?: () => void;
+  barcodeDetectedValue?: string | null;
+  onClearBarcodeDetectedValue?: () => void;
 }) {
   const [brewCoffeeQuery, setBrewCoffeeQuery] = useState("");
   const [brewSearchFocus, setBrewSearchFocus] = useState(false);
@@ -74,9 +82,11 @@ export function BrewLabView({
   );
   const coffeeGramsPrecise = useMemo(() => Number((waterMl / ratio).toFixed(1)), [ratio, waterMl]);
   const coffeeGramsLabel = useMemo(() => coffeeGramsPrecise.toFixed(1).replace(".", ","), [coffeeGramsPrecise]);
+  const [waterDraft, setWaterDraft] = useState(String(waterMl));
+  const [coffeeDraft, setCoffeeDraft] = useState(coffeeGramsPrecise.toFixed(1));
   const waterProgress = useMemo(() => {
-    const min = 150;
-    const max = 600;
+    const min = 50;
+    const max = 1000;
     return Math.max(0, Math.min(100, ((waterMl - min) / (max - min)) * 100));
   }, [waterMl]);
   const ratioProgress = useMemo(() => {
@@ -84,6 +94,17 @@ export function BrewLabView({
     const max = 20;
     return Math.max(0, Math.min(100, ((ratio - min) / (max - min)) * 100));
   }, [ratio]);
+  const effectiveRatio = useMemo(() => {
+    if (coffeeGramsPrecise <= 0) return ratio;
+    return waterMl / coffeeGramsPrecise;
+  }, [coffeeGramsPrecise, ratio, waterMl]);
+  const ratioProfile = useMemo(() => {
+    if (effectiveRatio <= 13) return "INTENSO";
+    if (effectiveRatio <= 15) return "INTENSO";
+    if (effectiveRatio <= 17) return "EQUILIBRADO";
+    if (effectiveRatio <= 19) return "LIGERO";
+    return "Muy ligero";
+  }, [effectiveRatio]);
   const brewAdvice = useMemo(() => {
     const methodKey = normalizeLookupText(brewMethod);
     if (!methodKey) return "";
@@ -112,14 +133,7 @@ export function BrewLabView({
 
     return `${intensity} ${volumeDesc}`;
   }, [brewMethod, ratio, waterMl]);
-  const baristaTips = useMemo(() => {
-    const methodKey = normalizeLookupText(brewMethod);
-    const isEspresso = methodKey.includes("espresso");
-    if (isEspresso) {
-      return { grind: "Fina", temperature: "90-93°C" };
-    }
-    return { grind: "Fina/Media", temperature: "80-85°C" };
-  }, [brewMethod]);
+  const baristaTips = useMemo(() => getBrewBaristaTipsForMethod(brewMethod), [brewMethod]);
   const brewTimeline = useMemo(() => getBrewTimelineForMethod(brewMethod, waterMl), [brewMethod, waterMl]);
   const brewTotalSeconds = useMemo(() => brewTimeline.reduce((acc, phase) => acc + phase.durationSeconds, 0), [brewTimeline]);
   const elapsedSeconds = useMemo(() => Math.max(0, Math.min(timerSeconds, brewTotalSeconds || timerSeconds)), [brewTotalSeconds, timerSeconds]);
@@ -162,6 +176,18 @@ export function BrewLabView({
       setSavingResult(false);
     }
   }, [brewStep]);
+  useEffect(() => {
+    if (barcodeDetectedValue != null && barcodeDetectedValue !== "") {
+      setBrewCoffeeQuery(barcodeDetectedValue);
+      onClearBarcodeDetectedValue?.();
+    }
+  }, [barcodeDetectedValue, onClearBarcodeDetectedValue]);
+  useEffect(() => {
+    setWaterDraft(String(waterMl));
+  }, [waterMl]);
+  useEffect(() => {
+    setCoffeeDraft(coffeeGramsPrecise.toFixed(1));
+  }, [coffeeGramsPrecise]);
 
   return (
     <>
@@ -202,13 +228,27 @@ export function BrewLabView({
                     )}
                     <div className="brew-pantry-body">
                       <strong>{row.coffee.nombre}</strong>
-                      <small>{row.remaining}G REST.</small>
+                      <small>{Math.round(row.remaining)}/{Math.round(row.total)}g</small>
                       <div className="brew-pantry-progress" aria-hidden="true">
                         <span style={{ width: `${Math.max(0, Math.min(100, row.progress * 100))}%` }} />
                       </div>
                     </div>
                   </Button>
                 ))}
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="brew-pantry-add-card"
+                  aria-label="Añadir café a despensa"
+                  onClick={onAddNotFoundCoffee}
+                >
+                  <span className="brew-pantry-add-main" aria-hidden="true">
+                    <span className="brew-pantry-add-icon-wrap">
+                      <UiIcon name="add" className="ui-icon" />
+                    </span>
+                  </span>
+                  <span className="brew-pantry-add-footer" aria-hidden="true" />
+                </Button>
               </div>
             ) : (
               <p className="coffee-sub">{q ? "No hay coincidencias en tu despensa." : "Tu despensa está vacía."}</p>
@@ -224,16 +264,30 @@ export function BrewLabView({
           </div>
 
           <div className={`search-row-with-cancel ${showBrewSearchCancel ? "has-cancel" : ""}`.trim()}>
-            <Input
-              variant="search"
-              className="search-wide search-input-standard brew-coffee-search"
-              value={brewCoffeeQuery}
-              onChange={(event) => setBrewCoffeeQuery(event.target.value)}
-              onFocus={() => setBrewSearchFocus(true)}
-              onBlur={() => setBrewSearchFocus(false)}
-              placeholder="Buscar café..."
-              aria-label="Buscar café"
-            />
+            <div className="search-coffee-field">
+              <UiIcon name="search" className="ui-icon search-coffee-leading-icon" aria-hidden="true" />
+              <Input
+                variant="search"
+                className="search-wide search-input-standard search-coffee-input brew-coffee-search"
+                value={brewCoffeeQuery}
+                onChange={(event) => setBrewCoffeeQuery(event.target.value)}
+                onFocus={() => setBrewSearchFocus(true)}
+                onBlur={() => setBrewSearchFocus(false)}
+                placeholder="Buscar café..."
+                aria-label="Buscar café"
+              />
+              {showBarcodeButton && onBarcodeClick ? (
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="search-coffee-trailing-button"
+                  aria-label="Escanear código de barras"
+                  onClick={() => onBarcodeClick()}
+                >
+                  <UiIcon name="barcode" className="ui-icon" />
+                </Button>
+              ) : null}
+            </div>
             <Button
               variant="text"
               type="button"
@@ -291,12 +345,53 @@ export function BrewLabView({
               <article className="brew-tech-card">
                 <div className="brew-tech-top">
                   <div>
-                    <span>AGUA</span>
-                    <strong className="is-water">{waterMl} ml</strong>
+                    <span>Agua (ml)</span>
+                    <div className="brew-tech-value-field">
+                      <Input
+                        className="search-wide brew-tech-value-input is-water"
+                        type="number"
+                        inputMode="numeric"
+                        min={50}
+                        max={1000}
+                        step={10}
+                        value={waterDraft}
+                        onChange={(event) => setWaterDraft(event.target.value)}
+                        onBlur={() => {
+                          const parsed = Number(waterDraft);
+                          if (Number.isFinite(parsed) && parsed > 0) {
+                            setWaterMl(Math.max(50, Math.min(1000, Math.round(parsed))));
+                          } else {
+                            setWaterDraft(String(waterMl));
+                          }
+                        }}
+                        aria-label="Agua en ml"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <span>CAFÉ</span>
-                    <strong>{coffeeGramsLabel} g</strong>
+                    <span>Café (g)</span>
+                    <div className="brew-tech-value-field">
+                      <Input
+                        className="search-wide brew-tech-value-input"
+                        type="number"
+                        inputMode="decimal"
+                        min={1}
+                        max={250}
+                        step={0.1}
+                        value={coffeeDraft}
+                        onChange={(event) => setCoffeeDraft(event.target.value)}
+                        onBlur={() => {
+                          const parsed = Number(coffeeDraft.replace(",", "."));
+                          if (Number.isFinite(parsed) && parsed > 0) {
+                            const nextRatio = waterMl / parsed;
+                            setRatio(Math.max(12, Math.min(20, Math.round(nextRatio))));
+                          } else {
+                            setCoffeeDraft(coffeeGramsPrecise.toFixed(1));
+                          }
+                        }}
+                        aria-label="Café en gramos"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -306,8 +401,8 @@ export function BrewLabView({
                     className="app-range app-range--water"
                     style={{ "--range-progress": `${waterProgress}%` } as CSSProperties}
                     type="range"
-                    min={150}
-                    max={600}
+                    min={50}
+                    max={1000}
                     step={10}
                     value={waterMl}
                     onChange={(event) => setWaterMl(Number(event.target.value))}
@@ -315,7 +410,7 @@ export function BrewLabView({
                 </label>
 
                 <label className="brew-tech-slider">
-                  <span>RATIO (INTENSIDAD)</span>
+                  <span>{`RATIO 1:${Math.round(effectiveRatio)} · ${ratioProfile.toUpperCase()}`}</span>
                   <Input
                     className="app-range"
                     style={{ "--range-progress": `${ratioProgress}%` } as CSSProperties}
@@ -329,7 +424,7 @@ export function BrewLabView({
                 </label>
 
                 <div className="brew-tech-advice">
-                  <UiIcon name="star-filled" className="ui-icon" />
+                  <UiIcon name="sparkles" className="ui-icon" />
                   <p>{brewAdvice}</p>
                 </div>
               </article>
@@ -338,20 +433,17 @@ export function BrewLabView({
             <aside className="brew-barista-block">
               <p className="section-title brew-config-heading">CONSEJOS DEL BARISTA</p>
               <div className="brew-barista-grid">
-                <article className="brew-barista-tip">
-                  <span className="brew-barista-icon"><UiIcon name="grind" className="ui-icon" /></span>
-                  <div>
-                    <small>MOLIENDA</small>
-                    <strong>{baristaTips.grind}</strong>
-                  </div>
-                </article>
-                <article className="brew-barista-tip">
-                  <span className="brew-barista-icon"><UiIcon name="thermostat" className="ui-icon" /></span>
-                  <div>
-                    <small>TEMPERATURA</small>
-                    <strong>{baristaTips.temperature}</strong>
-                  </div>
-                </article>
+                {baristaTips.map((tip) => (
+                  <article className="brew-barista-tip" key={`${tip.label}-${tip.value}`}>
+                    <span className="brew-barista-icon" aria-hidden="true">
+                      <UiIcon name={tip.icon} className={`ui-icon brew-barista-glyph brew-barista-glyph-${tip.icon}`} />
+                    </span>
+                    <div className="brew-barista-copy">
+                      <strong>{tip.label}</strong>
+                      <em>{tip.value}</em>
+                    </div>
+                  </article>
+                ))}
               </div>
             </aside>
           </div>
@@ -448,7 +540,7 @@ export function BrewLabView({
             {resultRecommendation ? (
               <div className="brew-result-reco">
                 <div className="brew-result-reco-head">
-                  <UiIcon name="star-filled" className="ui-icon" />
+                  <UiIcon name="sparkles" className="ui-icon" />
                   <strong>Recomendacion</strong>
                 </div>
                 <p>{resultRecommendation}</p>

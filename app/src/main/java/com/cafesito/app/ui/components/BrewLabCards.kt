@@ -4,13 +4,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,9 +33,16 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.PantryItemWithDetails
+import com.cafesito.app.ui.theme.CaramelAccent
+import com.cafesito.app.ui.theme.PureBlack
+import com.cafesito.app.ui.theme.PureWhite
 
 @Composable
 fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
+    val totalGrams = item.pantryItem.totalGrams.coerceAtLeast(0)
+    val remainingGrams = item.pantryItem.gramsRemaining.coerceIn(0, totalGrams)
+    val progress = if (totalGrams > 0) remainingGrams.toFloat() / totalGrams.toFloat() else 0f
+
     PremiumCard(
         modifier = Modifier
             .width(160.dp)
@@ -40,7 +56,7 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
+                    .aspectRatio(1f)
             )
             Column(Modifier.padding(12.dp)) {
                 Text(
@@ -53,10 +69,20 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                 )
                 @Suppress("DEPRECATION")
                 Text(
-                    text = "${item.pantryItem.gramsRemaining}G REST.",
+                    text = "${remainingGrams}/${totalGrams}g",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 8.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape),
+                    color = CaramelAccent,
+                    trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
                 )
             }
         }
@@ -98,6 +124,41 @@ fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 9.sp
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun PantryAddActionCard(onClick: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val cardBackground = if (isDark) MaterialTheme.colorScheme.surface else PureWhite
+    val borderColor = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.35f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+    val plusCircleColor = if (isDark) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    val plusColor = if (isDark) MaterialTheme.colorScheme.onSurface else PureBlack
+
+    Surface(
+        modifier = Modifier
+            .width(160.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = cardBackground,
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = plusCircleColor,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Add, contentDescription = null, tint = plusColor, modifier = Modifier.size(24.dp))
+                }
             }
         }
     }

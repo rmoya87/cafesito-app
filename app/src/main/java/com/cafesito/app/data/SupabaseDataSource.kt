@@ -461,7 +461,7 @@ class SupabaseDataSource @Inject constructor(
                 client.postgrest["notifications_db"].update({
                     set("is_read", true)
                 }) {
-                    filter { eq("id", userId) }
+                    filter { eq("user_id", userId) }
                 }
             } catch (e: Exception) {
                 Log.e("SupabaseDataSource", "Error marking all read: ${e.message}")

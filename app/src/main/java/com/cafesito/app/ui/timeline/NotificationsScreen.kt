@@ -41,6 +41,10 @@ fun NotificationsScreen(
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
 ) {
+    val groupedNotifications = remember(notifications) {
+        groupNotificationsByRange(notifications)
+    }
+
     // Marcamos todo como visto automáticamente al entrar en la pantalla
     LaunchedEffect(Unit) {
         onMarkAllAsRead()
@@ -68,65 +72,122 @@ fun NotificationsScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(notifications, key = { it.id }) { notification ->
-                    val isUnread = notification.id in unreadIds
-                    
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        confirmValueChange = {
-                            if (it == SwipeToDismissBoxValue.EndToStart) {
-                                onDeleteNotification(notification)
-                                true
-                            } else false
-                        }
-                    )
-
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        enableDismissFromStartToEnd = false,
-                        backgroundContent = {
-                            val color by animateColorAsState(
-                                when (dismissState.targetValue) {
-                                    SwipeToDismissBoxValue.EndToStart -> Color(0xFFEF5350)
-                                    else -> Color.Transparent
-                                }, label = "bgColor"
+                    groupedNotifications.forEachIndexed { index, section ->
+                        item(key = "header-${section.key}") {
+                            Text(
+                                text = section.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = if (index == 0) 2.dp else 10.dp, bottom = 2.dp)
                             )
-                            Box(
-                                Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(color),
-                                contentAlignment = Alignment.CenterEnd
+                        }
+
+                        items(section.items, key = { it.id }) { notification ->
+                            val isUnread = notification.id in unreadIds
+
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = {
+                                    if (it == SwipeToDismissBoxValue.EndToStart) {
+                                        onDeleteNotification(notification)
+                                        true
+                                    } else false
+                                }
+                            )
+
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                backgroundContent = {
+                                    val color by animateColorAsState(
+                                        when (dismissState.targetValue) {
+                                            SwipeToDismissBoxValue.EndToStart -> Color(0xFFEF5350)
+                                            else -> Color.Transparent
+                                        }, label = "bgColor"
+                                    )
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(color),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Eliminar",
+                                            tint = Color.White,
+                                            modifier = Modifier.padding(end = 24.dp)
+                                        )
+                                    }
+                                }
                             ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Eliminar",
-                                    tint = Color.White,
-                                    modifier = Modifier.padding(end = 24.dp)
+                                NotificationItemRow(
+                                    notification = notification,
+                                    isUnread = isUnread,
+                                    isFollowing = when (notification) {
+                                        is TimelineNotification.Follow -> followingIds.contains(notification.user.id)
+                                        else -> false
+                                    },
+                                    onFollowToggle = onFollowToggle,
+                                    onReplyToNotification = onReplyToNotification,
+                                    onSavePostFromNotification = onSavePostFromNotification,
+                                    onClick = { onNotificationClick(notification) }
                                 )
                             }
                         }
-                    ) {
-                        NotificationItemRow(
-                            notification = notification,
-                            isUnread = isUnread,
-                            isFollowing = when (notification) {
-                                is TimelineNotification.Follow -> followingIds.contains(notification.user.id)
-                                else -> false
-                            },
-                            onFollowToggle = onFollowToggle,
-                            onReplyToNotification = onReplyToNotification,
-                            onSavePostFromNotification = onSavePostFromNotification,
-                            onClick = { onNotificationClick(notification) }
-                        )
                     }
-                }
                 }
             }
         }
     }
+}
+
+private data class NotificationSection(
+    val key: String,
+    val title: String,
+    val items: List<TimelineNotification>
+)
+
+private fun groupNotificationsByRange(notifications: List<TimelineNotification>): List<NotificationSection> {
+    if (notifications.isEmpty()) return emptyList()
+    val calendar = java.util.Calendar.getInstance().apply {
+        set(java.util.Calendar.HOUR_OF_DAY, 0)
+        set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0)
+        set(java.util.Calendar.MILLISECOND, 0)
+    }
+    val todayStart = calendar.timeInMillis
+    val oneDayMs = 24L * 60L * 60L * 1000L
+    val yesterdayStart = todayStart - oneDayMs
+    val last7Start = todayStart - oneDayMs * 7
+    val last30Start = todayStart - oneDayMs * 30
+
+    val today = mutableListOf<TimelineNotification>()
+    val yesterday = mutableListOf<TimelineNotification>()
+    val last7 = mutableListOf<TimelineNotification>()
+    val last30 = mutableListOf<TimelineNotification>()
+
+    notifications.forEach { notification ->
+        when {
+            notification.timestamp >= todayStart -> today += notification
+            notification.timestamp >= yesterdayStart -> yesterday += notification
+            notification.timestamp >= last7Start -> last7 += notification
+            notification.timestamp >= last30Start -> last30 += notification
+            else -> last30 += notification
+        }
+    }
+
+    return listOf(
+        NotificationSection("today", "Hoy", today),
+        NotificationSection("yesterday", "Ayer", yesterday),
+        NotificationSection("last7", "Últimos 7 días", last7),
+        NotificationSection("last30", "Últimos 30 días", last30)
+    ).filter { it.items.isNotEmpty() }
 }
 
 @Composable
@@ -149,12 +210,12 @@ private fun NotificationItemRow(
         is TimelineNotification.Mention -> Triple(
             notification.user.avatarUrl,
             "@${notification.user.username}",
-            "te ha mencionado en una publicación"
+            notification.commentText
         )
         is TimelineNotification.Comment -> Triple(
             notification.user.avatarUrl,
             "@${notification.user.username}",
-            "ha comentado en tu publicación"
+            notification.message
         )
     }
 

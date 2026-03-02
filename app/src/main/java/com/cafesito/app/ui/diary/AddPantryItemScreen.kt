@@ -16,6 +16,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -28,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -128,7 +131,7 @@ fun AddPantryItemScreen(
         if (uri != null) imageUri = uri
     }
 
-    val customFlow = diaryEntryFlow || brewLabFlow
+    val customFlow = diaryEntryFlow
     val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && (customFlow || grams.isNotEmpty())
 
     Scaffold(
@@ -371,14 +374,35 @@ fun AddPantryItemScreen(
                         }
 
                         if (!customFlow) {
-                            OutlinedTextField(
+                            val gramsValue = grams.toFloatOrNull() ?: 250f
+                            Text(
+                                text = "Peso total (g)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            BasicTextField(
                                 value = grams,
-                                onValueChange = { if (it.all { c -> c.isDigit() }) grams = it },
-                                label = { Text("Peso total de la bolsa (g)") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                                onValueChange = { input -> if (input.isEmpty() || input.all { c -> c.isDigit() }) grams = input },
+                                textStyle = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                            )
+                            Slider(
+                                value = gramsValue.coerceIn(0f, 2000f),
+                                onValueChange = { grams = it.toInt().toString() },
+                                valueRange = 0f..2000f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = MaterialTheme.colorScheme.primary,
+                                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                                    inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                                )
                             )
                         }
                     }

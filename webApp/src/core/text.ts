@@ -1,4 +1,4 @@
-﻿export function normalizeLookupText(value: string | null | undefined): string {
+export function normalizeLookupText(value: string | null | undefined): string {
   return (value ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -23,13 +23,22 @@ export function toUiOptionValue(value: string | null | undefined): string {
 export function buildNormalizedOptions(values: Array<string | null | undefined>): string[] {
   const map = new Map<string, string>();
   values.forEach((raw) => {
-    const normalizedKey = normalizeLookupText(raw);
-    if (!normalizedKey) return;
-    if (!map.has(normalizedKey)) {
-      map.set(normalizedKey, toUiOptionValue(raw));
-    }
+    splitAtomizedList(raw).forEach((token) => {
+      const normalizedKey = normalizeLookupText(token);
+      if (!normalizedKey) return;
+      if (!map.has(normalizedKey)) {
+        map.set(normalizedKey, toUiOptionValue(token));
+      }
+    });
   });
   return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "es"));
+}
+
+export function splitAtomizedList(value: string | null | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((token) => token.replace(/\s+/g, " ").trim())
+    .filter((token) => token.length > 0);
 }
 
 export function toEventTimestamp(value: unknown): number {

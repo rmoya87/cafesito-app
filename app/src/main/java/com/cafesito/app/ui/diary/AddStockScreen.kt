@@ -188,7 +188,7 @@ fun AddStockScreen(
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(stringResource(R.string.add_stock_search_placeholder)) },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(999.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedContainerColor = if (isDark) Color.Black else Color.White,

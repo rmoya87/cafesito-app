@@ -47,7 +47,7 @@ export function useCreateCoffeeDomain({
     setShowCreateCoffeeComposer(true);
   }, []);
 
-  const saveCreateCoffee = useCallback(async (options?: { fromDiarySheet?: boolean; fromPantrySheet?: boolean }): Promise<{ id: string; name: string } | null> => {
+  const saveCreateCoffee = useCallback(async (options?: { fromDiarySheet?: boolean; fromPantrySheet?: boolean; fromBrewChooser?: boolean }): Promise<{ id: string; name: string } | null> => {
     if (!activeUser) return null;
     if (!createCoffeeDraft.name.trim() || !createCoffeeDraft.brand.trim()) {
       setCreateCoffeeError("Nombre y marca son obligatorios.");
@@ -59,6 +59,7 @@ export function useCreateCoffeeDomain({
     }
     const fromDiarySheet = options?.fromDiarySheet === true;
     const fromPantrySheet = options?.fromPantrySheet === true;
+    const fromBrewChooser = options?.fromBrewChooser === true;
     setCreateCoffeeSaving(true);
     setCreateCoffeeError(null);
     try {
@@ -90,9 +91,14 @@ export function useCreateCoffeeDomain({
 
       setCustomCoffees((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
       if (!fromDiarySheet && !fromPantrySheet) {
-        setBrewCoffeeId(created.id);
-        setBrewStep("config");
         setShowCreateCoffeeComposer(false);
+        if (fromBrewChooser) {
+          setBrewCoffeeId(created.id);
+          setBrewStep("coffee");
+        } else {
+          setBrewCoffeeId(created.id);
+          setBrewStep("config");
+        }
       }
       setCreateCoffeeDraft(initialDraft);
       if (createCoffeeImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(createCoffeeImagePreviewUrl);

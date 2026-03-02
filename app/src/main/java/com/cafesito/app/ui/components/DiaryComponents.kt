@@ -85,6 +85,8 @@ import com.cafesito.app.ui.brewlab.BrewMethod
 import com.cafesito.app.ui.brewlab.BrewPhaseInfo
 import com.cafesito.app.ui.diary.DiaryAnalytics
 import com.cafesito.app.ui.diary.DiaryPeriod
+import com.cafesito.shared.domain.diary.DiaryAnalyticsTargets
+import com.cafesito.shared.domain.diary.DiaryPeriod as SharedDiaryPeriod
 import com.cafesito.app.ui.profile.ProfileUiState
 import com.cafesito.app.ui.profile.ProfileViewModel
 import com.cafesito.app.ui.theme.*
@@ -143,8 +145,8 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
             Spacer(Modifier.height(24.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MetricBoxPremium("Media", "${analytics.averageCaffeine} mg", Icons.Default.AutoGraph, Modifier.weight(1f))
-                MetricBoxPremium("Tazas", "${analytics.cupsCount}", Icons.Default.Coffee, Modifier.weight(1f))
+                MetricBoxPremium("Media", "${analytics.averageCaffeine} mg", Icons.Default.Insights, Modifier.weight(1f))
+                MetricBoxPremium("Tazas", "${analytics.cupsCount}", Icons.Filled.Coffee, Modifier.weight(1f))
                 MetricBoxPremium("Progreso", "${analytics.hydrationProgressPct}%", Icons.Default.WaterDrop, Modifier.weight(1f))
             }
         }
@@ -197,69 +199,67 @@ fun PantryPremiumCard(
     onClick: (String) -> Unit,
     onOptionsClick: ((String) -> Unit)? = null
 ) {
-    val progress = if (item.pantryItem.totalGrams > 0) item.pantryItem.gramsRemaining.toFloat() / item.pantryItem.totalGrams else 0f
+    val totalGrams = item.pantryItem.totalGrams.coerceAtLeast(0)
+    val remainingGrams = item.pantryItem.gramsRemaining.coerceIn(0, totalGrams)
+    val progress = if (totalGrams > 0) remainingGrams.toFloat() / totalGrams.toFloat() else 0f
 
     PremiumCard(
         modifier = Modifier.clickable { onClick(item.coffee.id) },
-        shape = RoundedCornerShape(28.dp)
+        shape = RoundedCornerShape(24.dp)
     ) {
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .height(130.dp)) {
-            AsyncImage(
-                model = item.coffee.imageUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.8f)
-                            )
-                        )
-                    )
-            )
-
-            if (onOptionsClick != null) {
-                IconButton(
-                    onClick = { onOptionsClick(item.coffee.id) },
+        Column {
+            Box {
+                AsyncImage(
+                    model = item.coffee.imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(28.dp)
-                        .background(Color.White.copy(alpha = 0.8f), CircleShape)
-                ) {
-                    Icon(Icons.Default.MoreVert, null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                )
+                if (onOptionsClick != null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(10.dp)
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.82f), CircleShape)
+                            .clickable { onOptionsClick(item.coffee.id) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.MoreHoriz, null, tint = Color(0xFF111111), modifier = Modifier.size(18.dp))
+                    }
                 }
             }
 
-            Column(Modifier
-                .align(Alignment.BottomStart)
-                .padding(12.dp)) {
-                Text(item.coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                Text(item.coffee.nombre, color = Color.White, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.padding(12.dp)) {
+                Text(
+                    text = item.coffee.nombre.toCoffeeNameFormat(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                @Suppress("DEPRECATION")
+                Text(
+                    text = "${remainingGrams}/${totalGrams}g",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 8.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape),
+                    color = CaramelAccent,
+                    trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                )
             }
-        }
-        Column(Modifier.padding(12.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${item.pantryItem.gramsRemaining}g", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text("${(progress * 100).roundToInt()}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            }
-            Spacer(Modifier.height(6.dp))
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(CircleShape),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.outline
-            )
         }
     }
 }
@@ -355,6 +355,33 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
 @Composable
 fun ChartPremiumSection(analytics: DiaryAnalytics) {
     val scrollState = rememberScrollState()
+    val sharedPeriod = remember(analytics.period) {
+        when (analytics.period) {
+            DiaryPeriod.HOY -> SharedDiaryPeriod.HOY
+            DiaryPeriod.SEMANA -> SharedDiaryPeriod.SEMANA
+            DiaryPeriod.MES -> SharedDiaryPeriod.MES
+        }
+    }
+    val caffeineTarget = remember(sharedPeriod) { DiaryAnalyticsTargets.caffeineTargetMg(sharedPeriod) }
+    val caffeineTargetPerSlot = remember(caffeineTarget, analytics.period, analytics.chartData.size) {
+        when (analytics.period) {
+            DiaryPeriod.HOY -> caffeineTarget.toFloat()
+            DiaryPeriod.SEMANA -> caffeineTarget / 7f
+            DiaryPeriod.MES -> caffeineTarget / analytics.chartData.size.coerceAtLeast(1).toFloat()
+        }
+    }
+    val chartMaxCaffeine = remember(analytics.chartData) {
+        (analytics.chartData.maxOfOrNull { entry -> entry.caffeine } ?: 0).coerceAtLeast(1)
+    }
+    val chartMaxCaffeineRelative = remember(chartMaxCaffeine, caffeineTargetPerSlot) {
+        val adjustedTarget = (caffeineTargetPerSlot * 0.6f).toInt().coerceAtLeast(1)
+        maxOf(chartMaxCaffeine, adjustedTarget)
+    }
+    val chartMaxWater = remember(analytics.chartData) {
+        (analytics.chartData.maxOfOrNull { entry -> entry.water } ?: 0).coerceAtLeast(1)
+    }
+    val caffeineBrown = Color(0xFF6F4E37)
+    val waterElectricBlue = Color(0xFF2196F3)
 
     LaunchedEffect(analytics.chartData) { scrollState.animateScrollTo(scrollState.maxValue) }
 
@@ -367,8 +394,8 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
         verticalAlignment = Alignment.Bottom
     ) {
         analytics.chartData.forEach { entry ->
-            val caffeineHeight = (entry.caffeine.toFloat() / 400f).coerceIn(0.05f, 1f)
-            val waterHeight = (entry.water.toFloat() / 2000f).coerceIn(0.05f, 1f)
+            val caffeineHeight = (entry.caffeine.toFloat() / chartMaxCaffeineRelative.toFloat()).coerceIn(0.05f, 1f)
+            val waterHeight = (entry.water.toFloat() / chartMaxWater.toFloat()).coerceIn(0.05f, 1f)
 
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
                 Row(
@@ -378,26 +405,26 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(12.dp), verticalArrangement = Arrangement.Bottom) {
                         if (entry.caffeine > 0) {
-                            Text(text = "${entry.caffeine}", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                            Text(text = "${entry.caffeine}", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = caffeineBrown, maxLines = 1)
                             Spacer(Modifier.height(2.dp))
                         }
                         Box(Modifier
                             .fillMaxWidth()
                             .fillMaxHeight(caffeineHeight)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary))
+                            .background(caffeineBrown.copy(alpha = if (entry.caffeine > 0) 1f else 0.35f)))
                     }
                     Spacer(Modifier.width(4.dp))
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(12.dp), verticalArrangement = Arrangement.Bottom) {
                         if (entry.water > 0) {
-                            Text(text = "${entry.water}", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2196F3), maxLines = 1)
+                            Text(text = "${entry.water}", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = waterElectricBlue, maxLines = 1)
                             Spacer(Modifier.height(2.dp))
                         }
                         Box(Modifier
                             .fillMaxWidth()
                             .fillMaxHeight(waterHeight)
                             .clip(CircleShape)
-                            .background(Color(0xFF2196F3).copy(alpha = 0.4f)))
+                            .background(waterElectricBlue.copy(alpha = if (entry.water > 0) 1f else 0.35f)))
                     }
                 }
                 Spacer(Modifier.height(8.dp))

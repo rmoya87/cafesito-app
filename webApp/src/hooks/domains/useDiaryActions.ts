@@ -62,14 +62,15 @@ export function useDiaryActions({
   );
 
   const handleUpdateDiaryEntry = useCallback(
-    async (entryId: number, amountMl: number, caffeineMg: number, preparationType: string) => {
+    async (entryId: number, amountMl: number, caffeineMg: number, preparationType: string, timestampMs?: number) => {
       if (!activeUser) return;
       const updated = await updateDiaryEntry({
         entryId,
         userId: activeUser.id,
         amountMl,
         caffeineMg,
-        preparationType
+        preparationType,
+        timestampMs
       });
       setDiaryEntries((prev) => prev.map((entry) => (entry.id === updated.id ? { ...entry, ...updated } : entry)));
     },

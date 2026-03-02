@@ -148,8 +148,9 @@ export function AppContainer() {
     setDetailOpenStockSignal
   } = useCoffeeDetailDomain();
   const [showBarcodeScannerSheet, setShowBarcodeScannerSheet] = useState(false);
-  const [barcodeOrigin, setBarcodeOrigin] = useState<"search" | "diary" | null>(null);
+  const [barcodeOrigin, setBarcodeOrigin] = useState<"search" | "diary" | "brew" | "createPostCoffee" | null>(null);
   const [barcodeDetectedValueForDiary, setBarcodeDetectedValueForDiary] = useState<string | null>(null);
+  const [barcodeDetectedValueForBrew, setBarcodeDetectedValueForBrew] = useState<string | null>(null);
 
   const [brewStep, setBrewStep] = useState<BrewStep>("method");
   const [brewMethod, setBrewMethod] = useState("");
@@ -558,10 +559,6 @@ export function AppContainer() {
         : null,
     [diaryCoffeeOptions, diaryPantryCoffeeIdDraft]
   );
-  const bumpPantryGrams = (delta: number) => {
-    const next = Math.max(1, Math.round((Number(diaryPantryGramsDraft || 0) || 0) + delta));
-    setDiaryPantryGramsDraft(String(next));
-  };
   const {
     openWaterSheet,
     openCoffeeSheet,
@@ -838,7 +835,7 @@ export function AppContainer() {
       onPickImage={onPickCreateCoffeeImage}
       onRemoveImage={onRemoveCreateCoffeeImage}
       onClose={closeCreateCoffeeComposer}
-      onSave={() => void saveCreateCoffee()}
+      onSave={() => void saveCreateCoffee({ fromBrewChooser: true })}
       fullPage={mode !== "desktop"}
     />
   );
@@ -908,12 +905,14 @@ export function AppContainer() {
   }, [saveCreateCoffee, setDiaryCoffeeDraftWithCaffeine, setCoffeeSheetStep]);
 
   const handleCreateCoffeeNextForPantry = useCallback(async () => {
-    const result = await saveCreateCoffee();
+    const result = await saveCreateCoffee({ fromPantrySheet: true });
     if (result) {
-      setPantrySheetStep("select");
-      setShowDiaryAddPantrySheet(false);
+      setDiaryPantryCoffeeIdDraft(result.id);
+      const suggestedGrams = Math.max(1, Math.round(Number(createCoffeeDraft.totalGrams || 250)));
+      setDiaryPantryGramsDraft(String(suggestedGrams));
+      setPantrySheetStep("form");
     }
-  }, [saveCreateCoffee, setPantrySheetStep, setShowDiaryAddPantrySheet]);
+  }, [createCoffeeDraft.totalGrams, saveCreateCoffee, setDiaryPantryCoffeeIdDraft, setDiaryPantryGramsDraft, setPantrySheetStep]);
 
   useCoffeeSeoMeta(detailCoffee);
 
@@ -1212,7 +1211,7 @@ export function AppContainer() {
           setBrewCoffeeId={setBrewCoffeeId}
           coffees={brewCoffeeCatalog}
           pantryItems={brewPantryItems}
-          onAddNotFoundCoffee={openCreateCoffeeComposer}
+          onAddNotFoundCoffee={openAddPantrySheet}
           waterMl={waterMl}
           setWaterMl={setWaterMl}
           ratio={ratio}
@@ -1224,6 +1223,13 @@ export function AppContainer() {
           selectedCoffee={selectedCoffee}
           coffeeGrams={coffeeGrams}
           onSaveResultToDiary={saveBrewToDiary}
+          showBarcodeButton={isMobileOsDevice}
+          onBarcodeClick={() => {
+            setBarcodeOrigin("brew");
+            setShowBarcodeScannerSheet(true);
+          }}
+          barcodeDetectedValue={barcodeDetectedValueForBrew}
+          onClearBarcodeDetectedValue={() => setBarcodeDetectedValueForBrew(null)}
         />
       )
     ) : null;
@@ -1318,11 +1324,14 @@ export function AppContainer() {
         setShowBarcodeScannerSheet(false);
         if (barcodeOrigin === "diary") {
           setBarcodeDetectedValueForDiary(value);
-          setBarcodeOrigin(null);
+        } else if (barcodeOrigin === "brew") {
+          setBarcodeDetectedValueForBrew(value);
+        } else if (barcodeOrigin === "createPostCoffee") {
+          setCreatePostCoffeeQuery(value);
         } else {
           onSearchQueryChange(value);
-          setBarcodeOrigin(null);
         }
+        setBarcodeOrigin(null);
       }}
     />
   );
@@ -1398,6 +1407,11 @@ export function AppContainer() {
       setCoffeeQuery={setCreatePostCoffeeQuery}
       filteredCoffees={filteredCreatePostCoffees}
       selectedCoffeeId={newPostCoffeeId}
+      showBarcodeButton={isMobileOsDevice}
+      onBarcodeClick={() => {
+        setBarcodeOrigin("createPostCoffee");
+        setShowBarcodeScannerSheet(true);
+      }}
       onSelectCoffee={(coffeeId) => {
         setNewPostCoffeeId(coffeeId);
         setShowCreatePostCoffeeSheet(false);
@@ -1438,7 +1452,7 @@ export function AppContainer() {
   );
   const diarySheetsOverlay = (
     <DiarySheets
-      isActive={guardedActiveTab === "diary"}
+      isActive={guardedActiveTab === "diary" || guardedActiveTab === "brewlab"}
       showQuickActions={showDiaryQuickActions}
       showPeriodSheet={showDiaryPeriodSheet}
       showWaterSheet={showDiaryWaterSheet}
@@ -1494,7 +1508,6 @@ export function AppContainer() {
       setDiaryPantryCoffeeIdDraft={setDiaryPantryCoffeeIdDraft}
       diaryPantryGramsDraft={diaryPantryGramsDraft}
       setDiaryPantryGramsDraft={setDiaryPantryGramsDraft}
-      bumpPantryGrams={bumpPantryGrams}
       onSavePantry={savePantry}
       selectedDiaryPantryCoffee={selectedDiaryPantryCoffee}
       showBarcodeButton={isMobileOsDevice}

@@ -383,7 +383,7 @@ fun AppNavigation(
                         onNavigateToDiary = {
                             navController.navigate("diary") { popUpTo("brewlab") { inclusive = false } }
                         },
-                        onAddCoffeeClick = { navController.navigate("addPantryItem?origin=brewlab") },
+                        onAddCoffeeClick = { navController.navigate("addStock?origin=brewlab") },
                         createdCoffeeId = createdCoffeeId,
                         onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null }
                     )
@@ -424,7 +424,10 @@ fun AppNavigation(
                     val origin = backStackEntry.arguments?.getString("origin") ?: ""
                     AddStockScreen(
                         onBackClick = { navController.popBackStack() },
-                        onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") },
+                        onAddCustomClick = {
+                            if (origin == "brewlab") navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab")
+                            else navController.navigate("addPantryItem?onlyActivity=true")
+                        },
                         onSuccess = {
                             if (origin == "brewlab") navController.popBackStack()
                             else navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }

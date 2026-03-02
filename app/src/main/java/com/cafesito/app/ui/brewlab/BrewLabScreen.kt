@@ -42,6 +42,7 @@ fun BrewLabScreen(
     val ratio by viewModel.ratio.collectAsState()
     val coffeeGrams by viewModel.coffeeGrams.collectAsState()
     val valuation by viewModel.brewValuation.collectAsState()
+    val baristaTips by viewModel.baristaTips.collectAsState()
     
     val timerSeconds by viewModel.timerSeconds.collectAsState()
     val phasesTimeline by viewModel.phasesTimeline.collectAsState()
@@ -66,8 +67,9 @@ fun BrewLabScreen(
 
     LaunchedEffect(createdCoffeeId, allCoffees) {
         val newCoffeeId = createdCoffeeId ?: return@LaunchedEffect
-        val createdCoffee = allCoffees.firstOrNull { it.coffee.id == newCoffeeId }?.coffee ?: return@LaunchedEffect
-        viewModel.selectCoffeeFromCatalog(createdCoffee)
+        val existsInCatalog = allCoffees.any { it.coffee.id == newCoffeeId }
+        if (!existsInCatalog) return@LaunchedEffect
+        viewModel.onCoffeeAddedFromPantryFlow()
         onCreatedCoffeeConsumed()
     }
 
@@ -116,7 +118,7 @@ fun BrewLabScreen(
                             }
                         )
                     }
-                    BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, viewModel)
+                    BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, baristaTips, viewModel)
                     BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, isTimerRunning, hasTimerStarted, viewModel)
                     BrewStep.RESULT -> ResultStep(selectedTaste, recommendation, selectedCoffee, viewModel, onNavigateToDiary)
                 }
