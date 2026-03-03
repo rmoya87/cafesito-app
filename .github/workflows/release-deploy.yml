@@ -42,6 +42,11 @@ on:
           - Alpha
           - Beta
           - Producción
+      android_only:
+        description: 'Solo Android (no desplegar webapp)'
+        required: false
+        default: false
+        type: boolean
   # Webhook desde Supabase: al crear/editar/eliminar un café se puede llamar a este evento para regenerar páginas estáticas.
   # Ver docs/supabase/webhook-coffees-trigger-build.md
   repository_dispatch:
@@ -75,7 +80,11 @@ jobs:
         id: manual
         run: |
           echo "android=true" >> "$GITHUB_OUTPUT"
-          echo "web=true" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event.inputs.android_only }}" = "true" ]; then
+            echo "web=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set changes for Supabase webhook (solo deploy web)
         if: github.event_name == 'repository_dispatch' && github.event.action == 'supabase-coffees-changed'
@@ -287,13 +296,14 @@ jobs:
           track: ${{ steps.track.outputs.track }}
           status: completed
           whatsNewDirectory: release-notes
-          # Símbolos nativos para ANR y crashes (generados por ndk.debugSymbolLevel en build.gradle.kts)
-          debugSymbols: app/build/outputs/native-debug-symbols/release
+          # debugSymbols: solo si el build genera app/build/outputs/native-debug-symbols/release (cuando hay deps nativas). Si no existe, omitir para no fallar.
 
-  # Deploy web a Ionos: SIEMPRE en Alpha, Beta y Producción (sube a /cafesito-web/app/)
+  # Deploy web a Ionos: en Alpha, Beta y Producción solo si web está en los cambios (no cuando android_only)
   deploy-web:
     needs: changes
-    if: contains(fromJSON('["Alpha","alpha","Beta","beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
+    if: |
+      needs.changes.outputs.web == 'true' &&
+      contains(fromJSON('["Alpha","alpha","Beta","beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
     runs-on: ubuntu-latest
     defaults:
       run:
