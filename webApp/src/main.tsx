@@ -16,7 +16,8 @@ function detectPwaStandalone(): void {
   const isStandalone =
     (typeof window !== "undefined" &&
       window.matchMedia("(display-mode: standalone)").matches) ||
-    (typeof (navigator as { standalone?: boolean }).standalone === "boolean" && (navigator as { standalone: boolean }).standalone);
+    (typeof (navigator as unknown as { standalone?: boolean }).standalone === "boolean" &&
+      (navigator as unknown as { standalone?: boolean }).standalone);
   if (isStandalone) {
     document.documentElement.classList.add("pwa-standalone");
   } else {
