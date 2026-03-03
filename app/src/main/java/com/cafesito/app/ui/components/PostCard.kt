@@ -253,7 +253,7 @@ private fun InteractionItem(
         likedByMe = isLiked
     }
 
-    // Animaciones sincronizadas con el color de la app (CaramelAccent)
+    // Animaciones sincronizadas con el color de la app (LocalCaramelAccent.current)
     LaunchedEffect(likedByMe) {
         if (isLikeIcon) {
             if (likedByMe) {
@@ -285,7 +285,7 @@ private fun InteractionItem(
 
     val outlinedPainter = rememberVectorPainter(Icons.Outlined.LocalCafe)
     val filledPainter = rememberVectorPainter(Icons.Filled.LocalCafe)
-    val activeColor = CaramelAccent // El marrón de la app
+    val activeColor = LocalCaramelAccent.current // El marrón de la app
 
     Row(
         verticalAlignment = Alignment.CenterVertically,

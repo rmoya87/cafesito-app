@@ -67,9 +67,13 @@ fun BrewLabScreen(
 
     LaunchedEffect(createdCoffeeId, allCoffees) {
         val newCoffeeId = createdCoffeeId ?: return@LaunchedEffect
-        val existsInCatalog = allCoffees.any { it.coffee.id == newCoffeeId }
-        if (!existsInCatalog) return@LaunchedEffect
-        viewModel.onCoffeeAddedFromPantryFlow()
+        val coffeeWithDetails = allCoffees.find { it.coffee.id == newCoffeeId }
+        if (coffeeWithDetails != null) {
+            viewModel.selectCoffeeFromCatalog(coffeeWithDetails.coffee)
+        } else {
+            viewModel.refreshPantry()
+            viewModel.onCoffeeAddedFromPantryFlow()
+        }
         onCreatedCoffeeConsumed()
     }
 

@@ -47,6 +47,11 @@ android {
 
         testInstrumentationRunner = "com.cafesito.app.HiltTestRunner"
 
+        // Símbolos nativos para ANR y crashes en Play Console (dependencias con .so: CameraX, ML Kit, ExoPlayer, etc.)
+        ndk {
+            debugSymbolLevel = "SYMBOL_TABLE"
+        }
+
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"$supabasePublishableKey\"")
         buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
@@ -154,6 +159,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.analytics)
+    // Crashlytics deshabilitado temporalmente: requiere plugin y puede fallar al abrir si no está configurado
+    // implementation(libs.firebase.crashlytics)
 
     // Media3 (Video Player)
     implementation(libs.androidx.media3.exoplayer)

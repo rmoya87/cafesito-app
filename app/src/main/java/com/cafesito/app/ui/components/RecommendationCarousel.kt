@@ -99,7 +99,7 @@ private fun RecommendationCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = item.coffee.marca ?: "",
+                    text = (item.coffee.marca ?: "").uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1

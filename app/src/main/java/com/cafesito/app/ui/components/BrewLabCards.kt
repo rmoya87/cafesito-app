@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.PantryItemWithDetails
-import com.cafesito.app.ui.theme.CaramelAccent
+import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.ui.theme.PureBlack
 import com.cafesito.app.ui.theme.PureWhite
 
@@ -81,7 +81,7 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                         .fillMaxWidth()
                         .height(4.dp)
                         .clip(CircleShape),
-                    color = CaramelAccent,
+                    color = LocalCaramelAccent.current,
                     trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
                 )
             }

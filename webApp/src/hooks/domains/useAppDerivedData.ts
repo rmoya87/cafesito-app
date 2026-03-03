@@ -278,7 +278,11 @@ export function useAppDerivedData({
       const byName = normalizeLookupText(coffee.nombre).includes(q);
       const byBrand = normalizeLookupText(coffee.marca).includes(q);
       const byOrigin = normalizeLookupText(coffee.pais_origen).includes(q);
-      const queryMatch = !q || byName || byBrand || byOrigin;
+      const byBarcode =
+        coffee.codigo_barras != null &&
+        coffee.codigo_barras !== "" &&
+        normalizeLookupText(coffee.codigo_barras) === normalizeLookupText(q);
+      const queryMatch = !q || byName || byBrand || byOrigin || byBarcode;
       if (!queryMatch) return false;
 
       const origins = splitAtomizedList(coffee.pais_origen).map((item) => toUiOptionValue(item));
@@ -682,7 +686,8 @@ export function useAppDerivedData({
         text: normalizeNotificationText(n.message),
         timestamp: n.timestamp,
         postId: target.postId,
-        commentId: target.commentId
+        commentId: target.commentId,
+        is_read: n.is_read
       } as TimelineNotificationItem;
     });
   }, [activeUser, notifications, usersById, usersByUsername]);
@@ -693,8 +698,8 @@ export function useAppDerivedData({
   );
 
   const showNotificationsBadge = useMemo(
-    () => visibleTimelineNotifications.some((item) => item.timestamp > notificationsLastSeenAt),
-    [notificationsLastSeenAt, visibleTimelineNotifications]
+    () => visibleTimelineNotifications.some((item) => item.is_read === false),
+    [visibleTimelineNotifications]
   );
 
   return {

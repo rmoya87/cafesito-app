@@ -310,7 +310,7 @@ private fun FilterChipsRow(
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = optionBackground,
-                    border = BorderStroke(1.dp, if (count > 0) CaramelAccent else MaterialTheme.colorScheme.outline),
+                    border = BorderStroke(1.dp, if (count > 0) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline),
                     modifier = Modifier.clickable { onFilterClick(filter) }
                 ) {
                     Row(
@@ -654,7 +654,7 @@ private fun FilterSelectionContent(
                         .clickable { onOptionToggle(option) },
                     shape = RoundedCornerShape(12.dp),
                     color = optionBackground,
-                    border = BorderStroke(1.dp, if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                    border = BorderStroke(1.dp, if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -664,7 +664,7 @@ private fun FilterSelectionContent(
                             checked = isSelected,
                             onCheckedChange = { onOptionToggle(option) },
                             colors = CheckboxDefaults.colors(
-                                checkedColor = CaramelAccent,
+                                checkedColor = LocalCaramelAccent.current,
                                 uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 checkmarkColor = PureWhite
                             ),

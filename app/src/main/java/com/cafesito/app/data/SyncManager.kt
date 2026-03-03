@@ -45,6 +45,7 @@ class SyncManager @Inject constructor(
                 coroutineScope {
                     awaitAll(
                         async { coffeeRepository.syncCoffees() },
+                        async { coffeeRepository.syncFavoritesFromRemote() },
                         async { userRepository.syncUsers() },
                         async { userRepository.syncFollows() },
                         async { socialRepository.syncSocialData() },

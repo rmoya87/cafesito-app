@@ -53,7 +53,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.cafesito.app.ui.theme.CaramelAccent
+import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.platform.HapticSignal
 import com.cafesito.app.platform.rememberNativeHaptics
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -195,7 +195,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 if (isLoading) {
-                    CircularProgressIndicator(color = CaramelAccent)
+                    CircularProgressIndicator(color = LocalCaramelAccent.current)
                 } else {
                     Button(
                         onClick = {

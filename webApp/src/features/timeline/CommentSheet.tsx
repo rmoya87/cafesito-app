@@ -115,19 +115,26 @@ export function CommentSheet({
 
         {activeMenuRow ? (
           <SheetOverlay className="comment-action-overlay" onDismiss={onCloseMenu} onClick={onCloseMenu}>
-            <SheetCard className="comment-action-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetCard className="diary-sheet diary-sheet-pantry-options comment-options-sheet" onClick={(event) => event.stopPropagation()}>
               <SheetHandle aria-hidden="true" />
-              <div className="comment-action-list">
-                <p className="comment-action-title">OPCIONES</p>
-                <Button variant="plain" type="button" className="comment-action-button" onClick={() => onMenuEdit(activeMenuRow)}>
-                  <UiIcon name="edit" className="ui-icon" />
+              <div className="diary-sheet-list">
+                <Button variant="plain"
+                  type="button"
+                  className="diary-sheet-action diary-sheet-action-pantry"
+                  onClick={() => onMenuEdit(activeMenuRow)}
+                >
+                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
                   <span>Editar</span>
-                  <UiIcon name="chevron-right" className="ui-icon trailing" />
+                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                 </Button>
-                <Button variant="plain" type="button" className="comment-action-button is-danger" onClick={() => onMenuDelete(activeMenuRow)}>
-                  <UiIcon name="trash" className="ui-icon" />
+                <Button variant="plain"
+                  type="button"
+                  className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                  onClick={() => onMenuDelete(activeMenuRow)}
+                >
+                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
                   <span>Borrar</span>
-                  <UiIcon name="chevron-right" className="ui-icon trailing" />
+                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                 </Button>
               </div>
             </SheetCard>

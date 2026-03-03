@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { BrewStep, TabId } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Chip, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -33,6 +34,9 @@ export function TopBar({
   onBrewForward,
   brewCreateCoffeeOpen,
   onBrewCreateCoffeeBack,
+  onBrewCreateCoffeeSave,
+  brewCreateCoffeeFormValid,
+  brewCreateCoffeeSaving,
   onProfileSignOut,
   onProfileDeleteAccount,
   profileMenuEnabled,
@@ -72,6 +76,9 @@ export function TopBar({
   onBrewForward: () => void;
   brewCreateCoffeeOpen: boolean;
   onBrewCreateCoffeeBack: () => void;
+  onBrewCreateCoffeeSave: () => void;
+  brewCreateCoffeeFormValid: boolean;
+  brewCreateCoffeeSaving: boolean;
   onProfileSignOut: () => void;
   onProfileDeleteAccount: () => Promise<void> | void;
   profileMenuEnabled: boolean;
@@ -219,7 +226,18 @@ export function TopBar({
             </IconButton>
           </div>
           <h1 className="title title-upper topbar-title-center">CREAR CAFE</h1>
-          <div className="topbar-slot topbar-slot-end" />
+          <div className="topbar-slot topbar-slot-end">
+            <Button
+              variant="plain"
+              type="button"
+              className={`topbar-create-coffee-save ${!brewCreateCoffeeFormValid || brewCreateCoffeeSaving ? "is-disabled" : ""}`.trim()}
+              onClick={() => (brewCreateCoffeeFormValid && !brewCreateCoffeeSaving ? onBrewCreateCoffeeSave() : undefined)}
+              disabled={!brewCreateCoffeeFormValid || brewCreateCoffeeSaving}
+              aria-label="Guardar"
+            >
+              {brewCreateCoffeeSaving ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
         </header>
       );
     }
@@ -275,94 +293,100 @@ export function TopBar({
             ) : null}
           </div>
         </header>
-        {showProfileOptions && profileMenuEnabled ? (
-          <SheetOverlay className="profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onClick={() => setShowProfileOptions(false)}>
-            <SheetCard className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet" onClick={(event) => event.stopPropagation()}>
-              <SheetHandle aria-hidden="true" />
-              <div className="diary-sheet-list">
-                <p className="profile-options-section-title">General</p>
-                <Button
-                  variant="plain"
-                  className="diary-sheet-action diary-sheet-action-pantry"
-                  onClick={() => {
-                    setShowProfileOptions(false);
-                    onProfileOpenEdit();
-                  }}
-                >
-                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
-                  <span>Editar perfil</span>
-                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                </Button>
-                <Button
-                  variant="plain"
-                  className="diary-sheet-action diary-sheet-action-pantry is-delete"
-                  onClick={() => {
-                    setShowProfileOptions(false);
-                    setShowDeleteAccountConfirm(true);
-                  }}
-                >
-                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">person_remove</span>
-                  <span>Eliminar mi cuenta y mis datos</span>
-                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                </Button>
-                <Button
-                  variant="plain"
-                  className="diary-sheet-action diary-sheet-action-pantry is-delete"
-                  onClick={() => {
-                    setShowProfileOptions(false);
-                    onProfileSignOut();
-                  }}
-                >
-                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">logout</span>
-                  <span>Cerrar sesión</span>
-                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                </Button>
-              </div>
-            </SheetCard>
-          </SheetOverlay>
-        ) : null}
-        {showDeleteAccountConfirm ? (
-          <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar cuenta" onClick={() => setShowDeleteAccountConfirm(false)}>
-            <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
-              <SheetHandle aria-hidden="true" />
-              <div className="diary-delete-confirm-body">
-                <h2 className="diary-delete-confirm-title">Eliminar mi cuenta y mis datos</h2>
-                <p className="diary-delete-confirm-text">
-                  Tu cuenta quedará inactiva durante 30 días y luego se eliminará con todos tus datos. Si vuelves a acceder antes, se cancelará el proceso.
-                </p>
-                <div className="diary-delete-confirm-actions">
-                  <Button
-                    variant="plain"
-                    type="button"
-                    className="diary-delete-confirm-cancel"
-                    disabled={deletingAccount}
-                    onClick={() => setShowDeleteAccountConfirm(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    variant="plain"
-                    type="button"
-                    className="diary-delete-confirm-submit"
-                    disabled={deletingAccount}
-                    onClick={async () => {
-                      if (deletingAccount) return;
-                      setDeletingAccount(true);
-                      try {
-                        await onProfileDeleteAccount();
-                        setShowDeleteAccountConfirm(false);
-                      } finally {
-                        setDeletingAccount(false);
-                      }
-                    }}
-                  >
-                    {deletingAccount ? "Procesando..." : "Eliminar"}
-                  </Button>
-                </div>
-              </div>
-            </SheetCard>
-          </SheetOverlay>
-        ) : null}
+        {showProfileOptions && profileMenuEnabled && typeof document !== "undefined"
+          ? createPortal(
+              <SheetOverlay className="profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onDismiss={() => setShowProfileOptions(false)} onClick={() => setShowProfileOptions(false)}>
+                <SheetCard className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet" onClick={(event) => event.stopPropagation()}>
+                  <SheetHandle aria-hidden="true" />
+                  <div className="diary-sheet-list">
+                    <p className="profile-options-section-title">General</p>
+                    <Button
+                      variant="plain"
+                      className="diary-sheet-action diary-sheet-action-pantry"
+                      onClick={() => {
+                        setShowProfileOptions(false);
+                        onProfileOpenEdit();
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
+                      <span>Editar perfil</span>
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                    </Button>
+                    <Button
+                      variant="plain"
+                      className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                      onClick={() => {
+                        setShowProfileOptions(false);
+                        setShowDeleteAccountConfirm(true);
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">person_remove</span>
+                      <span>Eliminar mi cuenta y mis datos</span>
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                    </Button>
+                    <Button
+                      variant="plain"
+                      className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                      onClick={() => {
+                        setShowProfileOptions(false);
+                        onProfileSignOut();
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">logout</span>
+                      <span>Cerrar sesión</span>
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                    </Button>
+                  </div>
+                </SheetCard>
+              </SheetOverlay>,
+              document.body
+            )
+          : null}
+        {showDeleteAccountConfirm && typeof document !== "undefined"
+          ? createPortal(
+              <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar cuenta" onDismiss={() => setShowDeleteAccountConfirm(false)} onClick={() => setShowDeleteAccountConfirm(false)}>
+                <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+                  <SheetHandle aria-hidden="true" />
+                  <div className="diary-delete-confirm-body">
+                    <h2 className="diary-delete-confirm-title">Eliminar mi cuenta y mis datos</h2>
+                    <p className="diary-delete-confirm-text">
+                      Tu cuenta quedará inactiva durante 30 días y luego se eliminará con todos tus datos. Si vuelves a acceder antes, se cancelará el proceso.
+                    </p>
+                    <div className="diary-delete-confirm-actions">
+                      <Button
+                        variant="plain"
+                        type="button"
+                        className="diary-delete-confirm-cancel"
+                        disabled={deletingAccount}
+                        onClick={() => setShowDeleteAccountConfirm(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        variant="plain"
+                        type="button"
+                        className="diary-delete-confirm-submit"
+                        disabled={deletingAccount}
+                        onClick={async () => {
+                          if (deletingAccount) return;
+                          setDeletingAccount(true);
+                          try {
+                            await onProfileDeleteAccount();
+                            setShowDeleteAccountConfirm(false);
+                          } finally {
+                            setDeletingAccount(false);
+                          }
+                        }}
+                      >
+                        {deletingAccount ? "Procesando..." : "Eliminar"}
+                      </Button>
+                    </div>
+                  </div>
+                </SheetCard>
+              </SheetOverlay>,
+              document.body
+            )
+          : null}
       </>
     );
   }

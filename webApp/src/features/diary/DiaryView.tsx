@@ -69,7 +69,7 @@ export function DiaryView({
   onOpenCoffee: (coffeeId: string) => void;
   onOpenQuickActions: () => void;
 }) {
-  const swipeContainerRef = useRef<HTMLDivElement>(null);
+  const diaryTabBarRef = useRef<HTMLDivElement>(null);
   const panelsWrapRef = useRef<HTMLDivElement>(null);
   const [dragOffsetPx, setDragOffsetPx] = useState<number | null>(null);
   const tabDragRefs = useRef({
@@ -81,7 +81,7 @@ export function DiaryView({
     committed: false,
     lastOffsetPx: 0
   });
-  const COMMIT_THRESHOLD_PX = 10;
+  const COMMIT_THRESHOLD_PX = 4;
 
   const onTabPanelsTouchStart = useCallback(
     (e: React.TouchEvent) => {
@@ -137,7 +137,7 @@ export function DiaryView({
   }, [setTab]);
 
   useEffect(() => {
-    const el = swipeContainerRef.current;
+    const el = diaryTabBarRef.current;
     if (!el) return;
     const onMove = (e: TouchEvent) => {
       if (tabDragRefs.current.isDragging && e.cancelable) e.preventDefault();
@@ -775,23 +775,25 @@ export function DiaryView({
       </article>
 
       {mode !== "desktop" ? (
-        <div
-          ref={swipeContainerRef}
-          className="diary-tab-swipe"
-          onTouchStart={onTabPanelsTouchStart}
-          onTouchMove={onTabPanelsTouchMove}
-          onTouchEnd={onTabPanelsTouchEnd}
-          onTouchCancel={onTabPanelsTouchEnd}
-        >
+        <div className="diary-tab-swipe">
+          <div
+            ref={diaryTabBarRef}
+            onTouchStart={onTabPanelsTouchStart}
+            onTouchMove={onTabPanelsTouchMove}
+            onTouchEnd={onTabPanelsTouchEnd}
+            onTouchCancel={onTabPanelsTouchEnd}
+          >
           <Tabs className="diary-tabs" aria-label="Tabs diario">
             <span
               className="tab-sliding-indicator"
               style={{
-                transform: `translateX(${
+                ["--indicator-pos" as string]:
                   dragOffsetPx !== null && tabDragRefs.current.wrapWidth > 0
-                    ? `${(-dragOffsetPx / tabDragRefs.current.wrapWidth) * 100}%`
-                    : `${tab === "despensa" ? 100 : 0}%`
-                })`,
+                    ? -dragOffsetPx / tabDragRefs.current.wrapWidth
+                    : tab === "despensa"
+                      ? 1
+                      : 0,
+                transform: "translateX(calc(var(--indicator-pos, 0) * (100% + 6px)))",
                 transition: dragOffsetPx !== null ? "none" : undefined
               }}
               aria-hidden="true"
@@ -799,6 +801,7 @@ export function DiaryView({
             <TabButton active={tab === "actividad"} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>ACTIVIDAD</TabButton>
             <TabButton active={tab === "despensa"} role="tab" aria-selected={tab === "despensa"} onClick={() => setTab("despensa")}>DESPENSA</TabButton>
           </Tabs>
+          </div>
           <div ref={panelsWrapRef} className="diary-tab-panels-wrap" aria-hidden="false">
             <div
               className="diary-tab-panels"
@@ -1026,11 +1029,12 @@ export function DiaryView({
               <Button
                 variant="plain"
                 type="button"
-                className="diary-edit-entry-header-action is-cancel"
+                className="diary-edit-entry-header-action diary-edit-entry-close"
                 onClick={() => setEditEntryId(null)}
                 disabled={savingEditEntry}
+                aria-label="Cerrar"
               >
-                Cancelar
+                <UiIcon name="close" className="ui-icon" />
               </Button>
               <strong className="sheet-title">Editar</strong>
               <Button
@@ -1293,13 +1297,19 @@ function DiaryActivityRow({
   const [metaDragging, setMetaDragging] = useState(false);
   const [metaHasOverflow, setMetaHasOverflow] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
+  const [swipeActive, setSwipeActive] = useState(false);
   const pointerIdRef = useRef<number | null>(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const swipeActiveRef = useRef(false);
   const movedRef = useRef(false);
+  const swipeContentRef = useRef<HTMLDivElement | null>(null);
+  const offsetRef = useRef(0);
+  const rafIdRef = useRef<number | null>(null);
   const threshold = -76;
   const maxDrag = -124;
+  const SWIPE_THRESHOLD_PX = 3;
+  const VERTICAL_LOCK_PX = 2;
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLLIElement>) => {
     const target = event.target as HTMLElement | null;
@@ -1311,6 +1321,7 @@ function DiaryActivityRow({
     startYRef.current = event.clientY;
     swipeActiveRef.current = false;
     movedRef.current = false;
+    offsetRef.current = 0;
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLLIElement>) => {
@@ -1321,8 +1332,8 @@ function DiaryActivityRow({
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
     if (!swipeActiveRef.current) {
-      if (absDx < 7 && absDy < 7) return;
-      if (absDy > absDx + 4) {
+      if (absDx < SWIPE_THRESHOLD_PX && absDy < SWIPE_THRESHOLD_PX) return;
+      if (absDy > absDx + VERTICAL_LOCK_PX) {
         pointerIdRef.current = null;
         setOffsetX(0);
         return;
@@ -1330,6 +1341,7 @@ function DiaryActivityRow({
       if (dx < 0 && absDx > absDy) {
         swipeActiveRef.current = true;
         movedRef.current = true;
+        setSwipeActive(true);
         event.currentTarget.setPointerCapture(event.pointerId);
       } else {
         pointerIdRef.current = null;
@@ -1338,29 +1350,55 @@ function DiaryActivityRow({
       }
     }
     if (dx >= 0) {
+      offsetRef.current = 0;
       setOffsetX(0);
+      const el = swipeContentRef.current;
+      if (el) el.style.transform = "translateX(0px)";
       return;
     }
-    setOffsetX(Math.max(maxDrag, dx));
+    const raw = dx;
+    const withResistance = raw <= maxDrag ? maxDrag + (raw - maxDrag) * 0.25 : raw;
+    const offset = Math.max(maxDrag, withResistance);
+    offsetRef.current = offset;
+    const el = swipeContentRef.current;
+    if (el) el.style.transform = `translateX(${offset}px)`;
+    if (rafIdRef.current == null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        setOffsetX(offsetRef.current);
+        rafIdRef.current = null;
+      });
+    }
   };
 
   const handlePointerEnd = async (event: ReactPointerEvent<HTMLLIElement>) => {
     if (metaInteractingRef.current) return;
     if (pointerIdRef.current !== event.pointerId) return;
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     pointerIdRef.current = null;
     swipeActiveRef.current = false;
+    setSwipeActive(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    if (offsetX <= threshold) {
+    const finalOffset = offsetRef.current;
+    const el = swipeContentRef.current;
+    if (finalOffset <= threshold) {
+      if (el) el.style.transform = "";
       setOffsetX(0);
       await onDelete();
       return;
     }
-    setOffsetX(0);
+    setOffsetX(finalOffset);
+    requestAnimationFrame(() => {
+      if (el) el.style.transform = "";
+      setOffsetX(0);
+    });
     window.setTimeout(() => {
       movedRef.current = false;
-    }, 80);
+    }, 120);
   };
 
   useEffect(() => {
@@ -1381,7 +1419,7 @@ function DiaryActivityRow({
 
   return (
     <li
-      className={`diary-card-swipe-wrap ${offsetX < -1 ? "is-swiping" : ""} ${deleting ? "is-dismissing" : ""}`.trim()}
+      className={`diary-card-swipe-wrap ${swipeActive || offsetX < -1 ? "is-swiping" : ""} ${deleting ? "is-dismissing" : ""}`.trim()}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={(event) => {
@@ -1400,7 +1438,7 @@ function DiaryActivityRow({
       <div className="diary-swipe-bg" aria-hidden="true">
         <UiIcon name="trash" className="ui-icon" />
       </div>
-      <div className="diary-swipe-content" style={{ transform: `translateX(${offsetX}px)` }}>
+      <div ref={swipeContentRef} className="diary-swipe-content" style={{ transform: `translateX(${offsetX}px)` }}>
         <div className="diary-card">
           <div className="diary-entry-head">
             <div className={`diary-entry-media ${isWaterEntry ? "is-water" : ""}`.trim()}>

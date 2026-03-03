@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.cafesito.app.ui.theme.WaterBlue
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -279,7 +280,7 @@ fun WaterRegistrationStepPremium(
     onMlChange: (Float) -> Unit,
     isSaving: Boolean
 ) {
-    val waterBlue = Color(0xFF2196F3)
+    val waterBlue = WaterBlue
     var mlInput by remember(ml) { mutableStateOf(ml.roundToInt().toString()) }
 
     Column(
@@ -463,7 +464,7 @@ fun CoffeeDoseStepPremium(
     doseGrams: Float,
     onDoseChange: (Float) -> Unit
 ) {
-    val coffeeColor = CaramelAccent
+    val coffeeColor = LocalCaramelAccent.current
     var doseInput by remember(doseGrams) { mutableStateOf(String.format(Locale.getDefault(), "%.1f", doseGrams)) }
     Column(
         modifier = Modifier
@@ -579,7 +580,7 @@ fun CoffeeTypeStepPremium(
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
                     width = if (isSelected) 2.dp else 1.dp,
-                    color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                 ),
                 modifier = Modifier.height(120.dp)
             ) {
@@ -626,7 +627,7 @@ fun CoffeeSizeStepPremium(
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
                     width = if (isSelected) 2.dp else 1.dp,
-                    color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                 )
             ) {
                 Row(

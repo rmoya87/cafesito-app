@@ -1,4 +1,5 @@
 import { createContext, forwardRef, useCallback, useContext, useEffect, useRef, useState, type HTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "./cn";
 
 const DRAG_CLOSE_THRESHOLD_PX = 80;
@@ -37,7 +38,7 @@ export const SheetOverlay = forwardRef<HTMLDivElement, SheetOverlayProps>(functi
     focusable[0].focus();
   }, [trapFocus]);
 
-  return (
+  const overlay = (
     <SheetDismissContext.Provider value={onDismiss ?? null}>
       <div
         ref={(node) => {
@@ -77,6 +78,11 @@ export const SheetOverlay = forwardRef<HTMLDivElement, SheetOverlayProps>(functi
       </div>
     </SheetDismissContext.Provider>
   );
+
+  if (typeof document !== "undefined" && document.body) {
+    return createPortal(overlay, document.body);
+  }
+  return overlay;
 });
 
 export function SheetCard({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

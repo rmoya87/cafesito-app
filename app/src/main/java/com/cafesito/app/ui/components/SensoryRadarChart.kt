@@ -29,7 +29,8 @@ fun SensoryRadarChart(
     modifier: Modifier = Modifier,
     lineColor: Color = MaterialTheme.colorScheme.primary,
     fillColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-    labelColor: Color = MaterialTheme.colorScheme.onSurface
+    labelColor: Color = MaterialTheme.colorScheme.onSurface,
+    gridColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
 ) {
     val labels = data.keys.toList()
     val values = data.values.toList()
@@ -60,7 +61,7 @@ fun SensoryRadarChart(
                 }
                 drawPath(
                     path = webPath,
-                    color = Color.LightGray.copy(alpha = 0.5f),
+                    color = gridColor,
                     style = Stroke(width = 0.5.dp.toPx())
                 )
             }
@@ -73,7 +74,7 @@ fun SensoryRadarChart(
 
                 // Eje vertical
                 drawLine(
-                    color = Color.LightGray.copy(alpha = 0.5f),
+                    color = gridColor,
                     start = center,
                     end = Offset(center.x + radius * cosA, center.y + radius * sinA),
                     strokeWidth = 1.dp.toPx()

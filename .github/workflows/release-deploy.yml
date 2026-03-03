@@ -226,35 +226,54 @@ jobs:
           script: |
             const fs = require('fs');
             const { execSync } = require('child_process');
-            const before = process.env.COMMIT_BEFORE;
-            let commits = [];
+            const before = process.env.COMMIT_BEFORE || '';
+            let refSince = before;
             try {
-              if (before) {
-                const out = execSync(`git log ${before}..HEAD --pretty=format:%s --no-merges`, { encoding: 'utf8' });
-                commits = out.trim().split('\n').filter(Boolean);
+              const tagsOut = execSync('git tag -l --sort=-v:refname', { encoding: 'utf8' });
+              const tags = tagsOut.trim().split(/\n/).filter(Boolean);
+              for (const tag of tags) {
+                try {
+                  execSync(`git merge-base --is-ancestor ${tag} HEAD`, { stdio: 'pipe' });
+                  refSince = tag;
+                  break;
+                } catch (_) { /* tag not ancestor, skip */ }
               }
-              if (commits.length === 0) {
-                const out = execSync('git log -12 --pretty=format:%s --no-merges', { encoding: 'utf8' });
-                commits = out.trim().split('\n').filter(Boolean);
-              }
-            } catch (e) { commits = []; }
-            const clean = (s) => (s || '')
-              .replace(/\s*\[skip ci\]\s*/gi, '')
-              .replace(/^(fix|feat|chore|docs|style|refactor|perf|test|build|ci)(\([^)]*\))?!?:\s*/i, '')
-              .trim()
-              .slice(0, 55);
-            const lines = commits.slice(0, 6).map(m => clean(m)).filter(Boolean);
+            } catch (_) { /* no tags or error, keep refSince */ }
+            if (!refSince) {
+              try {
+                const d = execSync('git rev-parse HEAD~20', { encoding: 'utf8' }).trim();
+                refSince = d;
+              } catch (_) { refSince = 'HEAD~20'; }
+            }
+            let commitCount = 0;
+            try {
+              const out = execSync(`git rev-list --count ${refSince}..HEAD`, { encoding: 'utf8' });
+              commitCount = parseInt(out.trim(), 10) || 0;
+            } catch (_) {}
             const intros = [
               '¡Esta actualización viene cargada de café! ☕',
               '¿Listo para más Cafesito? Aquí va lo nuevo.',
               'Mejoramos la app mientras tú mejoras tu café.',
-              'Más estabilidad, más sabor. Lo que sube en esta versión:',
+              'Otra versión con cariño para los amantes del café.',
+              'Pequeños pasos para que Cafesito siga siendo tu compañero favorito.',
+            ];
+            const bullets = [
+              'Pequeños retoques para que todo vaya sobre ruedas.',
+              'Seguimos mejorando tu experiencia con cada taza.',
+              'Más fluido y agradable de usar.',
+              'Detalles que marcan la diferencia.',
+              'Gracias por acompañarnos en este viaje.',
             ];
             const intro = intros[Math.floor(Math.random() * intros.length)];
-            const bullets = lines.length
-              ? lines.map(l => '• ' + (l.charAt(0).toUpperCase() + l.slice(1)))
-              : ['Mejoras y ajustes para que tu experiencia sea más fluida.'];
-            let promo = [intro, '', ...bullets, '', '¡Gracias por usar Cafesito!'].join('\n');
+            const numBullets = commitCount > 0 ? Math.min(3, 1 + Math.floor(commitCount / 5)) : 2;
+            const chosen = [];
+            const used = new Set();
+            while (chosen.length < numBullets) {
+              const i = Math.floor(Math.random() * bullets.length);
+              if (!used.has(i)) { used.add(i); chosen.push(bullets[i]); }
+            }
+            const lines = chosen.map(b => '• ' + b);
+            let promo = [intro, '', ...lines, '', '¡Gracias por usar Cafesito!'].join('\n');
             if (promo.length > 500) promo = promo.slice(0, 497) + '…';
             fs.mkdirSync('release-notes', { recursive: true });
             fs.writeFileSync('release-notes/whatsnew-es-ES', promo);
@@ -268,6 +287,8 @@ jobs:
           track: ${{ steps.track.outputs.track }}
           status: completed
           whatsNewDirectory: release-notes
+          # Símbolos nativos para ANR y crashes (generados por ndk.debugSymbolLevel en build.gradle.kts)
+          debugSymbols: app/build/outputs/native-debug-symbols/release
 
   # Deploy web a Ionos: SIEMPRE en Alpha, Beta y Producción (sube a /cafesito-web/app/)
   deploy-web:

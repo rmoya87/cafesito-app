@@ -18,7 +18,7 @@
 .action-button {
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  background: rgba(212, 163, 115, 0.2);
+  background: rgba(var(--caramel-soft-rgb), 0.2);
   color: var(--caramel-soft);
   font-weight: 600;
 }
@@ -29,7 +29,7 @@
 }
 
 .action-button-ghost {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-muted);
 }
 
 .text-button {
@@ -61,7 +61,7 @@
 
 .icon-button.is-active {
   border-color: var(--border-strong);
-  background: rgba(212, 163, 115, 0.14);
+  background: rgba(var(--caramel-soft-rgb), 0.14);
 }
 
 .topbar-icon-button {
@@ -76,8 +76,8 @@
 }
 
 .topbar-icon-button.is-active {
-  color: #ff3b30;
-  background: rgba(255, 59, 48, 0.16);
+  color: var(--electric-red);
+  background: rgba(var(--electric-red-rgb), 0.16);
 }
 
 .topbar-icon-button .ui-icon,
@@ -97,9 +97,9 @@
 .ui-switch {
   width: 46px;
   height: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.26);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ui-switch-track-bg);
   display: inline-flex;
   align-items: center;
   padding: 2px;
@@ -110,14 +110,14 @@
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--pure-white);
   transform: translateX(0);
   transition: transform var(--duration-fast) var(--ease-standard);
 }
 
 .ui-switch.is-on {
-  background: #1a120b;
-  border-color: #1a120b;
+  background: var(--espresso-deep);
+  border-color: var(--espresso-deep);
 }
 
 .ui-switch.is-on .ui-switch-thumb {

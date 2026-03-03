@@ -78,6 +78,7 @@ export function mapCoffeeRow(input: unknown): CoffeeRow {
     nombre: toStringOrEmpty(row.nombre),
     marca: toNullableString(row.marca),
     pais_origen: toNullableString(row.pais_origen),
+    codigo_barras: toNullableString((row as Record<string, unknown>).codigo_barras),
     descripcion: toNullableString(row.descripcion),
     proceso: toNullableString(row.proceso),
     variedad_tipo: toNullableString(row.variedad_tipo),

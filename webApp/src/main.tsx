@@ -10,6 +10,24 @@ if (import.meta.env.DEV && typeof window !== "undefined" && window.location.sear
   document.documentElement.classList.add("dev-safe-area-sim");
 }
 
+// PWA "Añadir a escritorio" (iOS/Android): respetar notch/barra de estado para que el topbar no quede debajo
+function detectPwaStandalone(): void {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  const isStandalone =
+    (typeof window !== "undefined" &&
+      window.matchMedia("(display-mode: standalone)").matches) ||
+    (typeof (navigator as { standalone?: boolean }).standalone === "boolean" && (navigator as { standalone: boolean }).standalone);
+  if (isStandalone) {
+    document.documentElement.classList.add("pwa-standalone");
+  } else {
+    document.documentElement.classList.remove("pwa-standalone");
+  }
+}
+if (typeof window !== "undefined") {
+  detectPwaStandalone();
+  window.matchMedia("(display-mode: standalone)").addEventListener("change", detectPwaStandalone);
+}
+
 class RootErrorBoundary extends React.Component<
   React.PropsWithChildren,
   { hasError: boolean; message: string }

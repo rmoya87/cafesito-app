@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --font-family-base: "Segoe UI", sans-serif;
   --font-sans: var(--font-family-base);
   --font-size-2xs: 0.7rem;
@@ -40,23 +40,33 @@
   --screen-dark-background: #212121;
   --caramel-soft: #d4a373;
   --muted-cream: #bdb7b2;
-  --modal-surface-bg: #1f1f1f;
-  --modal-header-bg: rgba(31, 31, 31, 0.96);
-  --modal-field-bg: #161616;
+  --modal-surface-bg: #000000;
+  --modal-header-bg: rgba(0, 0, 0, 0.96);
+  --modal-field-bg: #000000;
   --modal-field-border: rgba(255, 255, 255, 0.18);
-  --modal-text-main: #f3f0ec;
+  --modal-text-main: #ffffff;
   --modal-text-muted: #bdb7b2;
 
-  --surface: #121212;
-  --surface-elevated: #1a1a1a;
+  --surface: #000000;
+  --surface-elevated: #212121;
   --surface-muted: rgba(255, 255, 255, 0.04);
   --border-default: rgba(255, 255, 255, 0.18);
   --border-strong: rgba(255, 255, 255, 0.24);
-  --text-main: #f3f0ec;
+  --text-main: #ffffff;
   --text-subtle: #bdb7b2;
-  --text-muted: #d5d0ca;
-  --danger: #d63a3a;
+  --text-muted: var(--muted-cream);
+  --danger: var(--electric-red);
+
+  /* Semantic colors (Android palette) */
+  --water-blue: #2196f3;
+  --water-blue-bg: #e3f2fd;
+  --disabled-gray: #9e9e9e;
+  --success-green: #81c784;
+  --electric-red: #ff3b30;
+  --orange-yellow: #ffb300;
   --focus-ring: rgba(212, 163, 115, 0.24);
+  --caramel-soft-rgb: 212, 163, 115;
+  --electric-red-rgb: 255, 59, 48;
   --icon-size-sm: 17px;
   --icon-size-md: 20px;
   --icon-size-lg: 24px;
@@ -72,12 +82,203 @@
   --google-btn-bg: var(--espresso-deep);
   --google-btn-text: var(--pure-white);
   --search-border-inactive: #e0e0e0;
+
+  /* Slider: parte inactiva de la barra (gris) */
+  --slider-track-inactive: rgba(0, 0, 0, 0.12);
+  --sheet-overlay-bg: rgba(0, 0, 0, 0.55);
+  --sheet-shadow: rgba(0, 0, 0, 0.44);
+  --ui-switch-track-bg: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb: #5c5c5c;
 }
 
 @media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: only dark;
+  }
+
   :root {
     --google-btn-bg: var(--caramel-soft);
     --google-btn-text: var(--pure-black);
-    --search-border-inactive: #000000;
+    --search-border-inactive: rgba(255, 255, 255, 0.28);
+    /* Marrones oscuros -> marrón claro en modo noche */
+    --espresso-deep: var(--caramel-soft);
+    --espresso-medium: var(--caramel-accent);
+    /* Bordes gris claro -> negro en modo noche */
+    --border-light: #000000;
+    --border-default: #000000;
+    --border-strong: #000000;
+    --modal-field-border: #000000;
+    --slider-track-inactive: rgba(255, 255, 255, 0.22);
+    /* Modales/sheets: mismo fondo que el resto de la app */
+    --modal-surface-bg: var(--screen-dark-background);
+    --modal-header-bg: var(--screen-dark-background);
+    /* Campos de texto (comentar, reseña, composer): fondo negro como en Android */
+    --modal-field-bg: var(--pure-black);
+  }
+
+  .notifications-panel {
+    --notifications-item-border: #000000;
+    --notifications-item-border-unread: #000000;
+  }
+
+  /* Bordes 1px gris claro (rgba blanco) -> negro en modo noche */
+  .filter-chip,
+  .ui-switch,
+  .nav-item,
+  .coffee-detail-section + .coffee-detail-section,
+  .coffee-detail-topbar,
+  .brew-barista-tip,
+  .coffee-detail-stat,
+  .coffee-detail-review-camera,
+  .coffee-detail-review-cancel,
+  .coffee-detail-empty,
+  .refresh-chip.is-refreshing,
+  .search-recent-list,
+  .search-recent-chip,
+  .search-filter-item.is-selected,
+  .search-users-row,
+  .diary-analytics-info,
+  .diary-analytics-tooltip,
+  .brew-pantry-card,
+  .brew-suggestion-card,
+  .brew-method-card-native.is-active,
+  .coffee-select.is-active,
+  .brew-suggestion-card.is-active,
+  .nav-desktop,
+  .comments-list .post-menu-trigger,
+  .feed-head .post-menu-trigger,
+  .profile-edit-avatar,
+  .profile-edit-avatar-preview,
+  .diary-tabs,
+  .create-post-coffee-image,
+  .edit-image-picker,
+  .notification-item,
+  .search-users-follow.action-button-following,
+  .sheet-card .icon-button {
+    border-color: #000000;
+  }
+
+  .coffee-detail-topbar,
+  .search-recent-list {
+    border-bottom-color: #000000;
+  }
+
+  /* Campo comentario/reseña en detalle café: fondo negro como en Android */
+  .coffee-detail-review-input-shell,
+  .coffee-detail-review-input-shell:focus-within {
+    background: var(--pure-black);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  /* Chips en modo noche: fondo negro, sin borde gris */
+  .filter-chip,
+  .filter-chip.is-active {
+    background: var(--pure-black);
+    border: none;
+  }
+
+  .filter-chip-count {
+    background: var(--caramel-soft);
+    color: var(--pure-black);
+  }
+
+  /* Detalle café: esquinas superiores del contenido como en Android */
+  .coffee-detail-body {
+    border-radius: 24px 24px 0 0;
+  }
+
+  .coffee-detail-section-first {
+    border-top-left-radius: 30px;
+    border-top-right-radius: 30px;
+  }
+
+  /* Botones con fondo marrón claro (caramelo): texto negro como en Android */
+  .action-button.action-button--primary,
+  .action-button.coffee-detail-sensory-submit:not(:disabled),
+  .coffee-detail-opinions-cta {
+    background: var(--caramel-soft);
+    color: var(--pure-black);
+  }
+
+  /* Nuevo café: ítems con borde gris oscuro */
+  .create-coffee-choice,
+  .create-coffee-profile-origin,
+  .create-coffee-format-block,
+  .create-coffee-image-card,
+  .create-coffee-country .search-wide,
+  .create-coffee-quantity-row .create-coffee-quantity-input,
+  .create-coffee-format-block .create-coffee-quantity-input,
+  .create-coffee-inline-field .search-wide,
+  .create-coffee-grid .search-wide {
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  /* Mismo background de página en modo noche en toda la app */
+  html,
+  body,
+  #root,
+  .layout,
+  .main-shell,
+  .main-shell-scroll {
+    background: var(--screen-dark-background);
+  }
+
+  /* Sin borde en componentes con fondo negro/surface en modo noche */
+  .bottom-tabs,
+  .diary-card,
+  .diary-empty-card,
+  .diary-analytics-card,
+  .diary-topbar-add,
+  .diary-period-chip,
+  .diary-sheet-action,
+  .diary-sheet-action-pantry,
+  .diary-pantry-card,
+  .search-recent-chip,
+  .brew-pantry-card,
+  .brew-pantry-add-card,
+  .brew-suggestion-card,
+  .diary-tabs,
+  .profile-tabs,
+  .brew-barista-tip,
+  .coffee-detail-stat,
+  .coffee-detail-empty,
+  .search-users-row,
+  .not-found-card,
+  .composer-card,
+  .feed-card,
+  .metric-card,
+  .settings-item,
+  .card,
+  .coffee-card,
+  .config-card,
+  .coffee-profile-card,
+  .feed-card-premium,
+  .timeline-empty,
+  .notifications-reply,
+  .brew-tech-card,
+  .brew-timer-card,
+  .brew-prep-card,
+  .brew-result-card,
+  .brew-taste-chip,
+  .brew-result-reco {
+    border: none;
+  }
+
+  /* Topbar modo noche: iconos y texto en blanco */
+  .topbar .topbar-icon-button,
+  .topbar .topbar-icon-button.is-active:not(.coffee-topbar-favorite),
+  .topbar .title,
+  .topbar .topbar-brand-title,
+  .topbar .wordmark,
+  .topbar .diary-period-chip,
+  .topbar .diary-topbar-add,
+  .topbar .topbar-create-coffee-save {
+    color: var(--pure-white);
+  }
+
+  /* FAB añadir post en timeline: icono + en negro para que se vea sobre el círculo marrón */
+  .fab,
+  .fab .ui-icon {
+    color: var(--pure-black);
   }
 }

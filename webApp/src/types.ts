@@ -7,6 +7,7 @@ export type CoffeeRow = {
   nombre: string;
   marca: string | null;
   pais_origen: string | null;
+  codigo_barras?: string | null;
   descripcion?: string | null;
   proceso?: string | null;
   variedad_tipo?: string | null;

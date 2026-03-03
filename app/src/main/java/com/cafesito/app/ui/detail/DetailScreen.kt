@@ -736,7 +736,7 @@ fun ReviewBottomSheet(
                         Surface(
                             modifier = Modifier.size(44.dp).clickable { showPickerSheet = true },
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             if (selectedImageUri != null) {

@@ -1,8 +1,12 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
 import type { CoffeeRow, CoffeeReviewRow, CoffeeSensoryProfileRow, TimelineCard, UserRow, ViewMode } from "../../types";
+
+const SWIPE_THRESHOLD_PX = 3;
+const VERTICAL_LOCK_PX = 2;
 
 function ProfileFavoriteItem({
   coffee,
@@ -15,23 +19,32 @@ function ProfileFavoriteItem({
 }) {
   const [isRemoving, setIsRemoving] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeActive, setSwipeActive] = useState(false);
   const startXRef = useRef<number | null>(null);
+  const startYRef = useRef<number | null>(null);
   const pointerIdRef = useRef<number | null>(null);
   const offsetRef = useRef(0);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const movedRef = useRef(false);
   const swipeThreshold = -72;
   const maxLeft = -110;
 
   const resetSwipe = useCallback(() => {
     setOffsetX(0);
-    setIsSwiping(false);
+    setSwipeActive(false);
     startXRef.current = null;
+    startYRef.current = null;
     pointerIdRef.current = null;
     offsetRef.current = 0;
+    movedRef.current = false;
+    const el = contentRef.current;
+    if (el) el.style.transform = "";
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
   }, []);
-  useEffect(() => {
-    offsetRef.current = offsetX;
-  }, [offsetX]);
 
   return (
     <li className="profile-favorite-item">
@@ -39,12 +52,13 @@ function ProfileFavoriteItem({
         <UiIcon name="trash" className="ui-icon" />
       </div>
       <div
-        className={`coffee-card coffee-card-interactive profile-favorite-row ${offsetX < -1 ? "is-swiping" : ""}`.trim()}
+        ref={contentRef}
+        className={`coffee-card coffee-card-interactive profile-favorite-row ${swipeActive || offsetX < -1 ? "is-swiping" : ""}`.trim()}
         style={{ transform: `translateX(${offsetX}px)` }}
         role="button"
         tabIndex={0}
         onClick={(event) => {
-          if (Math.abs(offsetX) > 4 || isSwiping) {
+          if (movedRef.current || Math.abs(offsetX) > 4) {
             event.preventDefault();
             return;
           }
@@ -54,29 +68,74 @@ function ProfileFavoriteItem({
           if (isRemoving) return;
           pointerIdRef.current = event.pointerId;
           startXRef.current = event.clientX;
-          setIsSwiping(true);
-          event.currentTarget.setPointerCapture(event.pointerId);
+          startYRef.current = event.clientY;
+          movedRef.current = false;
         }}
         onPointerMove={(event) => {
-          if (!isSwiping || startXRef.current == null || pointerIdRef.current !== event.pointerId) return;
-          const delta = event.clientX - startXRef.current;
-          const next = Math.max(maxLeft, Math.min(0, offsetRef.current + delta));
-          setOffsetX(next);
+          if (startXRef.current == null || startYRef.current == null || pointerIdRef.current !== event.pointerId) return;
+          const dx = event.clientX - startXRef.current;
+          const dy = event.clientY - startYRef.current;
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+          if (!swipeActive) {
+            if (absDx < SWIPE_THRESHOLD_PX && absDy < SWIPE_THRESHOLD_PX) return;
+            if (absDy > absDx + VERTICAL_LOCK_PX) return;
+            if (dx < 0 && absDx > absDy) {
+              setSwipeActive(true);
+              movedRef.current = true;
+              event.currentTarget.setPointerCapture(event.pointerId);
+            } else return;
+          }
+          if (dx >= 0) {
+            offsetRef.current = 0;
+            setOffsetX(0);
+            const el = contentRef.current;
+            if (el) el.style.transform = "translateX(0px)";
+            return;
+          }
+          const raw = dx;
+          const withResistance = raw <= maxLeft ? maxLeft + (raw - maxLeft) * 0.25 : raw;
+          const offset = Math.max(maxLeft, Math.min(0, withResistance));
+          offsetRef.current = offset;
+          const el = contentRef.current;
+          if (el) el.style.transform = `translateX(${offset}px)`;
+          if (rafIdRef.current == null) {
+            rafIdRef.current = requestAnimationFrame(() => {
+              setOffsetX(offsetRef.current);
+              rafIdRef.current = null;
+            });
+          }
         }}
         onPointerUp={async (event) => {
           if (pointerIdRef.current !== event.pointerId) return;
-          const shouldDelete = offsetX <= swipeThreshold;
-          if (shouldDelete && !isRemoving) {
+          if (rafIdRef.current != null) {
+            cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = null;
+          }
+          pointerIdRef.current = null;
+          startXRef.current = null;
+          startYRef.current = null;
+          setSwipeActive(false);
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+          const finalOffset = offsetRef.current;
+          const el = contentRef.current;
+          if (el) el.style.transform = "";
+          if (finalOffset <= swipeThreshold && !isRemoving) {
+            setOffsetX(0);
             setIsRemoving(true);
             try {
               await onRemoveFavorite(coffee.id);
             } finally {
               setIsRemoving(false);
-              resetSwipe();
             }
+            resetSwipe();
             return;
           }
-          resetSwipe();
+          setOffsetX(finalOffset);
+          requestAnimationFrame(() => setOffsetX(0));
+          window.setTimeout(() => { movedRef.current = false; }, 120);
         }}
         onPointerCancel={() => resetSwipe()}
         onKeyDown={(event) => {
@@ -95,7 +154,7 @@ function ProfileFavoriteItem({
         </span>
         <span className="profile-favorite-copy">
           <strong>{coffee.nombre}</strong>
-          <em>{coffee.marca || "Marca"}</em>
+          <em>{(coffee.marca || "Marca").toUpperCase()}</em>
         </span>
         <Button variant="plain"
           type="button"
@@ -322,7 +381,7 @@ export function ProfileView({
   const likeBurstTimerRef = useRef<number | null>(null);
   const editAvatarInputRef = useRef<HTMLInputElement | null>(null);
   const editPostImageInputRef = useRef<HTMLInputElement | null>(null);
-  const profileSwipeContainerRef = useRef<HTMLDivElement>(null);
+  const profileTabBarRef = useRef<HTMLDivElement>(null);
   const profilePanelsWrapRef = useRef<HTMLDivElement>(null);
   const [profileDragOffsetPx, setProfileDragOffsetPx] = useState<number | null>(null);
   const profileTabDragRefs = useRef({
@@ -334,7 +393,7 @@ export function ProfileView({
     committed: false,
     lastOffsetPx: 0
   });
-  const PROFILE_COMMIT_THRESHOLD_PX = 10;
+  const PROFILE_COMMIT_THRESHOLD_PX = 4;
 
   const onProfilePanelsTouchStart = useCallback(
     (e: React.TouchEvent) => {
@@ -394,7 +453,7 @@ export function ProfileView({
   }, [setTab]);
 
   useEffect(() => {
-    const el = profileSwipeContainerRef.current;
+    const el = profileTabBarRef.current;
     if (!el) return;
     const onMove = (e: TouchEvent) => {
       if (profileTabDragRefs.current.isDragging && e.cancelable) e.preventDefault();
@@ -626,23 +685,27 @@ export function ProfileView({
         <article className="profile-stat-item"><strong className="profile-stat-value">{following}</strong><span className="profile-stat-label">SIGUIENDO</span></article>
       </section>
 
-      <div
-        ref={profileSwipeContainerRef}
-        className="profile-tab-swipe"
-        onTouchStart={onProfilePanelsTouchStart}
-        onTouchMove={onProfilePanelsTouchMove}
-        onTouchEnd={onProfilePanelsTouchEnd}
-        onTouchCancel={onProfilePanelsTouchEnd}
-      >
+      <div className="profile-tab-swipe">
+        <div
+          ref={profileTabBarRef}
+          onTouchStart={onProfilePanelsTouchStart}
+          onTouchMove={onProfilePanelsTouchMove}
+          onTouchEnd={onProfilePanelsTouchEnd}
+          onTouchCancel={onProfilePanelsTouchEnd}
+        >
         <Tabs className="profile-tabs" aria-label="Tabs perfil">
           <span
             className="tab-sliding-indicator"
             style={{
-              transform: `translateX(${
+              ["--indicator-pos" as string]:
                 profileDragOffsetPx !== null && profileTabDragRefs.current.wrapWidth > 0
-                  ? `${Math.min(200, Math.max(0, (-profileDragOffsetPx / profileTabDragRefs.current.wrapWidth) * 100))}%`
-                  : `${tab === "posts" ? 0 : tab === "adn" ? 100 : 200}%`
-              })`,
+                  ? Math.min(2, Math.max(0, -profileDragOffsetPx / profileTabDragRefs.current.wrapWidth))
+                  : tab === "posts"
+                    ? 0
+                    : tab === "adn"
+                      ? 1
+                      : 2,
+              transform: "translateX(calc(var(--indicator-pos, 0) * (100% + 6px)))",
               transition: profileDragOffsetPx !== null ? "none" : undefined
             }}
             aria-hidden="true"
@@ -651,6 +714,7 @@ export function ProfileView({
           <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</TabButton>
           <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</TabButton>
         </Tabs>
+        </div>
         <div ref={profilePanelsWrapRef} className="profile-tab-panels-wrap">
           <div
             className="profile-tab-panels"
@@ -929,115 +993,125 @@ export function ProfileView({
         </div>
       </div>
 
-      {showAdnAnalysisSheet && mode !== "desktop" ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => setShowAdnAnalysisSheet(false)} onClick={() => setShowAdnAnalysisSheet(false)}>
-          <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">ANÁLISIS DE PREFERENCIAS</strong>
-            </header>
-            <div className="profile-adn-analysis-body">
-              <p className="profile-adn-analysis-lead">{adnAnalysis.lead}</p>
-              <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
-              <article className="profile-adn-recommend-card">
-                <div className="profile-adn-recommend-head">
-                  <UiIcon name="sparkles" className="ui-icon" />
-                  <strong>RECOMENDACIÓN IDEAL</strong>
+      {showAdnAnalysisSheet && mode !== "desktop" && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => setShowAdnAnalysisSheet(false)} onClick={() => setShowAdnAnalysisSheet(false)}>
+              <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <header className="sheet-header">
+                  <strong className="sheet-title">ANÁLISIS DE PREFERENCIAS</strong>
+                </header>
+                <div className="profile-adn-analysis-body">
+                  <p className="profile-adn-analysis-lead">{adnAnalysis.lead}</p>
+                  <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
+                  <article className="profile-adn-recommend-card">
+                    <div className="profile-adn-recommend-head">
+                      <UiIcon name="sparkles" className="ui-icon" />
+                      <strong>RECOMENDACIÓN IDEAL</strong>
+                    </div>
+                    <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
+                    <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
+                  </article>
+                  <Button variant="primary"
+                    className="action-button profile-adn-continue-button"
+                    onClick={() => setShowAdnAnalysisSheet(false)}
+                  >
+                    CONTINUAR EXPLORANDO
+                  </Button>
                 </div>
-                <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
-                <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
-              </article>
-              <Button variant="primary"
-                className="action-button profile-adn-continue-button"
-                onClick={() => setShowAdnAnalysisSheet(false)}
-              >
-                CONTINUAR EXPLORANDO
-              </Button>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {postMenuId && canEditProfile ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setPostMenuId(null)} onClick={() => setPostMenuId(null)}>
-          <SheetCard className="diary-sheet diary-sheet-pantry-options profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <div className="diary-sheet-list">
-              <Button variant="plain"
-                className="diary-sheet-action diary-sheet-action-pantry is-delete"
-                onClick={() => {
-                  if (!postMenuId) return;
-                  setDeletePostConfirmId(postMenuId);
-                  setPostMenuId(null);
-                }}
-              >
-                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
-                <span>Borrar</span>
-                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-              </Button>
-              <Button variant="plain"
-                className="diary-sheet-action diary-sheet-action-pantry"
-                onClick={() => {
-                  const post = posts.find((item) => item.id === postMenuId);
-                  if (!post) return;
-                  setEditPostId(post.id);
-                  setEditPostText(post.text || "");
-                  setEditPostImageUrl(post.imageUrl || "");
-                  setEditPostImageFile(null);
-                  setPostMenuId(null);
-                }}
-              >
-                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
-                <span>Editar</span>
-                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-              </Button>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {deletePostConfirmId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
-          <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <div className="diary-delete-confirm-body">
-              <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
-              <p className="diary-delete-confirm-text">
-                ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
-              </p>
-              <div className="diary-delete-confirm-actions">
-                <Button
-                  variant="plain"
-                  type="button"
-                  className="diary-delete-confirm-cancel"
-                  onClick={() => setDeletePostConfirmId(null)}
-                  disabled={deletingPost}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="plain"
-                  type="button"
-                  className="diary-delete-confirm-submit"
-                  disabled={deletingPost}
-                  onClick={async () => {
-                    if (deletingPost) return;
-                    setDeletingPost(true);
-                    try {
-                      await onDeletePost(deletePostConfirmId);
-                      setDeletePostConfirmId(null);
-                    } finally {
-                      setDeletingPost(false);
-                    }
-                  }}
-                >
-                  {deletingPost ? "Eliminando..." : "Eliminar"}
-                </Button>
-              </div>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {editPostId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar publicación" onDismiss={closeEditPostModal} onClick={closeEditPostModal}>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {postMenuId && canEditProfile && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setPostMenuId(null)} onClick={() => setPostMenuId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-pantry-options profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-sheet-list">
+                  <Button variant="plain"
+                    className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                    onClick={() => {
+                      if (!postMenuId) return;
+                      setDeletePostConfirmId(postMenuId);
+                      setPostMenuId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
+                    <span>Borrar</span>
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                  </Button>
+                  <Button variant="plain"
+                    className="diary-sheet-action diary-sheet-action-pantry"
+                    onClick={() => {
+                      const post = posts.find((item) => item.id === postMenuId);
+                      if (!post) return;
+                      setEditPostId(post.id);
+                      setEditPostText(post.text || "");
+                      setEditPostImageUrl(post.imageUrl || "");
+                      setEditPostImageFile(null);
+                      setPostMenuId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
+                    <span>Editar</span>
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                  </Button>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {deletePostConfirmId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-delete-confirm-body">
+                  <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
+                  <p className="diary-delete-confirm-text">
+                    ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
+                  </p>
+                  <div className="diary-delete-confirm-actions">
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-delete-confirm-cancel"
+                      onClick={() => setDeletePostConfirmId(null)}
+                      disabled={deletingPost}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-delete-confirm-submit"
+                      disabled={deletingPost}
+                      onClick={async () => {
+                        if (deletingPost) return;
+                        setDeletingPost(true);
+                        try {
+                          await onDeletePost(deletePostConfirmId);
+                          setDeletePostConfirmId(null);
+                        } finally {
+                          setDeletingPost(false);
+                        }
+                      }}
+                    >
+                      {deletingPost ? "Eliminando..." : "Eliminar"}
+                    </Button>
+                  </div>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {editPostId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar publicación" onDismiss={closeEditPostModal} onClick={closeEditPostModal}>
           <SheetCard className="profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
@@ -1112,8 +1186,10 @@ export function ProfileView({
               </div>
             </div>
           </SheetCard>
-        </SheetOverlay>
-      ) : null}
+        </SheetOverlay>,
+            document.body
+          )
+        : null}
     </>
   );
 

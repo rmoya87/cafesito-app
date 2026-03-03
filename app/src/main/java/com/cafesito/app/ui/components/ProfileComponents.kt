@@ -343,7 +343,7 @@ fun CoffeeFavoritePremiumItem(
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text(text = coffeeDetails.coffee.marca, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                Text(text = coffeeDetails.coffee.marca.uppercase(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onFavoriteClick) {
                 Icon(Icons.Default.Favorite, contentDescription = null, tint = ElectricRed, modifier = Modifier.size(20.dp))
@@ -397,7 +397,7 @@ fun CoffeeFavoriteListItem(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = coffeeDetails.coffee.marca,
+                        text = coffeeDetails.coffee.marca.uppercase(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -497,7 +497,7 @@ fun EditProfileFields(
     val isDark = isSystemInDarkTheme()
     val fieldBackground = if (isDark) Color.Black else Color.White
     val fieldTextColor = if (isDark) Color.White else Color.Black
-    val saveBackground = if (isDark) Color.White else CaramelAccent
+    val saveBackground = LocalCaramelAccent.current
     val saveTextColor = if (isDark) Color.Black else Color.White
     val editFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = fieldBackground,

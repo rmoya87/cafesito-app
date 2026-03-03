@@ -74,7 +74,7 @@ fun EditNormalStockScreen(
                 AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                 Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)), startY = 600f)))
                 Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 48.dp, end = 120.dp)) {
-                    Text(text = coffee.marca, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
+                    Text(text = coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
                     Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
                 }
                 Surface(modifier = Modifier.padding(end = 24.dp, bottom = 48.dp).align(Alignment.BottomEnd), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), shape = RoundedCornerShape(16.dp)) {

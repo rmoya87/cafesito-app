@@ -139,6 +139,10 @@ fun ProfileScreen(
                             } else {
                                 Text(text = state.user.fullName, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
                                 Text(text = "@${state.user.username}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                                if (!state.isCurrentUser) {
+                                    Spacer(Modifier.height(12.dp))
+                                    FollowButton(isFollowing = state.isFollowing, onClick = { viewModel.toggleFollow() })
+                                }
                                 if (bio.isNotBlank()) {
                                     Spacer(Modifier.height(8.dp))
                                     Text(text = bio, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
@@ -152,11 +156,6 @@ fun ProfileScreen(
                                 onFollowersClick = { onFollowersClick(state.user.id) },
                                 onFollowingClick = { onFollowingClick(state.user.id) }
                             )
-
-                            if (!state.isCurrentUser) {
-                                Spacer(Modifier.height(24.dp))
-                                FollowButton(isFollowing = state.isFollowing, onClick = { viewModel.toggleFollow() })
-                            }
                         }
                     }
 

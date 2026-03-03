@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { toRelativeMinutes } from "../../core/time";
 import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserRow } from "../../types";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
@@ -170,7 +171,7 @@ export function CoffeeDetailView({
         ) : null}
 
         <div className="coffee-detail-headline">
-          <p className="coffee-origin">{coffee.marca ?? "Marca"}</p>
+          <p className="coffee-origin">{(coffee.marca ?? "Marca").toUpperCase()}</p>
           <h1 className="coffee-detail-title">{coffee.nombre}</h1>
         </div>
         {avgRating > 0 ? (
@@ -185,22 +186,24 @@ export function CoffeeDetailView({
         {coffee.descripcion ? <p className="feed-text coffee-detail-description">{coffee.descripcion}</p> : <p className="coffee-sub coffee-detail-opinion-empty">Sin descripción.</p>}
       </section>
 
-      <section className="coffee-detail-section">
-        <h3 className="section-title">Detalles técnicos</h3>
-        <ul className="coffee-detail-tech-list">
-          {techRows.map((row) => (
-            <li key={row.label} className="coffee-detail-tech-item">
-              <span className="coffee-detail-tech-icon-wrap" aria-hidden="true">
-                <UiIcon name={row.icon} className="ui-icon coffee-detail-tech-icon" />
-              </span>
-              <span className="coffee-detail-tech-copy">
-                <strong>{row.label}</strong>
-                <em>{row.value}</em>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {techRows.length > 0 ? (
+        <section className="coffee-detail-section">
+          <h3 className="section-title">Detalles técnicos</h3>
+          <ul className="coffee-detail-tech-list">
+            {techRows.map((row) => (
+              <li key={row.label} className="coffee-detail-tech-item">
+                <span className="coffee-detail-tech-icon-wrap" aria-hidden="true">
+                  <UiIcon name={row.icon} className="ui-icon coffee-detail-tech-icon" />
+                </span>
+                <span className="coffee-detail-tech-copy">
+                  <strong>{row.label}</strong>
+                  <em>{row.value}</em>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="coffee-detail-section">
         <div className="coffee-detail-section-head">
@@ -365,89 +368,104 @@ export function CoffeeDetailView({
         </ul>
       </section>
 
-      {showSensorySheet ? (
-        <SheetOverlay
-          role="dialog"
-          aria-modal="true"
-          aria-label="Editar perfil sensorial"
-          onClick={() => {
-            if (savingSensory) return;
-            setSensorySheetError(null);
-            setShowSensorySheet(false);
-          }}
-        >
-          <SheetCard className="coffee-detail-sheet coffee-detail-sensory-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <header className="coffee-detail-sensory-sheet-head">
-              <h3 className="coffee-detail-sensory-sheet-title">Perfil sensorial</h3>
-              <p className="coffee-detail-sensory-sheet-copy">Tu opinión se unirá a la media de todas las valoraciones</p>
-            </header>
-            <div className="coffee-detail-sheet-body coffee-detail-sliders coffee-detail-sensory-sliders">
-              {sensoryKeys.map((key) => (
-                <label key={key} className="coffee-detail-sensory-control">
-                  <span className="coffee-detail-slider-label">
-                    {sensoryLabels[key]}
-                    <strong>{sensoryDraft[key].toFixed(1).replace(".", ",")}</strong>
-                  </span>
-                  <span className="coffee-detail-sensory-slider-row">
-                    <small>0</small>
-                    <Input
-                      className="app-range"
-                      style={{ "--range-progress": `${Math.max(0, Math.min(100, (sensoryDraft[key] / 10) * 100))}%` } as CSSProperties}
-                      type="range"
-                      min={0}
-                      max={10}
-                      step={0.5}
-                      value={sensoryDraft[key]}
-                      onChange={(event) => onSensoryDraftChange({ ...sensoryDraft, [key]: Number(event.target.value) })}
-                    />
-                    <small>10</small>
-                  </span>
-                </label>
-              ))}
-            </div>
-            <div className="coffee-detail-actions coffee-detail-sheet-actions">
-              <Button variant="plain"
-                className="action-button coffee-detail-sensory-submit"
-                disabled={savingSensory}
-                onClick={async () => {
-                  setSavingSensory(true);
-                  try {
-                    await onSaveSensory();
-                    setSensorySheetError(null);
-                    setShowSensorySheet(false);
-                  } catch {
-                    setSensorySheetError("No se pudo guardar el perfil sensorial.");
-                  } finally {
-                    setSavingSensory(false);
-                  }
-                }}
-              >
-                {savingSensory ? "Guardando..." : "Listo"}
-              </Button>
-            </div>
-            {sensorySheetError ? <p className="coffee-detail-sheet-error">{sensorySheetError}</p> : null}
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
+      {showSensorySheet && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay
+              role="dialog"
+              aria-modal="true"
+              aria-label="Editar perfil sensorial"
+              onDismiss={() => {
+                if (savingSensory) return;
+                setSensorySheetError(null);
+                setShowSensorySheet(false);
+              }}
+              onClick={() => {
+                if (savingSensory) return;
+                setSensorySheetError(null);
+                setShowSensorySheet(false);
+              }}
+            >
+              <SheetCard className="coffee-detail-sheet coffee-detail-sensory-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <header className="coffee-detail-sensory-sheet-head">
+                  <div className="coffee-detail-sensory-sheet-head-slot" />
+                  <h3 className="coffee-detail-sensory-sheet-title">Perfil sensorial</h3>
+                  <div className="coffee-detail-sensory-sheet-head-slot coffee-detail-sensory-sheet-head-actions">
+                    <Button variant="plain"
+                      className="action-button coffee-detail-sensory-submit coffee-detail-sensory-submit-topbar"
+                      disabled={savingSensory}
+                      onClick={async () => {
+                        setSavingSensory(true);
+                        try {
+                          await onSaveSensory();
+                          setSensorySheetError(null);
+                          setShowSensorySheet(false);
+                        } catch {
+                          setSensorySheetError("No se pudo guardar el perfil sensorial.");
+                        } finally {
+                          setSavingSensory(false);
+                        }
+                      }}
+                    >
+                      {savingSensory ? "Guardando..." : "Guardar"}
+                    </Button>
+                  </div>
+                </header>
+                <p className="coffee-detail-sensory-sheet-copy">Tu opinión se unirá a la media de todas las valoraciones</p>
+                <div className="coffee-detail-sheet-body coffee-detail-sliders coffee-detail-sensory-sliders">
+                  {sensoryKeys.map((key) => (
+                    <label key={key} className="coffee-detail-sensory-control">
+                      <span className="coffee-detail-slider-label">
+                        {sensoryLabels[key]}
+                        <strong>{sensoryDraft[key].toFixed(1).replace(".", ",")}</strong>
+                      </span>
+                      <span className="coffee-detail-sensory-slider-row">
+                        <small>0</small>
+                        <Input
+                          className="app-range"
+                          style={{ "--range-progress": `${Math.max(0, Math.min(100, (sensoryDraft[key] / 10) * 100))}%` } as CSSProperties}
+                          type="range"
+                          min={0}
+                          max={10}
+                          step={0.5}
+                          value={sensoryDraft[key]}
+                          onChange={(event) => onSensoryDraftChange({ ...sensoryDraft, [key]: Number(event.target.value) })}
+                        />
+                        <small>10</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {sensorySheetError ? <p className="coffee-detail-sheet-error">{sensorySheetError}</p> : null}
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
 
-      {showStockSheet ? (
-        <SheetOverlay
-          role="dialog"
-          aria-modal="true"
-          aria-label="Editar stock"
-          onClick={() => {
-            if (savingStock) return;
-            setStockSheetError(null);
-            setShowStockSheet(false);
-          }}
-        >
-          <SheetCard className="coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <SheetHeader>
-              <strong className="sheet-title coffee-detail-stock-title">Editar Stock</strong>
-            </SheetHeader>
-            <div className="coffee-detail-sheet-body coffee-detail-stock">
+      {showStockSheet && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay
+              role="dialog"
+              aria-modal="true"
+              aria-label="Editar stock"
+              onDismiss={() => {
+                if (savingStock) return;
+                setStockSheetError(null);
+                setShowStockSheet(false);
+              }}
+              onClick={() => {
+                if (savingStock) return;
+                setStockSheetError(null);
+                setShowStockSheet(false);
+              }}
+            >
+              <SheetCard className="coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <SheetHeader>
+                  <strong className="sheet-title coffee-detail-stock-title">Editar Stock</strong>
+                </SheetHeader>
+                <div className="coffee-detail-sheet-body coffee-detail-stock">
               <section className="coffee-detail-stock-field">
                 <p className="coffee-detail-stock-label">Cantidad de cafe total (g)</p>
                 <Input
@@ -554,21 +572,28 @@ export function CoffeeDetailView({
                 {savingStock ? "GUARDANDO..." : "GUARDAR"}
               </Button>
             </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
 
-      {showReviewSheet ? (
-        <SheetOverlay
-          role="dialog"
-          aria-modal="true"
-          aria-label="Escribir reseña"
-          onClick={() => {
-            setReviewSheetError(null);
-            setShowReviewSheet(false);
-          }}
-        >
-          <SheetCard className="coffee-detail-sheet coffee-detail-review-sheet" onClick={(event) => event.stopPropagation()}>
+      {showReviewSheet && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay
+              role="dialog"
+              aria-modal="true"
+              aria-label="Escribir reseña"
+              onDismiss={() => {
+                setReviewSheetError(null);
+                setShowReviewSheet(false);
+              }}
+              onClick={() => {
+                setReviewSheetError(null);
+                setShowReviewSheet(false);
+              }}
+            >
+              <SheetCard className="coffee-detail-sheet coffee-detail-review-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <SheetHeader>
               <strong className="sheet-title">TU RESEÑA</strong>
@@ -730,9 +755,11 @@ export function CoffeeDetailView({
                 </Button>
               </div>
             ) : null}
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
     </article>
   );
 }

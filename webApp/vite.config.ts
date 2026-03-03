@@ -110,13 +110,13 @@ export default defineConfig(({ mode }) => {
     mkcert(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "logo.png"],
+      includeAssets: ["favicon.svg", "logo.png", "splash.png", "splash-1170x2532.png", "splash-750x1294.png"],
       manifest: {
         name: "Cafesito",
         short_name: "Cafesito",
         description: "Cafesito web app instalable",
-        theme_color: "#1f6f4a",
-        background_color: "#121212",
+        theme_color: "#6f4e37",
+        background_color: "#6f4e37",
         display: "standalone",
         orientation: "portrait",
         start_url: ".",

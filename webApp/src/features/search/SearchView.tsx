@@ -225,9 +225,8 @@ export function SearchView({
               ) : null}
               {selectedCoffee.image_url ? <img className="coffee-profile-image" src={selectedCoffee.image_url} alt={selectedCoffee.nombre} loading="lazy" decoding="async" /> : null}
               <div className="coffee-profile-copy">
-                <p className="coffee-origin">{selectedCoffee.pais_origen ?? "Origen desconocido"}</p>
                 <h3 className="coffee-profile-title">{selectedCoffee.nombre}</h3>
-                <p className="coffee-profile-brand">{selectedCoffee.marca || "Marca"}</p>
+                <p className="coffee-profile-brand">{(selectedCoffee.marca || "Marca").toUpperCase()}</p>
               </div>
             </article>
           ) : null}
@@ -258,8 +257,7 @@ export function SearchView({
                       )}
                       <div className="search-coffee-copy">
                         <strong>{coffee.nombre}</strong>
-                        <p className="coffee-sub">{coffee.marca || "Marca"}</p>
-                        <p className="coffee-origin">{coffee.pais_origen ?? "Origen desconocido"}</p>
+                        <p className="coffee-sub">{(coffee.marca || "Marca").toUpperCase()}</p>
                       </div>
                       <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
                     </Button>
@@ -289,8 +287,7 @@ export function SearchView({
                           )}
                           <div className="search-coffee-copy">
                             <strong>{coffee.nombre}</strong>
-                            <p className="coffee-sub">{coffee.marca || "Marca"}</p>
-                            <p className="coffee-origin">{coffee.pais_origen ?? "Origen desconocido"}</p>
+                            <p className="coffee-sub">{(coffee.marca || "Marca").toUpperCase()}</p>
                           </div>
                           <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
                         </Button>

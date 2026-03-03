@@ -129,25 +129,10 @@ export function ComposerInputShell({
           <div className="composer-text-mirror" aria-hidden="true">
             {richParts.map((part) => {
               if (part.type === "text") return <span key={part.key}>{part.value}</span>;
-              const avatar = part.resolved?.avatarUrl ?? null;
+              /* Renderizar mención como texto plano "@username" para que el layout coincida con el textarea y el cursor quede alineado */
               return (
-                <span key={part.key} className="mention-button composer-mention-pill">
-                  {avatar ? (
-                    <img
-                      className="mention-button-avatar"
-                      src={avatar}
-                      alt={part.resolved?.username ?? part.value}
-                      loading="lazy"
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      crossOrigin="anonymous"
-                    />
-                  ) : (
-                    <span className="mention-button-avatar-fallback" aria-hidden="true">
-                      {(part.resolved?.username ?? part.value).slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
-                  <span>@{part.value}</span>
+                <span key={part.key} className="composer-mention-inline">
+                  @{part.value}
                 </span>
               );
             })}

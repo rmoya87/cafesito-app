@@ -41,6 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.cafesito.app.ui.theme.WaterBlue
+import com.cafesito.app.ui.theme.WaterBlueBackground
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.BlendMode
@@ -237,7 +239,7 @@ fun CommentsSheet(
                                             },
                                             modifier = Modifier.size(40.dp),
                                             shape = CircleShape,
-                                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                                             color = MaterialTheme.colorScheme.surface
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
@@ -259,7 +261,7 @@ fun CommentsSheet(
                                     }
                                 }
                             }
-                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         }
                     }
 
@@ -287,7 +289,7 @@ fun CommentsSheet(
                             onClick = { showImagePickerSheet = true },
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -305,7 +307,7 @@ fun CommentsSheet(
                             },
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -317,7 +319,7 @@ fun CommentsSheet(
                             onClick = { showEmojiPanel = !showEmojiPanel },
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -696,7 +698,7 @@ private fun CommentRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color.LightGray)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { author?.id?.let { onNavigateToProfile(it) } }
         )
         Spacer(Modifier.width(12.dp))
@@ -776,8 +778,8 @@ fun MentionText(
                     Surface(
                         onClick = { onMentionClick(username) },
                         shape = RoundedCornerShape(16.dp),
-                        color = CaramelSoft.copy(alpha = 0.08f),
-                        border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.38f))
+                        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
+                        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -790,14 +792,14 @@ fun MentionText(
                                 Box(
                                     modifier = Modifier
                                         .size(14.dp)
-                                        .background(CaramelAccent.copy(alpha = 0.14f), CircleShape),
+                                        .background(LocalCaramelAccent.current.copy(alpha = 0.14f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = fallbackChar,
                                         fontSize = 8.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = CaramelAccent,
+                                        color = LocalCaramelAccent.current,
                                         maxLines = 1
                                     )
                                 }
@@ -812,14 +814,14 @@ fun MentionText(
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .background(CaramelAccent.copy(alpha = 0.14f), CircleShape),
+                                                .background(LocalCaramelAccent.current.copy(alpha = 0.14f), CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = fallbackChar,
                                                 fontSize = 8.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = CaramelAccent,
+                                                color = LocalCaramelAccent.current,
                                                 maxLines = 1
                                             )
                                         }
@@ -828,14 +830,14 @@ fun MentionText(
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .background(CaramelAccent.copy(alpha = 0.14f), CircleShape),
+                                                .background(LocalCaramelAccent.current.copy(alpha = 0.14f), CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = fallbackChar,
                                                 fontSize = 8.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = CaramelAccent,
+                                                color = LocalCaramelAccent.current,
                                                 maxLines = 1
                                             )
                                         }
@@ -847,7 +849,7 @@ fun MentionText(
                                 text = "@$username",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = CaramelAccent,
+                                color = LocalCaramelAccent.current,
                                 lineHeight = 12.sp,
                                 maxLines = 1
                             )
@@ -882,8 +884,8 @@ private data class ComposerMentionVisual(
 private fun ComposerMentionPill(user: UserEntity) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = CaramelSoft.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.38f))
+        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
     ) {
         Row(
             modifier = Modifier
@@ -895,14 +897,14 @@ private fun ComposerMentionPill(user: UserEntity) {
                 Box(
                     modifier = Modifier
                         .size(14.dp)
-                        .background(CaramelAccent.copy(alpha = 0.14f), CircleShape),
+                        .background(LocalCaramelAccent.current.copy(alpha = 0.14f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = user.username.take(1).uppercase(),
                         fontSize = 8.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CaramelAccent,
+                        color = LocalCaramelAccent.current,
                         maxLines = 1
                     )
                 }
@@ -925,7 +927,7 @@ private fun ComposerMentionPill(user: UserEntity) {
                 text = "@${user.username}",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = CaramelAccent,
+                color = LocalCaramelAccent.current,
                 lineHeight = 12.sp,
                 maxLines = 1
             )
@@ -1031,15 +1033,15 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = CaramelSoft.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, CaramelAccent.copy(alpha = 0.38f))
+        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
     ) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape))
             Spacer(Modifier.width(8.dp))
-            Text("@${user.username}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CaramelAccent)
+            Text("@${user.username}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LocalCaramelAccent.current)
         }
     }
 }
@@ -1205,7 +1207,7 @@ fun DiaryEntryItem(
                         modifier = Modifier
                             .size(46.dp)
                             .background(
-                                if (entry.type == "WATER") Color(0xFFE3F2FD).copy(alpha = if (isSystemInDarkTheme()) 0.22f else 1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                if (entry.type == "WATER") WaterBlueBackground.copy(alpha = if (isSystemInDarkTheme()) 0.22f else 1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                 RoundedCornerShape(12.dp)
                             ),
                         contentAlignment = Alignment.Center
@@ -1214,7 +1216,7 @@ fun DiaryEntryItem(
                             Icon(
                                 imageVector = Icons.Default.WaterDrop,
                                 contentDescription = null,
-                                tint = Color(0xFF2196F3),
+                                tint = WaterBlue,
                                 modifier = Modifier.size(20.dp)
                             )
                         } else {
@@ -1365,7 +1367,7 @@ fun DiaryEntryEditBottomSheet(
     val editFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = fieldBackground,
         unfocusedContainerColor = fieldBackground,
-        focusedBorderColor = CaramelAccent,
+        focusedBorderColor = LocalCaramelAccent.current,
         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
     )
     val editFieldTextStyle = MaterialTheme.typography.bodyLarge.copy(
@@ -1472,8 +1474,8 @@ fun DiaryEntryEditBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancelar", fontWeight = FontWeight.SemiBold)
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Cerrar")
                 }
                 Text(
                     text = "Editar",
@@ -1492,7 +1494,7 @@ fun DiaryEntryEditBottomSheet(
                 Text(
                     text = "Preparación",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
@@ -1504,7 +1506,7 @@ fun DiaryEntryEditBottomSheet(
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
                         ) {
                             Row(
@@ -1582,7 +1584,7 @@ fun DiaryEntryEditBottomSheet(
                 Text(
                     text = "Tamaño",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
@@ -1594,7 +1596,7 @@ fun DiaryEntryEditBottomSheet(
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
                         ) {
                             Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -1627,7 +1629,7 @@ fun DiaryEntryEditBottomSheet(
                             Icon(
                                 imageVector = Icons.Default.WaterDrop,
                                 contentDescription = null,
-                                tint = Color(0xFF2196F3),
+                                tint = WaterBlue,
                                 modifier = Modifier.size(18.dp)
                             )
                         },
@@ -2173,7 +2175,7 @@ fun SettingsBottomSheet(
             ModalMenuOption(
                 title = "Editar Perfil",
                 icon = Icons.Default.Edit,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = { onDismiss(); onEditClick() }
             )
             ModalMenuOption(
@@ -2185,7 +2187,7 @@ fun SettingsBottomSheet(
             ModalMenuOption(
                 title = "Cerrar Sesión",
                 icon = Icons.AutoMirrored.Filled.Logout,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = { onDismiss(); onLogoutClick() }
             )
         }

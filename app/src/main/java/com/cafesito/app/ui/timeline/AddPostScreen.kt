@@ -431,7 +431,7 @@ private fun PostDetailsStepPremium(
                         exit = shrinkVertically() + fadeOut()
                     ) {
                         Column {
-                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                             if (showEmojiPanel) {
                                 FadingLazyRow(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
@@ -447,7 +447,7 @@ private fun PostDetailsStepPremium(
                                             },
                                             modifier = Modifier.size(40.dp),
                                             shape = CircleShape,
-                                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                                             color = MaterialTheme.colorScheme.surface
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
@@ -539,7 +539,7 @@ private fun PostDetailsStepPremium(
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             ) {
                 AsyncImage(
                     model = imageSource,
@@ -656,7 +656,7 @@ private fun PostDetailsStepPremium(
                                 Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(coffee.coffee.nombre, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(coffee.coffee.marca, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(coffee.coffee.marca.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 if (coffee.averageRating > 0f) {
                                     AssistChip(onClick = {}, enabled = false, label = { Text(String.format(java.util.Locale.getDefault(), "%.1f", coffee.averageRating)) })
@@ -778,7 +778,7 @@ private fun ComposerActionRow(
             onClick = onInsertMention,
             modifier = Modifier.size(40.dp),
             shape = CircleShape,
-            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
             color = MaterialTheme.colorScheme.surface
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -790,7 +790,7 @@ private fun ComposerActionRow(
             onClick = onToggleEmoji,
             modifier = Modifier.size(40.dp),
             shape = CircleShape,
-            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
             color = MaterialTheme.colorScheme.surface
         ) {
             Box(contentAlignment = Alignment.Center) {

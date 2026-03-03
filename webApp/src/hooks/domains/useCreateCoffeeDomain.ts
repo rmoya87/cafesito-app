@@ -94,7 +94,7 @@ export function useCreateCoffeeDomain({
         setShowCreateCoffeeComposer(false);
         if (fromBrewChooser) {
           setBrewCoffeeId(created.id);
-          setBrewStep("coffee");
+          setBrewStep("config");
         } else {
           setBrewCoffeeId(created.id);
           setBrewStep("config");

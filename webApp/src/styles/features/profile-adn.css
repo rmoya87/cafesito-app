@@ -1,4 +1,4 @@
-﻿.profile-adn-card {
+.profile-adn-card {
   padding: 14px 14px 12px;
   display: grid;
   gap: 10px;
@@ -76,12 +76,12 @@
 
 .profile-adn-radar-shape {
   fill: rgba(212, 212, 212, 0.44);
-  stroke: #1a120b;
+  stroke: var(--espresso-deep);
   stroke-width: 1.4;
 }
 
 .profile-adn-radar-point {
-  fill: #1a120b;
+  fill: var(--espresso-deep);
 }
 
 .profile-adn-radar-label {
@@ -188,16 +188,16 @@
   margin-top: 6px;
   font-weight: 800;
   font-size: 0.95rem;
-  background: #17100a;
-  color: #ffffff;
-  border: 1px solid #17100a;
+  background: var(--espresso-deep);
+  color: var(--pure-white);
+  border: 1px solid var(--espresso-deep);
 }
 
 .profile-adn-continue-button.action-button:hover,
 .profile-adn-continue-button.action-button:focus-visible {
-  background: #21160e;
-  border-color: #21160e;
-  color: #ffffff;
+  background: var(--espresso-medium);
+  border-color: var(--espresso-medium);
+  color: var(--pure-white);
 }
 
 @media (max-width: 640px) {

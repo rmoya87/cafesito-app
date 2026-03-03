@@ -106,7 +106,7 @@ export function NotificationsSheet({
                 <li className={`notifications-group-heading ${index === 0 ? "is-first" : ""}`}>{group.title}</li>
                 {group.items.map((item) => {
                   const user = usersById.get(item.userId);
-                  const isUnread = item.timestamp > notificationsLastSeenAt;
+                  const isUnread = item.is_read === false;
                   return (
                     <NotificationRow
                       key={item.id}

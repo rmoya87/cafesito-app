@@ -332,7 +332,7 @@ fun ConfigStep(
     baristaTips: List<BaristaTip>,
     viewModel: BrewLabViewModel
 ) {
-    val waterBlue = Color(0xFF2196F3)
+    val waterBlue = WaterBlue
     var waterDraft by remember { mutableStateOf(water.roundToInt().toString()) }
     var coffeeDraft by remember { mutableStateOf(formatDecimalWithComma(coffeeGrams)) }
     LaunchedEffect(water) {
@@ -522,7 +522,7 @@ fun PreparationStep(
                 Box {
                     WaterWaveAnimation(
                         progress = totalProgress,
-                        color = CaramelAccent.copy(alpha = 0.05f),
+                        color = LocalCaramelAccent.current.copy(alpha = 0.05f),
                         modifier = Modifier.matchParentSize()
                     )
 
@@ -670,7 +670,7 @@ fun PhaseDurationLabel(phase: BrewPhaseInfo) {
 @Composable
 fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
     val totalSeconds = phases.sumOf { it.durationSeconds }.coerceAtLeast(1)
-    val coffeeBrown = CaramelAccent
+    val coffeeBrown = LocalCaramelAccent.current
     val softGray = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
 
     Column(Modifier
@@ -1041,7 +1041,7 @@ fun TasteOption(label: String, isSelected: Boolean, modifier: Modifier = Modifie
 fun WaterWaveAnimation(
     progress: Float,
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF2196F3).copy(alpha = 0.15f)
+    color: Color = WaterBlue.copy(alpha = 0.15f)
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "wave")
     val waveOffset by infiniteTransition.animateFloat(

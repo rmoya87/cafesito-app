@@ -324,7 +324,7 @@ export function BrewLabView({
                     )}
                     <span>
                       <strong>{coffee.nombre}</strong>
-                      <small>{coffee.marca}</small>
+                      <small>{(coffee.marca || "").toUpperCase()}</small>
                     </span>
                     <UiIcon name="add" className="ui-icon" />
                   </Button>

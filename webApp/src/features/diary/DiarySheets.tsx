@@ -257,6 +257,9 @@ function DiarySheets({
           <SheetCard className="diary-sheet diary-water-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-water-sheet-header">
+              <Button variant="plain" type="button" className="diary-water-sheet-close" onClick={onCloseWaterSheet} aria-label="Cerrar">
+                <UiIcon name="close" className="ui-icon" />
+              </Button>
               <strong className="sheet-title">Agua</strong>
               <Button variant="plain" type="button" className="action-button diary-water-sheet-register-btn" onClick={() => void onSaveWater()}>
                 Registrar

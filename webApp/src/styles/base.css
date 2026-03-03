@@ -6,12 +6,14 @@ html {
   /* iOS: no inflar fuentes en inputs ni cambiar tamaños por defecto */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  color-scheme: light dark;
 }
 
 html,
 body,
 #root {
   min-height: 100%;
+  min-height: 100dvh;
 }
 
 body {
@@ -22,10 +24,15 @@ body {
   font-weight: var(--font-weight-regular);
   letter-spacing: 0;
   background: var(--screen-dark-background);
-  color: var(--pure-white);
+  color: var(--text-main);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   overscroll-behavior: none;
+}
+
+/* PWA standalone: viewport estable y sin rebote de navegador */
+.pwa-standalone body {
+  min-height: 100dvh;
 }
 
 /* Enlaces: que no los pinte iOS/Safari de azul ni subrayado por defecto */
@@ -85,7 +92,7 @@ select {
 /* Barras de scroll: finas, fondo transparente, gris oscuro visible */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #5c5c5c transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -98,12 +105,12 @@ select {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #5c5c5c;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #5c5c5c;
+  background: var(--scrollbar-thumb);
 }
 
 *::-webkit-scrollbar-corner {
@@ -220,4 +227,24 @@ select {
   select {
     font-size: max(1rem, var(--font-size-md, 1rem));
   }
+}
+
+/* PWA: banner "Sin conexión" cuando navigator.onLine es false */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top, 0px));
+  background: #424242;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.offline-banner-text {
+  display: block;
 }

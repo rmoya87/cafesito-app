@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
@@ -201,7 +202,7 @@ export function TimelineView({
             {coffee.image_url ? <img className="mini-cover" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
             <p className="coffee-origin">{coffee.pais_origen ?? "Origen"}</p>
             <p className="feed-user">{coffee.nombre}</p>
-            <p className="coffee-sub">{coffee.marca}</p>
+            <p className="coffee-sub">{(coffee.marca || "").toUpperCase()}</p>
           </Button>
         ))}
       </div>
@@ -225,8 +226,8 @@ export function TimelineView({
                   <p className="coffee-sub">{followerCounts.get(user.id) ?? 0} seguidores</p>
                 </div>
               </Button>
-              <Button variant="primary"
-                className={`action-button ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
+              <Button variant="plain"
+                className={`action-button search-users-follow ${followingIds.has(user.id) ? "action-button-following" : ""}`}
                 disabled={isPendingFollow}
                 onClick={async () => {
                   if (isPendingFollow) return;
@@ -438,88 +439,95 @@ export function TimelineView({
           <p>Publica tu primer cafe o sigue a mas personas.</p>
         </article>
       )}
-      {activeMenuPost ? (
-        <SheetOverlay className="comment-action-overlay" onDismiss={() => setMenuPostId(null)} onClick={() => setMenuPostId(null)}>
-          <SheetCard className="comment-action-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <div className="comment-action-list">
-              <p className="comment-action-title">OPCIONES</p>
-              <Button variant="plain"
-                className="comment-action-button"
-                onClick={() => {
-                  setEditingPostId(activeMenuPost.id);
-                  setEditingText(activeMenuPost.text);
-                  const initialImage = activeMenuPost.imageUrl ?? "";
-                  setEditingImageUrl(initialImage);
-                  setEditingImageFile(null);
-                  setEditingImagePreviewUrl(initialImage);
-                  setMenuPostId(null);
-                }}
-              >
-                <UiIcon name="edit" className="ui-icon" />
-                <span>Editar</span>
-                <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </Button>
-              <Button variant="plain"
-                className="comment-action-button is-danger"
-                onClick={() => {
-                  setDeletePostConfirmId(activeMenuPost.id);
-                  setMenuPostId(null);
-                }}
-              >
-                <UiIcon name="trash" className="ui-icon" />
-                <span>Borrar</span>
-                <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </Button>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {deletePostConfirmId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
-          <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <div className="diary-delete-confirm-body">
-              <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
-              <p className="diary-delete-confirm-text">
-                ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
-              </p>
-              <div className="diary-delete-confirm-actions">
-                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setDeletePostConfirmId(null)} disabled={deletingPost}>
-                  Cancelar
-                </Button>
-                <Button
-                  variant="plain"
-                  type="button"
-                  className="diary-delete-confirm-submit"
-                  disabled={deletingPost}
-                  onClick={async () => {
-                    if (deletingPost) return;
-                    setDeletingPost(true);
-                    try {
-                      await onDeletePost(deletePostConfirmId);
-                      setDeletePostConfirmId(null);
-                    } finally {
-                      setDeletingPost(false);
-                    }
-                  }}
-                >
-                  {deletingPost ? "Eliminando..." : "Eliminar"}
-                </Button>
-              </div>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {editingPostId ? (
-        <SheetOverlay
-          role="dialog"
-          aria-modal="true"
-          aria-label="Editar publicacion"
-          onDismiss={closeEditModal}
-          onClick={closeEditModal}
-        >
-          <SheetCard onClick={(event) => event.stopPropagation()}>
+      {activeMenuPost && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay className="comment-action-overlay" onDismiss={() => setMenuPostId(null)} onClick={() => setMenuPostId(null)}>
+              <SheetCard className="comment-action-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="comment-action-list">
+                  <p className="comment-action-title">OPCIONES</p>
+                  <Button variant="plain"
+                    className="comment-action-button"
+                    onClick={() => {
+                      setEditingPostId(activeMenuPost.id);
+                      setEditingText(activeMenuPost.text);
+                      const initialImage = activeMenuPost.imageUrl ?? "";
+                      setEditingImageUrl(initialImage);
+                      setEditingImageFile(null);
+                      setEditingImagePreviewUrl(initialImage);
+                      setMenuPostId(null);
+                    }}
+                  >
+                    <UiIcon name="edit" className="ui-icon" />
+                    <span>Editar</span>
+                    <UiIcon name="chevron-right" className="ui-icon trailing" />
+                  </Button>
+                  <Button variant="plain"
+                    className="comment-action-button is-danger"
+                    onClick={() => {
+                      setDeletePostConfirmId(activeMenuPost.id);
+                      setMenuPostId(null);
+                    }}
+                  >
+                    <UiIcon name="trash" className="ui-icon" />
+                    <span>Borrar</span>
+                    <UiIcon name="chevron-right" className="ui-icon trailing" />
+                  </Button>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {deletePostConfirmId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-delete-confirm-body">
+                  <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
+                  <p className="diary-delete-confirm-text">
+                    ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
+                  </p>
+                  <div className="diary-delete-confirm-actions">
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setDeletePostConfirmId(null)} disabled={deletingPost}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-delete-confirm-submit"
+                      disabled={deletingPost}
+                      onClick={async () => {
+                        if (deletingPost) return;
+                        setDeletingPost(true);
+                        try {
+                          await onDeletePost(deletePostConfirmId);
+                          setDeletePostConfirmId(null);
+                        } finally {
+                          setDeletingPost(false);
+                        }
+                      }}
+                    >
+                      {deletingPost ? "Eliminando..." : "Eliminar"}
+                    </Button>
+                  </div>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {editingPostId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay
+              role="dialog"
+              aria-modal="true"
+              aria-label="Editar publicacion"
+              onDismiss={closeEditModal}
+              onClick={closeEditModal}
+            >
+              <SheetCard onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <div className="create-post-body edit-post-sheet">
               <h3 className="edit-post-title">Editar</h3>
@@ -575,8 +583,10 @@ export function TimelineView({
               </div>
             </div>
           </SheetCard>
-        </SheetOverlay>
-      ) : null}
+        </SheetOverlay>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

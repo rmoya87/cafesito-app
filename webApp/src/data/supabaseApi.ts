@@ -36,10 +36,11 @@ function throwIfError(error: SupabaseErrorLike): void {
 export async function fetchInitialData(): Promise<InitialDataBundle> {
   const supabase = getSupabaseClient();
   const usersReq = supabase.from("users_db").select("id,username,full_name,avatar_url,email,bio").limit(3000);
+  // codigo_barras: opcional; si la tabla no tiene esta columna, quítala del select
   const coffeesReq = supabase
     .from("coffees")
     .select(
-      "id,nombre,marca,pais_origen,descripcion,proceso,variedad_tipo,molienda_recomendada,product_url,cafeina,aroma,sabor,cuerpo,acidez,dulzura,especialidad,tueste,formato,image_url"
+      "id,nombre,marca,pais_origen,codigo_barras,descripcion,proceso,variedad_tipo,molienda_recomendada,product_url,cafeina,aroma,sabor,cuerpo,acidez,dulzura,especialidad,tueste,formato,image_url"
     )
     .order("nombre", { ascending: true })
     .limit(3000);

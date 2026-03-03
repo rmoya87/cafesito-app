@@ -129,14 +129,14 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
                 }
 
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                    Text("HIDRATACIÓN", style = MaterialTheme.typography.labelLarge, color = Color(0xFF2196F3), fontSize = 10.sp)
+                    Text("HIDRATACIÓN", style = MaterialTheme.typography.labelLarge, color = WaterBlue, fontSize = 10.sp)
                     Text(
                         text = "${analytics.totalWaterMl} ml",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
-                    ComparisonPill(analytics.hydrationTrendPct, Color(0xFF2196F3))
+                    ComparisonPill(analytics.hydrationTrendPct, WaterBlue)
                 }
             }
 
@@ -156,7 +156,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
 @Composable
 fun ComparisonPill(percentage: Int, baseColor: Color? = null) {
     val isPositive = percentage > 0
-    val color = baseColor ?: Color(0xFF8B5E3C)
+    val color = baseColor ?: LocalCaramelAccent.current
     Surface(
         color = color.copy(alpha = 0.1f),
         shape = RoundedCornerShape(12.dp)
@@ -228,7 +228,7 @@ fun PantryPremiumCard(
                             .clickable { onOptionsClick(item.coffee.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.MoreHoriz, null, tint = Color(0xFF111111), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.MoreHoriz, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -256,7 +256,7 @@ fun PantryPremiumCard(
                         .fillMaxWidth()
                         .height(4.dp)
                         .clip(CircleShape),
-                    color = CaramelAccent,
+                    color = LocalCaramelAccent.current,
                     trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
                 )
             }
@@ -319,7 +319,7 @@ fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoff
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold
             )
-            ModalMenuOption(title = "Agua", icon = Icons.Default.WaterDrop, color = Color(0xFF2196F3), onClick = onAddWater)
+            ModalMenuOption(title = "Agua", icon = Icons.Default.WaterDrop, color = WaterBlue, onClick = onAddWater)
             ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = MaterialTheme.colorScheme.onSurface, onClick = onAddCoffee)
             ModalMenuOption(
                 title = "Añadir a Despensa",
@@ -380,8 +380,8 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
     val chartMaxWater = remember(analytics.chartData) {
         (analytics.chartData.maxOfOrNull { entry -> entry.water } ?: 0).coerceAtLeast(1)
     }
-    val caffeineBrown = Color(0xFF6F4E37)
-    val waterElectricBlue = Color(0xFF2196F3)
+    val caffeineBrown = LocalCaramelAccent.current
+    val waterElectricBlue = WaterBlue
 
     LaunchedEffect(analytics.chartData) { scrollState.animateScrollTo(scrollState.maxValue) }
 

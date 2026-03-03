@@ -68,17 +68,7 @@ export function CreatePostSheet({
           <SheetCard className="create-post-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <Topbar centered className="topbar-timeline create-post-header">
-              <div className="topbar-slot">
-                <IconButton
-                  type="button"
-                  tone="topbar"
-                  className="create-post-close"
-                  aria-label="Cerrar"
-                  onClick={onClose}
-                >
-                  <UiIcon name="close" className="ui-icon" />
-                </IconButton>
-              </div>
+              <div className="topbar-slot" aria-hidden="true" />
               <h2 className="title title-upper topbar-title-center topbar-brand-title create-post-title">NUEVO POST</h2>
               <div className="topbar-slot topbar-slot-end">
                 <Button variant="text" type="button" className="text-button create-post-publish" onClick={onPublish} disabled={!text.trim() && !imageFile}>
@@ -222,7 +212,7 @@ export function CreatePostSheet({
                       {coffee.image_url ? <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : <span className="create-post-coffee-fallback">{coffee.nombre.slice(0, 1).toUpperCase()}</span>}
                       <div>
                         <p>{coffee.nombre}</p>
-                        <span>{coffee.marca}</span>
+                        <span>{(coffee.marca || "").toUpperCase()}</span>
                       </div>
                     </Button>
                   </li>

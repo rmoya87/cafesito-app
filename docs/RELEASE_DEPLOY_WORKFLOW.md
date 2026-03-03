@@ -30,6 +30,8 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 2. **release-android**  
    - Condición: rama en `Interna` / `Alpha` / `Beta` / `Producción` y cambios en `app/` o `shared/`.
    - Configura keystore y `google-services.json`, hace bump de versión, build del AAB y subida a la pista de Play correspondiente.
+   - Sube también los **símbolos nativos** (`debugSymbols`) generados por el build para que Play Console pueda mostrar ANR y crashes de forma legible.
+   - Las **notas de la versión** (What’s new) se generan de forma automática: se basan en la última versión anterior (último tag o último push), son promocionales y pensadas para el usuario que disfruta la app y el café, sin tecnicismos.
 
 3. **deploy-web**  
    - Condición: rama `Alpha`, `Beta` o `Producción`.
@@ -65,6 +67,10 @@ El deploy usa **SFTP** (no FTP); Ionos suele ofrecer acceso por SSH/SFTP.
 - `IONOS_SSH_PORT` – Puerto (opcional; por defecto 22).
 
 El deploy web sube a la ruta remota **`/cafesito-web/app/`**.
+
+### Revisión de crashes (manual, desde Cursor)
+
+No hay workflow automático. Los crashes se revisan y resuelven **desde Cursor**: tú pones el informe en `.github/crash-reports/weekly.json` (o generas `docs/crash-fixes/pending-review.md` con el script), pides aquí que se revisen y resuelvan, y **tú subes a Git** cuando quieras. Ver `docs/CRASH_FIX_WEEKLY.md`.
 
 ## Resumen rápido
 

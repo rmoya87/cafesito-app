@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.cafesito.app.ui.theme.DisabledGray
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -176,7 +177,13 @@ fun AddPantryItemScreen(
                                     onSuccess = { createdCoffeeId ->
                                         if (diaryEntryFlow) onCoffeeCreatedForDiary?.invoke(createdCoffeeId)
                                         if (brewLabFlow) onCoffeeCreatedForBrewLab?.invoke(createdCoffeeId)
-                                        onBackClick(if (diaryEntryFlow) "pantry_loading" else null)
+                                        onBackClick(
+                                        when {
+                                            diaryEntryFlow -> "pantry_loading"
+                                            brewLabFlow -> "brewlab"
+                                            else -> null
+                                        }
+                                    )
                                     }
                                 )
                             } else {
@@ -195,12 +202,18 @@ fun AddPantryItemScreen(
                                 )
                             }
                         },
-                        enabled = isFormValid
+                        enabled = isFormValid,
+                        colors = ButtonDefaults.textButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = Color.Transparent,
+                            disabledContentColor = DisabledGray
+                        ),
+                        border = null
                     ) {
                         Text(
-                            text = if (customFlow) "CREAR" else "AÑADIR",
-                            fontWeight = FontWeight.Bold,
-                            color = if (isFormValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            text = "Guardar",
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 },
