@@ -19,7 +19,7 @@ export const GA4_MEASUREMENT_ID = normalizeMeasurementId(rawId);
 declare global {
   interface Window {
     dataLayer: unknown[];
-    gtag: (...args: unknown[]) => void;
+    gtag?: (...args: unknown[]) => void;
     __GA4_MEASUREMENT_ID__?: string;
   }
 }

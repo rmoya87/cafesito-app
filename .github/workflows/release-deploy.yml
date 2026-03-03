@@ -296,6 +296,7 @@ jobs:
           track: ${{ steps.track.outputs.track }}
           status: completed
           whatsNewDirectory: release-notes
+          changesNotSentForReview: true
           # debugSymbols: solo si el build genera app/build/outputs/native-debug-symbols/release (cuando hay deps nativas). Si no existe, omitir para no fallar.
 
   # Deploy web a Ionos: en Alpha, Beta y Producción solo si web está en los cambios (no cuando android_only)
