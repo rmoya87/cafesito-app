@@ -586,8 +586,8 @@ export function CreateCoffeeView({
   imagePreviewUrl,
   saving,
   error,
-  countryOptions,
-  specialtyOptions,
+  countryOptions = [],
+  specialtyOptions = [],
   onChange,
   onPickImage,
   onRemoveImage,
@@ -612,8 +612,8 @@ export function CreateCoffeeView({
   imagePreviewUrl: string;
   saving: boolean;
   error: string | null;
-  countryOptions: string[];
-  specialtyOptions: string[];
+  countryOptions?: string[];
+  specialtyOptions?: string[];
   onChange: (next: {
     name: string;
     brand: string;
@@ -874,6 +874,13 @@ export function CreateCoffeeView({
         <Button variant="plain" className="action-button create-coffee-mobile-save" onClick={handleSaveAttempt} disabled={saving}>
           {saving ? "Guardando..." : "Guardar café"}
         </Button>
+      ) : null}
+      {hideActions && !fullPage ? (
+        <div className="create-coffee-actions create-coffee-actions-desktop-save">
+          <Button variant="plain" className="action-button" onClick={handleSaveAttempt} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar"}
+          </Button>
+        </div>
       ) : null}
     </section>
   );

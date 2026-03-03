@@ -50,6 +50,7 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
+                repository.syncCoffees()
                 repository.syncFavoritesFromRemote()
                 repository.triggerRefresh()
             } catch (e: Exception) { Log.e("SEARCH_VM", "Refresh error", e) }

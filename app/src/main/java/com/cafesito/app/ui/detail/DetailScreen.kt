@@ -246,9 +246,6 @@ private fun DetailContent(
                             Spacer(Modifier.height(24.dp))
                         }
 
-                        Text(text = "DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(20.dp))
-                        
                         val detailsItems = listOfNotNull(
                             coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let { Triple("PAÍS", it, Icons.Default.Public) },
                             coffee.especialidad?.takeIf { it.isNotBlank() }?.let { Triple("ESPECIALIDAD", it, Icons.Default.Verified) },
@@ -257,15 +254,18 @@ private fun DetailContent(
                             coffee.proceso.takeIf { it.isNotBlank() }?.let { Triple("PROCESO", it, Icons.Default.Settings) },
                             coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let { Triple("MOLIENDA", it, Icons.Default.Grain) }
                         )
-
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            maxItemsInEachRow = 2
-                        ) {
-                            detailsItems.forEach { (label, value, icon) ->
-                                DetailPremiumBlock(label, value, icon, Modifier.fillMaxWidth(0.48f))
+                        if (detailsItems.isNotEmpty()) {
+                            Text(text = "DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(20.dp))
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                maxItemsInEachRow = 2
+                            ) {
+                                detailsItems.forEach { (label, value, icon) ->
+                                    DetailPremiumBlock(label, value, icon, Modifier.fillMaxWidth(0.48f))
+                                }
                             }
                         }
 

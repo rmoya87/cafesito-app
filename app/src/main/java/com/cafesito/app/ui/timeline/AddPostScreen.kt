@@ -3,7 +3,6 @@ package com.cafesito.app.ui.timeline
 import android.Manifest
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,36 +67,18 @@ fun AddPostScreen(
     initialPostType: PostType? = null,
     viewModel: AddPostViewModel = hiltViewModel()
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val modalBackgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface
-
-    val currentStep by viewModel.currentStep.collectAsState()
-    val imageSource by viewModel.imageSource.collectAsState()
-    val selectedCoffee by viewModel.selectedCoffee.collectAsState()
     val activeUser by viewModel.activeUser.collectAsState()
     val comment by viewModel.comment.collectAsState()
 
-    // Forzamos a que sea siempre tipo PUBLICACIÓN
+    // Forzamos tipo PUBLICACIÓN y mostramos directamente la pantalla de detalle (sin paso de selección de foto)
     LaunchedEffect(Unit) {
         viewModel.setPostType(PostType.PUBLICATION)
+        viewModel.goToStep(1)
     }
 
-    val permissions = remember {
-        val list = mutableListOf(Manifest.permission.CAMERA)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            list.add(Manifest.permission.READ_MEDIA_IMAGES)
-            list.add(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            list.add(Manifest.permission.READ_MEDIA_IMAGES)
-        } else {
-            list.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-        list
-    }
-    
+    val permissions = remember { listOf(Manifest.permission.CAMERA) }
     val context = LocalContext.current
     val mediaPermissionsState = rememberMultiplePermissionsState(permissions)
-    val allPermissionsGranted = mediaPermissionsState.allPermissionsGranted
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -111,66 +91,47 @@ fun AddPostScreen(
         uri?.let { viewModel.setImage(it) }
     }
 
-    LaunchedEffect(allPermissionsGranted) {
-        if (allPermissionsGranted) {
-            viewModel.loadGalleryImages()
-        } else {
-            mediaPermissionsState.launchMultiplePermissionRequest()
+    val onTakePhotoWithUri: (Uri) -> Unit = remember {
+        { uri ->
+            pendingCameraUri = uri
+            cameraLauncher.launch(uri)
         }
     }
-
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    val titleText = if (currentStep == 0) "nuevo post" else "detalles"
                     Text(
-                        text = titleText.uppercase(),
+                        text = "nuevo post".uppercase(),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (currentStep == 0) {
-                            onBackClick()
-                        } else {
-                            viewModel.goToStep(currentStep - 1)
-                        }
-                    }) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = if (currentStep == 0) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar",
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 actions = {
-                    val isLastStep = currentStep == 1
-
-                    if (isLastStep) {
-                        TextButton(
-                            onClick = {
-                                viewModel.createPost()
-                                onPublishSuccess()
-                                onBackClick()
-                            }
-                        ) {
-                            Text(
-                                "PUBLICAR", 
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
+                    TextButton(
+                        onClick = {
+                            viewModel.createPost()
+                            onPublishSuccess()
+                            onBackClick()
                         }
-                    } else {
-                        IconButton(onClick = { 
-                            viewModel.goToStep(currentStep + 1) 
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                        }
+                    ) {
+                        Text(
+                            "PUBLICAR",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -180,163 +141,13 @@ fun AddPostScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
-            
-            AnimatedContent(
-                targetState = currentStep, 
-                transitionSpec = { fadeIn() + slideInHorizontally { it } togetherWith fadeOut() + slideOutHorizontally { -it } },
-                label = "FlowTransition",
-                modifier = Modifier.fillMaxSize()
-            ) { step ->
-                if (step == 0) {
-                    PhotoSelectionStepPremium(
-                        viewModel = viewModel,
-                        onCameraClick = {
-                            if (mediaPermissionsState.allPermissionsGranted) {
-                                val uri = createTempImageUri(context)
-                                pendingCameraUri = uri
-                                cameraLauncher.launch(uri)
-                            } else {
-                                mediaPermissionsState.launchMultiplePermissionRequest()
-                            }
-                        }
-                    )
-                } else {
-                    PostDetailsStepPremium(
-                        viewModel = viewModel, 
-                        activeUser = activeUser,
-                        galleryLauncher = galleryLauncher,
-                        cameraLauncher = cameraLauncher,
-                        mediaPermissionsState = mediaPermissionsState
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PhotoSelectionStepPremium(
-    viewModel: AddPostViewModel,
-    onCameraClick: () -> Unit,
-) {
-    val imageSource by viewModel.imageSource.collectAsState()
-    val galleryImages by viewModel.galleryImages.collectAsState()
-
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        // Main Preview
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1.2f)
-                .clip(RoundedCornerShape(32.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            if (imageSource != null) {
-                AsyncImage(
-                    model = imageSource,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Photo, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Selecciona una foto", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        
-        Spacer(Modifier.height(16.dp))
-        
-        // Gallery Label and Camera/More Button
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(4.dp)
-            ) {
-                Text(
-                    text = "Galería",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            IconButton(onClick = onCameraClick) {
-                Icon(
-                    imageVector = Icons.Default.PhotoCamera,
-                    contentDescription = "Camera",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-        
-        Spacer(Modifier.height(8.dp))
-        
-        // Grid
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            contentPadding = PaddingValues(bottom = 140.dp, top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (galleryImages.isEmpty()) {
-                item(span = { GridItemSpan(3) }) {
-                   Box(
-                       modifier = Modifier.fillMaxSize().padding(top = 40.dp), 
-                       contentAlignment = Alignment.Center
-                   ) {
-                       Text(
-                           text = "No hay imágenes para mostrar.", 
-                           style = MaterialTheme.typography.bodySmall, 
-                           color = MaterialTheme.colorScheme.onSurfaceVariant, 
-                           textAlign = TextAlign.Center
-                       )
-                   }
-                }
-            }
-
-            items(galleryImages) { uri ->
-                val isSelected = imageSource == uri
-                Box(
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.setImage(uri) }
-                ) {
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    
-                    if (isSelected) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.3f))
-                                .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(20.dp)
-                            )
-                        }
-                    }
-                }
-            }
+            PostDetailsStepPremium(
+                viewModel = viewModel,
+                activeUser = activeUser,
+                galleryLauncher = galleryLauncher,
+                onTakePhotoWithUri = onTakePhotoWithUri,
+                mediaPermissionsState = mediaPermissionsState
+            )
         }
     }
 }
@@ -344,10 +155,10 @@ private fun PhotoSelectionStepPremium(
 @OptIn(ExperimentalMaterial3Api::class, com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
 @Composable
 private fun PostDetailsStepPremium(
-    viewModel: AddPostViewModel, 
+    viewModel: AddPostViewModel,
     activeUser: UserEntity?,
     galleryLauncher: androidx.activity.result.ActivityResultLauncher<PickVisualMediaRequest>,
-    cameraLauncher: androidx.activity.result.ActivityResultLauncher<Uri>,
+    onTakePhotoWithUri: (Uri) -> Unit,
     mediaPermissionsState: com.google.accompanist.permissions.MultiplePermissionsState
 ) {
     val imageSource = viewModel.imageSource.collectAsState().value as? Uri
@@ -371,7 +182,6 @@ private fun PostDetailsStepPremium(
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -679,8 +489,7 @@ private fun PostDetailsStepPremium(
                 ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
                     if (mediaPermissionsState.allPermissionsGranted) {
                         val uri = createTempImageUri(context)
-                        pendingCameraUri = uri
-                        cameraLauncher.launch(uri)
+                        onTakePhotoWithUri(uri)
                         showPickerSheet = false
                     } else {
                         mediaPermissionsState.launchMultiplePermissionRequest()

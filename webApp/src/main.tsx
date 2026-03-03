@@ -2,8 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { Button } from "./ui/components";
+import { initGa4 } from "./core/ga4";
 import "@fontsource-variable/material-symbols-outlined/fill.css";
 import "./styles.css";
+
+initGa4();
 
 // Solo en dev: ?safe-area=1 simula el notch de iOS (topbar con espacio superior) para validar sin iPhone
 if (import.meta.env.DEV && typeof window !== "undefined" && window.location.search.includes("safe-area=1")) {

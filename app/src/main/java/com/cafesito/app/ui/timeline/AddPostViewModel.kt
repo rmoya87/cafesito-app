@@ -1,11 +1,9 @@
 package com.cafesito.app.ui.timeline
 
-import android.content.ContentUris
 import android.content.Context
 import android.util.Log
 import android.graphics.Bitmap
 import android.net.Uri
-import android.provider.MediaStore
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -63,9 +61,6 @@ class AddPostViewModel @Inject constructor(
         savedStateHandle.get<String>("imageUri")?.let { Uri.parse(it) }
     )
     val imageSource: StateFlow<Any?> = _imageSource.asStateFlow()
-
-    private val _galleryImages = MutableStateFlow<List<Uri>>(emptyList())
-    val galleryImages: StateFlow<List<Uri>> = _galleryImages.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -158,58 +153,6 @@ class AddPostViewModel @Inject constructor(
 
         ordered.distinctBy { it.coffee.id }.take(10)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun loadGalleryImages() {
-        viewModelScope.launch {
-            val images = withContext(Dispatchers.IO) {
-                val list = mutableListOf<Uri>()
-                val projection = arrayOf(
-                    MediaStore.Images.Media._ID,
-                    MediaStore.Images.Media.DATE_ADDED
-                )
-                val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
-                
-                try {
-                    val queryUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                    context.contentResolver.query(
-                        queryUri,
-                        projection,
-                        null,
-                        null,
-                        sortOrder
-                    )?.use { cursor ->
-                        val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-                        while (cursor.moveToNext()) {
-                            val id = cursor.getLong(idColumn)
-                            val contentUri = ContentUris.withAppendedId(queryUri, id)
-                            list.add(contentUri)
-                        }
-                    }
-                } catch (e: Exception) { 
-                    Log.e("AddPostVM", "Error loading gallery", e)
-                }
-                list
-            }
-            _galleryImages.value = images
-            
-            // Set first image as default if none selected
-            if (_imageSource.value == null && images.isNotEmpty() && _postType.value == PostType.PUBLICATION) {
-                _imageSource.value = images[0]
-                savedStateHandle.set("imageUri", images[0].toString())
-            }
-        }
-    }
-
-
-    fun mergeGalleryImages(uris: List<Uri>, selectFirst: Boolean = true) {
-        if (uris.isEmpty()) return
-        val merged = (uris + _galleryImages.value).distinct()
-        _galleryImages.value = merged
-        if (selectFirst) {
-            _imageSource.value = uris.first()
-            savedStateHandle.set("imageUri", uris.first().toString())
-        }
-    }
 
     fun setPostType(type: PostType) {
         if (_postType.value == type) return

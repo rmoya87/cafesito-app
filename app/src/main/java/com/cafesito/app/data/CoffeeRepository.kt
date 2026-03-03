@@ -50,25 +50,28 @@ class CoffeeRepository @Inject constructor(
         ).flow
     }
 
-    val allCoffees: Flow<List<CoffeeWithDetails>> = networkBoundResource(
-        resourceKey = "all_coffees",
-        query = { coffeeDao.getAllCoffeesWithDetails() },
-        fetch = { 
-            val user = userRepository.getActiveUser()
-            val public = supabaseDataSource.getAllCoffees()
-            val custom = user?.let { supabaseDataSource.getCustomCoffees(it.id) } ?: emptyList()
-            val reviews = supabaseDataSource.getAllReviews()
-            Triple(public, custom, reviews)
-        },
-        saveFetchResult = { (public, custom, reviews) ->
-            withContext(Dispatchers.IO) {
-                coffeeDao.insertCoffees(public + custom)
-                coffeeDao.upsertReviews(reviews)
-            }
-        },
-        scope = externalScope,
-        connectivityObserver = connectivityObserver
-    ).flowOn(Dispatchers.IO)
+    val allCoffees: Flow<List<CoffeeWithDetails>> = _refreshTrigger
+        .flatMapLatest {
+            networkBoundResource(
+                resourceKey = "all_coffees",
+                query = { coffeeDao.getAllCoffeesWithDetails() },
+                fetch = {
+                    val user = userRepository.getActiveUser()
+                    val public = supabaseDataSource.getAllCoffees()
+                    val custom = user?.let { supabaseDataSource.getCustomCoffees(it.id) } ?: emptyList()
+                    val reviews = supabaseDataSource.getAllReviews()
+                    Triple(public, custom, reviews)
+                },
+                saveFetchResult = { (public, custom, reviews) ->
+                    withContext(Dispatchers.IO) {
+                        coffeeDao.insertCoffees(public + custom)
+                        coffeeDao.upsertReviews(reviews)
+                    }
+                },
+                scope = externalScope,
+                connectivityObserver = connectivityObserver
+            )
+        }.flowOn(Dispatchers.IO)
 
     fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = _refreshTrigger
         .flatMapLatest {
@@ -147,8 +150,11 @@ class CoffeeRepository @Inject constructor(
     }
 
     suspend fun syncCoffees() {
+        val user = userRepository.getActiveUser()
         val public = supabaseDataSource.getAllCoffees()
-        coffeeDao.insertCoffees(public)
+        val custom = user?.let { supabaseDataSource.getCustomCoffees(it.id) } ?: emptyList()
+        coffeeDao.insertCoffees(public + custom)
+        triggerRefresh()
     }
 
     suspend fun findCoffeeIdByBarcode(rawBarcode: String): String? = withContext(Dispatchers.IO) {

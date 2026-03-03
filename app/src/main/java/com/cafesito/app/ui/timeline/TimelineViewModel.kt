@@ -114,6 +114,7 @@ class TimelineViewModel @Inject constructor(
             Log.d("TimelineVM", "Triggering global refresh...")
             try {
                 userRepository.syncUsers()
+                userRepository.syncFollows()
                 socialRepository.syncSocialData()
                 coffeeRepository.syncCoffees()
                 if (_isPublishingContent.value) {

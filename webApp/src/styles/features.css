@@ -109,23 +109,25 @@ input {
   flex-shrink: 0;
 }
 
-/* Espacio superior para el topbar (está en posición absoluta); evita que el contenido salte al ocultarlo */
+/* Contenedor de scroll empieza debajo del topbar para que la barra de scroll no quede oculta bajo él */
 .main-shell-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: calc(10px + var(--topbar-height) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 120px;
+  margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  padding: 10px var(--app-shell-gutter) 120px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
 .main-shell-scroll.is-coffee {
-  padding-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  padding-top: 0;
 }
 
-/* Buscador cafés: topbar + fila de chips para que el primer café no quede debajo del filtro */
+/* Buscador cafés: header completo (campo + chips = 106px) para que la barra de scroll no quede bajo el topbar */
 .main-shell-scroll.is-search-coffees {
-  padding-top: calc(106px + env(safe-area-inset-top, 0px));
+  margin-top: calc(106px + env(safe-area-inset-top, 0px));
+  padding-top: 10px;
 }
 
 /* Cartel instalar app Android (solo móvil Android), fijo encima del topbar */
@@ -163,15 +165,17 @@ input {
 }
 
 .main-shell.has-android-banner .main-shell-scroll {
-  padding-top: calc(10px + var(--topbar-height) + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+  margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+  padding-top: 10px;
 }
 
 .main-shell.has-android-banner .main-shell-scroll.is-coffee {
-  padding-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+  padding-top: 0;
 }
 
 .main-shell.has-android-banner .main-shell-scroll.is-search-coffees {
-  padding-top: calc(106px + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+  margin-top: calc(106px + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+  padding-top: 10px;
 }
 
 .android-install-banner {
@@ -249,23 +253,24 @@ input {
   }
 
   .main-shell-scroll {
-    padding: calc(2px + var(--topbar-height) + env(safe-area-inset-top, 0px)) 0 calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 2px 0 calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
   .main-shell-scroll.is-coffee {
-    padding-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+    padding-top: 0;
   }
 
   .main-shell.has-android-banner .main-shell-scroll {
-    padding-top: calc(2px + var(--topbar-height) + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+    padding-top: 2px;
   }
 
   .main-shell.has-android-banner .main-shell-scroll.is-coffee {
-    padding-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+    padding-top: 0;
   }
 
   .main-shell.has-android-banner .main-shell-scroll.is-search-coffees {
-    padding-top: calc(106px + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+    margin-top: calc(106px + env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
+    padding-top: 10px;
   }
 }
 
@@ -3952,6 +3957,11 @@ input {
   .diary-delete-confirm-submit {
     background: var(--pure-white);
     color: #111111;
+  }
+
+  /* Fila de café seleccionada en buscador (la del borde naranja): fondo negro */
+  .coffee-card.is-selected {
+    background: var(--pure-black);
   }
 }
 
@@ -7807,6 +7817,11 @@ input {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+
+.create-coffee-actions-desktop-save {
+  margin-top: 16px;
+  padding-top: 12px;
 }
 
 .create-coffee-mobile-save {
@@ -12185,7 +12200,7 @@ input {
 
   .coffee-card.is-selected {
     outline-color: rgba(111, 78, 55, 0.35);
-    background: rgba(111, 78, 55, 0.08);
+    background: var(--pure-white);
   }
 
   .coffee-profile-brand {
@@ -12799,13 +12814,15 @@ input {
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
 }
 .pwa-standalone .main-shell-scroll {
-  padding-top: calc(10px + var(--topbar-height) + env(safe-area-inset-top, 44px));
+  margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
+  padding-top: 10px;
 }
 .pwa-standalone .main-shell-scroll.is-coffee {
-  padding-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
+  padding-top: 0;
 }
 .pwa-standalone .main-shell-scroll.is-search-coffees {
-  padding-top: calc(106px + env(safe-area-inset-top, 44px));
+  margin-top: calc(106px + env(safe-area-inset-top, 44px));
+  padding-top: 10px;
 }
 @media (max-width: 899px) {
   .pwa-standalone .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {

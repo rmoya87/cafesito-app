@@ -146,6 +146,30 @@ interface SocialDao {
     @Query("DELETE FROM post_coffee_tags WHERE postId = :postId")
     suspend fun deletePostCoffeeTag(postId: String)
 
+    @Query("DELETE FROM comments_db WHERE postId NOT IN (:keepPostIds)")
+    suspend fun deleteCommentsForPostsNotIn(keepPostIds: List<String>): Int
+
+    @Query("DELETE FROM likes_db WHERE postId NOT IN (:keepPostIds)")
+    suspend fun deleteLikesForPostsNotIn(keepPostIds: List<String>): Int
+
+    @Query("DELETE FROM post_coffee_tags WHERE postId NOT IN (:keepPostIds)")
+    suspend fun deletePostCoffeeTagsForPostsNotIn(keepPostIds: List<String>): Int
+
+    @Query("DELETE FROM posts_db WHERE id NOT IN (:keepPostIds)")
+    suspend fun deletePostsNotIn(keepPostIds: List<String>): Int
+
+    @Query("DELETE FROM comments_db")
+    suspend fun deleteAllComments(): Int
+
+    @Query("DELETE FROM likes_db")
+    suspend fun deleteAllLikes(): Int
+
+    @Query("DELETE FROM post_coffee_tags")
+    suspend fun deleteAllPostCoffeeTags(): Int
+
+    @Query("DELETE FROM posts_db")
+    suspend fun deleteAllPosts(): Int
+
     @Delete
     suspend fun deletePost(post: PostEntity): Int
 
@@ -246,8 +270,20 @@ interface DiaryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPantryItem(item: PantryItemEntity): Long
 
+    @Query("DELETE FROM pantry_items WHERE userId = :userId AND coffeeId NOT IN (:keepCoffeeIds)")
+    suspend fun deletePantryItemsForUserNotIn(userId: Int, keepCoffeeIds: List<String>): Int
+
+    @Query("DELETE FROM pantry_items WHERE userId = :userId")
+    suspend fun deleteAllPantryItemsForUser(userId: Int): Int
+
     @Query("DELETE FROM pantry_items WHERE coffeeId = :coffeeId AND userId = :userId")
     suspend fun deletePantryItem(coffeeId: String, userId: Int): Int
+
+    @Query("DELETE FROM diary_entries WHERE userId = :userId AND id NOT IN (:keepIds)")
+    suspend fun deleteDiaryEntriesForUserNotIn(userId: Int, keepIds: List<Long>): Int
+
+    @Query("DELETE FROM diary_entries WHERE userId = :userId")
+    suspend fun deleteAllDiaryEntriesForUser(userId: Int): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPendingDiarySync(item: PendingDiarySyncEntity)

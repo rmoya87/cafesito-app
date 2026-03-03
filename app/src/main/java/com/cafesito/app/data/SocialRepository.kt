@@ -475,12 +475,25 @@ class SocialRepository @Inject constructor(
                 val likes = supabaseDataSource.getAllLikes()
                 val comments = supabaseDataSource.getAllComments()
                 val reviews = supabaseDataSource.getAllReviews()
-                
+
+                // Reflejar borrados en web: quitar de local lo que ya no viene del servidor
+                val keepPostIds = posts.map { it.id }
+                if (keepPostIds.isEmpty()) {
+                    socialDao.deleteAllComments()
+                    socialDao.deleteAllLikes()
+                    socialDao.deleteAllPostCoffeeTags()
+                    socialDao.deleteAllPosts()
+                } else {
+                    socialDao.deleteCommentsForPostsNotIn(keepPostIds)
+                    socialDao.deleteLikesForPostsNotIn(keepPostIds)
+                    socialDao.deletePostCoffeeTagsForPostsNotIn(keepPostIds)
+                    socialDao.deletePostsNotIn(keepPostIds)
+                }
                 socialDao.insertPosts(posts)
                 syncLikesWithRemote(likes)
                 syncCommentsWithRemote(comments)
                 socialDao.upsertReviews(reviews)
-                
+
                 triggerRefresh()
             } catch (e: Exception) {
                 Log.e("SocialRepository", "Error in syncSocialData", e)

@@ -388,11 +388,13 @@ class UserRepository @Inject constructor(
     suspend fun syncUsers() {
         val users = supabaseDataSource.getAllUsers()
         userDao.insertUsers(users)
+        triggerRefresh()
     }
 
     suspend fun syncFollows() {
         val follows = getAllFollowsWithAuthRetry()
         userDao.insertFollows(follows)
+        triggerRefresh()
     }
 
     private suspend fun getAllFollowsWithAuthRetry(): List<FollowEntity> {

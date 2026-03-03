@@ -100,6 +100,12 @@ class DiaryRepository @Inject constructor(
         val user = userRepository.getActiveUser() ?: return
         try {
             val remoteItems = supabaseDataSource.getPantryItems(user.id)
+            val keepCoffeeIds = remoteItems.map { it.coffeeId }
+            if (keepCoffeeIds.isEmpty()) {
+                diaryDao.deleteAllPantryItemsForUser(user.id)
+            } else {
+                diaryDao.deletePantryItemsForUserNotIn(user.id, keepCoffeeIds)
+            }
             remoteItems.forEach { item ->
                 val localCoffee = coffeeDao.getCoffeeById(item.coffeeId)
                 if (localCoffee == null) {
@@ -112,6 +118,23 @@ class DiaryRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("DiaryRepository", "Error syncing pantry items", e)
+        }
+    }
+
+    /** Sincroniza entradas del diario: borra en local las que ya no vienen del servidor (p. ej. borradas en web). */
+    suspend fun syncDiaryEntriesFromRemote() {
+        val user = userRepository.getActiveUser() ?: return
+        try {
+            val remoteEntries = supabaseDataSource.getDiaryEntries(user.id)
+            val keepIds = remoteEntries.map { it.id }.filter { it > 0L }
+            if (keepIds.isEmpty()) {
+                diaryDao.deleteAllDiaryEntriesForUser(user.id)
+            } else {
+                diaryDao.deleteDiaryEntriesForUserNotIn(user.id, keepIds)
+            }
+            remoteEntries.forEach { diaryDao.insertDiaryEntry(it) }
+        } catch (e: Exception) {
+            Log.e("DiaryRepository", "Error syncing diary entries", e)
         }
     }
 

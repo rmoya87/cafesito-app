@@ -1299,7 +1299,11 @@ export function AppContainer() {
   const brewContent =
     guardedActiveTab === "brewlab" ? (
       showCreateCoffeeComposer && mode !== "desktop" ? (
-        <section className="create-coffee-mobile-screen">{createCoffeePanel}</section>
+        <section className="create-coffee-mobile-screen">
+          <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+            {createCoffeePanel}
+          </Suspense>
+        </section>
       ) : (
         <LazyBrewLabView
           brewStep={brewStep}

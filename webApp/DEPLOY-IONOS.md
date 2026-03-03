@@ -1,5 +1,13 @@
 # Despliegue en Ionos
 
+## 500 al hacer Ctrl+F5 (recarga forzada) en una ruta SPA
+
+Si al hacer **Ctrl+F5** (o recargar) en una URL como `/cafesito-web/app/brewlab` o `/cafesito-web/app/timeline` ves **500 Internal Server Error** (y el mensaje menciona "ErrorDocument"), la causa suele ser un **RewriteBase incorrecto** en el `.htaccess` de la app.
+
+- La app se despliega en el subdirectorio **/cafesito-web/app/**.
+- Si el `.htaccess` tiene `RewriteBase /`, Apache reescribe las rutas a `/index.html` (raíz del servidor) en lugar de `/cafesito-web/app/index.html`, y el servidor devuelve 500.
+- **Solución:** El workflow de GitHub Actions ya parchea `webApp/dist/.htaccess` antes de subir y pone `RewriteBase /cafesito-web/app/`. Asegúrate de desplegar con ese workflow. Si despliegas a mano, edita el `.htaccess` en el servidor (o en `dist/` antes de subir) y cambia a `RewriteBase /cafesito-web/app/`.
+
 ## 500 en /profile/usuario o /favicon.ico
 
 Si ves **500 (Internal Server Error)** al abrir `https://cafesitoapp.com/profile/ramonmoyaromero` o `https://cafesitoapp.com/favicon.ico`, la causa está en la **configuración del servidor**, no en el código:
@@ -84,6 +92,23 @@ Aunque tu `webApp/.env` tenga los mismos datos que producción, **Supabase debe 
 4. Opcional: en **Site URL** puedes dejar la de producción; Supabase usa la lista de Redirect URLs para aceptar a dónde redirigir.
 
 **Clave anon**: La anon key de Supabase suele ser un JWT largo que empieza por `eyJ...`. Si en tu `.env` usas otro formato y el login falla, copia la clave desde **Supabase → Settings → API → Project API keys → anon public**.
+
+### Google Analytics 4 (GA4): que registre datos
+
+Si en GA4 no aparece ningún evento o página:
+
+1. **ID de medición**  
+   La app usa la variable de entorno `VITE_GA4_MEASUREMENT_ID`. Si no está definida, no se carga el script ni se envía nada a GA4.
+
+2. **Dónde está el ID en GA4**  
+   En **Google Analytics** → **Admin** → **Flujo de datos** (o **Data streams**) → tu flujo web → **ID de medición**. Tiene el formato `G-XXXXXXXXX`.
+
+3. **Configuración**  
+   - **En local:** en `webApp/.env` añade por ejemplo `VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXX` (sustituye por tu ID). Reinicia `npm run dev`.  
+   - **En producción (GitHub Actions):** en el repo **Settings → Secrets and variables → Actions** añade una **Variable** (o Secret) `VITE_GA4_MEASUREMENT_ID` con el valor `G-XXXXXXXXX`. En el siguiente deploy el build incluirá ese ID y GA4 empezará a recibir eventos.
+
+4. **Comprobar**  
+   Con el ID configurado, abre la web, cambia de sección (timeline, explorar, etc.) y en GA4 → **Informes** → **Tiempo real** deberían aparecer usuarios y páginas vistas al cabo de unos segundos.
 
 ### CSP y fuente externa
 

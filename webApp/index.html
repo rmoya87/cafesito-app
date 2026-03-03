@@ -28,21 +28,6 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&icon_names=shelves" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&icon_names=shelves" /></noscript>
     <title>Cafesito</title>
-    <script>
-      const ga4PropertyId = "521879463";
-      const ga4MeasurementId = ga4PropertyId.startsWith("G-") ? ga4PropertyId : `G-${ga4PropertyId}`;
-      const ga4Script = document.createElement("script");
-      ga4Script.async = true;
-      ga4Script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(ga4MeasurementId)}`;
-      document.head.appendChild(ga4Script);
-
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){ dataLayer.push(arguments); }
-      window.gtag = gtag;
-      window.__GA4_MEASUREMENT_ID__ = ga4MeasurementId;
-      gtag('js', new Date());
-      gtag('config', ga4MeasurementId, { send_page_view: false });
-    </script>
   </head>
   <body>
     <div id="root"></div>

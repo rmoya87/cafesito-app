@@ -344,6 +344,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
+          VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID || secrets.VITE_GA4_MEASUREMENT_ID || '' }}
 
       - name: Hash lista cafés (prerender)
         id: coffee_hash
@@ -391,6 +392,14 @@ jobs:
             exit 1
           fi
           echo "Secrets de Ionos configurados."
+
+      - name: Ajustar .htaccess RewriteBase para subdirectorio (evita 500 al hacer F5)
+        run: |
+          HT=webApp/dist/.htaccess
+          if [[ -f "$HT" ]]; then
+            sed -i.bak 's|^RewriteBase /$|RewriteBase /cafesito-web/app/|' "$HT" && rm -f "${HT}.bak"
+            grep "RewriteBase" "$HT" || true
+          fi
 
       - name: Deploy to Ionos via SFTP (/cafesito-web/app/)
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6

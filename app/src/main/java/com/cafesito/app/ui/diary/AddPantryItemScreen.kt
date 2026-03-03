@@ -2,10 +2,7 @@ package com.cafesito.app.ui.diary
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -109,19 +106,8 @@ fun AddPantryItemScreen(
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var showImagePickerSheet by remember { mutableStateOf(false) }
 
-    // Gestión de permisos
-    val permissions = remember {
-        val list = mutableListOf(Manifest.permission.CAMERA)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            list.add(Manifest.permission.READ_MEDIA_IMAGES)
-            list.add(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            list.add(Manifest.permission.READ_MEDIA_IMAGES)
-        } else {
-            list.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-        list
-    }
+    // Solo cámara; galería vía Photo Picker (sin permisos READ_MEDIA_*)
+    val permissions = remember { listOf(Manifest.permission.CAMERA) }
     val permissionState = rememberMultiplePermissionsState(permissions)
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->

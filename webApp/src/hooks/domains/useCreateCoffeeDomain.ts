@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 import { upsertCustomCoffee, upsertPantryStock, uploadImageFile } from "../../data/supabaseApi";
 import type { CoffeeRow, PantryItemRow, UserRow } from "../../types";
 
@@ -44,7 +44,9 @@ export function useCreateCoffeeDomain({
 
   const openCreateCoffeeComposer = useCallback(() => {
     setCreateCoffeeError(null);
-    setShowCreateCoffeeComposer(true);
+    startTransition(() => {
+      setShowCreateCoffeeComposer(true);
+    });
   }, []);
 
   const saveCreateCoffee = useCallback(async (options?: { fromDiarySheet?: boolean; fromPantrySheet?: boolean; fromBrewChooser?: boolean }): Promise<{ id: string; name: string } | null> => {
