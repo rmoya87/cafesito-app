@@ -441,13 +441,23 @@ export function TimelineView({
       )}
       {activeMenuPost && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay className="comment-action-overlay" onDismiss={() => setMenuPostId(null)} onClick={() => setMenuPostId(null)}>
-              <SheetCard className="comment-action-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setMenuPostId(null)} onClick={() => setMenuPostId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-pantry-options profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
-                <div className="comment-action-list">
-                  <p className="comment-action-title">OPCIONES</p>
+                <div className="diary-sheet-list">
                   <Button variant="plain"
-                    className="comment-action-button"
+                    className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                    onClick={() => {
+                      setDeletePostConfirmId(activeMenuPost.id);
+                      setMenuPostId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
+                    <span>Borrar</span>
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                  </Button>
+                  <Button variant="plain"
+                    className="diary-sheet-action diary-sheet-action-pantry"
                     onClick={() => {
                       setEditingPostId(activeMenuPost.id);
                       setEditingText(activeMenuPost.text);
@@ -458,20 +468,9 @@ export function TimelineView({
                       setMenuPostId(null);
                     }}
                   >
-                    <UiIcon name="edit" className="ui-icon" />
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
                     <span>Editar</span>
-                    <UiIcon name="chevron-right" className="ui-icon trailing" />
-                  </Button>
-                  <Button variant="plain"
-                    className="comment-action-button is-danger"
-                    onClick={() => {
-                      setDeletePostConfirmId(activeMenuPost.id);
-                      setMenuPostId(null);
-                    }}
-                  >
-                    <UiIcon name="trash" className="ui-icon" />
-                    <span>Borrar</span>
-                    <UiIcon name="chevron-right" className="ui-icon trailing" />
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                   </Button>
                 </div>
               </SheetCard>

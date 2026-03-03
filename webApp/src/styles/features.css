@@ -9708,13 +9708,16 @@ input {
 .create-post-sheet {
   width: min(100%, 860px);
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
+  max-height: 90dvh;
 }
 
 .create-post-flow {
   padding-top: 14px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* Header del modal en flujo normal para que título y PUBLICAR no queden tapados por el body */
@@ -9733,8 +9736,9 @@ input {
 .create-post-header {
   border-bottom: none;
   background: var(--modal-header-bg);
-  grid-template-columns: 0 1fr auto;
+  grid-template-columns: 1fr auto 1fr;
   gap: 8px;
+  align-items: center;
 }
 
 .create-post-title {
@@ -9974,7 +9978,8 @@ input {
   grid-template-columns: 20px auto 1fr 16px;
   align-items: center;
   gap: var(--space-2);
-  padding: 13px 14px;
+  padding: 10px 14px;
+  min-height: 48px;
   text-align: left;
 }
 
@@ -10018,7 +10023,8 @@ input {
   grid-template-columns: 20px 1fr 16px;
   align-items: center;
   gap: var(--space-2);
-  padding: 13px 14px;
+  padding: 10px 14px;
+  min-height: 48px;
   text-align: left;
   font-weight: 700;
 }
@@ -10138,27 +10144,7 @@ input {
   }
 }
 
-@media (min-width: 900px) {
-  .create-post-sheet {
-    max-height: min(88dvh, 780px);
-    height: min(88dvh, 780px);
-    overflow: hidden;
-  }
-
-  .create-post-step-0 {
-    grid-template-rows: minmax(0, 1fr) auto auto auto;
-  }
-
-  .create-post-step-1 {
-    grid-template-rows: auto auto auto minmax(0, 1fr);
-    gap: 10px;
-  }
-
-  .create-post-coffee-sheet {
-    max-height: min(84dvh, 640px);
-  }
-}
-
+/* Sin overrides para desktop: Nuevo post igual en mobile y desktop */
 .create-post-gallery-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

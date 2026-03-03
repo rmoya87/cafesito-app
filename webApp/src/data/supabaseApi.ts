@@ -257,7 +257,9 @@ export async function createPost(
   imageUrl: string
 ): Promise<PostRow> {
   const supabase = getSupabaseClient();
+  const id = crypto.randomUUID();
   const payload = {
+    id,
     user_id: userId,
     comment: text,
     image_url: imageUrl,

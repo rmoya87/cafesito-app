@@ -69,7 +69,7 @@ export function CreatePostSheet({
             <SheetHandle aria-hidden="true" />
             <Topbar centered className="topbar-timeline create-post-header">
               <div className="topbar-slot" aria-hidden="true" />
-              <h2 className="title title-upper topbar-title-center topbar-brand-title create-post-title">NUEVO POST</h2>
+              <h2 className="title title-upper topbar-title-center topbar-brand-title create-post-title">Nuevo post</h2>
               <div className="topbar-slot topbar-slot-end">
                 <Button variant="text" type="button" className="text-button create-post-publish" onClick={onPublish} disabled={!text.trim() && !imageFile}>
                   PUBLICAR
