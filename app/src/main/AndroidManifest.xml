@@ -25,17 +25,22 @@
         android:theme="@style/Theme.Cafesito"
         android:usesCleartextTraffic="${usesCleartextTraffic}">
 
+        <!-- Compatibilidad pantallas grandes (Android 16+): anular portrait de ML Kit -->
+        <activity
+            android:name="com.google.mlkit.vision.codescanner.internal.GmsBarcodeScanningDelegateActivity"
+            tools:node="merge"
+            tools:replace="android:screenOrientation"
+            android:screenOrientation="fullSensor" />
+
         <activity
             android:name="com.cafesito.app.camera.NativeBarcodeScannerActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.Cafesito" />
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.Cafesito">
             <meta-data
                 android:name="android.app.shortcuts"
