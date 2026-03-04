@@ -1,12 +1,18 @@
 # Despliegue en Ionos
 
+## Configuración del hosting
+
+- **En el servidor:** los ficheros de la web están en la ruta **/cafesito-web/app** (SFTP: `remote_path` del deploy).
+- **Dominio:** cafesitoapp.com tiene esa carpeta (**app**) como document root: la web se sirve desde la carpeta app (las URLs son `/`, `/coffee/xxx`, `/timeline`, etc., no `/cafesito-web/app/...`).
+- El `.htaccess` debe usar **RewriteBase /** (la raíz ya es la carpeta app). El workflow no parchea el `.htaccess`; se sube con `RewriteBase /`.
+
 ## 500 al hacer Ctrl+F5 (recarga forzada) en una ruta SPA
 
-Si al hacer **Ctrl+F5** (o recargar) en una URL como `/cafesito-web/app/brewlab` o `/cafesito-web/app/timeline` ves **500 Internal Server Error** (y el mensaje menciona "ErrorDocument"), la causa suele ser un **RewriteBase incorrecto** en el `.htaccess` de la app.
+Si al hacer **Ctrl+F5** en una URL como `/coffee/achicoria-expres-el-chimbo` o `/timeline` ves **500** en la primera recarga (y al hacer F5 otra vez funciona), la causa suele ser el fallback SPA.
 
-- La app se despliega en el subdirectorio **/cafesito-web/app/**.
-- Si el `.htaccess` tiene `RewriteBase /`, Apache reescribe las rutas a `/index.html` (raíz del servidor) en lugar de `/cafesito-web/app/index.html`, y el servidor devuelve 500.
-- **Solución:** El workflow de GitHub Actions ya parchea `webApp/dist/.htaccess` antes de subir y pone `RewriteBase /cafesito-web/app/`. Asegúrate de desplegar con ese workflow. Si despliegas a mano, edita el `.htaccess` en el servidor (o en `dist/` antes de subir) y cambia a `RewriteBase /cafesito-web/app/`.
+- El `.htaccess` incluye **ErrorDocument 404 index.html** para que, cuando no exista fichero, se sirva la SPA en lugar del handler por defecto del host (que a veces devuelve 500).
+- Debe tener **RewriteBase /** (correcto cuando el dominio apunta a la carpeta app como document root). Si en el servidor hubiera `RewriteBase /cafesito-web/app/`, las reescrituras irían mal y podrías ver 500.
+- **Comprobar en el servidor:** Por SFTP, abre `/cafesito-web/app/.htaccess` y verifica que tenga `RewriteBase /` y `ErrorDocument 404 index.html`.
 
 ## 500 en /profile/usuario o /favicon.ico
 

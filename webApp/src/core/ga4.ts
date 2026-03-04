@@ -6,7 +6,8 @@
  */
 
 const GA4_DEFAULT_MEASUREMENT_ID = "G-BMZEQNRKR4";
-const rawId = (typeof import.meta !== "undefined" && import.meta.env?.VITE_GA4_MEASUREMENT_ID) || GA4_DEFAULT_MEASUREMENT_ID;
+const envId = typeof import.meta !== "undefined" ? String(import.meta.env?.VITE_GA4_MEASUREMENT_ID ?? "").trim() : "";
+const rawId = envId || GA4_DEFAULT_MEASUREMENT_ID;
 
 function normalizeMeasurementId(raw: string): string {
   const trimmed = String(raw).trim();
@@ -14,7 +15,7 @@ function normalizeMeasurementId(raw: string): string {
   return trimmed.startsWith("G-") ? trimmed : `G-${trimmed}`;
 }
 
-export const GA4_MEASUREMENT_ID = normalizeMeasurementId(rawId);
+export const GA4_MEASUREMENT_ID = normalizeMeasurementId(rawId) || GA4_DEFAULT_MEASUREMENT_ID;
 
 declare global {
   interface Window {
@@ -24,21 +25,28 @@ declare global {
   }
 }
 
-/** Inicializa gtag.js solo si VITE_GA4_MEASUREMENT_ID está definido. Llamar al arranque de la app. */
+/** Inicializa gtag.js con el measurement ID (por defecto G-BMZEQNRKR4). Llamar al arranque de la app. */
 export function initGa4(): void {
-  if (typeof window === "undefined" || !GA4_MEASUREMENT_ID) return;
-  if (window.gtag) return; // ya inicializado
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag() {
-    window.dataLayer.push(arguments);
-  };
-  window.__GA4_MEASUREMENT_ID__ = GA4_MEASUREMENT_ID;
-  window.gtag("js", new Date());
-  window.gtag("config", GA4_MEASUREMENT_ID, { send_page_view: false });
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA4_MEASUREMENT_ID)}`;
-  document.head.appendChild(script);
+  if (typeof window === "undefined") return;
+  const id = GA4_MEASUREMENT_ID;
+  if (!id) return;
+  if (!window.gtag) {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag() {
+      window.dataLayer.push(arguments);
+    };
+    window.gtag("js", new Date());
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
+    if (document.head) {
+      document.head.appendChild(script);
+    } else {
+      document.addEventListener("DOMContentLoaded", () => document.head?.appendChild(script));
+    }
+  }
+  window.__GA4_MEASUREMENT_ID__ = id;
+  window.gtag("config", id, { send_page_view: false });
 }
 
 /**
