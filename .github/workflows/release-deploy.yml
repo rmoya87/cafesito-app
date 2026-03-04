@@ -1,6 +1,7 @@
 # Workflow único: release Android (Play Console) y publicación webapp (Ionos) según rama.
 #
 # --- TRIGGERS ---
+# main NO dispara este workflow (no está en la lista).
 # 1) push a Interna/Alpha/Beta/Producción → despliega Android (+ web en Alpha/Beta/Producción).
 # 2) workflow_dispatch → "Run workflow" en Actions (elige rama y "solo Android" si quieres).
 # 3) schedule (cron 03:00 UTC) → nightly: solo web si hay cola en Supabase; Android no se publica en nightly.
@@ -11,6 +12,7 @@ name: Release & Deploy
 on:
   push:
     branches:
+      # main omitido a propósito: no debe lanzar deploy
       - Interna
       - Interno
       - Alpha
