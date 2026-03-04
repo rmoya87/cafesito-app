@@ -1,8 +1,9 @@
 # Ionos / Apache: SPA + servir estáticos sin 500
 # Copiado a la raíz de dist en el build (Vite copia public/ a dist/)
-# Si la app está en un subdirectorio (ej. /cafesito-web/app/), RewriteBase DEBE ser esa ruta,
-# si no Apache reescribe a /index.html (raíz del servidor) y da 500 al hacer F5 en una ruta SPA.
-# El workflow de deploy parchea dist/.htaccess con RewriteBase /cafesito-web/app/ antes de subir.
+# Hosting: los ficheros están en /cafesito-web/app y el dominio (cafesitoapp.com) tiene
+# esa carpeta como document root. Por tanto RewriteBase / es correcto (raíz = carpeta app).
+# ErrorDocument 404: si el servidor devuelve 404 (ruta sin fichero), servir index.html aquí.
+ErrorDocument 404 index.html
 
 <IfModule mod_rewrite.c>
   RewriteEngine On

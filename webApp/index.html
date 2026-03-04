@@ -12,19 +12,26 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' https://*.supabase.co https://region1.google-analytics.com ws://localhost:4173 http://localhost:4173 https://www.google-analytics.com https://www.googletagmanager.com; img-src 'self' data: blob: https:; font-src 'self' data: https://r2cdn.perplexity.ai https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com;"
+      content="default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://region1.google-analytics.com ws://localhost:4173 http://localhost:4173 https://www.google-analytics.com https://www.googletagmanager.com; img-src 'self' data: blob: https:; font-src 'self' data: https://r2cdn.perplexity.ai https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com;"
     />
     <meta name="description" content="Comunidad de café para compartir timeline, explorar cafés y seguir perfiles." />
-    <link rel="preload" href="./logo.png" as="image" />
-    <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="shortcut icon" href="./logo.png" />
-    <link rel="apple-touch-icon" href="./logo.png" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="shortcut icon" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
     <!-- Splash PWA: logo centrado sobre fondo marrón (#6f4e37) -->
-    <link rel="apple-touch-startup-image" href="./splash.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" />
-    <link rel="apple-touch-startup-image" href="./splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
-    <link rel="apple-touch-startup-image" href="./splash-750x1294.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
-    <link rel="apple-touch-startup-image" href="./splash.png" />
+    <link rel="apple-touch-startup-image" href="/splash.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/splash-750x1294.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="/splash.png" />
     <link rel="canonical" href="https://cafesito.app/" />
+    <!-- GA4: stub y carga de gtag.js para que la petición aparezca en Network; config (send_page_view: false) se hace desde la app -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      window.gtag = gtag;
+      gtag('js', new Date());
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BMZEQNRKR4"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&icon_names=shelves" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&icon_names=shelves" /></noscript>
     <title>Cafesito</title>

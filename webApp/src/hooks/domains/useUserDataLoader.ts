@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { getSupabaseClient } from "../../supabase";
 import { fetchUserData } from "../../data/supabaseApi";
 import type { CoffeeRow, DiaryEntryRow, FavoriteRow, NotificationRow, PantryItemRow, UserRow } from "../../types";
 
@@ -24,7 +25,6 @@ export function useUserDataLoader({
   useEffect(() => {
     if (!activeUser) return;
     let cancelled = false;
-    let notificationsInterval: number | null = null;
 
     const loadInitialData = async () => {
       try {
@@ -57,9 +57,25 @@ export function useUserDataLoader({
     };
 
     void loadInitialData();
-    notificationsInterval = window.setInterval(() => {
-      void refreshNotifications();
-    }, 5000);
+
+    // Realtime: suscripción a cambios en notifications_db para este usuario (evita polling cada 5s)
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`notifications:${activeUser.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications_db",
+          filter: `user_id=eq.${activeUser.id}`
+        },
+        () => {
+          if (!cancelled) void refreshNotifications();
+        }
+      )
+      .subscribe();
+
     const handleFocus = () => {
       void refreshNotifications();
     };
@@ -67,7 +83,7 @@ export function useUserDataLoader({
 
     return () => {
       cancelled = true;
-      if (notificationsInterval != null) window.clearInterval(notificationsInterval);
+      void channel.unsubscribe();
       window.removeEventListener("focus", handleFocus);
     };
   }, [activeUser, setCustomCoffees, setDiaryEntries, setFavorites, setGlobalStatus, setNotifications, setPantryItems]);
