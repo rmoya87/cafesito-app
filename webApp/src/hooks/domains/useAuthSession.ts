@@ -126,16 +126,15 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      // Redirect tras login: volver siempre a la misma URL donde el usuario abrió la app (nunca a producción si estás en local o IP).
-      // Solo usar cafesitoapp.com cuando el host es exactamente ese; en cualquier otro caso (localhost, 192.168.x.x, etc.) usar origin actual.
-      // En Supabase → Authentication → URL Configuration añade cada Redirect URL que uses (ej. https://192.168.1.123:4173/timeline para probar en red local).
+      // Redirect tras login: usar la raíz del sitio para evitar 500 en Apache (Ionos) con /timeline?code=...
+      // En Supabase → Authentication → URL Configuration añade cada Redirect URL (raíz y, si pruebas en red local, esa IP).
       const hostname = typeof window !== "undefined" ? window.location.hostname : "";
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const base =
         hostname === "cafesitoapp.com"
           ? "https://cafesitoapp.com"
           : origin || "https://cafesitoapp.com";
-      const redirectTo = `${base.replace(/\/+$/, "")}/timeline`;
+      const redirectTo = base.replace(/\/+$/, "") + "/";
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo }
@@ -154,6 +153,15 @@ export function useAuthSession(): UseAuthSessionResult {
 
   useEffect(() => {
     if (sessionEmail) setShowAuthPrompt(false);
+  }, [sessionEmail]);
+
+  // Tras callback OAuth en raíz (/?code=...): dejar URL limpia en /timeline
+  useEffect(() => {
+    if (!sessionEmail) return;
+    const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+    const search = window.location.search || "";
+    if (pathname !== "/" || !search.includes("code=")) return;
+    window.history.replaceState(null, "", "/timeline");
   }, [sessionEmail]);
 
   return {
