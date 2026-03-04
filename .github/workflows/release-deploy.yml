@@ -110,7 +110,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.android == 'true' &&
-      (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), env.TARGET_BRANCH))
+      (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'Beta'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -293,7 +293,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.web == 'true' &&
-      contains(fromJSON('["Alpha","alpha","Beta","beta","Producción","Produccion"]'), env.TARGET_BRANCH)
+      contains(fromJSON('["Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'Beta')
     runs-on: ubuntu-latest
     defaults:
       run:
