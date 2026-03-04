@@ -15,6 +15,7 @@ export function BrewLabView({
   coffees,
   pantryItems,
   onAddNotFoundCoffee,
+  onAddToPantry,
   waterMl,
   setWaterMl,
   ratio,
@@ -40,6 +41,8 @@ export function BrewLabView({
   coffees: CoffeeRow[];
   pantryItems: Array<{ item: PantryItemRow; coffee: CoffeeRow; total: number; remaining: number; progress: number }>;
   onAddNotFoundCoffee: () => void;
+  /** Abre el flujo «Añadir a despensa» (elegir café existente + gramos). Si no se pasa, el + usa onAddNotFoundCoffee. */
+  onAddToPantry?: () => void;
   waterMl: number;
   setWaterMl: (value: number) => void;
   ratio: number;
@@ -240,7 +243,7 @@ export function BrewLabView({
                   type="button"
                   className="brew-pantry-add-card"
                   aria-label="Añadir café a despensa"
-                  onClick={onAddNotFoundCoffee}
+                  onClick={onAddToPantry ?? onAddNotFoundCoffee}
                 >
                   <span className="brew-pantry-add-main" aria-hidden="true">
                     <span className="brew-pantry-add-icon-wrap">

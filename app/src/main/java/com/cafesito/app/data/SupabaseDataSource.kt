@@ -64,6 +64,13 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
+    fun subscribeToPosts(): Flow<PostgresAction> {
+        val channel = client.realtime.channel("posts-realtime")
+        return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+            table = "posts_db"
+        }
+    }
+
     @Suppress("DEPRECATION")
     fun subscribeToNotifications(userId: Int): Flow<PostgresAction> {
         val channel = client.realtime.channel("notifications-$userId")
@@ -76,6 +83,10 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getAllUsers(): List<UserEntity> = client.postgrest["users_db"].select().decodeList<UserEntity>()
     suspend fun getUserById(id: Int): UserEntity? = client.postgrest["users_db"].select { filter { eq("id", id) } }.decodeSingleOrNull<UserEntity>()
     suspend fun getUserByUsername(username: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("username", username) } }.decodeSingleOrNull<UserEntity>()
+    suspend fun getUserByUsernameInsensitive(username: String): UserEntity? = client.postgrest["users_db"].select {
+        filter { ilike("username", username) }
+        limit(1)
+    }.decodeSingleOrNull<UserEntity>()
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
     

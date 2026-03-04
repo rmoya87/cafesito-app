@@ -65,16 +65,21 @@ fun BrewLabScreen(
         }
     }
 
-    LaunchedEffect(createdCoffeeId, allCoffees) {
+    LaunchedEffect(createdCoffeeId, allCoffees, pantryItems) {
         val newCoffeeId = createdCoffeeId ?: return@LaunchedEffect
         val coffeeWithDetails = allCoffees.find { it.coffee.id == newCoffeeId }
         if (coffeeWithDetails != null) {
             viewModel.selectCoffeeFromCatalog(coffeeWithDetails.coffee)
-        } else {
-            viewModel.refreshPantry()
-            viewModel.onCoffeeAddedFromPantryFlow()
+            onCreatedCoffeeConsumed()
+            return@LaunchedEffect
         }
-        onCreatedCoffeeConsumed()
+        val pantryItem = pantryItems.find { it.coffee.id == newCoffeeId }
+        if (pantryItem != null) {
+            viewModel.selectPantryItem(pantryItem)
+            onCreatedCoffeeConsumed()
+            return@LaunchedEffect
+        }
+        viewModel.refreshCoffeesAndPantry()
     }
 
     Scaffold(

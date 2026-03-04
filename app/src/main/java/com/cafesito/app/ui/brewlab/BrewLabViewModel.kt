@@ -216,6 +216,12 @@ class BrewLabViewModel @Inject constructor(
         diaryRepository.triggerRefresh()
     }
 
+    /** Refresca lista de cafés y despensa para que el café recién creado desde Brew Lab aparezca y se pueda seleccionar. */
+    fun refreshCoffeesAndPantry() {
+        coffeeRepository.triggerRefresh()
+        diaryRepository.triggerRefresh()
+    }
+
     fun selectPantryItem(item: PantryItemWithDetails) {
         _selectedPantryItem.value = item
         _selectedCoffee.value = item.coffee
@@ -234,6 +240,7 @@ class BrewLabViewModel @Inject constructor(
         _currentStep.value = BrewStep.CONFIGURATION
     }
 
+    /** Llamado cuando el usuario cancela/cierra el flujo de añadir café sin guardar; vuelve a «Elige tu café». */
     fun onCoffeeAddedFromPantryFlow() {
         _currentStep.value = BrewStep.CHOOSE_COFFEE
         _searchQuery.value = ""

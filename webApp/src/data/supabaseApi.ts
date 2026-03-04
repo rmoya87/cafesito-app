@@ -33,38 +33,133 @@ function throwIfError(error: SupabaseErrorLike): void {
   if (error) throw new Error(error.message);
 }
 
-export async function fetchInitialData(): Promise<InitialDataBundle> {
+function extractMentionUsernames(text: string): string[] {
+  const mentionRegex = /@([A-Za-z0-9._-]{2,30})/g;
+  const seen = new Set<string>();
+  const usernames: string[] = [];
+  for (const match of text.matchAll(mentionRegex)) {
+    const username = String(match[1] ?? "").trim();
+    if (!username) continue;
+    const key = username.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    usernames.push(username);
+  }
+  return usernames;
+}
+
+async function createTimelineNotification(payload: {
+  userId: number;
+  type: "MENTION" | "COMMENT" | "FOLLOW";
+  fromUsername: string;
+  message: string;
+  relatedId?: string | null;
+}): Promise<void> {
   const supabase = getSupabaseClient();
-  const usersReq = supabase.from("users_db").select("id,username,full_name,avatar_url,email,bio").limit(3000);
-  // codigo_barras: opcional; si la tabla no tiene esta columna, quítala del select
+  const rpc = await supabase.rpc("create_notification", {
+    p_user_id: payload.userId,
+    p_type: payload.type,
+    p_from_username: payload.fromUsername,
+    p_message: payload.message,
+    p_timestamp: Date.now(),
+    p_related_id: payload.relatedId ?? null
+  });
+  if (!rpc.error) return;
+
+  const fallback = await supabase.from("notifications_db").insert({
+    user_id: payload.userId,
+    type: payload.type,
+    from_username: payload.fromUsername,
+    message: payload.message,
+    timestamp: Date.now(),
+    is_read: false,
+    related_id: payload.relatedId ?? null
+  });
+  throwIfError(fallback.error);
+}
+
+async function notifyMentionsForText(params: {
+  text: string;
+  authorId: number;
+  authorUsername: string;
+  relatedId: string;
+  mentionMessage: string;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  const usernames = extractMentionUsernames(params.text).filter(
+    (username) => username.toLowerCase() !== params.authorUsername.toLowerCase()
+  );
+  if (!usernames.length) return;
+
+  for (const username of usernames) {
+    const { data, error } = await supabase
+      .from("users_db")
+      .select("id,username")
+      .ilike("username", username)
+      .limit(1)
+      .maybeSingle<{ id: number; username: string }>();
+
+    if (error || !data) continue;
+    if (Number(data.id) === params.authorId) continue;
+    try {
+      await createTimelineNotification({
+        userId: Number(data.id),
+        type: "MENTION",
+        fromUsername: params.authorUsername,
+        message: params.mentionMessage,
+        relatedId: params.relatedId
+      });
+    } catch (notifyError) {
+      console.warn("No se pudo crear notificación de mención", notifyError);
+    }
+  }
+}
+
+// Cache en memoria para reducir Cached Egress (TTL 90s)
+const INITIAL_DATA_CACHE_TTL_MS = 90 * 1000;
+let cachedInitialData: InitialDataBundle | null = null;
+let cachedInitialDataAt = 0;
+
+export async function fetchInitialData(forceRefresh = false): Promise<InitialDataBundle> {
+  const now = Date.now();
+  if (
+    !forceRefresh &&
+    cachedInitialData !== null &&
+    now - cachedInitialDataAt < INITIAL_DATA_CACHE_TTL_MS
+  ) {
+    return cachedInitialData;
+  }
+
+  const supabase = getSupabaseClient();
+  const usersReq = supabase.from("users_db").select("id,username,full_name,avatar_url,email,bio").limit(1500);
   const coffeesReq = supabase
     .from("coffees")
     .select(
       "id,nombre,marca,pais_origen,codigo_barras,descripcion,proceso,variedad_tipo,molienda_recomendada,product_url,cafeina,aroma,sabor,cuerpo,acidez,dulzura,especialidad,tueste,formato,image_url"
     )
     .order("nombre", { ascending: true })
-    .limit(3000);
+    .limit(2000);
   const reviewsReq = supabase
     .from("reviews_db")
     .select("id,coffee_id,user_id,rating,comment,image_url,timestamp")
-    .limit(6000);
+    .limit(3000);
   const sensoryReq = supabase
     .from("coffee_sensory_profiles")
     .select("coffee_id,user_id,aroma,sabor,cuerpo,acidez,dulzura,updated_at")
-    .limit(6000);
+    .limit(3000);
   const postsReq = supabase
     .from("posts_db")
     .select("id,user_id,image_url,comment,timestamp")
     .order("timestamp", { ascending: false })
     .limit(120);
-  const likesReq = supabase.from("likes_db").select("post_id,user_id").limit(3000);
+  const likesReq = supabase.from("likes_db").select("post_id,user_id").limit(2000);
   const commentsReq = supabase
     .from("comments_db")
     .select("id,post_id,user_id,text,timestamp")
     .order("timestamp", { ascending: false })
-    .limit(3000);
-  const tagsReq = supabase.from("post_coffee_tags").select("post_id,coffee_id,coffee_name,coffee_brand").limit(1000);
-  const followsReq = supabase.from("follows").select("follower_id,followed_id,created_at").limit(3000);
+    .limit(2000);
+  const tagsReq = supabase.from("post_coffee_tags").select("post_id,coffee_id,coffee_name,coffee_brand").limit(500);
+  const followsReq = supabase.from("follows").select("follower_id,followed_id,created_at").limit(2000);
 
   const [usersRes, coffeesRes, reviewsRes, sensoryRes, postsRes, likesRes, commentsRes, tagsRes, followsRes] = await Promise.all([
     usersReq,
@@ -90,7 +185,7 @@ export async function fetchInitialData(): Promise<InitialDataBundle> {
     followsRes.error
   );
 
-  return mapInitialDataBundle({
+  const bundle = mapInitialDataBundle({
     users: (usersRes.data ?? []) as InitialDataBundle["users"],
     coffees: (coffeesRes.data ?? []) as InitialDataBundle["coffees"],
     reviews: (reviewsRes.data ?? []) as InitialDataBundle["reviews"],
@@ -101,6 +196,9 @@ export async function fetchInitialData(): Promise<InitialDataBundle> {
     postCoffeeTags: (tagsRes.data ?? []) as InitialDataBundle["postCoffeeTags"],
     follows: (followsRes.data ?? []) as InitialDataBundle["follows"]
   });
+  cachedInitialData = bundle;
+  cachedInitialDataAt = Date.now();
+  return bundle;
 }
 
 export async function fetchUserData(userId: number): Promise<UserDataBundle> {
@@ -179,7 +277,31 @@ export async function createComment(postId: string, userId: number, text: string
     .single();
 
   throwIfError(error);
-  return mapCommentRow(data);
+  const row = mapCommentRow(data);
+
+  // Web no tenía pipeline de menciones en comentarios; lo resolvemos aquí.
+  const { data: author } = await supabase
+    .from("users_db")
+    .select("username")
+    .eq("id", userId)
+    .limit(1)
+    .maybeSingle<{ username: string }>();
+  const authorUsername = String(author?.username ?? "").trim();
+  if (authorUsername) {
+    try {
+      await notifyMentionsForText({
+        text,
+        authorId: userId,
+        authorUsername,
+        relatedId: `${postId}:${row.id}`,
+        mentionMessage: text
+      });
+    } catch (notifyError) {
+      console.warn("No se pudieron procesar menciones del comentario", notifyError);
+    }
+  }
+
+  return row;
 }
 
 export async function toggleFollow(
@@ -205,6 +327,28 @@ export async function toggleFollow(
   };
   const { error } = await supabase.from("follows").insert(payload);
   throwIfError(error);
+  if (followerId !== followedId) {
+    try {
+      const { data: follower } = await supabase
+        .from("users_db")
+        .select("username")
+        .eq("id", followerId)
+        .limit(1)
+        .maybeSingle<{ username: string }>();
+      const fromUsername = String(follower?.username ?? "").trim();
+      if (fromUsername) {
+        await createTimelineNotification({
+          userId: followedId,
+          type: "FOLLOW",
+          fromUsername,
+          message: "ha empezado a seguirte",
+          relatedId: String(followerId)
+        });
+      }
+    } catch (notifyError) {
+      console.warn("No se pudo crear notificación de seguimiento", notifyError);
+    }
+  }
   return payload;
 }
 
@@ -271,7 +415,31 @@ export async function createPost(
     .select("id,user_id,image_url,comment,timestamp")
     .single();
   throwIfError(error);
-  return mapPostRow(data);
+  const post = mapPostRow(data);
+
+  // Web no enviaba notificaciones por mención en posts.
+  const { data: author } = await supabase
+    .from("users_db")
+    .select("username")
+    .eq("id", userId)
+    .limit(1)
+    .maybeSingle<{ username: string }>();
+  const authorUsername = String(author?.username ?? "").trim();
+  if (authorUsername) {
+    try {
+      await notifyMentionsForText({
+        text,
+        authorId: userId,
+        authorUsername,
+        relatedId: `${post.id}:-1`,
+        mentionMessage: "te ha mencionado"
+      });
+    } catch (notifyError) {
+      console.warn("No se pudieron procesar menciones del post", notifyError);
+    }
+  }
+
+  return post;
 }
 
 export async function addPostCoffeeTag(tag: PostCoffeeTagRow): Promise<void> {

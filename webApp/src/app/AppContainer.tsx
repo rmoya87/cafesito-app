@@ -182,6 +182,7 @@ export function AppContainer() {
   const [diaryPantryCoffeeIdDraft, setDiaryPantryCoffeeIdDraft] = useState("");
   const [diaryPantryGramsDraft, setDiaryPantryGramsDraft] = useState("250");
   const [lastCreatedCoffeeNameForSheet, setLastCreatedCoffeeNameForSheet] = useState<string | null>(null);
+  const addPantryOpenedFromBrewRef = useRef(false);
   const {
     profileTab,
     setProfileTab,
@@ -673,6 +674,21 @@ export function AppContainer() {
     setDiaryPantryGramsDraft,
     setLastCreatedCoffeeNameForSheet
   });
+
+  const openAddPantrySheetForBrew = useCallback(() => {
+    addPantryOpenedFromBrewRef.current = true;
+    openAddPantrySheet();
+  }, [openAddPantrySheet]);
+
+  const handleSavePantry = useCallback(async () => {
+    const coffeeId = selectedDiaryPantryCoffee?.id ?? "";
+    await savePantry();
+    if (addPantryOpenedFromBrewRef.current && coffeeId) {
+      setBrewCoffeeId(coffeeId);
+      setBrewStep("config");
+      addPantryOpenedFromBrewRef.current = false;
+    }
+  }, [savePantry, selectedDiaryPantryCoffee?.id, setBrewCoffeeId, setBrewStep]);
 
   useCoffeeDetailDraftSync({
     hasDetailCoffee: Boolean(detailCoffee),
@@ -1315,6 +1331,7 @@ export function AppContainer() {
           coffees={brewCoffeeCatalog}
           pantryItems={brewPantryItems}
           onAddNotFoundCoffee={openCreateCoffeeComposer}
+          onAddToPantry={openAddPantrySheetForBrew}
           waterMl={waterMl}
           setWaterMl={setWaterMl}
           ratio={ratio}
@@ -1572,6 +1589,7 @@ export function AppContainer() {
         setShowDiaryCoffeeSheet(false);
       }}
       onCloseAddPantrySheet={() => {
+        addPantryOpenedFromBrewRef.current = false;
         setPantrySheetStep("select");
         setShowDiaryAddPantrySheet(false);
       }}
@@ -1614,7 +1632,7 @@ export function AppContainer() {
       setDiaryPantryCoffeeIdDraft={setDiaryPantryCoffeeIdDraft}
       diaryPantryGramsDraft={diaryPantryGramsDraft}
       setDiaryPantryGramsDraft={setDiaryPantryGramsDraft}
-      onSavePantry={savePantry}
+      onSavePantry={handleSavePantry}
       selectedDiaryPantryCoffee={selectedDiaryPantryCoffee}
       showBarcodeButton={isMobileOsDevice}
       onBarcodeClick={() => {

@@ -41,6 +41,13 @@ class SocialRepository @Inject constructor(
                     triggerRefresh()
                 }
         }
+        externalScope.launch {
+            supabaseDataSource.subscribeToPosts()
+                .catch { }
+                .collect {
+                    triggerRefresh()
+                }
+        }
     }
 
     fun triggerRefresh() {

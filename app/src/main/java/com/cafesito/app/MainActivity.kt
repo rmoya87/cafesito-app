@@ -84,4 +84,9 @@ class MainActivity : ComponentActivity() {
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
         shortcutNavigation.value = ShortcutActionResolver.resolve(intent)
     }
+
+    override fun onStart() {
+        super.onStart()
+        sessionCoordinator.onAppForeground(lifecycleScope)
+    }
 }

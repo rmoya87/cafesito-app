@@ -41,6 +41,7 @@ fun AddStockScreen(
     onBackClick: () -> Unit,
     onAddCustomClick: () -> Unit,
     onSuccess: () -> Unit,
+    onSuccessWithCoffeeId: ((String) -> Unit)? = null,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val coffees by viewModel.availableCoffees.collectAsState()
@@ -140,11 +141,13 @@ fun AddStockScreen(
                 
                 Button(
                     onClick = {
+                        val coffeeId = selectedCoffeeId!!
                         val g = grams.toIntOrNull() ?: 250
                         isSaving = true
-                        viewModel.addToPantry(selectedCoffeeId!!, g) {
+                        viewModel.addToPantry(coffeeId, g) {
                             isSaving = false
                             selectedCoffeeId = null
+                            onSuccessWithCoffeeId?.invoke(coffeeId)
                             onSuccess()
                         }
                     }, 

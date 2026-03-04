@@ -252,9 +252,11 @@ class UserRepository @Inject constructor(
 
     suspend fun getUserByUsername(username: String): UserEntity? {
         val local = userDao.getUserByUsername(username)
+            ?: userDao.getAllUsers().first().firstOrNull { it.username.equals(username, ignoreCase = true) }
         if (local == null && connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try {
                 val remote = supabaseDataSource.getUserByUsername(username)
+                    ?: supabaseDataSource.getUserByUsernameInsensitive(username)
                 if (remote != null) {
                     userDao.upsertUser(remote)
                     return remote

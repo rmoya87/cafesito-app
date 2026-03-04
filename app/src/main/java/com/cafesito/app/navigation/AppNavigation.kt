@@ -383,7 +383,7 @@ fun AppNavigation(
                         onNavigateToDiary = {
                             navController.navigate("diary") { popUpTo("brewlab") { inclusive = false } }
                         },
-                        onAddCoffeeClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab") },
+                        onAddCoffeeClick = { navController.navigate("addStock?origin=brewlab") },
                         createdCoffeeId = createdCoffeeId,
                         onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null }
                     )
@@ -429,9 +429,13 @@ fun AppNavigation(
                             else navController.navigate("addPantryItem?onlyActivity=true")
                         },
                         onSuccess = {
-                            if (origin == "brewlab") navController.popBackStack()
+                            if (origin == "brewlab") { /* pop ya hecho en onSuccessWithCoffeeId */ }
                             else navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }
-                        }
+                        },
+                        onSuccessWithCoffeeId = if (origin == "brewlab") { coffeeId ->
+                            navController.getBackStackEntry("brewlab").savedStateHandle["brewlab_created_coffee_id"] = coffeeId
+                            navController.popBackStack()
+                        } else null
                     )
                 }
 
