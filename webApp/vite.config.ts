@@ -110,6 +110,7 @@ export default defineConfig(({ mode }) => {
     mkcert(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: "script-defer",
       includeAssets: ["favicon.svg", "logo.png", "splash.png", "splash-1170x2532.png", "splash-750x1294.png"],
       manifest: {
         name: "Cafesito",
@@ -119,24 +120,17 @@ export default defineConfig(({ mode }) => {
         background_color: "#6f4e37",
         display: "standalone",
         orientation: "portrait",
-        start_url: ".",
+        start_url: "/",
         icons: [
-          {
-            src: "logo.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "any"
-          },
-          {
-            src: "logo.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable"
-          }
+          { src: "/logo.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/logo.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
         ]
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png}"],
+        // Solo precache JS, CSS y HTML (shell + chunks). No precache todos los PNG/SVG (iconos, drawables)
+        // para evitar muchas peticiones en segundo plano al instalar el SW. Esos assets se cachean en
+        // runtime al usarse (ver runtimeCaching para same-origin).
+        globPatterns: ["**/*.{js,css,html}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
@@ -152,6 +146,15 @@ export default defineConfig(({ mode }) => {
             options: {
               cacheName: "supabase-storage-cache",
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 }
+            }
+          },
+          // Iconos y drawables de la app (se cachean al usarse, no en precache)
+          {
+            urlPattern: /\/android-drawable\/|\/brew-methods\/|\/(logo|splash|favicon)\.(png|svg|ico)(\?|$)/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "app-static-assets",
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 }
             }
           }
         ]
