@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { toggleFavoriteCoffee } from "../data/supabaseApi";
+import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { requestAccountDeletion, syncAccountLifecycleAfterLogin, toggleFavoriteCoffee } from "../data/supabaseApi";
 import { BREW_METHODS, COMMENT_EMOJIS } from "../config/brew";
-import { getAppRootPath, parseRoute } from "../core/routing";
+import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/routing";
+import { sendPageView } from "../core/ga4";
 import { shouldUseRightRailDetail, sidePanelForTab } from "../core/layouts";
 import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
 import { getBrewStepTitle } from "../core/brew";
@@ -36,22 +37,27 @@ import { useCoffeeSeoMeta } from "../hooks/domains/useCoffeeSeoMeta";
 import { useCoffeeRouteSync, useRouteCanonicalSync, useRouteGuardSync } from "../hooks/domains/useRouteSync";
 import { getSupabaseClient, supabaseConfigError } from "../supabase";
 import { TopBar } from "../features/topbar/TopBar";
-import { TimelineView } from "../features/timeline/TimelineView";
+import {
+  LazyTimelineView,
+  LazySearchView,
+  LazyCoffeeDetailView,
+  LazyBrewLabView,
+  LazyCreateCoffeeView,
+  LazyDiaryView,
+  LazyProfileView,
+  LazyNotFoundView
+} from "./lazyViews";
 import { NotificationsSheet } from "../features/timeline/NotificationsSheet";
 import { CommentSheet } from "../features/timeline/CommentSheet";
 import { CreatePostSheet } from "../features/timeline/CreatePostSheet";
-import { SearchView } from "../features/search/SearchView";
 import { MobileBarcodeScannerSheet } from "../features/search/MobileBarcodeScannerSheet";
 import { LoginGate } from "../features/auth/LoginGate";
 import { AuthPromptOverlay } from "../features/auth/AuthPromptOverlay";
-import { CoffeeDetailView } from "../features/coffee/CoffeeDetailView";
-import { BrewLabView, CreateCoffeeView } from "../features/brew/BrewViews";
-import { DiaryView } from "../features/diary/DiaryView";
 import { DiarySheets } from "../features/diary/DiarySheets";
-import { ProfileView } from "../features/profile/ProfileView";
 import { BottomNav, DesktopNavRail } from "../features/navigation/NavControls";
 import { AppContentRouter } from "./AppContentRouter";
 import { AppOverlayLayers } from "./AppOverlayLayers";
+import { OfflineBanner } from "./OfflineBanner";
 
 import { UiIcon } from "../ui/iconography";
 import { Button, IconButton } from "../ui/components";
@@ -75,6 +81,7 @@ import type {
 
 export function AppContainer() {
   const initialRoute = parseRoute(window.location.pathname);
+  const isNotFoundRoute = !isKnownRoute(window.location.pathname);
   const { mode, viewportWidth } = useResponsiveMode();
   const [activeTab, setActiveTab] = useState<TabId>(initialRoute.tab);
 
@@ -145,8 +152,10 @@ export function AppContainer() {
     setDetailOpenStockSignal
   } = useCoffeeDetailDomain();
   const [showBarcodeScannerSheet, setShowBarcodeScannerSheet] = useState(false);
-  const [barcodeOrigin, setBarcodeOrigin] = useState<"search" | "diary" | null>(null);
+  const [barcodeOrigin, setBarcodeOrigin] = useState<"search" | "diary" | "brew" | "createPostCoffee" | null>(null);
   const [barcodeDetectedValueForDiary, setBarcodeDetectedValueForDiary] = useState<string | null>(null);
+  const [barcodeDetectedValueForBrew, setBarcodeDetectedValueForBrew] = useState<string | null>(null);
+  const barcodeSearchPendingRef = useRef(false);
 
   const [brewStep, setBrewStep] = useState<BrewStep>("method");
   const [brewMethod, setBrewMethod] = useState("");
@@ -173,6 +182,7 @@ export function AppContainer() {
   const [diaryPantryCoffeeIdDraft, setDiaryPantryCoffeeIdDraft] = useState("");
   const [diaryPantryGramsDraft, setDiaryPantryGramsDraft] = useState("250");
   const [lastCreatedCoffeeNameForSheet, setLastCreatedCoffeeNameForSheet] = useState<string | null>(null);
+  const addPantryOpenedFromBrewRef = useRef(false);
   const {
     profileTab,
     setProfileTab,
@@ -204,8 +214,6 @@ export function AppContainer() {
     commentImagePreviewUrl,
     setCommentImagePreviewUrl,
     showCreatePost,
-    newPostStep,
-    setNewPostStep,
     newPostText,
     setNewPostText,
     newPostImageFile,
@@ -225,14 +233,12 @@ export function AppContainer() {
     showCreatePostEmojiPanel,
     setShowCreatePostEmojiPanel,
     newPostImageInputRef,
-    newPostCameraInputRef,
     resetCreatePostComposer,
     openCreatePostComposer,
     appendNewPostFiles
   } = useTimelineComposerDomain();
   const [handledTimelineDeepLink, setHandledTimelineDeepLink] = useState(false);
   const [topbarScrolled, setTopbarScrolled] = useState(false);
-  const [topbarHidden, setTopbarHidden] = useState(false);
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const [timelineActionBanner, setTimelineActionBanner] = useState<string | null>(null);
   const [timelineRefreshing, setTimelineRefreshing] = useState(false);
@@ -260,14 +266,40 @@ export function AppContainer() {
     requestLogin
   } = useAuthSession();
   const isMobileOsDevice = useMemo(() => /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
-  const isIOS = useMemo(() => /iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
+  const isAndroidMobile = useMemo(() => {
+    if (!/Android/i.test(window.navigator.userAgent)) return false;
+    if (!/Mobile/i.test(window.navigator.userAgent)) return false;
+    try {
+      if (typeof window.matchMedia !== "undefined" && window.matchMedia("(display-mode: standalone)").matches) return false;
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }, []);
+
+  const ANDROID_BANNER_STORAGE_KEY = "cafesito-android-install-banner-dismissed";
+  const [androidBannerDismissed, setAndroidBannerDismissed] = useState(() => {
+    try {
+      return window.localStorage.getItem(ANDROID_BANNER_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const dismissAndroidBanner = useCallback(() => {
+    setAndroidBannerDismissed(true);
+    try {
+      window.localStorage.setItem(ANDROID_BANNER_STORAGE_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const activeUser = useMemo(() => {
     if (!users.length) return null;
     if (sessionEmail) {
       const sessionEmailNormalized = normalizeLookupText(sessionEmail);
       const found = users.find((user) => normalizeLookupText(user.email) === sessionEmailNormalized);
-      if (found) return found;
+      return found ?? null;
     }
     return users[0] ?? null;
   }, [sessionEmail, users]);
@@ -357,6 +389,18 @@ export function AppContainer() {
     fallbackPath: loginRootPath
   });
 
+  // Si hay error de auth (login fallido, 500, callback con error), llevar a /timeline para no dejar en URL de error
+  useEffect(() => {
+    if (!authError) return;
+    const pathname = window.location.pathname;
+    const base = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "";
+    const timelinePath = (base ? `${base}/timeline` : "/timeline").replace(/\/+/g, "/");
+    if (pathname.replace(/\/+$/, "") !== timelinePath.replace(/\/+$/, "")) {
+      window.history.replaceState(null, "", `${timelinePath}${window.location.search}${window.location.hash}`);
+      setActiveTab("timeline");
+    }
+  }, [authError]);
+
   useGlobalUiEvents({
     onOpenSearch: () => {
       navigateToTab("search", { searchMode: "coffees" });
@@ -365,33 +409,56 @@ export function AppContainer() {
     onTopbarScroll: setTopbarScrolled
   });
 
+  const lastScrollTopRef = useRef(0);
+
+  const applyScrollState = useCallback((scrollTop: number) => {
+    setTopbarScrolled(scrollTop > 18);
+    const mainShell = mainScrollRef.current?.parentElement;
+    if (mainShell) {
+      mainShell.style.setProperty("--topbar-translate-y", "0px");
+    }
+  }, []);
+
   useEffect(() => {
     const el = mainScrollRef.current;
     if (!el) return;
-    const threshold = 24;
-    let lastScrollTop = el.scrollTop;
-    let ticking = false;
-    const onScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const st = el.scrollTop;
-          setTopbarScrolled(st > 18);
-          if (st <= threshold) {
-            setTopbarHidden(false);
-          } else if (st > lastScrollTop) {
-            setTopbarHidden(true);
-          } else {
-            setTopbarHidden(false);
-          }
-          lastScrollTop = st;
-          ticking = false;
-        });
-        ticking = true;
-      }
+    lastScrollTopRef.current = el.scrollTop;
+    applyScrollState(el.scrollTop);
+
+    let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
+    const SCROLL_END_MS = 100;
+
+    const syncFromScroll = () => {
+      const st = el.scrollTop;
+      lastScrollTopRef.current = st;
+      applyScrollState(st);
     };
+
+    const onScroll = () => {
+      syncFromScroll();
+      if (scrollEndTimer != null) clearTimeout(scrollEndTimer);
+      scrollEndTimer = setTimeout(() => {
+        scrollEndTimer = null;
+        syncFromScroll();
+      }, SCROLL_END_MS);
+    };
+
+    const onScrollEnd = () => {
+      if (scrollEndTimer != null) {
+        clearTimeout(scrollEndTimer);
+        scrollEndTimer = null;
+      }
+      syncFromScroll();
+    };
+
     el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, []);
+    el.addEventListener("scrollend", onScrollEnd);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scrollend", onScrollEnd);
+      if (scrollEndTimer != null) clearTimeout(scrollEndTimer);
+    };
+  }, [applyScrollState, sessionEmail]);
 
   const handleSignOut = useCallback(async () => {
     if (supabaseConfigError) return;
@@ -419,6 +486,38 @@ export function AppContainer() {
       setAuthError((error as Error).message);
     }
   }, [resetCreateCoffeeDomain, setAuthError]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    if (!activeUser) return;
+    try {
+      await requestAccountDeletion(activeUser.id);
+      await handleSignOut();
+    } catch (error) {
+      setAuthError((error as Error).message);
+    }
+  }, [activeUser, handleSignOut, setAuthError]);
+
+  useEffect(() => {
+    if (!sessionEmail || !activeUser) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const outcome = await syncAccountLifecycleAfterLogin(activeUser.id);
+        if (cancelled) return;
+        if (outcome === "reactivated") {
+          setTimelineActionBanner("Se canceló la eliminación de tu cuenta porque volviste a iniciar sesión.");
+        } else if (outcome === "deleted") {
+          await handleSignOut();
+          if (!cancelled) setGlobalStatus("Tu cuenta se eliminó por haber superado el plazo de 30 días.");
+        }
+      } catch {
+        // Best effort: no bloquea la sesión si el backend aún no tiene estas columnas.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeUser, handleSignOut, sessionEmail, setTimelineActionBanner]);
 
   const {
     brewCoffeeCatalog,
@@ -538,10 +637,6 @@ export function AppContainer() {
         : null,
     [diaryCoffeeOptions, diaryPantryCoffeeIdDraft]
   );
-  const bumpPantryGrams = (delta: number) => {
-    const next = Math.max(1, Math.round((Number(diaryPantryGramsDraft || 0) || 0) + delta));
-    setDiaryPantryGramsDraft(String(next));
-  };
   const {
     openWaterSheet,
     openCoffeeSheet,
@@ -579,6 +674,21 @@ export function AppContainer() {
     setDiaryPantryGramsDraft,
     setLastCreatedCoffeeNameForSheet
   });
+
+  const openAddPantrySheetForBrew = useCallback(() => {
+    addPantryOpenedFromBrewRef.current = true;
+    openAddPantrySheet();
+  }, [openAddPantrySheet]);
+
+  const handleSavePantry = useCallback(async () => {
+    const coffeeId = selectedDiaryPantryCoffee?.id ?? "";
+    await savePantry();
+    if (addPantryOpenedFromBrewRef.current && coffeeId) {
+      setBrewCoffeeId(coffeeId);
+      setBrewStep("config");
+      addPantryOpenedFromBrewRef.current = false;
+    }
+  }, [savePantry, selectedDiaryPantryCoffee?.id, setBrewCoffeeId, setBrewStep]);
 
   useCoffeeDetailDraftSync({
     hasDetailCoffee: Boolean(detailCoffee),
@@ -669,7 +779,6 @@ export function AppContainer() {
     closeCommentSheet,
     pickCommentImage,
     removeCommentImage,
-    selectCreatePostGalleryItem,
     removeSelectedCreatePostImage
   } = useTimelineSheetActions({
     commentImagePreviewUrl,
@@ -741,6 +850,15 @@ export function AppContainer() {
     setActiveTab
   });
 
+  // Tras escanear código de barras en buscador: 1 resultado → detalle; varios → lista en búsqueda
+  useEffect(() => {
+    if (activeTab !== "search" || searchMode !== "coffees" || !barcodeSearchPendingRef.current) return;
+    barcodeSearchPendingRef.current = false;
+    if (filteredCoffees.length === 1) {
+      openCoffeeDetail(filteredCoffees[0].id, "search");
+    }
+  }, [activeTab, searchMode, filteredCoffees, openCoffeeDetail]);
+
   const { saveDetailFavorite, saveDetailReview, removeDetailReview, saveDetailSensory, saveDetailStock } = useCoffeeDetailActions({
     activeUser,
     detailCoffeeId,
@@ -770,7 +888,7 @@ export function AppContainer() {
   });
 
   const detailPanel = detailCoffee ? (
-    <CoffeeDetailView
+    <LazyCoffeeDetailView
       coffee={detailCoffee}
       reviews={detailCoffeeReviews}
       currentUser={detailCurrentUser}
@@ -788,7 +906,7 @@ export function AppContainer() {
       onToggleFavorite={sidePanelDetailActions.onToggleFavorite}
       onReviewTextChange={setDetailReviewText}
       onReviewRatingChange={setDetailReviewRating}
-      onReviewImagePick={(file, previewUrl) => {
+      onReviewImagePick={(file: File | null, previewUrl: string) => {
         setDetailReviewImageFile(file);
         setDetailReviewImagePreviewUrl(previewUrl);
       }}
@@ -808,7 +926,7 @@ export function AppContainer() {
   ) : null;
 
   const createCoffeePanel = (
-    <CreateCoffeeView
+    <LazyCreateCoffeeView
       draft={createCoffeeDraft}
       imagePreviewUrl={createCoffeeImagePreviewUrl}
       saving={createCoffeeSaving}
@@ -819,35 +937,38 @@ export function AppContainer() {
       onPickImage={onPickCreateCoffeeImage}
       onRemoveImage={onRemoveCreateCoffeeImage}
       onClose={closeCreateCoffeeComposer}
-      onSave={() => void saveCreateCoffee()}
+      onSave={() => void saveCreateCoffee({ fromBrewChooser: true })}
       fullPage={mode !== "desktop"}
+      hideActions={true}
     />
   );
 
   const createCoffeeFormForSheet = (
-    <CreateCoffeeView
-      draft={createCoffeeDraft}
-      imagePreviewUrl={createCoffeeImagePreviewUrl}
-      saving={createCoffeeSaving}
-      error={createCoffeeError}
-      countryOptions={searchOriginOptions}
-      specialtyOptions={searchSpecialtyOptions}
-      onChange={setCreateCoffeeDraft}
-      onPickImage={onPickCreateCoffeeImage}
-      onRemoveImage={onRemoveCreateCoffeeImage}
-      onClose={() => setCoffeeSheetStep("select")}
-      onSave={async () => {
-        const result = await saveCreateCoffee({ fromDiarySheet: true });
-        if (result) {
-          setDiaryCoffeeDraftWithCaffeine(result.id);
-          setLastCreatedCoffeeNameForSheet(result.name);
-          setCoffeeSheetStep("dose");
-        }
-      }}
-      fullPage={false}
-      hideActions={true}
-      hideHead={true}
-    />
+    <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+      <LazyCreateCoffeeView
+        draft={createCoffeeDraft}
+        imagePreviewUrl={createCoffeeImagePreviewUrl}
+        saving={createCoffeeSaving}
+        error={createCoffeeError}
+        countryOptions={searchOriginOptions}
+        specialtyOptions={searchSpecialtyOptions}
+        onChange={setCreateCoffeeDraft}
+        onPickImage={onPickCreateCoffeeImage}
+        onRemoveImage={onRemoveCreateCoffeeImage}
+        onClose={() => setCoffeeSheetStep("select")}
+        onSave={async () => {
+          const result = await saveCreateCoffee({ fromDiarySheet: true });
+          if (result) {
+            setDiaryCoffeeDraftWithCaffeine(result.id);
+            setLastCreatedCoffeeNameForSheet(result.name);
+            setCoffeeSheetStep("dose");
+          }
+        }}
+        fullPage={false}
+        hideActions={true}
+        hideHead={true}
+      />
+    </Suspense>
   );
 
   const isCreateCoffeeFormValid =
@@ -858,25 +979,27 @@ export function AppContainer() {
     createCoffeeDraft.format.trim() !== "";
 
   const createCoffeeFormForPantrySheet = (
-    <CreateCoffeeView
-      draft={createCoffeeDraft}
-      imagePreviewUrl={createCoffeeImagePreviewUrl}
-      saving={createCoffeeSaving}
-      error={createCoffeeError}
-      countryOptions={createCoffeeCountryOptions}
-      specialtyOptions={searchSpecialtyOptions}
-      onChange={setCreateCoffeeDraft}
-      onPickImage={onPickCreateCoffeeImage}
-      onRemoveImage={onRemoveCreateCoffeeImage}
-      onClose={() => setPantrySheetStep("select")}
-      onSave={async () => {
-        await handleCreateCoffeeNextForPantry();
-      }}
-      fullPage={false}
-      hideActions={true}
-      hideHead={true}
-      showQuantityField={true}
-    />
+    <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+      <LazyCreateCoffeeView
+        draft={createCoffeeDraft}
+        imagePreviewUrl={createCoffeeImagePreviewUrl}
+        saving={createCoffeeSaving}
+        error={createCoffeeError}
+        countryOptions={createCoffeeCountryOptions}
+        specialtyOptions={searchSpecialtyOptions}
+        onChange={setCreateCoffeeDraft}
+        onPickImage={onPickCreateCoffeeImage}
+        onRemoveImage={onRemoveCreateCoffeeImage}
+        onClose={() => setPantrySheetStep("select")}
+        onSave={async () => {
+          await handleCreateCoffeeNextForPantry();
+        }}
+        fullPage={false}
+        hideActions={true}
+        hideHead={true}
+        showQuantityField={true}
+      />
+    </Suspense>
   );
 
   const handleCreateCoffeeNext = useCallback(async () => {
@@ -889,22 +1012,58 @@ export function AppContainer() {
   }, [saveCreateCoffee, setDiaryCoffeeDraftWithCaffeine, setCoffeeSheetStep]);
 
   const handleCreateCoffeeNextForPantry = useCallback(async () => {
-    const result = await saveCreateCoffee();
+    const result = await saveCreateCoffee({ fromPantrySheet: true });
     if (result) {
-      setPantrySheetStep("select");
-      setShowDiaryAddPantrySheet(false);
+      setDiaryPantryCoffeeIdDraft(result.id);
+      const suggestedGrams = Math.max(1, Math.round(Number(createCoffeeDraft.totalGrams || 250)));
+      setDiaryPantryGramsDraft(String(suggestedGrams));
+      setPantrySheetStep("form");
     }
-  }, [saveCreateCoffee, setPantrySheetStep, setShowDiaryAddPantrySheet]);
+  }, [createCoffeeDraft.totalGrams, saveCreateCoffee, setDiaryPantryCoffeeIdDraft, setDiaryPantryGramsDraft, setPantrySheetStep]);
 
-  useCoffeeSeoMeta(detailCoffee);
+  useCoffeeSeoMeta(detailCoffee, {
+    avgRating: detailCoffeeAverageRating,
+    reviewCount: detailCoffeeReviews.length
+  });
 
   const handleNavClick = (tabId: TabId) => {
     handleNavClickBase(tabId);
   };
 
   const guardedActiveTab = resolveGuardedTab(activeTab, Boolean(sessionEmail));
-  const showingLogin = !authReady || (!sessionEmail && !canAccessTabAsGuest(guardedActiveTab));
+
+  // GA4: enviar page_view en cada cambio de ruta (SPA)
+  const coffeeSlugForGa =
+    guardedActiveTab === "coffee" && detailCoffeeId ? coffeeSlugIndex.byId.get(detailCoffeeId) ?? null : null;
+  const gaPagePath = buildRoute(guardedActiveTab, searchMode, profileUsername, coffeeSlugForGa);
+  useEffect(() => {
+    const titles: Partial<Record<TabId, string>> = {
+      timeline: "Inicio",
+      search: "Explorar",
+      brewlab: "Elabora",
+      diary: "Diario",
+      profile: "Perfil",
+      coffee: detailCoffee?.nombre ? `Café · ${detailCoffee.nombre}` : "Café"
+    };
+    const pageTitle = titles[guardedActiveTab] ?? "Cafesito";
+    sendPageView(gaPagePath, `Cafesito - ${pageTitle}`);
+  }, [gaPagePath, guardedActiveTab]);
+
+  // Al cambiar de vista: reiniciar scroll y mostrar topbar para que en timeline, perfil y resto se comporte igual
+  useEffect(() => {
+    const el = mainScrollRef.current;
+    if (!el) return;
+    el.scrollTop = 0;
+    lastScrollTopRef.current = 0;
+    setTopbarScrolled(false);
+    const mainShell = el.parentElement;
+    if (mainShell) mainShell.style.setProperty("--topbar-translate-y", "0px");
+  }, [guardedActiveTab]);
+
+  const guestCanAccessCurrentTab = canAccessTabAsGuest(guardedActiveTab);
+  const showingLogin = (!authReady && !guestCanAccessCurrentTab) || (!sessionEmail && !guestCanAccessCurrentTab);
   useLayoutEffect(() => {
+    if (isNotFoundRoute) return;
     if (!showingLogin) return;
     const pathname = window.location.pathname;
     const root = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
@@ -912,9 +1071,26 @@ export function AppContainer() {
     if (current !== root) {
       window.history.replaceState({}, "", `${root}${window.location.search}${window.location.hash}`);
     }
-  }, [showingLogin]);
-  const nav = <BottomNav activeTab={guardedActiveTab} onNavClick={handleNavClick} />;
-  const navRail = <DesktopNavRail activeTab={guardedActiveTab} onNavClick={handleNavClick} />;
+  }, [isNotFoundRoute, showingLogin]);
+  const mentionUsersByUsername = useMemo(() => {
+    const map = new Map<string, UserRow>();
+    users.forEach((user) => {
+      const key = String(user.username || "").trim().toLowerCase();
+      if (!key) return;
+      if (!map.has(key)) map.set(key, user);
+    });
+    return map;
+  }, [users]);
+  const resolveMentionUser = useCallback((username: string) => {
+    const key = String(username || "").trim().toLowerCase();
+    const user = mentionUsersByUsername.get(key);
+    if (!user) return null;
+    return { username: user.username, avatarUrl: user.avatar_url };
+  }, [mentionUsersByUsername]);
+  const isSearchUsersPage = guardedActiveTab === "search" && searchMode === "users";
+  const navActiveTab = isSearchUsersPage ? "timeline" : guardedActiveTab;
+  const nav = <BottomNav activeTab={navActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
+  const navRail = <DesktopNavRail activeTab={navActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
   const topbarActions = useTopBarActions({
     searchMode,
     resetSearchUi,
@@ -938,11 +1114,48 @@ export function AppContainer() {
     activeUserId: activeUser?.id ?? null
   });
 
-  if (!authReady) {
+  if (isNotFoundRoute) {
+    const openRandomCoffee = () => {
+      if (!coffees.length) {
+        window.location.replace(getAppRootPath(window.location.pathname) || "/");
+        return;
+      }
+      const randomCoffee = coffees[Math.floor(Math.random() * coffees.length)];
+      const slug = coffeeSlugIndex.byId.get(randomCoffee.id) ?? null;
+      const nextPath = buildRoute("coffee", "coffees", null, slug);
+      window.location.assign(nextPath);
+    };
+    return (
+      <div className={`layout ${mode}`.trim()}>
+        {mode === "desktop" ? navRail : null}
+        <main className="main-shell">
+          <Suspense fallback={<div className="app-content-loading" aria-hidden="true" />}>
+            <LazyNotFoundView
+              onGoHome={() => window.location.replace(getAppRootPath(window.location.pathname) || "/")}
+              onOpenRandomCoffee={openRandomCoffee}
+              randomCoffeeEnabled={coffees.length > 0}
+            />
+          </Suspense>
+        </main>
+        {mode === "mobile" ? <footer className="bottom-tabs">{nav}</footer> : null}
+        <AuthPromptOverlay
+          open={showAuthPrompt}
+          authBusy={authBusy}
+          authError={authError}
+          onClose={() => setShowAuthPrompt(false)}
+          onGoogleLogin={() => {
+            void handleGoogleLogin();
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (!authReady && !guestCanAccessCurrentTab) {
     return <LoginGate loading message="Verificando sesion..." />;
   }
 
-  if (!sessionEmail && !canAccessTabAsGuest(guardedActiveTab)) {
+  if (!sessionEmail && !guestCanAccessCurrentTab) {
     return (
       <LoginGate
         loading={authBusy}
@@ -969,7 +1182,7 @@ export function AppContainer() {
   const isDesktopComposer = mode === "desktop";
   const timelineContent =
     guardedActiveTab === "timeline" ? (
-      <TimelineView
+      <LazyTimelineView
         mode={mode}
         cards={timelineCards}
         recommendations={timelineRecommendations}
@@ -991,6 +1204,7 @@ export function AppContainer() {
         onDeletePost={handleDeletePost}
         onRefresh={handleRefreshTimeline}
         onMentionClick={handleMentionNavigation}
+        resolveMentionUser={resolveMentionUser}
         onOpenUserProfile={(userId) => {
           navigateToTab("profile", { profileUserId: userId });
         }}
@@ -1002,7 +1216,7 @@ export function AppContainer() {
     ) : null;
   const searchContent =
     guardedActiveTab === "search" ? (
-      <SearchView
+      <LazySearchView
         mode={searchMode}
         searchQuery={searchQuery}
         onSearchQueryChange={onSearchQueryChange}
@@ -1045,7 +1259,7 @@ export function AppContainer() {
   const coffeeContent =
     guardedActiveTab === "coffee" ? (
       detailCoffee ? (
-        <CoffeeDetailView
+        <LazyCoffeeDetailView
           coffee={detailCoffee}
           reviews={detailCoffeeReviews}
           currentUser={detailCurrentUser}
@@ -1101,9 +1315,13 @@ export function AppContainer() {
   const brewContent =
     guardedActiveTab === "brewlab" ? (
       showCreateCoffeeComposer && mode !== "desktop" ? (
-        <section className="create-coffee-mobile-screen">{createCoffeePanel}</section>
+        <section className="create-coffee-mobile-screen">
+          <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+            {createCoffeePanel}
+          </Suspense>
+        </section>
       ) : (
-        <BrewLabView
+        <LazyBrewLabView
           brewStep={brewStep}
           setBrewStep={setBrewStep}
           brewMethod={brewMethod}
@@ -1113,6 +1331,7 @@ export function AppContainer() {
           coffees={brewCoffeeCatalog}
           pantryItems={brewPantryItems}
           onAddNotFoundCoffee={openCreateCoffeeComposer}
+          onAddToPantry={openAddPantrySheetForBrew}
           waterMl={waterMl}
           setWaterMl={setWaterMl}
           ratio={ratio}
@@ -1124,12 +1343,19 @@ export function AppContainer() {
           selectedCoffee={selectedCoffee}
           coffeeGrams={coffeeGrams}
           onSaveResultToDiary={saveBrewToDiary}
+          showBarcodeButton={isMobileOsDevice}
+          onBarcodeClick={() => {
+            setBarcodeOrigin("brew");
+            setShowBarcodeScannerSheet(true);
+          }}
+          barcodeDetectedValue={barcodeDetectedValueForBrew}
+          onClearBarcodeDetectedValue={() => setBarcodeDetectedValueForBrew(null)}
         />
       )
     ) : null;
   const diaryContent =
     guardedActiveTab === "diary" ? (
-      <DiaryView
+      <LazyDiaryView
         mode={mode}
         tab={diaryTab}
         setTab={setDiaryTab}
@@ -1147,7 +1373,7 @@ export function AppContainer() {
     ) : null;
   const profileContent =
     guardedActiveTab === "profile" && profileUser ? (
-      <ProfileView
+      <LazyProfileView
         user={profileUser}
         mode={mode}
         tab={profileTab}
@@ -1172,9 +1398,17 @@ export function AppContainer() {
         onRemoveFavorite={async (coffeeId) => {
           if (!activeUser) return;
           const exists = favorites.some((item) => item.user_id === activeUser.id && item.coffee_id === coffeeId);
-          if (!exists) return;
-          await toggleFavoriteCoffee(activeUser.id, coffeeId, true);
-          setFavorites((prev) => prev.filter((item) => !(item.user_id === activeUser.id && item.coffee_id === coffeeId)));
+          const result = await toggleFavoriteCoffee(activeUser.id, coffeeId, exists);
+          setFavorites((prev) => {
+            if (exists) {
+              return prev.filter((item) => !(item.user_id === activeUser.id && item.coffee_id === coffeeId));
+            }
+            if (!result) return prev;
+            return [
+              result,
+              ...prev.filter((item) => !(item.user_id === result.user_id && item.coffee_id === result.coffee_id))
+            ];
+          });
         }}
         onEditPost={handleEditPost}
         onDeletePost={handleDeletePost}
@@ -1183,6 +1417,7 @@ export function AppContainer() {
           setHighlightedCommentId(null);
           setCommentSheetPostId(postId);
         }}
+        resolveMentionUser={resolveMentionUser}
         externalEditProfileSignal={profileEditSignal}
         sidePanel={activeSidePanelTarget === "profile" ? detailPanel : null}
       />
@@ -1209,11 +1444,17 @@ export function AppContainer() {
         setShowBarcodeScannerSheet(false);
         if (barcodeOrigin === "diary") {
           setBarcodeDetectedValueForDiary(value);
-          setBarcodeOrigin(null);
+        } else if (barcodeOrigin === "brew") {
+          setBarcodeDetectedValueForBrew(value);
+        } else if (barcodeOrigin === "createPostCoffee") {
+          setCreatePostCoffeeQuery(value);
         } else {
+          // Buscador: ir a búsqueda en modo cafés; si hay 1 resultado se abre detalle en un efecto
+          barcodeSearchPendingRef.current = true;
+          navigateToTab("search", { searchMode: "coffees" });
           onSearchQueryChange(value);
-          setBarcodeOrigin(null);
         }
+        setBarcodeOrigin(null);
       }}
     />
   );
@@ -1251,6 +1492,7 @@ export function AppContainer() {
       setShowEmojiPanel={setShowCommentEmojiPanel}
       mentionSuggestions={commentMentionSuggestions}
       onMentionNavigate={handleMentionNavigation}
+      resolveMentionUser={resolveMentionUser}
       commentImageInputRef={commentImageInputRef}
       commentListRef={commentListRef}
       onPickImage={pickCommentImage}
@@ -1267,25 +1509,19 @@ export function AppContainer() {
     <CreatePostSheet
       open={showCreatePost}
       onClose={resetCreatePostComposer}
-      step={newPostStep}
-      setStep={setNewPostStep}
       imageFile={newPostImageFile}
       text={newPostText}
       setText={setNewPostText}
       onPublish={handleCreatePost}
       imageInputRef={newPostImageInputRef}
-      cameraInputRef={newPostCameraInputRef}
       onAppendFiles={appendNewPostFiles}
       imagePreviewUrl={newPostImagePreviewUrl}
-      isDesktopComposer={isDesktopComposer}
-      galleryItems={newPostGalleryItems}
-      selectedImageId={newPostSelectedImageId}
-      onSelectGalleryItem={selectCreatePostGalleryItem}
       onRemoveSelectedImage={removeSelectedCreatePostImage}
       activeUser={activeUser}
       showEmojiPanel={showCreatePostEmojiPanel}
       setShowEmojiPanel={setShowCreatePostEmojiPanel}
       mentionSuggestions={createPostMentionSuggestions}
+      resolveMentionUser={resolveMentionUser}
       onOpenCoffeePicker={() => setShowCreatePostCoffeeSheet(true)}
       selectedCoffee={selectedCreatePostCoffee}
       showCoffeeSheet={showCreatePostCoffeeSheet}
@@ -1294,6 +1530,11 @@ export function AppContainer() {
       setCoffeeQuery={setCreatePostCoffeeQuery}
       filteredCoffees={filteredCreatePostCoffees}
       selectedCoffeeId={newPostCoffeeId}
+      showBarcodeButton={isMobileOsDevice}
+      onBarcodeClick={() => {
+        setBarcodeOrigin("createPostCoffee");
+        setShowBarcodeScannerSheet(true);
+      }}
       onSelectCoffee={(coffeeId) => {
         setNewPostCoffeeId(coffeeId);
         setShowCreatePostCoffeeSheet(false);
@@ -1334,7 +1575,7 @@ export function AppContainer() {
   );
   const diarySheetsOverlay = (
     <DiarySheets
-      isActive={guardedActiveTab === "diary"}
+      isActive={guardedActiveTab === "diary" || guardedActiveTab === "brewlab"}
       showQuickActions={showDiaryQuickActions}
       showPeriodSheet={showDiaryPeriodSheet}
       showWaterSheet={showDiaryWaterSheet}
@@ -1348,6 +1589,7 @@ export function AppContainer() {
         setShowDiaryCoffeeSheet(false);
       }}
       onCloseAddPantrySheet={() => {
+        addPantryOpenedFromBrewRef.current = false;
         setPantrySheetStep("select");
         setShowDiaryAddPantrySheet(false);
       }}
@@ -1390,8 +1632,7 @@ export function AppContainer() {
       setDiaryPantryCoffeeIdDraft={setDiaryPantryCoffeeIdDraft}
       diaryPantryGramsDraft={diaryPantryGramsDraft}
       setDiaryPantryGramsDraft={setDiaryPantryGramsDraft}
-      bumpPantryGrams={bumpPantryGrams}
-      onSavePantry={savePantry}
+      onSavePantry={handleSavePantry}
       selectedDiaryPantryCoffee={selectedDiaryPantryCoffee}
       showBarcodeButton={isMobileOsDevice}
       onBarcodeClick={() => {
@@ -1403,9 +1644,37 @@ export function AppContainer() {
     />
   );
   return (
-    <div className={`layout ${mode}${isIOS ? " is-ios" : ""}`.trim()}>
-      {mode === "desktop" ? navRail : null}
-      <main className="main-shell">
+    <div className={`layout ${mode}`.trim()}>
+      <OfflineBanner />
+      {mode === "desktop" && !isSearchUsersPage ? navRail : null}
+      <main className={`main-shell ${mode === "mobile" && isAndroidMobile && !androidBannerDismissed ? "has-android-banner" : ""}`.trim()}>
+        {mode === "mobile" && isAndroidMobile && !androidBannerDismissed ? (
+          <div className="android-install-banner-wrap">
+            <aside className="android-install-banner android-install-banner-fixed" role="banner" aria-label="Instalar app">
+              <a
+                href="https://play.google.com/store/apps/details?id=com.cafesito.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="android-install-banner-link"
+              >
+                <span className="android-install-banner-icon" aria-hidden="true">
+                  <UiIcon name="shop" className="ui-icon" />
+                </span>
+                <span className="android-install-banner-text">Instala la app Cafesito en Google Play</span>
+              </a>
+              <Button
+                variant="plain"
+                type="button"
+                className="android-install-banner-dismiss"
+                aria-label="Cerrar"
+                onClick={dismissAndroidBanner}
+              >
+                <UiIcon name="close" className="ui-icon" />
+              </Button>
+            </aside>
+            <div className="android-install-banner-spacer" aria-hidden="true" />
+          </div>
+        ) : null}
         <TopBar
           activeTab={guardedActiveTab}
           searchQuery={searchQuery}
@@ -1432,14 +1701,18 @@ export function AppContainer() {
           onDiaryOpenQuickActions={topbarActions.onDiaryOpenQuickActions}
           onDiaryOpenPeriodSelector={topbarActions.onDiaryOpenPeriodSelector}
           scrolled={topbarScrolled}
-          hidden={topbarHidden}
+          hidden={false}
           brewStep={brewStep}
           brewStepTitle={getBrewStepTitle(brewStep)}
           onBrewBack={topbarActions.onBrewBack}
           onBrewForward={topbarActions.onBrewForward}
           brewCreateCoffeeOpen={showCreateCoffeeComposer}
           onBrewCreateCoffeeBack={closeCreateCoffeeComposer}
+          onBrewCreateCoffeeSave={() => void saveCreateCoffee({ fromBrewChooser: true })}
+          brewCreateCoffeeFormValid={isCreateCoffeeFormValid}
+          brewCreateCoffeeSaving={createCoffeeSaving}
           onProfileSignOut={handleSignOut}
+          onProfileDeleteAccount={handleDeleteAccount}
           profileMenuEnabled={Boolean(profileUser && activeUser && profileUser.id === activeUser.id)}
           onProfileOpenEdit={triggerProfileEdit}
           onCoffeeBack={() => {
@@ -1456,18 +1729,23 @@ export function AppContainer() {
           onCoffeeTopbarToggleFavorite={topbarActions.onCoffeeTopbarToggleFavorite}
           onCoffeeTopbarOpenStock={topbarActions.onCoffeeTopbarOpenStock}
         />
-        <div ref={mainScrollRef} className="main-shell-scroll">
-          <AppContentRouter
-          activeTab={guardedActiveTab}
-          mode={mode}
-          timelineContent={timelineContent}
-          searchContent={searchContent}
-          coffeeContent={coffeeContent}
-          brewContent={brewContent}
-          diaryContent={diaryContent}
-          profileContent={profileContent}
-          onOpenCreatePost={openCreatePostComposer}
-          />
+        <div
+          ref={mainScrollRef}
+          className={`main-shell-scroll ${guardedActiveTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""}`.trim()}
+        >
+          <Suspense fallback={<div className="app-content-loading" aria-hidden="true" />}>
+            <AppContentRouter
+              activeTab={guardedActiveTab}
+              mode={mode}
+              timelineContent={timelineContent}
+              searchContent={searchContent}
+              coffeeContent={coffeeContent}
+              brewContent={brewContent}
+              diaryContent={diaryContent}
+              profileContent={profileContent}
+              onOpenCreatePost={openCreatePostComposer}
+            />
+          </Suspense>
         </div>
       </main>
 
@@ -1488,7 +1766,7 @@ export function AppContainer() {
         </aside>
       ) : null}
 
-      {mode === "mobile" && !(guardedActiveTab === "brewlab" && showCreateCoffeeComposer) ? <footer className="bottom-tabs">{nav}</footer> : null}
+      {mode === "mobile" && !(guardedActiveTab === "brewlab" && showCreateCoffeeComposer) && !isSearchUsersPage && !detailCoffeeId ? <footer className="bottom-tabs">{nav}</footer> : null}
 
       <AppOverlayLayers
         authPrompt={authPromptOverlay}

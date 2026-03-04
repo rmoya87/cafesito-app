@@ -41,6 +41,13 @@ class SocialRepository @Inject constructor(
                     triggerRefresh()
                 }
         }
+        externalScope.launch {
+            supabaseDataSource.subscribeToPosts()
+                .catch { }
+                .collect {
+                    triggerRefresh()
+                }
+        }
     }
 
     fun triggerRefresh() {
@@ -430,7 +437,7 @@ class SocialRepository @Inject constructor(
                     userId = participant.id,
                     type = "COMMENT",
                     fromUsername = author.username,
-                    message = "ha respondido en una publicación donde participas",
+                    message = "respondió a una publicación",
                     timestamp = System.currentTimeMillis(),
                     relatedId = "${comment.postId}:${comment.id}"
                 )
@@ -475,12 +482,25 @@ class SocialRepository @Inject constructor(
                 val likes = supabaseDataSource.getAllLikes()
                 val comments = supabaseDataSource.getAllComments()
                 val reviews = supabaseDataSource.getAllReviews()
-                
+
+                // Reflejar borrados en web: quitar de local lo que ya no viene del servidor
+                val keepPostIds = posts.map { it.id }
+                if (keepPostIds.isEmpty()) {
+                    socialDao.deleteAllComments()
+                    socialDao.deleteAllLikes()
+                    socialDao.deleteAllPostCoffeeTags()
+                    socialDao.deleteAllPosts()
+                } else {
+                    socialDao.deleteCommentsForPostsNotIn(keepPostIds)
+                    socialDao.deleteLikesForPostsNotIn(keepPostIds)
+                    socialDao.deletePostCoffeeTagsForPostsNotIn(keepPostIds)
+                    socialDao.deletePostsNotIn(keepPostIds)
+                }
                 socialDao.insertPosts(posts)
                 syncLikesWithRemote(likes)
                 syncCommentsWithRemote(comments)
                 socialDao.upsertReviews(reviews)
-                
+
                 triggerRefresh()
             } catch (e: Exception) {
                 Log.e("SocialRepository", "Error in syncSocialData", e)

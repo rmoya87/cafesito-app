@@ -49,6 +49,8 @@ fun ProfileScreen(
     val context = LocalContext.current
     var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
+    var showDeleteAccountConfirm by rememberSaveable { mutableStateOf(false) }
+    var deletingAccount by rememberSaveable { mutableStateOf(false) }
     var showSensoryDetail by remember { mutableStateOf(false) }
 
     var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
@@ -70,7 +72,7 @@ fun ProfileScreen(
                     val state = uiState as? ProfileUiState.Success
                     if (state?.isCurrentUser == true) {
                         IconButton(onClick = { showSettingsSheet = true }) {
-                            Icon(Icons.Default.Tune, contentDescription = "Ajustes", tint = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -137,6 +139,10 @@ fun ProfileScreen(
                             } else {
                                 Text(text = state.user.fullName, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
                                 Text(text = "@${state.user.username}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                                if (!state.isCurrentUser) {
+                                    Spacer(Modifier.height(12.dp))
+                                    FollowButton(isFollowing = state.isFollowing, onClick = { viewModel.toggleFollow() })
+                                }
                                 if (bio.isNotBlank()) {
                                     Spacer(Modifier.height(8.dp))
                                     Text(text = bio, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
@@ -150,11 +156,6 @@ fun ProfileScreen(
                                 onFollowersClick = { onFollowersClick(state.user.id) },
                                 onFollowingClick = { onFollowingClick(state.user.id) }
                             )
-
-                            if (!state.isCurrentUser) {
-                                Spacer(Modifier.height(24.dp))
-                                FollowButton(isFollowing = state.isFollowing, onClick = { viewModel.toggleFollow() })
-                            }
                         }
                     }
 
@@ -170,6 +171,7 @@ fun ProfileScreen(
 
                     when (selectedTabIndex) {
                         0 -> {
+                            val usersByUsername = state.allUsers.associateBy { it.username.lowercase() }
                             if (state.posts.isEmpty()) {
                                 item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("Aún no hay publicaciones", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                             } else {
@@ -183,7 +185,8 @@ fun ProfileScreen(
                                             onUserClick = { onUserClick(post.post.userId) },
                                             onEditClick = { postToEdit = post },
                                             onDeleteClick = { itemToDelete = post },
-                                            isOwnPost = state.isCurrentUser
+                                            isOwnPost = state.isCurrentUser,
+                                            resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
                                         )
                                     }
                                 }
@@ -231,6 +234,7 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
+                        onDeleteAccountClick = { showDeleteAccountConfirm = true },
                         onLogoutClick = {
                             runWithBiometricReauth(
                                 context = context,
@@ -243,11 +247,33 @@ fun ProfileScreen(
                     )
                 }
 
+                if (showDeleteAccountConfirm) {
+                    DeleteConfirmationDialog(
+                        onDismissRequest = {
+                            if (!deletingAccount) showDeleteAccountConfirm = false
+                        },
+                        title = "Eliminar mi cuenta y mis datos",
+                        text = "Tu cuenta quedará inactiva durante 30 días y luego se eliminará con todos tus datos. Si vuelves a iniciar sesión antes, se cancelará el proceso.",
+                        onConfirm = {
+                            if (deletingAccount) return@DeleteConfirmationDialog
+                            deletingAccount = true
+                            viewModel.requestAccountDeletion()
+                            showDeleteAccountConfirm = false
+                            deletingAccount = false
+                        }
+                    )
+                }
+
                 itemToDelete?.let { item ->
+                    val isPostDelete = item is PostWithDetails
                     DeleteConfirmationDialog(
                         onDismissRequest = { itemToDelete = null },
-                        title = "Borrar",
-                        text = "Una vez borrado no se puede recuperar. ¿Estás seguro?",
+                        title = if (isPostDelete) "Eliminar publicación" else "Borrar",
+                        text = if (isPostDelete) {
+                            "¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer."
+                        } else {
+                            "Una vez borrado no se puede recuperar. ¿Estás seguro?"
+                        },
                         onConfirm = {
                             runWithBiometricReauth(
                                 context = context,

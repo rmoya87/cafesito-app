@@ -3,8 +3,15 @@ import { useCallback, useRef, useState } from "react";
 export function useNotificationsDomain() {
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const [notificationsLastSeenAt, setNotificationsLastSeenAt] = useState(() => {
-    const saved = localStorage.getItem("notifications_last_seen_at");
-    return saved ? Number(saved) : 0;
+    try {
+      if (typeof localStorage === "undefined") return 0;
+      const getItem = localStorage.getItem;
+      if (typeof getItem !== "function") return 0;
+      const saved = getItem.call(localStorage, "notifications_last_seen_at");
+      return saved != null ? Number(saved) : 0;
+    } catch {
+      return 0;
+    }
   });
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState<Set<string>>(new Set());
   const [dismissingNotificationIds, setDismissingNotificationIds] = useState<Set<string>>(new Set());
@@ -13,7 +20,11 @@ export function useNotificationsDomain() {
   const closeNotificationsPanel = useCallback(() => {
     const now = Date.now();
     setNotificationsLastSeenAt(now);
-    localStorage.setItem("notifications_last_seen_at", String(now));
+    try {
+      if (typeof localStorage !== "undefined" && typeof localStorage.setItem === "function") {
+        localStorage.setItem("notifications_last_seen_at", String(now));
+      }
+    } catch { /* ignore */ }
     setShowNotificationsPanel(false);
   }, []);
 

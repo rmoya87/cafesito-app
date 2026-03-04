@@ -6,6 +6,7 @@ import com.cafesito.app.data.SyncManager
 import com.cafesito.app.data.UserRepository
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,9 +17,14 @@ class AppSessionCoordinator @Inject constructor(
     private val userRepository: UserRepository,
     private val analyticsHelper: AnalyticsHelper
 ) {
+    @Volatile
+    private var lastForegroundTokenRefreshAt: Long = 0L
+
     fun onAuthenticated(userId: Int, scope: CoroutineScope) {
         scope.launch {
             try {
+                val lifecycleResult = userRepository.syncAccountLifecycleOnLogin(userId)
+                if (lifecycleResult == UserRepository.AccountLifecycleSyncResult.Deleted) return@launch
                 syncManager.syncAll()
             } catch (e: Exception) {
                 Log.e("Sync", "Error during initial sync", e)
@@ -32,18 +38,38 @@ class AppSessionCoordinator @Inject constructor(
             }
         }
         analyticsHelper.setUserId(userId.toString())
-        updateFcmToken(scope)
+        updateFcmToken(scope, reason = "authenticated")
         scope.launch { userRepository.touchUserInteraction() }
+    }
+
+    fun onAppForeground(scope: CoroutineScope) {
+        val now = System.currentTimeMillis()
+        if (now - lastForegroundTokenRefreshAt < 60_000L) return
+        lastForegroundTokenRefreshAt = now
+        updateFcmToken(scope, reason = "foreground")
+        scope.launch {
+            try {
+                userRepository.syncPendingFcmTokenIfAny()
+            } catch (e: Exception) {
+                Log.e("FCM", "Error syncing pending FCM token on foreground", e)
+            }
+        }
     }
 
     fun onNotAuthenticated() {
         analyticsHelper.setUserId(null)
     }
 
-    private fun updateFcmToken(scope: CoroutineScope) {
+    private fun updateFcmToken(scope: CoroutineScope, reason: String, attempt: Int = 1) {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
-                Log.w("FCM", "Fetching FCM registration token failed", task.exception)
+                Log.w("FCM", "Fetching FCM registration token failed (reason=$reason, attempt=$attempt)", task.exception)
+                if (attempt < 3) {
+                    scope.launch {
+                        delay(1500L * attempt)
+                        updateFcmToken(scope, reason, attempt + 1)
+                    }
+                }
                 return@addOnCompleteListener
             }
 

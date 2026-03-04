@@ -1,11 +1,17 @@
 # Ionos / Apache: SPA + servir estáticos sin 500
 # Copiado a la raíz de dist en el build (Vite copia public/ a dist/)
+# Si la app está en un subdirectorio (ej. /cafesito-web/app/), RewriteBase DEBE ser esa ruta,
+# si no Apache reescribe a /index.html (raíz del servidor) y da 500 al hacer F5 en una ruta SPA.
+# El workflow de deploy parchea dist/.htaccess con RewriteBase /cafesito-web/app/ antes de subir.
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+  # favicon.ico → logo.png (evita 500 si el navegador pide /favicon.ico)
+  RewriteRule ^favicon\.ico$ logo.png [L]
   # No reescribir peticiones a assets ni a ficheros estáticos (evita 500)
   RewriteRule ^assets/ - [L]
+  RewriteRule ^registerSW\.js$ - [L]
   RewriteRule \.(js|css|png|svg|ico|webmanifest|woff2?)$ - [L]
   # No reescribir si existe un fichero o directorio
   RewriteCond %{REQUEST_FILENAME} !-f
@@ -20,5 +26,13 @@
   AddType application/manifest+json .webmanifest
   AddType image/png .png
   AddType image/svg+xml .svg
+</IfModule>
+
+# Que el navegador no cachee index.html ni el service worker: cada deploy se ve al instante
+<IfModule mod_headers.c>
+  <FilesMatch "index\.html|sw\.js|registerSW\.js|workbox-.*\.js|workbox-.*\.mjs">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+  </FilesMatch>
 </IfModule>
 

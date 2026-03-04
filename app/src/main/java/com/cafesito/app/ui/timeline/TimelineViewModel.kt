@@ -114,6 +114,7 @@ class TimelineViewModel @Inject constructor(
             Log.d("TimelineVM", "Triggering global refresh...")
             try {
                 userRepository.syncUsers()
+                userRepository.syncFollows()
                 socialRepository.syncSocialData()
                 coffeeRepository.syncCoffees()
                 if (_isPublishingContent.value) {
@@ -231,6 +232,7 @@ class TimelineViewModel @Inject constructor(
             suggestedUsers = suggestedUsers,
             myFollowingIds = data.following[data.activeUser.id] ?: emptySet(),
             activeUser = data.activeUser,
+            allUsers = data.allUsers,
             recommendations = recommendations,
             recommendedTopics = recommendedTopics,
             meta = page.meta,
@@ -705,6 +707,7 @@ sealed interface TimelineUiState {
         val suggestedUsers: List<SuggestedUserInfo>,
         val myFollowingIds: Set<Int>,
         val activeUser: UserEntity,
+        val allUsers: List<UserEntity>,
         val recommendations: List<CoffeeWithDetails> = emptyList(),
         val recommendedTopics: List<String> = emptyList(),
         val meta: TimelineMeta,

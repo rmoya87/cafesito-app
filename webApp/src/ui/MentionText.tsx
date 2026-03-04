@@ -1,6 +1,55 @@
-﻿import { Button } from "./components";
+import { Button } from "./components";
 
-export function MentionText({ text, onMentionClick }: { text: string; onMentionClick?: (username: string) => void }) {
+type MentionVisualUser = {
+  username: string;
+  avatarUrl?: string | null;
+};
+
+function MentionInlineChip({
+  username,
+  visualUser,
+  onClick
+}: {
+  username: string;
+  visualUser: MentionVisualUser | null | undefined;
+  onClick?: (username: string) => void;
+}) {
+  const hasAvatar = Boolean(visualUser?.avatarUrl);
+  return (
+    <Button key={username} variant="plain" type="button" className="mention-button" onClick={() => onClick?.(username)}>
+      {hasAvatar ? (
+        <img
+          className="mention-button-avatar"
+          src={visualUser?.avatarUrl ?? ""}
+          alt={visualUser?.username ?? username}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
+          onError={(event) => {
+            const target = event.currentTarget;
+            target.style.display = "none";
+          }}
+        />
+      ) : (
+        <span className="mention-button-avatar-fallback" aria-hidden="true">
+          {(visualUser?.username ?? username).slice(0, 1).toUpperCase()}
+        </span>
+      )}
+      <span>@{username}</span>
+    </Button>
+  );
+}
+
+export function MentionText({
+  text,
+  onMentionClick,
+  resolveMentionUser
+}: {
+  text: string;
+  onMentionClick?: (username: string) => void;
+  resolveMentionUser?: (username: string) => MentionVisualUser | null | undefined;
+}) {
   const mentionRegex = /@([A-Za-z0-9._-]{2,30})/g;
   const parts: Array<{ value: string; mention: boolean; key: string }> = [];
   let lastIndex = 0;
@@ -28,9 +77,12 @@ export function MentionText({ text, onMentionClick }: { text: string; onMentionC
     <>
       {parts.map((part) =>
         part.mention ? (
-          <Button key={part.key} variant="plain" type="button" className="mention-button" onClick={() => onMentionClick?.(part.value.slice(1))}>
-            {part.value}
-          </Button>
+          <MentionInlineChip
+            key={part.key}
+            username={part.value.slice(1)}
+            visualUser={resolveMentionUser?.(part.value.slice(1))}
+            onClick={onMentionClick}
+          />
         ) : (
           <span key={part.key}>{part.value}</span>
         )

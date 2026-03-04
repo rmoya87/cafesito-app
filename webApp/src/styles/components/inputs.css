@@ -12,14 +12,11 @@
     background-color 180ms ease;
 }
 
-.search-wide:focus {
+.search-wide:focus,
+.search-wide:focus-visible {
   outline: none;
   border: 1px solid var(--caramel-accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
-}
-
-.search-wide:not(:placeholder-shown) {
-  border: 1px solid var(--caramel-accent);
+  box-shadow: none;
 }
 
 .search-input-standard {

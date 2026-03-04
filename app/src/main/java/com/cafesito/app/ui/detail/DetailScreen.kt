@@ -36,16 +36,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.cafesito.app.R
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.PantryItemEntity
 import com.cafesito.app.data.ReviewEntity
@@ -66,9 +71,11 @@ import kotlin.math.roundToInt
 @Composable
 fun DetailScreen(
     onBackClick: () -> Unit,
-    viewModel: DetailViewModel = hiltViewModel()
+    viewModel: DetailViewModel = hiltViewModel(),
+    commentsViewModel: CommentsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val allUsers by commentsViewModel.allUsers.collectAsState()
     var isRefreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -103,7 +110,8 @@ fun DetailScreen(
                         onReviewDelete = { viewModel.deleteReview() },
                         onSensorySubmit = { a, sa, cu, ac, du -> viewModel.submitSensoryProfile(a, sa, cu, ac, du) },
                         sensoryAverages = state.sensoryAverages,
-                        sensoryEditorsCount = state.sensoryEditorsCount
+                        sensoryEditorsCount = state.sensoryEditorsCount,
+                        allUsers = allUsers
                     )
                 }
             }
@@ -127,11 +135,13 @@ private fun DetailContent(
     onReviewDelete: () -> Unit,
     onSensorySubmit: (Float, Float, Float, Float, Float) -> Unit,
     sensoryAverages: Map<String, Float>,
-    sensoryEditorsCount: Int
+    sensoryEditorsCount: Int,
+    allUsers: List<UserEntity>
 ) {
     val scrollState = rememberLazyListState()
     val coffee = coffeeDetails.coffee
     val context = LocalContext.current
+    val usersByUsername = remember(allUsers) { allUsers.associateBy { it.username.lowercase() } }
     var showAddReviewDialog by remember { mutableStateOf(false) }
     var showStockDialog by remember { mutableStateOf(false) }
     var showSensoryEditor by remember { mutableStateOf(false) }
@@ -236,9 +246,6 @@ private fun DetailContent(
                             Spacer(Modifier.height(24.dp))
                         }
 
-                        Text(text = "DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(20.dp))
-                        
                         val detailsItems = listOfNotNull(
                             coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let { Triple("PAÍS", it, Icons.Default.Public) },
                             coffee.especialidad?.takeIf { it.isNotBlank() }?.let { Triple("ESPECIALIDAD", it, Icons.Default.Verified) },
@@ -247,15 +254,18 @@ private fun DetailContent(
                             coffee.proceso.takeIf { it.isNotBlank() }?.let { Triple("PROCESO", it, Icons.Default.Settings) },
                             coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let { Triple("MOLIENDA", it, Icons.Default.Grain) }
                         )
-
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            maxItemsInEachRow = 2
-                        ) {
-                            detailsItems.forEach { (label, value, icon) ->
-                                DetailPremiumBlock(label, value, icon, Modifier.fillMaxWidth(0.48f))
+                        if (detailsItems.isNotEmpty()) {
+                            Text(text = "DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(20.dp))
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                maxItemsInEachRow = 2
+                            ) {
+                                detailsItems.forEach { (label, value, icon) ->
+                                    DetailPremiumBlock(label, value, icon, Modifier.fillMaxWidth(0.48f))
+                                }
                             }
                         }
 
@@ -360,14 +370,16 @@ private fun DetailContent(
                                             Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
                                                 DetailReviewPremiumItem(
                                                     info = info,
-                                                    isOwnReview = true
+                                                    isOwnReview = true,
+                                                    resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
                                                 )
                                             }
                                         }
                                     } else {
                                         DetailReviewPremiumItem(
                                             info = info,
-                                            isOwnReview = false
+                                            isOwnReview = false,
+                                            resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
                                         )
                                     }
                                     Spacer(Modifier.height(24.dp))
@@ -388,7 +400,11 @@ private fun DetailContent(
         ) {
             GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = MaterialTheme.colorScheme.onSurface, onClick = onBackClick)
             Row {
-                GlassyIconButton(icon = Icons.Default.Inventory, iconColor = MaterialTheme.colorScheme.onSurface, onClick = { showStockDialog = true })
+                GlassyIconButton(
+                    iconPainter = painterResource(id = R.drawable.shelves_24),
+                    iconColor = MaterialTheme.colorScheme.onSurface,
+                    onClick = { showStockDialog = true }
+                )
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
                     icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
@@ -403,7 +419,8 @@ private fun DetailContent(
 
 @Composable
 fun GlassyIconButton(
-    icon: ImageVector,
+    icon: ImageVector? = null,
+    iconPainter: Painter? = null,
     iconColor: Color,
     premiumAnimated: Boolean = false,
     onClick: () -> Unit
@@ -455,20 +472,36 @@ fun GlassyIconButton(
         modifier = Modifier.size(44.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(
-                icon,
-                null,
-                tint = iconColor,
-                modifier = Modifier
-                    .size(20.dp)
-                    .graphicsLayer {
-                        scaleX = iconScale.value
-                        scaleY = iconScale.value
-                        rotationZ = iconRotation.value
-                        shadowElevation = 24f * iconGlow.value
-                        alpha = 0.84f + (0.16f * iconGlow.value)
-                    }
-            )
+            when {
+                iconPainter != null -> Icon(
+                    painter = iconPainter,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .graphicsLayer {
+                            scaleX = iconScale.value
+                            scaleY = iconScale.value
+                            rotationZ = iconRotation.value
+                            shadowElevation = 24f * iconGlow.value
+                            alpha = 0.84f + (0.16f * iconGlow.value)
+                        }
+                )
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .graphicsLayer {
+                            scaleX = iconScale.value
+                            scaleY = iconScale.value
+                            rotationZ = iconRotation.value
+                            shadowElevation = 24f * iconGlow.value
+                            alpha = 0.84f + (0.16f * iconGlow.value)
+                        }
+                )
+            }
         }
     }
 }
@@ -476,7 +509,8 @@ fun GlassyIconButton(
 @Composable
 fun DetailReviewPremiumItem(
     info: UserReviewInfo,
-    isOwnReview: Boolean
+    isOwnReview: Boolean,
+    resolveMentionUser: (String) -> UserEntity? = { null }
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -502,7 +536,12 @@ fun DetailReviewPremiumItem(
             Text(text = ratingStr, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
         }
         Spacer(Modifier.height(12.dp))
-        Text(text = info.review.comment, style = MaterialTheme.typography.bodyMedium, lineHeight = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+        MentionText(
+            text = info.review.comment,
+            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp, color = MaterialTheme.colorScheme.onSurface),
+            onMentionClick = {},
+            resolveMentionUser = resolveMentionUser
+        )
         if (!info.review.imageUrl.isNullOrBlank()) {
             Spacer(Modifier.height(12.dp))
             AsyncImage(
@@ -628,12 +667,20 @@ fun ReviewBottomSheet(
     commentsViewModel: CommentsViewModel = hiltViewModel()
 ) {
     var rating by remember { mutableFloatStateOf(existingReview?.rating ?: 0f) }
-    var comment by remember { mutableStateOf(existingReview?.comment ?: "") }
+    var commentValue by remember {
+        mutableStateOf(
+            TextFieldValue(
+                text = existingReview?.comment ?: "",
+                selection = TextRange((existingReview?.comment ?: "").length)
+            )
+        )
+    }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var isSaving by remember { mutableStateOf(false) }
     var showPickerSheet by remember { mutableStateOf(false) }
 
     val mentionSuggestions by commentsViewModel.mentionSuggestions.collectAsState()
+    val allUsers by commentsViewModel.allUsers.collectAsState()
     val context = LocalContext.current
     
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -664,21 +711,16 @@ fun ReviewBottomSheet(
             Spacer(Modifier.height(24.dp))
             
             Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = comment, 
+                MentionComposerField(
+                    value = commentValue,
                     onValueChange = { 
-                        comment = it 
-                        commentsViewModel.onTextChanged(it)
+                        commentValue = it
+                        commentsViewModel.onTextChanged(it.text)
                     }, 
-                    placeholder = { Text(text = "¿Qué te ha parecido?") },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp), 
-                    shape = RoundedCornerShape(16.dp), 
-                    enabled = !isSaving,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface
-                    )
+                    placeholder = "¿Qué te ha parecido?",
+                    validUsers = allUsers,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                    minHeight = 120.dp
                 )
 
                 Box(
@@ -694,7 +736,7 @@ fun ReviewBottomSheet(
                         Surface(
                             modifier = Modifier.size(44.dp).clickable { showPickerSheet = true },
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             if (selectedImageUri != null) {
@@ -713,10 +755,21 @@ fun ReviewBottomSheet(
                         ) {
                             items(mentionSuggestions) { user ->
                                 SuggestionChip(user) {
-                                    val parts = comment.split(" ").toMutableList()
-                                    parts[parts.size - 1] = "@${user.username} "
-                                    comment = parts.joinToString(" ")
-                                    commentsViewModel.onTextChanged(comment)
+                                    val updated = commentValue.text
+                                        .trimEnd()
+                                        .split(" ")
+                                        .toMutableList()
+                                        .let { tokens ->
+                                            if (tokens.isEmpty() || tokens.firstOrNull().isNullOrBlank()) {
+                                                "@${user.username} "
+                                            } else {
+                                                val lastIndex = tokens.lastIndex
+                                                tokens[lastIndex] = if (tokens[lastIndex].startsWith("@")) "@${user.username}" else "${tokens[lastIndex]} @${user.username}"
+                                                tokens.joinToString(" ") + " "
+                                            }
+                                        }
+                                    commentValue = TextFieldValue(updated, selection = TextRange(updated.length))
+                                    commentsViewModel.onTextChanged(updated)
                                 }
                             }
                         }
@@ -744,9 +797,9 @@ fun ReviewBottomSheet(
                 Button(
                     onClick = { 
                         isSaving = true
-                        onSaveReview(rating, comment, selectedImageUri) 
+                        onSaveReview(rating, commentValue.text, selectedImageUri) 
                     }, 
-                    enabled = rating > 0 && comment.isNotBlank() && !isSaving,
+                    enabled = rating > 0 && commentValue.text.isNotBlank() && !isSaving,
                     modifier = Modifier.weight(1f).height(54.dp), 
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(28.dp)
@@ -774,22 +827,6 @@ fun ReviewBottomSheet(
                     showPickerSheet = false
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-    ) {
-        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier.size(20.dp).clip(CircleShape))
-            Spacer(Modifier.width(8.dp))
-            Text(text = user.username, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

@@ -2,8 +2,35 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { Button } from "./ui/components";
+import { initGa4 } from "./core/ga4";
 import "@fontsource-variable/material-symbols-outlined/fill.css";
 import "./styles.css";
+
+initGa4();
+
+// Solo en dev: ?safe-area=1 simula el notch de iOS (topbar con espacio superior) para validar sin iPhone
+if (import.meta.env.DEV && typeof window !== "undefined" && window.location.search.includes("safe-area=1")) {
+  document.documentElement.classList.add("dev-safe-area-sim");
+}
+
+// PWA "Añadir a escritorio" (iOS/Android): respetar notch/barra de estado para que el topbar no quede debajo
+function detectPwaStandalone(): void {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  const isStandalone =
+    (typeof window !== "undefined" &&
+      window.matchMedia("(display-mode: standalone)").matches) ||
+    (typeof (navigator as unknown as { standalone?: boolean }).standalone === "boolean" &&
+      (navigator as unknown as { standalone?: boolean }).standalone);
+  if (isStandalone) {
+    document.documentElement.classList.add("pwa-standalone");
+  } else {
+    document.documentElement.classList.remove("pwa-standalone");
+  }
+}
+if (typeof window !== "undefined") {
+  detectPwaStandalone();
+  window.matchMedia("(display-mode: standalone)").addEventListener("change", detectPwaStandalone);
+}
 
 class RootErrorBoundary extends React.Component<
   React.PropsWithChildren,

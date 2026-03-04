@@ -86,6 +86,7 @@ fun DiaryScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     var isRefreshing by remember { mutableStateOf(false) }
     var showPantryPlaceholder by remember { mutableStateOf(false) }
+    val isDarkMode = isSystemInDarkTheme()
 
     val coffeeImageMap = remember(availableCoffees) {
         availableCoffees.associate { it.coffee.id to it.coffee.imageUrl }
@@ -224,25 +225,31 @@ fun DiaryScreen(
         topBar = {
             GlassyTopBar(
                 title = "MI DIARIO",
+                navigationContent = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 16.dp)
+                    ) {
+                        PeriodSelectorPremium(selectedPeriod) { showPeriodMenu = true }
+                    }
+                },
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically, 
-                        modifier = Modifier.padding(end = 16.dp)
+                    IconButton(
+                        onClick = { showQuickActions = true },
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .size(40.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = if (isDarkMode) Color.Black else Color.White,
+                            contentColor = if (isDarkMode) Color.White else Color.Black
+                        )
                     ) {
-                        IconButton(
-                            onClick = { showQuickActions = true },
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.AddCircle, 
-                                contentDescription = "Añadir", 
-                                tint = MaterialTheme.colorScheme.onSurface, 
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        PeriodSelectorPremium(selectedPeriod) { showPeriodMenu = true }
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Añadir",
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                 }
             )

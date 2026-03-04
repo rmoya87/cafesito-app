@@ -1,15 +1,23 @@
-# Workflow único: release Android (Play Console) y deploy web (Ionos) según rama.
+# Workflow único: release Android (Play Console) y publicación webapp (Ionos) según rama.
+# Todo el release/deploy (Android + webapp) se hace desde aquí; no hay otro workflow de deploy.
+#
+# --- TRIGGERS (por qué puede ejecutarse "solo") ---
+# 1) push a Interna/Alpha/Beta/Producción → tú (o alguien) hace push a esa rama.
+# 2) workflow_dispatch → alguien pulsa "Run workflow" en Actions.
+# 3) repository_dispatch (supabase-coffees-changed) → SE EJECUTA SIN PUSH cuando:
+#    En Supabase está configurado un Database Webhook en la tabla coffees (Insert/Update/Delete)
+#    que llama a la Edge Function trigger-coffees-build. Esa función llama a la API de GitHub
+#    y dispara este workflow. Cualquier alta/edición/baja de un café en Supabase (desde la app,
+#    el dashboard o cualquier cliente) activa el webhook y hace que el workflow corra.
+#    Si no quieres que se ejecute solo por cambios en cafés: desactiva o elimina ese webhook
+#    en Supabase Dashboard → Database → Webhooks (tabla public.coffees).
 #
 # RAMAS Y COMPORTAMIENTO
 # - main: no se dispara (solo unificación de código).
 # - Interna: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas internas).
-# - Alpha: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas cerradas).
-# - Beta: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
-# - Producción: si hay cambios en app/ o shared/ → sube AAB a Play; SIEMPRE sube webApp a Ionos (/cafesito-web/app/).
+# - Alpha/Beta/Producción: si hay cambios en app/ o shared/ → sube AAB a Play; publica webApp en Ionos.
 #
-# EJECUCIÓN MANUAL (Actions → Release & Deploy → Run workflow)
-# Permite forzar release Android + deploy web sin hacer push: elige la rama y se ejecutan ambos jobs.
-#
+# EJECUCIÓN MANUAL: Actions → Release & Deploy → Run workflow (elige rama).
 # Ver documentación en docs/RELEASE_DEPLOY_WORKFLOW.md
 
 name: Release & Deploy
@@ -19,7 +27,9 @@ on:
     branches:
       - Interna
       - Alpha
+      - alpha
       - Beta
+      - beta
       - Producción
   workflow_dispatch:
     inputs:
@@ -33,6 +43,11 @@ on:
           - Alpha
           - Beta
           - Producción
+      android_only:
+        description: 'Solo Android (no desplegar webapp)'
+        required: false
+        default: false
+        type: boolean
   # Webhook desde Supabase: al crear/editar/eliminar un café se puede llamar a este evento para regenerar páginas estáticas.
   # Ver docs/supabase/webhook-coffees-trigger-build.md
   repository_dispatch:
@@ -50,12 +65,12 @@ env:
   TARGET_BRANCH: ${{ github.event.inputs.branch || github.event.client_payload.branch || github.ref_name }}
 
 jobs:
-  # Detecta qué ha cambiado para no subir por subir (en manual trigger se asume que hay cambios)
+  # Detecta qué ha cambiado. En push a Alpha/Beta/Producción siempre sube Android para tener la build al día.
   changes:
     runs-on: ubuntu-latest
     outputs:
-      android: ${{ steps.filter.outputs.android || steps.manual.outputs.android || steps.webhook.outputs.android }}
-      web: ${{ steps.filter.outputs.web || steps.manual.outputs.web || steps.webhook.outputs.web }}
+      android: ${{ steps.force_android.outputs.android || steps.filter.outputs.android || steps.manual.outputs.android || steps.webhook.outputs.android }}
+      web: ${{ steps.force_android.outputs.web || steps.filter.outputs.web || steps.manual.outputs.web || steps.webhook.outputs.web }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,13 +81,25 @@ jobs:
         id: manual
         run: |
           echo "android=true" >> "$GITHUB_OUTPUT"
-          echo "web=true" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event.inputs.android_only }}" = "true" ]; then
+            echo "web=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set changes for Supabase webhook (solo deploy web)
         if: github.event_name == 'repository_dispatch' && github.event.action == 'supabase-coffees-changed'
         id: webhook
         run: |
           echo "android=false" >> "$GITHUB_OUTPUT"
+          echo "web=true" >> "$GITHUB_OUTPUT"
+
+      # En push a Alpha/Beta/Producción siempre subir Android y web (ramas de release); así no se quedan desactualizados.
+      - name: Force Android and web on release branches (push)
+        if: github.event_name == 'push' && contains(fromJSON('["Alpha","alpha","Beta","beta","Producción"]'), github.ref_name)
+        id: force_android
+        run: |
+          echo "android=true" >> "$GITHUB_OUTPUT"
           echo "web=true" >> "$GITHUB_OUTPUT"
 
       - uses: dorny/paths-filter@v3
@@ -93,7 +120,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.android == 'true' &&
-      (contains(fromJSON('["Interna","Alpha","Beta","Producción"]'), github.event.inputs.branch || github.ref_name))
+      (contains(fromJSON('["Interna","Alpha","alpha","Beta","beta","Producción"]'), github.event.inputs.branch || github.ref_name))
     runs-on: ubuntu-latest
     env:
       TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name }}
@@ -185,10 +212,10 @@ jobs:
             Interna)
               TRACK="internal"
               ;;
-            Alpha)
+            Alpha|alpha)
               TRACK="alpha"
               ;;
-            Beta)
+            Beta|beta)
               TRACK="beta"
               ;;
             Producción)
@@ -203,15 +230,61 @@ jobs:
 
       - name: Generate release notes
         uses: actions/github-script@v7
+        env:
+          COMMIT_BEFORE: ${{ github.event.before }}
         with:
           script: |
             const fs = require('fs');
-            const promo = [
-              '¡Nueva versión disponible! ☕️',
-              'Mejoramos el rendimiento y la estabilidad para una experiencia más fluida.',
-              'Nuevas mejoras en la app para que disfrutes más rápido tus funciones favoritas.',
-              '¡Actualiza ahora y descubre lo nuevo en Cafesito!',
-            ].join('\n');
+            const { execSync } = require('child_process');
+            const before = process.env.COMMIT_BEFORE || '';
+            let refSince = before;
+            try {
+              const tagsOut = execSync('git tag -l --sort=-v:refname', { encoding: 'utf8' });
+              const tags = tagsOut.trim().split(/\n/).filter(Boolean);
+              for (const tag of tags) {
+                try {
+                  execSync(`git merge-base --is-ancestor ${tag} HEAD`, { stdio: 'pipe' });
+                  refSince = tag;
+                  break;
+                } catch (_) { /* tag not ancestor, skip */ }
+              }
+            } catch (_) { /* no tags or error, keep refSince */ }
+            if (!refSince) {
+              try {
+                const d = execSync('git rev-parse HEAD~20', { encoding: 'utf8' }).trim();
+                refSince = d;
+              } catch (_) { refSince = 'HEAD~20'; }
+            }
+            let commitCount = 0;
+            try {
+              const out = execSync(`git rev-list --count ${refSince}..HEAD`, { encoding: 'utf8' });
+              commitCount = parseInt(out.trim(), 10) || 0;
+            } catch (_) {}
+            const intros = [
+              '¡Esta actualización viene cargada de café! ☕',
+              '¿Listo para más Cafesito? Aquí va lo nuevo.',
+              'Mejoramos la app mientras tú mejoras tu café.',
+              'Otra versión con cariño para los amantes del café.',
+              'Pequeños pasos para que Cafesito siga siendo tu compañero favorito.',
+            ];
+            const bullets = [
+              'Pequeños retoques para que todo vaya sobre ruedas.',
+              'Seguimos mejorando tu experiencia con cada taza.',
+              'Más fluido y agradable de usar.',
+              'Detalles que marcan la diferencia.',
+              'Gracias por acompañarnos en este viaje.',
+            ];
+            const intro = intros[Math.floor(Math.random() * intros.length)];
+            const numBullets = commitCount > 0 ? Math.min(3, 1 + Math.floor(commitCount / 5)) : 2;
+            const chosen = [];
+            const used = new Set();
+            while (chosen.length < numBullets) {
+              const i = Math.floor(Math.random() * bullets.length);
+              if (!used.has(i)) { used.add(i); chosen.push(bullets[i]); }
+            }
+            const lines = chosen.map(b => '• ' + b);
+            let promo = [intro, '', ...lines, '', '¡Gracias por usar Cafesito!'].join('\n');
+            if (promo.length > 500) promo = promo.slice(0, 497) + '…';
             fs.mkdirSync('release-notes', { recursive: true });
             fs.writeFileSync('release-notes/whatsnew-es-ES', promo);
 
@@ -224,11 +297,15 @@ jobs:
           track: ${{ steps.track.outputs.track }}
           status: completed
           whatsNewDirectory: release-notes
+          changesNotSentForReview: true
+          # debugSymbols: solo si el build genera app/build/outputs/native-debug-symbols/release (cuando hay deps nativas). Si no existe, omitir para no fallar.
 
-  # Deploy web a Ionos: SIEMPRE en Beta y Producción (sube a /cafesito-web/app/)
+  # Deploy web a Ionos: en Alpha, Beta y Producción solo si web está en los cambios (no cuando android_only)
   deploy-web:
     needs: changes
-    if: contains(fromJSON('["Beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
+    if: |
+      needs.changes.outputs.web == 'true' &&
+      contains(fromJSON('["Alpha","alpha","Beta","beta","Producción"]'), github.event.inputs.branch || github.event.client_payload.branch || github.ref_name)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -236,7 +313,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ (github.event_name == 'repository_dispatch' && github.event.client_payload.branch) && format('refs/heads/{0}', github.event.client_payload.branch) || (github.event_name == 'workflow_dispatch' && github.event.inputs.branch && format('refs/heads/{0}', github.event.inputs.branch)) || '' }}
+          ref: ${{ github.event_name == 'push' && github.ref || (github.event_name == 'workflow_dispatch' && format('refs/heads/{0}', github.event.inputs.branch)) || (github.event_name == 'repository_dispatch' && github.event.client_payload.branch && format('refs/heads/{0}', github.event.client_payload.branch)) || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -268,8 +345,10 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
+          VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID || secrets.VITE_GA4_MEASUREMENT_ID || '' }}
 
-      - name: Hash lista cafés (para caché prerender)
+      - name: Hash lista cafés (prerender)
         id: coffee_hash
         run: |
           HASH=$(node scripts/get-coffee-prerender-hash.mjs)
@@ -278,19 +357,27 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Restaurar / generar páginas estáticas café
-        uses: actions/cache@v4
+      # Clave por resultado del build + lista de cafés: solo se regeneran HTMLs si cambia el build o los cafés.
+      - name: Restaurar caché páginas café
         id: prerender_cache
+        uses: actions/cache@v4
         with:
           path: webApp/dist/coffee
-          key: coffee-prerender-${{ hashFiles('webApp/dist/index.html') }}-${{ steps.coffee_hash.outputs.hash }}
+          key: coffee-prerender-${{ hashFiles('webApp/dist/index.html', 'webApp/dist/assets/**') }}-${{ steps.coffee_hash.outputs.hash }}
 
-      - name: Prerender cafés (solo si no había caché)
+      - name: Prerender cafés (solo si cambió la lista o el código)
         if: steps.prerender_cache.outputs.cache-hit != 'true'
         run: node scripts/prerender-coffee-pages.mjs
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
+
+      - name: Actualizar sitemap/robots (si se usó caché)
+        if: steps.prerender_cache.outputs.cache-hit == 'true'
+        run: node scripts/update-sitemap-from-dist.mjs
+        env:
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
       - name: Check Ionos SSH/FTP secrets
         run: |
@@ -308,6 +395,14 @@ jobs:
           fi
           echo "Secrets de Ionos configurados."
 
+      - name: Ajustar .htaccess RewriteBase para subdirectorio (evita 500 al hacer F5)
+        run: |
+          HT=webApp/dist/.htaccess
+          if [[ -f "$HT" ]]; then
+            sed -i.bak 's|^RewriteBase /$|RewriteBase /cafesito-web/app/|' "$HT" && rm -f "${HT}.bak"
+            grep "RewriteBase" "$HT" || true
+          fi
+
       - name: Deploy to Ionos via SFTP (/cafesito-web/app/)
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
@@ -317,5 +412,30 @@ jobs:
           password: ${{ secrets.IONOS_SSH_PASSWORD }}
           local_path: ./webApp/dist/*
           remote_path: /cafesito-web/app/
+          sftp_only: true
+          # Borrar contenido remoto antes de subir para que cada deploy sea limpio y no queden archivos viejos en caché
+          delete_remote_files: true
+
+      - name: Publish sitemap and robots at domain root (/cafesito-web/)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.IONOS_SSH_HOST }}
+          username: ${{ secrets.IONOS_SSH_USER }}
+          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          password: ${{ secrets.IONOS_SSH_PASSWORD }}
+          local_path: ./webApp/dist/sitemap*
+          remote_path: /cafesito-web/
+          sftp_only: true
+          delete_remote_files: false
+
+      - name: Publish robots.txt at domain root (/cafesito-web/)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.IONOS_SSH_HOST }}
+          username: ${{ secrets.IONOS_SSH_USER }}
+          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          password: ${{ secrets.IONOS_SSH_PASSWORD }}
+          local_path: ./webApp/dist/robots.txt
+          remote_path: /cafesito-web/
           sftp_only: true
           delete_remote_files: false

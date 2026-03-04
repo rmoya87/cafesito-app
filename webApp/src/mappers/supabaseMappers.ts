@@ -15,9 +15,33 @@ import type {
   UserDataBundle,
   UserRow
 } from "../types";
+import { resolvedSupabaseUrl } from "../supabase";
 
 function toStringOrEmpty(value: unknown): string {
   return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+function toSafeImageUrl(value: unknown): string {
+  let raw = toStringOrEmpty(value).trim();
+  if (!raw) return "";
+
+  raw = raw.replace(/^['"]+|['"]+$/g, "");
+  raw = raw.replace(/\\\//g, "/").replace(/\\/g, "/");
+
+  if (raw.startsWith("//")) {
+    raw = `https:${raw}`;
+  }
+
+  if (raw.startsWith("/storage/") && resolvedSupabaseUrl) {
+    raw = `${resolvedSupabaseUrl.replace(/\/+$/, "")}${raw}`;
+  }
+
+  // Solo forzamos https para URLs de Supabase.
+  if (raw.startsWith("http://") && raw.includes(".supabase.co/")) {
+    raw = `https://${raw.slice("http://".length)}`;
+  }
+
+  return raw;
 }
 
 function toNullableString(value: unknown): string | null {
@@ -41,7 +65,7 @@ export function mapUserRow(input: unknown): UserRow {
     id: toNumberOr(row.id, 0),
     username: toStringOrEmpty(row.username),
     full_name: toStringOrEmpty(row.full_name),
-    avatar_url: toStringOrEmpty(row.avatar_url),
+    avatar_url: toSafeImageUrl(row.avatar_url),
     email: toStringOrEmpty(row.email),
     bio: toNullableString(row.bio)
   };
@@ -54,6 +78,7 @@ export function mapCoffeeRow(input: unknown): CoffeeRow {
     nombre: toStringOrEmpty(row.nombre),
     marca: toNullableString(row.marca),
     pais_origen: toNullableString(row.pais_origen),
+    codigo_barras: toNullableString((row as Record<string, unknown>).codigo_barras),
     descripcion: toNullableString(row.descripcion),
     proceso: toNullableString(row.proceso),
     variedad_tipo: toNullableString(row.variedad_tipo),

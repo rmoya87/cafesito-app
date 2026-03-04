@@ -23,7 +23,12 @@ val DarkBorder = Color(0xFF3E322B)
 val DarkOutline = Color(0xFF1A1A1A) // Negro algo más claro para bordes
 val MutedCream = Color(0xFFBDB7B2)
 
+// Semánticos (igual en light y dark)
+val WaterBlue = Color(0xFF2196F3)
+val WaterBlueBackground = Color(0xFFE3F2FD) // fondo suave para entradas de agua
+val DisabledGray = Color(0xFF9E9E9E)
+
 val SuccessGreen = Color(0xFF81C784)
-val ElectricRed = Color(0xFFFF3B30) 
+val ElectricRed = Color(0xFFFF3B30)
 val ErrorRed = ElectricRed
 val OrangeYellow = Color(0xFFFFB300)

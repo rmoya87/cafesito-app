@@ -1,8 +1,12 @@
-﻿import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
 import type { CoffeeRow, CoffeeReviewRow, CoffeeSensoryProfileRow, TimelineCard, UserRow, ViewMode } from "../../types";
+
+const SWIPE_THRESHOLD_PX = 3;
+const VERTICAL_LOCK_PX = 2;
 
 function ProfileFavoriteItem({
   coffee,
@@ -15,23 +19,32 @@ function ProfileFavoriteItem({
 }) {
   const [isRemoving, setIsRemoving] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeActive, setSwipeActive] = useState(false);
   const startXRef = useRef<number | null>(null);
+  const startYRef = useRef<number | null>(null);
   const pointerIdRef = useRef<number | null>(null);
   const offsetRef = useRef(0);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const movedRef = useRef(false);
   const swipeThreshold = -72;
   const maxLeft = -110;
 
   const resetSwipe = useCallback(() => {
     setOffsetX(0);
-    setIsSwiping(false);
+    setSwipeActive(false);
     startXRef.current = null;
+    startYRef.current = null;
     pointerIdRef.current = null;
     offsetRef.current = 0;
+    movedRef.current = false;
+    const el = contentRef.current;
+    if (el) el.style.transform = "";
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
   }, []);
-  useEffect(() => {
-    offsetRef.current = offsetX;
-  }, [offsetX]);
 
   return (
     <li className="profile-favorite-item">
@@ -39,12 +52,13 @@ function ProfileFavoriteItem({
         <UiIcon name="trash" className="ui-icon" />
       </div>
       <div
-        className={`coffee-card coffee-card-interactive profile-favorite-row ${offsetX < -1 ? "is-swiping" : ""}`.trim()}
+        ref={contentRef}
+        className={`coffee-card coffee-card-interactive profile-favorite-row ${swipeActive || offsetX < -1 ? "is-swiping" : ""}`.trim()}
         style={{ transform: `translateX(${offsetX}px)` }}
         role="button"
         tabIndex={0}
         onClick={(event) => {
-          if (Math.abs(offsetX) > 4 || isSwiping) {
+          if (movedRef.current || Math.abs(offsetX) > 4) {
             event.preventDefault();
             return;
           }
@@ -54,29 +68,74 @@ function ProfileFavoriteItem({
           if (isRemoving) return;
           pointerIdRef.current = event.pointerId;
           startXRef.current = event.clientX;
-          setIsSwiping(true);
-          event.currentTarget.setPointerCapture(event.pointerId);
+          startYRef.current = event.clientY;
+          movedRef.current = false;
         }}
         onPointerMove={(event) => {
-          if (!isSwiping || startXRef.current == null || pointerIdRef.current !== event.pointerId) return;
-          const delta = event.clientX - startXRef.current;
-          const next = Math.max(maxLeft, Math.min(0, offsetRef.current + delta));
-          setOffsetX(next);
+          if (startXRef.current == null || startYRef.current == null || pointerIdRef.current !== event.pointerId) return;
+          const dx = event.clientX - startXRef.current;
+          const dy = event.clientY - startYRef.current;
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+          if (!swipeActive) {
+            if (absDx < SWIPE_THRESHOLD_PX && absDy < SWIPE_THRESHOLD_PX) return;
+            if (absDy > absDx + VERTICAL_LOCK_PX) return;
+            if (dx < 0 && absDx > absDy) {
+              setSwipeActive(true);
+              movedRef.current = true;
+              event.currentTarget.setPointerCapture(event.pointerId);
+            } else return;
+          }
+          if (dx >= 0) {
+            offsetRef.current = 0;
+            setOffsetX(0);
+            const el = contentRef.current;
+            if (el) el.style.transform = "translateX(0px)";
+            return;
+          }
+          const raw = dx;
+          const withResistance = raw <= maxLeft ? maxLeft + (raw - maxLeft) * 0.25 : raw;
+          const offset = Math.max(maxLeft, Math.min(0, withResistance));
+          offsetRef.current = offset;
+          const el = contentRef.current;
+          if (el) el.style.transform = `translateX(${offset}px)`;
+          if (rafIdRef.current == null) {
+            rafIdRef.current = requestAnimationFrame(() => {
+              setOffsetX(offsetRef.current);
+              rafIdRef.current = null;
+            });
+          }
         }}
         onPointerUp={async (event) => {
           if (pointerIdRef.current !== event.pointerId) return;
-          const shouldDelete = offsetX <= swipeThreshold;
-          if (shouldDelete && !isRemoving) {
+          if (rafIdRef.current != null) {
+            cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = null;
+          }
+          pointerIdRef.current = null;
+          startXRef.current = null;
+          startYRef.current = null;
+          setSwipeActive(false);
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+          const finalOffset = offsetRef.current;
+          const el = contentRef.current;
+          if (el) el.style.transform = "";
+          if (finalOffset <= swipeThreshold && !isRemoving) {
+            setOffsetX(0);
             setIsRemoving(true);
             try {
               await onRemoveFavorite(coffee.id);
             } finally {
               setIsRemoving(false);
-              resetSwipe();
             }
+            resetSwipe();
             return;
           }
-          resetSwipe();
+          setOffsetX(finalOffset);
+          requestAnimationFrame(() => setOffsetX(0));
+          window.setTimeout(() => { movedRef.current = false; }, 120);
         }}
         onPointerCancel={() => resetSwipe()}
         onKeyDown={(event) => {
@@ -88,14 +147,14 @@ function ProfileFavoriteItem({
       >
         <span className="profile-favorite-media">
           {coffee.image_url ? (
-            <img className="profile-favorite-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" />
+            <img className="profile-favorite-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
           ) : (
             <span className="profile-favorite-image profile-favorite-fallback" aria-hidden="true">{coffee.nombre.slice(0, 1).toUpperCase()}</span>
           )}
         </span>
         <span className="profile-favorite-copy">
           <strong>{coffee.nombre}</strong>
-          <em>{coffee.marca || "Marca"}</em>
+          <em>{(coffee.marca || "Marca").toUpperCase()}</em>
         </span>
         <Button variant="plain"
           type="button"
@@ -145,6 +204,7 @@ export function ProfileView({
   onDeletePost,
   onToggleLike,
   onOpenComments,
+  resolveMentionUser,
   externalEditProfileSignal,
   sidePanel
 }: {
@@ -177,6 +237,7 @@ export function ProfileView({
   onDeletePost: (postId: string) => Promise<void>;
   onToggleLike: (postId: string) => void;
   onOpenComments: (postId: string) => void;
+  resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
   externalEditProfileSignal: number;
   sidePanel?: ReactNode;
 }) {
@@ -306,6 +367,8 @@ export function ProfileView({
   const [removeAvatarDraft, setRemoveAvatarDraft] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [postMenuId, setPostMenuId] = useState<string | null>(null);
+  const [deletePostConfirmId, setDeletePostConfirmId] = useState<string | null>(null);
+  const [deletingPost, setDeletingPost] = useState(false);
   const [editPostId, setEditPostId] = useState<string | null>(null);
   const [editPostText, setEditPostText] = useState("");
   const [editPostImageUrl, setEditPostImageUrl] = useState("");
@@ -318,6 +381,89 @@ export function ProfileView({
   const likeBurstTimerRef = useRef<number | null>(null);
   const editAvatarInputRef = useRef<HTMLInputElement | null>(null);
   const editPostImageInputRef = useRef<HTMLInputElement | null>(null);
+  const profileTabBarRef = useRef<HTMLDivElement>(null);
+  const profilePanelsWrapRef = useRef<HTMLDivElement>(null);
+  const [profileDragOffsetPx, setProfileDragOffsetPx] = useState<number | null>(null);
+  const profileTabDragRefs = useRef({
+    startX: 0,
+    startY: 0,
+    startOffsetPx: 0,
+    wrapWidth: 0,
+    isDragging: false,
+    committed: false,
+    lastOffsetPx: 0
+  });
+  const PROFILE_COMMIT_THRESHOLD_PX = 4;
+
+  const onProfilePanelsTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const wrap = profilePanelsWrapRef.current;
+      if (!wrap) return;
+      const w = wrap.clientWidth;
+      const startOffsetPx = tab === "posts" ? 0 : tab === "adn" ? -w : -2 * w;
+      profileTabDragRefs.current.wrapWidth = w;
+      profileTabDragRefs.current.startX = e.touches[0].clientX;
+      profileTabDragRefs.current.startY = e.touches[0].clientY;
+      profileTabDragRefs.current.startOffsetPx = startOffsetPx;
+      profileTabDragRefs.current.isDragging = false;
+      profileTabDragRefs.current.committed = false;
+      profileTabDragRefs.current.lastOffsetPx = startOffsetPx;
+    },
+    [tab]
+  );
+
+  const onProfilePanelsTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const r = profileTabDragRefs.current;
+    const deltaX = e.touches[0].clientX - r.startX;
+    const deltaY = e.touches[0].clientY - r.startY;
+    const maxOffset = -2 * r.wrapWidth;
+    if (!r.committed) {
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > PROFILE_COMMIT_THRESHOLD_PX) {
+        r.committed = true;
+        r.isDragging = true;
+        const next = Math.max(maxOffset, Math.min(0, r.startOffsetPx + deltaX));
+        r.lastOffsetPx = next;
+        setProfileDragOffsetPx(next);
+      } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > PROFILE_COMMIT_THRESHOLD_PX) {
+        r.committed = true;
+      }
+      return;
+    }
+    if (!r.isDragging) return;
+    const next = Math.max(maxOffset, Math.min(0, r.startOffsetPx + deltaX));
+    r.lastOffsetPx = next;
+    setProfileDragOffsetPx(next);
+  }, []);
+
+  const onProfilePanelsTouchEnd = useCallback((e: React.TouchEvent) => {
+    const r = profileTabDragRefs.current;
+    if (!r.isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+    r.isDragging = false;
+    r.committed = false;
+    const current = r.lastOffsetPx;
+    const w = r.wrapWidth;
+    const targetTab =
+      current > -w / 2 ? "posts" : current > -1.5 * w ? "adn" : "favoritos";
+    setTab(targetTab);
+    setProfileDragOffsetPx(null);
+  }, [setTab]);
+
+  useEffect(() => {
+    const el = profileTabBarRef.current;
+    if (!el) return;
+    const onMove = (e: TouchEvent) => {
+      if (profileTabDragRefs.current.isDragging && e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchmove", onMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onMove);
+  }, []);
+
+  const profileTabOffset = tab === "posts" ? 0 : tab === "adn" ? 33.333 : 66.666;
+
   useEffect(() => {
     setEditNameDraft(user.full_name);
     setEditBioDraft(user.bio ?? "");
@@ -405,27 +551,92 @@ export function ProfileView({
       if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
     };
   }, []);
+  const profileAvatarSrc = editAvatarPreview || (removeAvatarDraft ? "" : user.avatar_url);
   const content = (
     <>
       <article className="profile-hero profile-hero-card">
         <div className="profile-hero-main">
+          {canEditProfile && showEditProfile ? (
+            <Input
+              ref={editAvatarInputRef}
+              type="file"
+              accept="image/*"
+              className="file-input-hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                if (!file) return;
+                if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
+                const preview = URL.createObjectURL(file);
+                setEditAvatarFile(file);
+                setEditAvatarPreview(preview);
+                setRemoveAvatarDraft(false);
+                event.currentTarget.value = "";
+              }}
+            />
+          ) : null}
           <div className="profile-avatar-wrap" aria-hidden="true">
-            {user.avatar_url && !avatarLoadFailed ? (
+            {profileAvatarSrc && (!avatarLoadFailed || editAvatarPreview) ? (
               <img
                 className="profile-avatar-image"
-                src={user.avatar_url}
+                src={profileAvatarSrc}
                 alt={user.username}
-                loading="lazy"
+                loading="lazy" decoding="async"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
                 onError={() => setAvatarLoadFailed(true)}
               />
             ) : (
               <div className="avatar avatar-lg profile-avatar-fallback">{initials}</div>
             )}
           </div>
+          {canEditProfile && showEditProfile ? (
+            <Button
+              variant="ghost"
+              type="button"
+              className="action-button action-button-ghost profile-inline-change-photo"
+              onClick={() => editAvatarInputRef.current?.click()}
+            >
+              Cambiar foto
+            </Button>
+          ) : null}
           <div className="profile-head-copy">
-            <p className="feed-user profile-name">{user.full_name}</p>
-            <p className="feed-meta profile-username">@{user.username}</p>
-            {user.bio ? <p className="profile-bio">{user.bio}</p> : null}
+            {canEditProfile && showEditProfile ? (
+              <div className="profile-inline-edit">
+                <section className="diary-edit-entry-metrics-grid profile-inline-metrics">
+                  <label className="diary-edit-entry-metric-field is-caffeine profile-inline-name-field">
+                    <span>Nombre</span>
+                    <div className="diary-edit-entry-metric-value">
+                      <Input
+                        className="search-wide diary-edit-entry-metric-input profile-inline-name-input"
+                        type="text"
+                        inputMode="text"
+                        value={editNameDraft}
+                        maxLength={120}
+                        onChange={(event) => setEditNameDraft(event.target.value)}
+                      />
+                    </div>
+                  </label>
+                  <label className="diary-edit-entry-metric-field is-caffeine profile-inline-bio-field">
+                    <span>Bio</span>
+                    <div className="diary-edit-entry-metric-value">
+                      <Textarea
+                        className="search-wide diary-edit-entry-metric-input profile-inline-bio-input"
+                        rows={3}
+                        value={editBioDraft}
+                        maxLength={500}
+                        onChange={(event) => setEditBioDraft(event.target.value)}
+                      />
+                    </div>
+                  </label>
+                </section>
+              </div>
+            ) : (
+              <>
+                <p className="feed-user profile-name">{user.full_name}</p>
+                <p className="feed-meta profile-username">@{user.username}</p>
+                {user.bio ? <p className="profile-bio">{user.bio}</p> : null}
+              </>
+            )}
           </div>
         </div>
         {canFollowProfile ? (
@@ -446,6 +657,25 @@ export function ProfileView({
               {togglingFollow ? "..." : isFollowingProfile ? "Siguiendo" : "Seguir"}
             </Button>
           </div>
+        ) : canEditProfile && showEditProfile ? (
+          <div className="profile-head-actions profile-inline-edit-actions">
+            <Button variant="primary"
+              className="action-button profile-inline-save-button"
+              disabled={savingProfile || !editNameDraft.trim()}
+              onClick={async () => {
+                if (!editNameDraft.trim() || savingProfile) return;
+                setSavingProfile(true);
+                try {
+                  await onSaveProfile(user.id, editNameDraft, editBioDraft, editAvatarFile, removeAvatarDraft);
+                  closeEditProfileModal();
+                } finally {
+                  setSavingProfile(false);
+                }
+              }}
+            >
+              {savingProfile ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
         ) : null}
       </article>
 
@@ -455,13 +685,45 @@ export function ProfileView({
         <article className="profile-stat-item"><strong className="profile-stat-value">{following}</strong><span className="profile-stat-label">SIGUIENDO</span></article>
       </section>
 
-      <Tabs className="profile-tabs" aria-label="Tabs perfil">
-        <TabButton active={tab === "posts"} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>Posts</TabButton>
-        <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</TabButton>
-        <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</TabButton>
-      </Tabs>
-
-      {tab === "posts" ? (
+      <div className="profile-tab-swipe">
+        <div
+          ref={profileTabBarRef}
+          onTouchStart={onProfilePanelsTouchStart}
+          onTouchMove={onProfilePanelsTouchMove}
+          onTouchEnd={onProfilePanelsTouchEnd}
+          onTouchCancel={onProfilePanelsTouchEnd}
+        >
+        <Tabs className="profile-tabs" aria-label="Tabs perfil">
+          <span
+            className="tab-sliding-indicator"
+            style={{
+              ["--indicator-pos" as string]:
+                profileDragOffsetPx !== null && profileTabDragRefs.current.wrapWidth > 0
+                  ? Math.min(2, Math.max(0, -profileDragOffsetPx / profileTabDragRefs.current.wrapWidth))
+                  : tab === "posts"
+                    ? 0
+                    : tab === "adn"
+                      ? 1
+                      : 2,
+              transform: "translateX(calc(var(--indicator-pos, 0) * (100% + 6px)))",
+              transition: profileDragOffsetPx !== null ? "none" : undefined
+            }}
+            aria-hidden="true"
+          />
+          <TabButton active={tab === "posts"} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>Posts</TabButton>
+          <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</TabButton>
+          <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</TabButton>
+        </Tabs>
+        </div>
+        <div ref={profilePanelsWrapRef} className="profile-tab-panels-wrap">
+          <div
+            className="profile-tab-panels"
+            style={{
+              transform: profileDragOffsetPx !== null ? `translateX(${profileDragOffsetPx}px)` : `translateX(-${profileTabOffset}%)`,
+              transition: profileDragOffsetPx !== null ? "none" : undefined
+            }}
+          >
+            <div className="profile-tab-panel" aria-hidden={tab !== "posts"}>
         <>
           <ul className="feed-list profile-post-list profile-post-list-mobile">
             {posts.length ? posts.map((post, index) => (
@@ -470,7 +732,7 @@ export function ProfileView({
                 <header className="feed-head">
                   <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
                     {user.avatar_url ? (
-                      <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
+                      <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                     ) : (
                       <div className="avatar" aria-hidden="true">{initials}</div>
                     )}
@@ -485,13 +747,13 @@ export function ProfileView({
                     </IconButton>
                   ) : null}
                 </header>
-                {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
-                {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" /> : null}
+                {post.text ? <p className="feed-text"><MentionText text={post.text} resolveMentionUser={resolveMentionUser} /></p> : null}
+                {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" decoding="async" /> : null}
                 {post.coffeeTagName ? (
                   <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
                     <div className="coffee-tag-card-media">
                       {post.coffeeImageUrl ? (
-                        <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" />
+                        <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" decoding="async" />
                       ) : (
                         <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
                           <UiIcon name="coffee" className="ui-icon" />
@@ -554,7 +816,7 @@ export function ProfileView({
                         <header className="feed-head">
                           <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
                             {user.avatar_url ? (
-                              <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" />
+                              <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                             ) : (
                               <div className="avatar" aria-hidden="true">{initials}</div>
                             )}
@@ -569,13 +831,13 @@ export function ProfileView({
                             </IconButton>
                           ) : null}
                         </header>
-                        {post.text ? <p className="feed-text"><MentionText text={post.text} /></p> : null}
-                        {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" /> : null}
+                        {post.text ? <p className="feed-text"><MentionText text={post.text} resolveMentionUser={resolveMentionUser} /></p> : null}
+                        {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" decoding="async" /> : null}
                         {post.coffeeTagName ? (
                           <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
                             <div className="coffee-tag-card-media">
                               {post.coffeeImageUrl ? (
-                                <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" />
+                                <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" decoding="async" />
                               ) : (
                                 <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
                                   <UiIcon name="coffee" className="ui-icon" />
@@ -632,9 +894,8 @@ export function ProfileView({
             </div>
           ) : null}
         </>
-      ) : null}
-
-      {tab === "adn" ? (
+            </div>
+            <div className="profile-tab-panel" aria-hidden={tab !== "adn"}>
         <div className={`profile-adn-layout ${mode === "desktop" ? "is-desktop" : ""}`.trim()}>
           {mode === "desktop" ? (
             <article className="config-card profile-adn-card profile-adn-radar-card is-static">
@@ -720,182 +981,137 @@ export function ProfileView({
             </article>
           ) : null}
         </div>
-      ) : null}
-
-      {tab === "favoritos" ? (
-        <>
+            </div>
+            <div className="profile-tab-panel" aria-hidden={tab !== "favoritos"}>
           <ul className="coffee-list profile-favorite-list">
             {favoriteCoffees.length ? favoriteCoffees.map((coffee) => (
               <ProfileFavoriteItem key={coffee.id} coffee={coffee} onOpenCoffee={onOpenCoffee} onRemoveFavorite={onRemoveFavorite} />
             )) : <li className="coffee-card profile-empty-card">No hay cafés favoritos</li>}
           </ul>
-        </>
-      ) : null}
-      {showEditProfile ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar perfil" onDismiss={closeEditProfileModal} onClick={closeEditProfileModal}>
-          <SheetCard className="profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">Editar perfil</strong>
-            </header>
-            <div className="diary-sheet-form">
-              <Input
-                ref={editAvatarInputRef}
-                type="file"
-                accept="image/*"
-                className="file-input-hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null;
-                  if (!file) return;
-                  if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
-                  const preview = URL.createObjectURL(file);
-                  setEditAvatarFile(file);
-                  setEditAvatarPreview(preview);
-                  setRemoveAvatarDraft(false);
-                  event.currentTarget.value = "";
-                }}
-              />
-              <div className="profile-edit-avatar-row">
-                <div className="profile-edit-avatar-preview" aria-hidden="true">
-                  {editAvatarPreview || (!removeAvatarDraft && user.avatar_url) ? (
-                    <img src={editAvatarPreview || user.avatar_url} alt={user.username} loading="lazy" />
-                  ) : (
-                    <span>{initials}</span>
-                  )}
-                </div>
-                <div className="profile-edit-avatar-actions">
-                  <Button variant="ghost" className="action-button action-button-ghost" onClick={() => editAvatarInputRef.current?.click()}>
-                    Cambiar foto
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showAdnAnalysisSheet && mode !== "desktop" && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => setShowAdnAnalysisSheet(false)} onClick={() => setShowAdnAnalysisSheet(false)}>
+              <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <header className="sheet-header">
+                  <strong className="sheet-title">ANÁLISIS DE PREFERENCIAS</strong>
+                </header>
+                <div className="profile-adn-analysis-body">
+                  <p className="profile-adn-analysis-lead">{adnAnalysis.lead}</p>
+                  <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
+                  <article className="profile-adn-recommend-card">
+                    <div className="profile-adn-recommend-head">
+                      <UiIcon name="sparkles" className="ui-icon" />
+                      <strong>RECOMENDACIÓN IDEAL</strong>
+                    </div>
+                    <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
+                    <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
+                  </article>
+                  <Button variant="primary"
+                    className="action-button profile-adn-continue-button"
+                    onClick={() => setShowAdnAnalysisSheet(false)}
+                  >
+                    CONTINUAR EXPLORANDO
                   </Button>
-                  {(editAvatarPreview || user.avatar_url) ? (
-                    <Button variant="ghost"
-                      className="action-button action-button-ghost"
-                      onClick={() => {
-                        if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
-                        setEditAvatarPreview("");
-                        setEditAvatarFile(null);
-                        setRemoveAvatarDraft(true);
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {postMenuId && canEditProfile && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setPostMenuId(null)} onClick={() => setPostMenuId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-pantry-options profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-sheet-list">
+                  <Button variant="plain"
+                    className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                    onClick={() => {
+                      if (!postMenuId) return;
+                      setDeletePostConfirmId(postMenuId);
+                      setPostMenuId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
+                    <span>Borrar</span>
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                  </Button>
+                  <Button variant="plain"
+                    className="diary-sheet-action diary-sheet-action-pantry"
+                    onClick={() => {
+                      const post = posts.find((item) => item.id === postMenuId);
+                      if (!post) return;
+                      setEditPostId(post.id);
+                      setEditPostText(post.text || "");
+                      setEditPostImageUrl(post.imageUrl || "");
+                      setEditPostImageFile(null);
+                      setPostMenuId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
+                    <span>Editar</span>
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                  </Button>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {deletePostConfirmId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-delete-confirm-body">
+                  <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
+                  <p className="diary-delete-confirm-text">
+                    ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
+                  </p>
+                  <div className="diary-delete-confirm-actions">
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-delete-confirm-cancel"
+                      onClick={() => setDeletePostConfirmId(null)}
+                      disabled={deletingPost}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-delete-confirm-submit"
+                      disabled={deletingPost}
+                      onClick={async () => {
+                        if (deletingPost) return;
+                        setDeletingPost(true);
+                        try {
+                          await onDeletePost(deletePostConfirmId);
+                          setDeletePostConfirmId(null);
+                        } finally {
+                          setDeletingPost(false);
+                        }
                       }}
                     >
-                      Quitar foto
+                      {deletingPost ? "Eliminando..." : "Eliminar"}
                     </Button>
-                  ) : null}
+                  </div>
                 </div>
-              </div>
-              <label>
-                <span>Nombre</span>
-                <Input
-                  className="search-wide"
-                  value={editNameDraft}
-                  maxLength={60}
-                  onChange={(event) => setEditNameDraft(event.target.value)}
-                />
-              </label>
-              <label>
-                <span>Bio</span>
-                <Textarea
-                  className="search-wide profile-edit-bio"
-                  rows={4}
-                  value={editBioDraft}
-                  maxLength={240}
-                  onChange={(event) => setEditBioDraft(event.target.value)}
-                />
-              </label>
-              <div className="diary-sheet-form-actions">
-                <Button variant="ghost" className="action-button action-button-ghost" onClick={closeEditProfileModal} disabled={savingProfile}>
-                  Cancelar
-                </Button>
-                <Button variant="primary"
-                  className="action-button"
-                  disabled={savingProfile || !editNameDraft.trim()}
-                  onClick={async () => {
-                    if (!editNameDraft.trim() || savingProfile) return;
-                    setSavingProfile(true);
-                    try {
-                      await onSaveProfile(user.id, editNameDraft, editBioDraft, editAvatarFile, removeAvatarDraft);
-                      closeEditProfileModal();
-                    } finally {
-                      setSavingProfile(false);
-                    }
-                  }}
-                >
-                  {savingProfile ? "Guardando..." : "Guardar"}
-                </Button>
-              </div>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {showAdnAnalysisSheet && mode !== "desktop" ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => setShowAdnAnalysisSheet(false)} onClick={() => setShowAdnAnalysisSheet(false)}>
-          <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">ANÁLISIS DE PREFERENCIAS</strong>
-            </header>
-            <div className="profile-adn-analysis-body">
-              <p className="profile-adn-analysis-lead">{adnAnalysis.lead}</p>
-              <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
-              <article className="profile-adn-recommend-card">
-                <div className="profile-adn-recommend-head">
-                  <UiIcon name="sparkles" className="ui-icon" />
-                  <strong>RECOMENDACIÓN IDEAL</strong>
-                </div>
-                <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
-                <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
-              </article>
-              <Button variant="primary"
-                className="action-button profile-adn-continue-button"
-                onClick={() => setShowAdnAnalysisSheet(false)}
-              >
-                CONTINUAR EXPLORANDO
-              </Button>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {postMenuId && canEditProfile ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setPostMenuId(null)} onClick={() => setPostMenuId(null)}>
-          <SheetCard className="profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <div className="comment-action-list">
-              <p className="comment-action-title">OPCIONES</p>
-              <Button variant="plain"
-                className="comment-action-button is-danger"
-                onClick={async () => {
-                  const confirmed = window.confirm("Borrar publicación?");
-                  if (!confirmed) return;
-                  const postId = postMenuId;
-                  setPostMenuId(null);
-                  if (postId) await onDeletePost(postId);
-                }}
-              >
-                <UiIcon name="trash" className="ui-icon" />
-                <span>Borrar</span>
-                <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </Button>
-              <Button variant="plain"
-                className="comment-action-button"
-                onClick={() => {
-                  const post = posts.find((item) => item.id === postMenuId);
-                  if (!post) return;
-                  setEditPostId(post.id);
-                  setEditPostText(post.text || "");
-                  setEditPostImageUrl(post.imageUrl || "");
-                  setEditPostImageFile(null);
-                  setPostMenuId(null);
-                }}
-              >
-                <UiIcon name="edit" className="ui-icon" />
-                <span>Editar</span>
-                <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </Button>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {editPostId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar publicación" onDismiss={closeEditPostModal} onClick={closeEditPostModal}>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {editPostId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar publicación" onDismiss={closeEditPostModal} onClick={closeEditPostModal}>
           <SheetCard className="profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
@@ -928,7 +1144,7 @@ export function ProfileView({
                 />
               </label>
               <div className="profile-edit-post-image-wrap">
-                {editPostImageUrl ? <img src={editPostImageUrl} alt="Previsualización" loading="lazy" /> : <p className="feed-meta">Sin imagen</p>}
+                {editPostImageUrl ? <img src={editPostImageUrl} alt="Previsualización" loading="lazy" decoding="async" /> : <p className="feed-meta">Sin imagen</p>}
               </div>
               <div className="profile-edit-post-actions">
                 <Button variant="ghost" className="action-button action-button-ghost" onClick={() => editPostImageInputRef.current?.click()}>
@@ -970,8 +1186,10 @@ export function ProfileView({
               </div>
             </div>
           </SheetCard>
-        </SheetOverlay>
-      ) : null}
+        </SheetOverlay>,
+            document.body
+          )
+        : null}
     </>
   );
 

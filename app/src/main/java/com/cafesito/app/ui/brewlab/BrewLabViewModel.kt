@@ -10,6 +10,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.Normalizer
+import java.util.Locale
 import javax.inject.Inject
 
 enum class BrewStep(val title: String) {
@@ -27,6 +29,12 @@ data class BrewMethod(
     val hasWaterAdjustment: Boolean = true,
     val defaultRatio: Float = 16f,
     val iconResName: String = "maq_espresso"
+)
+
+data class BaristaTip(
+    val label: String,
+    val value: String,
+    val iconKey: String
 )
 
 data class BrewPhaseInfo(
@@ -56,7 +64,7 @@ class BrewLabViewModel @Inject constructor(
     val brewMethods = listOf(
         BrewMethod("Aeropress", "Fina/Media", "80-85°C", defaultRatio = 14f, iconResName = "maq_aeropress"),
         BrewMethod("Chemex", "Media-Gruesa", "92-94°C", iconResName = "maq_chemex"),
-        BrewMethod("Espresso", "Fina (Talco)", "90-94°C", hasWaterAdjustment = false, defaultRatio = 18f, iconResName = "maq_espresso"),
+        BrewMethod("Espresso", "Fina", "90-94°C", hasWaterAdjustment = false, defaultRatio = 18f, iconResName = "maq_espresso"),
         BrewMethod("Goteo", "Media", "92-96°C", iconResName = "maq_goteo"),
         BrewMethod("Hario V60", "Media-Fina", "91-93°C", iconResName = "maq_hario_v60"),
         BrewMethod("Italiana", "Media-Fina", "95°C", hasWaterAdjustment = false, defaultRatio = 20f, iconResName = "maq_italiana"),
@@ -69,10 +77,123 @@ class BrewLabViewModel @Inject constructor(
     private val _selectedMethod = MutableStateFlow<BrewMethod?>(null)
     val selectedMethod = _selectedMethod.asStateFlow()
 
+    val baristaTips = _selectedMethod
+        .map { method -> buildBaristaTips(method) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), buildBaristaTips(null))
+
     fun selectMethod(method: BrewMethod) {
         _selectedMethod.value = method
         _ratio.value = method.defaultRatio
         _currentStep.value = BrewStep.CHOOSE_COFFEE
+    }
+
+    private fun buildBaristaTips(method: BrewMethod?): List<BaristaTip> {
+        val methodName = normalizeMethodName(method?.name.orEmpty())
+        val grind = method?.grindSize ?: "Media"
+        val temp = method?.tempRange ?: "92-96°C"
+        val defaults = listOf(
+            BaristaTip("MOLIENDA", grind, "grind"),
+            BaristaTip("TEMPERATURA", temp, "thermostat"),
+            BaristaTip("RATIO", "1:15 a 1:17", "coffee"),
+            BaristaTip("BLOOM", "30-45s con 2x de agua", "water"),
+            BaristaTip("VERTIDO", "Constante y en espiral", "water"),
+            BaristaTip("TIEMPO", "2:30-3:30", "clock"),
+            BaristaTip("AJUSTE ACIDEZ", "Muele más fino", "grind"),
+            BaristaTip("AJUSTE AMARGOR", "Muele más grueso", "grind")
+        )
+        if (methodName.isBlank()) return defaults
+
+        return when {
+            methodName.contains("espresso") -> listOf(
+                BaristaTip("MOLIENDA", "Fina", "grind"),
+                BaristaTip("TEMPERATURA", "90-94°C", "thermostat"),
+                BaristaTip("RATIO", "1:2 (ej. 18g -> 36g)", "coffee"),
+                BaristaTip("TIEMPO", "25-32s", "clock"),
+                BaristaTip("DISTRIBUCIÓN", "Nivela antes del tamp", "coffee"),
+                BaristaTip("PREINFUSIÓN", "Suave para evitar canalización", "water"),
+                BaristaTip("AJUSTE RÁPIDO", "Si corre rápido, más fino", "grind"),
+                BaristaTip("AJUSTE LENTO", "Si se ahoga, más grueso", "grind")
+            )
+            methodName.contains("italiana") -> listOf(
+                BaristaTip("MOLIENDA", "Media-fina", "grind"),
+                BaristaTip("AGUA", "Caliente en base", "water"),
+                BaristaTip("FUEGO", "Medio-bajo", "thermostat"),
+                BaristaTip("CORTE", "Retira al primer burbujeo", "clock"),
+                BaristaTip("FILTRO", "No compactar café", "coffee"),
+                BaristaTip("RATIO", "Más café para más cuerpo", "coffee"),
+                BaristaTip("AMARGOR", "Evita fuego alto", "thermostat")
+            )
+            methodName.contains("aeropress") -> listOf(
+                BaristaTip("MOLIENDA", "Fina-media", "grind"),
+                BaristaTip("TEMPERATURA", "85-92°C", "thermostat"),
+                BaristaTip("INFUSIÓN", "1:30-2:00", "clock"),
+                BaristaTip("PRESION", "Suave y constante", "coffee"),
+                BaristaTip("REMOVIDO", "1-2 agitaciones suaves", "water"),
+                BaristaTip("PAPEL", "Más limpieza en taza", "coffee"),
+                BaristaTip("METAL", "Más cuerpo y textura", "coffee")
+            )
+            methodName.contains("chemex") -> listOf(
+                BaristaTip("MOLIENDA", "Media-gruesa", "grind"),
+                BaristaTip("TEMPERATURA", "93-96°C", "thermostat"),
+                BaristaTip("FILTRO", "Enjuague generoso", "water"),
+                BaristaTip("TIEMPO", "3:30-4:30", "clock"),
+                BaristaTip("VERTIDO", "Pausado, sin colapsar filtro", "water"),
+                BaristaTip("RATIO", "1:15 a 1:16", "coffee"),
+                BaristaTip("AJUSTE LENTO", "Si drena lento, más grueso", "grind")
+            )
+            methodName.contains("prensa") -> listOf(
+                BaristaTip("MOLIENDA", "Gruesa y uniforme", "grind"),
+                BaristaTip("TEMPERATURA", "93-96°C", "thermostat"),
+                BaristaTip("INFUSIÓN", "4:00", "clock"),
+                BaristaTip("PRENSADO", "Lento, sin golpear", "coffee"),
+                BaristaTip("COSTRA", "Romper y retirar espuma", "water"),
+                BaristaTip("RATIO", "1:14 a 1:16", "coffee"),
+                BaristaTip("DECANTAR", "Servir al terminar", "clock")
+            )
+            methodName.contains("sifon") -> listOf(
+                BaristaTip("MOLIENDA", "Media", "grind"),
+                BaristaTip("TEMPERATURA", "91-94°C", "thermostat"),
+                BaristaTip("AGITACION", "Suave y breve", "water"),
+                BaristaTip("BAJADA", "45-60s al vacío", "clock"),
+                BaristaTip("HERVOR", "Controlado, no violento", "thermostat"),
+                BaristaTip("CONTACTO", "1:30-2:30 total", "clock"),
+                BaristaTip("FILTRO", "Limpio para evitar rancidez", "coffee")
+            )
+            methodName.contains("turco") -> listOf(
+                BaristaTip("MOLIENDA", "Extra fina", "grind"),
+                BaristaTip("FUEGO", "Muy bajo", "thermostat"),
+                BaristaTip("ESPUMA", "3 levantamientos", "coffee"),
+                BaristaTip("AGUA", "Casi ebullición, no hervir", "water"),
+                BaristaTip("REMOVIDO", "Solo al inicio", "water"),
+                BaristaTip("DESCANSO", "Breve antes de servir", "clock"),
+                BaristaTip("DENSIDAD", "Taza corta y concentrada", "coffee")
+            )
+            methodName.contains("goteo") -> listOf(
+                BaristaTip("MOLIENDA", "Media", "grind"),
+                BaristaTip("RATIO", "55-65g por litro", "coffee"),
+                BaristaTip("TEMPERATURA", temp, "thermostat"),
+                BaristaTip("SERVICIO", "Consumir recién hecho", "clock"),
+                BaristaTip("FILTRO", "Enjuagar antes de usar", "water"),
+                BaristaTip("CARGA", "Nivelar cama de café", "coffee"),
+                BaristaTip("PLACA", "Evitar sobrecalentamiento", "thermostat")
+            )
+            methodName.contains("hario") || methodName.contains("v60") || methodName.contains("manual") -> listOf(
+                BaristaTip("MOLIENDA", "Media-fina", "grind"),
+                BaristaTip("BLOOM", "30-45s con 2x de agua", "water"),
+                BaristaTip("TEMPERATURA", "92-96°C", "thermostat"),
+                BaristaTip("TIEMPO", "2:30-3:15", "clock"),
+                BaristaTip("RATIO", "1:15 a 1:17", "coffee"),
+                BaristaTip("VERTIDO", "Pulsos cortos y constantes", "water"),
+                BaristaTip("AJUSTE ACIDEZ", "Muele más fino", "grind"),
+                BaristaTip("AJUSTE AMARGOR", "Muele más grueso", "grind")
+            )
+            else -> defaults
+        }
+    }
+
+    private fun normalizeMethodName(value: String): String {
+        val normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+        return normalized.replace("\\p{Mn}+".toRegex(), "").lowercase(Locale.ROOT)
     }
 
     // --- 2. CHOOSE COFFEE ---
@@ -95,6 +216,12 @@ class BrewLabViewModel @Inject constructor(
         diaryRepository.triggerRefresh()
     }
 
+    /** Refresca lista de cafés y despensa para que el café recién creado desde Brew Lab aparezca y se pueda seleccionar. */
+    fun refreshCoffeesAndPantry() {
+        coffeeRepository.triggerRefresh()
+        diaryRepository.triggerRefresh()
+    }
+
     fun selectPantryItem(item: PantryItemWithDetails) {
         _selectedPantryItem.value = item
         _selectedCoffee.value = item.coffee
@@ -111,6 +238,13 @@ class BrewLabViewModel @Inject constructor(
         _waterAmount.value = 250f
         _hasTimerStarted.value = false
         _currentStep.value = BrewStep.CONFIGURATION
+    }
+
+    /** Llamado cuando el usuario cancela/cierra el flujo de añadir café sin guardar; vuelve a «Elige tu café». */
+    fun onCoffeeAddedFromPantryFlow() {
+        _currentStep.value = BrewStep.CHOOSE_COFFEE
+        _searchQuery.value = ""
+        refreshPantry()
     }
 
     // --- 3. CONFIGURATION ---
@@ -163,6 +297,15 @@ class BrewLabViewModel @Inject constructor(
 
     fun setWaterAmount(value: Float) { _waterAmount.value = value }
     fun setRatio(value: Float) { _ratio.value = value }
+    fun setCoffeeGrams(value: Float) {
+        val safe = value.coerceIn(1f, 250f)
+        if (_selectedMethod.value?.hasWaterAdjustment == false) {
+            _ratio.value = safe
+            return
+        }
+        val nextRatio = (_waterAmount.value / safe).coerceIn(10f, 20f)
+        _ratio.value = nextRatio
+    }
 
     fun startBrewing() {
         _timerSeconds.value = 0

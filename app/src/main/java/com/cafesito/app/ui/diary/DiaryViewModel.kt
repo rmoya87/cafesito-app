@@ -191,8 +191,16 @@ class DiaryViewModel @Inject constructor(
     
     fun refreshData(showLoader: Boolean = false) {
         if (showLoader) _isLoading.value = true
-        diaryRepository.triggerRefresh()
-        refreshDiaryWidget()
+        viewModelScope.launch {
+            try {
+                diaryRepository.syncDiaryEntriesFromRemote()
+                diaryRepository.syncPantryItems()
+                diaryRepository.syncPendingDiaryEntries()
+                diaryRepository.triggerRefresh()
+            } catch (e: Exception) { /* best-effort */ }
+            finally { if (showLoader) _isLoading.value = false }
+            refreshDiaryWidget()
+        }
     }
 
     suspend fun addCoffeeConsumption(

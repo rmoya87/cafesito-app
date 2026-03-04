@@ -11,6 +11,8 @@ export type TimelineNotificationItem = {
   timestamp: number;
   postId?: string;
   commentId?: number;
+  /** Desde Supabase notifications_db: false = no leída, mostrar bolita */
+  is_read?: boolean;
 };
 
 export function NotificationRow({
@@ -37,11 +39,19 @@ export function NotificationRow({
   onReply: () => void;
 }) {
   const [offsetX, setOffsetX] = useState(0);
+  const [swipeActive, setSwipeActive] = useState(false);
   const pointerIdRef = useRef<number | null>(null);
   const startXRef = useRef(0);
+  const startYRef = useRef(0);
   const movedRef = useRef(false);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const offsetRef = useRef(0);
+  const rafIdRef = useRef<number | null>(null);
+  const swipeActiveRef = useRef(false);
   const threshold = -76;
   const maxDrag = -124;
+  const SWIPE_THRESHOLD_PX = 3;
+  const VERTICAL_LOCK_PX = 2;
   const isActionTarget = (target: EventTarget | null) =>
     target instanceof Element && Boolean(target.closest(".notifications-action"));
 
@@ -50,43 +60,83 @@ export function NotificationRow({
     if (pointerIdRef.current != null) return;
     pointerIdRef.current = event.pointerId;
     startXRef.current = event.clientX;
+    startYRef.current = event.clientY;
     movedRef.current = false;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    swipeActiveRef.current = false;
+    offsetRef.current = 0;
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLLIElement>) => {
     if (isActionTarget(event.target)) return;
     if (pointerIdRef.current !== event.pointerId) return;
     const dx = event.clientX - startXRef.current;
-    if (Math.abs(dx) > 6) movedRef.current = true;
+    const dy = event.clientY - startYRef.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    if (!swipeActiveRef.current) {
+      if (absDx < SWIPE_THRESHOLD_PX && absDy < SWIPE_THRESHOLD_PX) return;
+      if (absDy > absDx + VERTICAL_LOCK_PX) {
+        pointerIdRef.current = null;
+        setOffsetX(0);
+        return;
+      }
+      if (dx < 0 && absDx > absDy) {
+        swipeActiveRef.current = true;
+        movedRef.current = true;
+        setSwipeActive(true);
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } else return;
+    }
     if (dx >= 0) {
+      offsetRef.current = 0;
       setOffsetX(0);
+      const el = contentRef.current;
+      if (el) el.style.transform = "translateX(0px)";
       return;
     }
-    setOffsetX(Math.max(maxDrag, dx));
+    const raw = dx;
+    const withResistance = raw <= maxDrag ? maxDrag + (raw - maxDrag) * 0.25 : raw;
+    const offset = Math.max(maxDrag, withResistance);
+    offsetRef.current = offset;
+    const el = contentRef.current;
+    if (el) el.style.transform = `translateX(${offset}px)`;
+    if (rafIdRef.current == null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        setOffsetX(offsetRef.current);
+        rafIdRef.current = null;
+      });
+    }
   };
 
   const endDrag = (event: ReactPointerEvent<HTMLLIElement>) => {
     if (isActionTarget(event.target)) return;
     if (pointerIdRef.current !== event.pointerId) return;
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     pointerIdRef.current = null;
+    swipeActiveRef.current = false;
+    setSwipeActive(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    if (offsetX <= threshold) {
+    const finalOffset = offsetRef.current;
+    const el = contentRef.current;
+    if (el) el.style.transform = "";
+    if (finalOffset <= threshold) {
       onDismiss(item.id);
       setOffsetX(0);
       return;
     }
-    setOffsetX(0);
-    window.setTimeout(() => {
-      movedRef.current = false;
-    }, 60);
+    setOffsetX(finalOffset);
+    requestAnimationFrame(() => setOffsetX(0));
+    window.setTimeout(() => { movedRef.current = false; }, 120);
   };
 
   return (
     <li
-      className={`sheet-item notifications-item ${isUnread ? "is-unread" : ""} ${isDismissing ? "is-dismissing" : ""} ${offsetX < -1 ? "is-swiping" : ""}`}
+      className={`sheet-item notifications-item ${isUnread ? "is-unread" : ""} ${isDismissing ? "is-dismissing" : ""} ${swipeActive || offsetX < -1 ? "is-swiping" : ""}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
@@ -100,7 +150,7 @@ export function NotificationRow({
       <div className="notifications-swipe-bg" aria-hidden="true">
         <UiIcon name="trash" className="ui-icon" />
       </div>
-      <div className="notifications-swipe-content" style={{ transform: `translateX(${offsetX}px)` }}>
+      <div ref={contentRef} className="notifications-swipe-content" style={{ transform: `translateX(${offsetX}px)` }}>
         <div className="sheet-item-head notifications-item-head">
           <Button
             variant="plain"
@@ -116,7 +166,7 @@ export function NotificationRow({
           >
             <div className="notifications-avatar-wrap">
               {user?.avatar_url ? (
-                <img className="avatar avatar-photo notifications-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
+                <img className="avatar avatar-photo notifications-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
               ) : (
                 <div className="avatar notifications-avatar" aria-hidden="true">
                   {(user?.username ?? "us").slice(0, 2).toUpperCase()}

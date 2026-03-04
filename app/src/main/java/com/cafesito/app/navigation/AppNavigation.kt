@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
@@ -34,6 +36,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -52,6 +55,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.UserRepository
+import com.cafesito.app.ui.components.ModernAvatar
 import com.cafesito.app.ui.access.*
 import com.cafesito.app.ui.brewlab.*
 import com.cafesito.app.ui.detail.DetailScreen
@@ -139,7 +143,8 @@ fun AppNavigation(
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
-    
+    val activeUser by userRepository.getActiveUserFlow().collectAsState(initial = null)
+
     LaunchedEffect(currentRoute) {
         if (currentRoute.isNotEmpty()) analyticsHelper.trackScreenView(currentRoute)
     }
@@ -162,6 +167,8 @@ fun AppNavigation(
         val isNotifications = currentRoute == "notifications"
         mainScreens.any { currentRoute.startsWith(it) } && !isOther && !isFollow && !isNotifications
     }
+    val selectedNavColor = MaterialTheme.colorScheme.secondary
+    val unselectedNavColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
 
     val useNavRail = LocalConfiguration.current.screenWidthDp >= 840
 
@@ -186,18 +193,32 @@ fun AppNavigation(
                                 }
                             },
                             icon = {
-                                Icon(
-                                    imageVector = if (isSelected) icon else when (label) {
-                                        "Inicio" -> Icons.Outlined.Home
-                                        "Explorar" -> Icons.Outlined.Explore
-                                        "Elabora" -> Icons.Outlined.Science
-                                        "Diario" -> Icons.Outlined.Book
-                                        "Perfil" -> Icons.Outlined.Person
-                                        else -> icon
-                                    },
-                                    contentDescription = label
-                                )
-                            }
+                                if (route == "profile" && !activeUser?.avatarUrl.isNullOrBlank()) {
+                                    val borderColor = if (isSelected) selectedNavColor else unselectedNavColor
+                                    ModernAvatar(
+                                        imageUrl = activeUser?.avatarUrl,
+                                        size = 24.dp,
+                                        modifier = Modifier.border(2.dp, borderColor, CircleShape)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = if (isSelected) icon else when (label) {
+                                            "Inicio" -> Icons.Outlined.Home
+                                            "Explorar" -> Icons.Outlined.Explore
+                                            "Elabora" -> Icons.Outlined.Science
+                                            "Diario" -> Icons.Outlined.Book
+                                            "Perfil" -> Icons.Outlined.Person
+                                            else -> icon
+                                        },
+                                        contentDescription = label
+                                    )
+                                }
+                            },
+                            colors = NavigationRailItemDefaults.colors(
+                                indicatorColor = Color.Transparent,
+                                selectedIconColor = selectedNavColor,
+                                unselectedIconColor = unselectedNavColor
+                            )
                         )
                     }
                 }
@@ -362,7 +383,7 @@ fun AppNavigation(
                         onNavigateToDiary = {
                             navController.navigate("diary") { popUpTo("brewlab") { inclusive = false } }
                         },
-                        onAddCoffeeClick = { navController.navigate("addPantryItem?origin=brewlab") },
+                        onAddCoffeeClick = { navController.navigate("addStock?origin=brewlab") },
                         createdCoffeeId = createdCoffeeId,
                         onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null }
                     )
@@ -403,11 +424,18 @@ fun AppNavigation(
                     val origin = backStackEntry.arguments?.getString("origin") ?: ""
                     AddStockScreen(
                         onBackClick = { navController.popBackStack() },
-                        onAddCustomClick = { navController.navigate("addPantryItem?onlyActivity=true") },
+                        onAddCustomClick = {
+                            if (origin == "brewlab") navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab")
+                            else navController.navigate("addPantryItem?onlyActivity=true")
+                        },
                         onSuccess = {
-                            if (origin == "brewlab") navController.popBackStack()
+                            if (origin == "brewlab") { /* pop ya hecho en onSuccessWithCoffeeId */ }
                             else navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }
-                        }
+                        },
+                        onSuccessWithCoffeeId = if (origin == "brewlab") { coffeeId ->
+                            navController.getBackStackEntry("brewlab").savedStateHandle["brewlab_created_coffee_id"] = coffeeId
+                            navController.popBackStack()
+                        } else null
                     )
                 }
 
@@ -598,23 +626,32 @@ fun AppNavigation(
                             val isSelected = currentRoute.startsWith(route)
                             NavigationBarItem(
                                 icon = {
-                                    Icon(
-                                        imageVector = if (isSelected) icon else when (label) {
-                                            "Inicio" -> Icons.Outlined.Home
-                                            "Explorar" -> Icons.Outlined.Explore
-                                            "Elabora" -> Icons.Outlined.Science
-                                            "Diario" -> Icons.Outlined.Book
-                                            "Perfil" -> Icons.Outlined.Person
-                                            else -> icon
-                                        },
-                                        contentDescription = label
-                                    )
+                                    if (route == "profile" && !activeUser?.avatarUrl.isNullOrBlank()) {
+                                        val borderColor = if (isSelected) selectedNavColor else unselectedNavColor
+                                        ModernAvatar(
+                                            imageUrl = activeUser?.avatarUrl,
+                                            size = 24.dp,
+                                            modifier = Modifier.border(2.dp, borderColor, CircleShape)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = if (isSelected) icon else when (label) {
+                                                "Inicio" -> Icons.Outlined.Home
+                                                "Explorar" -> Icons.Outlined.Explore
+                                                "Elabora" -> Icons.Outlined.Science
+                                                "Diario" -> Icons.Outlined.Book
+                                                "Perfil" -> Icons.Outlined.Person
+                                                else -> icon
+                                            },
+                                            contentDescription = label
+                                        )
+                                    }
                                 },
                                 selected = isSelected,
                                 colors = NavigationBarItemDefaults.colors(
                                     indicatorColor = Color.Transparent,
-                                    selectedIconColor = MaterialTheme.colorScheme.secondary,
-                                    unselectedIconColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
+                                    selectedIconColor = selectedNavColor,
+                                    unselectedIconColor = unselectedNavColor,
                                 ),
                                 onClick = {
                                     if (isSelected) return@NavigationBarItem

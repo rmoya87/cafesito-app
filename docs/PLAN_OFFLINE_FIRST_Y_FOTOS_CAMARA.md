@@ -1,5 +1,8 @@
 # Plan: Offline-First por pantalla, galería/cámara y permisos
 
+**Estado:** vigente (plan de referencia).  
+**Última actualización:** 2026-03-04  
+
 ## 1. Contexto actual
 
 - **Sincronización**: En MainActivity se llama `syncManager.syncAll()` al autenticarse. TimelineViewModel y SearchViewModel hacen `refreshData()` en `init`, provocando precarga global al arrancar.

@@ -1,5 +1,6 @@
 export { Button } from "./Button";
 export { Chip } from "./Chip";
+export { ComposerInputShell } from "./ComposerInputShell";
 export { IconButton } from "./IconButton";
 export { Input } from "./Input";
 export { Select } from "./Select";

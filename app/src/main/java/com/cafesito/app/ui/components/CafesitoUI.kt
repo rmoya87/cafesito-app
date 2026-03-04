@@ -187,6 +187,7 @@ fun AnimatedTabIndicator(
 fun GlassyTopBar(
     title: String,
     onBackClick: (() -> Unit)? = null,
+    navigationContent: (@Composable () -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
@@ -200,7 +201,9 @@ fun GlassyTopBar(
             )
         },
         navigationIcon = {
-            if (onBackClick != null) {
+            if (navigationContent != null) {
+                navigationContent()
+            } else if (onBackClick != null) {
                 IconButton(onClick = onBackClick) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,

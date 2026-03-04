@@ -1,14 +1,53 @@
+import React from "react";
 import type { TabId } from "../../types";
 import { NAV_ITEMS } from "../../config/navigation";
 import { UiIcon } from "../../ui/iconography";
 import { Button } from "../../ui/components";
 
+function NavGlyph({
+  item,
+  isActive,
+  avatarUrl
+}: {
+  item: (typeof NAV_ITEMS)[number];
+  isActive: boolean;
+  avatarUrl?: string | null;
+}) {
+  const isProfile = item.id === "profile";
+  const showAvatar = isProfile && avatarUrl;
+  const [avatarError, setAvatarError] = React.useState(false);
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUrl]);
+  const showImg = showAvatar && !avatarError;
+  return (
+    <span className={`nav-glyph ${isProfile ? "is-profile" : ""} ${isProfile && isActive ? "is-profile-active" : ""}`.trim()} aria-hidden="true">
+      {showImg ? (
+        <img
+          src={avatarUrl!}
+          alt=""
+          className="nav-avatar"
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
+          onError={() => setAvatarError(true)}
+        />
+      ) : (
+        <UiIcon name={isActive ? item.activeIcon : item.icon} className="ui-icon" />
+      )}
+    </span>
+  );
+}
+
 export function BottomNav({
   activeTab,
-  onNavClick
+  onNavClick,
+  avatarUrl
 }: {
   activeTab: TabId;
   onNavClick: (tab: TabId) => void;
+  avatarUrl?: string | null;
 }) {
   return (
     <nav className="nav nav-mobile" aria-label="Navegacion principal">
@@ -22,9 +61,7 @@ export function BottomNav({
             onClick={() => onNavClick(item.id)}
             aria-current={isActive ? "page" : undefined}
           >
-            <span className="nav-glyph" aria-hidden="true">
-              <UiIcon name={isActive ? item.activeIcon : item.icon} className="ui-icon" />
-            </span>
+            <NavGlyph item={item} isActive={isActive} avatarUrl={avatarUrl} />
             <span className="nav-label">{item.label}</span>
           </Button>
         );
@@ -35,10 +72,12 @@ export function BottomNav({
 
 export function DesktopNavRail({
   activeTab,
-  onNavClick
+  onNavClick,
+  avatarUrl
 }: {
   activeTab: TabId;
   onNavClick: (tab: TabId) => void;
+  avatarUrl?: string | null;
 }) {
   return (
     <aside className="nav-rail" aria-label="Navegacion principal">
@@ -55,9 +94,7 @@ export function DesktopNavRail({
               aria-label={item.label}
               title={item.label}
             >
-              <span className="nav-glyph" aria-hidden="true">
-                <UiIcon name={isActive ? item.activeIcon : item.icon} className="ui-icon" />
-              </span>
+              <NavGlyph item={item} isActive={isActive} avatarUrl={avatarUrl} />
             </Button>
           );
         })}

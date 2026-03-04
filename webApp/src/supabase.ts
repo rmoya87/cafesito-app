@@ -6,17 +6,32 @@ declare global {
   }
 }
 
+declare const __SUPABASE_URL__: string;
+declare const __SUPABASE_ANON_KEY__: string;
+
+const fromDefine = { url: typeof __SUPABASE_URL__ !== "undefined" ? __SUPABASE_URL__ : "", anonKey: typeof __SUPABASE_ANON_KEY__ !== "undefined" ? __SUPABASE_ANON_KEY__ : "" };
 const fromEnv = {
   url: import.meta.env.VITE_SUPABASE_URL as string | undefined,
   anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 };
-const fromWindow = typeof window !== "undefined" ? window.__SUPABASE_CONFIG__ : undefined;
-const supabaseUrl = (fromEnv.url || fromWindow?.url)?.trim() || undefined;
-const supabaseAnonKey = (fromEnv.anonKey || fromWindow?.anonKey)?.trim() || undefined;
+const fromWindow =
+  import.meta.env.DEV && typeof window !== "undefined" ? window.__SUPABASE_CONFIG__ : undefined;
+let supabaseUrl = (fromDefine.url?.trim() || fromWindow?.url || fromEnv.url)?.trim() || undefined;
+let supabaseAnonKey = (fromDefine.anonKey?.trim() || fromWindow?.anonKey || fromEnv.anonKey)?.trim() || undefined;
 
+if (supabaseUrl && /your_project|YOUR_PROJECT|xxxxx/i.test(supabaseUrl)) {
+  console.error("Supabase: URL con placeholder detectada. Usa la URL real en webApp/.env y reinicia npm run dev.");
+  supabaseUrl = undefined;
+}
+
+export const resolvedSupabaseUrl = supabaseUrl ?? "";
+
+const isDev = import.meta.env.DEV;
 export const supabaseConfigError =
   !supabaseUrl || !supabaseAnonKey
-    ? "Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. En producción el build suele hacerse sin .env (p. ej. en CI). Añade las variables en el pipeline de build o inyecta window.__SUPABASE_CONFIG__ en el index.html (ver DEPLOY-IONOS.md)."
+    ? isDev
+      ? "Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. Revisa webApp/.env y reinicia el servidor (npm run dev)."
+      : "Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. Configúralas como variables de entorno en el pipeline de build (GitHub Actions Secrets/Variables)."
     : null;
 
 let supabaseClient: SupabaseClient | null = null;

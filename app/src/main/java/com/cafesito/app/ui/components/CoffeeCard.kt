@@ -76,7 +76,7 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(coffee.nombre ?: "Café", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text(
-                        text = coffee.marca ?: "",
+                        text = (coffee.marca ?: "").uppercase(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

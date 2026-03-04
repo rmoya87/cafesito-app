@@ -1,5 +1,6 @@
 export type IconName =
   | "auto_graph"
+  | "insights"
   | "home"
   | "search"
   | "barcode"
@@ -32,6 +33,7 @@ export type IconName =
   | "process"
   | "variety"
   | "grind"
+  | "dose"
   | "caffeine"
   | "arrow-left"
   | "arrow-right"
@@ -39,6 +41,7 @@ export type IconName =
   | "coffee"
   | "coffee-filled"
   | "camera"
+  | "camera-filled"
   | "chat"
   | "at"
   | "smile"
@@ -85,6 +88,7 @@ export function MaterialSymbolIcon({
 }: {
   symbol:
   | "auto_graph"
+  | "insights"
   | "book"
   | "auto_awesome"
   | "science"
@@ -101,11 +105,14 @@ export function MaterialSymbolIcon({
   | "settings"
   | "lens_blur"
   | "storefront"
+  | "shelves"
   | "device_thermostat"
   | "waves"
   | "water_drop"
+  | "more_horiz"
   | "favorite"
-  | "coffee";
+  | "coffee"
+  | "photo_camera";
   filled: boolean;
   className?: string;
 }) {
@@ -122,6 +129,9 @@ export function MaterialSymbolIcon({
 export function UiIcon({ name, className }: { name: IconName; className?: string }) {
   if (name === "auto_graph") {
     return <MaterialSymbolIcon symbol="auto_graph" filled={true} className={className} />;
+  }
+  if (name === "insights") {
+    return <MaterialSymbolIcon symbol="insights" filled={false} className={className} />;
   }
   if (name === "nav-home-outline") {
     return (
@@ -274,11 +284,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     );
   }
   if (name === "stock") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M4 7.5 12 4l8 3.5-8 3.5zM4 7.5V16l8 4 8-4V7.5M12 11v9" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="shelves" filled={true} className={className} />;
   }
   if (name === "origin") {
     return <MaterialSymbolIcon symbol="globe" filled={false} className={className} />;
@@ -310,11 +316,10 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     return <MaterialSymbolIcon symbol="storefront" filled={false} className={className} />;
   }
   if (name === "caffeine") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <path d="M13.5 2 6 13h5l-1 9 8-12h-5.5z" />
-      </svg>
-    );
+    return <img src="/android-drawable/grano_cafe.png" className={className} alt="" aria-hidden="true" />;
+  }
+  if (name === "dose") {
+    return <img src="/android-drawable/portafiltro.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "leaf") {
     return <MaterialSymbolIcon symbol="energy_savings_leaf" filled={false} className={className} />;
@@ -395,13 +400,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     );
   }
   if (name === "more") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <circle cx="6" cy="12" r="1.8" />
-        <circle cx="12" cy="12" r="1.8" />
-        <circle cx="18" cy="12" r="1.8" />
-      </svg>
-    );
+    return <MaterialSymbolIcon symbol="more_horiz" filled={true} className={className} />;
   }
   if (name === "coffee") {
     return <MaterialSymbolIcon symbol="coffee" filled={false} className={className} />;
@@ -416,6 +415,9 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
         <circle cx="12" cy="13" r="3.2" />
       </svg>
     );
+  }
+  if (name === "camera-filled") {
+    return <MaterialSymbolIcon symbol="photo_camera" filled={true} className={className} />;
   }
   if (name === "chat") {
     return (
@@ -457,7 +459,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     );
   }
   if (name === "sparkles") {
-    return <MaterialSymbolIcon symbol="auto_awesome" filled={false} className={className} />;
+    return <MaterialSymbolIcon symbol="auto_awesome" filled={true} className={className} />;
   }
   if (name === "bolt") {
     return (

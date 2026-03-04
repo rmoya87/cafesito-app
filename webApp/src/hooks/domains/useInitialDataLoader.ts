@@ -51,9 +51,9 @@ export function useInitialDataLoader(params: Params): () => Promise<void> {
     setGlobalStatus
   } = params;
 
-  const loadInitialData = useCallback(async () => {
+  const loadInitialData = useCallback(async (forceRefresh = false) => {
     try {
-      const data = await fetchInitialData();
+      const data = await fetchInitialData(forceRefresh);
       setUsers(data.users);
       setCoffees(data.coffees);
       setCoffeeReviews(data.reviews);
@@ -85,6 +85,7 @@ export function useInitialDataLoader(params: Params): () => Promise<void> {
   useEffect(() => {
     if (!authReady) return;
     void loadInitialData();
+    // Sin refresh automático: los datos solo se cargan al montar (recarga de página).
   }, [authReady, loadInitialData]);
 
   return loadInitialData;

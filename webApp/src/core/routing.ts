@@ -4,8 +4,10 @@ import { normalizeLookupText } from "./text";
 export function parseRoute(pathname: string) {
   const clean = pathname.replace(/\/+$/, "") || "/";
   const segments = clean.split("/").filter(Boolean);
-  const first = segments[0] ?? "";
-  const second = segments[1] ?? "";
+  const tabIdx = segments.findIndex((segment) => TAB_SEGMENTS.includes(segment));
+  const routeSegments = tabIdx >= 0 ? segments.slice(tabIdx) : segments;
+  const first = routeSegments[0] ?? "";
+  const second = routeSegments[1] ?? "";
 
   if (first === "search") {
     return {
@@ -47,13 +49,42 @@ export function getAppRootPath(pathname: string): string {
   return "/" + segments.slice(0, idx).join("/");
 }
 
-export function toCoffeeSlug(name: string): string {
-  const base = normalizeLookupText(name)
+export function isKnownRoute(pathname: string): boolean {
+  const clean = pathname.replace(/\/+$/, "") || "/";
+  if (clean === "/") return true;
+  const segments = clean.split("/").filter(Boolean);
+  const tabIdx = segments.findIndex((segment) => TAB_SEGMENTS.includes(segment));
+  if (tabIdx < 0) return false;
+
+  const routeSegments = segments.slice(tabIdx);
+  const first = routeSegments[0] ?? "";
+  const second = routeSegments[1] ?? "";
+
+  if (first === "timeline" || first === "brewlab" || first === "diary") return routeSegments.length === 1;
+  if (first === "search") return routeSegments.length <= 2 && (second === "" || second === "users");
+  if (first === "profile") return routeSegments.length <= 2;
+  if (first === "coffee") return routeSegments.length === 2 && second.length > 0;
+  return false;
+}
+
+function slugifyText(value: string): string {
+  return normalizeLookupText(value)
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
-  return base || "cafe";
+}
+
+export function toCoffeeSlug(name: string, brand?: string | null, forceBrand = false): string {
+  const baseFromName = slugifyText(name);
+  if (forceBrand && brand) {
+    const forced = slugifyText(`${name} ${brand}`);
+    return forced || baseFromName || "cafe";
+  }
+  if (baseFromName.length > 10) return baseFromName;
+
+  const baseWithBrand = slugifyText(`${name} ${brand ?? ""}`);
+  return baseWithBrand || baseFromName || "cafe";
 }
 
 export function buildRoute(
@@ -66,6 +97,6 @@ export function buildRoute(
   if (tab === "brewlab") return "/brewlab";
   if (tab === "diary") return "/diary";
   if (tab === "profile") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}` : "/profile";
-  if (tab === "coffee") return coffeeSlug ? `/coffee/${encodeURIComponent(coffeeSlug)}` : "/timeline";
+  if (tab === "coffee") return coffeeSlug ? `/coffee/${encodeURIComponent(coffeeSlug)}/` : "/timeline";
   return "/timeline";
 }

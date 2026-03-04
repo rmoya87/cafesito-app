@@ -1,0 +1,27 @@
+---
+description: Consultar docs antes de codificar; avisar antes de modificar documentación
+alwaysApply: true
+---
+
+# Docs antes de código
+
+## Consultar documentación
+
+Antes de escribir o modificar código:
+
+1. **Revisa** la documentación relevante en:
+   - `docs/README.md` (índice y estructura; punto de entrada).
+   - `docs/` (raíz del proyecto)
+   - `webApp/docs/` (si el cambio afecta a la web app)
+
+2. **Usa** esa documentación como fuente de verdad para arquitectura, convenciones, APIs y flujos ya descritos.
+
+## Cambios en la documentación
+
+Si tu implementación requiere **cambiar o ampliar** la documentación existente (por ejemplo `MASTER_ARCHITECTURE_GOVERNANCE.md`, guías en `docs/`, o ficheros en `webApp/docs/`):
+
+1. **No modifiques los docs directamente** sin avisar.
+2. **Indica antes** al usuario qué archivos de documentación habría que actualizar y por qué (resumen breve).
+3. **Espera** confirmación o indicación del usuario antes de aplicar cambios en esos archivos.
+
+Ejemplo de aviso: *"Este cambio afecta al flujo de X descrito en docs/Y.md. ¿Quieres que actualice la sección Z o lo dejo para que lo revises tú?"*

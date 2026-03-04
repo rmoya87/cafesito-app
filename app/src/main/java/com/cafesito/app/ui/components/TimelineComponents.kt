@@ -23,6 +23,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.cafesito.app.ui.theme.WaterBlue
+import com.cafesito.app.ui.theme.WaterBlueBackground
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.BlendMode
@@ -56,6 +60,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -70,6 +76,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.cafesito.app.R
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.CommentWithAuthor
@@ -88,9 +95,11 @@ import com.cafesito.app.ui.profile.ProfileViewModel
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
+import com.cafesito.app.ui.utils.formatRelativeTime
 import kotlin.text.Regex
 import kotlin.text.RegexOption
 import kotlinx.coroutines.launch
+import java.text.Normalizer
 import java.text.SimpleDateFormat
 import java.io.File
 import java.util.Calendar
@@ -124,6 +133,8 @@ fun CommentsSheet(
     val keyboardController = LocalSoftwareKeyboardController.current
     val comments by viewModel.comments.collectAsState()
     val suggestions by viewModel.mentionSuggestions.collectAsState()
+    val allUsers by viewModel.allUsers.collectAsState()
+    val usersByUsername = remember(allUsers) { allUsers.associateBy { it.username.lowercase() } }
     val activeUser by viewModel.activeUser.collectAsState()
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -177,7 +188,8 @@ fun CommentsSheet(
                                 scope.launch {
                                     viewModel.getUserIdByUsername(username)?.let(onNavigateToProfile)
                                 }
-                            }
+                            },
+                            resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
                         )
                     }
                 }
@@ -199,15 +211,13 @@ fun CommentsSheet(
                 }
             }
 
-            var composerHeight by remember { mutableStateOf(0) }
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 // Main Composer Container
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .onSizeChanged { composerHeight = it.height }
                         .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                        .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color.Transparent, RoundedCornerShape(16.dp))
                 ) {
                     // Suggestions/Emojis moved inside at the top
                     AnimatedVisibility(
@@ -229,7 +239,7 @@ fun CommentsSheet(
                                             },
                                             modifier = Modifier.size(40.dp),
                                             shape = CircleShape,
-                                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                                             color = MaterialTheme.colorScheme.surface
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
@@ -251,26 +261,21 @@ fun CommentsSheet(
                                     }
                                 }
                             }
-                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         }
                     }
 
-                    OutlinedTextField(
+                    MentionComposerField(
                         value = textValue,
                         onValueChange = {
                             textValue = it
                             viewModel.onTextChanged(it.text)
                             if (it.text.endsWith("@")) showEmojiPanel = false
                         },
-                        placeholder = { Text("Añade un comentario...") },
+                        placeholder = "Añade un comentario...",
+                        validUsers = allUsers,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent
-                        )
+                        minHeight = 72.dp
                     )
 
                     Row(
@@ -284,7 +289,7 @@ fun CommentsSheet(
                             onClick = { showImagePickerSheet = true },
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -302,7 +307,7 @@ fun CommentsSheet(
                             },
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -314,7 +319,7 @@ fun CommentsSheet(
                             onClick = { showEmojiPanel = !showEmojiPanel },
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.45f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -475,71 +480,88 @@ fun NotificationsBottomSheet(
                     Text("No tienes notificaciones", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
+                val groupedNotifications = remember(notifications) {
+                    groupNotificationsByRange(notifications)
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(notifications, key = { it.id }) { notification ->
-                        val isUnread = notification.id in unreadIds
-                        when (notification) {
-                            is TimelineNotification.Follow -> {
-                                NotificationRow(
-                                    avatarUrl = notification.user.avatarUrl,
-                                    title = "@${notification.user.username}",
-                                    subtitle = "ha comenzado a seguirte",
-                                    isUnread = isUnread,
-                                    trailingContent = {
-                                        val isFollowing = followingIds.contains(notification.user.id)
-                                        val buttonColors = if (isFollowing) {
-                                            ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        } else {
-                                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                        }
-                                        val buttonModifier = Modifier.height(32.dp)
-                                        if (isFollowing) {
-                                            OutlinedButton(
-                                                onClick = { onFollowToggle(notification.user.id) },
-                                                modifier = buttonModifier,
-                                                shape = RoundedCornerShape(12.dp),
-                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                                colors = buttonColors
-                                            ) {
-                                                Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    groupedNotifications.forEachIndexed { index, section ->
+                        item(key = "notif-header-${section.key}") {
+                            Text(
+                                text = section.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = if (index == 0) 2.dp else 10.dp, bottom = 2.dp)
+                            )
+                        }
+
+                        items(section.items, key = { it.id }) { notification ->
+                            val isUnread = notification.id in unreadIds
+                            when (notification) {
+                                is TimelineNotification.Follow -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = "ha comenzado a seguirte",
+                                        isUnread = isUnread,
+                                        trailingContent = {
+                                            val isFollowing = followingIds.contains(notification.user.id)
+                                            val buttonColors = if (isFollowing) {
+                                                ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            } else {
+                                                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                             }
-                                        } else {
-                                            Button(
-                                                onClick = { onFollowToggle(notification.user.id) },
-                                                modifier = buttonModifier,
-                                                shape = RoundedCornerShape(12.dp),
-                                                colors = buttonColors
-                                            ) {
-                                                Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
+                                            val buttonModifier = Modifier.height(32.dp)
+                                            if (isFollowing) {
+                                                OutlinedButton(
+                                                    onClick = { onFollowToggle(notification.user.id) },
+                                                    modifier = buttonModifier,
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                                    colors = buttonColors
+                                                ) {
+                                                    Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                }
+                                            } else {
+                                                Button(
+                                                    onClick = { onFollowToggle(notification.user.id) },
+                                                    modifier = buttonModifier,
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    colors = buttonColors
+                                                ) {
+                                                    Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
+                                                }
                                             }
-                                        }
-                                    },
-                                    onClick = { onNotificationClick(notification) }
-                                )
-                            }
-                            is TimelineNotification.Mention -> {
-                                NotificationRow(
-                                    avatarUrl = notification.user.avatarUrl,
-                                    title = "@${notification.user.username}",
-                                    subtitle = "Te han mencionado.",
-                                    isUnread = isUnread,
-                                    trailingContent = null,
-                                    onClick = { onNotificationClick(notification) }
-                                )
-                            }
-                            is TimelineNotification.Comment -> {
-                                NotificationRow(
-                                    avatarUrl = notification.user.avatarUrl,
-                                    title = "@${notification.user.username}",
-                                    subtitle = "Te ha escrito en un post",
-                                    isUnread = isUnread,
-                                    trailingContent = null,
-                                    onClick = { onNotificationClick(notification) }
-                                )
+                                        },
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
+                                is TimelineNotification.Mention -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = notification.commentText,
+                                        isUnread = isUnread,
+                                        trailingContent = null,
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
+                                is TimelineNotification.Comment -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = notification.message,
+                                        isUnread = isUnread,
+                                        trailingContent = null,
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -601,6 +623,49 @@ private fun NotificationRow(
     }
 }
 
+private data class NotificationSection(
+    val key: String,
+    val title: String,
+    val items: List<TimelineNotification>
+)
+
+private fun groupNotificationsByRange(notifications: List<TimelineNotification>): List<NotificationSection> {
+    if (notifications.isEmpty()) return emptyList()
+    val calendar = java.util.Calendar.getInstance().apply {
+        set(java.util.Calendar.HOUR_OF_DAY, 0)
+        set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0)
+        set(java.util.Calendar.MILLISECOND, 0)
+    }
+    val todayStart = calendar.timeInMillis
+    val oneDayMs = 24L * 60L * 60L * 1000L
+    val yesterdayStart = todayStart - oneDayMs
+    val last7Start = todayStart - oneDayMs * 7
+    val last30Start = todayStart - oneDayMs * 30
+
+    val today = mutableListOf<TimelineNotification>()
+    val yesterday = mutableListOf<TimelineNotification>()
+    val last7 = mutableListOf<TimelineNotification>()
+    val last30 = mutableListOf<TimelineNotification>()
+
+    notifications.forEach { notification ->
+        when {
+            notification.timestamp >= todayStart -> today += notification
+            notification.timestamp >= yesterdayStart -> yesterday += notification
+            notification.timestamp >= last7Start -> last7 += notification
+            notification.timestamp >= last30Start -> last30 += notification
+            else -> last30 += notification
+        }
+    }
+
+    return listOf(
+        NotificationSection("today", "Hoy", today),
+        NotificationSection("yesterday", "Ayer", yesterday),
+        NotificationSection("last7", "Últimos 7 días", last7),
+        NotificationSection("last30", "Últimos 30 días", last30)
+    ).filter { it.items.isNotEmpty() }
+}
+
 @Composable
 private fun CommentRow(
     commentWithAuthor: CommentWithAuthor,
@@ -609,7 +674,8 @@ private fun CommentRow(
     onNavigateToProfile: (Int) -> Unit,
     onDeleteClick: () -> Unit,
     onEditClick: () -> Unit,
-    onMentionClick: (String) -> Unit
+    onMentionClick: (String) -> Unit,
+    resolveMentionUser: (String) -> UserEntity?
 ) {
     val author = commentWithAuthor.author
     val comment = commentWithAuthor.comment
@@ -632,7 +698,7 @@ private fun CommentRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color.LightGray)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { author?.id?.let { onNavigateToProfile(it) } }
         )
         Spacer(Modifier.width(12.dp))
@@ -643,17 +709,24 @@ private fun CommentRow(
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.clickable { author?.id?.let { onNavigateToProfile(it) } }
             )
+            Text(
+                text = formatRelativeTime(comment.timestamp).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                fontWeight = FontWeight.Normal
+            )
 
             MentionText(
                 text = comment.text,
                 style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                onMentionClick = onMentionClick
+                onMentionClick = onMentionClick,
+                resolveMentionUser = resolveMentionUser
             )
         }
 
         if (isOwnComment) {
             IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -674,53 +747,285 @@ private fun CommentRow(
 
 }
 
-private fun buildAnnotatedStringWithMentions(text: String, mentionColor: Color): AnnotatedString {
-    return buildAnnotatedString {
-        val regex = Regex("@([A-Za-z0-9._-]{2,30})")
-        var lastIndex = 0
-
-        regex.findAll(text).forEach { matchResult ->
-            append(text.substring(lastIndex, matchResult.range.first))
-            val username = matchResult.groupValues[1]
-            pushStringAnnotation(tag = "MENTION", annotation = username)
-            withStyle(style = SpanStyle(color = mentionColor, fontWeight = FontWeight.Bold)) {
-                append(matchResult.value)
-            }
-            pop()
-            lastIndex = matchResult.range.last + 1
-        }
-        if (lastIndex < text.length) {
-            append(text.substring(lastIndex))
-        }
-    }
-}
-
 @Composable
 fun MentionText(
     text: String,
     style: TextStyle,
     onMentionClick: (String) -> Unit,
+    resolveMentionUser: (String) -> UserEntity? = { null },
     modifier: Modifier = Modifier
 ) {
-    val mentionColor = MaterialTheme.colorScheme.primary
-    val annotatedContent = remember(text, mentionColor) { buildAnnotatedStringWithMentions(text, mentionColor) }
-    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val mentionRegex = remember { Regex("@([A-Za-z0-9._-]{2,30})") }
+    val visual = remember(text, onMentionClick, resolveMentionUser) {
+        val inline = linkedMapOf<String, InlineTextContent>()
+        val annotated = buildAnnotatedString {
+            var lastIndex = 0
+            var mentionIndex = 0
+            mentionRegex.findAll(text).forEach { match ->
+                if (match.range.first > lastIndex) {
+                    append(text.substring(lastIndex, match.range.first))
+                }
+                val username = match.groupValues[1]
+                val id = "mention-display-$mentionIndex-$username"
+                inline[id] = InlineTextContent(
+                    placeholder = Placeholder(
+                        width = ((username.length + 6) * 7f).sp,
+                        height = 22.sp,
+                        placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                    )
+                ) {
+                    val mentionUser = resolveMentionUser(username)
+                    Surface(
+                        onClick = { onMentionClick(username) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
+                        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .height(22.dp)
+                                .padding(horizontal = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val fallbackChar = (mentionUser?.username ?: username).take(1).uppercase()
+                            if (mentionUser?.avatarUrl.isNullOrBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .background(LocalCaramelAccent.current.copy(alpha = 0.14f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = fallbackChar,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LocalCaramelAccent.current,
+                                        maxLines = 1
+                                    )
+                                }
+                            } else {
+                                SubcomposeAsyncImage(
+                                    model = mentionUser?.avatarUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape),
+                                    loading = {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(LocalCaramelAccent.current.copy(alpha = 0.14f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = fallbackChar,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = LocalCaramelAccent.current,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    },
+                                    error = {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(LocalCaramelAccent.current.copy(alpha = 0.14f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = fallbackChar,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = LocalCaramelAccent.current,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                            Spacer(Modifier.width(5.dp))
+                            Text(
+                                text = "@$username",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LocalCaramelAccent.current,
+                                lineHeight = 12.sp,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+                appendInlineContent(id, "@$username")
+                lastIndex = match.range.last + 1
+                mentionIndex += 1
+            }
+            if (lastIndex < text.length) {
+                append(text.substring(lastIndex))
+            }
+        }
+        ComposerMentionVisual(annotated = annotated, inlineContent = inline)
+    }
 
     Text(
-        text = annotatedContent,
+        text = visual.annotated,
+        inlineContent = visual.inlineContent,
         style = style,
-        modifier = modifier.pointerInput(annotatedContent) {
-            detectTapGestures { tapOffset ->
-                val layoutResult = textLayoutResult ?: return@detectTapGestures
-                val offset = layoutResult.getOffsetForPosition(tapOffset)
-                annotatedContent
-                    .getStringAnnotations(tag = "MENTION", start = offset, end = offset)
-                    .firstOrNull()
-                    ?.let { onMentionClick(it.item) }
-            }
-        },
-        onTextLayout = { textLayoutResult = it }
+        modifier = modifier
     )
+}
+
+private data class ComposerMentionVisual(
+    val annotated: AnnotatedString,
+    val inlineContent: Map<String, InlineTextContent>
+)
+
+@Composable
+private fun ComposerMentionPill(user: UserEntity) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
+    ) {
+        Row(
+            modifier = Modifier
+                .height(22.dp)
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val fallbackContent: @Composable () -> Unit = {
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .background(LocalCaramelAccent.current.copy(alpha = 0.14f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = user.username.take(1).uppercase(),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LocalCaramelAccent.current,
+                        maxLines = 1
+                    )
+                }
+            }
+            if (user.avatarUrl.isNullOrBlank()) {
+                fallbackContent()
+            } else {
+                SubcomposeAsyncImage(
+                    model = user.avatarUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clip(CircleShape),
+                    loading = { fallbackContent() },
+                    error = { fallbackContent() }
+                )
+            }
+            Spacer(Modifier.width(5.dp))
+            Text(
+                text = "@${user.username}",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = LocalCaramelAccent.current,
+                lineHeight = 12.sp,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+private fun buildComposerMentionVisual(
+    text: String,
+    validUsers: List<UserEntity>
+): ComposerMentionVisual {
+    val usersByUsername = validUsers.associateBy { it.username.lowercase() }
+    val mentionRegex = Regex("(^|\\s)@([A-Za-z0-9._-]{2,30})(?=\\s|$)")
+    val inline = linkedMapOf<String, InlineTextContent>()
+    val annotated = buildAnnotatedString {
+        var lastIndex = 0
+        var mentionIndex = 0
+        mentionRegex.findAll(text).forEach { match ->
+            val leading = match.groupValues.getOrElse(1) { "" }
+            val username = match.groupValues.getOrElse(2) { "" }
+            val mentionStart = match.range.first + leading.length
+            val mentionEnd = match.range.last + 1
+            if (mentionStart > lastIndex) {
+                append(text.substring(lastIndex, mentionStart))
+            }
+            val user = usersByUsername[username.lowercase()]
+            if (user != null) {
+                val id = "mention-inline-$mentionIndex-${user.id}"
+                inline[id] = InlineTextContent(
+                    placeholder = Placeholder(
+                        width = ((username.length + 6) * 7f).sp,
+                        height = 22.sp,
+                        placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                    )
+                ) {
+                    ComposerMentionPill(user = user)
+                }
+                appendInlineContent(id, "@$username")
+            } else {
+                append(text.substring(mentionStart, mentionEnd))
+            }
+            lastIndex = mentionEnd
+            mentionIndex += 1
+        }
+        if (lastIndex < text.length) {
+            append(text.substring(lastIndex))
+        }
+    }
+    return ComposerMentionVisual(annotated = annotated, inlineContent = inline)
+}
+
+@Composable
+fun MentionComposerField(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    placeholder: String,
+    validUsers: List<UserEntity>,
+    modifier: Modifier = Modifier,
+    minHeight: Dp = 120.dp
+) {
+    val textColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+    val visual = remember(value.text, validUsers) {
+        buildComposerMentionVisual(text = value.text, validUsers = validUsers)
+    }
+
+    Box(modifier = modifier) {
+        if (value.text.isNotEmpty()) {
+            Text(
+                text = visual.annotated,
+                inlineContent = visual.inlineContent,
+                style = MaterialTheme.typography.bodyLarge.copy(color = textColor),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            )
+        }
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = minHeight),
+            shape = RoundedCornerShape(16.dp),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = if (value.text.isEmpty()) textColor else Color.Transparent
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedTextColor = Color.Transparent,
+                unfocusedTextColor = Color.Transparent,
+                cursorColor = textColor
+            )
+        )
+    }
 }
 
 @Composable
@@ -728,15 +1033,15 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
     ) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape))
             Spacer(Modifier.width(8.dp))
-            Text(user.username, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("@${user.username}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LocalCaramelAccent.current)
         }
     }
 }
@@ -859,6 +1164,17 @@ fun DiaryEntryItem(
         coffeeNameNorm == "registro rapido" ||
         Regex("registro\\s*rapido", RegexOption.IGNORE_CASE).containsMatchIn(coffeeNameNorm)
     )
+    val rawPreparationType = entry.preparationType.trim()
+    val elaborationMethod = extractDiaryElaborationMethod(rawPreparationType)
+    val preparationValue = if (elaborationMethod != null) "BrewLab" else rawPreparationType.ifBlank { "-" }
+    val preparationDrawableName = diaryPreparationDrawableName(rawPreparationType)
+    val elaborationDrawableName = elaborationMethod?.let { diaryElaborationDrawableName(it) }
+    val sizeDrawableName = diarySizeDrawableName(entry.sizeLabel, entry.amountMl)
+    val preparationDrawablePainter = diaryDrawablePainter(preparationDrawableName)
+    val elaborationDrawablePainter = diaryDrawablePainter(elaborationDrawableName)
+    val sizeDrawablePainter = diaryDrawablePainter(sizeDrawableName)
+    val preparationIcon = diaryPreparationIcon(rawPreparationType)
+    val elaborationIcon = elaborationMethod?.let { diaryElaborationIcon(it) }
     val cardColor by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surface,
         animationSpec = tween(320),
@@ -891,21 +1207,26 @@ fun DiaryEntryItem(
                         modifier = Modifier
                             .size(46.dp)
                             .background(
-                                if (entry.type == "WATER") Color(0xFFE3F2FD).copy(alpha = if (isSystemInDarkTheme()) 0.22f else 1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                if (entry.type == "WATER") WaterBlueBackground.copy(alpha = if (isSystemInDarkTheme()) 0.22f else 1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                 RoundedCornerShape(12.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            when {
-                                entry.type == "WATER" -> Icons.Default.WaterDrop
-                                isRegistroRapido -> Icons.Filled.LocalCafe
-                                else -> Icons.Default.Coffee
-                            },
-                            null,
-                            tint = if (entry.type == "WATER") Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        if (entry.type == "WATER") {
+                            Icon(
+                                imageVector = Icons.Default.WaterDrop,
+                                contentDescription = null,
+                                tint = WaterBlue,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else {
+                            Icon(
+                                if (isRegistroRapido) Icons.Filled.LocalCafe else Icons.Default.Coffee,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
 
@@ -929,6 +1250,12 @@ fun DiaryEntryItem(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    } else {
+                        Text(
+                            text = "${entry.amountMl} ml",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
@@ -940,47 +1267,85 @@ fun DiaryEntryItem(
                 )
             }
 
-            if (entry.type == "WATER") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    MetricPill(
-                        icon = painterResource(R.drawable.ic_bottle),
-                        label = "Cantidad",
-                        value = "${entry.amountMl} ml",
-                        modifier = Modifier.weight(1f)
-                    )
+            if (entry.type != "WATER") {
+                val metaRowState = rememberLazyListState()
+                val metaCarouselEnabled by remember {
+                    derivedStateOf {
+                        val info = metaRowState.layoutInfo
+                        val visible = info.visibleItemsInfo
+                        if (info.totalItemsCount == 0 || visible.isEmpty()) return@derivedStateOf true
+                        val firstVisible = visible.first().index == 0
+                        val lastVisible = visible.last().index == info.totalItemsCount - 1
+                        val lastItemEnd = visible.last().offset + visible.last().size
+                        !(firstVisible && lastVisible && lastItemEnd <= info.viewportEndOffset)
+                    }
                 }
-            } else {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    state = metaRowState,
+                    userScrollEnabled = metaCarouselEnabled,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     item {
                         MetricPill(
-                            icon = Icons.Default.Bolt,
-                            label = "Cafeína",
+                            icon = painterResource(R.drawable.grano_cafe),
+                            label = "CAFEÍNA",
                             value = "${entry.caffeineAmount} mg"
                         )
                     }
                     item {
                         MetricPill(
-                            icon = Icons.Default.CoffeeMaker,
-                            label = "Preparación",
-                            value = entry.preparationType
-                        )
-                    }
-                    item {
-                        MetricPill(
-                            icon = Icons.Default.Scale,
-                            label = "Dosis",
+                            icon = painterResource(R.drawable.portafiltro),
+                            label = "DOSIS",
                             value = "${entry.coffeeGrams} g"
                         )
                     }
                     item {
-                        MetricPill(
-                            icon = Icons.Default.LocalCafe,
-                            label = "Tamaño",
-                            value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
-                        )
+                        if (sizeDrawablePainter != null) {
+                            MetricPill(
+                                icon = sizeDrawablePainter,
+                                label = "TAMAÑO",
+                                value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
+                            )
+                        } else {
+                            MetricPill(
+                                icon = Icons.Default.LocalCafe,
+                                label = "TAMAÑO",
+                                value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
+                            )
+                        }
+                    }
+                    item {
+                        if (preparationDrawablePainter != null) {
+                            MetricPill(
+                                icon = preparationDrawablePainter,
+                                label = "PREPARACIÓN",
+                                value = preparationValue
+                            )
+                        } else {
+                            MetricPill(
+                                icon = preparationIcon,
+                                label = "PREPARACIÓN",
+                                value = preparationValue
+                            )
+                        }
+                    }
+                    if (elaborationMethod != null && elaborationIcon != null) {
+                        item {
+                            if (elaborationDrawablePainter != null) {
+                                MetricPill(
+                                    icon = elaborationDrawablePainter,
+                                    label = "MÉTODO",
+                                    value = elaborationMethod
+                                )
+                            } else {
+                                MetricPill(
+                                    icon = elaborationIcon,
+                                    label = "MÉTODO",
+                                    value = elaborationMethod
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -996,6 +1361,19 @@ fun DiaryEntryEditBottomSheet(
     onSave: (DiaryEntryEntity) -> Unit
 ) {
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
+    val fieldBackground = if (isDark) Color.Black else Color.White
+    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val editFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = fieldBackground,
+        unfocusedContainerColor = fieldBackground,
+        focusedBorderColor = LocalCaramelAccent.current,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    )
+    val editFieldTextStyle = MaterialTheme.typography.bodyLarge.copy(
+        fontWeight = FontWeight.Bold,
+        color = fieldTextColor
+    )
     var amountText by remember(entry.id) { mutableStateOf(entry.amountMl.toString()) }
     var caffeineText by remember(entry.id) { mutableStateOf(entry.caffeineAmount.toString()) }
     var doseText by remember(entry.id) { mutableStateOf(String.format(Locale.getDefault(), "%.1f", entry.coffeeGrams.toFloat())) }
@@ -1041,6 +1419,42 @@ fun DiaryEntryEditBottomSheet(
     var selectedPreparation by remember(entry.id) { mutableStateOf(entry.preparationType) }
     var errorText by remember(entry.id) { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    fun handleSaveEditEntry() {
+        val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, timeText)
+        if (updatedTimestamp == null) {
+            errorText = "Usa un formato de tiempo válido: HH:mm"
+            return
+        }
+
+        val updatedEntry = if (entry.type == "WATER") {
+            val amount = amountText.toIntOrNull()
+            if (amount == null || amount <= 0) {
+                errorText = "Cantidad inválida"
+                return
+            }
+            entry.copy(amountMl = amount, timestamp = updatedTimestamp)
+        } else {
+            val caffeine = caffeineText.toIntOrNull()
+            val grams = doseText.replace(',', '.').toFloatOrNull()
+            val normalizedPrep = selectedPreparation.trim()
+            val espressoRangeValid = !normalizedPrep.equals("Espresso", ignoreCase = true) || (grams != null && grams in 3f..30f)
+            if (caffeine == null || caffeine < 0 || grams == null || grams <= 0f || normalizedPrep.isBlank() || !espressoRangeValid) {
+                errorText = if (!espressoRangeValid) "Para espresso, la dosis debe estar entre 3.0 y 30.0 g" else "Completa todos los campos correctamente"
+                return
+            }
+            entry.copy(
+                caffeineAmount = caffeine,
+                coffeeGrams = grams.roundToInt(),
+                preparationType = selectedPreparation.trim(),
+                sizeLabel = selectedSize,
+                amountMl = sizeOptions.find { it.label == selectedSize }?.defaultMl ?: entry.amountMl,
+                timestamp = updatedTimestamp
+            )
+        }
+
+        errorText = null
+        onSave(updatedEntry)
+    }
 
     ModalBottomSheet(
         sheetState = sheetState,
@@ -1056,21 +1470,34 @@ fun DiaryEntryEditBottomSheet(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = if (entry.type == "WATER") "Editar registro de agua" else "Editar registro de café",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                }
+                Text(
+                    text = "Editar",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = { handleSaveEditEntry() }) {
+                    Text("Guardar", fontWeight = FontWeight.SemiBold)
+                }
+            }
 
             if (entry.type == "CUP") {
                 Text(
                     text = "Preparación",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
                         Surface(
@@ -1079,7 +1506,7 @@ fun DiaryEntryEditBottomSheet(
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
                         ) {
                             Row(
@@ -1114,34 +1541,53 @@ fun DiaryEntryEditBottomSheet(
                         value = caffeineText,
                         onValueChange = { caffeineText = it.filter(Char::isDigit) },
                         label = { Text("Cafeína (mg)") },
-                        leadingIcon = { Icon(Icons.Default.Bolt, null) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.grano_cafe),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Unspecified
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        textStyle = editFieldTextStyle,
+                        colors = editFieldColors
                     )
 
                     OutlinedTextField(
                         value = doseText,
                         onValueChange = { value ->
-                            doseText = value.filter { it.isDigit() || it == '.' }.let { filtered ->
-                                if (filtered.count { it == '.' } <= 1) filtered else filtered.dropLast(1)
+                            doseText = value.filter { it.isDigit() || it == '.' || it == ',' }.let { filtered ->
+                                val normalized = filtered.replace(',', '.')
+                                if (normalized.count { it == '.' } <= 1) filtered else filtered.dropLast(1)
                             }
                         },
                         label = { Text("Dosis (g)") },
-                        leadingIcon = { Icon(Icons.Default.Scale, null) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.portafiltro),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Unspecified
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        textStyle = editFieldTextStyle,
+                        colors = editFieldColors
                     )
                 }
 
                 Text(
                     text = "Tamaño",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
                         Surface(
@@ -1150,7 +1596,7 @@ fun DiaryEntryEditBottomSheet(
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) CaramelAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
                         ) {
                             Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -1174,25 +1620,50 @@ fun DiaryEntryEditBottomSheet(
                     }
                 }
             } else {
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it.filter(Char::isDigit) },
-                    label = { Text("Cantidad (ml)") },
-                    leadingIcon = { Icon(painter = painterResource(R.drawable.ic_bottle), contentDescription = null) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = amountText,
+                        onValueChange = { amountText = it.filter(Char::isDigit) },
+                        label = { Text("Cantidad (ml)") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.WaterDrop,
+                                contentDescription = null,
+                                tint = WaterBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        textStyle = editFieldTextStyle,
+                        colors = editFieldColors
+                    )
+                    OutlinedTextField(
+                        value = timeText,
+                        onValueChange = { timeText = it.take(5) },
+                        label = { Text("Tiempo (HH:mm)") },
+                        leadingIcon = { Icon(Icons.Default.Schedule, null, modifier = Modifier.size(18.dp)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        textStyle = editFieldTextStyle,
+                        colors = editFieldColors
+                    )
+                }
             }
 
-            OutlinedTextField(
-                value = timeText,
-                onValueChange = { timeText = it.take(5) },
-                label = { Text("Tiempo (HH:mm)") },
-                leadingIcon = { Icon(Icons.Default.Schedule, null) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (entry.type != "WATER") {
+                OutlinedTextField(
+                    value = timeText,
+                    onValueChange = { timeText = it.take(5) },
+                    label = { Text("Tiempo (HH:mm)") },
+                    leadingIcon = { Icon(Icons.Default.Schedule, null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = editFieldTextStyle,
+                    colors = editFieldColors
+                )
+            }
 
             if (errorText != null) {
                 Text(
@@ -1202,52 +1673,6 @@ fun DiaryEntryEditBottomSheet(
                 )
             }
 
-            Button(
-                onClick = {
-                    val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, timeText)
-                    if (updatedTimestamp == null) {
-                        errorText = "Usa un formato de tiempo válido: HH:mm"
-                        return@Button
-                    }
-
-                    val updatedEntry = if (entry.type == "WATER") {
-                        val amount = amountText.toIntOrNull()
-                        if (amount == null || amount <= 0) {
-                            errorText = "Cantidad inválida"
-                            return@Button
-                        }
-                        entry.copy(amountMl = amount, timestamp = updatedTimestamp)
-                    } else {
-                        val caffeine = caffeineText.toIntOrNull()
-                        val grams = doseText.toFloatOrNull()
-                        val normalizedPrep = selectedPreparation.trim()
-                        val espressoRangeValid = !normalizedPrep.equals("Espresso", ignoreCase = true) || (grams != null && grams in 3f..30f)
-                        if (caffeine == null || caffeine < 0 || grams == null || grams <= 0f || normalizedPrep.isBlank() || !espressoRangeValid) {
-                            errorText = if (!espressoRangeValid) "Para espresso, la dosis debe estar entre 3.0 y 30.0 g" else "Completa todos los campos correctamente"
-                            return@Button
-                        }
-                        entry.copy(
-                            caffeineAmount = caffeine,
-                            coffeeGrams = grams.roundToInt(),
-                            preparationType = selectedPreparation.trim(),
-                            sizeLabel = selectedSize,
-                            amountMl = sizeOptions.find { it.label == selectedSize }?.defaultMl ?: entry.amountMl,
-                            timestamp = updatedTimestamp
-                        )
-                    }
-
-                    errorText = null
-                    onSave(updatedEntry)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .imePadding()
-                    .navigationBarsPadding()
-                    .requiredHeight(52.dp),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Text("Guardar cambios")
-            }
         }
     }
 }
@@ -1263,6 +1688,100 @@ private data class SizeOption(
     val defaultMl: Int,
     val drawableName: String
 )
+
+private fun extractDiaryElaborationMethod(preparationType: String): String? {
+    if (preparationType.isBlank()) return null
+    val match = Regex("""(?:^lab:\s*|^elaboracion:\s*)([^()]+?)(?:\s*\(|$)""", RegexOption.IGNORE_CASE).find(preparationType)
+    return match?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() }
+}
+
+private fun normalizeDiaryLookupText(value: String): String {
+    val normalized = Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+    return normalized.replace("\\p{M}+".toRegex(), "").lowercase(Locale.getDefault())
+}
+
+private fun diaryPreparationDrawableName(preparationType: String): String {
+    val normalized = normalizeDiaryLookupText(preparationType)
+    return when {
+        normalized.contains("americano") -> "americano"
+        normalized.contains("capuch") -> "capuchino"
+        normalized.contains("caramelo") && normalized.contains("macchi") -> "caramel_macchiato"
+        normalized.contains("corretto") -> "corretto"
+        normalized.contains("descafe") -> "descafeinado"
+        normalized.contains("espresso") -> "espresso"
+        normalized.contains("frapp") -> "frappuccino"
+        normalized.contains("freddo") -> "freddo"
+        normalized.contains("irland") -> "irlandes"
+        normalized.contains("latte macchi") -> "latte_macchiato"
+        normalized.contains("latte") -> "latte"
+        normalized.contains("chocolate") -> "leche_con_chocolate"
+        normalized.contains("macchiato") -> "macchiato"
+        normalized.contains("marro") -> "marroqui"
+        normalized.contains("moca") -> "moca"
+        normalized.contains("romano") -> "romano"
+        normalized.contains("vien") -> "vienes"
+        else -> "maq_manual"
+    }
+}
+
+private fun diaryElaborationDrawableName(method: String): String {
+    val normalized = normalizeDiaryLookupText(method)
+    return when {
+        normalized.contains("espresso") -> "maq_espresso"
+        normalized.contains("v60") || normalized.contains("hario") -> "maq_hario_v60"
+        normalized.contains("aero") -> "maq_aeropress"
+        normalized.contains("moka") || normalized.contains("italiana") -> "maq_italiana"
+        normalized.contains("chemex") -> "maq_chemex"
+        normalized.contains("prensa") -> "maq_prensa_francesa"
+        normalized.contains("goteo") -> "maq_goteo"
+        normalized.contains("sifon") -> "maq_sifon"
+        normalized.contains("turco") -> "maq_turco"
+        else -> "maq_manual"
+    }
+}
+
+private fun diarySizeDrawableName(sizeLabel: String?, amountMl: Int): String {
+    val normalized = normalizeDiaryLookupText(sizeLabel?.takeIf { it.isNotBlank() } ?: inferSizeLabel(amountMl))
+    return when {
+        normalized.contains("espresso") -> "taza_espresso"
+        normalized.contains("pequ") -> "taza_pequeno"
+        normalized.contains("mediano") -> "taza_mediano"
+        normalized.contains("grande") -> "taza_grande"
+        normalized.contains("tazon") || normalized.contains("xl") -> "taza_xl"
+        else -> "taza_mediano"
+    }
+}
+
+@Composable
+private fun diaryDrawablePainter(drawableName: String?): Painter? {
+    if (drawableName.isNullOrBlank()) return null
+    val context = LocalContext.current
+    val drawableRes = remember(drawableName) {
+        context.resources.getIdentifier(drawableName, "drawable", context.packageName)
+    }
+    return if (drawableRes != 0) painterResource(id = drawableRes) else null
+}
+
+private fun diaryPreparationIcon(preparationType: String): ImageVector {
+    val normalized = preparationType.trim().lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("espresso") ||
+            normalized.contains("americano") ||
+            normalized.contains("capuch") ||
+            normalized.contains("latte") ||
+            normalized.contains("macchi") -> Icons.Default.CoffeeMaker
+        else -> Icons.Default.LocalCafe
+    }
+}
+
+private fun diaryElaborationIcon(method: String): ImageVector {
+    val normalized = method.trim().lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("espresso") || normalized.contains("moka") -> Icons.Default.CoffeeMaker
+        normalized.contains("prensa") -> Icons.Default.LocalCafe
+        else -> Icons.Default.Coffee
+    }
+}
 
 private fun inferSizeLabel(amountMl: Int): String = when (amountMl) {
     in 20..60 -> "Espresso"
@@ -1313,9 +1832,21 @@ private fun MetricPill(
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(painter = icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Box(
+                modifier = Modifier
+                    .height(30.dp)
+                    .width(26.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
             Column {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1339,9 +1870,16 @@ private fun MetricPillContent(
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(icon, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Box(
+                modifier = Modifier
+                    .height(30.dp)
+                    .width(26.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+            }
             Column {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1509,6 +2047,49 @@ fun ModalMenuOption(
     }
 }
 
+@Composable
+fun ModalMenuOption(
+    title: String,
+    iconPainter: Painter,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = iconPainter,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostOptionsBottomSheet(
@@ -1574,6 +2155,7 @@ fun ReviewOptionsBottomSheet(
 fun SettingsBottomSheet(
     onDismiss: () -> Unit, 
     onEditClick: () -> Unit, 
+    onDeleteAccountClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     ModalBottomSheet(
@@ -1593,13 +2175,19 @@ fun SettingsBottomSheet(
             ModalMenuOption(
                 title = "Editar Perfil",
                 icon = Icons.Default.Edit,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = { onDismiss(); onEditClick() }
+            )
+            ModalMenuOption(
+                title = "Eliminar mi cuenta y mis datos",
+                icon = Icons.Default.PersonRemove,
+                color = MaterialTheme.colorScheme.onSurface,
+                onClick = { onDismiss(); onDeleteAccountClick() }
             )
             ModalMenuOption(
                 title = "Cerrar Sesión",
                 icon = Icons.AutoMirrored.Filled.Logout,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = { onDismiss(); onLogoutClick() }
             )
         }
@@ -1823,6 +2411,10 @@ fun DeleteConfirmationDialog(
     title: String,
     text: String
 ) {
+    val isDark = isSystemInDarkTheme()
+    val cancelColor = if (isDark) Color.White else Color.Black
+    val deleteContainer = if (isDark) Color.White else ElectricRed
+    val deleteContent = if (isDark) Color.Black else Color.White
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -1858,9 +2450,9 @@ fun DeleteConfirmationDialog(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, cancelColor),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Bold)
                 }
@@ -1872,8 +2464,11 @@ fun DeleteConfirmationDialog(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(16.dp)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = deleteContainer,
+                        contentColor = deleteContent
+                    ),
+                    shape = RoundedCornerShape(999.dp)
                 ) {
                     Text("ELIMINAR", fontWeight = FontWeight.Bold)
                 }
@@ -1885,6 +2480,7 @@ fun DeleteConfirmationDialog(
 @Composable
 fun FadingLazyRow(
     modifier: Modifier = Modifier,
+    itemSpacing: Dp = 8.dp,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
 ) {
     val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -1922,7 +2518,7 @@ fun FadingLazyRow(
                     blendMode = BlendMode.DstIn
                 )
             },
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(itemSpacing),
         content = content
     )
 }

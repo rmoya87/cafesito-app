@@ -1,8 +1,9 @@
 import type { MutableRefObject } from "react";
+import { toRelativeMinutes } from "../../core/time";
 import type { CommentRow, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
-import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
+import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 
 export function CommentSheet({
   open,
@@ -25,6 +26,7 @@ export function CommentSheet({
   setShowEmojiPanel,
   mentionSuggestions,
   onMentionNavigate,
+  resolveMentionUser,
   commentImageInputRef,
   commentListRef,
   onPickImage,
@@ -56,6 +58,7 @@ export function CommentSheet({
   setShowEmojiPanel: (value: boolean) => void;
   mentionSuggestions: UserRow[];
   onMentionNavigate: (username: string) => void;
+  resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
   commentImageInputRef: MutableRefObject<HTMLInputElement | null>;
   commentListRef?: MutableRefObject<HTMLUListElement | null>;
   onPickImage: (file: File) => void;
@@ -68,6 +71,7 @@ export function CommentSheet({
   onRemoveImage: () => void;
 }) {
   if (!open) return null;
+  const canSubmitComment = commentDraft.trim().length > 0 || Boolean(commentImagePreviewUrl);
   return (
     <SheetOverlay role="dialog" aria-modal="true" aria-label="Comentarios" onDismiss={onClose} onClick={onClose}>
       <SheetCard onClick={(event) => event.stopPropagation()}>
@@ -84,7 +88,7 @@ export function CommentSheet({
                   <li key={row.id} data-comment-id={row.id} className={`sheet-item ${highlightedCommentId === row.id ? "is-highlighted" : ""}`}>
                     <div className="sheet-item-head">
                       {user?.avatar_url ? (
-                        <img className="comment-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
+                        <img className="comment-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                       ) : (
                         <div className="comment-avatar comment-avatar-fallback" aria-hidden="true">
                           {(user?.username ?? "us").slice(0, 2).toUpperCase()}
@@ -92,7 +96,7 @@ export function CommentSheet({
                       )}
                       <div className="comment-copy">
                         {user?.full_name ? <p className="comment-author-name">{user.full_name}</p> : null}
-                        <p className="comment-author">@{user?.username ?? `user${row.user_id}`}</p>
+                        <p className="comment-author comment-time">{toRelativeMinutes(row.timestamp ?? 0).toUpperCase()}</p>
                       </div>
                       {isOwnComment ? (
                         <IconButton type="button" tone="default" className="post-menu-trigger" onClick={() => onOpenMenu(row.id)}>
@@ -101,7 +105,7 @@ export function CommentSheet({
                       ) : null}
                     </div>
                     <p className="sheet-item-text">
-                      <MentionText text={row.text} onMentionClick={onMentionNavigate} />
+                      <MentionText text={row.text} onMentionClick={onMentionNavigate} resolveMentionUser={resolveMentionUser} />
                     </p>
                   </li>
                 );
@@ -111,19 +115,26 @@ export function CommentSheet({
 
         {activeMenuRow ? (
           <SheetOverlay className="comment-action-overlay" onDismiss={onCloseMenu} onClick={onCloseMenu}>
-            <SheetCard className="comment-action-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetCard className="diary-sheet diary-sheet-pantry-options comment-options-sheet" onClick={(event) => event.stopPropagation()}>
               <SheetHandle aria-hidden="true" />
-              <div className="comment-action-list">
-                <p className="comment-action-title">OPCIONES</p>
-                <Button variant="plain" type="button" className="comment-action-button" onClick={() => onMenuEdit(activeMenuRow)}>
-                  <UiIcon name="edit" className="ui-icon" />
+              <div className="diary-sheet-list">
+                <Button variant="plain"
+                  type="button"
+                  className="diary-sheet-action diary-sheet-action-pantry"
+                  onClick={() => onMenuEdit(activeMenuRow)}
+                >
+                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
                   <span>Editar</span>
-                  <UiIcon name="chevron-right" className="ui-icon trailing" />
+                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                 </Button>
-                <Button variant="plain" type="button" className="comment-action-button is-danger" onClick={() => onMenuDelete(activeMenuRow)}>
-                  <UiIcon name="trash" className="ui-icon" />
+                <Button variant="plain"
+                  type="button"
+                  className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                  onClick={() => onMenuDelete(activeMenuRow)}
+                >
+                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
                   <span>Borrar</span>
-                  <UiIcon name="chevron-right" className="ui-icon trailing" />
+                  <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                 </Button>
               </div>
             </SheetCard>
@@ -153,51 +164,27 @@ export function CommentSheet({
                 event.currentTarget.value = "";
               }}
             />
-            <div className="sheet-input-shell">
-              {showEmojiPanel ? (
-                <div className="comment-inline-panel emoji-panel">
-                  {emojis.map((emoji) => (
-                    <Button key={emoji} variant="plain" className="emoji-chip" onClick={() => setCommentDraft(`${commentDraft}${emoji}`)}>
-                      {emoji}
-                    </Button>
-                  ))}
-                </div>
-              ) : mentionSuggestions.length ? (
-                <div className="comment-inline-panel mention-suggestions">
-                  {mentionSuggestions.map((user) => (
-                    <Button
-                      key={user.id}
-                      variant="plain"
-                      className="mention-chip"
-                      onClick={() => {
-                        const parts = commentDraft.split(/\s+/);
-                        parts[parts.length - 1] = `@${user.username}`;
-                        setCommentDraft(`${parts.join(" ")} `);
-                        setShowEmojiPanel(false);
-                      }}
-                    >
-                      {user.avatar_url ? (
-                        <img className="mention-chip-avatar" src={user.avatar_url} alt={user.username} loading="lazy" />
-                      ) : (
-                        <span className="mention-chip-fallback">{user.username.slice(0, 1).toUpperCase()}</span>
-                      )}
-                      <span>@{user.username}</span>
-                    </Button>
-                  ))}
-                </div>
-              ) : null}
-              <Textarea
-                className="search-wide sheet-input"
-                placeholder="Añade un comentario..."
-                value={commentDraft}
-                rows={2}
-                onChange={(event) => {
-                  setCommentDraft(event.target.value);
-                  if (event.target.value.endsWith("@")) setShowEmojiPanel(false);
-                }}
-              />
-              <div className="sheet-composer-bottom">
-                <div className="sheet-composer-tools-inline">
+            <ComposerInputShell
+              value={commentDraft}
+              onChange={(value) => {
+                setCommentDraft(value);
+                if (value.endsWith("@")) setShowEmojiPanel(false);
+              }}
+              placeholder="Añade un comentario..."
+              rows={2}
+              showEmojiPanel={showEmojiPanel}
+              emojis={emojis}
+              onEmojiSelect={(emoji) => setCommentDraft(`${commentDraft}${emoji}`)}
+              mentionSuggestions={mentionSuggestions}
+              onInsertMention={(username) => {
+                const parts = commentDraft.split(/\s+/);
+                parts[parts.length - 1] = `@${username}`;
+                setCommentDraft(`${parts.join(" ")} `);
+                setShowEmojiPanel(false);
+              }}
+              resolveMentionUser={resolveMentionUser}
+              toolsContent={
+                <>
                   <IconButton type="button" tone="default" onClick={() => commentImageInputRef.current?.click()} aria-label="Agregar foto">
                     <UiIcon name="camera" className="ui-icon" />
                   </IconButton>
@@ -207,31 +194,42 @@ export function CommentSheet({
                   <IconButton type="button" tone="default" className={showEmojiPanel ? "is-active" : ""} onClick={() => setShowEmojiPanel(!showEmojiPanel)}>
                     <UiIcon name="smile" className="ui-icon" />
                   </IconButton>
-                </div>
-                <Button variant="plain" type="button" className="send-button" onClick={editingCommentId ? onUpdateComment : onAddComment}>
+                </>
+              }
+              actionContent={
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="send-button"
+                  disabled={!canSubmitComment}
+                  onClick={editingCommentId ? onUpdateComment : onAddComment}
+                >
                   <UiIcon name="send" className="ui-icon" />
                   {editingCommentId ? "Guardar" : "Enviar"}
                 </Button>
-              </div>
-              {commentImagePreviewUrl ? (
-                <div className="comment-image-thumb-wrap">
-                  {commentImagePreviewError ? (
-                    <div className="comment-image-thumb-fallback">{commentImageName || "Imagen seleccionada"}</div>
-                  ) : (
-                    <img
-                      className="comment-image-thumb"
-                      src={commentImagePreviewUrl}
-                      alt="Miniatura comentario"
-                      loading="lazy"
-                      onError={() => setCommentImagePreviewError(true)}
-                    />
-                  )}
-                  <Button variant="plain" className="comment-image-remove" onClick={onRemoveImage} aria-label="Quitar imagen">
-                    x
-                  </Button>
-                </div>
-              ) : null}
-            </div>
+              }
+              extraContent={
+                commentImagePreviewUrl ? (
+                  <div className="comment-image-thumb-wrap">
+                    {commentImagePreviewError ? (
+                      <div className="comment-image-thumb-fallback">{commentImageName || "Imagen seleccionada"}</div>
+                    ) : (
+                      <img
+                        className="comment-image-thumb"
+                        src={commentImagePreviewUrl}
+                        alt="Miniatura comentario"
+                        loading="lazy"
+                        decoding="async"
+                        onError={() => setCommentImagePreviewError(true)}
+                      />
+                    )}
+                    <Button variant="plain" className="comment-image-remove" onClick={onRemoveImage} aria-label="Quitar imagen">
+                      x
+                    </Button>
+                  </div>
+                ) : null
+              }
+            />
           </div>
         </div>
       </SheetCard>

@@ -51,3 +51,6 @@ webApp/src/*.js
 webApp/src/data/*.js
 webApp/src/*.bak
 webApp/tsconfig.tsbuildinfo
+
+# Supabase CLI temp
+supabase/.temp/

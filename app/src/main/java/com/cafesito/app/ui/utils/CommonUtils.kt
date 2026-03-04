@@ -5,8 +5,8 @@ import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.compose.ui.graphics.toArgb
+import com.cafesito.app.ui.theme.CaramelSoft
 import com.cafesito.app.ui.theme.EspressoDeep
-import com.cafesito.app.ui.theme.NightEspresso
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -72,7 +72,7 @@ fun openCustomTab(context: Context, url: String) {
             .build()
             
         val darkParams = CustomTabColorSchemeParams.Builder()
-            .setToolbarColor(NightEspresso.toArgb())
+            .setToolbarColor(CaramelSoft.toArgb())
             .build()
             
         val intent = CustomTabsIntent.Builder()

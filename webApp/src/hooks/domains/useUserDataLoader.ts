@@ -23,11 +23,15 @@ export function useUserDataLoader({
 }: Params): void {
   useEffect(() => {
     if (!activeUser) return;
-    (async () => {
+    let cancelled = false;
+    let notificationsInterval: number | null = null;
+
+    const loadInitialData = async () => {
       try {
         const data = await fetchUserData(activeUser.id);
         const { fetchNotifications } = await import("../../data/supabaseApi");
         const notifications = await fetchNotifications(activeUser.id);
+        if (cancelled) return;
 
         setDiaryEntries(data.diaryEntries);
         setPantryItems(data.pantryItems);
@@ -35,8 +39,36 @@ export function useUserDataLoader({
         setCustomCoffees(data.customCoffees);
         setNotifications(notifications);
       } catch (error) {
+        if (cancelled) return;
         setGlobalStatus(`Error: ${(error as Error).message}`);
       }
-    })();
+    };
+
+    const refreshNotifications = async () => {
+      try {
+        const { fetchNotifications } = await import("../../data/supabaseApi");
+        const notifications = await fetchNotifications(activeUser.id);
+        if (cancelled) return;
+        setNotifications(notifications);
+      } catch (error) {
+        if (cancelled) return;
+        console.warn("No se pudieron refrescar notificaciones:", error);
+      }
+    };
+
+    void loadInitialData();
+    notificationsInterval = window.setInterval(() => {
+      void refreshNotifications();
+    }, 5000);
+    const handleFocus = () => {
+      void refreshNotifications();
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      cancelled = true;
+      if (notificationsInterval != null) window.clearInterval(notificationsInterval);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [activeUser, setCustomCoffees, setDiaryEntries, setFavorites, setGlobalStatus, setNotifications, setPantryItems]);
 }

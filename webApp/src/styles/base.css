@@ -2,10 +2,18 @@
   box-sizing: border-box;
 }
 
+html {
+  /* iOS: no inflar fuentes en inputs ni cambiar tamaños por defecto */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  color-scheme: light dark;
+}
+
 html,
 body,
 #root {
   min-height: 100%;
+  min-height: 100dvh;
 }
 
 body {
@@ -16,7 +24,41 @@ body {
   font-weight: var(--font-weight-regular);
   letter-spacing: 0;
   background: var(--screen-dark-background);
-  color: var(--pure-white);
+  color: var(--text-main);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+/* PWA standalone: viewport estable y sin rebote de navegador */
+.pwa-standalone body {
+  min-height: 100dvh;
+}
+
+/* Enlaces: que no los pinte iOS/Safari de azul ni subrayado por defecto */
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/* iOS/Safari: no aplicar estilos nativos a controles; que use solo los nuestros */
+button,
+input,
+textarea,
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+input::-webkit-search-decoration,
+input::-webkit-search-cancel-button,
+input::-webkit-search-results-button,
+input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+select {
+  background-image: none;
 }
 
 h1,
@@ -47,6 +89,44 @@ select {
   line-height: var(--line-height-normal);
 }
 
+/* Barras de scroll: finas, fondo transparente, gris oscuro visible */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Fallback mínimo mientras se carga un chunk lazy (evita layout shift) */
+.app-content-loading {
+  min-height: 120px;
+}
+
+/* Optimización: imágenes fuera de viewport no bloquean; decoding async se añade en JSX */
+img {
+  content-visibility: auto;
+}
+
 :where(
   button,
   [role="button"],
@@ -59,4 +139,112 @@ select {
   outline: 2px solid var(--caramel-soft);
   outline-offset: 2px;
   box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* ========== iOS/Safari: que no cambie ningún estilo ya definido ========== */
+/* Respetar nuestros colores, tipografías y controles; desactivar comportamientos nativos */
+
+/* Sin resaltado nativo al tocar; sin callout de copiar/pegar por defecto en botones */
+a,
+button,
+input,
+textarea,
+select,
+[role="button"],
+[role="tab"],
+[role="option"] {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+}
+
+/* Enlaces: siempre heredar color y subrayado nuestros, nunca azul de iOS */
+a,
+a:link,
+a:visited,
+a:hover,
+a:active,
+a:focus {
+  color: inherit;
+  text-decoration: inherit;
+  -webkit-text-fill-color: inherit;
+}
+
+/* Controles de formulario: solo nuestra apariencia */
+input,
+textarea,
+select,
+button {
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+input[type="search"],
+input[type="number"],
+input[type="email"],
+input[type="tel"],
+input[type="url"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input::-webkit-search-decoration,
+input::-webkit-search-cancel-button,
+input::-webkit-search-results-button,
+input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+select {
+  background-image: none;
+}
+
+/* Sin outline nativo al tocar; nuestro outline solo en :focus-visible (teclado/accesibilidad) */
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Evitar que iOS altere bordes y sombras en inputs */
+input,
+textarea,
+select {
+  border-radius: inherit;
+  box-shadow: none;
+}
+
+/* Evitar zoom automático en inputs (iOS) manteniendo tamaño de fuente explícito en viewport */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: max(1rem, var(--font-size-md, 1rem));
+  }
+}
+
+/* PWA: banner "Sin conexión" cuando navigator.onLine es false */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top, 0px));
+  background: #424242;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.offline-banner-text {
+  display: block;
 }

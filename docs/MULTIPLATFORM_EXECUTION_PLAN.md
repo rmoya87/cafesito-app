@@ -1,5 +1,8 @@
 # Cafesito — Plan de ejecución multiplataforma (Android + iOS + Web)
 
+**Estado:** vigente (plan de referencia).  
+**Última actualización:** 2026-03-04  
+
 ## 1) Decisión web final
 
 **Recomendación: Opción B (React + Vite PWA + Supabase JS)**.

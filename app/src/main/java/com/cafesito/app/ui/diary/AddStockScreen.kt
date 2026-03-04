@@ -41,6 +41,7 @@ fun AddStockScreen(
     onBackClick: () -> Unit,
     onAddCustomClick: () -> Unit,
     onSuccess: () -> Unit,
+    onSuccessWithCoffeeId: ((String) -> Unit)? = null,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val coffees by viewModel.availableCoffees.collectAsState()
@@ -140,11 +141,13 @@ fun AddStockScreen(
                 
                 Button(
                     onClick = {
+                        val coffeeId = selectedCoffeeId!!
                         val g = grams.toIntOrNull() ?: 250
                         isSaving = true
-                        viewModel.addToPantry(selectedCoffeeId!!, g) {
+                        viewModel.addToPantry(coffeeId, g) {
                             isSaving = false
                             selectedCoffeeId = null
+                            onSuccessWithCoffeeId?.invoke(coffeeId)
                             onSuccess()
                         }
                     }, 
@@ -188,7 +191,7 @@ fun AddStockScreen(
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(stringResource(R.string.add_stock_search_placeholder)) },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(999.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedContainerColor = if (isDark) Color.Black else Color.White,

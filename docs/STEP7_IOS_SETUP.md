@@ -1,5 +1,8 @@
 # Paso 7 — Proyecto iOS (SwiftUI) + Shared via Swift Package Manager (SPM)
 
+**Estado:** vigente (referencia).  
+**Última actualización:** 2026-03-04  
+
 ## Elección de integración: SPM con XCFramework local
 Elegí SPM para mantener el flujo moderno de Xcode y evitar dependencias adicionales. El módulo `shared` genera un `Shared.xcframework` que se consume como **binary target** mediante un `Package.swift` local.  
 

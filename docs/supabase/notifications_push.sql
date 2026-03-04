@@ -1,4 +1,4 @@
--- ==========================================================
+﻿-- ==========================================================
 -- PUSH NOTIFICATIONS (FCM) - CAFESITO APP
 -- ==========================================================
 -- Ejecuta este script en el SQL Editor de Supabase.
@@ -12,9 +12,9 @@
 --   https://<PROJECT_REF>.functions.supabase.co/send-notification
 --
 -- IMPORTANTE:
--- - Usa una key REAL del proyecto (anon o service_role).
--- - Para evitar el 401 "Missing authorization header", envía
---   ambos headers y usa la clave en formato Bearer.
+-- - Usa una key REAL del proyecto (preferible service_role).
+-- - Usa SIEMPRE header Authorization en formato Bearer.
+-- - Con pg_net actual, body debe enviarse como jsonb (no text).
 -- ==========================================================
 
 create or replace function public.notify_fcm_on_notification()
@@ -24,20 +24,20 @@ security definer
 set search_path = public
 as $$
 declare
-    response json;
+    request_id bigint;
 begin
-    response := (
-        select net.http_post(
-            url := 'https://<PROJECT_REF>.functions.supabase.co/send-notification'::text,
-            headers := jsonb_build_object(
-                'Content-Type', 'application/json',
-                'apikey', '<SUPABASE_ANON_OR_SERVICE_ROLE_KEY>',
-                'authorization', 'Bearer <SUPABASE_ANON_OR_SERVICE_ROLE_KEY>'
-            ),
-            body := json_build_object(
-                'record', row_to_json(NEW)
-            )::text
-        )
+    request_id := net.http_post(
+        url := 'https://<PROJECT_REF>.functions.supabase.co/send-notification',
+        body := jsonb_build_object(
+            'record', to_jsonb(NEW)
+        ),
+        params := '{}'::jsonb,
+        headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'apikey', '<SUPABASE_SERVICE_ROLE_KEY>',
+            'Authorization', 'Bearer <SUPABASE_SERVICE_ROLE_KEY>'
+        ),
+        timeout_milliseconds := 10000
     );
 
     return NEW;

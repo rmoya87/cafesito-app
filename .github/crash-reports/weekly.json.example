@@ -1,0 +1,8 @@
+[
+  {
+    "title": "NullPointerException en LoginScreen",
+    "stackTrace": "java.lang.NullPointerException: Attempt to invoke virtual method 'void X.onClick()' on a null object reference\n\tat com.cafesito.app.ui.access.LoginScreenKt$LoginScreen$1.invoke(LoginScreen.kt:42)\n\tat com.cafesito.app.ui.access.LoginScreenKt$LoginScreen$1.invoke(LoginScreen.kt:38)",
+    "file": "app/src/main/java/com/cafesito/app/ui/access/LoginScreen.kt",
+    "count": 15
+  }
+]

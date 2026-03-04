@@ -30,6 +30,8 @@ class CommentsViewModel @Inject constructor(
 
     val activeUser = userRepository.getActiveUserFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val allUsers: StateFlow<List<UserEntity>> = userRepository.getAllUsersFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val mentionSuggestions: StateFlow<List<UserEntity>> = _mentionQuery

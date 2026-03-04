@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.access
 
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.view.ViewGroup
@@ -7,6 +8,7 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,8 +17,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -48,7 +53,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.cafesito.app.ui.theme.CaramelAccent
+import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.platform.HapticSignal
 import com.cafesito.app.platform.rememberNativeHaptics
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -190,7 +195,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 if (isLoading) {
-                    CircularProgressIndicator(color = CaramelAccent)
+                    CircularProgressIndicator(color = LocalCaramelAccent.current)
                 } else {
                     Button(
                         onClick = {
@@ -297,7 +302,32 @@ fun LoginScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(stringResource(R.string.login_terms_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center)
+                val legalBase = stringResource(R.string.legal_url_base)
+                val termsAnnotated = buildAnnotatedString {
+                    append("Al continuar, aceptas nuestra ")
+                    pushStringAnnotation("url", "$legalBase/privacidad.html")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_privacidad)) }
+                    pop()
+                    append(", las ")
+                    pushStringAnnotation("url", "$legalBase/condiciones.html")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_condiciones)) }
+                    pop()
+                    append(" y ")
+                    pushStringAnnotation("url", "$legalBase/eliminacion-cuenta.html")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_eliminacion)) }
+                    pop()
+                    append(".")
+                }
+                ClickableText(
+                    text = termsAnnotated,
+                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { offset: Int ->
+                        termsAnnotated.getStringAnnotations("url", offset, offset + 1).firstOrNull()?.let { range ->
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(range.item)))
+                        }
+                    }
+                )
             }
         }
     }

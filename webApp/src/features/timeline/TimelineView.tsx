@@ -1,8 +1,35 @@
 import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
+
+function SuggestionAvatar({
+  avatarUrl,
+  username
+}: {
+  avatarUrl: string | null | undefined;
+  username: string;
+}) {
+  const [loadFailed, setLoadFailed] = useState(false);
+  if (!avatarUrl || loadFailed) {
+    return <div className="avatar mini-avatar-fallback">{username.slice(0, 2).toUpperCase()}</div>;
+  }
+  return (
+    <img
+      className="mini-avatar"
+      src={avatarUrl}
+      alt={username}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      crossOrigin="anonymous"
+      onError={() => setLoadFailed(true)}
+    />
+  );
+}
+
 export function TimelineView({
   mode,
   cards,
@@ -22,6 +49,7 @@ export function TimelineView({
   onDeletePost,
   onRefresh,
   onMentionClick,
+  resolveMentionUser,
   onOpenUserProfile,
   onOpenCoffee,
   sidePanel
@@ -44,11 +72,14 @@ export function TimelineView({
   onDeletePost: (postId: string) => Promise<void>;
   onRefresh: () => Promise<void>;
   onMentionClick: (username: string) => void;
+  resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
   onOpenUserProfile: (userId: number) => void;
   onOpenCoffee: (coffeeId: string) => void;
   sidePanel?: ReactNode;
 }) {
   const [menuPostId, setMenuPostId] = useState<string | null>(null);
+  const [deletePostConfirmId, setDeletePostConfirmId] = useState<string | null>(null);
+  const [deletingPost, setDeletingPost] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [editingImageUrl, setEditingImageUrl] = useState("");
@@ -168,10 +199,10 @@ export function TimelineView({
             className="mini-card mini-coffee-card mini-coffee-link"
             onClick={() => onOpenCoffee(coffee.id)}
           >
-            {coffee.image_url ? <img className="mini-cover" src={coffee.image_url} alt={coffee.nombre} loading="lazy" /> : null}
+            {coffee.image_url ? <img className="mini-cover" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
             <p className="coffee-origin">{coffee.pais_origen ?? "Origen"}</p>
             <p className="feed-user">{coffee.nombre}</p>
-            <p className="coffee-sub">{coffee.marca}</p>
+            <p className="coffee-sub">{(coffee.marca || "").toUpperCase()}</p>
           </Button>
         ))}
       </div>
@@ -188,15 +219,15 @@ export function TimelineView({
           return (
             <article key={user.id} className={`mini-card mini-user-card ${isDismissing ? "is-removing" : ""}`.trim()}>
               <Button variant="plain" type="button" className="mini-user-link" onClick={() => onOpenUserProfile(user.id)}>
-                {user.avatar_url ? <img className="mini-avatar" src={user.avatar_url} alt={user.username} loading="lazy" /> : <div className="avatar mini-avatar-fallback">{user.username.slice(0, 2).toUpperCase()}</div>}
+                <SuggestionAvatar avatarUrl={user.avatar_url} username={user.username} />
                 <div className="mini-user-copy">
                   <p className="feed-user">{user.full_name}</p>
                   <p className="feed-meta">@{user.username}</p>
                   <p className="coffee-sub">{followerCounts.get(user.id) ?? 0} seguidores</p>
                 </div>
               </Button>
-              <Button variant="primary"
-                className={`action-button ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
+              <Button variant="plain"
+                className={`action-button search-users-follow ${followingIds.has(user.id) ? "action-button-following" : ""}`}
                 disabled={isPendingFollow}
                 onClick={async () => {
                   if (isPendingFollow) return;
@@ -304,7 +335,7 @@ export function TimelineView({
                   onClick={() => onOpenUserProfile(card.userId)}
                 >
                   {card.avatarUrl ? (
-                    <img className="avatar avatar-photo" src={card.avatarUrl} alt={card.username} loading="lazy" />
+                    <img className="avatar avatar-photo" src={card.avatarUrl} alt={card.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   ) : (
                     <div className="avatar" aria-hidden="true">
                       {card.userName
@@ -334,17 +365,17 @@ export function TimelineView({
 
               {card.text ? (
                 <p className="feed-text">
-                  <MentionText text={card.text} onMentionClick={onMentionClick} />
+                  <MentionText text={card.text} onMentionClick={onMentionClick} resolveMentionUser={resolveMentionUser} />
                 </p>
               ) : null}
 
-              {card.imageUrl ? <img className={`feed-image ${card.text ? "" : "feed-image-no-text"}`.trim()} src={card.imageUrl} alt="Publicacion" loading="lazy" /> : null}
+              {card.imageUrl ? <img className={`feed-image ${card.text ? "" : "feed-image-no-text"}`.trim()} src={card.imageUrl} alt="Publicacion" loading="lazy" decoding="async" /> : null}
 
               {card.coffeeTagName ? (
                 <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => card.coffeeId && onOpenCoffee(card.coffeeId)} disabled={!card.coffeeId}>
                   <div className="coffee-tag-card-media">
                     {card.coffeeImageUrl ? (
-                      <img className="coffee-tag-image" src={card.coffeeImageUrl} alt={card.coffeeTagName} loading="lazy" />
+                      <img className="coffee-tag-image" src={card.coffeeImageUrl} alt={card.coffeeTagName} loading="lazy" decoding="async" />
                     ) : (
                       <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
                         <UiIcon name="coffee" className="ui-icon" />
@@ -408,54 +439,94 @@ export function TimelineView({
           <p>Publica tu primer cafe o sigue a mas personas.</p>
         </article>
       )}
-      {activeMenuPost ? (
-        <SheetOverlay className="comment-action-overlay" onDismiss={() => setMenuPostId(null)} onClick={() => setMenuPostId(null)}>
-          <SheetCard className="comment-action-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <div className="comment-action-list">
-              <p className="comment-action-title">OPCIONES</p>
-              <Button variant="plain"
-                className="comment-action-button"
-                onClick={() => {
-                  setEditingPostId(activeMenuPost.id);
-                  setEditingText(activeMenuPost.text);
-                  const initialImage = activeMenuPost.imageUrl ?? "";
-                  setEditingImageUrl(initialImage);
-                  setEditingImageFile(null);
-                  setEditingImagePreviewUrl(initialImage);
-                  setMenuPostId(null);
-                }}
-              >
-                <UiIcon name="edit" className="ui-icon" />
-                <span>Editar</span>
-                <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </Button>
-              <Button variant="plain"
-                className="comment-action-button is-danger"
-                onClick={async () => {
-                  const confirmed = window.confirm("Borrar post definitivamente?");
-                  if (!confirmed) return;
-                  await onDeletePost(activeMenuPost.id);
-                  setMenuPostId(null);
-                }}
-              >
-                <UiIcon name="trash" className="ui-icon" />
-                <span>Borrar</span>
-                <UiIcon name="chevron-right" className="ui-icon trailing" />
-              </Button>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-      {editingPostId ? (
-        <SheetOverlay
-          role="dialog"
-          aria-modal="true"
-          aria-label="Editar publicacion"
-          onDismiss={closeEditModal}
-          onClick={closeEditModal}
-        >
-          <SheetCard onClick={(event) => event.stopPropagation()}>
+      {activeMenuPost && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setMenuPostId(null)} onClick={() => setMenuPostId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-pantry-options profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-sheet-list">
+                  <Button variant="plain"
+                    className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                    onClick={() => {
+                      setDeletePostConfirmId(activeMenuPost.id);
+                      setMenuPostId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
+                    <span>Borrar</span>
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                  </Button>
+                  <Button variant="plain"
+                    className="diary-sheet-action diary-sheet-action-pantry"
+                    onClick={() => {
+                      setEditingPostId(activeMenuPost.id);
+                      setEditingText(activeMenuPost.text);
+                      const initialImage = activeMenuPost.imageUrl ?? "";
+                      setEditingImageUrl(initialImage);
+                      setEditingImageFile(null);
+                      setEditingImagePreviewUrl(initialImage);
+                      setMenuPostId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
+                    <span>Editar</span>
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                  </Button>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {deletePostConfirmId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-delete-confirm-body">
+                  <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
+                  <p className="diary-delete-confirm-text">
+                    ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
+                  </p>
+                  <div className="diary-delete-confirm-actions">
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setDeletePostConfirmId(null)} disabled={deletingPost}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-delete-confirm-submit"
+                      disabled={deletingPost}
+                      onClick={async () => {
+                        if (deletingPost) return;
+                        setDeletingPost(true);
+                        try {
+                          await onDeletePost(deletePostConfirmId);
+                          setDeletePostConfirmId(null);
+                        } finally {
+                          setDeletingPost(false);
+                        }
+                      }}
+                    >
+                      {deletingPost ? "Eliminando..." : "Eliminar"}
+                    </Button>
+                  </div>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {editingPostId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay
+              role="dialog"
+              aria-modal="true"
+              aria-label="Editar publicacion"
+              onDismiss={closeEditModal}
+              onClick={closeEditModal}
+            >
+              <SheetCard onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <div className="create-post-body edit-post-sheet">
               <h3 className="edit-post-title">Editar</h3>
@@ -479,7 +550,7 @@ export function TimelineView({
                 onClick={() => editImageInputRef.current?.click()}
               >
                 {editingImagePreviewUrl.trim() ? (
-                  <img className="create-post-preview" src={editingImagePreviewUrl.trim()} alt="Previsualizacion" loading="lazy" />
+                  <img className="create-post-preview" src={editingImagePreviewUrl.trim()} alt="Previsualizacion" loading="lazy" decoding="async" />
                 ) : (
                   <span className="edit-image-placeholder">Seleccionar imagen</span>
                 )}
@@ -511,8 +582,10 @@ export function TimelineView({
               </div>
             </div>
           </SheetCard>
-        </SheetOverlay>
-      ) : null}
+        </SheetOverlay>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

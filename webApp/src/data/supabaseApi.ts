@@ -33,37 +33,133 @@ function throwIfError(error: SupabaseErrorLike): void {
   if (error) throw new Error(error.message);
 }
 
-export async function fetchInitialData(): Promise<InitialDataBundle> {
+function extractMentionUsernames(text: string): string[] {
+  const mentionRegex = /@([A-Za-z0-9._-]{2,30})/g;
+  const seen = new Set<string>();
+  const usernames: string[] = [];
+  for (const match of text.matchAll(mentionRegex)) {
+    const username = String(match[1] ?? "").trim();
+    if (!username) continue;
+    const key = username.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    usernames.push(username);
+  }
+  return usernames;
+}
+
+async function createTimelineNotification(payload: {
+  userId: number;
+  type: "MENTION" | "COMMENT" | "FOLLOW";
+  fromUsername: string;
+  message: string;
+  relatedId?: string | null;
+}): Promise<void> {
   const supabase = getSupabaseClient();
-  const usersReq = supabase.from("users_db").select("id,username,full_name,avatar_url,email,bio").limit(80);
+  const rpc = await supabase.rpc("create_notification", {
+    p_user_id: payload.userId,
+    p_type: payload.type,
+    p_from_username: payload.fromUsername,
+    p_message: payload.message,
+    p_timestamp: Date.now(),
+    p_related_id: payload.relatedId ?? null
+  });
+  if (!rpc.error) return;
+
+  const fallback = await supabase.from("notifications_db").insert({
+    user_id: payload.userId,
+    type: payload.type,
+    from_username: payload.fromUsername,
+    message: payload.message,
+    timestamp: Date.now(),
+    is_read: false,
+    related_id: payload.relatedId ?? null
+  });
+  throwIfError(fallback.error);
+}
+
+async function notifyMentionsForText(params: {
+  text: string;
+  authorId: number;
+  authorUsername: string;
+  relatedId: string;
+  mentionMessage: string;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  const usernames = extractMentionUsernames(params.text).filter(
+    (username) => username.toLowerCase() !== params.authorUsername.toLowerCase()
+  );
+  if (!usernames.length) return;
+
+  for (const username of usernames) {
+    const { data, error } = await supabase
+      .from("users_db")
+      .select("id,username")
+      .ilike("username", username)
+      .limit(1)
+      .maybeSingle<{ id: number; username: string }>();
+
+    if (error || !data) continue;
+    if (Number(data.id) === params.authorId) continue;
+    try {
+      await createTimelineNotification({
+        userId: Number(data.id),
+        type: "MENTION",
+        fromUsername: params.authorUsername,
+        message: params.mentionMessage,
+        relatedId: params.relatedId
+      });
+    } catch (notifyError) {
+      console.warn("No se pudo crear notificación de mención", notifyError);
+    }
+  }
+}
+
+// Cache en memoria para reducir Cached Egress (TTL 90s)
+const INITIAL_DATA_CACHE_TTL_MS = 90 * 1000;
+let cachedInitialData: InitialDataBundle | null = null;
+let cachedInitialDataAt = 0;
+
+export async function fetchInitialData(forceRefresh = false): Promise<InitialDataBundle> {
+  const now = Date.now();
+  if (
+    !forceRefresh &&
+    cachedInitialData !== null &&
+    now - cachedInitialDataAt < INITIAL_DATA_CACHE_TTL_MS
+  ) {
+    return cachedInitialData;
+  }
+
+  const supabase = getSupabaseClient();
+  const usersReq = supabase.from("users_db").select("id,username,full_name,avatar_url,email,bio").limit(1500);
   const coffeesReq = supabase
     .from("coffees")
     .select(
-      "id,nombre,marca,pais_origen,descripcion,proceso,variedad_tipo,molienda_recomendada,product_url,cafeina,aroma,sabor,cuerpo,acidez,dulzura,especialidad,tueste,formato,image_url"
+      "id,nombre,marca,pais_origen,codigo_barras,descripcion,proceso,variedad_tipo,molienda_recomendada,product_url,cafeina,aroma,sabor,cuerpo,acidez,dulzura,especialidad,tueste,formato,image_url"
     )
     .order("nombre", { ascending: true })
-    .limit(3000);
+    .limit(2000);
   const reviewsReq = supabase
     .from("reviews_db")
     .select("id,coffee_id,user_id,rating,comment,image_url,timestamp")
-    .limit(6000);
+    .limit(3000);
   const sensoryReq = supabase
     .from("coffee_sensory_profiles")
     .select("coffee_id,user_id,aroma,sabor,cuerpo,acidez,dulzura,updated_at")
-    .limit(6000);
+    .limit(3000);
   const postsReq = supabase
     .from("posts_db")
     .select("id,user_id,image_url,comment,timestamp")
     .order("timestamp", { ascending: false })
     .limit(120);
-  const likesReq = supabase.from("likes_db").select("post_id,user_id").limit(3000);
+  const likesReq = supabase.from("likes_db").select("post_id,user_id").limit(2000);
   const commentsReq = supabase
     .from("comments_db")
     .select("id,post_id,user_id,text,timestamp")
     .order("timestamp", { ascending: false })
-    .limit(3000);
-  const tagsReq = supabase.from("post_coffee_tags").select("post_id,coffee_id,coffee_name,coffee_brand").limit(1000);
-  const followsReq = supabase.from("follows").select("follower_id,followed_id,created_at").limit(3000);
+    .limit(2000);
+  const tagsReq = supabase.from("post_coffee_tags").select("post_id,coffee_id,coffee_name,coffee_brand").limit(500);
+  const followsReq = supabase.from("follows").select("follower_id,followed_id,created_at").limit(2000);
 
   const [usersRes, coffeesRes, reviewsRes, sensoryRes, postsRes, likesRes, commentsRes, tagsRes, followsRes] = await Promise.all([
     usersReq,
@@ -89,7 +185,7 @@ export async function fetchInitialData(): Promise<InitialDataBundle> {
     followsRes.error
   );
 
-  return mapInitialDataBundle({
+  const bundle = mapInitialDataBundle({
     users: (usersRes.data ?? []) as InitialDataBundle["users"],
     coffees: (coffeesRes.data ?? []) as InitialDataBundle["coffees"],
     reviews: (reviewsRes.data ?? []) as InitialDataBundle["reviews"],
@@ -100,6 +196,9 @@ export async function fetchInitialData(): Promise<InitialDataBundle> {
     postCoffeeTags: (tagsRes.data ?? []) as InitialDataBundle["postCoffeeTags"],
     follows: (followsRes.data ?? []) as InitialDataBundle["follows"]
   });
+  cachedInitialData = bundle;
+  cachedInitialDataAt = Date.now();
+  return bundle;
 }
 
 export async function fetchUserData(userId: number): Promise<UserDataBundle> {
@@ -178,7 +277,31 @@ export async function createComment(postId: string, userId: number, text: string
     .single();
 
   throwIfError(error);
-  return mapCommentRow(data);
+  const row = mapCommentRow(data);
+
+  // Web no tenía pipeline de menciones en comentarios; lo resolvemos aquí.
+  const { data: author } = await supabase
+    .from("users_db")
+    .select("username")
+    .eq("id", userId)
+    .limit(1)
+    .maybeSingle<{ username: string }>();
+  const authorUsername = String(author?.username ?? "").trim();
+  if (authorUsername) {
+    try {
+      await notifyMentionsForText({
+        text,
+        authorId: userId,
+        authorUsername,
+        relatedId: `${postId}:${row.id}`,
+        mentionMessage: text
+      });
+    } catch (notifyError) {
+      console.warn("No se pudieron procesar menciones del comentario", notifyError);
+    }
+  }
+
+  return row;
 }
 
 export async function toggleFollow(
@@ -204,6 +327,28 @@ export async function toggleFollow(
   };
   const { error } = await supabase.from("follows").insert(payload);
   throwIfError(error);
+  if (followerId !== followedId) {
+    try {
+      const { data: follower } = await supabase
+        .from("users_db")
+        .select("username")
+        .eq("id", followerId)
+        .limit(1)
+        .maybeSingle<{ username: string }>();
+      const fromUsername = String(follower?.username ?? "").trim();
+      if (fromUsername) {
+        await createTimelineNotification({
+          userId: followedId,
+          type: "FOLLOW",
+          fromUsername,
+          message: "ha empezado a seguirte",
+          relatedId: String(followerId)
+        });
+      }
+    } catch (notifyError) {
+      console.warn("No se pudo crear notificación de seguimiento", notifyError);
+    }
+  }
   return payload;
 }
 
@@ -256,7 +401,9 @@ export async function createPost(
   imageUrl: string
 ): Promise<PostRow> {
   const supabase = getSupabaseClient();
+  const id = crypto.randomUUID();
   const payload = {
+    id,
     user_id: userId,
     comment: text,
     image_url: imageUrl,
@@ -268,7 +415,31 @@ export async function createPost(
     .select("id,user_id,image_url,comment,timestamp")
     .single();
   throwIfError(error);
-  return mapPostRow(data);
+  const post = mapPostRow(data);
+
+  // Web no enviaba notificaciones por mención en posts.
+  const { data: author } = await supabase
+    .from("users_db")
+    .select("username")
+    .eq("id", userId)
+    .limit(1)
+    .maybeSingle<{ username: string }>();
+  const authorUsername = String(author?.username ?? "").trim();
+  if (authorUsername) {
+    try {
+      await notifyMentionsForText({
+        text,
+        authorId: userId,
+        authorUsername,
+        relatedId: `${post.id}:-1`,
+        mentionMessage: "te ha mencionado"
+      });
+    } catch (notifyError) {
+      console.warn("No se pudieron procesar menciones del post", notifyError);
+    }
+  }
+
+  return post;
 }
 
 export async function addPostCoffeeTag(tag: PostCoffeeTagRow): Promise<void> {
@@ -308,7 +479,11 @@ export async function toggleFavoriteCoffee(
     coffee_id: coffeeId,
     saved_at: Date.now()
   };
-  const { error } = await supabase.from("local_favorites").upsert(payload, { onConflict: "user_id,coffee_id" });
+  // No dependemos de una constraint UNIQUE en (user_id, coffee_id):
+  // limpiamos posibles duplicados y luego insertamos una fila fresca.
+  const { error: cleanupError } = await supabase.from("local_favorites").delete().eq("user_id", userId).eq("coffee_id", coffeeId);
+  throwIfError(cleanupError);
+  const { error } = await supabase.from("local_favorites").insert(payload);
   throwIfError(error);
   return payload;
 }
@@ -489,12 +664,14 @@ export async function updateDiaryEntry(payload: {
   caffeineMg: number;
   amountMl: number;
   preparationType: string;
+  timestampMs?: number;
 }): Promise<DiaryEntryRow> {
   const supabase = getSupabaseClient();
   const row = {
     caffeine_mg: Math.max(0, Math.round(payload.caffeineMg)),
     amount_ml: Math.max(1, Math.round(payload.amountMl)),
-    preparation_type: payload.preparationType.trim() || "None"
+    preparation_type: payload.preparationType.trim() || "None",
+    ...(Number.isFinite(payload.timestampMs) ? { timestamp: Number(payload.timestampMs) } : {})
   };
   const { data, error } = await supabase
     .from("diary_entries")
@@ -542,6 +719,95 @@ export async function deleteNotification(notificationId: number): Promise<void> 
   const supabase = getSupabaseClient();
   const { error } = await supabase.from("notifications_db").delete().eq("id", notificationId);
   throwIfError(error);
+}
+
+const ACCOUNT_DELETION_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
+const ACCOUNT_STATUS_PENDING = "inactive_pending_deletion";
+const ACCOUNT_STATUS_ACTIVE = "active";
+
+type AccountLifecycleRow = {
+  account_status?: string | null;
+  scheduled_deletion_at?: number | null;
+};
+
+export async function requestAccountDeletion(userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const now = Date.now();
+  const scheduled = now + ACCOUNT_DELETION_GRACE_MS;
+  const { error } = await supabase
+    .from("users_db")
+    .update({
+      account_status: ACCOUNT_STATUS_PENDING,
+      deactivation_requested_at: now,
+      scheduled_deletion_at: scheduled
+    })
+    .eq("id", userId);
+  throwIfError(error);
+}
+
+async function reactivateAccount(userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("users_db")
+    .update({
+      account_status: ACCOUNT_STATUS_ACTIVE,
+      deactivation_requested_at: null,
+      scheduled_deletion_at: null
+    })
+    .eq("id", userId);
+  throwIfError(error);
+}
+
+async function hardDeleteAccountData(userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { data: postsRows } = await supabase.from("posts_db").select("id").eq("user_id", userId);
+  const postIds = ((postsRows ?? []) as Array<{ id?: string | null }>).map((row) => row.id).filter(Boolean) as string[];
+
+  if (postIds.length) {
+    const { error: tagsError } = await supabase.from("post_coffee_tags").delete().in("post_id", postIds);
+    throwIfError(tagsError);
+  }
+
+  const results = await Promise.all([
+    supabase.from("comments_db").delete().eq("user_id", userId),
+    supabase.from("likes_db").delete().eq("user_id", userId),
+    supabase.from("local_favorites").delete().eq("user_id", userId),
+    supabase.from("reviews_db").delete().eq("user_id", userId),
+    supabase.from("coffee_sensory_profiles").delete().eq("user_id", userId),
+    supabase.from("diary_entries").delete().eq("user_id", userId),
+    supabase.from("pantry_items").delete().eq("user_id", userId),
+    supabase.from("notifications_db").delete().eq("user_id", userId),
+    supabase.from("follows").delete().eq("follower_id", userId),
+    supabase.from("follows").delete().eq("followed_id", userId),
+    supabase.from("posts_db").delete().eq("user_id", userId),
+    supabase.from("users_db").delete().eq("id", userId)
+  ]);
+
+  results.forEach((result) => throwIfError(result.error as SupabaseErrorLike));
+}
+
+export async function syncAccountLifecycleAfterLogin(
+  userId: number
+): Promise<"none" | "reactivated" | "deleted"> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("users_db")
+    .select("account_status,scheduled_deletion_at")
+    .eq("id", userId)
+    .single<AccountLifecycleRow>();
+  throwIfError(error);
+
+  const status = String(data?.account_status ?? "");
+  const scheduled = Number(data?.scheduled_deletion_at ?? 0);
+  if (status !== ACCOUNT_STATUS_PENDING) return "none";
+
+  if (Number.isFinite(scheduled) && scheduled > 0 && scheduled <= Date.now()) {
+    await hardDeleteAccountData(userId);
+    return "deleted";
+  }
+
+  await reactivateAccount(userId);
+  return "reactivated";
 }
 
 

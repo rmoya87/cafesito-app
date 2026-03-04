@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
-import { buildRoute, parseRoute, toCoffeeSlug } from "../../core/routing";
+import { buildRoute, getAppRootPath, parseRoute, toCoffeeSlug } from "../../core/routing";
 import { canNavigateToTab } from "../../core/guards";
+import { normalizeLookupText } from "../../core/text";
 import type { CoffeeRow, TabId, UserRow } from "../../types";
 
 export function useAppNavigationDomain({
@@ -59,10 +60,12 @@ export function useAppNavigationDomain({
       if (tab === "search") setSearchMode(nextSearchMode);
       if (tab === "profile") setProfileUsername(nextProfileUsername ?? null);
 
-      const nextPath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null);
-      if (window.location.pathname === nextPath) return;
+      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null);
+      const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
+      const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
+      if (window.location.pathname === fullPath) return;
       const method = options?.replace ? "replaceState" : "pushState";
-      window.history[method]({}, "", `${nextPath}${window.location.search}${window.location.hash}`);
+      window.history[method]({}, "", `${fullPath}${window.location.search}${window.location.hash}`);
     },
     [isAuthenticated, onRequireAuth, profileUsername, searchMode, setActiveTab, setProfileUsername, setSearchMode, users]
   );
@@ -80,14 +83,20 @@ export function useAppNavigationDomain({
           setDetailCoffeeId(null);
         } else {
           const counts = new Map<string, number>();
+          const nameCounts = new Map<string, number>();
           const sorted = [...coffees].sort((a, b) => {
             const nameCmp = a.nombre.localeCompare(b.nombre);
             if (nameCmp !== 0) return nameCmp;
             return a.id.localeCompare(b.id);
           });
+          sorted.forEach((item) => {
+            const key = normalizeLookupText(item.nombre);
+            nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+          });
           let found: string | null = null;
           for (const item of sorted) {
-            const base = toCoffeeSlug(item.nombre);
+            const hasDuplicatedName = (nameCounts.get(normalizeLookupText(item.nombre)) ?? 0) > 1;
+            const base = toCoffeeSlug(item.nombre, item.marca, hasDuplicatedName);
             const count = (counts.get(base) ?? 0) + 1;
             counts.set(base, count);
             const slug = count > 1 ? `${base}-${count}` : base;

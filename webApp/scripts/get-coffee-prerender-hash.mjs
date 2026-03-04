@@ -45,7 +45,13 @@ async function main() {
     return;
   }
   const coffees = await res.json();
-  const payload = JSON.stringify(coffees.map((c) => [c.id, c.nombre, c.marca]));
+  const rows = coffees.map((c) => [c.id, c.nombre, c.marca]);
+  rows.sort((a, b) => {
+    const idCmp = String(a[0]).localeCompare(String(b[0]), "en", { numeric: true });
+    if (idCmp !== 0) return idCmp;
+    return String(a[1] ?? "").localeCompare(String(b[1] ?? ""));
+  });
+  const payload = JSON.stringify(rows);
   const hash = crypto.createHash("sha256").update(payload).digest("hex").slice(0, 16);
   console.log(hash);
 }
