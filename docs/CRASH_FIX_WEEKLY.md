@@ -1,5 +1,9 @@
 # Revisión y resolución de crashes (manual, desde Cursor)
 
+**Estado:** vigente  
+**Última actualización:** 2026-03-04  
+**Runbook:** ver índice en `docs/runbooks/README.md`.
+
 No hay automatización con Git ni con OpenAI. Tú das la orden desde aquí (Cursor), la IA revisa los crashes y aplica los cambios en tu repo local, y **tú subes a Git cuando decidas**.
 
 ## Flujo

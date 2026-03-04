@@ -1,22 +1,23 @@
 # Workflow único: release Android (Play Console) y publicación webapp (Ionos) según rama.
 # Todo el release/deploy (Android + webapp) se hace desde aquí; no hay otro workflow de deploy.
 #
+# --- TRIGGERS (por qué puede ejecutarse "solo") ---
+# 1) push a Interna/Alpha/Beta/Producción → tú (o alguien) hace push a esa rama.
+# 2) workflow_dispatch → alguien pulsa "Run workflow" en Actions.
+# 3) repository_dispatch (supabase-coffees-changed) → SE EJECUTA SIN PUSH cuando:
+#    En Supabase está configurado un Database Webhook en la tabla coffees (Insert/Update/Delete)
+#    que llama a la Edge Function trigger-coffees-build. Esa función llama a la API de GitHub
+#    y dispara este workflow. Cualquier alta/edición/baja de un café en Supabase (desde la app,
+#    el dashboard o cualquier cliente) activa el webhook y hace que el workflow corra.
+#    Si no quieres que se ejecute solo por cambios en cafés: desactiva o elimina ese webhook
+#    en Supabase Dashboard → Database → Webhooks (tabla public.coffees).
+#
 # RAMAS Y COMPORTAMIENTO
 # - main: no se dispara (solo unificación de código).
 # - Interna: si hay cambios en app/ o shared/ → sube AAB a Play Console (pruebas internas).
-# - Alpha: si hay cambios en app/ o shared/ → sube AAB a Play; publica webApp en Ionos (/cafesito-web/app/).
-# - Beta: si hay cambios en app/ o shared/ → sube AAB a Play; publica webApp en Ionos (/cafesito-web/app/).
-# - Producción: si hay cambios en app/ o shared/ → sube AAB a Play; publica webApp en Ionos (/cafesito-web/app/).
+# - Alpha/Beta/Producción: si hay cambios en app/ o shared/ → sube AAB a Play; publica webApp en Ionos.
 #
-# Webapp: los datos (cafés, etc.) se leen de Supabase en tiempo real; no hace falta desplegar por contenido.
-# Este workflow solo publica el build y los HTML estáticos por café (SEO/previews). Esos HTMLs se regeneran
-# cuando el webhook de Supabase (tabla coffees → Edge Function trigger-coffees-build → repository_dispatch)
-# dispara este workflow, o cuando hay push a Alpha/Beta/Producción (código nuevo). Configurar el webhook para
-# que altas/bajas de cafés actualicen SEO sin tocar Git.
-#
-# EJECUCIÓN MANUAL (Actions → Release & Deploy → Run workflow)
-# Permite forzar release Android + publicación web sin hacer push: elige la rama y se ejecutan ambos jobs.
-#
+# EJECUCIÓN MANUAL: Actions → Release & Deploy → Run workflow (elige rama).
 # Ver documentación en docs/RELEASE_DEPLOY_WORKFLOW.md
 
 name: Release & Deploy

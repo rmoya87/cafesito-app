@@ -1,5 +1,8 @@
 # Paso 6 — SwiftUI bridge de ejemplo (Search)
 
+**Estado:** vigente (referencia).  
+**Última actualización:** 2026-03-04  
+
 ```swift
 import Combine
 import shared

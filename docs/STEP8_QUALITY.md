@@ -1,5 +1,8 @@
 # Paso 8 — Batería final de calidad
 
+**Estado:** vigente (referencia).  
+**Última actualización:** 2026-03-04  
+
 ## Objetivo
 Validar que el código compartido y Android siguen funcionando con un set completo de pruebas y checks locales reproducibles.
 

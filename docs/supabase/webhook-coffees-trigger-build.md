@@ -1,8 +1,40 @@
-# Webhook: cambios en cafés → disparar build y deploy web
+# Deploy web: prerender de cafés, SEO y webhook
 
-Cuando se **crea**, **actualiza** o **elimina** un café en Supabase, puedes disparar automáticamente el workflow de GitHub Actions para regenerar las páginas estáticas y desplegar de nuevo la web.
+**Estado:** vigente  
+**Última actualización:** 2026-03-04  
+**Ámbito:** WebApp (Ionos), prerender, SEO, actualizar web sin Git.
 
-## Comportamiento
+Documento único para: comportamiento del prerender, requisitos en el servidor, y cómo disparar el build/deploy cuando cambian los cafés en Supabase (sin push a Git).
+
+---
+
+## Actualizar la web sin Git (altas/bajas/edición de cafés)
+
+Los workflows generan **HTML estáticos por café** (prerender con caché) para SEO y previews. Para que un alta, baja o edición de café en Supabase actualice la web **sin hacer push a Git**:
+
+1. **Configura en Supabase** un Database Webhook en la tabla `coffees` (Insert, Update, Delete) que llame a la Edge Function `trigger-coffees-build`.
+2. Esa Edge Function hace `repository_dispatch` a GitHub con la rama elegida (ej. Beta o Alpha).
+3. Se ejecuta el workflow **Release & Deploy** en esa rama: build, obtiene la lista de cafés, detecta cache miss si cambió, regenera HTMLs y despliega.
+
+Ver sección **Cómo disparar el workflow desde Supabase** más abajo para el detalle.
+
+---
+
+## Comportamiento del prerender
+
+- En cada deploy se calcula un **hash de la lista de cafés** en Supabase. Si ese hash (y el código de la webapp) no cambió, se reutiliza la caché de `dist/coffee` y solo se actualizan sitemap/robots. Si cambió, se ejecuta el prerender completo.
+- Las rutas `/coffee/slug/` tienen HTML estático con `<title>`, meta description, og:image y JSON-LD para SEO y previews en redes.
+- El servidor (Ionos) debe tener **SPA fallback** para rutas sin HTML estático (ej. `/profile/usuario`): devolver `index.html` cuando no exista archivo.
+
+**Requisitos en el servidor (Ionos):**
+
+- **Nginx:** `try_files $uri $uri/ /index.html;` (ajustar ruta base si aplica).
+- **Apache:** `FallbackResource /index.html`.
+- **Panel Ionos:** Si hay "Página 404" o "Rutas no encontradas", apuntarla a `index.html`.
+
+---
+
+## Comportamiento por evento (crear/eliminar café)
 
 - **Crear café:** el siguiente deploy regenera el prerender e incluye la nueva página en `dist/coffee/<slug>/index.html`.
 - **Eliminar café:** el siguiente deploy ya no genera esa página; la carpeta desaparece. Si alguien entra en la URL antigua, la app carga (SPA) y **redirige al buscador** (`/search`).

@@ -2,7 +2,7 @@
 
 Estado: `vivo`  
 Versión: `0.1.0`  
-Última actualización: `2026-02-26`  
+Última actualización: `2026-03-04`  
 Propietario técnico: `Arquitectura de Plataforma`  
 Ámbito: `Android + iOS + WebApp + /shared + Supabase + CI/CD + Operación`
 
@@ -2020,10 +2020,17 @@ Para garantizar que la WebApp y Android se comportan igual ante cambios en `/sha
 ## 6.4 Documentación Viva: Fuente de la Verdad
 
 ### 6.4.1 Estructura de `/docs`
-*   `/docs/adr/`: Architectural Decision Records (ADRs).
-*   `/docs/api/`: Contratos de API y esquemas de base de datos.
-*   `/docs/runbooks/`: Guías de resolución de incidentes específicos.
-*   `/docs/ux/`: Tokens, guías de estilo y componentes.
+**Índice y gobernanza:** `/docs/README.md` — índice de toda la documentación, principio de documento vivo, reglas para evitar incompatibilidades y reducir tasa de errores.
+
+**Estructura actual:**
+*   `/docs/` (raíz): Documento Maestro (este archivo), flujos de release/deploy, planes, guías (DEVELOPMENT_WORKFLOW_AI_CURSOR, CRASH_FIX_WEEKLY, STEPs, etc.).
+*   `/docs/commit-notes/`: Notas de commit por despliegue (trazabilidad).
+*   `/docs/supabase/`: SQL (RLS, triggers, migrations), Edge Functions, runbooks de Supabase, webhooks.
+*   `/docs/runbooks/`: Índice de runbooks; ver `runbooks/README.md`. Runbooks concretos en raíz (ej. CRASH_FIX_WEEKLY) o en `supabase/` según ámbito.
+*   `/docs/adr/`, `/docs/api/`, `/docs/ux/`: Previstos para ADRs, contratos de API y tokens/UX; crear cuando se añadan documentos de ese tipo.
+*   `/docs/DEVELOPMENT_WORKFLOW_AI_CURSOR.md`: Flujo de desarrollo con IA (Cursor): consultar docs antes de código y avisar antes de modificar documentación. Ver 6.4.3.
+
+**WebApp:** `/webApp/docs/` — documentación específica de la web (ej. auditoría de accesibilidad).
 
 ### 6.4.2 Mantenimiento de este Documento
 Este documento **NO es estático**. Debe actualizarse cuando:
@@ -2037,6 +2044,19 @@ Este documento **NO es estático**. Debe actualizarse cuando:
 *   `MAJOR`: Cambio estructural de arquitectura.
 *   `MINOR`: Nueva sección o actualización de fase.
 *   `PATCH`: Corrección de erratas o aclaraciones.
+
+### 6.4.3 Desarrollo asistido (Cursor / IA)
+Cuando se usa Cursor (u otro agente de IA) para escribir o modificar código:
+*   **Consultar docs antes de código:** El agente debe revisar `docs/` y `webApp/docs/` según el ámbito del cambio y usar esa documentación como fuente de verdad antes de implementar.
+*   **No modificar docs sin avisar:** Si la implementación requiere cambiar o ampliar documentación (este documento, guías en `docs/`, `webApp/docs/`), el agente debe indicar al usuario qué archivos habría que actualizar y por qué, y esperar confirmación antes de aplicar cambios en los docs.
+
+Regla de Cursor que aplica este flujo: `.cursor/rules/docs-before-code.mdc` (`alwaysApply: true`). Detalle de flujos de acciones: **`docs/DEVELOPMENT_WORKFLOW_AI_CURSOR.md`**.
+
+### 6.4.4 Documento vivo: evitar incompatibilidades y reducir errores
+*   **Una sola fuente de verdad por tema:** no duplicar contenido; enlazar al doc canónico (ej. flujo de release: `RELEASE_DEPLOY_WORKFLOW.md`). Si otro doc contradice, actualizar o marcar como obsoleto con enlace al vigente.
+*   **Cabecera en documentos:** incluir al menos Estado y Última actualización para saber si el doc está vigente.
+*   **Runbooks:** tras resolver un incidente con cambios permanentes, crear o actualizar runbook (causas raíz, cambios aplicados) y registrarlo en `docs/runbooks/README.md`.
+*   **Índice:** usar `docs/README.md` como punto de entrada; mantener el índice al añadir o mover documentos.
 
 ---
 

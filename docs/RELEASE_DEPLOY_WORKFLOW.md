@@ -1,11 +1,24 @@
 # Workflow Release & Deploy
 
+**Estado:** vivo  
+**Última actualización:** 2026-03-04  
+**Fuente de verdad:** comportamiento por rama y despliegue (Android + Web).
+
 Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que gestiona el release de Android en Google Play y el despliegue de la web en Ionos según la rama.
 
 ## Cuándo se ejecuta
 
 - **Push** a las ramas: `Interna`, `Alpha`, `Beta`, `Producción` (no a `main`).
 - **Ejecución manual**: Actions → **Release & Deploy** → **Run workflow** → elegir rama.
+- **Repository dispatch (Supabase):** el workflow también se dispara por el evento `supabase-coffees-changed`, que envía la Edge Function `trigger-coffees-build` cuando en Supabase está configurado un **Database Webhook** en la tabla `coffees` (Insert, Update, Delete). En ese caso el workflow se ejecuta **sin que hagas push**: cualquier alta, edición o baja de un café (desde la app, el dashboard de Supabase o cualquier cliente que escriba en esa tabla) activa el webhook y hace que se ejecute el job de deploy web (regenerar HTML estáticos y publicar en Ionos).
+
+### Si no quieres que se ejecute solo por cambios en cafés
+
+- Entra en **Supabase Dashboard → Database → Webhooks**.
+- Busca un webhook asociado a la tabla **`public.coffees`** que llame a la Edge Function **`trigger-coffees-build`**.
+- **Desactívalo** o **elimínalo**. A partir de ahí el workflow solo se ejecutará con push a las ramas de release o con "Run workflow" manual.
+
+Si lo dejas activo, es normal que el workflow corra cada vez que alguien (o algo) cree, edite o borre un café en Supabase.
 
 ## Comportamiento por rama
 
@@ -53,9 +66,20 @@ En **Settings → Secrets and variables → Actions**:
 ### Android / Play
 
 - `GOOGLE_PLAY_JSON` – JSON del Service Account de Play.
-- `ANDROID_KEYSTORE_BASE64` – Keystore en base64.
+- `ANDROID_KEYSTORE_BASE64` – Keystore en base64 (ver abajo).
 - `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
 - `GOOGLE_SERVICES_JSON` – Contenido de `google-services.json`.
+
+**Configuración en Google Play Console (una vez):**
+
+1. Google Play Console → **Configuración → Acceso a API**.
+2. Crear **Service Account** desde el enlace a Google Cloud.
+3. En Google Cloud, crear una **Key** tipo JSON para el Service Account.
+4. En Play Console, **otorgar permisos** al Service Account (ej. Release Manager).
+
+**Keystore en base64:** `base64 -w 0 your-release.keystore` (o en PowerShell: codificar el binario). Pegar como una sola línea sin espacios ni saltos.
+
+**Notas (Android):** El workflow sube el release en estado **draft** para revisión manual en Play Console. Añade mensaje promocional `whatsnew-es-ES`. El commit de bump de versión usa `[skip ci]` para evitar loops.
 
 ### Web (Ionos, SFTP)
 

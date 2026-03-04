@@ -1,5 +1,5 @@
 ---
-description: 
+description: Consultar docs antes de codificar; avisar antes de modificar documentación
 alwaysApply: true
 ---
 
@@ -10,6 +10,7 @@ alwaysApply: true
 Antes de escribir o modificar código:
 
 1. **Revisa** la documentación relevante en:
+   - `docs/README.md` (índice y estructura; punto de entrada).
    - `docs/` (raíz del proyecto)
    - `webApp/docs/` (si el cambio afecta a la web app)
 

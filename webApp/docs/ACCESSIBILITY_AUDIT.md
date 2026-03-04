@@ -1,5 +1,8 @@
 # WebApp Accessibility Audit (2026-02-26)
 
+**Estado:** vigente (referencia).  
+**Última actualización:** 2026-02-26  
+
 ## Scope
 - Timeline
 - Search
