@@ -19,10 +19,11 @@ input {
   }
 }
 
-/* iOS/navegador: fondo inferior transparente (safe area) como en otras webs */
+/* iOS/navegador: body con mismo fondo que la app para que la franja bajo el menú
+   (safe area) no se vea negra; el layout sigue sin extenderse ahí para no tapar el menú */
 @media (max-width: 899px) {
   body {
-    background: transparent;
+    background: var(--screen-dark-background);
   }
   .layout {
     min-height: calc(100dvh - env(safe-area-inset-bottom, 0px));
@@ -30,6 +31,9 @@ input {
   }
 }
 @media (max-width: 899px) and (prefers-color-scheme: light) {
+  body {
+    background: var(--screen-light-background);
+  }
   .layout {
     background: var(--screen-light-background);
   }
@@ -8717,6 +8721,12 @@ input {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Iconos que deben verse rellenos (p. ej. campana de notificaciones) */
+.ui-icon.ui-icon-fill {
+  fill: currentColor;
+  stroke: none;
 }
 
 .material-symbol-icon {

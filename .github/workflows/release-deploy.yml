@@ -37,6 +37,11 @@ on:
         required: false
         default: false
         type: boolean
+      web_only:
+        description: 'Solo webapp (no desplegar Android)'
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: '0 3 * * *'
 
@@ -64,13 +69,18 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         id: scope
         run: |
-          echo "android=true" >> "$GITHUB_OUTPUT"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.android_only }}" = "true" ]; then
-            echo "web=false" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ] && { [ "${{ github.ref_name }}" = "Interna" ] || [ "${{ github.ref_name }}" = "Interno" ]; }; then
-            echo "web=false" >> "$GITHUB_OUTPUT"
-          else
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.web_only }}" = "true" ]; then
+            echo "android=false" >> "$GITHUB_OUTPUT"
             echo "web=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "android=true" >> "$GITHUB_OUTPUT"
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.android_only }}" = "true" ]; then
+              echo "web=false" >> "$GITHUB_OUTPUT"
+            elif [ "${{ github.event_name }}" = "push" ] && { [ "${{ github.ref_name }}" = "Interna" ] || [ "${{ github.ref_name }}" = "Interno" ]; }; then
+              echo "web=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "web=true" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
       - name: Decide nightly deploy scope from Supabase queue
