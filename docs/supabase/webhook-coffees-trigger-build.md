@@ -23,7 +23,8 @@ La Edge Function `trigger-coffees-build` se mantiene por compatibilidad con webh
 
 ## Comportamiento del prerender
 
-- En cada deploy se calcula un **hash de la lista de cafés** en Supabase. Si ese hash (y el código de la webapp) no cambió, se reutiliza la caché de `dist/coffee` y solo se actualizan sitemap/robots. Si cambió, se ejecuta el prerender completo.
+- En deploy manual/push de ramas no se regeneran páginas de cafés.
+- En el deploy nocturno se procesa la cola y se regeneran solo los HTML de cafés afectados (altas/modificaciones) y se eliminan las rutas de bajas.
 - Las rutas `/coffee/slug/` tienen HTML estático con `<title>`, meta description, og:image y JSON-LD para SEO y previews en redes.
 - El servidor (Ionos) debe tener **SPA fallback** para rutas sin HTML estático (ej. `/profile/usuario`): devolver `index.html` cuando no exista archivo.
 
