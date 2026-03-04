@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +20,10 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -303,30 +306,31 @@ fun LoginScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 val legalBase = stringResource(R.string.legal_url_base)
+                val linkStyle = TextLinkStyles(style = SpanStyle(color = MaterialTheme.colorScheme.primary))
+                val linkInteractionListener = LinkInteractionListener { link ->
+                    if (link is LinkAnnotation.Url) {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
+                    }
+                }
                 val termsAnnotated = buildAnnotatedString {
                     append("Al continuar, aceptas nuestra ")
-                    pushStringAnnotation("url", "$legalBase/privacidad.html")
-                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_privacidad)) }
-                    pop()
+                    withLink(LinkAnnotation.Url("$legalBase/privacidad.html", linkStyle, linkInteractionListener)) {
+                        append(stringResource(R.string.login_legal_privacidad))
+                    }
                     append(", las ")
-                    pushStringAnnotation("url", "$legalBase/condiciones.html")
-                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_condiciones)) }
-                    pop()
+                    withLink(LinkAnnotation.Url("$legalBase/condiciones.html", linkStyle, linkInteractionListener)) {
+                        append(stringResource(R.string.login_legal_condiciones))
+                    }
                     append(" y ")
-                    pushStringAnnotation("url", "$legalBase/eliminacion-cuenta.html")
-                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(stringResource(R.string.login_legal_eliminacion)) }
-                    pop()
+                    withLink(LinkAnnotation.Url("$legalBase/eliminacion-cuenta.html", linkStyle, linkInteractionListener)) {
+                        append(stringResource(R.string.login_legal_eliminacion))
+                    }
                     append(".")
                 }
-                ClickableText(
+                Text(
                     text = termsAnnotated,
                     style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { offset: Int ->
-                        termsAnnotated.getStringAnnotations("url", offset, offset + 1).firstOrNull()?.let { range ->
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(range.item)))
-                        }
-                    }
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

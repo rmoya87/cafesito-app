@@ -1,62 +1,66 @@
 // Edge Function: trigger-coffees-build
-// Invocada por Database Webhook en la tabla public.coffees (Insert, Update, Delete).
-// Dispara el workflow de GitHub Actions para regenerar páginas estáticas y desplegar la web.
-//
-// Secrets en Supabase Edge Function:
-// - GITHUB_PAT: token con repo (o workflow)
-// - GITHUB_REPO: "owner/repo"
+// Webhook de cafes: registra eventos (INSERT/UPDATE/DELETE) para consumo nocturno.
+// No dispara deploy inmediato; el workflow nocturno consume esta cola.
 
-const GITHUB_API = "https://api.github.com";
-const EVENT_TYPE = "supabase-coffees-changed";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
+
 const DEFAULT_BRANCH = "Beta";
+const supabaseUrl = Deno.env.get("SUPABASE_URL");
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 Deno.serve(async (req: Request) => {
-  const pat = Deno.env.get("GITHUB_PAT");
-  const repo = Deno.env.get("GITHUB_REPO");
+  let branch = Deno.env.get("NIGHTLY_DEPLOY_BRANCH") || DEFAULT_BRANCH;
+  let operation = "UNKNOWN";
+  let payload: Record<string, unknown> = {};
 
-  if (!pat || !repo) {
-    console.error("Missing GITHUB_PAT or GITHUB_REPO");
-    return new Response(
-      JSON.stringify({ error: "Server misconfiguration" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  let branch = DEFAULT_BRANCH;
   try {
-    const body = await req.json().catch(() => ({}));
-    if (body?.payload?.branch) {
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    payload = body;
+    operation = String(
+      (body as Record<string, unknown>)?.type ??
+      (body as Record<string, unknown>)?.eventType ??
+      "UNKNOWN"
+    ).toUpperCase();
+    if (body?.payload?.branch && typeof body.payload.branch === "string") {
       branch = body.payload.branch;
     }
   } catch {
-    // ignore
+    // ignore malformed payload
   }
 
-  const url = `${GITHUB_API}/repos/${repo}/dispatches`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `token ${pat}`,
-      Accept: "application/vnd.github.v3+json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      event_type: EVENT_TYPE,
-      client_payload: { branch },
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("GitHub API error:", res.status, text);
-    return new Response(
-      JSON.stringify({ error: "Failed to trigger workflow", details: text }),
-      { status: 502, headers: { "Content-Type": "application/json" } }
-    );
+  let queued = false;
+  let queueError: string | null = null;
+  if (supabaseUrl && supabaseServiceKey) {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const { error } = await supabase.from("deploy_change_events").insert({
+        resource: "coffees",
+        operation,
+        payload,
+      });
+      if (error) {
+        queueError = error.message;
+      } else {
+        queued = true;
+      }
+    } catch (e) {
+      queueError = String(e);
+    }
+  } else {
+    queueError = "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY";
   }
 
   return new Response(
-    JSON.stringify({ ok: true, branch }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
+    JSON.stringify({
+      ok: true,
+      mode: "scheduled",
+      message: "Evento en cola para deploy nocturno.",
+      branch,
+      resource: "coffees",
+      operation,
+      queued,
+      queueError,
+    }),
+    { status: 202, headers: { "Content-Type": "application/json" } }
   );
 });

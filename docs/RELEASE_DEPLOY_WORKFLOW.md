@@ -8,17 +8,17 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 
 ## Cuándo se ejecuta
 
-- **Push** a las ramas: `Interna`, `Alpha`, `Beta`, `Producción` (no a `main`).
-- **Ejecución manual**: Actions → **Release & Deploy** → **Run workflow** → elegir rama.
-- **Repository dispatch (Supabase):** el workflow también se dispara por el evento `supabase-coffees-changed`, que envía la Edge Function `trigger-coffees-build` cuando en Supabase está configurado un **Database Webhook** en la tabla `coffees` (Insert, Update, Delete). En ese caso el workflow se ejecuta **sin que hagas push**: cualquier alta, edición o baja de un café (desde la app, el dashboard de Supabase o cualquier cliente que escriba en esa tabla) activa el webhook y hace que se ejecute el job de deploy web (regenerar HTML estáticos y publicar en Ionos).
+- **Programado**: todos los días a las **03:00 UTC** (equivale a las **04:00** en España peninsular en invierno).
+- El workflow ya no se dispara por `push`, ni por ejecución manual (`workflow_dispatch`), ni por `repository_dispatch` de Supabase.
+- La rama objetivo del deploy nocturno se define con la variable de repositorio `NIGHTLY_DEPLOY_BRANCH` (por defecto: `Beta`).
 
 ### Si no quieres que se ejecute solo por cambios en cafés
 
 - Entra en **Supabase Dashboard → Database → Webhooks**.
 - Busca un webhook asociado a la tabla **`public.coffees`** que llame a la Edge Function **`trigger-coffees-build`**.
-- **Desactívalo** o **elimínalo**. A partir de ahí el workflow solo se ejecutará con push a las ramas de release o con "Run workflow" manual.
+- **Opcional:** puedes dejarlo activo por trazabilidad, pero ya no lanza despliegues inmediatos.
 
-Si lo dejas activo, es normal que el workflow corra cada vez que alguien (o algo) cree, edite o borre un café en Supabase.
+Si lo dejas activo, la función responderá en modo diferido y el despliegue se aplicará en la ventana nocturna.
 
 ## Comportamiento por rama
 
@@ -30,34 +30,23 @@ Si lo dejas activo, es normal que el workflow corra cada vez que alguien (o algo
 | **Beta**    | Solo si hay cambios en `app/` o `shared/` → pruebas abiertas | **Siempre** → `/cafesito-web/app/` |
 | **Producción** | Solo si hay cambios en `app/` o `shared/` → producción | **Siempre** → `/cafesito-web/app/` |
 
-- **Android**: no se sube por subir; solo se construye y se publica en Play cuando el push incluye cambios en `app/` o `shared/`.
-- **Web**: en Alpha, Beta y Producción el job de deploy web **siempre** se ejecuta y sube el build de `webApp` al servidor Ionos en la ruta `/cafesito-web/app/`.
+- **Android**: se construye y publica dentro de la ventana nocturna programada.
+- **Web**: en Alpha, Beta y Producción el job de deploy web se ejecuta en la misma ventana nocturna y sube el build de `webApp` a `/cafesito-web/app/`.
 
 ## Jobs del workflow
 
 1. **changes**  
-   Detecta si en el push hay cambios en:
-   - `app/` o `shared/` → para decidir si se ejecuta release Android.
-   - `webApp/` → se sigue calculando pero ya no condiciona el deploy web en Beta/Producción (siempre se despliega).
+   Marca despliegue nocturno completo (`android=true`, `web=true`).
 
 2. **release-android**  
-   - Condición: rama en `Interna` / `Alpha` / `Beta` / `Producción` y cambios en `app/` o `shared/`.
+   - Condición: rama en `Interna` / `Alpha` / `Beta` / `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
    - Configura keystore y `google-services.json`, hace bump de versión, build del AAB y subida a la pista de Play correspondiente.
    - Sube también los **símbolos nativos** (`debugSymbols`) generados por el build para que Play Console pueda mostrar ANR y crashes de forma legible.
    - Las **notas de la versión** (What’s new) se generan de forma automática: se basan en la última versión anterior (último tag o último push), son promocionales y pensadas para el usuario que disfruta la app y el café, sin tecnicismos.
 
 3. **deploy-web**  
-   - Condición: rama `Alpha`, `Beta` o `Producción`.
+   - Condición: rama `Alpha`, `Beta` o `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
    - Ejecuta `npm ci`, `npm test`, `npm run build` en `webApp` y sube el contenido de `webApp/dist/` por **SFTP** (SSH) a Ionos en `/cafesito-web/app/`.
-
-## Forzar release sin push
-
-Si quieres desplegar el estado actual de una rama sin tocar código:
-
-1. Ve a **Actions** → **Release & Deploy**.
-2. Pulsa **Run workflow**.
-3. Elige la rama (Interna, Alpha, Beta, Producción).
-4. En ejecución manual se asume que hay “cambios”, así que se ejecutan **release-android** y **deploy-web** (según la rama).
 
 ## Secretos necesarios
 
@@ -101,7 +90,7 @@ No hay workflow automático. Los crashes se revisan y resuelven **desde Cursor**
 - **main**: no hace nada.
 - **Interna / Alpha**: solo release Android si cambian `app/` o `shared/`.
 - **Alpha / Beta / Producción**: release Android si cambian `app/` o `shared/`; **deploy web siempre** a Ionos `/cafesito-web/app/`.
-- Para forzar todo: **Run workflow** manual con la rama elegida.
+- Para cambiar la rama nocturna, ajusta `NIGHTLY_DEPLOY_BRANCH` en Variables de GitHub Actions.
 
 ## Registro de cambios de despliegue
 
