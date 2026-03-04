@@ -15,6 +15,7 @@ Los workflows generan **HTML estáticos por café** (prerender con caché) para 
 1. El workflow **Release & Deploy** se ejecuta cada día a las **03:00 UTC** (04:00 en España peninsular en invierno).
 2. La rama objetivo se define con `NIGHTLY_DEPLOY_BRANCH` (por defecto `Beta`).
 3. Los cambios en Supabase se publican en ese siguiente ciclo nocturno.
+4. Solo se despliega si hay pendientes en la cola `deploy_change_events` (altas/modificaciones/bajas de cafés).
 
 La Edge Function `trigger-coffees-build` se mantiene por compatibilidad con webhooks, pero ya no dispara `repository_dispatch` inmediato.
 
@@ -48,14 +49,20 @@ La Edge Function `trigger-coffees-build` se mantiene por compatibilidad con webh
    - Events: **Insert**, **Update**, **Delete**
    - Type: **Supabase Edge Functions**
    - Function: `trigger-coffees-build`
-3. No necesitas configurar `GITHUB_PAT` ni `GITHUB_REPO` para despliegue inmediato.
-4. Opcionalmente, puedes enviar `payload.branch` para trazabilidad; el deploy efectivo seguirá siendo nocturno.
+3. La función `trigger-coffees-build` registra cada evento en `public.deploy_change_events`.
+4. Despliega también la función `consume-deploy-changes` (la usa GitHub Actions a las 04:00 para decidir si hay deploy web).
+5. No necesitas configurar `GITHUB_PAT` ni `GITHUB_REPO` para despliegue inmediato.
 
 ### Opción 2: Configurar rama nocturna
 
 Si quieres cambiar la rama que se despliega por la noche, define en GitHub Actions Variables:
 
 - `NIGHTLY_DEPLOY_BRANCH=Alpha` (o `Beta`, `Producción`, `Interna`).
+
+Y en GitHub Actions Secrets:
+
+- `SUPABASE_DEPLOY_QUEUE_URL`: URL pública de `consume-deploy-changes`.
+- `SUPABASE_DEPLOY_QUEUE_TOKEN`: token compartido (debe coincidir con `DEPLOY_GATE_TOKEN` en esa Edge Function).
 
 ## Redirección cuando el café ya no existe
 

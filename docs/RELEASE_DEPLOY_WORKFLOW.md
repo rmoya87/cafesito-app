@@ -36,7 +36,9 @@ Si lo dejas activo, la función responderá en modo diferido y el despliegue se 
 ## Jobs del workflow
 
 1. **changes**  
-   Marca despliegue nocturno completo (`android=true`, `web=true`).
+   Consulta `consume-deploy-changes` en Supabase y decide:
+   - `web=true` solo si hay pendientes en `deploy_change_events`.
+   - `android=false` por defecto (evita releases diarios de Play sin cambios).
 
 2. **release-android**  
    - Condición: rama en `Interna` / `Alpha` / `Beta` / `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
@@ -80,6 +82,11 @@ El deploy usa **SFTP** (no FTP); Ionos suele ofrecer acceso por SSH/SFTP.
 - `IONOS_SSH_PORT` – Puerto (opcional; por defecto 22).
 
 El deploy web sube a la ruta remota **`/cafesito-web/app/`**.
+
+### Cola de cambios Supabase (deploy nocturno)
+
+- `SUPABASE_DEPLOY_QUEUE_URL` – URL de la Edge Function `consume-deploy-changes`.
+- `SUPABASE_DEPLOY_QUEUE_TOKEN` – token compartido para proteger esa función (cabecera `x-deploy-token`).
 
 ### Revisión de crashes (manual, desde Cursor)
 
