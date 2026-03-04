@@ -1,17 +1,41 @@
 # Workflow único: release Android (Play Console) y publicación webapp (Ionos) según rama.
-# Todo el release/deploy (Android + webapp) se hace desde aquí; no hay otro workflow de deploy.
 #
-# --- TRIGGER ---
-# Solo ejecución programada por cron: 03:00 UTC (04:00 en España peninsular en invierno).
-# No hay ejecución por push, workflow_dispatch ni repository_dispatch.
-#
-# RAMA OBJETIVO
-# - Se toma de `vars.NIGHTLY_DEPLOY_BRANCH` (por defecto: Beta).
-# Ver documentación en docs/RELEASE_DEPLOY_WORKFLOW.md
+# --- TRIGGERS ---
+# 1) push a Interna/Alpha/Beta/Producción → despliega Android (+ web en Alpha/Beta/Producción).
+# 2) workflow_dispatch → "Run workflow" en Actions (elige rama y "solo Android" si quieres).
+# 3) schedule (cron 03:00 UTC) → nightly: solo web si hay cola en Supabase; Android no se publica en nightly.
+# Ver docs/RELEASE_DEPLOY_WORKFLOW.md
 
 name: Release & Deploy
 
 on:
+  push:
+    branches:
+      - Interna
+      - Interno
+      - Alpha
+      - alpha
+      - Beta
+      - beta
+      - Producción
+      - Produccion
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Rama a usar (Interna, Alpha, Beta, Producción)'
+        required: true
+        default: 'Beta'
+        type: choice
+        options:
+          - Interna
+          - Alpha
+          - Beta
+          - Producción
+      android_only:
+        description: 'Solo Android (no desplegar webapp)'
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: '0 3 * * *'
 
@@ -20,35 +44,45 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: release-deploy-${{ vars.NIGHTLY_DEPLOY_BRANCH || 'Beta' }}
+  group: release-deploy-${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'Beta' }}
   cancel-in-progress: true
 
 env:
-  TARGET_BRANCH: ${{ vars.NIGHTLY_DEPLOY_BRANCH || 'Beta' }}
+  TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'Beta' }}
 
 jobs:
-  # Decide si hay cambios de cafes pendientes en Supabase para desplegar web.
   changes:
     runs-on: ubuntu-latest
     outputs:
-      android: ${{ steps.decide.outputs.android }}
-      web: ${{ steps.decide.outputs.web }}
+      android: ${{ steps.scope.outputs.android || steps.decide.outputs.android }}
+      web: ${{ steps.scope.outputs.web || steps.decide.outputs.web }}
     steps:
+      - name: Set scope for push or manual run
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        id: scope
+        run: |
+          echo "android=true" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.android_only }}" = "true" ]; then
+            echo "web=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ] && { [ "${{ github.ref_name }}" = "Interna" ] || [ "${{ github.ref_name }}" = "Interno" ]; }; then
+            echo "web=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Decide nightly deploy scope from Supabase queue
+        if: github.event_name == 'schedule'
         id: decide
         env:
           SUPABASE_DEPLOY_QUEUE_URL: ${{ secrets.SUPABASE_DEPLOY_QUEUE_URL }}
           SUPABASE_DEPLOY_QUEUE_TOKEN: ${{ secrets.SUPABASE_DEPLOY_QUEUE_TOKEN }}
         run: |
-          # Por defecto no publicamos Android en la ventana nocturna.
           echo "android=false" >> "$GITHUB_OUTPUT"
-
           if [[ -z "${SUPABASE_DEPLOY_QUEUE_URL}" ]]; then
             echo "::warning::Falta SUPABASE_DEPLOY_QUEUE_URL; se mantiene deploy web para no perder actualizaciones."
             echo "web=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
           BODY='{"resource":"coffees","consume":true}'
           if [[ -n "${SUPABASE_DEPLOY_QUEUE_TOKEN}" ]]; then
             RESPONSE=$(curl -fsS -X POST "${SUPABASE_DEPLOY_QUEUE_URL}" \
@@ -60,11 +94,9 @@ jobs:
               -H "content-type: application/json" \
               -d "${BODY}")
           fi
-
           PENDING=$(printf '%s' "${RESPONSE}" | python3 -c "import sys, json; print(str(bool(json.load(sys.stdin).get('pending', False))).lower())")
           TOTAL=$(printf '%s' "${RESPONSE}" | python3 -c "import sys, json; print(int(json.load(sys.stdin).get('total', 0)))")
           echo "Supabase queue pending=${PENDING}, total=${TOTAL}"
-
           if [[ "${PENDING}" == "true" ]]; then
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
@@ -76,7 +108,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.android == 'true' &&
-      (contains(fromJSON('["Interna","Alpha","alpha","Beta","beta","Producción"]'), env.TARGET_BRANCH))
+      (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), env.TARGET_BRANCH))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -163,7 +195,7 @@ jobs:
           BRANCH="${TARGET_BRANCH}"
           TRACK=""
           case "${BRANCH}" in
-            Interna)
+            Interna|Interno)
               TRACK="internal"
               ;;
             Alpha|alpha)
@@ -172,7 +204,7 @@ jobs:
             Beta|beta)
               TRACK="beta"
               ;;
-            Producción)
+            Producción|Produccion)
               TRACK="production"
               ;;
             *)
@@ -259,7 +291,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.web == 'true' &&
-      contains(fromJSON('["Alpha","alpha","Beta","beta","Producción"]'), env.TARGET_BRANCH)
+      contains(fromJSON('["Alpha","alpha","Beta","beta","Producción","Produccion"]'), env.TARGET_BRANCH)
     runs-on: ubuntu-latest
     defaults:
       run:
