@@ -2,3 +2,6 @@ project_id = "ubcxjmagimjhpsehqync"
 
 [functions.trigger-coffees-build]
 verify_jwt = false
+
+[functions.consume-deploy-changes]
+verify_jwt = false

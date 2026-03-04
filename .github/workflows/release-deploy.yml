@@ -58,6 +58,7 @@ jobs:
     outputs:
       android: ${{ steps.scope.outputs.android || steps.decide.outputs.android }}
       web: ${{ steps.scope.outputs.web || steps.decide.outputs.web }}
+      queue_response: ${{ steps.decide.outputs.queue_response || '' }}
     steps:
       - name: Set scope for push or manual run
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -83,6 +84,7 @@ jobs:
           if [[ -z "${SUPABASE_DEPLOY_QUEUE_URL}" ]]; then
             echo "::warning::Falta SUPABASE_DEPLOY_QUEUE_URL; se mantiene deploy web para no perder actualizaciones."
             echo "web=true" >> "$GITHUB_OUTPUT"
+            echo "queue_response=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           BODY='{"resource":"coffees","consume":true}'
@@ -98,6 +100,8 @@ jobs:
           fi
           PENDING=$(printf '%s' "${RESPONSE}" | python3 -c "import sys, json; print(str(bool(json.load(sys.stdin).get('pending', False))).lower())")
           TOTAL=$(printf '%s' "${RESPONSE}" | python3 -c "import sys, json; print(int(json.load(sys.stdin).get('total', 0)))")
+          ENCODED=$(printf '%s' "${RESPONSE}" | base64 -w 0)
+          echo "queue_response=${ENCODED}" >> "$GITHUB_OUTPUT"
           echo "Supabase queue pending=${PENDING}, total=${TOTAL}"
           if [[ "${PENDING}" == "true" ]]; then
             echo "web=true" >> "$GITHUB_OUTPUT"
@@ -184,6 +188,10 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # En algunos entornos (p.ej. mirrors/Gerrit) puede existir push.pushOption=changesNotSentForReview
+          # y provocar rechazos: "Changes are sent for review automatically...".
+          # Lo limpiamos para este repo antes de hacer push del bump automático.
+          git config --local --unset-all push.pushOption || true
           git add app/build.gradle.kts
           git commit -m "chore(release): bump version [skip ci]"
           git push origin "HEAD:${TARGET_BRANCH}"
@@ -285,7 +293,6 @@ jobs:
           track: ${{ steps.track.outputs.track }}
           status: completed
           whatsNewDirectory: release-notes
-          changesNotSentForReview: true
           # debugSymbols: solo si el build genera app/build/outputs/native-debug-symbols/release (cuando hay deps nativas). Si no existe, omitir para no fallar.
 
   # Deploy web a Ionos: en Alpha, Beta y Producción solo si web está en los cambios (no cuando android_only)
@@ -336,35 +343,28 @@ jobs:
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
           VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID || secrets.VITE_GA4_MEASUREMENT_ID || '' }}
 
-      - name: Hash lista cafés (prerender)
-        id: coffee_hash
+      - name: Save nightly queue payload
+        if: github.event_name == 'schedule' && needs.changes.outputs.queue_response != ''
         run: |
-          HASH=$(node scripts/get-coffee-prerender-hash.mjs)
-          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          printf '%s' "${QUEUE_RESPONSE}" | base64 -d > .coffee-changes.json
+          echo "queue payload bytes: $(wc -c < .coffee-changes.json)"
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          QUEUE_RESPONSE: ${{ needs.changes.outputs.queue_response }}
 
-      # Clave por resultado del build + lista de cafés: solo se regeneran HTMLs si cambia el build o los cafés.
-      - name: Restaurar caché páginas café
-        id: prerender_cache
-        uses: actions/cache@v4
-        with:
-          path: webApp/dist/coffee
-          key: coffee-prerender-${{ hashFiles('webApp/dist/index.html', 'webApp/dist/assets/**') }}-${{ steps.coffee_hash.outputs.hash }}
-
-      - name: Prerender cafés (solo si cambió la lista o el código)
-        if: steps.prerender_cache.outputs.cache-hit != 'true'
-        run: node scripts/prerender-coffee-pages.mjs
+      - name: Prerender coffee delta (nightly only)
+        if: github.event_name == 'schedule' && needs.changes.outputs.queue_response != ''
+        run: node scripts/prerender-coffee-delta.mjs .coffee-changes.json
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
-      - name: Actualizar sitemap/robots (si se usó caché)
-        if: steps.prerender_cache.outputs.cache-hit == 'true'
-        run: node scripts/update-sitemap-from-dist.mjs
+      - name: Update sitemap/robots from Supabase (nightly only)
+        if: github.event_name == 'schedule'
+        run: node scripts/update-sitemap-from-supabase.mjs
         env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
       - name: Check Ionos SSH/FTP secrets
@@ -383,14 +383,7 @@ jobs:
           fi
           echo "Secrets de Ionos configurados."
 
-      - name: Ajustar .htaccess RewriteBase para subdirectorio (evita 500 al hacer F5)
-        run: |
-          HT=webApp/dist/.htaccess
-          if [[ -f "$HT" ]]; then
-            sed -i.bak 's|^RewriteBase /$|RewriteBase /cafesito-web/app/|' "$HT" && rm -f "${HT}.bak"
-            grep "RewriteBase" "$HT" || true
-          fi
-
+      # .htaccess se sube con RewriteBase / (correcto cuando el dominio apunta a /cafesito-web/app como document root)
       - name: Deploy to Ionos via SFTP (/cafesito-web/app/)
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
@@ -401,10 +394,38 @@ jobs:
           local_path: ./webApp/dist/*
           remote_path: /cafesito-web/app/
           sftp_only: true
-          # Borrar contenido remoto antes de subir para que cada deploy sea limpio y no queden archivos viejos en caché
-          delete_remote_files: true
+          # Nunca borramos todo el remoto para preservar URLs de cafés no tocados.
+          delete_remote_files: false
+
+      - name: Delete removed coffee pages in remote (nightly only)
+        if: github.event_name == 'schedule'
+        env:
+          IONOS_HOST: ${{ secrets.IONOS_SSH_HOST }}
+          IONOS_USER: ${{ secrets.IONOS_SSH_USER }}
+          IONOS_PORT: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          IONOS_PASSWORD: ${{ secrets.IONOS_SSH_PASSWORD }}
+        run: |
+          DELETE_FILE="dist/coffee-deletes.txt"
+          if [[ ! -s "${DELETE_FILE}" ]]; then
+            echo "No remote coffee paths to delete."
+            exit 0
+          fi
+
+          sudo apt-get update -y
+          sudo apt-get install -y sshpass
+
+          while IFS= read -r REL_PATH || [[ -n "${REL_PATH}" ]]; do
+            [[ -z "${REL_PATH}" ]] && continue
+            echo "Deleting remote path: ${REL_PATH}"
+            sshpass -p "${IONOS_PASSWORD}" ssh \
+              -o StrictHostKeyChecking=no \
+              -p "${IONOS_PORT}" \
+              "${IONOS_USER}@${IONOS_HOST}" \
+              "rm -rf '/cafesito-web/app/${REL_PATH}'"
+          done < "${DELETE_FILE}"
 
       - name: Publish sitemap and robots at domain root (/cafesito-web/)
+        if: github.event_name == 'schedule'
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
           server: ${{ secrets.IONOS_SSH_HOST }}
@@ -417,6 +438,7 @@ jobs:
           delete_remote_files: false
 
       - name: Publish robots.txt at domain root (/cafesito-web/)
+        if: github.event_name == 'schedule'
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
           server: ${{ secrets.IONOS_SSH_HOST }}
