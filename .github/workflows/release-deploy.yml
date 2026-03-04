@@ -72,6 +72,9 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.web_only }}" = "true" ]; then
             echo "android=false" >> "$GITHUB_OUTPUT"
             echo "web=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ] && { [ "${{ github.ref_name }}" = "beta" ] || [ "${{ github.ref_name }}" = "Beta" ]; }; then
+            echo "android=false" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
           else
             echo "android=true" >> "$GITHUB_OUTPUT"
             if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.android_only }}" = "true" ]; then
