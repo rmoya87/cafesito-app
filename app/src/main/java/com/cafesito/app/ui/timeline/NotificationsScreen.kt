@@ -17,7 +17,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
+import com.cafesito.app.ui.theme.CaramelAccent
+import com.cafesito.app.ui.theme.CaramelSoft
 import com.cafesito.app.ui.theme.ElectricRed
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -121,7 +124,7 @@ fun NotificationsScreen(
                                         Icon(
                                             Icons.Default.Delete,
                                             contentDescription = "Eliminar",
-                                            tint = Color.White,
+                                            tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
                                             modifier = Modifier.padding(end = 24.dp)
                                         )
                                     }
@@ -278,7 +281,7 @@ private fun NotificationItemRow(
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.White
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
@@ -289,13 +292,16 @@ private fun NotificationItemRow(
 
                 is TimelineNotification.Comment,
                 is TimelineNotification.Mention -> {
+                    val isDark = isSystemInDarkTheme()
+                    val replyBg = if (isDark) CaramelSoft else CaramelAccent
+                    val replyText = if (isDark) Color.Black else Color.White
                     Button(
                         onClick = { onReplyToNotification(notification) },
                         modifier = Modifier.height(32.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Black,
-                            contentColor = Color.White
+                            containerColor = replyBg,
+                            contentColor = replyText
                         ),
                         contentPadding = PaddingValues(horizontal = 12.dp)
                     ) {

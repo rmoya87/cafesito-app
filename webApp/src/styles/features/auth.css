@@ -32,14 +32,35 @@
   filter: saturate(0.95) brightness(0.95);
 }
 
+/* Capa entre el video y el texto: tono negro suave para leer bien */
 .login-background-layer {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(180deg, rgba(10, 10, 10, 0.52) 0%, rgba(16, 12, 10, 0.44) 46%, rgba(0, 0, 0, 0.64) 100%),
-    radial-gradient(110% 72% at 50% -10%, rgba(212, 163, 115, 0.18), transparent 58%);
   z-index: 0;
   pointer-events: none;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+@media (max-width: 899px) and (prefers-color-scheme: light) {
+  .login-overline {
+    color: var(--pure-black);
+  }
+
+  .login-brand {
+    color: var(--pure-black);
+  }
+
+  .login-subtitle {
+    color: var(--pure-black);
+  }
+
+  .login-feature-title {
+    color: var(--espresso-deep);
+  }
+
+  .login-feature-desc {
+    color: rgba(26, 18, 11, 0.8);
+  }
 }
 
 .login-content {
@@ -69,12 +90,13 @@
   text-align: center;
 }
 
+/* Bienvenido / Cafesito / comunidad: blanco modo noche, negro modo día (como Android) */
 .login-overline {
   margin: 0;
   font-weight: 800;
   letter-spacing: 0.34em;
   font-size: 0.84rem;
-  color: var(--text-subtle);
+  color: var(--pure-white);
 }
 
 .login-brand {
@@ -83,12 +105,12 @@
   line-height: 1.02;
   letter-spacing: 0.08em;
   font-weight: 900;
-  color: var(--text-main);
+  color: var(--pure-white);
 }
 
 .login-subtitle {
   margin: 0;
-  color: var(--text-main);
+  color: rgba(255, 255, 255, 0.88);
   font-size: 1.03rem;
   line-height: 1.45;
 }
@@ -114,6 +136,7 @@
 .login-feature-icon {
   width: 40px;
   height: 40px;
+  border: none;
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
@@ -136,13 +159,13 @@
   margin: 0;
   font-size: 1.02rem;
   font-weight: 800;
-  color: var(--text-main);
+  color: var(--pure-white);
 }
 
 .login-feature-desc {
   margin: 0;
   font-size: 0.9rem;
-  color: var(--text-subtle);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .login-start-button {

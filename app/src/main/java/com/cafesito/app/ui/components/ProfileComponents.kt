@@ -451,7 +451,7 @@ fun SwipeableFavoriteItem(
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Quitar de favoritos",
-                    tint = Color.White,
+                    tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
                     modifier = Modifier.padding(end = 16.dp)
                 )
             }
@@ -467,17 +467,22 @@ fun SwipeableFavoriteItem(
 
 @Composable
 fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val followBg = if (isDark) CaramelSoft else CaramelAccent
+    val followingBg = Color.Transparent
+    val followingBorder = if (isDark) BorderStroke(1.dp, Color.White) else BorderStroke(1.dp, Color.Black)
+    val followingColor = if (isDark) Color.White else Color.Black
     Button(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth(0.7f)
             .height(48.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isFollowing) Color.White else MaterialTheme.colorScheme.primary,
-            contentColor = if (isFollowing) Color.Black else MaterialTheme.colorScheme.onPrimary
+            containerColor = if (isFollowing) followingBg else followBg,
+            contentColor = if (isFollowing) followingColor else if (isDark) Color.Black else Color.White
         ),
         shape = RoundedCornerShape(24.dp),
-        border = if (isFollowing) BorderStroke(1.dp, Color.Black) else null
+        border = if (isFollowing) followingBorder else null
     ) {
         Text(if (isFollowing) "SIGUIENDO" else "SEGUIR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     }

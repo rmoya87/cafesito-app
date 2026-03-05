@@ -180,6 +180,7 @@
   color: var(--text-subtle);
 }
 
+/* Base = modo noche: fondo marrón claro, texto negro (estándar con resto de botones) */
 .profile-adn-continue-button.action-button {
   width: 100%;
   min-height: 54px;
@@ -188,16 +189,16 @@
   margin-top: 6px;
   font-weight: 800;
   font-size: 0.95rem;
-  background: var(--espresso-deep);
-  color: var(--pure-white);
-  border: 1px solid var(--espresso-deep);
+  background: var(--caramel-soft);
+  color: var(--pure-black);
+  border: 1px solid var(--caramel-soft);
 }
 
 .profile-adn-continue-button.action-button:hover,
 .profile-adn-continue-button.action-button:focus-visible {
-  background: var(--espresso-medium);
-  border-color: var(--espresso-medium);
-  color: var(--pure-white);
+  background: var(--caramel-soft);
+  border-color: var(--caramel-soft);
+  color: var(--pure-black);
 }
 
 @media (max-width: 640px) {

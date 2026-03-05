@@ -35,10 +35,14 @@
   --pure-white: #ffffff;
   --screen-light-background: #f7f7f7;
   --border-light: rgba(224, 224, 224, 0.4);
+  /** Borde rail navegación desktop: modo día = gris oscuro, modo noche = gris claro */
+  --nav-rail-border: rgba(0, 0, 0, 0.14);
 
   --pure-black: #000000;
   --screen-dark-background: #212121;
-  --caramel-soft: #d4a373;
+  /* Modo día: marrón (caramel-accent). Modo noche se sobreescribe a marrón claro. */
+  --caramel-soft: #6f4e37;
+  --caramel-soft-rgb: 111, 78, 55;
   --muted-cream: #bdb7b2;
   --modal-surface-bg: #000000;
   --modal-header-bg: rgba(0, 0, 0, 0.96);
@@ -64,8 +68,7 @@
   --success-green: #81c784;
   --electric-red: #ff3b30;
   --orange-yellow: #ffb300;
-  --focus-ring: rgba(212, 163, 115, 0.24);
-  --caramel-soft-rgb: 212, 163, 115;
+  --focus-ring: rgba(111, 78, 55, 0.24);
   --electric-red-rgb: 255, 59, 48;
   --icon-size-sm: 17px;
   --icon-size-md: 20px;
@@ -100,11 +103,16 @@
     --google-btn-bg: var(--caramel-soft);
     --google-btn-text: var(--pure-black);
     --search-border-inactive: rgba(255, 255, 255, 0.28);
-    /* Marrones oscuros -> marrón claro en modo noche */
-    --espresso-deep: var(--caramel-soft);
-    --espresso-medium: var(--caramel-accent);
+    /* Marrones en modo noche: tonos marrón claro (menciones, me gusta, @usuario, café) */
+    --espresso-deep: #e8c9a8;
+    --espresso-medium: #d4a373;
+    --caramel-accent: #d4a373;
+    --caramel-soft: #d4a373;
+    --caramel-soft-rgb: 212, 163, 115;
+    --focus-ring: rgba(212, 163, 115, 0.24);
     /* Bordes gris claro -> negro en modo noche */
     --border-light: #000000;
+    --nav-rail-border: rgba(255, 255, 255, 0.32);
     --border-default: #000000;
     --border-strong: #000000;
     --modal-field-border: #000000;

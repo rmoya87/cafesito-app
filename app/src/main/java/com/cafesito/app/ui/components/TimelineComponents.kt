@@ -712,7 +712,7 @@ private fun CommentRow(
             Text(
                 text = formatRelativeTime(comment.timestamp).uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                color = LocalDateMetaColor.current,
                 fontWeight = FontWeight.Normal
             )
 
@@ -2413,7 +2413,7 @@ fun DeleteConfirmationDialog(
 ) {
     val isDark = isSystemInDarkTheme()
     val cancelColor = if (isDark) Color.White else Color.Black
-    val deleteContainer = if (isDark) Color.White else ElectricRed
+    val deleteContainer = ElectricRed
     val deleteContent = if (isDark) Color.Black else Color.White
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,

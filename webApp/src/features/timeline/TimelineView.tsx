@@ -217,17 +217,16 @@ export function TimelineView({
           const isDismissing = dismissingSuggestionIds.has(user.id);
           const isPendingFollow = pendingSuggestionFollowIds.has(user.id);
           return (
-            <article key={user.id} className={`mini-card mini-user-card ${isDismissing ? "is-removing" : ""}`.trim()}>
+            <article key={user.id} className={`mini-card mini-user-card suggestion-user-card ${isDismissing ? "is-removing" : ""}`.trim()}>
               <Button variant="plain" type="button" className="mini-user-link" onClick={() => onOpenUserProfile(user.id)}>
                 <SuggestionAvatar avatarUrl={user.avatar_url} username={user.username} />
                 <div className="mini-user-copy">
                   <p className="feed-user">{user.full_name}</p>
-                  <p className="feed-meta">@{user.username}</p>
-                  <p className="coffee-sub">{followerCounts.get(user.id) ?? 0} seguidores</p>
+                  <p className="feed-meta suggestion-subtitle">{followerCounts.get(user.id) ?? 0} seguidores</p>
                 </div>
               </Button>
               <Button variant="plain"
-                className={`action-button search-users-follow ${followingIds.has(user.id) ? "action-button-following" : ""}`}
+                className={`action-button search-users-follow suggestion-follow-btn ${followingIds.has(user.id) ? "action-button-following" : ""}`}
                 disabled={isPendingFollow}
                 onClick={async () => {
                   if (isPendingFollow) return;

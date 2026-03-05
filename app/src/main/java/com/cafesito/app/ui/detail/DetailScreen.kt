@@ -353,7 +353,7 @@ private fun DetailContent(
                                                         Icon(
                                                             imageVector = Icons.Default.Delete,
                                                             contentDescription = "Borrar",
-                                                            tint = Color.White,
+                                                            tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
                                                             modifier = Modifier
                                                                 .padding(end = 24.dp)
                                                                 .graphicsLayer {
@@ -398,17 +398,17 @@ private fun DetailContent(
             horizontalArrangement = Arrangement.SpaceBetween, 
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = MaterialTheme.colorScheme.onSurface, onClick = onBackClick)
+            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = Color.Black, onClick = onBackClick)
             Row {
                 GlassyIconButton(
                     iconPainter = painterResource(id = R.drawable.shelves_24),
-                    iconColor = MaterialTheme.colorScheme.onSurface,
+                    iconColor = Color.Black,
                     onClick = { showStockDialog = true }
                 )
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
                     icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    iconColor = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.onSurface,
+                    iconColor = if (coffeeDetails.isFavorite) ElectricRed else Color.Black,
                     premiumAnimated = true,
                     onClick = { onFavoriteToggle(!coffeeDetails.isFavorite) }
                 )
@@ -467,8 +467,8 @@ fun GlassyIconButton(
 
     Surface(
         onClick = onPremiumClick,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), 
-        shape = RoundedCornerShape(16.dp), 
+        color = PureWhite,
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier.size(44.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -529,7 +529,7 @@ fun DetailReviewPremiumItem(
                         }
                     }
                 }
-                Text(text = formatRelativeTime(info.review.timestamp).uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = formatRelativeTime(info.review.timestamp).uppercase(), style = MaterialTheme.typography.labelSmall, color = LocalDateMetaColor.current)
             }
             Spacer(Modifier.weight(1f))
             val ratingStr = String.format(Locale.getDefault(), "%.1f", info.review.rating)
@@ -556,17 +556,18 @@ fun DetailReviewPremiumItem(
 
 @Composable
 fun PremiumCharacteristicBar(label: String, value: Float) {
+    val caramelColor = LocalCaramelAccent.current
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(text = label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             val ratingStr = String.format(Locale.getDefault(), "%.1f", value)
-            Text(text = "$ratingStr/10", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Text(text = "$ratingStr/10", style = MaterialTheme.typography.labelSmall, color = caramelColor)
         }
         Spacer(Modifier.height(6.dp))
         LinearProgressIndicator(
             progress = { value / 10f }, 
             modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape), 
-            color = MaterialTheme.colorScheme.primary, 
+            color = caramelColor, 
             trackColor = MaterialTheme.colorScheme.outline
         )
     }
@@ -594,6 +595,7 @@ private fun SensoryProfileBottomSheet(
 ) {
     val values = remember(initialValues) { initialValues.toMutableStateList() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val caramelColor = LocalCaramelAccent.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.background,
@@ -638,7 +640,7 @@ private fun SensoryProfileBottomSheet(
                         modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                         colors = SliderDefaults.colors(
                             thumbColor = MaterialTheme.colorScheme.outline,
-                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = caramelColor,
                             inactiveTrackColor = MaterialTheme.colorScheme.outline
                         )
                     )
@@ -649,7 +651,8 @@ private fun SensoryProfileBottomSheet(
             Button(
                 onClick = { onConfirm(values.toList()) },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = caramelColor)
             ) {
                 Text("Listo")
             }

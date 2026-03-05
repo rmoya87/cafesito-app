@@ -86,7 +86,7 @@ private fun RecommendationCard(
             AsyncImage(
                 model = item.coffee.imageUrl,
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth().height(100.dp).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)),
                 contentScale = ContentScale.Crop
             )
             Column(modifier = Modifier.padding(8.dp)) {
@@ -94,7 +94,7 @@ private fun RecommendationCard(
                     text = item.coffee.nombre ?: "Café",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -102,7 +102,8 @@ private fun RecommendationCard(
                     text = (item.coffee.marca ?: "").uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {

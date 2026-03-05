@@ -58,7 +58,7 @@ fun UserReviewCard(
                         Text(
                             text = formatRelativeTime(info.review.timestamp).uppercase(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = LocalDateMetaColor.current,
                             letterSpacing = 1.sp
                         )
                     }

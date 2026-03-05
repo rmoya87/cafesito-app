@@ -114,7 +114,7 @@ fun PostCard(
                             Text(
                                 text = formatRelativeTime(post.timestamp).uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = LocalDateMetaColor.current,
                                 letterSpacing = 1.sp
                             )
                         }

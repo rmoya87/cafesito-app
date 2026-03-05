@@ -137,38 +137,36 @@ export function CoffeeDetailView({
       <header className="coffee-detail-hero">
         {coffee.image_url ? <img className="coffee-detail-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
         <div className="coffee-detail-overlay" />
-        {!fullPage ? (
-          <div className="coffee-detail-hero-top-actions">
-            <IconButton tone="topbar" className="coffee-detail-topbar-icon" aria-label="Cerrar detalle" onClick={onClose}>
-              <UiIcon name="close" className="ui-icon" />
+        <div className="coffee-detail-hero-top-actions">
+          <IconButton tone="topbar" className="coffee-detail-topbar-icon" aria-label={fullPage ? "Volver" : "Cerrar detalle"} onClick={onClose}>
+            <UiIcon name={fullPage ? "arrow-left" : "close"} className="ui-icon" />
+          </IconButton>
+          <div className="coffee-detail-topbar-actions">
+            <IconButton
+              tone="topbar"
+              className={`coffee-detail-topbar-icon ${isFavorite ? "is-active" : ""}`.trim()}
+              aria-label={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
+              onClick={onToggleFavorite}
+            >
+              <UiIcon name={isFavorite ? "favorite-filled" : "favorite"} className="ui-icon" />
             </IconButton>
-            <div className="coffee-detail-topbar-actions">
-              <IconButton
-                tone="topbar"
-                className={`coffee-detail-topbar-icon ${isFavorite ? "is-active" : ""}`.trim()}
-                aria-label={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
-                onClick={onToggleFavorite}
-              >
-                <UiIcon name={isFavorite ? "favorite-filled" : "favorite"} className="ui-icon" />
-              </IconButton>
-              <IconButton
-                tone="topbar"
-                className={`coffee-detail-topbar-icon ${pantry ? "is-active" : ""}`.trim()}
-                aria-label="Añadir a stock"
-                onClick={() => {
-                  if (isGuest) {
-                    onRequireAuth();
-                    return;
-                  }
-                  setStockSheetError(null);
-                  setShowStockSheet(true);
-                }}
-              >
-                <UiIcon name="stock" className="ui-icon" />
-              </IconButton>
-            </div>
+            <IconButton
+              tone="topbar"
+              className={`coffee-detail-topbar-icon ${pantry ? "is-active" : ""}`.trim()}
+              aria-label="Añadir a stock"
+              onClick={() => {
+                if (isGuest) {
+                  onRequireAuth();
+                  return;
+                }
+                setStockSheetError(null);
+                setShowStockSheet(true);
+              }}
+            >
+              <UiIcon name="stock" className="ui-icon" />
+            </IconButton>
           </div>
-        ) : null}
+        </div>
 
         <div className="coffee-detail-headline">
           <p className="coffee-origin">{(coffee.marca ?? "Marca").toUpperCase()}</p>

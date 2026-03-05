@@ -164,25 +164,27 @@ export function SearchView({
   const content = (
     <>
       {mode === "users" ? (
-        <ul className="search-users-list">
-          {users.length ? (
-            <>
-              {usersBeforeSentinel.map(renderUserRow)}
-              {showUsersSentinel ? (
-                <>
-                  <li key="sentinel-users" aria-hidden="true" style={{ height: 1, listStyle: "none" }}>
-                    <div ref={loadMoreSentinelRef} style={{ height: 1 }} />
-                  </li>
-                  {usersAfterSentinel.map(renderUserRow)}
-                </>
-              ) : null}
-            </>
-          ) : (
-            <li className="search-users-empty">
-              {searchQuery.trim() ? "No se encontraron usuarios" : "Busca amigos para seguir"}
-            </li>
-          )}
-        </ul>
+        <div className="search-users-container">
+          <ul className="search-users-list">
+            {users.length ? (
+              <>
+                {usersBeforeSentinel.map(renderUserRow)}
+                {showUsersSentinel ? (
+                  <>
+                    <li key="sentinel-users" aria-hidden="true" style={{ height: 1, listStyle: "none" }}>
+                      <div ref={loadMoreSentinelRef} style={{ height: 1 }} />
+                    </li>
+                    {usersAfterSentinel.map(renderUserRow)}
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <li className="search-users-empty">
+                {searchQuery.trim() ? "No se encontraron usuarios" : "Busca amigos para seguir"}
+              </li>
+            )}
+          </ul>
+        </div>
       ) : null}
 
       {mode === "coffees" ? (

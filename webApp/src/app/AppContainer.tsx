@@ -263,6 +263,7 @@ export function AppContainer() {
     setAuthError,
     setShowAuthPrompt,
     handleGoogleLogin,
+    handleGoogleCredential,
     requestLogin
   } = useAuthSession();
   const isMobileOsDevice = useMemo(() => /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent), []);
@@ -1143,9 +1144,8 @@ export function AppContainer() {
           authBusy={authBusy}
           authError={authError}
           onClose={() => setShowAuthPrompt(false)}
-          onGoogleLogin={() => {
-            void handleGoogleLogin();
-          }}
+          onGoogleLogin={() => void handleGoogleLogin()}
+          onGoogleCredential={handleGoogleCredential}
         />
       </div>
     );
@@ -1162,6 +1162,7 @@ export function AppContainer() {
         message={authBusy ? "Redirigiendo a Google..." : undefined}
         errorMessage={authError}
         onGoogleLogin={handleGoogleLogin}
+        onGoogleCredential={handleGoogleCredential}
       />
     );
   }
@@ -1428,9 +1429,8 @@ export function AppContainer() {
       authBusy={authBusy}
       authError={authError}
       onClose={() => setShowAuthPrompt(false)}
-      onGoogleLogin={() => {
-        void handleGoogleLogin();
-      }}
+      onGoogleLogin={() => void handleGoogleLogin()}
+      onGoogleCredential={handleGoogleCredential}
     />
   );
   const barcodeScannerOverlay = (
@@ -1644,7 +1644,9 @@ export function AppContainer() {
     />
   );
   return (
-    <div className={`layout ${mode}`.trim()}>
+    <div
+      className={`layout ${mode} ${mode === "desktop" && isSearchUsersPage ? "is-search-users-page" : ""}`.trim()}
+    >
       <OfflineBanner />
       {mode === "desktop" && !isSearchUsersPage ? navRail : null}
       <main className={`main-shell ${mode === "mobile" && isAndroidMobile && !androidBannerDismissed ? "has-android-banner" : ""}`.trim()}>
@@ -1675,6 +1677,7 @@ export function AppContainer() {
             <div className="android-install-banner-spacer" aria-hidden="true" />
           </div>
         ) : null}
+        {guardedActiveTab !== "coffee" ? (
         <TopBar
           activeTab={guardedActiveTab}
           searchQuery={searchQuery}
@@ -1729,9 +1732,10 @@ export function AppContainer() {
           onCoffeeTopbarToggleFavorite={topbarActions.onCoffeeTopbarToggleFavorite}
           onCoffeeTopbarOpenStock={topbarActions.onCoffeeTopbarOpenStock}
         />
+        ) : null}
         <div
           ref={mainScrollRef}
-          className={`main-shell-scroll ${guardedActiveTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""}`.trim()}
+          className={`main-shell-scroll ${guardedActiveTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""} ${guardedActiveTab === "search" && searchMode === "users" ? "is-search-users" : ""}`.trim()}
         >
           <Suspense fallback={<div className="app-content-loading" aria-hidden="true" />}>
             <AppContentRouter
@@ -1749,7 +1753,7 @@ export function AppContainer() {
         </div>
       </main>
 
-      {mode === "desktop" ? (
+      {mode === "desktop" && !(guardedActiveTab === "search" && !detailCoffee) ? (
         <aside
           className={useRightRailDetail || (guardedActiveTab === "brewlab" && showCreateCoffeeComposer) ? "detail-rail-fixed" : "fab-rail"}
           aria-label={useRightRailDetail ? "Detalle cafe" : guardedActiveTab === "brewlab" && showCreateCoffeeComposer ? "Crear cafe" : "Acciones"}

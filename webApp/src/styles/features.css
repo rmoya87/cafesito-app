@@ -19,21 +19,19 @@ input {
   }
 }
 
-/* iOS/navegador: body con mismo fondo que la app para que la franja bajo el menú
-   (safe area) no se vea negra; el layout sigue sin extenderse ahí para no tapar el menú */
+/* Móvil: layout a altura completa para que no quede hueco que destaque la barra del navegador;
+   el menú se posiciona sobre el safe area inferior */
 @media (max-width: 899px) {
   body {
-    background: var(--screen-dark-background);
+    background: transparent;
   }
   .layout {
-    min-height: calc(100dvh - env(safe-area-inset-bottom, 0px));
-    height: calc(100dvh - env(safe-area-inset-bottom, 0px));
+    min-height: 100dvh;
+    height: 100dvh;
+    background: var(--screen-dark-background);
   }
 }
 @media (max-width: 899px) and (prefers-color-scheme: light) {
-  body {
-    background: var(--screen-light-background);
-  }
   .layout {
     background: var(--screen-light-background);
   }
@@ -42,6 +40,7 @@ input {
 .layout.desktop {
   display: grid;
   grid-template-columns: 56px minmax(0, 860px) 56px;
+  grid-template-rows: 1fr;
   justify-content: center;
   gap: 0;
   width: 100%;
@@ -125,6 +124,7 @@ input {
 }
 
 .main-shell-scroll.is-coffee {
+  margin-top: env(safe-area-inset-top, 0px);
   padding-top: 0;
 }
 
@@ -132,6 +132,102 @@ input {
 .main-shell-scroll.is-search-coffees {
   margin-top: calc(106px + env(safe-area-inset-top, 0px));
   padding-top: 10px;
+}
+
+/* Buscador usuarios: asegurar que el área de contenido sea visible y tenga espacio */
+.main-shell-scroll.is-search-users {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.main-shell-scroll.is-search-users .content.content-search {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-shell-scroll.is-search-users .search-users-container {
+  flex: 1;
+  min-height: 120px;
+  display: block;
+}
+
+@media (min-width: 900px) {
+  /* Desktop búsqueda usuarios: mismo layout que el resto (una columna, main a ancho completo) */
+  .layout.desktop.is-search-users-page {
+    grid-template-columns: minmax(0, 860px);
+    justify-content: center;
+  }
+
+  .layout.desktop .main-shell-scroll.is-search-users {
+    padding-top: 24px;
+  }
+
+  .layout.desktop .main-shell-scroll.is-search-users .content.content-search {
+    width: 100%;
+    min-width: 0;
+    padding-left: var(--app-shell-gutter);
+    padding-right: var(--app-shell-gutter);
+    box-sizing: border-box;
+  }
+
+  .layout.desktop .main-shell-scroll.is-search-users .search-users-container {
+    width: 100%;
+    min-width: 0;
+    padding: 16px 0 32px;
+    min-height: 160px;
+  }
+
+  .layout.desktop .main-shell-scroll.is-search-users .search-users-list {
+    gap: 10px;
+  }
+
+  .layout.desktop .main-shell-scroll.is-search-users .search-users-row {
+    padding: 14px 16px;
+  }
+
+  /* Desktop notificaciones: mismo patrón que buscador usuarios (columna 860px centrada, contenido con gutter) */
+  .notifications-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    width: 100%;
+  }
+
+  .notifications-overlay .notifications-panel {
+    width: 100%;
+    max-width: 860px;
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .notifications-overlay .notifications-panel .notifications-list,
+  .notifications-overlay .notifications-panel .sheet-list.notifications-list {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+    overflow: auto;
+    padding-left: var(--app-shell-gutter);
+    padding-right: var(--app-shell-gutter);
+    padding-top: 16px;
+    padding-bottom: 32px;
+    box-sizing: border-box;
+  }
+
+  .notifications-overlay .notifications-header {
+    padding-left: var(--app-shell-gutter);
+    padding-right: var(--app-shell-gutter);
+    flex-shrink: 0;
+  }
 }
 
 /* Cartel instalar app Android (solo móvil Android), fijo encima del topbar */
@@ -174,6 +270,7 @@ input {
 }
 
 .main-shell.has-android-banner .main-shell-scroll.is-coffee {
+  margin-top: calc(env(safe-area-inset-top, 0px) + var(--android-banner-height, 52px));
   padding-top: 0;
 }
 
@@ -920,9 +1017,9 @@ input {
   height: 40px;
   min-width: 40px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.34);
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  color: var(--text-main);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--pure-white);
+  color: var(--pure-black);
 }
 
 .coffee-detail-topbar-icon .ui-icon {
@@ -945,7 +1042,7 @@ input {
 
 .coffee-detail-hero {
   position: relative;
-  min-height: 246px;
+  min-height: 300px;
   padding-bottom: 28px;
   background: var(--pure-white);
 }
@@ -964,7 +1061,7 @@ input {
 
 .coffee-detail-image {
   width: 100%;
-  height: 252px;
+  height: 308px;
   object-fit: contain;
   object-position: center;
   display: block;
@@ -1217,6 +1314,7 @@ input {
   border-radius: 24px 24px 0 0;
   position: relative;
   z-index: 2;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .coffee-detail-section-first {
@@ -1536,7 +1634,7 @@ input {
   min-height: 0;
   padding: 6px 12px;
   background: transparent !important;
-  color: var(--espresso-deep);
+  color: var(--caramel-soft);
   font-size: var(--font-size-md);
 }
 
@@ -1604,8 +1702,8 @@ input {
   width: 100%;
   min-height: 44px;
   border-radius: var(--radius-md);
-  background: var(--espresso-deep);
-  color: var(--text-main);
+  background: var(--caramel-soft);
+  color: var(--pure-black);
   border: none;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -1614,16 +1712,16 @@ input {
 
 .coffee-detail-sheet-actions .coffee-detail-sensory-submit,
 .coffee-detail-sheet-actions .coffee-detail-sensory-submit:disabled {
-  background: var(--espresso-deep);
-  color: var(--text-main);
+  background: var(--caramel-soft);
+  color: var(--pure-black);
 }
 
 .coffee-detail .coffee-detail-sheet-actions .coffee-detail-sensory-submit,
 .coffee-detail .coffee-detail-sheet-actions .coffee-detail-sensory-submit:disabled,
 .sheet-card .coffee-detail-sheet-actions .coffee-detail-sensory-submit,
 .sheet-card .coffee-detail-sheet-actions .coffee-detail-sensory-submit:disabled {
-  background: var(--espresso-deep) !important;
-  color: var(--text-main) !important;
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
   border-color: transparent !important;
 }
 
@@ -1741,9 +1839,9 @@ input {
 }
 
 .coffee-detail-stock-save {
-  background: var(--espresso-deep);
-  color: var(--text-main);
-  border: 1px solid var(--espresso-deep);
+  background: var(--caramel-soft);
+  color: var(--pure-black);
+  border: 1px solid var(--caramel-soft);
 }
 
 .coffee-detail-review-sheet .sheet-title {
@@ -1952,7 +2050,12 @@ input {
 }
 
 .coffee-detail-review-delete {
-  color: #ffb3b0;
+  background: var(--electric-red);
+  color: var(--pure-black);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 700;
 }
 
 .coffee-detail-review-card {
@@ -1982,8 +2085,8 @@ input {
   padding: 0 var(--space-3);
   border: none;
   border-radius: 999px;
-  background: var(--espresso-deep);
-  color: var(--text-main);
+  background: var(--caramel-soft);
+  color: var(--pure-black);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--tracking-label);
@@ -2651,22 +2754,31 @@ input {
   background: var(--surface-elevated);
 }
 
+.search-users-container {
+  padding: 12px 0 24px;
+  min-width: 0;
+}
+
 .search-users-list {
   list-style: none;
   margin: 0;
-  padding: 4px 0 0;
+  padding: 0;
   display: grid;
-  gap: 6px;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .search-users-row {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
   padding: 12px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: var(--surface);
+  min-width: 0;
 }
 
 .search-users-link {
@@ -2677,11 +2789,17 @@ input {
   padding: 0;
   min-width: 0;
   flex: 1;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
   text-align: left;
+  overflow: hidden;
+}
+
+.search-users-avatar,
+.search-users-avatar-fallback {
+  flex-shrink: 0;
 }
 
 .search-users-avatar {
@@ -2697,6 +2815,7 @@ input {
 
 .search-users-copy {
   min-width: 0;
+  overflow: hidden;
 }
 
 .search-users-username,
@@ -2720,6 +2839,7 @@ input {
 
 /* Botón Seguir/Siguiendo: igual que Android (FollowItemModern) */
 .search-users-follow {
+  flex-shrink: 0;
   min-width: 94px;
   height: 36px;
   border-radius: 12px;
@@ -2731,16 +2851,17 @@ input {
   border: none;
 }
 
-/* Seguir: modo día = bg negro + texto blanco; modo noche = bg marrón claro + texto negro (override abajo) */
+/* Buscador usuarios: mismos estilos que perfil terceros (Seguir / Siguiendo). Base = modo noche. */
 .search-users-follow:not(.action-button-following) {
   background: var(--caramel-soft);
   color: var(--pure-black);
+  border: none;
 }
 
-/* Siguiendo = surfaceVariant (fondo neutro, texto secundario) */
 .search-users-follow.action-button-following {
-  background: var(--surface);
-  color: var(--text-subtle);
+  background: transparent !important;
+  color: #ffffff !important;
+  border: 1px solid #ffffff !important;
 }
 
 .search-users-empty {
@@ -2777,7 +2898,7 @@ input {
   min-height: 44px;
   display: grid;
   align-content: center;
-  gap: 2px;
+  gap: 6px;
 }
 
 .feed-follow-chip {
@@ -3040,6 +3161,73 @@ input {
   overflow-x: auto;
   padding-bottom: 4px;
   scrollbar-width: thin;
+}
+
+/* Personas que podrías seguir: número de seguidores + @username en gris; botón Seguir con bg transparente y borde marrón */
+.suggestion-strip .suggestion-subtitle {
+  color: #a8a098 !important;
+}
+
+.suggestion-strip .suggestion-follow-btn {
+  position: relative;
+  z-index: 1;
+}
+
+.suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
+  border: 1px solid var(--caramel-accent) !important;
+  color: var(--caramel-accent) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .suggestion-strip .suggestion-subtitle {
+    color: #5e5751 !important;
+  }
+
+  .suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
+    color: #5e5751 !important;
+  }
+}
+
+/* Móvil: recomendaciones paladar — imagen más alta, texto máximo 2 líneas con ellipsis */
+@media (max-width: 899px) {
+  .suggestion-strip .mini-coffee-card .mini-cover {
+    height: 160px;
+    border-radius: 12px 12px 0 0;
+  }
+  .suggestion-strip .mini-coffee-card .feed-user,
+  .suggestion-strip .mini-coffee-card .coffee-sub {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .suggestion-strip .mini-coffee-card .feed-user,
+  .suggestion-strip .mini-coffee-card .coffee-sub {
+    -webkit-line-clamp: 1;
+  }
+}
+
+@media (max-width: 899px) {
+  .suggestion-strip .mini-user-card.suggestion-user-card {
+    background: transparent;
+    border: 1px solid var(--caramel-accent);
+  }
+}
+
+/* Nombre con puntos suspensivos para que no pise el botón Seguir */
+.suggestion-strip .mini-user-card .mini-user-link {
+  min-width: 0;
+}
+
+.suggestion-strip .mini-user-card .mini-user-copy {
+  min-width: 0;
+}
+
+.suggestion-strip .mini-user-card .feed-user {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mini-card {
@@ -3678,8 +3866,8 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(214, 58, 58, 0.12);
-  color: #d63a3a;
+  background: var(--electric-red);
+  color: var(--pure-black);
 }
 
 .diary-entry-delete .ui-icon {
@@ -3695,6 +3883,8 @@ input {
   list-style: none;
   position: relative;
   touch-action: pan-y;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .diary-card-swipe-wrap.is-swiping {
@@ -3703,15 +3893,16 @@ input {
 
 .diary-swipe-bg {
   position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  background: rgba(214, 58, 58, 0.22);
-  color: var(--text-main);
+  inset: 3px;
+  border-radius: 13px;
+  background: var(--electric-red);
+  color: var(--pure-black);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding-right: 14px;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .diary-swipe-bg .ui-icon {
@@ -3889,8 +4080,15 @@ input {
   color: var(--text-main);
 }
 
-.diary-sheet-action-pantry.is-delete .ui-icon:first-child {
-  color: var(--text-main);
+.diary-sheet-action-pantry.is-delete {
+  background: var(--electric-red);
+  color: var(--pure-black);
+  border: none;
+}
+
+.diary-sheet-action-pantry.is-delete .ui-icon:first-child,
+.diary-sheet-action-pantry.is-delete span {
+  color: var(--pure-black);
 }
 
 .diary-sheet-action-pantry .ui-icon:last-child {
@@ -3959,13 +4157,22 @@ input {
   }
 
   .diary-delete-confirm-submit {
-    background: var(--pure-white);
-    color: #111111;
+    background: var(--electric-red);
+    color: var(--pure-black);
   }
 
   /* Fila de café seleccionada en buscador (la del borde naranja): fondo negro */
   .coffee-card.is-selected {
     background: var(--pure-black);
+  }
+
+  /* Continuar explorando: modo noche = marrón claro + texto negro (estándar botones) */
+  .profile-adn-continue-button.action-button,
+  .profile-adn-continue-button.action-button:hover,
+  .profile-adn-continue-button.action-button:focus-visible {
+    background: var(--caramel-soft) !important;
+    border-color: var(--caramel-soft) !important;
+    color: var(--pure-black) !important;
   }
 }
 
@@ -4045,17 +4252,17 @@ input {
 .diary-add-stock-save {
   width: 100%;
   min-height: 52px;
-  border: 1px solid var(--pure-black);
-  background: var(--pure-black);
-  color: var(--pure-white) !important;
+  border: 1px solid var(--caramel-soft);
+  background: var(--caramel-soft);
+  color: var(--pure-black) !important;
   border-radius: 999px;
   font-weight: 700;
 }
 
 .diary-add-stock-save:disabled {
   opacity: 0.5;
-  background: var(--pure-black);
-  color: var(--pure-white) !important;
+  background: var(--caramel-soft);
+  color: var(--pure-black) !important;
 }
 
 .diary-add-stock-sheet .sheet-title {
@@ -4239,7 +4446,7 @@ input {
   .diary-edit-entry-sheet .diary-edit-entry-metric-field {
     background: var(--surface);
   }
-  /* Preparación: chips con fondo negro opaco (sin transparencia) */
+  /* Preparación: chips modo noche = fondo marrón claro, texto negro */
   .diary-edit-entry-presets .period-chip {
     width: 100%;
     min-width: 0;
@@ -4249,32 +4456,32 @@ input {
     font-size: 0.76rem;
     letter-spacing: 0.02em;
     border: 1px solid var(--border-light);
-    background: #000000 !important;
-    color: var(--text-main);
+    background: var(--caramel-soft) !important;
+    color: var(--pure-black) !important;
     transition: border-color 140ms ease, color 140ms ease;
   }
   .diary-edit-entry-presets .period-chip.is-active {
     border: 1px solid #6f4e37;
-    background: #000000 !important;
-    color: var(--text-main);
+    background: var(--caramel-soft) !important;
+    color: var(--pure-black) !important;
     box-shadow: none;
   }
-  /* Tamaño: chips con fondo negro opaco; texto igual en activos e inactivos */
+  /* Tamaño: chips modo noche = marrón claro, texto negro */
   .diary-edit-entry-size-presets .diary-coffee-size-chip {
-    background: #000000 !important;
-    color: var(--text-main) !important;
+    background: var(--caramel-soft) !important;
+    color: var(--pure-black) !important;
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip span,
   .diary-edit-entry-size-presets .diary-coffee-size-chip small {
-    color: var(--text-main) !important;
+    color: var(--pure-black) !important;
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active {
-    background: #000000 !important;
-    color: var(--text-main) !important;
+    background: var(--caramel-soft) !important;
+    color: var(--pure-black) !important;
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
-    color: var(--text-main) !important;
+    color: var(--pure-black) !important;
   }
 }
 
@@ -4470,8 +4677,8 @@ input {
 }
 
 .diary-edit-entry-save {
-  background: var(--espresso-deep);
-  color: var(--text-main) !important;
+  background: var(--caramel-soft);
+  color: var(--pure-black) !important;
   width: 100%;
 }
 
@@ -6237,7 +6444,7 @@ input {
 }
 
 .profile-username {
-  margin-top: 1px;
+  margin-top: 8px;
   font-size: 1.02rem;
   font-weight: 600;
   letter-spacing: 0.003em;
@@ -6291,10 +6498,27 @@ input {
 }
 
 @media (prefers-color-scheme: dark) {
+  /* Detalle café: botones volver / me gusta / despensa — siempre blancos */
+  .coffee-detail-topbar-icon {
+    background: var(--pure-white);
+    color: var(--pure-black);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .coffee-detail-topbar-icon.is-active {
+    color: var(--electric-red);
+    background: rgba(255, 59, 48, 0.2);
+    border-color: rgba(255, 59, 48, 0.4);
+  }
+
   /* Botones con fondo marrón claro (caramelo): texto negro en modo noche */
   .coffee-detail-opinions-cta,
   .action-button.coffee-detail-sensory-submit:not(:disabled),
-  .action-button.action-button--primary {
+  .action-button.action-button--primary,
+  .action-button.brew-prep-action-primary:not(.is-running),
+  .action-button.brew-result-action-primary,
+  .brew-prep-action-primary,
+  .brew-result-action-primary {
     background: var(--caramel-soft);
     color: var(--pure-black) !important;
   }
@@ -6304,9 +6528,31 @@ input {
     color: var(--pure-black);
   }
 
-  .profile-follow-button:not(.is-following) {
-    background: var(--caramel-soft);
+  .comment-action-button.is-danger {
+    background: var(--electric-red);
     color: var(--pure-black);
+  }
+
+  .notifications-swipe-bg {
+    color: var(--pure-black);
+  }
+
+  .suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
+    background: var(--caramel-soft) !important;
+    border: 1px solid var(--caramel-accent) !important;
+    color: var(--pure-black) !important;
+  }
+
+  .profile-follow-button:not(.is-following) {
+    background: var(--caramel-soft) !important;
+    color: #000000 !important;
+    border: none;
+  }
+
+  .profile-follow-button.is-following {
+    background: transparent !important;
+    color: #ffffff !important;
+    border: 1px solid #ffffff !important;
   }
 
   .notification-follow-button:not(.is-following) {
@@ -6314,10 +6560,15 @@ input {
     color: var(--pure-black);
   }
 
+  .fab {
+    background: var(--caramel-soft);
+    color: var(--pure-black) !important;
+  }
+
   .search-users-follow.action-button-following {
-    background: #000000;
-    color: #bdb7b2;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent !important;
+    color: #ffffff !important;
+    border: 1px solid #ffffff !important;
   }
 
   .profile-inline-metrics .diary-edit-entry-metric-field {
@@ -6357,20 +6608,24 @@ input {
   letter-spacing: 0.02em;
 }
 
+/* Perfil de terceros: Siguiendo = borde negro, fondo blanco, texto negro; Seguir = marrón (día) / marrón claro (noche), texto negro */
 .profile-follow-button {
-  min-width: 112px;
-  background: var(--espresso-deep);
-  color: var(--text-main);
+  min-width: 160px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .profile-follow-button:not(.is-following) {
-  color: var(--text-main);
+  color: #000000 !important;
 }
 
 .profile-follow-button.is-following {
-  background: var(--pure-white);
-  color: var(--text-main);
-  border: 1px solid #000000;
+  background: transparent !important;
+  /* color y border se definen en @media (prefers-color-scheme: dark) y light */
 }
 
 .profile-stats-row {
@@ -6425,7 +6680,7 @@ input {
   left: 5px;
   width: calc((100% - 18px) / 3);
   border-radius: 999px;
-  background: var(--caramel-soft);
+  background: transparent;
   transition: transform 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
   z-index: 0;
   pointer-events: none;
@@ -6450,7 +6705,7 @@ input {
 
 .profile-tabs .premium-tab.is-active {
   border-color: transparent;
-  background: transparent;
+  background: var(--caramel-soft);
   color: var(--pure-black);
 }
 
@@ -6661,14 +6916,15 @@ input {
 
 .profile-favorite-swipe-bg {
   position: absolute;
-  inset: 0;
+  inset: 3px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding-right: 16px;
-  border-radius: 18px;
-  background: #cc3a3a;
-  color: var(--text-main);
+  border-radius: 15px;
+  background: var(--electric-red);
+  color: var(--pure-black);
+  box-sizing: border-box;
 }
 
 .profile-favorite-swipe-bg .ui-icon {
@@ -7102,7 +7358,7 @@ input {
   left: 5px;
   width: calc((100% - 18px) / 2);
   border-radius: 999px;
-  background: var(--caramel-soft);
+  background: transparent;
   transition: transform 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
   z-index: 0;
   pointer-events: none;
@@ -7123,7 +7379,7 @@ input {
 
 .diary-tabs .premium-tab.is-active {
   border-color: transparent;
-  background: transparent;
+  background: var(--caramel-soft);
   color: var(--pure-black);
 }
 
@@ -8088,7 +8344,7 @@ input {
 
 .app-range {
   --range-progress: 50%;
-  --slider-color: var(--espresso-deep);
+  --slider-color: var(--caramel-soft);
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -8437,7 +8693,7 @@ input {
 
 .brew-prep-action-primary {
   background: var(--caramel-soft);
-  color: var(--text-main);
+  color: var(--pure-black);
 }
 
 .brew-prep-action-secondary {
@@ -8567,7 +8823,7 @@ input {
 
 .brew-result-action-primary {
   background: var(--caramel-soft);
-  color: #111111;
+  color: var(--pure-black);
 }
 
 .brew-result-action-secondary {
@@ -8578,7 +8834,7 @@ input {
 
 .action-button.brew-result-action-primary {
   border-radius: 999px;
-  color: var(--text-main);
+  color: inherit;
 }
 
 @media (max-width: 560px) {
@@ -8628,7 +8884,7 @@ input {
 }
 
 .action-button.brew-prep-action-primary {
-  color: var(--text-main);
+  color: inherit;
 }
 
 .action-button.brew-prep-action-primary.is-running {
@@ -8668,7 +8924,7 @@ input {
 .nav-desktop {
   width: 88px;
   min-height: 320px;
-  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  border-right: 1px solid var(--nav-rail-border);
   display: grid;
   align-content: center;
   justify-items: center;
@@ -8881,7 +9137,7 @@ input {
   left: 50%;
   transform: translateX(-50%);
   width: min(860px, calc(100% - 32px));
-  bottom: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   z-index: 20;
   border: none;
   border-radius: 32px;
@@ -8922,14 +9178,23 @@ input {
   --notifications-item-border-unread: rgba(255, 255, 255, 0.22);
 }
 
+/* No es modal: ocultar la barra de arrastre encima del título */
+.notifications-panel .sheet-handle {
+  display: none;
+}
+
+/* Cabecera notificaciones: mismo patrón que buscador usuarios (grid 40px | 1fr | 0, safe-area) */
 .notifications-header {
   position: sticky;
   top: 0;
   z-index: 2;
   background: var(--screen-dark-background);
-  min-height: var(--topbar-height);
-  padding-left: calc(16px + env(safe-area-inset-left, 0px));
-  padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 0;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) var(--space-2);
   box-sizing: border-box;
 }
 
@@ -8939,18 +9204,28 @@ input {
   justify-content: flex-start;
 }
 
+/* Círculo perfecto para Volver: cuadrado 40×40, sin padding extra, border-radius 50% */
 .notifications-header .notifications-back {
   color: var(--text-main);
   width: 40px;
   height: 40px;
   min-width: 40px;
   min-height: 40px;
+  max-width: 40px;
+  max-height: 40px;
   padding: 0;
   border-radius: 50%;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  aspect-ratio: 1;
+}
+
+.notifications-header .notifications-back .ui-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .notifications-title {
@@ -9227,6 +9502,17 @@ input {
   font-size: 0.88rem;
 }
 
+/* Contenedor del botón oficial de Google (GIS): evita salto de layout mientras carga */
+.login-google-button-container,
+.auth-prompt-google-slot {
+  min-height: 44px;
+  width: 100%;
+  max-width: min(500px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .comments-list .post-menu-trigger .ui-icon {
   width: 16px;
   height: 16px;
@@ -9259,15 +9545,17 @@ input {
 
 .notifications-swipe-bg {
   position: absolute;
-  inset: 0;
-  background: #ef5350;
+  inset: 3px;
+  border-radius: 17px;
+  background: var(--danger);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding-right: 22px;
-  color: var(--text-main);
+  color: var(--pure-black);
   opacity: 0;
   transition: opacity 120ms ease-out;
+  box-sizing: border-box;
 }
 
 .notifications-swipe-bg .ui-icon {
@@ -9435,7 +9723,8 @@ input {
 }
 
 .comment-action-button.is-danger {
-  color: #ff8a80;
+  background: var(--electric-red);
+  color: var(--pure-black);
 }
 
 .sheet-item-text {
@@ -10475,7 +10764,6 @@ input {
   }
 
   .main-shell {
-    padding: 14px 0 0;
     width: 100%;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -10557,11 +10845,8 @@ input {
 
   .profile-follow-button {
     width: auto;
-    min-width: 132px;
-  }
-
-  .profile-follow-button:not(.is-following) {
-    color: var(--text-main);
+    min-width: 160px;
+    min-height: 48px;
   }
 
   .profile-stats-row {
@@ -10702,9 +10987,12 @@ input {
   }
 
   .timeline-shell-desktop .timeline-side-column {
-    position: sticky;
-    top: 68px;
     align-self: start;
+    padding-top: 0;
+  }
+
+  .timeline-shell-desktop .timeline-side-column > .suggestion-strip:first-child {
+    margin-top: 0;
   }
 
   .timeline-shell-desktop .timeline-side-column .suggestion-strip+.suggestion-strip {
@@ -10780,6 +11068,7 @@ input {
 
   .timeline-shell-desktop .timeline-side-column .mini-user-link {
     grid-area: content;
+    min-width: 0;
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr);
     grid-template-areas:
@@ -10809,6 +11098,7 @@ input {
     line-height: 1.15;
     text-align: left;
     justify-self: start;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -10838,6 +11128,8 @@ input {
     font-size: 0.68rem;
     letter-spacing: 0.06em;
     justify-self: end;
+    position: relative;
+    z-index: 1;
   }
 
   .topbar-search {
@@ -10852,7 +11144,7 @@ input {
   }
 
   .coffee-card-row {
-    min-height: 88px;
+    min-height: 55px;
   }
 }
 
@@ -10892,7 +11184,7 @@ input {
   }
 
   .nav-desktop {
-    border-right-color: var(--border-light);
+    border-right-color: var(--nav-rail-border);
   }
 
   .bottom-tabs .nav-item {
@@ -10953,30 +11245,40 @@ input {
   }
 
   .profile-follow-button:not(.is-following) {
-    background: var(--pure-black);
-    color: var(--pure-white);
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
+    border: none;
   }
 
   .profile-follow-button.is-following {
-    background: var(--pure-white);
-    color: var(--text-main);
-    border: 1px solid #000000;
+    background: transparent !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
   }
 
+  /* Buscador usuarios: mismo estilo que perfil terceros en modo día — texto blanco */
   .search-users-follow:not(.action-button-following) {
-    background: var(--pure-black);
-    color: var(--pure-white);
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
+    border: none;
+  }
+
+  .suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
+    background: #ffffff !important;
+    border: 1px solid var(--caramel-accent) !important;
+    color: var(--caramel-accent) !important;
   }
 
   .search-users-follow.action-button-following {
-    background: var(--pure-white);
-    color: var(--espresso-medium);
-    border: 1px solid var(--border-light);
+    background: transparent !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
   }
 
   .notification-follow-button:not(.is-following) {
-    background: var(--pure-black);
-    color: var(--pure-white);
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
+    border: none;
   }
 
   .profile-adn-row-head {
@@ -11118,6 +11420,7 @@ input {
 
   .coffee-detail-body {
     background: var(--screen-light-background);
+    border-top-color: #d8d8d8;
   }
 
   .coffee-detail-section-first {
@@ -11131,7 +11434,7 @@ input {
   }
 
   .coffee-detail-sensory-track {
-    background: rgba(26, 18, 11, 0.16);
+    background: rgba(111, 78, 55, 0.2);
   }
 
   .coffee-detail-sensory-fill {
@@ -11150,6 +11453,16 @@ input {
 
   .coffee-detail .section-title {
     color: #2b241f;
+  }
+
+  /* Título del café en el hero: siempre blanco sobre la imagen/overlay */
+  .coffee-detail-title {
+    color: var(--pure-white);
+  }
+
+  /* Botón Añadir opiniones (bg oscuro): texto blanco en modo día */
+  .coffee-detail-opinions-cta {
+    color: var(--pure-white);
   }
 
   .coffee-detail-inline-action {
@@ -11182,9 +11495,21 @@ input {
   }
 
   .coffee-detail-topbar-icon {
-    background: rgba(255, 255, 255, 0.92);
-    color: var(--espresso-deep);
-    border-color: var(--border-light);
+    background: var(--pure-white);
+    color: var(--pure-black);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .coffee-detail-stock-save {
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
+    border-color: var(--caramel-accent) !important;
+  }
+
+  .diary-stock-edit-save {
+    background: var(--caramel-accent) !important;
+    border-color: var(--caramel-accent) !important;
+    color: #ffffff !important;
   }
 
   .coffee-detail-topbar-icon.is-active {
@@ -11255,9 +11580,9 @@ input {
   }
 
   .coffee-detail-review-submit:not(:disabled) {
-    background: #000000 !important;
-    color: var(--text-main) !important;
-    border-color: var(--surface) !important;
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
+    border-color: var(--caramel-accent) !important;
   }
 
   .coffee-detail-review-submit:disabled {
@@ -11305,8 +11630,8 @@ input {
   .coffee-detail .coffee-detail-sheet-actions .coffee-detail-sensory-submit:disabled,
   .sheet-card .coffee-detail-sheet-actions .coffee-detail-sensory-submit,
   .sheet-card .coffee-detail-sheet-actions .coffee-detail-sensory-submit:disabled {
-    background: var(--espresso-deep) !important;
-    color: var(--text-main) !important;
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
     border-color: transparent !important;
   }
 
@@ -11337,11 +11662,11 @@ input {
   }
 
   .coffee-detail-sensory-track {
-    background: rgba(26, 18, 11, 0.16);
+    background: rgba(111, 78, 55, 0.2);
   }
 
   .coffee-detail-sensory-fill {
-    background: #1e1712;
+    background: var(--caramel-accent);
   }
 
   .coffee-detail .coffee-card {
@@ -11444,7 +11769,7 @@ input {
   }
 
   .app-range {
-    --slider-color: var(--espresso-deep);
+    --slider-color: var(--caramel-accent);
   }
 
   .app-range--water {
@@ -11522,8 +11847,8 @@ input {
   }
 
   .brew-prep-action-primary {
-    background: var(--espresso-deep);
-    color: var(--text-main);
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
   }
 
   .action-button.brew-prep-action-primary.is-running {
@@ -11568,8 +11893,8 @@ input {
   }
 
   .brew-result-action-primary {
-    background: var(--espresso-deep);
-    color: var(--text-main);
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
   }
 
   .brew-result-action-secondary {
@@ -11726,13 +12051,49 @@ input {
   }
 
   .diary-entry-delete {
-    background: rgba(214, 58, 58, 0.1);
-    color: #b53a3a;
+    background: var(--electric-red);
+    color: #ffffff;
   }
 
   .diary-swipe-bg {
-    background: rgba(214, 58, 58, 0.16);
-    color: #b53a3a;
+    background: var(--electric-red);
+    color: #ffffff;
+  }
+
+  .diary-swipe-bg .ui-icon {
+    color: #ffffff;
+  }
+
+  .profile-favorite-swipe-bg {
+    background: var(--electric-red);
+    color: #ffffff;
+  }
+  .profile-favorite-swipe-bg .ui-icon {
+    color: #ffffff;
+  }
+
+  .coffee-detail-review-delete {
+    background: var(--electric-red);
+    color: #ffffff;
+  }
+
+  .diary-sheet-action-pantry.is-delete {
+    background: var(--electric-red);
+    color: #ffffff;
+  }
+
+  .diary-sheet-action-pantry.is-delete .ui-icon:first-child,
+  .diary-sheet-action-pantry.is-delete span {
+    color: #ffffff;
+  }
+
+  .comment-action-button.is-danger {
+    background: var(--electric-red);
+    color: #ffffff;
+  }
+
+  .notifications-swipe-bg {
+    color: #ffffff;
   }
 
   .diary-pantry-card {
@@ -11795,9 +12156,20 @@ input {
   }
 
   .diary-period-option.is-active {
-    background: var(--pure-black);
-    border-color: var(--pure-black);
-    color: var(--pure-white);
+    background: var(--caramel-accent) !important;
+    border-color: var(--caramel-accent) !important;
+    color: #ffffff !important;
+  }
+
+  .diary-add-stock-save {
+    background: var(--caramel-accent) !important;
+    border-color: var(--caramel-accent) !important;
+    color: #ffffff !important;
+  }
+  .diary-add-stock-save:disabled {
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
+    opacity: 0.5;
   }
 
   .diary-sheet-form label>span {
@@ -11881,8 +12253,8 @@ input {
   }
 
   .diary-edit-entry-save {
-    background: var(--espresso-deep);
-    color: var(--text-main);
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
   }
 
   .diary-edit-entry-sheet .diary-sheet-form-actions {
@@ -11933,16 +12305,17 @@ input {
   }
 
   .profile-adn-continue-button.action-button {
-    background: #17100a;
-    border-color: #17100a;
-    color: var(--text-main);
+    background: var(--caramel-accent) !important;
+    border-color: var(--caramel-accent) !important;
+    color: #ffffff !important;
   }
 
   .profile-adn-continue-button.action-button:hover,
   .profile-adn-continue-button.action-button:focus-visible {
-    background: #21160e;
-    border-color: #21160e;
-    color: var(--text-main);
+    background: var(--caramel-accent) !important;
+    border-color: var(--caramel-accent) !important;
+    color: #ffffff !important;
+    opacity: 0.92;
   }
 
   .profile-adn-layout.is-desktop {
@@ -11969,8 +12342,8 @@ input {
   .premium-tab.is-active,
   .filter-chip.is-active {
     border: none;
-    background: #000000;
-    color: var(--text-main);
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
   }
 
   .search-wide,
@@ -12010,12 +12383,6 @@ input {
     color: #4a433d;
   }
 
-  .diary-tabs .premium-tab.is-active {
-    background: transparent;
-    border-color: transparent;
-    color: var(--pure-white);
-  }
-
   .profile-tabs {
     border: none;
     background: var(--pure-white);
@@ -12025,15 +12392,15 @@ input {
     color: #4a433d;
   }
 
-  .profile-tabs .premium-tab.is-active {
-    background: transparent;
-    border-color: transparent;
-    color: var(--pure-white);
-  }
-
   .diary-tabs .tab-sliding-indicator,
   .profile-tabs .tab-sliding-indicator {
-    background: var(--espresso-deep);
+    background: transparent;
+  }
+
+  .diary-tabs .premium-tab.is-active,
+  .profile-tabs .premium-tab.is-active {
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
   }
 
   .feed-head .post-menu-trigger,
@@ -12749,6 +13116,45 @@ input {
   background: transparent;
 }
 
+@media (prefers-color-scheme: dark) {
+  .mention-chip,
+  .mention-button {
+    border-color: rgba(212, 163, 115, 0.45);
+  }
+  .mention-chip-avatar,
+  .mention-chip-fallback,
+  .mention-button-avatar,
+  .mention-button-avatar-fallback {
+    border-color: rgba(212, 163, 115, 0.4);
+    background: rgba(212, 163, 115, 0.15);
+  }
+  .comment-inline-panel.mention-suggestions .mention-chip {
+    border-color: rgba(212, 163, 115, 0.45);
+  }
+}
+
+/* Fechas / timestamps: gris oscuro en día, gris claro en noche (sustituye marrón) */
+@media (prefers-color-scheme: light) {
+  .feed-head .feed-meta,
+  .comment-time,
+  .coffee-detail-opinion-copy .feed-meta,
+  .coffee-detail .coffee-card .feed-meta,
+  .profile-post-user .feed-meta,
+  .diary-entry-time-pill {
+    color: #5c5c5c !important;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .feed-head .feed-meta,
+  .comment-time,
+  .coffee-detail-opinion-copy .feed-meta,
+  .coffee-detail .coffee-card .feed-meta,
+  .profile-post-user .feed-meta,
+  .diary-entry-time-pill {
+    color: #b8b8b8 !important;
+  }
+}
+
 .feed-meta-row {
   display: flex;
   align-items: center;
@@ -12778,14 +13184,16 @@ input {
 
 .notifications-swipe-bg {
   position: absolute;
-  inset: 0;
+  inset: 3px;
+  border-radius: 17px;
   background: var(--danger);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding-right: 28px;
-  color: var(--text-main);
+  color: var(--pure-black);
   z-index: 0;
+  box-sizing: border-box;
 }
 
 .notifications-swipe-content {
@@ -12823,11 +13231,17 @@ input {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
 }
+/* PWA: cabecera notificaciones con espacio para notch (mismo patrón que buscador) */
+.pwa-standalone .notifications-overlay .notifications-header {
+  min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
+  padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
+}
 .pwa-standalone .main-shell-scroll {
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding-top: 10px;
 }
 .pwa-standalone .main-shell-scroll.is-coffee {
+  margin-top: env(safe-area-inset-top, 44px);
   padding-top: 0;
 }
 .pwa-standalone .main-shell-scroll.is-search-coffees {
@@ -12848,6 +13262,10 @@ input {
   }
   .pwa-standalone .topbar-timeline,
   .pwa-standalone .topbar-search-users {
+    padding: calc(7px + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
+  }
+  .pwa-standalone .notifications-overlay .notifications-header {
+    min-height: calc(56px + env(safe-area-inset-top, 44px));
     padding: calc(7px + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
   }
   .pwa-standalone .topbar-search {

@@ -633,19 +633,22 @@ fun PreparationStep(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = if (isTimerRunning) ElectricRed else MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isTimerRunning) ElectricRed else MaterialTheme.colorScheme.primary,
+                        contentColor = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
+                    ),
                     shape = RoundedCornerShape(28.dp)
                 ) {
                     Icon(
                         if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = null,
-                        tint = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary
+                        tint = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         if (isTimerRunning) "PAUSAR" else "INICIAR",
                         fontWeight = FontWeight.Bold,
-                        color = if (isTimerRunning) Color.White else MaterialTheme.colorScheme.onPrimary
+                        color = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -851,10 +854,18 @@ fun ResultStep(
                     modifier = Modifier
                         .weight(1.3f)
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, disabledContainerColor = MaterialTheme.colorScheme.outline),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.outline
+                    ),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Text("GUARDAR EN DIARIO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    Text(
+                        "GUARDAR EN DIARIO",
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
         }

@@ -189,7 +189,7 @@ fun DiaryScreen(
                             }
                         )
                     }
-                    val deleteIconColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                    val deleteIconColor = if (isSystemInDarkTheme()) Color.Black else Color.White
                     ModalMenuOption(
                         title = "Eliminar de la despensa",
                         icon = Icons.Default.Delete,

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.CoffeeRepository
 import com.cafesito.app.data.CoffeeWithDetails
+import com.cafesito.app.data.DiaryRepository
 import com.cafesito.app.data.CommentEntity
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.ReviewWithAuthor
@@ -46,6 +47,7 @@ class TimelineViewModel @Inject constructor(
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
     private val reviewRepository: ReviewRepository,
+    private val diaryRepository: DiaryRepository,
     private val notificationStore: TimelineNotificationStore
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
@@ -133,15 +135,18 @@ class TimelineViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 staticData,
-                dynamicData
-            ) { static, dynamic ->
+                dynamicData,
+                diaryRepository.getPantryItems().onStart { emit(emptyList()) }
+            ) { static, dynamic, pantryItems ->
                 val activeUser = static?.activeUser ?: return@combine null
+                val pantryCoffeeIds = pantryItems.map { it.coffee.id }.toSet()
                 TimelineBaseData(
                     activeUser = activeUser,
                     allCoffees = static.allCoffees,
                     allUsers = static.allUsers,
                     favorites = static.favorites,
                     userReviews = static.userReviews,
+                    pantryCoffeeIds = pantryCoffeeIds,
                     posts = dynamic.posts,
                     reviews = dynamic.reviews,
                     following = dynamic.following
@@ -159,6 +164,7 @@ class TimelineViewModel @Inject constructor(
                         usersCount = data.allUsers.size,
                         coffeesCount = data.allCoffees.size,
                         favoritesCount = data.favorites.size,
+                        pantryCount = data.pantryCoffeeIds.size,
                         interactionsCount = interactionsCount,
                         postsDigest = postsDigest
                     )
@@ -377,33 +383,37 @@ class TimelineViewModel @Inject constructor(
     private fun buildCoffeeRecommendations(data: TimelineBaseData): List<CoffeeWithDetails> {
         val favoriteIds = data.favorites.filter { it.userId == data.activeUser.id }.map { it.coffeeId }.toSet()
         val reviewedIds = data.userReviews.filter { it.userId == data.activeUser.id }.map { it.coffeeId }.toSet()
-        val interactedIds = favoriteIds + reviewedIds
+        val referenceIds = favoriteIds + reviewedIds + data.pantryCoffeeIds
 
-        val interactionCoffees = data.allCoffees.filter { interactedIds.contains(it.coffee.id) }
-        val preferenceTags = interactionCoffees.flatMap { coffee ->
+        val referenceCoffees = data.allCoffees.filter { referenceIds.contains(it.coffee.id) }
+        val preferenceTags = referenceCoffees.flatMap { coffee ->
             buildList {
                 addAll(coffee.coffee.paisOrigen.toAtomizedList())
                 addAll(coffee.coffee.tueste.toAtomizedList())
                 addAll(coffee.coffee.especialidad.toAtomizedList())
                 addAll(coffee.coffee.formato.toAtomizedList())
+                coffee.coffee.proceso.trim().takeIf { it.isNotEmpty() }?.let { add(it) }
             }
-        }.toSet()
+        }.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
 
-        val candidates = data.allCoffees.filter { !interactedIds.contains(it.coffee.id) }
-        val filtered = if (preferenceTags.isEmpty()) {
+        val candidates = data.allCoffees.filter { !referenceIds.contains(it.coffee.id) }
+        val similar = if (preferenceTags.isEmpty()) {
             candidates
         } else {
             candidates.filter { coffee ->
-                val tags = coffee.coffee.paisOrigen.toAtomizedList() +
+                val tags = (
+                    coffee.coffee.paisOrigen.toAtomizedList() +
                     coffee.coffee.tueste.toAtomizedList() +
                     coffee.coffee.especialidad.toAtomizedList() +
-                    coffee.coffee.formato.toAtomizedList()
+                    coffee.coffee.formato.toAtomizedList() +
+                    listOfNotNull(coffee.coffee.proceso.trim().takeIf { it.isNotEmpty() })
+                ).map { it.trim().lowercase() }.filter { it.isNotEmpty() }
                 tags.any { it in preferenceTags }
             }
         }
 
-        val seed = max(data.activeUser.id, 1) * 31 + filtered.size
-        return filtered.shuffled(Random(seed)).take(10)
+        val seed = max(data.activeUser.id, 1) * 31 + similar.size
+        return similar.shuffled(Random(seed)).take(10)
     }
 
     private fun buildRecommendedTopics(data: TimelineBaseData): List<String> {
@@ -666,6 +676,7 @@ private data class TimelineBaseData(
     val allUsers: List<UserEntity>,
     val favorites: List<com.cafesito.app.data.LocalFavorite>,
     val userReviews: List<com.cafesito.app.data.ReviewEntity>,
+    val pantryCoffeeIds: Set<String>,
     val posts: List<PostWithDetails>,
     val reviews: List<ReviewWithAuthor>,
     val following: Map<Int, Set<Int>>
@@ -679,6 +690,7 @@ private data class TimelineDataKey(
     val usersCount: Int,
     val coffeesCount: Int,
     val favoritesCount: Int,
+    val pantryCount: Int,
     val interactionsCount: Int,
     val postsDigest: Int
 )

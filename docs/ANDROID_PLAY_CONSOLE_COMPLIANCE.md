@@ -25,32 +25,33 @@ A partir de Android 16 el sistema puede ignorar estas restricciones en pantallas
 
 ## 2. APIs obsoletas para vista de extremo a extremo (Android 15)
 
-**Recomendación:** Dejar de usar `Window.setStatusBarColor`, `Window.setNavigationBarColor` y `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`.
+**Recomendación de Play:** Dejar de usar `Window.setStatusBarColor`, `Window.setNavigationBarColor` y `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`.
 
 ### Estado en nuestra app
 
-- **Código propio:** No usamos esas APIs directamente. Usamos `enableEdgeToEdge()` con `SystemBarStyle.auto(TRANSPARENT, TRANSPARENT)` en `AppUiInitializer.setupEdgeToEdge()` (API recomendada).
-- **Dependencias que las usan (según Play Console):**
-  - `com.google.android.material.datepicker` (Material DatePicker)
-  - `androidx.credentials.playservices.controllers.CreatePublicKeyCredential` (Credentials / Passkey)
-  - Posible código ofuscado de librerías (d.r.b, d.t.b, d.w.b).
+- **Código propio:** No usamos esas APIs. Usamos únicamente `enableEdgeToEdge()` con `SystemBarStyle.auto(TRANSPARENT, TRANSPARENT)` (API recomendada por Google).
+- **Origen de las advertencias (según Play Console):** Las APIs obsoletas las usan **dependencias de terceros**, no nuestro código:
+  - `com.google.android.material.datepicker.o.D` → Material Components (DatePicker u otros)
+  - `d.r.b`, `d.t.b`, `d.w.b` → Código ofuscado de librerías
+  - `androidx.credentials.playservices.controllers.CreatePublicKeyCredential.e.s` → Credentials / Passkey (Google)
 
-**Acción:** Sin cambios en nuestro código. Las advertencias provienen de dependencias; se irán reduciendo al actualizar esas librerías. No usar en código nuevo `setStatusBarColor`, `setNavigationBarColor` ni modos de cutout obsoletos.
+**Acción:** No podemos modificar el código de esas librerías. Las advertencias se reducirán cuando actualicemos a versiones que migren a las nuevas APIs (p. ej. Material 1.14+ cuando esté estable). En nuestro código no usamos ni usaremos `setStatusBarColor`, `setNavigationBarColor` ni `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`.
 
 ---
 
 ## 3. Vista de extremo a extremo (edge-to-edge) en Android 15+
 
-**Recomendación:** Con target SDK 35, la app se muestra edge-to-edge por defecto; hay que gestionar insets (bajorrelieves) y, si se quiere, llamar a `enableEdgeToEdge()` para retrocompatibilidad.
+**Recomendación de Play:** Con target SDK 35 la app es edge-to-edge por defecto; hay que gestionar bajorrelieves (insets) y se puede llamar a `enableEdgeToEdge()` para retrocompatibilidad.
 
-### Estado en nuestra app
+### Estado en nuestra app (cumplimiento)
 
-- **Edge-to-edge:** En `AppUiInitializer.setupEdgeToEdge()` se llama a `activity.enableEdgeToEdge()` con barras de sistema transparentes. Se invoca desde `MainActivity.onCreate()` antes de `setContent`.
-- **Insets en Compose:** Se usan `Modifier.statusBarsPadding()`, `Modifier.navigationBarsPadding()`, `WindowInsets.statusBars` y `contentWindowInsets` donde hace falta (p. ej. `LoginScreen`, `SearchScreen`, `AppNavigation`, `DetailScreen`, `TimelineComponents`, etc.).
+- **Llamada explícita a `enableEdgeToEdge()`:** En `AppUiInitializer.setupEdgeToEdge()` se llama a `activity.enableEdgeToEdge()` con barras de sistema transparentes (`SystemBarStyle.auto(TRANSPARENT, TRANSPARENT)`). Se invoca desde `MainActivity.onCreate()` **antes** de `setContent`, tal como recomienda Google para retrocompatibilidad.
+- **Gestión de insets (bajorrelieves):** En Compose se usan `Modifier.statusBarsPadding()`, `Modifier.navigationBarsPadding()`, `WindowInsets.statusBars` y `contentWindowInsets` en las pantallas que lo requieren (LoginScreen, SearchScreen, AppNavigation, DetailScreen, TimelineComponents, etc.), de modo que el contenido no quede bajo la barra de estado ni la de navegación.
+- **Otras actividades:** `NativeBarcodeScannerActivity` también llama a `enableEdgeToEdge()` en su `onCreate` para consistencia.
 
-**Archivos relevantes:** `app/src/main/java/com/cafesito/app/startup/AppUiInitializer.kt`, `MainActivity.kt`, y pantallas que aplican padding de insets.
+**Archivos:** `AppUiInitializer.kt`, `MainActivity.kt`, `NativeBarcodeScannerActivity.kt`, y las pantallas que aplican padding de insets.
 
-No se requieren cambios adicionales por esta recomendación; conviene seguir probando en dispositivos con muescas y gestos de navegación.
+La app cumple con la recomendación de edge-to-edge; conviene seguir probando en Android 15+ con muescas y gestos de navegación.
 
 ---
 

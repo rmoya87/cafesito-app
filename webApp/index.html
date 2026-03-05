@@ -12,12 +12,13 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://region1.google-analytics.com ws://localhost:4173 http://localhost:4173 https://www.google-analytics.com https://www.googletagmanager.com; img-src 'self' data: blob: https:; font-src 'self' data: https://r2cdn.perplexity.ai https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com;"
+      content="default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://region1.google-analytics.com ws://localhost:4173 http://localhost:4173 https://www.google-analytics.com https://www.googletagmanager.com https://accounts.google.com; img-src 'self' data: blob: https:; font-src 'self' data: https://r2cdn.perplexity.ai https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://accounts.google.com; frame-src https://accounts.google.com;"
     />
     <meta name="description" content="Comunidad de café para compartir timeline, explorar cafés y seguir perfiles." />
-    <!-- Preconnect: reducir latencia de primera solicitud a Supabase y GA (PageSpeed) -->
+    <!-- Preconnect: reducir latencia de primera solicitud a Supabase, GA y Google Sign-In -->
     <link rel="preconnect" href="https://ubcxjmagimjhpsehqync.supabase.co" crossorigin />
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+    <link rel="preconnect" href="https://accounts.google.com" crossorigin />
     <link rel="dns-prefetch" href="https://region1.google-analytics.com" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="shortcut icon" href="/logo.png" />

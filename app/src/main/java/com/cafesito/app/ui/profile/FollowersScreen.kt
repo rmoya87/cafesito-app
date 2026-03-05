@@ -2,6 +2,7 @@ package com.cafesito.app.ui.profile
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -18,6 +19,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -213,13 +215,19 @@ fun FollowItemModern(
             }
             
             if (!isMe) {
+                val isDark = isSystemInDarkTheme()
+                val followBg = if (isDark) CaramelSoft else CaramelAccent
+                val followingBorder = if (isDark) BorderStroke(1.dp, Color.White) else BorderStroke(1.dp, Color.Black)
+                val followingColor = if (isDark) Color.White else Color.Black
+                val followTextColor = if (isDark) Color.Black else Color.White
                 Button(
                     onClick = onFollowClick,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFollowing) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
-                        contentColor = if (isFollowing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                        containerColor = if (isFollowing) Color.Transparent else followBg,
+                        contentColor = if (isFollowing) followingColor else followTextColor
                     ),
+                    border = if (isFollowing) followingBorder else null,
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     modifier = Modifier.height(36.dp)
                 ) {

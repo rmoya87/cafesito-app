@@ -12,8 +12,11 @@ import androidx.compose.ui.graphics.Color
 /** En modo noche es marrón claro (CaramelSoft), en modo claro es marrón café (CaramelAccent). */
 val LocalCaramelAccent = staticCompositionLocalOf { CaramelAccent }
 
+/** Color para fechas/timestamps: gris oscuro en día, gris claro en noche. */
+val LocalDateMetaColor = staticCompositionLocalOf { DateMetaLight }
+
 private val LightColorScheme = lightColorScheme(
-    primary = EspressoDeep,
+    primary = CaramelAccent,
     onPrimary = Color.White,
     secondary = CaramelAccent,
     onSecondary = Color.White,
@@ -34,7 +37,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = CaramelSoft,
+    primary = CaramelLight,
     onPrimary = PureBlack,
     secondary = CaramelSoft,
     onSecondary = PureBlack,
@@ -66,7 +69,11 @@ fun CafesitoTheme(
     }
 
     val caramelAccent = if (darkTheme) CaramelSoft else CaramelAccent
-    CompositionLocalProvider(LocalCaramelAccent provides caramelAccent) {
+    val dateMetaColor = if (darkTheme) DateMetaDark else DateMetaLight
+    CompositionLocalProvider(
+        LocalCaramelAccent provides caramelAccent,
+        LocalDateMetaColor provides dateMetaColor
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = CafesitoTypography,

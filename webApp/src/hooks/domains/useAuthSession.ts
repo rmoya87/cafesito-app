@@ -45,6 +45,8 @@ type UseAuthSessionResult = {
   setAuthError: (value: string | null) => void;
   setShowAuthPrompt: (value: boolean) => void;
   handleGoogleLogin: () => Promise<void>;
+  /** Recibe el ID token de Google (GIS) y firma en Supabase sin redirección. */
+  handleGoogleCredential: (idToken: string) => Promise<void>;
   requestLogin: () => void;
 };
 
@@ -146,6 +148,28 @@ export function useAuthSession(): UseAuthSessionResult {
     }
   }, []);
 
+  const handleGoogleCredential = useCallback(async (idToken: string) => {
+    if (supabaseConfigError) {
+      setAuthError(supabaseConfigError);
+      return;
+    }
+    setAuthBusy(true);
+    setAuthError(null);
+    try {
+      const supabase = getSupabaseClient();
+      // Supabase → Google: con "Skip nonce checks" no hace falta enviar nonce.
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: idToken
+      });
+      if (error) throw error;
+    } catch (error) {
+      setAuthError((error as Error).message);
+    } finally {
+      setAuthBusy(false);
+    }
+  }, []);
+
   const requestLogin = useCallback(() => {
     setAuthError(null);
     setShowAuthPrompt(true);
@@ -173,6 +197,7 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError,
     setShowAuthPrompt,
     handleGoogleLogin,
+    handleGoogleCredential,
     requestLogin
   };
 }

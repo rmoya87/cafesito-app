@@ -556,52 +556,48 @@ export function useAppDerivedData({
     if (!coffees.length) return [] as CoffeeRow[];
     if (!activeUser) return coffees.slice(0, 5);
 
-    const scoreByCoffeeId = new Map<string, number>();
-    const addScore = (coffeeId: string | null | undefined, points: number) => {
-      if (!coffeeId) return;
-      scoreByCoffeeId.set(coffeeId, (scoreByCoffeeId.get(coffeeId) ?? 0) + points);
-    };
-
+    // Referencia: favoritos, despensa y visitados (ej. café actual en detalle)
+    const referenceIds = new Set<string>();
     favorites
-      .filter((favorite) => favorite.user_id === activeUser.id)
-      .forEach((favorite) => addScore(favorite.coffee_id, 120));
-
+      .filter((f) => f.user_id === activeUser.id)
+      .forEach((f) => referenceIds.add(f.coffee_id));
     pantryItems
-      .filter((item) => item.user_id === activeUser.id)
-      .forEach((item) => addScore(item.coffee_id, 70 + Math.min(20, Math.round((item.grams_remaining ?? 0) / 40))));
+      .filter((p) => p.user_id === activeUser.id)
+      .forEach((p) => referenceIds.add(p.coffee_id));
+    if (detailCoffeeId) referenceIds.add(detailCoffeeId);
 
-    diaryEntries
-      .filter((entry) => entry.user_id === activeUser.id)
-      .forEach((entry) => addScore(entry.coffee_id, 16));
+    const referenceCoffees = coffees.filter((c) => referenceIds.has(c.id));
+    const preferenceTags = new Set<string>();
+    referenceCoffees.forEach((coffee) => {
+      splitAtomizedList(coffee.pais_origen).forEach((t) => preferenceTags.add(t.trim().toLowerCase()));
+      splitAtomizedList(coffee.tueste).forEach((t) => preferenceTags.add(t.trim().toLowerCase()));
+      splitAtomizedList(coffee.especialidad).forEach((t) => preferenceTags.add(t.trim().toLowerCase()));
+      splitAtomizedList(coffee.formato).forEach((t) => preferenceTags.add(t.trim().toLowerCase()));
+      if (coffee.proceso?.trim()) preferenceTags.add(coffee.proceso.trim().toLowerCase());
+    });
 
-    const followedIds = new Set(
-      follows.filter((follow) => follow.follower_id === activeUser.id).map((follow) => follow.followed_id)
-    );
-    timelineCards
-      .filter((card) => followedIds.has(card.userId))
-      .forEach((card) => addScore(card.coffeeId, 18));
+    const candidates = coffees.filter((c) => !referenceIds.has(c.id));
+    const similar = preferenceTags.size === 0
+      ? candidates
+      : candidates.filter((coffee) => {
+          const tags = [
+            ...splitAtomizedList(coffee.pais_origen),
+            ...splitAtomizedList(coffee.tueste),
+            ...splitAtomizedList(coffee.especialidad),
+            ...splitAtomizedList(coffee.formato),
+            ...(coffee.proceso?.trim() ? [coffee.proceso.trim()] : [])
+          ].map((t) => t.trim().toLowerCase());
+          return tags.some((t) => t && preferenceTags.has(t));
+        });
 
-    const coffeeByPostId = new Map<string, string | null>();
-    timelineCards.forEach((card) => coffeeByPostId.set(card.id, card.coffeeId));
-
-    likes
-      .filter((like) => like.user_id === activeUser.id)
-      .forEach((like) => addScore(coffeeByPostId.get(like.post_id) ?? null, 14));
-
-    comments
-      .filter((comment) => comment.user_id === activeUser.id)
-      .forEach((comment) => addScore(coffeeByPostId.get(comment.post_id) ?? null, 8));
-
-    const scored = coffees
-      .map((coffee) => ({ coffee, score: scoreByCoffeeId.get(coffee.id) ?? 0 }))
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        return a.coffee.nombre.localeCompare(b.coffee.nombre);
-      })
-      .map((entry) => entry.coffee);
-
-    return scored.slice(0, 5);
-  }, [activeUser, coffees, comments, diaryEntries, favorites, follows, likes, pantryItems, timelineCards]);
+    const seed = (activeUser.id * 31 + coffees.length) % 1_000_000;
+    const shuffled = [...similar].sort((a, b) => {
+      const ha = (a.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) + seed) % 1000;
+      const hb = (b.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) + seed) % 1000;
+      return ha - hb;
+    });
+    return shuffled.slice(0, 5);
+  }, [activeUser, coffees, detailCoffeeId, favorites, pantryItems]);
 
   const timelineSuggestions = useMemo(
     () =>

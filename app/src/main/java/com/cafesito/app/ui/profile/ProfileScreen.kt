@@ -138,6 +138,7 @@ fun ProfileScreen(
                                 )
                             } else {
                                 Text(text = state.user.fullName, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+                                Spacer(Modifier.height(6.dp))
                                 Text(text = "@${state.user.username}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
                                 if (!state.isCurrentUser) {
                                     Spacer(Modifier.height(12.dp))
