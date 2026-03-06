@@ -1,4 +1,4 @@
-﻿import type { BrewStep } from "../types";
+import type { BrewStep } from "../types";
 import { normalizeLookupText } from "./text";
 
 export type BrewPhaseInfo = {
@@ -339,7 +339,7 @@ export function getBrewBaristaTipsForMethod(method: string, context?: BrewBarist
     { label: "AJUSTE ACIDEZ", value: "Muele más fino", icon: "grind" },
     { label: "AJUSTE AMARGOR", value: "Muele más grueso", icon: "grind" }
   ];
-  const baseTips = !key
+  const baseTips: BrewBaristaTip[] = !key
     ? defaults
     : key.includes("espresso")
       ? [

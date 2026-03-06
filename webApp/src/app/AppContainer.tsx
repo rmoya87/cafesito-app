@@ -1757,15 +1757,15 @@ export function AppContainer() {
               navigateToTab("timeline", { replace: true });
             });
           }}
-          coffeeTopbarFavoriteActive={guardedActiveTab === "coffee" ? detailIsFavorite : false}
-          coffeeTopbarStockActive={guardedActiveTab === "coffee" ? Boolean(detailPantryStock) : false}
+          coffeeTopbarFavoriteActive={false}
+          coffeeTopbarStockActive={false}
           onCoffeeTopbarToggleFavorite={topbarActions.onCoffeeTopbarToggleFavorite}
           onCoffeeTopbarOpenStock={topbarActions.onCoffeeTopbarOpenStock}
         />
         ) : null}
         <div
           ref={mainScrollRef}
-          className={`main-shell-scroll ${guardedActiveTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""} ${guardedActiveTab === "search" && searchMode === "users" ? "is-search-users" : ""}`.trim()}
+          className={`main-shell-scroll ${activeTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""} ${guardedActiveTab === "search" && searchMode === "users" ? "is-search-users" : ""}`.trim()}
         >
           <Suspense fallback={<div className="app-content-loading" aria-hidden="true" />}>
             <AppContentRouter
