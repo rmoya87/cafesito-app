@@ -3163,7 +3163,7 @@ input {
   scrollbar-width: thin;
 }
 
-/* Personas que podrías seguir: número de seguidores + @username en gris; botón Seguir con bg transparente y borde marrón */
+/* Personas que podrías seguir: subtítulo en gris; botones Seguir/Siguiendo = mismos estilos que perfil */
 .suggestion-strip .suggestion-subtitle {
   color: #a8a098 !important;
 }
@@ -3173,17 +3173,8 @@ input {
   z-index: 1;
 }
 
-.suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
-  border: 1px solid var(--caramel-accent) !important;
-  color: var(--caramel-accent) !important;
-}
-
 @media (prefers-color-scheme: light) {
   .suggestion-strip .suggestion-subtitle {
-    color: #5e5751 !important;
-  }
-
-  .suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
     color: #5e5751 !important;
   }
 }
@@ -3207,11 +3198,9 @@ input {
   }
 }
 
-@media (max-width: 899px) {
-  .suggestion-strip .mini-user-card.suggestion-user-card {
-    background: transparent;
-    border: 1px solid var(--caramel-accent);
-  }
+/* Personas que podrías seguir: sin borde; bg blanco (día) / negro (noche) */
+.suggestion-strip .mini-user-card.suggestion-user-card {
+  border: none;
 }
 
 /* Nombre con puntos suspensivos para que no pise el botón Seguir */
@@ -6537,10 +6526,18 @@ input {
     color: var(--pure-black);
   }
 
+  .suggestion-strip .mini-user-card.suggestion-user-card {
+    background: #000000;
+  }
   .suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
     background: var(--caramel-soft) !important;
-    border: 1px solid var(--caramel-accent) !important;
+    border: none !important;
     color: var(--pure-black) !important;
+  }
+  .suggestion-strip .suggestion-follow-btn.action-button-following {
+    background: transparent !important;
+    color: #ffffff !important;
+    border: 1px solid #ffffff !important;
   }
 
   .profile-follow-button:not(.is-following) {
@@ -11263,10 +11260,18 @@ input {
     border: none;
   }
 
+  .suggestion-strip .mini-user-card.suggestion-user-card {
+    background: #ffffff;
+  }
   .suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
-    background: #ffffff !important;
-    border: 1px solid var(--caramel-accent) !important;
-    color: var(--caramel-accent) !important;
+    background: var(--caramel-accent) !important;
+    color: #ffffff !important;
+    border: none !important;
+  }
+  .suggestion-strip .suggestion-follow-btn.action-button-following {
+    background: transparent !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
   }
 
   .search-users-follow.action-button-following {
