@@ -14,7 +14,18 @@ if [[ -z "${current_code}" ]]; then
   exit 1
 fi
 
+# No usar un versionCode ya desplegado en Play (evita "Version code X has already been used")
+last_deployed_file="scripts/last_deployed_version.txt"
+last_deployed=0
+if [[ -f "${last_deployed_file}" ]]; then
+  last_deployed=$(grep -E '^[0-9]+' "${last_deployed_file}" | head -n1 | tr -d '\r' || true)
+  last_deployed=${last_deployed:-0}
+fi
 new_code=$((current_code + 1))
+if [[ "${new_code}" -le "${last_deployed}" ]]; then
+  new_code=$((last_deployed + 1))
+  echo "Ajustado versionCode a ${new_code} (last_deployed=${last_deployed})"
+fi
 
 year=$(date -u +%Y)
 month=$(date -u +%-m)
