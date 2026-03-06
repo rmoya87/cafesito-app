@@ -7,10 +7,10 @@
 # 3) schedule (cron 03:00 UTC) → nightly.
 #
 # --- QUÉ SE DESPLIEGA EN PUSH ---
-# En push solo se despliega un target si hay ficheros modificados que lo impactan:
-# - Android: ficheros en app/, shared/, gradle/, build.gradle.kts, settings.gradle.kts, etc.
+# En push a alpha o beta: siempre se despliegan Android y webapp (para que "merge main → beta" despliegue).
+# En push a otras ramas (Interna, Producción): solo se despliega si hay ficheros que impactan:
+# - Android: ficheros en app/, shared/, gradle/, build.gradle.kts, etc.
 # - Webapp: ficheros bajo webApp/.
-# Si cambian ficheros de ambos, se ejecutan release-android y deploy-web.
 # workflow_dispatch y schedule no usan filtro por ficheros (manual y cola Supabase).
 # Ver docs/RELEASE_DEPLOY_WORKFLOW.md
 
@@ -68,18 +68,25 @@ jobs:
     if: github.event_name != 'push' || github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
-      android: ${{ steps.pathfilter.outputs.android || steps.scope.outputs.android || steps.decide.outputs.android }}
-      web: ${{ steps.pathfilter.outputs.webapp || steps.scope.outputs.web || steps.decide.outputs.web }}
+      android: ${{ steps.beta_alpha_scope.outputs.android || steps.pathfilter.outputs.android || steps.scope.outputs.android || steps.decide.outputs.android }}
+      web: ${{ steps.beta_alpha_scope.outputs.web || steps.pathfilter.outputs.webapp || steps.scope.outputs.web || steps.decide.outputs.web }}
       queue_response: ${{ steps.decide.outputs.queue_response || '' }}
     steps:
+      - name: Always deploy both on push to alpha/beta
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/alpha' || github.ref == 'refs/heads/beta')
+        id: beta_alpha_scope
+        run: |
+          echo "android=true" >> "$GITHUB_OUTPUT"
+          echo "web=true" >> "$GITHUB_OUTPUT"
+
       - name: Checkout for file filter (push only)
         if: github.event_name == 'push'
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Detect changed files (push)
-        if: github.event_name == 'push'
+      - name: Detect changed files (push, ramas distintas de alpha/beta)
+        if: github.event_name == 'push' && github.ref != 'refs/heads/alpha' && github.ref != 'refs/heads/beta'
         id: pathfilter
         uses: dorny/paths-filter@v3
         with:

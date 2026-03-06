@@ -22,11 +22,12 @@ Si lo dejas activo, la función responderá en modo diferido y el despliegue se 
 
 ## Comportamiento por rama y por ficheros (push)
 
-En **push** a una rama de despliegue, solo se ejecuta cada job si hay **ficheros modificados** que impactan a ese target (detección con `dorny/paths-filter`):
+En **push a alpha o beta**: siempre se ejecutan **release-android** y **deploy-web** (así, al hacer merge de main en beta se despliega aunque el último commit solo toque docs o workflow).
+
+En **push a otras ramas** (Interna, Producción): solo se ejecuta cada job si hay **ficheros modificados** que impactan a ese target (detección con `dorny/paths-filter`):
 
 - **Release Android** se ejecuta solo si cambian ficheros de Android: `app/**`, `shared/**`, `gradle/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties`, `gradle-wrapper.properties`, `libs.versions.toml`.
 - **Deploy web** se ejecuta solo si cambian ficheros de la webapp: `webApp/**`.
-- Si en un mismo push cambian ficheros de ambos, se ejecutan **release-android** y **deploy-web**.
 
 En **workflow_dispatch** (manual) y en **schedule** (nocturno) no se usa filtro por ficheros: el usuario elige “solo Android” / “solo web” en manual, y en schedule la cola de Supabase decide si hay deploy web.
 
@@ -34,18 +35,19 @@ En **workflow_dispatch** (manual) y en **schedule** (nocturno) no se usa filtro 
 |-------------|-------------------------------------|----------------------------------|
 | **main**    | No se ejecuta el workflow           | —                                |
 | **Interna** | Solo si hay ficheros que impactan Android → pruebas internas | No (rama no incluida en deploy web) |
-| **alpha**   | Solo si hay ficheros que impactan Android → pruebas cerradas | Solo si hay ficheros que impactan webapp → `/cafesito-web/app/` |
-| **beta**    | Solo si hay ficheros que impactan Android → pruebas abiertas | Solo si hay ficheros que impactan webapp → `/cafesito-web/app/` |
+| **alpha**   | **Siempre** en push → pruebas cerradas | **Siempre** en push → `/cafesito-web/app/` |
+| **beta**    | **Siempre** en push → pruebas abiertas | **Siempre** en push → `/cafesito-web/app/` |
 | **Producción** | Solo si hay ficheros que impactan Android → producción | Solo si hay ficheros que impactan webapp → `/cafesito-web/app/` |
 
-- **Android**: se construye y publica cuando el push incluye ficheros que impactan Android (o en manual/schedule según configuración).
-- **Web**: en alpha, beta y Producción el job de deploy web se ejecuta cuando el push incluye ficheros bajo `webApp/` (o en schedule si la cola Supabase indica pendientes).
+- **alpha/beta**: en cada push se despliegan Android y web para que un merge desde main dispare el despliegue completo.
+- **Otras ramas**: Android y web solo si el push incluye ficheros que impactan a cada uno (o en manual/schedule según configuración).
 
 ## Jobs del workflow
 
 1. **changes**  
    Decide qué jobs ejecutar (`android` / `web`):
-   - **Push:** usa `dorny/paths-filter` sobre los ficheros modificados en el push: `android=true` si hay ficheros que impactan Android, `web=true` si hay ficheros que impactan `webApp/`.
+   - **Push a alpha o beta:** siempre `android=true` y `web=true` (siempre se despliegan ambos).
+   - **Push a otras ramas:** usa `dorny/paths-filter` sobre los ficheros modificados: `android=true` si hay ficheros que impactan Android, `web=true` si hay ficheros que impactan `webApp/`.
    - **workflow_dispatch:** el usuario elige “solo Android”, “solo web” o ambos.
    - **schedule:** consulta `consume-deploy-changes` en Supabase; `web=true` solo si hay pendientes en la cola; `android=false` en schedule (evita releases diarios de Play sin push).
 
