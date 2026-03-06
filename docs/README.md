@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-04  
+**Última actualización:** 2026-03-05  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -53,6 +53,7 @@
 | Documento | Descripción |
 |-----------|-------------|
 | `RELEASE_DEPLOY_WORKFLOW.md` | **Fuente de verdad:** cuándo se ejecuta el workflow, ramas (Interna/Alpha/Beta/Producción), jobs, secretos (Android/Play + Web Ionos), configuración Play Console, revisión de crashes. |
+| `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` | **Registro reciente:** cambios de desarrollo, incidencias resueltas (p. ej. deploy-web/TypeScript), política de ramas (main, beta, alpha, Interna) y flujo main → beta. Consultar en próximos desarrollos o incidencias. |
 | `supabase/webhook-coffees-trigger-build.md` | Deploy web: prerender de cafés, SEO, requisitos servidor (SPA fallback), webhook Supabase → build (actualizar web sin Git). |
 
 ### 4.3 Runbooks y operación

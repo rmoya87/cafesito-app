@@ -8,9 +8,9 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 
 ## Cuándo se ejecuta
 
-- **Push** a ramas: `Interna`, `Interno`, `Alpha`, `alpha`, `Beta`, `beta`, `Producción`, `Produccion`. **main no está en la lista**: un push a main no dispara el workflow (y el job `changes` tiene `if` que excluye push a main).
+- **Push** a ramas: `Interna`, `Interno`, `alpha`, `beta`, `Producción`, `Produccion` (las ramas canónicas son **alpha** y **beta** en minúsculas). **main** no está en la lista: un push a main no dispara el workflow (y el job `changes` tiene `if` que excluye push a main).
 - **workflow_dispatch**: ejecución manual desde Actions → "Run workflow", eligiendo rama y opciones (solo Android, solo web, etc.).
-- **Programado (schedule)**: todos los días a las **03:00 UTC** (deploy nocturno). La rama objetivo se define con la variable de repositorio `NIGHTLY_DEPLOY_BRANCH` (por defecto: `Beta`).
+- **Programado (schedule)**: todos los días a las **03:00 UTC** (deploy nocturno). La rama objetivo se define con la variable de repositorio `NIGHTLY_DEPLOY_BRANCH` (por defecto: `beta`).
 
 ### Si no quieres que se ejecute solo por cambios en cafés
 
@@ -20,34 +20,43 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 
 Si lo dejas activo, la función responderá en modo diferido y el despliegue se aplicará en la ventana nocturna.
 
-## Comportamiento por rama
+## Comportamiento por rama y por ficheros (push)
+
+En **push** a una rama de despliegue, solo se ejecuta cada job si hay **ficheros modificados** que impactan a ese target (detección con `dorny/paths-filter`):
+
+- **Release Android** se ejecuta solo si cambian ficheros de Android: `app/**`, `shared/**`, `gradle/**`, `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties`, `gradle-wrapper.properties`, `libs.versions.toml`.
+- **Deploy web** se ejecuta solo si cambian ficheros de la webapp: `webApp/**`.
+- Si en un mismo push cambian ficheros de ambos, se ejecutan **release-android** y **deploy-web**.
+
+En **workflow_dispatch** (manual) y en **schedule** (nocturno) no se usa filtro por ficheros: el usuario elige “solo Android” / “solo web” en manual, y en schedule la cola de Supabase decide si hay deploy web.
 
 | Rama         | Release Android (Play Console)     | Deploy web (Ionos)              |
 |-------------|-------------------------------------|----------------------------------|
 | **main**    | No se ejecuta el workflow           | —                                |
-| **Interna** | Solo si hay cambios en `app/` o `shared/` → pruebas internas | No |
-| **Alpha**   | Solo si hay cambios en `app/` o `shared/` → pruebas cerradas | **Siempre** → `/cafesito-web/app/` |
-| **Beta**    | Solo si hay cambios en `app/` o `shared/` → pruebas abiertas | **Siempre** → `/cafesito-web/app/` |
-| **Producción** | Solo si hay cambios en `app/` o `shared/` → producción | **Siempre** → `/cafesito-web/app/` |
+| **Interna** | Solo si hay ficheros que impactan Android → pruebas internas | No (rama no incluida en deploy web) |
+| **alpha**   | Solo si hay ficheros que impactan Android → pruebas cerradas | Solo si hay ficheros que impactan webapp → `/cafesito-web/app/` |
+| **beta**    | Solo si hay ficheros que impactan Android → pruebas abiertas | Solo si hay ficheros que impactan webapp → `/cafesito-web/app/` |
+| **Producción** | Solo si hay ficheros que impactan Android → producción | Solo si hay ficheros que impactan webapp → `/cafesito-web/app/` |
 
-- **Android**: se construye y publica dentro de la ventana nocturna programada.
-- **Web**: en Alpha, Beta y Producción el job de deploy web se ejecuta en la misma ventana nocturna y sube el build de `webApp` a `/cafesito-web/app/`.
+- **Android**: se construye y publica cuando el push incluye ficheros que impactan Android (o en manual/schedule según configuración).
+- **Web**: en alpha, beta y Producción el job de deploy web se ejecuta cuando el push incluye ficheros bajo `webApp/` (o en schedule si la cola Supabase indica pendientes).
 
 ## Jobs del workflow
 
 1. **changes**  
-   Consulta `consume-deploy-changes` en Supabase y decide:
-   - `web=true` solo si hay pendientes en `deploy_change_events`.
-   - `android=false` por defecto (evita releases diarios de Play sin cambios).
+   Decide qué jobs ejecutar (`android` / `web`):
+   - **Push:** usa `dorny/paths-filter` sobre los ficheros modificados en el push: `android=true` si hay ficheros que impactan Android, `web=true` si hay ficheros que impactan `webApp/`.
+   - **workflow_dispatch:** el usuario elige “solo Android”, “solo web” o ambos.
+   - **schedule:** consulta `consume-deploy-changes` en Supabase; `web=true` solo si hay pendientes en la cola; `android=false` en schedule (evita releases diarios de Play sin push).
 
 2. **release-android**  
-   - Condición: rama en `Interna` / `Alpha` / `Beta` / `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
+   - Condición: rama en `Interna` / `alpha` / `beta` / `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
    - Configura keystore y `google-services.json`, hace bump de versión, build del AAB y subida a la pista de Play correspondiente.
    - Sube también los **símbolos nativos** (`debugSymbols`) generados por el build para que Play Console pueda mostrar ANR y crashes de forma legible.
    - Las **notas de la versión** (What’s new) se generan de forma automática: se basan en la última versión anterior (último tag o último push), son promocionales y pensadas para el usuario que disfruta la app y el café, sin tecnicismos.
 
 3. **deploy-web**  
-   - Condición: rama `Alpha`, `Beta` o `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
+   - Condición: rama `alpha`, `beta` o `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
    - Ejecuta `npm ci`, `npm test`, `npm run build` en `webApp` y sube el contenido de `webApp/dist/` por **SFTP** (SSH) a Ionos en `/cafesito-web/app/`.
 
 ## Secretos necesarios
@@ -95,8 +104,9 @@ No hay workflow automático. Los crashes se revisan y resuelven **desde Cursor**
 ## Resumen rápido
 
 - **main**: no hace nada.
-- **Interna / Alpha**: solo release Android si cambian `app/` o `shared/`.
-- **Alpha / Beta / Producción**: release Android si cambian `app/` o `shared/`; **deploy web siempre** a Ionos `/cafesito-web/app/`.
+- **Push a Interna / alpha / beta / Producción**: release Android **solo si** hay ficheros que impactan Android; deploy web **solo si** hay ficheros que impactan la webapp (`webApp/`). Si cambian ficheros de ambos, se despliegan ambos.
+- **workflow_dispatch**: eliges manualmente “solo Android”, “solo web” o ambos (sin filtro por ficheros).
+- **schedule**: deploy web según cola Supabase; Android no se publica en schedule.
 - Para cambiar la rama nocturna, ajusta `NIGHTLY_DEPLOY_BRANCH` en Variables de GitHub Actions.
 
 ## Registro de cambios de despliegue

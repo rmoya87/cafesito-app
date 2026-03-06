@@ -2,9 +2,16 @@
 #
 # --- TRIGGERS ---
 # main NO debe lanzar: no está en branches y además los jobs tienen "if" que excluye push a main.
-# 1) push a Interna/Alpha/Beta/Producción → despliega (el workflow se evalúa desde la rama por defecto).
+# 1) push a Interna/alpha/beta/Producción → despliega (ramas canónicas: alpha, beta en minúsculas).
 # 2) workflow_dispatch → "Run workflow" en Actions.
 # 3) schedule (cron 03:00 UTC) → nightly.
+#
+# --- QUÉ SE DESPLIEGA EN PUSH ---
+# En push solo se despliega un target si hay ficheros modificados que lo impactan:
+# - Android: ficheros en app/, shared/, gradle/, build.gradle.kts, settings.gradle.kts, etc.
+# - Webapp: ficheros bajo webApp/.
+# Si cambian ficheros de ambos, se ejecutan release-android y deploy-web.
+# workflow_dispatch y schedule no usan filtro por ficheros (manual y cola Supabase).
 # Ver docs/RELEASE_DEPLOY_WORKFLOW.md
 
 name: Release & Deploy
@@ -23,14 +30,14 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Rama a usar (Interna, Alpha, Beta, Producción)'
+        description: 'Rama a usar (Interna, alpha, beta, Producción)'
         required: true
-        default: 'Beta'
+        default: 'beta'
         type: choice
         options:
           - Interna
-          - Alpha
-          - Beta
+          - alpha
+          - beta
           - Producción
       android_only:
         description: 'Solo Android (no desplegar webapp)'
@@ -50,36 +57,55 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: release-deploy-${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'Beta' }}
+  group: release-deploy-${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta' }}
   cancel-in-progress: true
 
 env:
-  TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'Beta' }}
+  TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta' }}
 
 jobs:
   changes:
     if: github.event_name != 'push' || github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
-      android: ${{ steps.scope.outputs.android || steps.decide.outputs.android }}
-      web: ${{ steps.scope.outputs.web || steps.decide.outputs.web }}
+      android: ${{ steps.pathfilter.outputs.android || steps.scope.outputs.android || steps.decide.outputs.android }}
+      web: ${{ steps.pathfilter.outputs.webapp || steps.scope.outputs.web || steps.decide.outputs.web }}
       queue_response: ${{ steps.decide.outputs.queue_response || '' }}
     steps:
-      - name: Set scope for push or manual run
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      - name: Checkout for file filter (push only)
+        if: github.event_name == 'push'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed files (push)
+        if: github.event_name == 'push'
+        id: pathfilter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            android:
+              - 'app/**'
+              - 'shared/**'
+              - 'gradle/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle.properties'
+              - 'gradle-wrapper.properties'
+              - 'libs.versions.toml'
+            webapp:
+              - 'webApp/**'
+
+      - name: Set scope for manual run (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
         id: scope
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.web_only }}" = "true" ]; then
-            echo "android=false" >> "$GITHUB_OUTPUT"
-            echo "web=true" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ] && { [ "${{ github.ref_name }}" = "beta" ] || [ "${{ github.ref_name }}" = "Beta" ]; }; then
+          if [ "${{ github.event.inputs.web_only }}" = "true" ]; then
             echo "android=false" >> "$GITHUB_OUTPUT"
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
             echo "android=true" >> "$GITHUB_OUTPUT"
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.android_only }}" = "true" ]; then
-              echo "web=false" >> "$GITHUB_OUTPUT"
-            elif [ "${{ github.event_name }}" = "push" ] && { [ "${{ github.ref_name }}" = "Interna" ] || [ "${{ github.ref_name }}" = "Interno" ]; }; then
+            if [ "${{ github.event.inputs.android_only }}" = "true" ]; then
               echo "web=false" >> "$GITHUB_OUTPUT"
             else
               echo "web=true" >> "$GITHUB_OUTPUT"
@@ -127,7 +153,7 @@ jobs:
     needs: changes
     if: |
       needs.changes.outputs.android == 'true' &&
-      (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'Beta'))
+      (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -308,12 +334,12 @@ jobs:
           whatsNewDirectory: release-notes
           # debugSymbols: solo si el build genera app/build/outputs/native-debug-symbols/release (cuando hay deps nativas). Si no existe, omitir para no fallar.
 
-  # Deploy web a Ionos: en Alpha, Beta y Producción solo si web está en los cambios (no cuando android_only)
+  # Deploy web a Ionos: en alpha, beta y Producción solo si web está en los cambios (no cuando android_only)
   deploy-web:
     needs: changes
     if: |
       needs.changes.outputs.web == 'true' &&
-      contains(fromJSON('["Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'Beta')
+      contains(fromJSON('["Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta')
     runs-on: ubuntu-latest
     defaults:
       run:
