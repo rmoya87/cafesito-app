@@ -341,6 +341,23 @@ jobs:
           whatsNewDirectory: release-notes
           # debugSymbols: solo si el build genera app/build/outputs/native-debug-symbols/release (cuando hay deps nativas). Si no existe, omitir para no fallar.
 
+      - name: Save last deployed version for next bump
+        run: |
+          VERSION_CODE=$(grep -E 'versionCode\s*=' app/build.gradle.kts | head -n1 | sed -E 's/.*= ([0-9]+).*/\1/')
+          echo "${VERSION_CODE}" > scripts/last_deployed_version.txt
+          echo "# Último versionCode desplegado con éxito en Play Console." >> scripts/last_deployed_version.txt
+          echo "# El script bump_version.sh usa este valor para no repetir un code ya usado." >> scripts/last_deployed_version.txt
+          if git diff --quiet scripts/last_deployed_version.txt; then
+            echo "last_deployed_version.txt sin cambios (ya ${VERSION_CODE})"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local --unset-all push.pushOption || true
+          git add scripts/last_deployed_version.txt
+          git commit -m "chore(release): last deployed versionCode ${VERSION_CODE} [skip ci]"
+          git push origin "HEAD:${TARGET_BRANCH}"
+
   # Deploy web a Ionos: en alpha, beta y Producción solo si web está en los cambios (no cuando android_only)
   deploy-web:
     needs: changes

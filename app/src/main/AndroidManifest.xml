@@ -8,6 +8,13 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!--
+      Importante para Google Play: declarar la cámara como opcional evita excluir
+      dispositivos sin cámara y mantiene la ruta de actualización para usuarios existentes.
+    -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
     <!-- Forzar eliminación de ID de publicidad si alguna librería lo inyecta -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
