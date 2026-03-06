@@ -419,9 +419,9 @@ fun PremiumTabRow(
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 6.dp)
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(52.dp)
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(32.dp))
                 .premiumBorder(RoundedCornerShape(32.dp))
                 .padding(4.dp)
@@ -2107,13 +2107,13 @@ fun PostOptionsBottomSheet(
             ModalMenuOption(
                 title = "Editar",
                 icon = Icons.Default.Edit,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = onEditClick
             )
             ModalMenuOption(
                 title = "Borrar",
                 icon = Icons.Default.Delete,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = onDeleteClick
             )
         }
@@ -2137,13 +2137,13 @@ fun ReviewOptionsBottomSheet(
             ModalMenuOption(
                 title = "Editar",
                 icon = Icons.Default.Edit,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = onEditClick
             )
             ModalMenuOption(
                 title = "Borrar",
                 icon = Icons.Default.Delete,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 onClick = onDeleteClick
             )
         }

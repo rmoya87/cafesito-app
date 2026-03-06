@@ -630,7 +630,7 @@ function DiarySheets({
                         amountMl: ml,
                         caffeineMg: Math.max(0, Number(diaryCoffeeCaffeineDraft || 0)),
                         coffeeGrams: Math.max(0, Math.round(Number(diaryCoffeeGramsDraft || 0))),
-                        preparationType: diaryCoffeePreparationDraft.trim() || "Manual",
+                        preparationType: diaryCoffeePreparationDraft.trim() || "Espresso",
                         sizeLabel
                       });
                     }}

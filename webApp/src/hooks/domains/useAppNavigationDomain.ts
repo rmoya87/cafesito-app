@@ -48,11 +48,11 @@ export function useAppNavigationDomain({
         replace?: boolean;
       }
     ) => {
-      if (!canNavigateToTab(tab, isAuthenticated)) {
+      const nextSearchMode = options?.searchMode ?? searchMode;
+      if (!canNavigateToTab(tab, isAuthenticated, tab === "search" ? nextSearchMode : undefined)) {
         onRequireAuth();
         return;
       }
-      const nextSearchMode = options?.searchMode ?? searchMode;
       const userById = options?.profileUserId != null ? users.find((item) => item.id === options.profileUserId) ?? null : null;
       const nextProfileUsername = options?.profileUsername ?? userById?.username ?? (tab === "profile" ? profileUsername : null);
 
@@ -73,7 +73,7 @@ export function useAppNavigationDomain({
   useEffect(() => {
     const onPopState = () => {
       const route = parseRoute(window.location.pathname);
-      const guardedTab = canNavigateToTab(route.tab, isAuthenticated) ? route.tab : "timeline";
+      const guardedTab = canNavigateToTab(route.tab, isAuthenticated, route.tab === "search" ? route.searchMode : undefined) ? route.tab : "timeline";
       setActiveTab(guardedTab);
       setSearchMode(route.searchMode);
       setProfileUsername(route.profileUsername);

@@ -48,6 +48,9 @@ import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.utils.*
+import com.cafesito.shared.domain.brew.BrewCaffeineInput
+import com.cafesito.shared.domain.brew.BrewEngine
+import com.cafesito.shared.domain.brew.BrewSource
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
@@ -100,7 +103,6 @@ fun AddDiaryEntryScreen(
             val caffeine = calculateAverageCaffeine(
                 type = selectedPrepType,
                 grams = selectedDoseGrams.roundToInt(),
-                sizeFactor = selectedSize.multiplier,
                 isDecaf = selectedCoffee?.cafeina?.equals("No", ignoreCase = true) == true
             )
             viewModel.addCoffeeConsumption(
@@ -678,9 +680,15 @@ data class CoffeeSizeOption(
 
 data class PrepOptionUi(val label: String, val drawableName: String)
 
-private fun calculateAverageCaffeine(type: String, grams: Int, sizeFactor: Float, isDecaf: Boolean): Int {
-    val base = CaffeineCalculator.calculate(type = type, grams = grams, isFromPantry = true, isDecaf = isDecaf)
-    return (base * sizeFactor).roundToInt().coerceAtLeast(if (isDecaf) 1 else 10)
+private fun calculateAverageCaffeine(type: String, grams: Int, isDecaf: Boolean): Int {
+    return BrewEngine.estimateCaffeineMg(
+        BrewCaffeineInput(
+            source = BrewSource.DIARY,
+            methodOrPreparation = type,
+            coffeeGrams = grams.toDouble(),
+            hasCaffeine = !isDecaf
+        )
+    )
 }
 
 @Composable

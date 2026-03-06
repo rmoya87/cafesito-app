@@ -41,7 +41,13 @@ fun BrewLabScreen(
     val water by viewModel.waterAmount.collectAsState()
     val ratio by viewModel.ratio.collectAsState()
     val coffeeGrams by viewModel.coffeeGrams.collectAsState()
+    val isEspressoMethod by viewModel.isEspressoMethod.collectAsState()
+    val isRatioEditable by viewModel.isRatioEditable.collectAsState()
+    val isWaterEditable by viewModel.isWaterEditable.collectAsState()
+    val brewTimeSeconds by viewModel.brewTimeSeconds.collectAsState()
+    val timeProfile by viewModel.selectedTimeProfile.collectAsState()
     val valuation by viewModel.brewValuation.collectAsState()
+    val methodProfile by viewModel.selectedMethodProfile.collectAsState()
     val baristaTips by viewModel.baristaTips.collectAsState()
     
     val timerSeconds by viewModel.timerSeconds.collectAsState()
@@ -50,6 +56,7 @@ fun BrewLabScreen(
     val isTimerRunning by viewModel.isTimerRunning.collectAsState()
     val hasTimerStarted by viewModel.hasTimerStarted.collectAsState()
     val remainingSeconds by viewModel.secondsRemainingInPhase.collectAsState()
+    val brewingProcessAdvice by viewModel.brewingProcessAdvice.collectAsState()
     
     val recommendation by viewModel.dialInRecommendation.collectAsState()
     val selectedTaste by viewModel.selectedTaste.collectAsState()
@@ -127,8 +134,22 @@ fun BrewLabScreen(
                             }
                         )
                     }
-                    BrewStep.CONFIGURATION -> ConfigStep(selectedMethod, water, ratio, coffeeGrams, valuation, baristaTips, viewModel)
-                    BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, isTimerRunning, hasTimerStarted, viewModel)
+                    BrewStep.CONFIGURATION -> ConfigStep(
+                        methodName = selectedMethod?.name,
+                        isEspressoMethod = isEspressoMethod,
+                        isRatioEditable = isRatioEditable,
+                        isWaterEditable = isWaterEditable,
+                        brewTimeSeconds = brewTimeSeconds,
+                        timeProfile = timeProfile,
+                        methodProfile = methodProfile,
+                        water = water,
+                        ratio = ratio,
+                        coffeeGrams = coffeeGrams,
+                        valuation = valuation,
+                        baristaTips = baristaTips,
+                        viewModel = viewModel
+                    )
+                    BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, brewingProcessAdvice, isTimerRunning, hasTimerStarted, viewModel)
                     BrewStep.RESULT -> ResultStep(selectedTaste, recommendation, selectedCoffee, viewModel, onNavigateToDiary)
                 }
             }

@@ -189,11 +189,10 @@ fun DiaryScreen(
                             }
                         )
                     }
-                    val deleteIconColor = if (isSystemInDarkTheme()) Color.Black else Color.White
                     ModalMenuOption(
                         title = "Eliminar de la despensa",
                         icon = Icons.Default.Delete,
-                        color = deleteIconColor,
+                        color = MaterialTheme.colorScheme.onSurface,
                         onClick = { 
                             itemToDeleteId = showPantryOptionsId
                             showPantryOptionsId = null 
@@ -301,7 +300,7 @@ fun DiaryScreen(
                         0 -> {
                             if (isLoading) {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    item { Spacer(Modifier.height(16.dp)) }
+                                    item { Spacer(Modifier.height(6.dp)) }
                                     items(5) { 
                                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                                             DiaryItemShimmer()
@@ -312,7 +311,7 @@ fun DiaryScreen(
                                 EmptyStateMessage("Sin café o agua registrada")
                             } else {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    item { Spacer(Modifier.height(16.dp)) }
+                                    item { Spacer(Modifier.height(6.dp)) }
                                     itemsIndexed(entries, key = { _, it -> "${it.id}_${it.timestamp}" }) { index, entry ->
                                         if (selectedPeriod != DiaryPeriod.HOY) {
                                             val dayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(entry.timestamp))

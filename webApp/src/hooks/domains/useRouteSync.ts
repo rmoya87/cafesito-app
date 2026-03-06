@@ -9,7 +9,7 @@ export function useRouteCanonicalSync(isAuthenticated?: boolean) {
     const base = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
     if (!isAuthenticated) {
       const route = parseRoute(pathname);
-      if (canNavigateToTab(route.tab, false)) {
+      if (canNavigateToTab(route.tab, false, route.tab === "search" ? route.searchMode : undefined)) {
         return;
       }
       const current = pathname.replace(/\/+$/, "") || "/";
@@ -39,7 +39,7 @@ export function useRouteGuardSync({
   useEffect(() => {
     if (!isKnownRoute(window.location.pathname)) return;
     const route = parseRoute(window.location.pathname);
-    if (canNavigateToTab(route.tab, isAuthenticated)) return;
+    if (canNavigateToTab(route.tab, isAuthenticated, route.tab === "search" ? route.searchMode : undefined)) return;
     if (window.location.pathname !== fallbackPath) {
       window.history.replaceState({}, "", `${fallbackPath}${window.location.search}${window.location.hash}`);
     }

@@ -1458,8 +1458,9 @@ input {
   text-transform: uppercase;
   color: var(--text-main);
   white-space: normal;
-  overflow: visible;
-  text-overflow: initial;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-overflow: clip;
   line-height: 1.2;
 }
 
@@ -3661,6 +3662,16 @@ input {
   color: #d5d0ca;
   font-weight: 700;
   line-height: 1;
+}
+
+.diary-chart-col.is-current small {
+  color: var(--caramel-soft);
+  font-weight: 800;
+}
+
+.diary-chart-col-now {
+  font-weight: 700;
+  opacity: 0.9;
 }
 
 
@@ -8425,7 +8436,32 @@ input {
   margin: 0;
   font-size: 1.01rem;
   line-height: 1.3;
-  font-weight: 700;
+  font-weight: 400;
+}
+
+.brew-tech-advice-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.brew-tech-advice-list li {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  font-weight: 400;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: #f0f0f0;
+  padding: 0;
+}
+
+.brew-barista-copy strong,
+.brew-barista-copy em {
+  font-weight: 400;
 }
 
 .brew-barista-block {
@@ -8509,6 +8545,38 @@ input {
     touch-action: pan-x;
     cursor: grab;
     scrollbar-width: none;
+    position: relative;
+  }
+
+  .brew-barista-grid::before,
+  .brew-barista-grid::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+
+  .brew-barista-grid::before {
+    left: 0;
+    background: transparent;
+  }
+
+  .brew-barista-grid::after {
+    right: 0;
+    background: transparent;
+  }
+
+  .brew-barista-grid.has-left-fade::before {
+    opacity: 1;
+  }
+
+  .brew-barista-grid.has-right-fade::after {
+    opacity: 1;
   }
 
   .brew-barista-grid::-webkit-scrollbar {
@@ -8541,9 +8609,10 @@ input {
   }
 
   .brew-barista-copy em {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-overflow: clip;
   }
 }
 
@@ -8555,6 +8624,11 @@ input {
 }
 
 .brew-prep-screen {
+  display: grid;
+  gap: 14px;
+}
+
+.brew-prep-layout {
   display: grid;
   gap: 14px;
 }
@@ -8580,11 +8654,13 @@ input {
 }
 
 .brew-prep-clock {
-  font-size: clamp(3rem, 10vw, 4.6rem);
+  font-size: clamp(7.2rem, 24vw, 12.8rem);
   line-height: 0.98;
   font-weight: 900;
   letter-spacing: 0.01em;
   color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .brew-prep-clock.is-warning {
@@ -8653,18 +8729,103 @@ input {
   letter-spacing: 0.02em;
 }
 
-.brew-prep-instruction {
-  background: var(--surface-muted);
-  padding: 18px 20px;
+.brew-prep-tips-strip {
+  align-content: start;
+  max-width: 100%;
+  overflow: hidden;
 }
 
-.brew-prep-instruction p {
+.brew-prep-advice-list {
   margin: 0;
-  text-align: center;
-  font-size: 1rem;
-  line-height: 1.4;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.brew-prep-advice-list li {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-light) 70%, transparent);
+  text-align: left;
+  font-size: 0.92rem;
+  line-height: 1.35;
   font-weight: 600;
-  color: var(--text-main);
+  color: var(--text-subtle);
+}
+
+.brew-prep-advice-carousel {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  position: relative;
+}
+
+.brew-prep-advice-list-desktop {
+  display: none;
+}
+
+.brew-prep-advice-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.brew-prep-advice-carousel::before,
+.brew-prep-advice-carousel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.brew-prep-advice-carousel::before {
+  left: 0;
+  background: transparent;
+}
+
+.brew-prep-advice-carousel::after {
+  right: 0;
+  background: transparent;
+}
+
+.brew-prep-advice-carousel.has-left-fade::before {
+  opacity: 1;
+}
+
+.brew-prep-advice-carousel.has-right-fade::after {
+  opacity: 1;
+}
+
+.brew-prep-advice-page {
+  flex: 0 0 clamp(240px, 86%, 420px);
+  max-width: calc(100% - 8px);
+  display: grid;
+  gap: 12px;
+  scroll-snap-align: start;
+}
+
+.brew-prep-advice-card {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 20px;
+  background: #2f2f2f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  font-weight: 600;
+  color: #f0f0f0;
+  width: 100%;
 }
 
 .brew-prep-actions {
@@ -8853,12 +9014,21 @@ input {
 }
 
 @media (min-width: 900px) {
+  .brew-prep-layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: start;
+  }
+
+  .brew-prep-card-timer {
+    min-width: 0;
+  }
+
   .brew-prep-head {
     padding: 22px 24px 12px;
   }
 
   .brew-prep-clock {
-    font-size: clamp(4.5rem, 14vw, 7rem);
+    font-size: clamp(4.8rem, 10vw, 7.6rem);
   }
 
   .brew-prep-timeline {
@@ -8869,8 +9039,13 @@ input {
     font-size: 1.25rem;
   }
 
-  .brew-prep-instruction {
-    padding: 20px 24px;
+  .brew-prep-advice-carousel {
+    display: none;
+  }
+
+  .brew-prep-advice-list-desktop {
+    display: grid;
+    gap: 12px;
   }
 
 }
@@ -9389,27 +9564,51 @@ input {
   box-sizing: border-box;
 }
 
+/* Mobile: modal desde abajo (bottom sheet) */
 .auth-prompt-overlay {
   position: fixed;
   inset: 0;
   z-index: 92;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(2px);
-  display: grid;
-  place-items: center;
-  padding: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: sheet-scrim-in 180ms ease-out;
 }
 
 .auth-prompt-card {
-  width: min(560px, 100%);
-  border-radius: 28px;
+  width: 100%;
+  max-width: none;
+  border-radius: 28px 28px 0 0;
   background: var(--modal-surface-bg);
   border: 1px solid var(--border-light);
-  padding: 18px 18px 20px;
+  border-bottom: none;
+  padding: 18px 18px max(20px, env(safe-area-inset-bottom));
   position: relative;
   display: grid;
   justify-items: center;
   gap: 12px;
+  box-shadow: 0 -8px 26px var(--sheet-shadow);
+  animation: sheet-rise-in 220ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+@media (min-width: 900px) {
+  .auth-prompt-overlay {
+    align-items: center;
+    padding: 16px;
+  }
+  .auth-prompt-card {
+    width: min(560px, 100%);
+    max-width: min(560px, 100%);
+    border-radius: 28px;
+    border-bottom: 1px solid var(--border-light);
+    padding: 18px 18px 20px;
+  }
+  .auth-prompt-card .sheet-handle {
+    display: none;
+  }
 }
 
 .auth-prompt-close {
@@ -11541,6 +11740,14 @@ input {
     color: var(--espresso-deep);
   }
 
+  .brew-barista-grid::before {
+    background: transparent;
+  }
+
+  .brew-barista-grid::after {
+    background: transparent;
+  }
+
   .coffee-detail-inline-action {
     color: #1f1a16;
   }
@@ -11790,8 +11997,10 @@ input {
     border-color: rgba(26, 18, 11, 0.12);
   }
 
-  .brew-tech-advice p {
-    color: #1c1612;
+  .brew-tech-advice-list li {
+    color: #2f2f2f;
+    background: transparent;
+    border: none;
   }
 
   .brew-barista-tip {
@@ -11839,16 +12048,23 @@ input {
     background: var(--espresso-deep);
   }
 
+  .brew-prep-advice-carousel::before {
+    background: transparent;
+  }
+
+  .brew-prep-advice-carousel::after {
+    background: transparent;
+  }
+
   .brew-prep-total strong {
     color: var(--espresso-deep);
   }
 
-  .brew-prep-instruction {
-    background: rgba(26, 18, 11, 0.08);
-  }
-
-  .brew-prep-instruction p {
-    color: #1e1712;
+  .brew-prep-advice-list li,
+  .brew-prep-advice-card {
+    background: #efefef;
+    border-color: rgba(26, 18, 11, 0.08);
+    color: #2f2f2f;
   }
 
   .brew-prep-action-primary {

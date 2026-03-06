@@ -129,7 +129,7 @@ export function CommentSheet({
                 </Button>
                 <Button variant="plain"
                   type="button"
-                  className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                  className="diary-sheet-action diary-sheet-action-pantry"
                   onClick={() => onMenuDelete(activeMenuRow)}
                 >
                   <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>

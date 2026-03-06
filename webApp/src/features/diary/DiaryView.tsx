@@ -63,7 +63,15 @@ export function DiaryView({
   coffeeCatalog: CoffeeRow[];
   pantryRows: Array<{ item: PantryItemRow; coffee?: CoffeeRow }>;
   onDeleteEntry: (entryId: number) => Promise<void>;
-  onEditEntry: (entryId: number, amountMl: number, caffeineMg: number, preparationType: string, timestampMs?: number) => Promise<void>;
+  onEditEntry: (
+    entryId: number,
+    amountMl: number,
+    caffeineMg: number,
+    preparationType: string,
+    coffeeGrams?: number,
+    sizeLabel?: string | null,
+    timestampMs?: number
+  ) => Promise<void>;
   onUpdatePantryStock: (coffeeId: string, totalGrams: number, gramsRemaining: number) => Promise<void>;
   onRemovePantryItem: (coffeeId: string) => Promise<void>;
   onOpenCoffee: (coffeeId: string) => void;
@@ -289,11 +297,26 @@ export function DiaryView({
   const chartDragStartScrollRef = useRef(0);
   const [chartDragging, setChartDragging] = useState(false);
 
+  /** Índice del slot actual (hora, día de la semana o día del mes) para centrar el gráfico. */
+  const currentSlotIndex = useMemo(() => {
+    const now = new Date();
+    if (period === "hoy") return now.getHours();
+    if (period === "7d") {
+      const d = now.getDay();
+      return d === 0 ? 6 : d - 1;
+    }
+    return now.getDate() - 1;
+  }, [period]);
+
   useEffect(() => {
     const node = chartScrollRef.current;
-    if (!node) return;
-    node.scrollLeft = 0;
-  }, [period, chartData.length]);
+    if (!node || chartData.length === 0) return;
+    const colWidth = period === "7d" ? node.scrollWidth / chartData.length : 47;
+    const viewportWidth = node.clientWidth;
+    const maxScroll = Math.max(0, node.scrollWidth - viewportWidth);
+    const targetScroll = Math.max(0, Math.min(maxScroll, currentSlotIndex * colWidth - viewportWidth / 2 + colWidth / 2));
+    node.scrollLeft = targetScroll;
+  }, [period, chartData.length, currentSlotIndex]);
   const sortedPantryRows = useMemo(
     () => [...pantryRows].sort((a, b) => Number(b.item.last_updated || 0) - Number(a.item.last_updated || 0)),
     [pantryRows]
@@ -445,6 +468,10 @@ export function DiaryView({
         parsedEditAmount,
         editEntryIsWater ? 0 : parsedEditCaffeine,
         editEntryIsWater ? "Agua" : editPreparationType.trim(),
+        editEntryIsWater ? 0 : Math.max(1, Math.round(parsedEditDose)),
+        editEntryIsWater
+          ? null
+          : (editSizeOptions.find((size) => Math.abs(parsedEditAmount - size.ml) <= 20)?.label ?? null),
         parsedEditTime ?? undefined
       );
       setEditEntryId(null);
@@ -558,10 +585,11 @@ export function DiaryView({
               const isWater = (entry.type || "").toUpperCase() === "WATER";
               const rawPreparation = (entry.preparation_type || "").trim();
               const doseMatch = rawPreparation.match(/(\d+(?:[.,]\d+)?)\s*g/i)?.[1];
+              const grams = Math.max(0, Number(entry.coffee_grams || 0));
               setEditEntryId(entry.id);
               setEditAmountMl(String(Math.max(1, entry.amount_ml || 1)));
               setEditCaffeineMg(String(Math.max(0, entry.caffeine_mg || 0)));
-              setEditDoseGrams((doseMatch || "15").replace(".", ","));
+              setEditDoseGrams((grams > 0 ? String(grams) : (doseMatch || "15")).replace(".", ","));
               setEditPreparationType(stripDoseFromPreparation(rawPreparation) || (isWater ? "Agua" : DIARY_STR.SIN_METODO));
               setEditTimeText(new Date(entry.timestamp).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }));
             }}
@@ -713,7 +741,7 @@ export function DiaryView({
           }}
         >
           <div className={`diary-chart ${period === "7d" ? "is-week" : ""}`.trim()}>
-            {chartData.map((item) => {
+            {chartData.map((item, index) => {
               const caffeineRatio = Math.min(1, item.caffeine / chartMaxCaffeine);
               const waterRatio = Math.min(1, item.water / chartMaxWater);
               const hasCaffeine = item.caffeine > 0;
@@ -727,8 +755,13 @@ export function DiaryView({
               const waterHeight = hasWater
                 ? Math.max(minActiveBarHeight, Math.round(waterRatio * maxBarHeight))
                 : emptyBarHeight;
+              const isCurrent = index === currentSlotIndex;
               return (
-                <div key={item.label} className="diary-chart-col">
+                <div
+                  key={item.label}
+                  className={`diary-chart-col${isCurrent ? " is-current" : ""}`.trim()}
+                  title={isCurrent ? (period === "hoy" ? "Hora actual" : "Día actual") : undefined}
+                >
                   <div className="diary-chart-bars">
                     <div className="diary-chart-bar-wrap">
                       {hasCaffeine ? <small className="diary-chart-bar-value">{Math.round(item.caffeine)}</small> : null}
@@ -749,7 +782,10 @@ export function DiaryView({
                       />
                     </div>
                   </div>
-                  <small>{item.label}</small>
+                  <small>
+                    {item.label}
+                    {isCurrent ? <span className="diary-chart-col-now" aria-hidden="true"> · Hoy</span> : null}
+                  </small>
                 </div>
               );
             })}
@@ -855,7 +891,7 @@ export function DiaryView({
               </Button>
               <Button variant="plain"
                 type="button"
-                className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                className="diary-sheet-action diary-sheet-action-pantry"
                 disabled={removingStock}
                 onClick={() => {
                   setPantryDeleteConfirmCoffeeId(pantryOptionsCoffeeId);
@@ -1224,9 +1260,12 @@ function DiaryActivityRow({
   const prepValue = rawPreparationValue || (isWaterEntry ? "Agua" : "-");
   const prepDisplayValue = elaborationMethod ? "BrewLab" : prepValue;
   const doseFromPrep = ((entry.preparation_type || "").match(/(\d+(?:[.,]\d+)?)\s*g/i)?.[1] || "").replace(",", ".");
-  const doseValue = doseFromPrep ? `${Math.round(Number(doseFromPrep))} g` : (isWaterEntry ? "-" : "15 g");
+  const gramsFromField = Math.max(0, Number(entry.coffee_grams || 0));
+  const doseValue = gramsFromField > 0 ? `${Math.round(gramsFromField)} g` : doseFromPrep ? `${Math.round(Number(doseFromPrep))} g` : (isWaterEntry ? "-" : "15 g");
   const sizeValue = isWaterEntry
     ? `${Math.max(0, entry.amount_ml || 0)} ml`
+    : (entry.size_label || "").trim()
+      ? String(entry.size_label).trim()
     : (() => {
       const ml = Math.max(0, entry.amount_ml || 0);
       if (ml <= 45) return "Espresso";

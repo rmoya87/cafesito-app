@@ -21,7 +21,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -71,8 +70,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
 import coil.compose.AsyncImage
 import com.cafesito.app.R
+import java.util.Calendar
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.CommentWithAuthor
 import com.cafesito.app.data.DiaryEntryEntity
@@ -355,6 +356,7 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
 @Composable
 fun ChartPremiumSection(analytics: DiaryAnalytics) {
     val scrollState = rememberScrollState()
+    val density = LocalDensity.current
     val sharedPeriod = remember(analytics.period) {
         when (analytics.period) {
             DiaryPeriod.HOY -> SharedDiaryPeriod.HOY
@@ -383,29 +385,60 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
     val caffeineBrown = LocalCaramelAccent.current
     val waterElectricBlue = WaterBlue
 
-    LaunchedEffect(analytics.chartData) { scrollState.animateScrollTo(scrollState.maxValue) }
+    val currentSlotIndex = remember(analytics.period) {
+        val cal = Calendar.getInstance()
+        when (analytics.period) {
+            DiaryPeriod.HOY -> cal.get(Calendar.HOUR_OF_DAY)
+            DiaryPeriod.SEMANA -> if (cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) 6 else cal.get(Calendar.DAY_OF_WEEK) - 2
+            DiaryPeriod.MES -> (cal.get(Calendar.DAY_OF_MONTH) - 1).coerceIn(0, 30)
+        }
+    }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(140.dp) // Aumentado para dar espacio a los números
-            .horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        analytics.chartData.forEach { entry ->
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val viewportPx = with(density) { maxWidth.roundToPx() }
+        val columnPx = with(density) { (56.dp + 12.dp).roundToPx() }
+        LaunchedEffect(analytics.chartData, viewportPx, scrollState.maxValue) {
+            if (scrollState.maxValue <= 0 || viewportPx <= 0 || analytics.chartData.isEmpty()) return@LaunchedEffect
+            val idx = currentSlotIndex.coerceIn(0, analytics.chartData.size - 1)
+            val targetScroll = (idx * columnPx) - (viewportPx / 2) + (columnPx / 2)
+            scrollState.animateScrollTo(targetScroll.coerceIn(0, scrollState.maxValue))
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .horizontalScroll(scrollState),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            analytics.chartData.forEachIndexed { index, entry ->
+            val isCurrent = index == currentSlotIndex
             val caffeineHeight = (entry.caffeine.toFloat() / chartMaxCaffeineRelative.toFloat()).coerceIn(0.05f, 1f)
             val waterHeight = (entry.water.toFloat() / chartMaxWater.toFloat()).coerceIn(0.05f, 1f)
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .width(56.dp)
+                    .then(if (isCurrent) Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
+            ) {
                 Row(
-                    modifier = Modifier.height(100.dp), 
+                    modifier = Modifier.height(100.dp),
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(12.dp), verticalArrangement = Arrangement.Bottom) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(26.dp), verticalArrangement = Arrangement.Bottom) {
                         if (entry.caffeine > 0) {
-                            Text(text = "${entry.caffeine}", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = caffeineBrown, maxLines = 1)
+                            Text(
+                                text = "${entry.caffeine}",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = caffeineBrown,
+                                maxLines = 1,
+                                modifier = Modifier.fillMaxWidth(1f),
+                                textAlign = TextAlign.Center
+                            )
                             Spacer(Modifier.height(2.dp))
                         }
                         Box(Modifier
@@ -415,9 +448,17 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
                             .background(caffeineBrown.copy(alpha = if (entry.caffeine > 0) 1f else 0.35f)))
                     }
                     Spacer(Modifier.width(4.dp))
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(12.dp), verticalArrangement = Arrangement.Bottom) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(26.dp), verticalArrangement = Arrangement.Bottom) {
                         if (entry.water > 0) {
-                            Text(text = "${entry.water}", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = waterElectricBlue, maxLines = 1)
+                            Text(
+                                text = "${entry.water}",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = waterElectricBlue,
+                                maxLines = 1,
+                                modifier = Modifier.fillMaxWidth(1f),
+                                textAlign = TextAlign.Center
+                            )
                             Spacer(Modifier.height(2.dp))
                         }
                         Box(Modifier
@@ -428,8 +469,14 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text(entry.label, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (isCurrent) "${entry.label} · Hoy" else entry.label,
+                    fontSize = 9.sp,
+                    color = if (isCurrent) caffeineBrown else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold
+                )
             }
+        }
         }
     }
 }

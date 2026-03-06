@@ -1,6 +1,6 @@
 import { type Dispatch, type SetStateAction, useCallback } from "react";
 import { createDiaryEntry, upsertPantryStock } from "../../data/supabaseApi";
-import { normalizeLookupText } from "../../core/text";
+import { estimateCaffeineMg, hasCaffeineFromLabel } from "../../core/brewEngine";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow, UserRow } from "../../types";
 
 export function useDiarySheetActions({
@@ -70,14 +70,19 @@ export function useDiarySheetActions({
     const defaultCoffee = diaryCoffeeOptions[0];
     if (defaultCoffee) {
       setDiaryCoffeeIdDraft(defaultCoffee.id);
-      const isDecaf = normalizeLookupText(defaultCoffee.cafeina ?? "").includes("sin");
-      setDiaryCoffeeCaffeineDraft(isDecaf ? "5" : "95");
+      const estimated = estimateCaffeineMg({
+        source: "diary",
+        methodOrPreparation: "Espresso",
+        coffeeGrams: 15,
+        hasCaffeine: hasCaffeineFromLabel(defaultCoffee.cafeina)
+      });
+      setDiaryCoffeeCaffeineDraft(String(estimated));
     } else {
       setDiaryCoffeeIdDraft("");
-      setDiaryCoffeeCaffeineDraft("95");
+      setDiaryCoffeeCaffeineDraft("0");
     }
     setDiaryCoffeeMlDraft("250");
-    setDiaryCoffeePreparationDraft("Manual");
+    setDiaryCoffeePreparationDraft("Espresso");
     setShowDiaryQuickActions(false);
     setShowDiaryCoffeeSheet(true);
   }, [
@@ -102,10 +107,17 @@ export function useDiarySheetActions({
     (coffeeId: string) => {
       setDiaryCoffeeIdDraft(coffeeId);
       const selectedCoffee = diaryCoffeeOptions.find((coffee) => coffee.id === coffeeId);
-      const isDecaf = normalizeLookupText(selectedCoffee?.cafeina ?? "").includes("sin");
-      if (selectedCoffee) setDiaryCoffeeCaffeineDraft(isDecaf ? "5" : "95");
+      if (selectedCoffee) {
+        const estimated = estimateCaffeineMg({
+          source: "diary",
+          methodOrPreparation: diaryCoffeePreparationDraft.trim() || "Espresso",
+          coffeeGrams: Math.max(0, Number(diaryCoffeeGramsDraft) || 15),
+          hasCaffeine: hasCaffeineFromLabel(selectedCoffee.cafeina)
+        });
+        setDiaryCoffeeCaffeineDraft(String(estimated));
+      }
     },
-    [diaryCoffeeOptions, setDiaryCoffeeCaffeineDraft, setDiaryCoffeeIdDraft]
+    [diaryCoffeeGramsDraft, diaryCoffeeOptions, diaryCoffeePreparationDraft, setDiaryCoffeeCaffeineDraft, setDiaryCoffeeIdDraft]
   );
 
   const saveWater = useCallback(async () => {
@@ -140,9 +152,15 @@ export function useDiarySheetActions({
       const coffeeName = payload?.coffeeName ?? selectedDiaryCoffee?.nombre ?? "Registro rápido";
       const coffeeBrand = payload?.coffeeBrand ?? selectedDiaryCoffee?.marca ?? "";
       const amountMl = payload?.amountMl ?? Math.max(1, Number(diaryCoffeeMlDraft || 0));
-      const caffeineMg = payload?.caffeineMg ?? Math.max(0, Number(diaryCoffeeCaffeineDraft || 0));
       const coffeeGrams = payload?.coffeeGrams ?? Math.max(0, Math.round(Number(diaryCoffeeGramsDraft || 0) || 0));
-      const preparationType = payload?.preparationType ?? (diaryCoffeePreparationDraft.trim() || "Manual");
+      const preparationType = payload?.preparationType ?? (diaryCoffeePreparationDraft.trim() || "Espresso");
+      const coffeeForCalc = coffeeId ? diaryCoffeeOptions.find((coffee) => coffee.id === coffeeId) ?? selectedDiaryCoffee : selectedDiaryCoffee;
+      const caffeineMg = estimateCaffeineMg({
+        source: "diary",
+        methodOrPreparation: preparationType,
+        coffeeGrams,
+        hasCaffeine: coffeeForCalc ? hasCaffeineFromLabel(coffeeForCalc.cafeina) : true
+      });
       const sizeLabel = payload?.sizeLabel ?? null;
       const created = await createDiaryEntry({
         userId: activeUser.id,

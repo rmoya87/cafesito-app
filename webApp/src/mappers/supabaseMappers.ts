@@ -208,7 +208,9 @@ export function mapDiaryEntryRow(input: unknown): DiaryEntryRow {
     coffee_name: toStringOrEmpty(row.coffee_name),
     caffeine_mg: toNumberOr(row.caffeine_mg, 0),
     amount_ml: toNumberOr(row.amount_ml, 0),
+    coffee_grams: toNumberOr(row.coffee_grams, 0),
     preparation_type: toStringOrEmpty(row.preparation_type),
+    size_label: toNullableString(row.size_label),
     timestamp: toTimestamp(row.timestamp),
     type: toStringOrEmpty(row.type)
   };

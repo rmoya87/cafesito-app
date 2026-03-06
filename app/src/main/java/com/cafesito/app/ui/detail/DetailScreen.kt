@@ -565,9 +565,9 @@ fun PremiumCharacteristicBar(label: String, value: Float) {
         }
         Spacer(Modifier.height(6.dp))
         LinearProgressIndicator(
-            progress = { value / 10f }, 
-            modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape), 
-            color = caramelColor, 
+            progress = { value / 10f },
+            modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
+            color = caramelColor,
             trackColor = MaterialTheme.colorScheme.outline
         )
     }

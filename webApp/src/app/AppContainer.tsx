@@ -162,6 +162,7 @@ export function AppContainer() {
   const [brewCoffeeId, setBrewCoffeeId] = useState<string>("");
   const [waterMl, setWaterMl] = useState(300);
   const [ratio, setRatio] = useState(16);
+  const [espressoTimeSeconds, setEspressoTimeSeconds] = useState(27);
   const [timerSeconds, setTimerSeconds] = useState(150);
   const [brewRunning, setBrewRunning] = useState(false);
   const [diaryTab, setDiaryTab] = useState<"actividad" | "despensa">("actividad");
@@ -175,8 +176,8 @@ export function AppContainer() {
   const [diaryCoffeeIdDraft, setDiaryCoffeeIdDraft] = useState("");
   const [diaryCoffeeGramsDraft, setDiaryCoffeeGramsDraft] = useState("15");
   const [diaryCoffeeMlDraft, setDiaryCoffeeMlDraft] = useState("250");
-  const [diaryCoffeeCaffeineDraft, setDiaryCoffeeCaffeineDraft] = useState("95");
-  const [diaryCoffeePreparationDraft, setDiaryCoffeePreparationDraft] = useState("Manual");
+  const [diaryCoffeeCaffeineDraft, setDiaryCoffeeCaffeineDraft] = useState("0");
+  const [diaryCoffeePreparationDraft, setDiaryCoffeePreparationDraft] = useState("Espresso");
   const [showDiaryAddPantrySheet, setShowDiaryAddPantrySheet] = useState(false);
   const [pantrySheetStep, setPantrySheetStep] = useState<"select" | "form" | "createCoffee">("select");
   const [diaryPantryCoffeeIdDraft, setDiaryPantryCoffeeIdDraft] = useState("");
@@ -358,6 +359,7 @@ export function AppContainer() {
     brewStep,
     brewMethod,
     waterMl,
+    espressoTimeSeconds,
     timerSeconds,
     setTimerSeconds,
     setBrewRunning,
@@ -607,7 +609,8 @@ export function AppContainer() {
   });
 
   const selectedCoffee = selectedCoffeeForBrew ?? undefined;
-  const coffeeGrams = Math.max(1, Math.round(waterMl / ratio));
+  const isEspressoMethod = normalizeLookupText(brewMethod).includes("espresso");
+  const coffeeGrams = Math.max(1, Math.round(isEspressoMethod ? waterMl / 2 : waterMl / Math.max(0.1, ratio)));
   const {
     saveBrewToDiary,
     handleDeleteDiaryEntry,
@@ -1022,16 +1025,24 @@ export function AppContainer() {
     }
   }, [createCoffeeDraft.totalGrams, saveCreateCoffee, setDiaryPantryCoffeeIdDraft, setDiaryPantryGramsDraft, setPantrySheetStep]);
 
-  useCoffeeSeoMeta(detailCoffee, {
-    avgRating: detailCoffeeAverageRating,
-    reviewCount: detailCoffeeReviews.length
-  });
+  useCoffeeSeoMeta(
+    detailCoffee,
+    {
+      avgRating: detailCoffeeAverageRating,
+      reviewCount: detailCoffeeReviews.length
+    },
+    typeof window !== "undefined" ? window.location.pathname : undefined
+  );
 
   const handleNavClick = (tabId: TabId) => {
     handleNavClickBase(tabId);
   };
 
-  const guardedActiveTab = resolveGuardedTab(activeTab, Boolean(sessionEmail));
+  const guardedActiveTab = resolveGuardedTab(
+    activeTab,
+    Boolean(sessionEmail),
+    activeTab === "search" ? searchMode : undefined
+  );
 
   // GA4: enviar page_view en cada cambio de ruta (SPA)
   const coffeeSlugForGa =
@@ -1061,7 +1072,10 @@ export function AppContainer() {
     if (mainShell) mainShell.style.setProperty("--topbar-translate-y", "0px");
   }, [guardedActiveTab]);
 
-  const guestCanAccessCurrentTab = canAccessTabAsGuest(guardedActiveTab);
+  const guestCanAccessCurrentTab = canAccessTabAsGuest(
+    guardedActiveTab,
+    guardedActiveTab === "search" ? searchMode : undefined
+  );
   const showingLogin = (!authReady && !guestCanAccessCurrentTab) || (!sessionEmail && !guestCanAccessCurrentTab);
   useLayoutEffect(() => {
     if (isNotFoundRoute) return;
@@ -1337,6 +1351,8 @@ export function AppContainer() {
           setWaterMl={setWaterMl}
           ratio={ratio}
           setRatio={setRatio}
+          espressoTimeSeconds={espressoTimeSeconds}
+          setEspressoTimeSeconds={setEspressoTimeSeconds}
           timerSeconds={timerSeconds}
           setTimerSeconds={setTimerSeconds}
           brewRunning={brewRunning}

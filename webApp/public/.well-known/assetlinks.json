@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cafesito.app",
+      "sha256_cert_fingerprints": [
+        "6D:29:A8:68:E4:3F:85:1D:59:82:AA:6B:0C:35:34:1C:0B:BB:85:9D:04:8D:EC:0F:C4:B1:D2:62:CA:67:57:F0"
+      ]
+    }
+  }
+]

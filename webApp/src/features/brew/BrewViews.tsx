@@ -1,6 +1,6 @@
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+﻿import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { BREW_METHODS } from "../../config/brew";
-import { formatClock, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewTimelineForMethod } from "../../core/brew";
+import { formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
 import { Button, Input, Select, Switch } from "../../ui/components";
@@ -20,6 +20,8 @@ export function BrewLabView({
   setWaterMl,
   ratio,
   setRatio,
+  espressoTimeSeconds,
+  setEspressoTimeSeconds,
   timerSeconds,
   setTimerSeconds,
   brewRunning,
@@ -47,6 +49,8 @@ export function BrewLabView({
   setWaterMl: (value: number) => void;
   ratio: number;
   setRatio: (value: number) => void;
+  espressoTimeSeconds: number;
+  setEspressoTimeSeconds: (value: number) => void;
   timerSeconds: number;
   setTimerSeconds: (value: number) => void;
   brewRunning: boolean;
@@ -62,6 +66,10 @@ export function BrewLabView({
   const [brewCoffeeQuery, setBrewCoffeeQuery] = useState("");
   const [brewSearchFocus, setBrewSearchFocus] = useState(false);
   const [resultTaste, setResultTaste] = useState("");
+  const baristaCarouselRef = useRef<HTMLDivElement | null>(null);
+  const prepAdviceCarouselRef = useRef<HTMLDivElement | null>(null);
+  const [baristaFade, setBaristaFade] = useState({ left: false, right: false });
+  const [prepFade, setPrepFade] = useState({ left: false, right: false });
   const showBrewSearchCancel = Boolean(brewCoffeeQuery || brewSearchFocus);
   const [savingResult, setSavingResult] = useState(false);
   const q = normalizeLookupText(brewCoffeeQuery);
@@ -83,61 +91,62 @@ export function BrewLabView({
         .slice(0, 24),
     [coffees, q]
   );
-  const coffeeGramsPrecise = useMemo(() => Number((waterMl / ratio).toFixed(1)), [ratio, waterMl]);
+  const methodProfile = useMemo(() => getBrewMethodProfile(brewMethod), [brewMethod]);
+  const timeProfile = useMemo(() => getBrewTimeProfile(brewMethod), [brewMethod]);
+  const isEspressoMethod = useMemo(() => normalizeLookupText(brewMethod).includes("espresso"), [brewMethod]);
+  const isRatioEditable = useMemo(() => {
+    const key = normalizeLookupText(brewMethod);
+    return !key.includes("espresso") && !key.includes("italiana") && !key.includes("turco");
+  }, [brewMethod]);
+  const isWaterEditable = useMemo(() => !isEspressoMethod, [isEspressoMethod]);
+  const coffeeGramsPrecise = useMemo(
+    () => Number((isEspressoMethod ? waterMl / 2 : waterMl / Math.max(0.1, ratio)).toFixed(1)),
+    [isEspressoMethod, ratio, waterMl]
+  );
   const coffeeGramsLabel = useMemo(() => coffeeGramsPrecise.toFixed(1).replace(".", ","), [coffeeGramsPrecise]);
   const [waterDraft, setWaterDraft] = useState(String(waterMl));
   const [coffeeDraft, setCoffeeDraft] = useState(coffeeGramsPrecise.toFixed(1));
   const waterProgress = useMemo(() => {
-    const min = 50;
-    const max = 1000;
-    return Math.max(0, Math.min(100, ((waterMl - min) / (max - min)) * 100));
-  }, [waterMl]);
+    const min = methodProfile.waterMinMl;
+    const max = methodProfile.waterMaxMl;
+    return Math.max(0, Math.min(100, ((waterMl - min) / Math.max(1, max - min)) * 100));
+  }, [methodProfile.waterMaxMl, methodProfile.waterMinMl, waterMl]);
   const ratioProgress = useMemo(() => {
-    const min = 12;
-    const max = 20;
-    return Math.max(0, Math.min(100, ((ratio - min) / (max - min)) * 100));
-  }, [ratio]);
+    const min = methodProfile.ratioMin;
+    const max = methodProfile.ratioMax;
+    return Math.max(0, Math.min(100, ((ratio - min) / Math.max(0.1, max - min)) * 100));
+  }, [methodProfile.ratioMax, methodProfile.ratioMin, ratio]);
   const effectiveRatio = useMemo(() => {
     if (coffeeGramsPrecise <= 0) return ratio;
     return waterMl / coffeeGramsPrecise;
   }, [coffeeGramsPrecise, ratio, waterMl]);
   const ratioProfile = useMemo(() => {
-    if (effectiveRatio <= 13) return "INTENSO";
-    if (effectiveRatio <= 15) return "INTENSO";
-    if (effectiveRatio <= 17) return "EQUILIBRADO";
-    if (effectiveRatio <= 19) return "LIGERO";
-    return "Muy ligero";
-  }, [effectiveRatio]);
-  const brewAdvice = useMemo(() => {
-    const methodKey = normalizeLookupText(brewMethod);
-    if (!methodKey) return "";
-
-    let intensity = "";
-    if (methodKey.includes("espresso")) {
-      if (ratio < 16) intensity = "Perfil sedoso y cuerpo ligero";
-      else if (ratio < 20) intensity = "Equilibrio perfecto de dulzor";
-      else intensity = "Cuerpo intenso y textura densa";
-    } else if (methodKey.includes("italiana")) {
-      if (ratio < 18) intensity = "Sabor suave y retrogusto limpio";
-      else if (ratio < 21) intensity = "Intensidad clásica con mucho cuerpo";
-      else intensity = "Textura muy robusta y concentrada";
-    } else {
-      if (ratio < 13) intensity = "Cuerpo muy pesado y sabores potentes";
-      else if (ratio < 15) intensity = "Notas dulces muy marcadas y untuosas";
-      else if (ratio < 17.5) intensity = "Extracción equilibrada y balanceada";
-      else if (ratio < 19) intensity = "Mayor claridad aromática y cuerpo sutil";
-      else intensity = "Perfil muy ligero con notas acuosas";
+    const span = Math.max(0.1, methodProfile.ratioMax - methodProfile.ratioMin);
+    const normalized = (effectiveRatio - methodProfile.ratioMin) / span;
+    if (normalized <= 0.35) return "CONCENTRADO";
+    if (normalized <= 0.7) return "EQUILIBRADO";
+    return "LIGERO";
+  }, [effectiveRatio, methodProfile.ratioMax, methodProfile.ratioMin]);
+  const technicalSummary = useMemo(() => {
+    if (isEspressoMethod) {
+      return "Configuración aplicada para espresso; afina con los consejos del barista.";
     }
-
-    let volumeDesc = "";
-    if (waterMl < 150) volumeDesc = "en formato de taza corta e intensa.";
-    else if (waterMl < 300) volumeDesc = "en una taza estándar ideal para el día a día.";
-    else volumeDesc = "en formato diseñado para compartir.";
-
-    return `${intensity} ${volumeDesc}`;
-  }, [brewMethod, ratio, waterMl]);
-  const baristaTips = useMemo(() => getBrewBaristaTipsForMethod(brewMethod), [brewMethod]);
-  const brewTimeline = useMemo(() => getBrewTimelineForMethod(brewMethod, waterMl), [brewMethod, waterMl]);
+    return "Configuración aplicada; afina molienda, vertido y cuerpo con los consejos del barista.";
+  }, [isEspressoMethod]);
+  const baristaTips = useMemo(
+    () =>
+      getBrewBaristaTipsForMethod(brewMethod, {
+        ratio: effectiveRatio,
+        waterMl,
+        coffeeGrams: coffeeGramsPrecise,
+        brewTimeSeconds: isEspressoMethod ? espressoTimeSeconds : undefined
+      }),
+    [brewMethod, coffeeGramsPrecise, effectiveRatio, espressoTimeSeconds, isEspressoMethod, waterMl]
+  );
+  const brewTimeline = useMemo(
+    () => getBrewTimelineForMethod(brewMethod, waterMl, isEspressoMethod ? espressoTimeSeconds : undefined),
+    [brewMethod, espressoTimeSeconds, isEspressoMethod, waterMl]
+  );
   const brewTotalSeconds = useMemo(() => brewTimeline.reduce((acc, phase) => acc + phase.durationSeconds, 0), [brewTimeline]);
   const elapsedSeconds = useMemo(() => Math.max(0, Math.min(timerSeconds, brewTotalSeconds || timerSeconds)), [brewTotalSeconds, timerSeconds]);
   const currentPhaseIndex = useMemo(() => {
@@ -158,6 +167,30 @@ export function BrewLabView({
   const remainingInPhase = useMemo(
     () => Math.max(0, currentPhase.durationSeconds - Math.max(0, elapsedSeconds - elapsedBeforeCurrentPhase)),
     [currentPhase.durationSeconds, elapsedBeforeCurrentPhase, elapsedSeconds]
+  );
+  const brewingProcessAdvice = useMemo(
+    () => getBrewingProcessAdvice(brewMethod, isEspressoMethod ? 2 : ratio, waterMl, currentPhase.label, remainingInPhase, isEspressoMethod ? espressoTimeSeconds : undefined),
+    [brewMethod, currentPhase.label, espressoTimeSeconds, isEspressoMethod, ratio, remainingInPhase, waterMl]
+  );
+  const brewingAdviceLines = useMemo(
+    () =>
+      brewingProcessAdvice
+        .split(".")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [brewingProcessAdvice]
+  );
+  const processAdviceCards = useMemo(
+    () => [currentPhase.instruction, ...brewingAdviceLines.map((line) => `${line}.`)],
+    [brewingAdviceLines, currentPhase.instruction]
+  );
+  const configAdviceLines = useMemo(
+    () =>
+      technicalSummary
+        .split(".")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [technicalSummary]
   );
   const resultRecommendation = useMemo(() => getBrewDialRecommendation(resultTaste), [resultTaste]);
   const tasteOptions = useMemo(
@@ -191,6 +224,70 @@ export function BrewLabView({
   useEffect(() => {
     setCoffeeDraft(coffeeGramsPrecise.toFixed(1));
   }, [coffeeGramsPrecise]);
+  useEffect(() => {
+    const el = baristaCarouselRef.current;
+    if (!el) return;
+    const updateFade = () => {
+      const hasOverflow = el.scrollWidth - el.clientWidth > 1;
+      if (!hasOverflow) {
+        setBaristaFade({ left: false, right: false });
+        return;
+      }
+      const left = el.scrollLeft > 1;
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      setBaristaFade({ left, right });
+    };
+    updateFade();
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateFade) : null;
+    resizeObserver?.observe(el);
+    el.addEventListener("scroll", updateFade, { passive: true });
+    window.addEventListener("resize", updateFade);
+    return () => {
+      resizeObserver?.disconnect();
+      el.removeEventListener("scroll", updateFade);
+      window.removeEventListener("resize", updateFade);
+    };
+  }, [baristaTips.length, brewStep]);
+  useEffect(() => {
+    const el = prepAdviceCarouselRef.current;
+    if (!el) return;
+    const updateFade = () => {
+      const hasOverflow = el.scrollWidth - el.clientWidth > 1;
+      if (!hasOverflow) {
+        setPrepFade({ left: false, right: false });
+        return;
+      }
+      const left = el.scrollLeft > 1;
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      setPrepFade({ left, right });
+    };
+    updateFade();
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateFade) : null;
+    resizeObserver?.observe(el);
+    el.addEventListener("scroll", updateFade, { passive: true });
+    window.addEventListener("resize", updateFade);
+    return () => {
+      resizeObserver?.disconnect();
+      el.removeEventListener("scroll", updateFade);
+      window.removeEventListener("resize", updateFade);
+    };
+  }, [processAdviceCards.length, brewStep]);
+  useEffect(() => {
+    if (!brewMethod) return;
+    const clampedWater = Math.max(methodProfile.waterMinMl, Math.min(methodProfile.waterMaxMl, Math.round(waterMl)));
+    if (clampedWater !== waterMl) setWaterMl(clampedWater);
+    const clampedRatio = Math.max(methodProfile.ratioMin, Math.min(methodProfile.ratioMax, ratio));
+    if (isRatioEditable && Math.abs(clampedRatio - ratio) > 0.0001) setRatio(clampedRatio);
+    if (!isRatioEditable && Math.abs(ratio - methodProfile.defaultRatio) > 0.0001) setRatio(methodProfile.defaultRatio);
+    if (isEspressoMethod) {
+      const clampedTime = Math.max(timeProfile.minSeconds, Math.min(timeProfile.maxSeconds, Math.round(espressoTimeSeconds)));
+      if (clampedTime !== espressoTimeSeconds) setEspressoTimeSeconds(clampedTime);
+    }
+  }, [brewMethod, espressoTimeSeconds, isRatioEditable, methodProfile.defaultRatio, methodProfile.ratioMax, methodProfile.ratioMin, methodProfile.waterMaxMl, methodProfile.waterMinMl, ratio, setEspressoTimeSeconds, setRatio, setWaterMl, timeProfile.maxSeconds, timeProfile.minSeconds, waterMl]);
+  const ratioLabel = useMemo(() => {
+    const value = methodProfile.ratioStep < 1 ? effectiveRatio.toFixed(1) : String(Math.round(effectiveRatio));
+    return `RATIO 1:${value} - ${ratioProfile.toUpperCase()}`;
+  }, [effectiveRatio, methodProfile.ratioStep, ratioProfile]);
 
   return (
     <>
@@ -198,7 +295,12 @@ export function BrewLabView({
         <div className="brew-method-grid-native">
           {BREW_METHODS.map((method) => (
             <Button variant="plain" key={method.name} className={`brew-method-card-native ${brewMethod === method.name ? "is-active" : ""}`} onClick={() => {
+              const profile = getBrewMethodProfile(method.name);
+              const methodTime = getBrewTimeProfile(method.name);
               setBrewMethod(method.name);
+              setWaterMl(profile.defaultWaterMl);
+              setRatio(profile.defaultRatio);
+              setEspressoTimeSeconds(methodTime.defaultSeconds);
               setBrewCoffeeId("");
               setBrewStep("coffee");
             }}>
@@ -347,30 +449,37 @@ export function BrewLabView({
               <p className="section-title brew-config-heading">AJUSTES TÉCNICOS</p>
               <article className="brew-tech-card">
                 <div className="brew-tech-top">
-                  <div>
-                    <span>Agua (ml)</span>
-                    <div className="brew-tech-value-field">
-                      <Input
-                        className="search-wide brew-tech-value-input is-water"
-                        type="number"
-                        inputMode="numeric"
-                        min={50}
-                        max={1000}
-                        step={10}
-                        value={waterDraft}
-                        onChange={(event) => setWaterDraft(event.target.value)}
-                        onBlur={() => {
-                          const parsed = Number(waterDraft);
-                          if (Number.isFinite(parsed) && parsed > 0) {
-                            setWaterMl(Math.max(50, Math.min(1000, Math.round(parsed))));
-                          } else {
-                            setWaterDraft(String(waterMl));
-                          }
-                        }}
-                        aria-label="Agua en ml"
-                      />
+                  {isWaterEditable ? (
+                    <div>
+                      <span>Agua (ml)</span>
+                      <div className="brew-tech-value-field">
+                        <Input
+                          className="search-wide brew-tech-value-input is-water"
+                          type="number"
+                          inputMode="numeric"
+                          min={methodProfile.waterMinMl}
+                          max={methodProfile.waterMaxMl}
+                          step={methodProfile.waterStepMl}
+                          value={waterDraft}
+                          onChange={(event) => setWaterDraft(event.target.value)}
+                          onBlur={() => {
+                            const parsed = Number(waterDraft);
+                            if (Number.isFinite(parsed) && parsed > 0) {
+                              setWaterMl(
+                                Math.max(
+                                  methodProfile.waterMinMl,
+                                  Math.min(methodProfile.waterMaxMl, Math.round(parsed))
+                                )
+                              );
+                            } else {
+                              setWaterDraft(String(waterMl));
+                            }
+                          }}
+                          aria-label="Agua en ml"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
                   <div>
                     <span>Café (g)</span>
                     <div className="brew-tech-value-field">
@@ -386,8 +495,28 @@ export function BrewLabView({
                         onBlur={() => {
                           const parsed = Number(coffeeDraft.replace(",", "."));
                           if (Number.isFinite(parsed) && parsed > 0) {
-                            const nextRatio = waterMl / parsed;
-                            setRatio(Math.max(12, Math.min(20, Math.round(nextRatio))));
+                            if (isEspressoMethod) {
+                              setWaterMl(
+                                Math.max(
+                                  methodProfile.waterMinMl,
+                                  Math.min(methodProfile.waterMaxMl, Math.round(parsed * 2))
+                                )
+                              );
+                            } else if (!isRatioEditable) {
+                              const nextWater = Math.round(parsed * methodProfile.defaultRatio);
+                              setWaterMl(
+                                Math.max(
+                                  methodProfile.waterMinMl,
+                                  Math.min(methodProfile.waterMaxMl, nextWater)
+                                )
+                              );
+                            } else {
+                              const nextRatio = waterMl / parsed;
+                              const normalized = methodProfile.ratioStep < 1
+                                ? Math.round(nextRatio / methodProfile.ratioStep) * methodProfile.ratioStep
+                                : Math.round(nextRatio);
+                              setRatio(Math.max(methodProfile.ratioMin, Math.min(methodProfile.ratioMax, normalized)));
+                            }
                           } else {
                             setCoffeeDraft(coffeeGramsPrecise.toFixed(1));
                           }
@@ -396,46 +525,93 @@ export function BrewLabView({
                       />
                     </div>
                   </div>
+                  {isEspressoMethod ? (
+                    <div>
+                      <span>Tiempo (s)</span>
+                      <div className="brew-tech-value-field">
+                        <Input
+                          className="search-wide brew-tech-value-input"
+                          type="number"
+                          inputMode="numeric"
+                          min={timeProfile.minSeconds}
+                          max={timeProfile.maxSeconds}
+                          step={1}
+                          value={String(espressoTimeSeconds)}
+                          onChange={(event) => {
+                            const next = Number(event.target.value);
+                            if (Number.isFinite(next)) setEspressoTimeSeconds(Math.max(timeProfile.minSeconds, Math.min(timeProfile.maxSeconds, Math.round(next))));
+                          }}
+                          aria-label="Tiempo de extracción en segundos"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
-                <label className="brew-tech-slider">
-                  <span>CANTIDAD DE AGUA</span>
-                  <Input
-                    className="app-range app-range--water"
-                    style={{ "--range-progress": `${waterProgress}%` } as CSSProperties}
-                    type="range"
-                    min={50}
-                    max={1000}
-                    step={10}
-                    value={waterMl}
-                    onChange={(event) => setWaterMl(Number(event.target.value))}
-                  />
-                </label>
+                {isWaterEditable ? (
+                  <label className="brew-tech-slider">
+                    <span>CANTIDAD DE AGUA</span>
+                    <Input
+                      className="app-range app-range--water"
+                      style={{ "--range-progress": `${waterProgress}%` } as CSSProperties}
+                      type="range"
+                      min={methodProfile.waterMinMl}
+                      max={methodProfile.waterMaxMl}
+                      step={methodProfile.waterStepMl}
+                      value={waterMl}
+                      onChange={(event) => setWaterMl(Number(event.target.value))}
+                    />
+                  </label>
+                ) : null}
 
-                <label className="brew-tech-slider">
-                  <span>{`RATIO 1:${Math.round(effectiveRatio)} · ${ratioProfile.toUpperCase()}`}</span>
-                  <Input
-                    className="app-range"
-                    style={{ "--range-progress": `${ratioProgress}%` } as CSSProperties}
-                    type="range"
-                    min={12}
-                    max={20}
-                    step={1}
-                    value={ratio}
-                    onChange={(event) => setRatio(Number(event.target.value))}
-                  />
-                </label>
+                {isRatioEditable ? (
+                  <label className="brew-tech-slider">
+                    <span>{ratioLabel}</span>
+                    <Input
+                      className="app-range"
+                      style={{ "--range-progress": `${ratioProgress}%` } as CSSProperties}
+                      type="range"
+                      min={methodProfile.ratioMin}
+                      max={methodProfile.ratioMax}
+                      step={methodProfile.ratioStep}
+                      value={ratio}
+                      onChange={(event) => setRatio(Number(event.target.value))}
+                    />
+                  </label>
+                ) : null}
 
+                {isEspressoMethod ? (
+                  <label className="brew-tech-slider">
+                    <span>{`TIEMPO DE EXTRACCIÓN (${espressoTimeSeconds}s)`}</span>
+                    <Input
+                      className="app-range"
+                      style={{ "--range-progress": `${Math.max(0, Math.min(100, ((espressoTimeSeconds - timeProfile.minSeconds) / Math.max(1, timeProfile.maxSeconds - timeProfile.minSeconds)) * 100))}%` } as CSSProperties}
+                      type="range"
+                      min={timeProfile.minSeconds}
+                      max={timeProfile.maxSeconds}
+                      step={1}
+                      value={espressoTimeSeconds}
+                      onChange={(event) => setEspressoTimeSeconds(Number(event.target.value))}
+                    />
+                  </label>
+                ) : null}
                 <div className="brew-tech-advice">
                   <UiIcon name="sparkles" className="ui-icon" />
-                  <p>{brewAdvice}</p>
+                  <ul className="brew-tech-advice-list">
+                    {configAdviceLines.map((line) => (
+                      <li key={line}>{line}.</li>
+                    ))}
+                  </ul>
                 </div>
               </article>
             </div>
 
             <aside className="brew-barista-block">
               <p className="section-title brew-config-heading">CONSEJOS DEL BARISTA</p>
-              <div className="brew-barista-grid">
+              <div
+                ref={baristaCarouselRef}
+                className={`brew-barista-grid ${baristaFade.left ? "has-left-fade" : ""} ${baristaFade.right ? "has-right-fade" : ""}`.trim()}
+              >
                 {baristaTips.map((tip) => (
                   <article className="brew-barista-tip" key={`${tip.label}-${tip.value}`}>
                     <span className="brew-barista-icon" aria-hidden="true">
@@ -455,52 +631,77 @@ export function BrewLabView({
 
       {brewStep === "brewing" ? (
         <section className="brew-prep-screen">
-          <article className="brew-prep-card">
-            <div className="brew-prep-head">
-              <p className="brew-prep-phase">{currentPhase.label}</p>
-              <strong className={`brew-prep-clock ${remainingInPhase <= 5 && brewRunning ? "is-warning" : ""}`.trim()}>
-                {formatClock(remainingInPhase)}
-              </strong>
-              <p className="brew-prep-next">Siguiente: {nextPhase?.label ?? "Finalizar"}</p>
-            </div>
+          <div className="brew-prep-layout">
+            <article className="brew-prep-card brew-prep-card-timer">
+              <div className="brew-prep-head">
+                <p className="brew-prep-phase">{currentPhase.label}</p>
+                <strong className={`brew-prep-clock ${remainingInPhase <= 5 && brewRunning ? "is-warning" : ""}`.trim()}>
+                  {formatClock(remainingInPhase)}
+                </strong>
+                <p className="brew-prep-next">Siguiente: {nextPhase?.label ?? "Finalizar"}</p>
+              </div>
 
-            <div className="brew-prep-timeline">
-              <div className="brew-prep-time-labels" aria-hidden="true">
-                {brewTimeline.map((phase) => {
-                  const widthWeight = Math.max(phase.durationSeconds / Math.max(1, brewTotalSeconds), 0.08);
-                  return (
-                    <small key={`label-${phase.label}`} style={{ flexGrow: widthWeight }}>
-                      {phase.durationSeconds}s
-                    </small>
-                  );
-                })}
+              <div className="brew-prep-timeline">
+                <div className="brew-prep-time-labels" aria-hidden="true">
+                  {brewTimeline.map((phase) => {
+                    const widthWeight = Math.max(phase.durationSeconds / Math.max(1, brewTotalSeconds), 0.08);
+                    return (
+                      <small key={`label-${phase.label}`} style={{ flexGrow: widthWeight }}>
+                        {phase.durationSeconds}s
+                      </small>
+                    );
+                  })}
+                </div>
+                <div className="brew-prep-bars" aria-hidden="true">
+                  {brewTimeline.map((phase, index) => {
+                    const widthWeight = Math.max(phase.durationSeconds / Math.max(1, brewTotalSeconds), 0.08);
+                    const elapsedBefore = brewTimeline.slice(0, index).reduce((acc, item) => acc + item.durationSeconds, 0);
+                    const progress = elapsedSeconds <= elapsedBefore
+                      ? 0
+                      : elapsedSeconds >= elapsedBefore + phase.durationSeconds
+                        ? 1
+                        : (elapsedSeconds - elapsedBefore) / phase.durationSeconds;
+                    return (
+                      <span key={`bar-${phase.label}-${index}`} className="brew-prep-bar" style={{ flexGrow: widthWeight }}>
+                        <i style={{ width: `${Math.max(0, Math.min(100, progress * 100))}%` }} />
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="brew-prep-total">
+                  <span>TOTAL {formatClock(brewTotalSeconds)}</span>
+                  <strong>{formatClock(elapsedSeconds)}</strong>
+                </div>
               </div>
-              <div className="brew-prep-bars" aria-hidden="true">
-                {brewTimeline.map((phase, index) => {
-                  const widthWeight = Math.max(phase.durationSeconds / Math.max(1, brewTotalSeconds), 0.08);
-                  const elapsedBefore = brewTimeline.slice(0, index).reduce((acc, item) => acc + item.durationSeconds, 0);
-                  const progress = elapsedSeconds <= elapsedBefore
-                    ? 0
-                    : elapsedSeconds >= elapsedBefore + phase.durationSeconds
-                      ? 1
-                      : (elapsedSeconds - elapsedBefore) / phase.durationSeconds;
-                  return (
-                    <span key={`bar-${phase.label}-${index}`} className="brew-prep-bar" style={{ flexGrow: widthWeight }}>
-                      <i style={{ width: `${Math.max(0, Math.min(100, progress * 100))}%` }} />
-                    </span>
-                  );
-                })}
+            </article>
+            <div className="brew-prep-tips-strip">
+              <div className="brew-prep-advice-list-desktop">
+                {processAdviceCards.map((card, index) => (
+                  <article className="brew-prep-advice-card" key={`desk-${index}`}>
+                    {card}
+                  </article>
+                ))}
               </div>
-              <div className="brew-prep-total">
-                <span>TOTAL {formatClock(brewTotalSeconds)}</span>
-                <strong>{formatClock(elapsedSeconds)}</strong>
+              <div
+                ref={prepAdviceCarouselRef}
+                className={`brew-prep-advice-carousel ${prepFade.left ? "has-left-fade" : ""} ${prepFade.right ? "has-right-fade" : ""}`.trim()}
+              >
+                {(() => {
+                  const columns: string[][] = [];
+                  for (let i = 0; i < processAdviceCards.length; i += 3) columns.push(processAdviceCards.slice(i, i + 3));
+                  return columns.map((column, colIndex) => (
+                    <div className="brew-prep-advice-page" key={`mob-${colIndex}`}>
+                      {column.map((card, cardIndex) => (
+                        <article className="brew-prep-advice-card" key={`mob-${colIndex}-${cardIndex}`}>
+                          {card}
+                        </article>
+                      ))}
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
-
-            <div className="brew-prep-instruction">
-              <p>{currentPhase.instruction}</p>
-            </div>
-          </article>
+          </div>
 
           <div className={`brew-prep-actions ${elapsedSeconds > 0 ? "" : "is-single"}`.trim()}>
             {elapsedSeconds > 0 ? (
@@ -527,7 +728,7 @@ export function BrewLabView({
       {brewStep === "result" ? (
         <section className="brew-result-screen">
           <article className="brew-result-card">
-            <p className="brew-result-title">QUE SABOR HAS OBTENIDO?</p>
+            <p className="brew-result-title">¿QUÉ SABOR HAS OBTENIDO?</p>
             <div className="brew-result-grid">
               {tasteOptions.map((taste) => (
                 <Button variant="plain"
@@ -544,7 +745,7 @@ export function BrewLabView({
               <div className="brew-result-reco">
                 <div className="brew-result-reco-head">
                   <UiIcon name="sparkles" className="ui-icon" />
-                  <strong>Recomendacion</strong>
+                  <strong>Recomendación</strong>
                 </div>
                 <p>{resultRecommendation}</p>
               </div>
@@ -888,6 +1089,13 @@ export function CreateCoffeeView({
     </section>
   );
 }
+
+
+
+
+
+
+
 
 
 

@@ -1,4 +1,5 @@
 <resources>
+    <!-- Nombre bajo el icono (device). Título y descripciones de la ficha en Play: ver docs/ASO_PLAY_STORE.md -->
     <string name="app_name">Cafesito</string>
     <string name="shortcut_search_short">Busca café</string>
     <string name="shortcut_search_long">Busca café</string>

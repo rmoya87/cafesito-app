@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { createDiaryEntry, deleteDiaryEntry, deletePantryItem, updateDiaryEntry, upsertPantryStock } from "../../data/supabaseApi";
-import { normalizeLookupText } from "../../core/text";
+import { cupSizeLabelForAmountMl, estimateCaffeineMg, hasCaffeineFromLabel } from "../../core/brewEngine";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow, UserRow } from "../../types";
 
 export function useDiaryActions({
@@ -31,16 +31,23 @@ export function useDiaryActions({
   const saveBrewToDiary = useCallback(
     async (taste: string) => {
       if (!activeUser || !selectedCoffee) return;
-      const decaf = normalizeLookupText(selectedCoffee.cafeina ?? "").includes("sin");
-      const caffeineMg = Math.max(0, Math.round(coffeeGrams * (decaf ? 2 : 9)));
+      const caffeineMg = estimateCaffeineMg({
+        source: "brewlab",
+        methodOrPreparation: brewMethod || "Metodo",
+        coffeeGrams,
+        hasCaffeine: hasCaffeineFromLabel(selectedCoffee.cafeina)
+      });
       const preparationType = `Lab: ${brewMethod || "Metodo"} (${taste})`;
+      const sizeLabel = cupSizeLabelForAmountMl(waterMl);
       const created = await createDiaryEntry({
         userId: activeUser.id,
         coffeeId: selectedCoffee.id,
         coffeeName: selectedCoffee.nombre,
         amountMl: waterMl,
         caffeineMg,
+        coffeeGrams,
         preparationType,
+        sizeLabel,
         type: "CUP"
       });
       setDiaryEntries((prev) => [created, ...prev]);
@@ -62,7 +69,15 @@ export function useDiaryActions({
   );
 
   const handleUpdateDiaryEntry = useCallback(
-    async (entryId: number, amountMl: number, caffeineMg: number, preparationType: string, timestampMs?: number) => {
+    async (
+      entryId: number,
+      amountMl: number,
+      caffeineMg: number,
+      preparationType: string,
+      coffeeGrams?: number,
+      sizeLabel?: string | null,
+      timestampMs?: number
+    ) => {
       if (!activeUser) return;
       const updated = await updateDiaryEntry({
         entryId,
@@ -70,6 +85,8 @@ export function useDiaryActions({
         amountMl,
         caffeineMg,
         preparationType,
+        coffeeGrams,
+        sizeLabel,
         timestampMs
       });
       setDiaryEntries((prev) => prev.map((entry) => (entry.id === updated.id ? { ...entry, ...updated } : entry)));
@@ -112,3 +129,4 @@ export function useDiaryActions({
     handleRemovePantryItem
   };
 }
+

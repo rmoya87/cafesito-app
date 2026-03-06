@@ -1031,7 +1031,7 @@ export function ProfileView({
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-sheet-list">
                   <Button variant="plain"
-                    className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                    className="diary-sheet-action diary-sheet-action-pantry"
                     onClick={() => {
                       if (!postMenuId) return;
                       setDeletePostConfirmId(postMenuId);

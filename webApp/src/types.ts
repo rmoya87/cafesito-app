@@ -90,7 +90,9 @@ export type DiaryEntryRow = {
   coffee_name: string;
   caffeine_mg: number;
   amount_ml: number;
+  coffee_grams?: number;
   preparation_type: string;
+  size_label?: string | null;
   timestamp: number;
   type: string;
 };

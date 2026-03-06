@@ -314,7 +314,7 @@ export function TopBar({
                     </Button>
                     <Button
                       variant="plain"
-                      className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                      className="diary-sheet-action diary-sheet-action-pantry"
                       onClick={() => {
                         setShowProfileOptions(false);
                         setShowDeleteAccountConfirm(true);
@@ -326,7 +326,7 @@ export function TopBar({
                     </Button>
                     <Button
                       variant="plain"
-                      className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                      className="diary-sheet-action diary-sheet-action-pantry"
                       onClick={() => {
                         setShowProfileOptions(false);
                         onProfileSignOut();

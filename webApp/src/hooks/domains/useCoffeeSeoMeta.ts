@@ -6,6 +6,10 @@ const DEFAULT_DESCRIPTION = "Comunidad de café para compartir timeline, explora
 const SITE_NAME = "Cafesito";
 const MAX_DESCRIPTION_LENGTH = 160;
 
+const SEARCH_COFFEES_TITLE = "Explorar cafés | Cafesito";
+const SEARCH_COFFEES_DESCRIPTION =
+  "Explora y descubre cafés, marcas y orígenes. Busca por nombre, filtra por tipo o valoración y encuentra tu próximo café favorito en la comunidad Cafesito.";
+
 function setOrCreateMeta(
   doc: Document,
   selector: string,
@@ -44,13 +48,17 @@ function removeJsonLd(doc: Document, id: string): void {
 
 export function useCoffeeSeoMeta(
   detailCoffee: CoffeeRow | null,
-  options?: { avgRating?: number; reviewCount?: number }
+  options?: { avgRating?: number; reviewCount?: number },
+  pathnameOverride?: string
 ) {
   useEffect(() => {
     const doc = document;
-    const isCoffeeRoute = window.location.pathname.startsWith("/coffee/");
+    const pathname = (pathnameOverride ?? (typeof window !== "undefined" ? window.location.pathname : "")).replace(/\/+$/, "") || "/";
+    const isCoffeeRoute = pathname.includes("/coffee/");
+    const isSearchRoute = /\/search(\/|$)/.test(pathname);
+    const isSearchCoffeesOnly = isSearchRoute && !/\/search\/users/.test(pathname);
     const siteUrl = (import.meta.env.VITE_SITE_URL as string | undefined) ?? (typeof window !== "undefined" ? window.location.origin : "");
-    const canonicalHref = `${siteUrl}${window.location.pathname}`;
+    const canonicalHref = `${siteUrl}${pathname}`;
 
     setOrCreateLink(doc, "canonical", canonicalHref);
 
@@ -59,6 +67,39 @@ export function useCoffeeSeoMeta(
       descriptionMeta = doc.createElement("meta");
       descriptionMeta.name = "description";
       doc.head.appendChild(descriptionMeta);
+    }
+
+    if (isSearchCoffeesOnly) {
+      const title = SEARCH_COFFEES_TITLE;
+      const description = SEARCH_COFFEES_DESCRIPTION;
+      const descTruncated = description.slice(0, MAX_DESCRIPTION_LENGTH);
+      doc.title = title;
+      descriptionMeta.content = descTruncated;
+      setOrCreateMeta(doc, "meta", "property", "og:title", title);
+      setOrCreateMeta(doc, "meta", "property", "og:description", descTruncated);
+      setOrCreateMeta(doc, "meta", "property", "og:type", "website");
+      setOrCreateMeta(doc, "meta", "property", "og:url", canonicalHref);
+      setOrCreateMeta(doc, "meta", "property", "og:site_name", SITE_NAME);
+      setOrCreateMeta(doc, "meta", "name", "twitter:card", "summary");
+      setOrCreateMeta(doc, "meta", "name", "twitter:title", title);
+      setOrCreateMeta(doc, "meta", "name", "twitter:description", descTruncated);
+      removeJsonLd(doc, "coffee-product-ld");
+      removeJsonLd(doc, "search-page-ld");
+      const webPage = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "@id": `${canonicalHref}#webpage`,
+        name: title,
+        description: descTruncated,
+        url: canonicalHref,
+        isPartOf: { "@type": "WebSite", name: SITE_NAME, url: siteUrl }
+      };
+      const script = doc.createElement("script");
+      script.id = "search-page-ld";
+      script.type = "application/ld+json";
+      script.textContent = JSON.stringify(webPage);
+      doc.head.appendChild(script);
+      return () => removeJsonLd(doc, "search-page-ld");
     }
 
     if (!isCoffeeRoute) {
@@ -73,9 +114,11 @@ export function useCoffeeSeoMeta(
       setOrCreateMeta(doc, "meta", "name", "twitter:title", DEFAULT_TITLE);
       setOrCreateMeta(doc, "meta", "name", "twitter:description", DEFAULT_DESCRIPTION);
       removeJsonLd(doc, "coffee-product-ld");
+      removeJsonLd(doc, "search-page-ld");
       return;
     }
 
+    removeJsonLd(doc, "search-page-ld");
     const title = detailCoffee ? `${detailCoffee.nombre} | Cafesito` : "Café | Cafesito";
     const rawDesc = detailCoffee
       ? (detailCoffee.descripcion?.trim() || `${detailCoffee.nombre}${detailCoffee.marca ? ` · ${detailCoffee.marca}` : ""}${detailCoffee.pais_origen ? ` · ${detailCoffee.pais_origen}` : ""}`.trim() || "Detalle de café en Cafesito")
@@ -133,5 +176,5 @@ export function useCoffeeSeoMeta(
     }
 
     removeJsonLd(doc, "coffee-product-ld");
-  }, [detailCoffee, options?.avgRating, options?.reviewCount]);
+  }, [detailCoffee, options?.avgRating, options?.reviewCount, pathnameOverride]);
 }

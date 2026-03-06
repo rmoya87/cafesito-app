@@ -161,7 +161,7 @@ fun ProfileScreen(
                     }
 
                     stickyHeader {
-                        Box(modifier = Modifier.padding(vertical = 12.dp)) {
+                        Box(modifier = Modifier.padding(vertical = 4.dp)) {
                             PremiumTabRow(
                                 selectedTabIndex = selectedTabIndex,
                                 tabs = tabs,
@@ -195,7 +195,7 @@ fun ProfileScreen(
                         }
                         1 -> {
                             item {
-                                Column(Modifier.padding(24.dp)) {
+                                Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp)) {
                                     Box(Modifier.clickable { showSensoryDetail = true }) {
                                         PremiumCard {
                                             Column(Modifier.padding(24.dp)) {

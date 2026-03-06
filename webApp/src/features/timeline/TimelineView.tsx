@@ -445,7 +445,7 @@ export function TimelineView({
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-sheet-list">
                   <Button variant="plain"
-                    className="diary-sheet-action diary-sheet-action-pantry is-delete"
+                    className="diary-sheet-action diary-sheet-action-pantry"
                     onClick={() => {
                       setDeletePostConfirmId(activeMenuPost.id);
                       setMenuPostId(null);

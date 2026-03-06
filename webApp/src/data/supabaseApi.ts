@@ -205,7 +205,7 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
   const supabase = getSupabaseClient();
   const diaryReq = supabase
     .from("diary_entries")
-    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,preparation_type,timestamp,type")
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type")
     .eq("user_id", userId)
     .order("timestamp", { ascending: false })
     .limit(500);
@@ -646,7 +646,7 @@ export async function createDiaryEntry(payload: {
   const { data, error } = await supabase
     .from("diary_entries")
     .insert(row)
-    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,preparation_type,timestamp,type")
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type")
     .single();
   throwIfError(error);
   return mapDiaryEntryRow(data);
@@ -663,22 +663,26 @@ export async function updateDiaryEntry(payload: {
   userId: number;
   caffeineMg: number;
   amountMl: number;
+  coffeeGrams?: number;
   preparationType: string;
+  sizeLabel?: string | null;
   timestampMs?: number;
 }): Promise<DiaryEntryRow> {
   const supabase = getSupabaseClient();
-  const row = {
+  const row: Record<string, unknown> = {
     caffeine_mg: Math.max(0, Math.round(payload.caffeineMg)),
     amount_ml: Math.max(1, Math.round(payload.amountMl)),
     preparation_type: payload.preparationType.trim() || "None",
     ...(Number.isFinite(payload.timestampMs) ? { timestamp: Number(payload.timestampMs) } : {})
   };
+  if (payload.coffeeGrams !== undefined) row.coffee_grams = Math.max(0, Math.round(payload.coffeeGrams));
+  if (payload.sizeLabel !== undefined) row.size_label = payload.sizeLabel ?? null;
   const { data, error } = await supabase
     .from("diary_entries")
     .update(row)
     .eq("id", payload.entryId)
     .eq("user_id", payload.userId)
-    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,preparation_type,timestamp,type")
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type")
     .single();
   throwIfError(error);
   return mapDiaryEntryRow(data);

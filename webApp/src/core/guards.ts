@@ -1,16 +1,19 @@
 import type { TabId } from "../types";
 
-export function canAccessTabAsGuest(tab: TabId): boolean {
-  return tab === "coffee";
+/** searchMode solo aplica cuando tab === "search". Buscar usuarios exige login. */
+export function canAccessTabAsGuest(tab: TabId, searchMode?: "coffees" | "users"): boolean {
+  if (tab === "coffee") return true;
+  if (tab === "search") return searchMode !== "users";
+  return false;
 }
 
-export function canNavigateToTab(tab: TabId, isAuthenticated: boolean): boolean {
+export function canNavigateToTab(tab: TabId, isAuthenticated: boolean, searchMode?: "coffees" | "users"): boolean {
   if (isAuthenticated) return true;
-  return canAccessTabAsGuest(tab);
+  return canAccessTabAsGuest(tab, searchMode);
 }
 
-export function resolveGuardedTab(tab: TabId, isAuthenticated: boolean): TabId {
-  return canNavigateToTab(tab, isAuthenticated) ? tab : "timeline";
+export function resolveGuardedTab(tab: TabId, isAuthenticated: boolean, searchMode?: "coffees" | "users"): TabId {
+  return canNavigateToTab(tab, isAuthenticated, searchMode) ? tab : "timeline";
 }
 
 export function shouldPromptAuthForInteraction(isAuthenticated: boolean): boolean {
