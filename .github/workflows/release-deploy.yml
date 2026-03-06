@@ -452,6 +452,17 @@ jobs:
           # Nunca borramos todo el remoto para preservar URLs de cafés no tocados.
           delete_remote_files: false
 
+      - name: Ensure .well-known exists on server (App Links)
+        env:
+          IONOS_SSH_HOST: ${{ secrets.IONOS_SSH_HOST }}
+          IONOS_SSH_USER: ${{ secrets.IONOS_SSH_USER }}
+          IONOS_SSH_PORT: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          IONOS_SSH_PASSWORD: ${{ secrets.IONOS_SSH_PASSWORD }}
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y sshpass
+          sshpass -p "${IONOS_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no -p "${IONOS_SSH_PORT}" "${IONOS_SSH_USER}@${IONOS_SSH_HOST}" "mkdir -p /cafesito-web/.well-known"
+
       - name: Deploy .well-known/assetlinks.json (App Links)
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
