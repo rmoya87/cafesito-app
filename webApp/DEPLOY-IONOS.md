@@ -68,7 +68,8 @@ Ese mensaje aparece cuando la app se ejecuta sin la configuración de Supabase.
   Asegúrate de tener `webApp/.env` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, de ejecutar desde la carpeta `webApp/` (`npm run dev`) y de **reiniciar el servidor** después de crear o cambiar el `.env`. Si usas `npm run preview`, estás sirviendo el build (que se generó sin .env si lo hiciste en CI); para probar con .env usa `npm run dev`.
 
 - **En producción / CI**  
-  Si despliegas con **GitHub Actions**, añade en el repo **Settings → Secrets and variables → Actions** las variables (o secrets) `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`; el workflow las inyecta en el build. Si no están ahí, el build se genera sin ellas y el botón de Google mostrará ese error en producción.
+  Si despliegas con **GitHub Actions**, añade en el repo **Settings → Secrets and variables → Actions** las variables (o secrets) `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` y **`VITE_GOOGLE_CLIENT_ID`** (Client ID de tipo "Web" de Google, mismo que en Supabase → Google); el workflow las inyecta en el build. Sin `VITE_GOOGLE_CLIENT_ID`, el botón de login con Google no funcionará en producción.
+  - En **Google Cloud Console** → APIs & Services → Credentials → tu cliente OAuth 2.0 "Web": en **Authorized JavaScript origins** debe estar la URL de producción (p. ej. `https://cafesitoapp.com`). Si solo está localhost, el botón fallará en producción.
 
 **Configuración de Supabase en producción:** usa siempre variables de entorno en el pipeline de build (GitHub Actions → Secrets o Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). El build las embebe; no añadas credenciales en el HTML ni en el repositorio.
 
