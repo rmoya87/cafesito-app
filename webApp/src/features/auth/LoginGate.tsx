@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getAppAssetBase } from "../../core/appAssets";
-import { getGoogleClientId, renderGoogleButton } from "../../core/googleGsi";
+import { getGoogleClientId, showGoogleOneTap } from "../../core/googleGsi";
 import { UiIcon } from "../../ui/iconography";
 import { Button, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
+import { GoogleSignInButton } from "./GoogleSignInButton";
 
 export function LoginGate({
   loading,
@@ -18,29 +19,18 @@ export function LoginGate({
   onGoogleCredential?: (idToken: string) => void;
 }) {
   const [showMobileSheet, setShowMobileSheet] = useState(false);
-  const googleButtonRefDesktop = useRef<HTMLDivElement>(null);
-  const googleButtonRefSheet = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const assetBase = useMemo(() => getAppAssetBase(), []);
   const googleClientId = useMemo(() => getGoogleClientId(), []);
   const loginVideoSrc = assetBase + "login_bg.mp4";
   const logoSrc = assetBase + "logo.png";
 
+  // One Tap: sugiere "Continuar como [email]" si el usuario tiene sesión en Google
   useEffect(() => {
     if (!googleClientId || !onGoogleCredential) return;
-    const cleanups: Array<() => void> = [];
-    const desktop = googleButtonRefDesktop.current;
-    if (desktop) {
-      cleanups.push(renderGoogleButton(desktop, googleClientId, (token) => onGoogleCredential(token)));
-    }
-    const sheet = googleButtonRefSheet.current;
-    if (sheet) {
-      cleanups.push(renderGoogleButton(sheet, googleClientId, (token) => onGoogleCredential(token)));
-    }
-    return () => {
-      cleanups.forEach((c) => c());
-    };
-  }, [googleClientId, onGoogleCredential, showMobileSheet]);
+    const cancel = showGoogleOneTap(googleClientId, (token) => onGoogleCredential(token));
+    return cancel;
+  }, [googleClientId, onGoogleCredential]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -66,7 +56,7 @@ export function LoginGate({
     };
   }, []);
 
-  const renderAuthContent = (googleButtonRef: React.RefObject<HTMLDivElement>) => (
+  const renderAuthContent = () => (
     <>
       <p className="login-sheet-description">
         Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.
@@ -79,21 +69,14 @@ export function LoginGate({
         {" "}y{" "}
         <a href={assetBase + "legal/eliminacion-cuenta.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Eliminación de datos</a>.
       </p>
-      <div ref={googleButtonRef} className="login-google-button-container" aria-label="Iniciar sesión con Google" />
-      {!googleClientId ? (
-        <Button
-          type="button"
-          variant="primary"
-          className="google-login-button"
-          onClick={onGoogleLogin ? () => onGoogleLogin() : undefined}
-          disabled={loading || !onGoogleLogin}
-        >
-          <span className="auth-prompt-google-g" aria-hidden="true">
-            G
-          </span>
-          {loading ? "Conectando..." : "Continuar con Google"}
-        </Button>
-      ) : null}
+      <div className="login-google-button-container">
+        <GoogleSignInButton
+          label="Registrarse con Google"
+          loading={loading}
+          disabled={!onGoogleLogin}
+          onClick={onGoogleLogin ?? undefined}
+        />
+      </div>
       {message ? <p className="login-hint">{message}</p> : null}
       {errorMessage ? <p className="login-error">{errorMessage}</p> : null}
     </>
@@ -168,7 +151,7 @@ export function LoginGate({
 
         <section className="login-desktop-auth" aria-label="Acceso desktop">
           <img src={logoSrc} alt="Logo Cafesito" className="login-desktop-logo" loading="eager" decoding="async" />
-          <div className="login-desktop-auth-content">{renderAuthContent(googleButtonRefDesktop)}</div>
+          <div className="login-desktop-auth-content">{renderAuthContent()}</div>
         </section>
       </section>
 
@@ -176,7 +159,7 @@ export function LoginGate({
         <SheetOverlay className="login-sheet-overlay" onDismiss={() => setShowMobileSheet(false)} onClick={() => setShowMobileSheet(false)}>
           <SheetCard className="login-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle />
-            {renderAuthContent(googleButtonRefSheet)}
+            {renderAuthContent()}
           </SheetCard>
         </SheetOverlay>
       ) : null}
