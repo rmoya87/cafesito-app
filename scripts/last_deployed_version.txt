@@ -1,1 +1,3 @@
-216
+218
+# Último versionCode desplegado con éxito en Play Console.
+# El script bump_version.sh usa este valor para no repetir un code ya usado.
