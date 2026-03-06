@@ -9,7 +9,7 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 ## Cuándo se ejecuta
 
 - **Push** a ramas: `Interna`, `Interno`, `alpha`, `beta`, `Producción`, `Produccion` (las ramas canónicas son **alpha** y **beta** en minúsculas). **main** no está en la lista: un push a main no dispara el workflow (y el job `changes` tiene `if` que excluye push a main).
-- **workflow_dispatch**: ejecución manual desde Actions → "Run workflow", eligiendo rama y opciones (solo Android, solo web, etc.).
+- **workflow_dispatch**: ejecución manual desde Actions → "Run workflow", eligiendo rama, opciones (solo Android/solo web) y parámetros de Play (`play_track`, `play_status`).
 - **Programado (schedule)**: todos los días a las **03:00 UTC** (deploy nocturno). La rama objetivo se define con la variable de repositorio `NIGHTLY_DEPLOY_BRANCH` (por defecto: `beta`).
 
 ### Si no quieres que se ejecute solo por cambios en cafés
@@ -81,7 +81,7 @@ En **Settings → Secrets and variables → Actions**:
 
 **Keystore en base64:** `base64 -w 0 your-release.keystore` (o en PowerShell: codificar el binario). Pegar como una sola línea sin espacios ni saltos.
 
-**Notas (Android):** El workflow sube el release en estado **draft** para revisión manual en Play Console. Añade mensaje promocional `whatsnew-es-ES`. El commit de bump de versión usa `[skip ci]` para evitar loops.
+**Notas (Android):** En ejecución manual (`workflow_dispatch`) puedes elegir pista (`play_track`) y estado (`play_status`). Por defecto manual usa `draft` para revisión; en push por rama el estado por defecto es `completed`. Añade mensaje promocional `whatsnew-es-ES`. El commit de bump de versión usa `[skip ci]` para evitar loops.
 
 ### Web (Ionos, SFTP)
 
