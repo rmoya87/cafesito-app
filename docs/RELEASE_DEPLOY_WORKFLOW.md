@@ -1,16 +1,16 @@
 # Workflow Release & Deploy
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-04  
+**Última actualización:** 2026-03-05  
 **Fuente de verdad:** comportamiento por rama y despliegue (Android + Web).
 
 Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que gestiona el release de Android en Google Play y el despliegue de la web en Ionos según la rama.
 
 ## Cuándo se ejecuta
 
-- **Programado**: todos los días a las **03:00 UTC** (equivale a las **04:00** en España peninsular en invierno).
-- El workflow ya no se dispara por `push`, ni por ejecución manual (`workflow_dispatch`), ni por `repository_dispatch` de Supabase.
-- La rama objetivo del deploy nocturno se define con la variable de repositorio `NIGHTLY_DEPLOY_BRANCH` (por defecto: `Beta`).
+- **Push** a ramas: `Interna`, `Interno`, `Alpha`, `alpha`, `Beta`, `beta`, `Producción`, `Produccion`. **main no está en la lista**: un push a main no dispara el workflow (y el job `changes` tiene `if` que excluye push a main).
+- **workflow_dispatch**: ejecución manual desde Actions → "Run workflow", eligiendo rama y opciones (solo Android, solo web, etc.).
+- **Programado (schedule)**: todos los días a las **03:00 UTC** (deploy nocturno). La rama objetivo se define con la variable de repositorio `NIGHTLY_DEPLOY_BRANCH` (por defecto: `Beta`).
 
 ### Si no quieres que se ejecute solo por cambios en cafés
 

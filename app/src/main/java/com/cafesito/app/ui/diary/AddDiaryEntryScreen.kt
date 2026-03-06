@@ -284,6 +284,7 @@ fun WaterRegistrationStepPremium(
 ) {
     val waterBlue = WaterBlue
     var mlInput by remember(ml) { mutableStateOf(ml.roundToInt().toString()) }
+    val sliderInactiveTrackColor = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFE0E0E0)
 
     Column(
         modifier = Modifier
@@ -332,11 +333,12 @@ fun WaterRegistrationStepPremium(
             value = ml,
             onValueChange = onMlChange,
             valueRange = 50f..1000f,
+            steps = 0,
             enabled = !isSaving,
             colors = SliderDefaults.colors(
                 thumbColor = waterBlue,
                 activeTrackColor = waterBlue,
-                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                inactiveTrackColor = sliderInactiveTrackColor,
                 activeTickColor = Color.Transparent,
                 inactiveTickColor = Color.Transparent
             ),

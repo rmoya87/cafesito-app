@@ -85,8 +85,11 @@ export function useTopBarActions({
         }
         if (brewStep === "coffee") setBrewStep("method");
         else if (brewStep === "config") setBrewStep("coffee");
-        else if (brewStep === "brewing") setBrewStep("config");
-        else if (brewStep === "result") setBrewStep("method");
+        else if (brewStep === "brewing") {
+          setTimerSeconds(0);
+          setBrewRunning(false);
+          setBrewStep("config");
+        }
       },
       onBrewForward: () => {
         if (brewStep !== "config") return;

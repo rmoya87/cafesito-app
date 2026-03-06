@@ -32,6 +32,10 @@ export function TopBar({
   brewStepTitle,
   onBrewBack,
   onBrewForward,
+  onBrewResultSave,
+  brewResultCanSave,
+  brewResultSaving,
+  brewResultShowGuardar,
   brewCreateCoffeeOpen,
   onBrewCreateCoffeeBack,
   onBrewCreateCoffeeSave,
@@ -74,6 +78,10 @@ export function TopBar({
   brewStepTitle: string;
   onBrewBack: () => void;
   onBrewForward: () => void;
+  onBrewResultSave: () => void;
+  brewResultCanSave: boolean;
+  brewResultSaving: boolean;
+  brewResultShowGuardar: boolean;
   brewCreateCoffeeOpen: boolean;
   onBrewCreateCoffeeBack: () => void;
   onBrewCreateCoffeeSave: () => void;
@@ -256,6 +264,15 @@ export function TopBar({
             <IconButton tone="topbar" onClick={onBrewForward} aria-label="Empezar">
               <UiIcon name="arrow-right" className="ui-icon" />
             </IconButton>
+          ) : brewResultShowGuardar ? (
+            <button
+              type="button"
+              className="topbar-result-save"
+              onClick={onBrewResultSave}
+              disabled={!brewResultCanSave || brewResultSaving}
+            >
+              {brewResultSaving ? "Guardando…" : "Guardar"}
+            </button>
           ) : null}
         </div>
       </header>

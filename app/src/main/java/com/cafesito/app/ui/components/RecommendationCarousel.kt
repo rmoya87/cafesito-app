@@ -59,7 +59,8 @@ fun RecommendationCarousel(
             color = MaterialTheme.colorScheme.onSurface
         )
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, end = 0.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Usamos key para mejorar la fluidez del scroll y evitar recomposiciones innecesarias

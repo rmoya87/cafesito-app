@@ -292,7 +292,7 @@ class DiaryViewModel @Inject constructor(
     fun saveCustomCoffeeForDiary(
         name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String,
-        imageUri: Uri?, onSuccess: (String) -> Unit
+        imageUri: Uri?, totalGrams: Int = 250, onSuccess: (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
@@ -311,7 +311,7 @@ class DiaryViewModel @Inject constructor(
                     hasCaffeine = hasCaffeine,
                     format = format,
                     imageBytes = imageBytes,
-                    totalGrams = 250
+                    totalGrams = totalGrams
                 )
                 coffeeId?.let(onSuccess)
             } catch (e: Exception) {

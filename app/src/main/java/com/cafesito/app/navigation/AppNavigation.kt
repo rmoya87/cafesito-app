@@ -383,7 +383,8 @@ fun AppNavigation(
                         onNavigateToDiary = {
                             navController.navigate("diary") { popUpTo("brewlab") { inclusive = false } }
                         },
-                        onAddCoffeeClick = { navController.navigate("addStock?origin=brewlab") },
+                        onAddToPantryClick = { navController.navigate("addStock?origin=brewlab") },
+                        onCreateCoffeeClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab") },
                         createdCoffeeId = createdCoffeeId,
                         onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null }
                     )

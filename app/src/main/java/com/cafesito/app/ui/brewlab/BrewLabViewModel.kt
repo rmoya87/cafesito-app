@@ -1,4 +1,4 @@
-﻿package com.cafesito.app.ui.brewlab
+package com.cafesito.app.ui.brewlab
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -17,11 +17,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class BrewStep(val title: String) {
-    CHOOSE_METHOD("ElaboraciÃ³n"),
-    CHOOSE_COFFEE("Elige tu cafÃ©"),
-    CONFIGURATION("ConfiguraciÃ³n"),
-    BREWING("Proceso en curso"),
-    RESULT("Resultado")
+    CHOOSE_METHOD("Elaboración"),
+    CHOOSE_COFFEE("Elige tu café"),
+    CONFIGURATION("Configuración"),
+    BREWING("Proceso en curso")
 }
 
 data class BrewMethod(
@@ -114,7 +113,7 @@ class BrewLabViewModel @Inject constructor(
         diaryRepository.triggerRefresh()
     }
 
-    /** Refresca lista de cafÃ©s y despensa para que el cafÃ© reciÃ©n creado desde Brew Lab aparezca y se pueda seleccionar. */
+    /** Refresca lista de cafés y despensa para que el café recién creado desde Brew Lab aparezca y se pueda seleccionar. */
     fun refreshCoffeesAndPantry() {
         coffeeRepository.triggerRefresh()
         diaryRepository.triggerRefresh()
@@ -138,7 +137,7 @@ class BrewLabViewModel @Inject constructor(
         _currentStep.value = BrewStep.CONFIGURATION
     }
 
-    /** Llamado cuando el usuario cancela/cierra el flujo de aÃ±adir cafÃ© sin guardar; vuelve a Â«Elige tu cafÃ©Â». */
+    /** Llamado cuando el usuario cancela/cierra el flujo de añadir café sin guardar; vuelve a «Elige tu café». */
     fun onCoffeeAddedFromPantryFlow() {
         _currentStep.value = BrewStep.CHOOSE_COFFEE
         _searchQuery.value = ""
@@ -252,11 +251,12 @@ class BrewLabViewModel @Inject constructor(
     private val _phaseEvent = MutableSharedFlow<Unit>()
     val phaseEvent = _phaseEvent.asSharedFlow()
 
-    val phasesTimeline: StateFlow<List<BrewPhaseInfo>> = combine(_waterAmount, _selectedMethod) { water, method ->
+    val phasesTimeline: StateFlow<List<BrewPhaseInfo>> = combine(_waterAmount, _selectedMethod, _brewTimeSeconds) { water, method, brewTime ->
+        val isEspresso = method?.name?.contains("Espresso", ignoreCase = true) == true
         BrewEngine.timelineForMethod(
             method = method?.name.orEmpty(),
             waterMl = water.toInt(),
-            espressoSeconds = if (isEspressoMethod.value) _brewTimeSeconds.value else null,
+            espressoSeconds = if (isEspresso) brewTime else null,
             targetTotalSeconds = null
         ).map {
             BrewPhaseInfo(
@@ -350,7 +350,6 @@ class BrewLabViewModel @Inject constructor(
                 val totalDuration = phasesTimeline.value.sumOf { it.durationSeconds }
                 if (_timerSeconds.value >= totalDuration && totalDuration > 0) {
                     _isTimerRunning.value = false
-                    _currentStep.value = BrewStep.RESULT
                     timerJob?.cancel()
                 }
             }
@@ -396,7 +395,6 @@ class BrewLabViewModel @Inject constructor(
         }
     }
 
-    // --- 5. RESULT ---
     private val _selectedTaste = MutableStateFlow<String?>(null)
     val selectedTaste = _selectedTaste.asStateFlow()
 
@@ -406,13 +404,13 @@ class BrewLabViewModel @Inject constructor(
     fun onTasteFeedback(taste: String) {
         _selectedTaste.value = taste
         _dialInRecommendation.value = when (taste) {
-            "Amargo" -> "Sobre-extracciÃ³n: Muele mÃ¡s grueso o baja la temperatura 2Â°C para reducir el amargor."
-            "Ãcido" -> "Sub-extracciÃ³n: Muele mÃ¡s fino o vierte mÃ¡s lento para aumentar el contacto con el agua."
-            "Equilibrado" -> "Â¡Perfil perfecto! Has logrado un equilibrio ideal entre dulzor, acidez y cuerpo."
-            "Salado" -> "Muy sub-extraÃ­do: Muele mucho mÃ¡s fino. Indica que el agua no ha extraÃ­do los azÃºcares."
-            "Acuoso" -> "Poca intensidad: Usa un ratio de cafÃ© mÃ¡s alto o intenta una molienda un punto mÃ¡s fina."
-            "Aspero" -> "Astringencia: Evita remover en exceso y asegÃºrate de que el filtro estÃ© bien lavado."
-            "Dulce" -> "Â¡Extraordinario! Has resaltado los azÃºcares naturales del grano. MantÃ©n estos ajustes."
+            "Amargo" -> "Sobre-extracción: muele más grueso o baja la temperatura 2°C para reducir el amargor."
+            "Ácido" -> "Sub-extracción: muele más fino o vierte más lento para aumentar el contacto con el agua."
+            "Equilibrado" -> "¡Perfil perfecto! Has logrado un equilibrio ideal entre dulzor, acidez y cuerpo."
+            "Salado" -> "Muy sub-extraído: muele mucho más fino. Indica que el agua no ha extraído los azúcares."
+            "Acuoso" -> "Poca intensidad: usa un ratio de café más alto o intenta una molienda un punto más fina."
+            "Aspero" -> "Astringencia: evita remover en exceso y asegúrate de que el filtro esté bien lavado."
+            "Dulce" -> "¡Extraordinario! Has resaltado los azúcares naturales del grano. Mantén estos ajustes."
             else -> null
         }
     }
@@ -430,14 +428,23 @@ class BrewLabViewModel @Inject constructor(
     }
 
     fun backStep() {
-        _currentStep.value = when(_currentStep.value) {
+        val current = _currentStep.value
+        if (current == BrewStep.BREWING) {
+            resetTimer()
+        }
+        _currentStep.value = when(current) {
             BrewStep.CHOOSE_COFFEE -> BrewStep.CHOOSE_METHOD
             BrewStep.CONFIGURATION -> BrewStep.CHOOSE_COFFEE
             BrewStep.BREWING -> BrewStep.CONFIGURATION
-            BrewStep.RESULT -> BrewStep.BREWING
             else -> BrewStep.CHOOSE_METHOD
         }
     }
+
+    /** True when brewing timer has reached total duration (user can then select taste and save). */
+    val timerEnded: StateFlow<Boolean> = combine(timerSeconds, phasesTimeline) { seconds, timeline ->
+        val total = timeline.sumOf { it.durationSeconds }
+        total > 0 && seconds >= total
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 }
 
 

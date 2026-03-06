@@ -298,9 +298,9 @@ private fun FilterChipsRow(
 ) {
     val optionBackground = if (isSystemInDarkTheme()) PureBlack else PureWhite
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 0.dp, top = 4.dp, bottom = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(bottom = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
     ) {
         if (isLoading) {
             items(4) { ShimmerItem(Modifier.size(width = 80.dp, height = 32.dp).clip(RoundedCornerShape(12.dp))) }
@@ -706,8 +706,9 @@ private fun RecentSearches(
             }
         }
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 0.dp, top = 8.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             items(recentSearches) { term ->
                 Surface(

@@ -1,4 +1,4 @@
-﻿package com.cafesito.app.ui.components
+package com.cafesito.app.ui.components
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -177,7 +177,8 @@ fun ChooseCoffeeStep(
     allCoffees: List<CoffeeWithDetails>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onAddNotFoundClick: () -> Unit,
+    onAddToPantryClick: () -> Unit,
+    onCreateCoffeeClick: () -> Unit,
     onCoffeeSelected: (Coffee, Boolean) -> Unit
 ) {
     val filteredPantry = if (searchQuery.isBlank()) pantryItems else pantryItems.filter {
@@ -216,13 +217,14 @@ fun ChooseCoffeeStep(
             } else {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(start = 24.dp, end = 0.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredPantry, key = { it.coffee.id + "_pantry" }) { item ->
                         PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
                     }
                     item(key = "brewlab-add-pantry-card") {
-                        PantryAddActionCard(onClick = onAddNotFoundClick)
+                        PantryAddActionCard(onClick = onAddToPantryClick)
                     }
                 }
             }
@@ -240,7 +242,7 @@ fun ChooseCoffeeStep(
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.weight(1f))
-                    TextButton(onClick = onAddNotFoundClick) {
+                    TextButton(onClick = onCreateCoffeeClick) {
                         Icon(Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(4.dp))
                         Text("Crear mi café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
@@ -355,16 +357,18 @@ fun ConfigStep(
             else -> "LIGERO"
         }
     }
+    val sliderInactiveTrackColor = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFE0E0E0)
+    val coffeeColor = LocalCaramelAccent.current
 
     Column(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .weight(1f)
-                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(Modifier.height(24.dp))
-            SectionHeader("AJUSTES TECNICOS")
+            Column(Modifier.padding(horizontal = 24.dp)) {
+                SectionHeader("AJUSTES TÉCNICOS")
 
             PremiumCard {
                 Column(Modifier.padding(24.dp)) {
@@ -392,9 +396,9 @@ fun ConfigStep(
                             Spacer(Modifier.width(14.dp))
                         }
                         BrewMetricInputBlock(
-                            label = "Cafe (g)",
+                            label = "Café (g)",
                             value = coffeeDraft,
-                            valueColor = MaterialTheme.colorScheme.primary,
+                            valueColor = coffeeColor,
                             keyboardType = KeyboardType.Decimal,
                             modifier = Modifier.weight(1f),
                             onValueChange = { raw ->
@@ -407,10 +411,11 @@ fun ConfigStep(
                         )
                         if (isEspressoMethod) {
                             Spacer(Modifier.width(14.dp))
+                            val timeColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                             BrewMetricInputBlock(
                                 label = "Tiempo (s)",
                                 value = brewTimeSeconds.toString(),
-                                valueColor = MaterialTheme.colorScheme.primary,
+                                valueColor = timeColor,
                                 keyboardType = KeyboardType.Number,
                                 modifier = Modifier.weight(1f),
                                 onValueChange = { raw ->
@@ -428,11 +433,34 @@ fun ConfigStep(
                             value = water,
                             onValueChange = { viewModel.setWaterAmount(it) },
                             valueRange = methodProfile.waterMinMl.toFloat()..methodProfile.waterMaxMl.toFloat(),
-                            steps = (((methodProfile.waterMaxMl - methodProfile.waterMinMl) / methodProfile.waterStepMl) - 1).coerceAtLeast(0),
+                            steps = 0,
                             colors = SliderDefaults.colors(
-                                thumbColor = MaterialTheme.colorScheme.outline,
+                                thumbColor = waterBlue,
                                 activeTrackColor = waterBlue,
-                                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                                inactiveTrackColor = sliderInactiveTrackColor,
+                                activeTickColor = Color.Transparent,
+                                inactiveTickColor = Color.Transparent
+                            )
+                        )
+                        Spacer(Modifier.height(24.dp))
+                    }
+
+                    if (isWaterEditable && !isRatioEditable) {
+                        val coffeeMin = (methodProfile.waterMinMl / methodProfile.ratioMax).toFloat().coerceAtLeast(1f)
+                        val coffeeMax = (methodProfile.waterMaxMl / methodProfile.ratioMin).toFloat().coerceIn(coffeeMin, 250f)
+                        @Suppress("DEPRECATION")
+                        Text("CANTIDAD DE CAFÉ (g)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(
+                            value = coffeeGrams.coerceIn(coffeeMin, coffeeMax),
+                            onValueChange = { viewModel.setCoffeeGrams(it) },
+                            valueRange = coffeeMin..coffeeMax,
+                            steps = 0,
+                            colors = SliderDefaults.colors(
+                                thumbColor = coffeeColor,
+                                activeTrackColor = coffeeColor,
+                                inactiveTrackColor = sliderInactiveTrackColor,
+                                activeTickColor = Color.Transparent,
+                                inactiveTickColor = Color.Transparent
                             )
                         )
                         Spacer(Modifier.height(24.dp))
@@ -448,20 +476,23 @@ fun ConfigStep(
                             value = ratio,
                             onValueChange = { viewModel.setRatio(it) },
                             valueRange = methodProfile.ratioMin.toFloat()..methodProfile.ratioMax.toFloat(),
-                            steps = (((methodProfile.ratioMax - methodProfile.ratioMin) / methodProfile.ratioStep).toInt() - 1).coerceAtLeast(0),
+                            steps = 0,
                             colors = SliderDefaults.colors(
-                                thumbColor = MaterialTheme.colorScheme.outline,
+                                thumbColor = MaterialTheme.colorScheme.primary,
                                 activeTrackColor = MaterialTheme.colorScheme.primary,
-                                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                                inactiveTrackColor = sliderInactiveTrackColor,
+                                activeTickColor = Color.Transparent,
+                                inactiveTickColor = Color.Transparent
                             )
                         )
                         Spacer(Modifier.height(24.dp))
                     }
 
                     if (isEspressoMethod) {
+                        val timeSliderColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                         @Suppress("DEPRECATION")
                         Text(
-                            "TIEMPO DE EXTRACCION (${brewTimeSeconds}s)",
+                            "TIEMPO DE EXTRACCIÓN (${brewTimeSeconds}s)",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -469,11 +500,13 @@ fun ConfigStep(
                             value = brewTimeSeconds.toFloat(),
                             onValueChange = { viewModel.setBrewTimeSeconds(it.roundToInt()) },
                             valueRange = timeProfile.minSeconds.toFloat()..timeProfile.maxSeconds.toFloat(),
-                            steps = (timeProfile.maxSeconds - timeProfile.minSeconds - 1).coerceAtLeast(0),
+                            steps = 0,
                             colors = SliderDefaults.colors(
-                                thumbColor = MaterialTheme.colorScheme.outline,
-                                activeTrackColor = MaterialTheme.colorScheme.primary,
-                                inactiveTrackColor = MaterialTheme.colorScheme.outline
+                                thumbColor = timeSliderColor,
+                                activeTrackColor = timeSliderColor,
+                                inactiveTrackColor = sliderInactiveTrackColor,
+                                activeTickColor = Color.Transparent,
+                                inactiveTickColor = Color.Transparent
                             )
                         )
                     }
@@ -505,57 +538,28 @@ fun ConfigStep(
                     }
                 }
             }
+            }
 
             Spacer(Modifier.height(24.dp))
-
             @Suppress("DEPRECATION")
-            Text("CONSEJOS DEL BARISTA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text("CONSEJOS DEL BARISTA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 24.dp))
             Spacer(Modifier.height(16.dp))
             val baristaColumns = remember(baristaTips) { baristaTips.chunked(3) }
-            val baristaListState = rememberLazyListState()
-            Box(modifier = Modifier.fillMaxWidth()) {
-                LazyRow(
-                    state = baristaListState,
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(baristaColumns) { columnTips ->
-                        Column(
-                            modifier = Modifier.widthIn(min = 220.dp, max = 260.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            columnTips.forEach { tip ->
-                                BaristaTipPill(tip = tip, modifier = Modifier.fillMaxWidth())
-                            }
+            LazyRow(
+                state = rememberLazyListState(),
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(start = 24.dp, end = 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(baristaColumns) { columnTips ->
+                    Column(
+                        modifier = Modifier.widthIn(min = 220.dp, max = 260.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        columnTips.forEach { tip ->
+                            BaristaTipPill(tip = tip, modifier = Modifier.fillMaxWidth())
                         }
                     }
-                }
-                val fadeColor = MaterialTheme.colorScheme.surface
-                if (baristaListState.canScrollBackward) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .width(8.dp)
-                            .fillMaxHeight()
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(fadeColor.copy(alpha = 0.86f), fadeColor.copy(alpha = 0f))
-                                    )
-                                )
-                    )
-                }
-                if (baristaListState.canScrollForward) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .width(8.dp)
-                            .fillMaxHeight()
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(fadeColor.copy(alpha = 0f), fadeColor.copy(alpha = 0.86f))
-                                    )
-                                )
-                    )
                 }
             }
             Spacer(Modifier.height(28.dp))
@@ -571,6 +575,8 @@ fun PreparationStep(
     processAdvice: String,
     isTimerRunning: Boolean,
     hasTimerStarted: Boolean,
+    selectedTaste: String?,
+    recommendation: String?,
     viewModel: BrewLabViewModel
 ) {
     val haptic = LocalHapticFeedback.current
@@ -590,7 +596,7 @@ fun PreparationStep(
     val advicePages = remember(adviceCards) { adviceCards.chunked(3) }
 
     val timerScale by animateFloatAsState(
-        targetValue = if (remainingSeconds <= 5 && isTimerRunning) 1.1f else 1f,
+        targetValue = if (remainingSeconds <= 5 && isTimerRunning) 1.04f else 1f,
         animationSpec = if (remainingSeconds <= 5 && isTimerRunning) {
             infiniteRepeatable(
                 animation = tween(500, easing = FastOutSlowInEasing),
@@ -612,10 +618,12 @@ fun PreparationStep(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Top
         ) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth(), horizontalAlignment = Alignment.Start) {
             PremiumCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(32.dp)
@@ -634,24 +642,30 @@ fun PreparationStep(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                                val maxFontSize = 260.sp
-                                val minFontSize = 180.sp
+                            BoxWithConstraints(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                val maxFontSize = 72.sp
+                                val minFontSize = 48.sp
                                 val fontSize = when {
-                                    maxWidth < 320.dp -> minFontSize
-                                    maxWidth < 360.dp -> 210.sp
+                                    maxWidth < 280.dp -> minFontSize
+                                    maxWidth < 340.dp -> 56.sp
                                     else -> maxFontSize
                                 }
 
+                                val timerColor = if (remainingSeconds <= 5 && isTimerRunning) ElectricRed else if (isSystemInDarkTheme()) Color.White else Color.Black
                                 Text(
                                     text = String.format("%02d:%02d", remainingSeconds / 60, remainingSeconds % 60),
                                     style = MaterialTheme.typography.displayLarge.copy(fontSize = fontSize),
                                     fontWeight = FontWeight.Black,
-                                    color = if (remainingSeconds <= 5 && isTimerRunning) ElectricRed else MaterialTheme.colorScheme.onSurface,
+                                    color = timerColor,
                                     maxLines = 1,
                                     softWrap = false,
+                                    textAlign = TextAlign.Start,
                                     modifier = Modifier
-                                        .padding(vertical = 4.dp)
+                                        .fillMaxWidth()
                                         .graphicsLayer(scaleX = timerScale, scaleY = timerScale)
                                 )
                             }
@@ -680,129 +694,108 @@ fun PreparationStep(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                val timeDisplayColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                                 @Suppress("DEPRECATION")
                                 Text(
                                     text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = timeDisplayColor
                                 )
                             }
                         }
                 }
             }
+            }
 
-            if (adviceCards.isNotEmpty()) {
+            val timerEnded = hasTimerStarted && totalSeconds > 0 && timerSeconds >= totalSeconds
+            if (timerEnded) {
+                Spacer(Modifier.height(12.dp))
+                PreparationTasteCard(selectedTaste, recommendation, viewModel)
+            } else if (adviceCards.isNotEmpty()) {
                 val isDark = isSystemInDarkTheme()
                 val adviceCardBg = if (isDark) Color(0xFF303030) else Color(0xFFEFEFEF)
                 val adviceCardText = if (isDark) Color(0xFFF0F0F0) else Color(0xFF2F2F2F)
                 val adviceBorder = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
-                val adviceListState = rememberLazyListState()
                 Spacer(Modifier.height(12.dp))
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    LazyRow(
-                        state = adviceListState,
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(advicePages) { page ->
-                            Column(
-                                modifier = Modifier.fillParentMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                page.forEach { line ->
-                                    Surface(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        color = adviceCardBg,
-                                        shape = RoundedCornerShape(20.dp),
-                                        border = BorderStroke(1.dp, adviceBorder)
-                                    ) {
-                                        Text(
-                                            text = line,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = adviceCardText,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                                            textAlign = TextAlign.Start
-                                        )
-                                    }
+                LazyRow(
+                    state = rememberLazyListState(),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(start = 24.dp, end = 0.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(advicePages) { page ->
+                        Column(
+                            modifier = Modifier.fillParentMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            page.forEach { line ->
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = adviceCardBg,
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, adviceBorder)
+                                ) {
+                                    Text(
+                                        text = line,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = adviceCardText,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        textAlign = TextAlign.Start
+                                    )
                                 }
                             }
                         }
                     }
-                    val fadeColor = MaterialTheme.colorScheme.surface
-                    if (adviceListState.canScrollBackward) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .width(8.dp)
-                                .fillMaxHeight()
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(fadeColor.copy(alpha = 0.86f), fadeColor.copy(alpha = 0f))
-                                    )
-                                )
-                        )
-                    }
-                    if (adviceListState.canScrollForward) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .width(8.dp)
-                                .fillMaxHeight()
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(fadeColor.copy(alpha = 0f), fadeColor.copy(alpha = 0.86f))
-                                    )
-                                )
-                        )
-                    }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (hasTimerStarted) {
-                    OutlinedButton(
-                        onClick = { viewModel.resetTimer() },
+            if (!timerEnded) {
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (hasTimerStarted) {
+                        OutlinedButton(
+                            onClick = { viewModel.resetTimer() },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("REINICIAR", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Button(
+                        onClick = { viewModel.toggleTimer() },
                         modifier = Modifier
                             .weight(1f)
                             .height(56.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isTimerRunning) ElectricRed else MaterialTheme.colorScheme.primary,
+                            contentColor = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
+                        ),
+                        shape = RoundedCornerShape(28.dp)
                     ) {
-                        Text("REINICIAR", fontWeight = FontWeight.Bold)
+                        Icon(
+                            if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (isTimerRunning) "PAUSAR" else "INICIAR",
+                            fontWeight = FontWeight.Bold,
+                            color = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
+                        )
                     }
-                }
-
-                Button(
-                    onClick = { viewModel.toggleTimer() },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isTimerRunning) ElectricRed else MaterialTheme.colorScheme.primary,
-                        contentColor = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
-                    ),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Icon(
-                        if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        tint = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (isTimerRunning) "PAUSAR" else "INICIAR",
-                        fontWeight = FontWeight.Bold,
-                        color = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
-                    )
                 }
             }
         }
@@ -826,7 +819,7 @@ fun PhaseDurationLabel(phase: BrewPhaseInfo) {
 @Composable
 fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
     val totalSeconds = phases.sumOf { it.durationSeconds }.coerceAtLeast(1)
-    val coffeeBrown = LocalCaramelAccent.current
+    val timeBarColor = if (isSystemInDarkTheme()) Color.White else Color.Black
     val softGray = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
 
     Column(Modifier
@@ -864,20 +857,20 @@ fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
                     (elapsedTotalSeconds - elapsedBeforeThisPhase).toFloat() / phase.durationSeconds
                 }
 
-                Box(
-                    Modifier
-                        .weight(weight)
-                        .fillMaxHeight()
-                        .clip(CircleShape)
-                        .background(softGray)
-                ) {
-                    Box(
+Box(
                         Modifier
-                            .fillMaxWidth(phaseProgress)
+                            .weight(weight)
                             .fillMaxHeight()
-                            .background(coffeeBrown)
-                    )
-                }
+                            .clip(CircleShape)
+                            .background(softGray)
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth(phaseProgress)
+                                    .fillMaxHeight()
+                                    .background(timeBarColor)
+                            )
+                        }
                 elapsedBeforeThisPhase += phase.durationSeconds
             }
         }
@@ -885,12 +878,10 @@ fun BrewTimeline(phases: List<BrewPhaseInfo>, elapsedTotalSeconds: Int) {
 }
 
 @Composable
-fun ResultStep(
+private fun PreparationTasteCard(
     selectedTaste: String?,
     recommendation: String?,
-    selectedCoffee: Coffee?,
-    viewModel: BrewLabViewModel,
-    onNavigateToDiary: () -> Unit
+    viewModel: BrewLabViewModel
 ) {
     val tastes = listOf(
         "Amargo" to Icons.Default.LocalFireDepartment,
@@ -901,124 +892,76 @@ fun ResultStep(
         "Aspero" to Icons.Default.Grain,
         "Dulce" to Icons.Default.Favorite
     )
-
-    Column(Modifier.fillMaxSize()) {
-        @Suppress("DEPRECATION")
-        Column(Modifier
-            .weight(1f)
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState())) {
+    PremiumCard(modifier = Modifier.padding(horizontal = 24.dp)) {
+        Column(Modifier.padding(24.dp)) {
+            Text(
+                text = "¿QUÉ SABOR HAS OBTENIDO?",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
             Spacer(Modifier.height(24.dp))
-
-            PremiumCard {
-                Column(Modifier.padding(24.dp)) {
-                    Text(
-                        text = "¿QUÉ SABOR HAS OBTENIDO?",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Black,
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                tastes.chunked(2).forEach { rowTastes ->
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(24.dp))
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        tastes.chunked(2).forEach { rowTastes ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        rowTastes.forEach { (label, icon) ->
+                            TasteChip(
+                                label = label.uppercase(),
+                                icon = icon,
+                                isSelected = selectedTaste == label,
+                                modifier = Modifier.weight(1f)
                             ) {
-                                rowTastes.forEach { (label, icon) ->
-                                    TasteChip(
-                                        label = label.uppercase(),
-                                        icon = icon,
-                                        isSelected = selectedTaste == label,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        viewModel.onTasteFeedback(label)
-                                    }
-                                }
-                                if (rowTastes.size == 1) {
-                                    Spacer(Modifier.weight(1f))
-                                }
+                                viewModel.onTasteFeedback(label)
                             }
                         }
-                    }
-
-                    AnimatedVisibility(
-                        visible = recommendation != null,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
-                    ) {
-                        Column {
-                            Spacer(Modifier.height(32.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                shape = RoundedCornerShape(24.dp),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                            ) {
-                                Column(Modifier.padding(24.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                                        Spacer(Modifier.width(12.dp))
-                                        @Suppress("DEPRECATION")
-                                        Text(
-                                            "Recomendación",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.Black,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    Spacer(Modifier.height(16.dp))
-                                    Text(
-                                        text = recommendation ?: "",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        lineHeight = 24.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
+                        if (rowTastes.size == 1) {
+                            Spacer(Modifier.weight(1f))
                         }
                     }
                 }
             }
-            Spacer(Modifier.height(40.dp))
-        }
-
-        BottomActionContainer {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = { viewModel.resetAll() },
-                    Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("REINICIAR", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
-                Button(
-                    onClick = { viewModel.saveToDiary { onNavigateToDiary() } },
-                    enabled = selectedCoffee != null && selectedTaste != null,
-                    modifier = Modifier
-                        .weight(1.3f)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.outline
-                    ),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Text(
-                        "GUARDAR EN DIARIO",
-                        fontWeight = FontWeight.Bold,
-                        color = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
-                    )
+            AnimatedVisibility(
+                visible = recommendation != null,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column {
+                    Spacer(Modifier.height(32.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(24.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                    ) {
+                        Column(Modifier.padding(24.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                Spacer(Modifier.width(12.dp))
+                                @Suppress("DEPRECATION")
+                                Text(
+                                    "Recomendación",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text = recommendation ?: "",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                lineHeight = 24.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1033,12 +976,15 @@ fun TasteChip(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
+    val primary = MaterialTheme.colorScheme.primary
+    val contentColorWhenSelected = if (isDark) Color.Black else Color.White
     Surface(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        color = if (isSelected) primary else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, primary),
         shadowElevation = if (isSelected) 3.dp else 0.dp
     ) {
         Row(
@@ -1052,7 +998,7 @@ fun TasteChip(
                 icon,
                 null,
                 modifier = Modifier.size(20.dp),
-                tint = if (isSelected) Color.White else MaterialTheme.colorScheme.primary
+                tint = if (isSelected) contentColorWhenSelected else primary
             )
             Spacer(Modifier.width(12.dp))
             @Suppress("DEPRECATION")
@@ -1060,7 +1006,7 @@ fun TasteChip(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                color = if (isSelected) contentColorWhenSelected else primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

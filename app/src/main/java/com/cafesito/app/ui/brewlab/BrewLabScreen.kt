@@ -28,7 +28,8 @@ import com.cafesito.app.ui.components.*
 fun BrewLabScreen(
     onNavigateToDiary: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onAddCoffeeClick: () -> Unit = {},
+    onAddToPantryClick: () -> Unit = {},
+    onCreateCoffeeClick: () -> Unit = {},
     createdCoffeeId: String? = null,
     onCreatedCoffeeConsumed: () -> Unit = {},
     viewModel: BrewLabViewModel = hiltViewModel()
@@ -60,6 +61,7 @@ fun BrewLabScreen(
     
     val recommendation by viewModel.dialInRecommendation.collectAsState()
     val selectedTaste by viewModel.selectedTaste.collectAsState()
+    val timerEnded by viewModel.timerEnded.collectAsState()
     val pantryItems by viewModel.pantryItems.collectAsState()
     val allCoffees by viewModel.availableCoffees.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -103,6 +105,18 @@ fun BrewLabScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Empezar preparación")
                         }
                     }
+                    if (step == BrewStep.BREWING && timerEnded) {
+                        val canSave = selectedCoffee != null && selectedTaste != null
+                        Text(
+                            text = "Guardar",
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .clickable(enabled = canSave) { viewModel.saveToDiary { onNavigateToDiary() } },
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = if (canSave) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        )
+                    }
                 }
             ) 
         }
@@ -123,7 +137,8 @@ fun BrewLabScreen(
                             allCoffees = allCoffees,
                             searchQuery = searchQuery,
                             onSearchQueryChange = viewModel::onSearchQueryChanged,
-                            onAddNotFoundClick = onAddCoffeeClick,
+                            onAddToPantryClick = onAddToPantryClick,
+                            onCreateCoffeeClick = onCreateCoffeeClick,
                             onCoffeeSelected = { coffee, fromPantry ->
                                 if (fromPantry) {
                                     val item = pantryItems.find { it.coffee.id == coffee.id }
@@ -149,8 +164,7 @@ fun BrewLabScreen(
                         baristaTips = baristaTips,
                         viewModel = viewModel
                     )
-                    BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, brewingProcessAdvice, isTimerRunning, hasTimerStarted, viewModel)
-                    BrewStep.RESULT -> ResultStep(selectedTaste, recommendation, selectedCoffee, viewModel, onNavigateToDiary)
+                    BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, brewingProcessAdvice, isTimerRunning, hasTimerStarted, selectedTaste, recommendation, viewModel)
                 }
             }
         }

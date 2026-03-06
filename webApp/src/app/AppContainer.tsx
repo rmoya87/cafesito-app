@@ -158,6 +158,15 @@ export function AppContainer() {
   const barcodeSearchPendingRef = useRef(false);
 
   const [brewStep, setBrewStep] = useState<BrewStep>("method");
+  const brewResultSaveRef = useRef<() => Promise<void>>(async () => {});
+  const [brewResultSaveMeta, setBrewResultSaveMeta] = useState({ canSave: false, saving: false, showGuardar: false });
+  const onBrewResultSaveState = useCallback(
+    (s: { save: () => Promise<void>; canSave: boolean; saving: boolean; showGuardar: boolean }) => {
+      brewResultSaveRef.current = s.save;
+      setBrewResultSaveMeta({ canSave: s.canSave, saving: s.saving, showGuardar: s.showGuardar ?? false });
+    },
+    []
+  );
   const [brewMethod, setBrewMethod] = useState("");
   const [brewCoffeeId, setBrewCoffeeId] = useState<string>("");
   const [waterMl, setWaterMl] = useState(300);
@@ -1360,6 +1369,7 @@ export function AppContainer() {
           selectedCoffee={selectedCoffee}
           coffeeGrams={coffeeGrams}
           onSaveResultToDiary={saveBrewToDiary}
+          onBrewResultSaveState={onBrewResultSaveState}
           showBarcodeButton={isMobileOsDevice}
           onBarcodeClick={() => {
             setBarcodeOrigin("brew");
@@ -1725,6 +1735,10 @@ export function AppContainer() {
           brewStepTitle={getBrewStepTitle(brewStep)}
           onBrewBack={topbarActions.onBrewBack}
           onBrewForward={topbarActions.onBrewForward}
+          onBrewResultSave={() => void brewResultSaveRef.current()}
+          brewResultCanSave={brewResultSaveMeta.canSave}
+          brewResultSaving={brewResultSaveMeta.saving}
+          brewResultShowGuardar={brewResultSaveMeta.showGuardar}
           brewCreateCoffeeOpen={showCreateCoffeeComposer}
           onBrewCreateCoffeeBack={closeCreateCoffeeComposer}
           onBrewCreateCoffeeSave={() => void saveCreateCoffee({ fromBrewChooser: true })}

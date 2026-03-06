@@ -36,7 +36,6 @@ export function useBrewTimer({
     ).reduce((acc, phase) => acc + phase.durationSeconds, 0);
     if (totalDuration > 0 && timerSeconds >= totalDuration) {
       setBrewRunning(false);
-      setBrewStep("result");
       return;
     }
     const id = window.setTimeout(() => setTimerSeconds((prev) => prev + 1), 1000);

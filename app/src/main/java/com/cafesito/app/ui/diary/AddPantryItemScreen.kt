@@ -118,13 +118,13 @@ fun AddPantryItemScreen(
         if (uri != null) imageUri = uri
     }
 
-    val customFlow = diaryEntryFlow
-    val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && (customFlow || grams.isNotEmpty())
+    val customFlow = diaryEntryFlow || brewLabFlow
+    val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && (diaryEntryFlow || grams.isNotEmpty())
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(if (coffeeId != null) "EDITAR CAFÉ" else if (customFlow) "CREAR MI CAFÉ" else "NUEVO CAFÉ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, letterSpacing = 1.sp) },
+                title = { Text(if (coffeeId != null) "EDITAR CAFÉ" else if (customFlow || brewLabFlow) "CREAR MI CAFÉ" else "NUEVO CAFÉ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, letterSpacing = 1.sp) },
                 navigationIcon = {
                     IconButton(onClick = { onBackClick(null) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = MaterialTheme.colorScheme.onSurface)
@@ -160,6 +160,7 @@ fun AddPantryItemScreen(
                                     hasCaffeine = hasCaffeine,
                                     format = format,
                                     imageUri = imageUri,
+                                    totalGrams = grams.toIntOrNull()?.coerceIn(1, 2000) ?: 250,
                                     onSuccess = { createdCoffeeId ->
                                         if (diaryEntryFlow) onCoffeeCreatedForDiary?.invoke(createdCoffeeId)
                                         if (brewLabFlow) onCoffeeCreatedForBrewLab?.invoke(createdCoffeeId)
@@ -338,7 +339,11 @@ fun AddPantryItemScreen(
 
             // FORMATO Y STOCK
             item {
-                FormSectionCard(title = if (customFlow) "Formato" else "Formato y Despensa") {
+                FormSectionCard(title = when {
+                                diaryEntryFlow -> "Formato"
+                                brewLabFlow -> "Formato y cantidad"
+                                else -> "Formato y Despensa"
+                            }) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -372,10 +377,10 @@ fun AddPantryItemScreen(
                             }
                         }
 
-                        if (!customFlow) {
+                        if (!diaryEntryFlow) {
                             val gramsValue = grams.toFloatOrNull() ?: 250f
                             Text(
-                                text = "Peso total (g)",
+                                text = "Cantidad del café (g)",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.fillMaxWidth()
