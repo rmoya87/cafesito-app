@@ -91,8 +91,9 @@ El deploy usa **SFTP** (no FTP); Ionos suele ofrecer acceso por SSH/SFTP.
 - `IONOS_SSH_USER` – Usuario SFTP/SSH.
 - `IONOS_SSH_PASSWORD` – Contraseña.
 - `IONOS_SSH_PORT` – Puerto (opcional; por defecto 22).
+- **`VITE_GOOGLE_CLIENT_ID`** – Client ID de tipo "Web" de Google Cloud (mismo que en Supabase → Auth → Google). Sin este secret/variable, el botón de login con Google no funcionará en la web desplegada.
 
-El deploy web sube a la ruta remota **`/cafesito-web/app/`**.
+El deploy web sube la app a **`/cafesito-web/app/`** y **`.well-known/assetlinks.json`** a **`/cafesito-web/.well-known/`** (App Links para Android). Para que `https://cafesitoapp.com/.well-known/assetlinks.json` responda, el servidor debe estar configurado para servir esa ruta (p. ej. alias o document root que incluya `/cafesito-web/.well-known/`).
 
 ### Cola de cambios Supabase (deploy nocturno)
 

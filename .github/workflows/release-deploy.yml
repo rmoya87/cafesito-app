@@ -381,6 +381,14 @@ jobs:
           fi
           echo "VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY configuradas."
 
+      - name: Verificar Google Client ID para login
+        run: |
+          if [[ -z "${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID }}" ]]; then
+            echo "::warning::Falta VITE_GOOGLE_CLIENT_ID. Añádela en Settings → Secrets and variables → Actions para que el botón de login con Google funcione en producción."
+          else
+            echo "VITE_GOOGLE_CLIENT_ID configurado."
+          fi
+
       - name: Build
         run: npm run build
         env:
@@ -388,6 +396,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
           VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID || secrets.VITE_GA4_MEASUREMENT_ID || '' }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID || '' }}
 
       - name: Save nightly queue payload
         if: github.event_name == 'schedule' && needs.changes.outputs.queue_response != ''
@@ -441,6 +450,18 @@ jobs:
           remote_path: /cafesito-web/app/
           sftp_only: true
           # Nunca borramos todo el remoto para preservar URLs de cafés no tocados.
+          delete_remote_files: false
+
+      - name: Deploy .well-known/assetlinks.json (App Links)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.IONOS_SSH_HOST }}
+          username: ${{ secrets.IONOS_SSH_USER }}
+          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          password: ${{ secrets.IONOS_SSH_PASSWORD }}
+          local_path: ./webApp/dist/.well-known/*
+          remote_path: /cafesito-web/.well-known/
+          sftp_only: true
           delete_remote_files: false
 
       - name: Delete removed coffee pages in remote (nightly only)
