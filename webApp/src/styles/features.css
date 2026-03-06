@@ -9770,6 +9770,9 @@ input {
   align-items: center;
   justify-content: center;
 }
+.auth-prompt-google-slot .google-signin-button-x {
+  max-width: 100%;
+}
 
 .comments-list .post-menu-trigger .ui-icon {
   width: 16px;

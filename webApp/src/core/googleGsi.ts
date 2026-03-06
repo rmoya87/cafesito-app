@@ -12,6 +12,7 @@ declare global {
       accounts: {
         id: {
           initialize: (config: IdConfiguration) => void;
+          prompt: (momentListener?: (moment: OneTapMoment) => void) => void;
           renderButton: (
             parent: HTMLElement,
             options: GsiButtonConfiguration
@@ -20,6 +21,14 @@ declare global {
       };
     };
   }
+}
+
+export interface OneTapMoment {
+  getDismissedReason: () => string;
+  getMomentType: () => string;
+  isDisplayed: () => boolean;
+  isNotDisplayed: () => boolean;
+  isSkippedMoment: () => boolean;
 }
 
 export interface IdConfiguration {
@@ -153,6 +162,43 @@ export function renderGoogleButton(
       width: Math.min(container.offsetWidth || 320, 400),
       use_fedcm_for_button: true
     });
+  });
+
+  return () => {
+    cancelled = true;
+  };
+}
+
+/**
+ * Muestra el One Tap de Google: sugiere "Continuar como [email]" si el usuario
+ * tiene sesión en el navegador. Al aceptar, llama a onCredential con el ID token.
+ * No pinta ningún botón; solo el popup flotante de Google. Úsalo junto al botón custom.
+ */
+export function showGoogleOneTap(
+  clientId: string,
+  onCredential: (credential: string) => void
+): () => void {
+  if (!clientId) return () => {};
+
+  let cancelled = false;
+
+  void loadGoogleGsiScript().then((ok) => {
+    if (cancelled || !ok || !window.google?.accounts?.id) return;
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: (response: CredentialResponse) => {
+        if (!cancelled && response.credential) {
+          onCredential(response.credential);
+        }
+      },
+      context: "signin",
+      use_fedcm_for_button: false,
+      button_auto_select: false
+    });
+
+    if (cancelled) return;
+    window.google.accounts.id.prompt();
   });
 
   return () => {
