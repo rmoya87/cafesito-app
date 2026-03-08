@@ -17,10 +17,12 @@ export const EMPTY = {
   BREW_EMPTY_PANTRY: "Tu despensa está vacía.",
   BREW_NO_SUGGESTIONS: "No hay sugerencias disponibles.",
   OPINIONS: "No hay opiniones aún. ¡Sé el primero!",
+  NOTIFICATIONS: "No tienes notificaciones",
 } as const;
 
 export const ERROR = {
   LOAD_DATA: "No se han podido cargar los datos.",
+  LOAD_NOTIFICATIONS: "No se han podido cargar las notificaciones.",
   RETRY: "Reintentar",
 } as const;
 

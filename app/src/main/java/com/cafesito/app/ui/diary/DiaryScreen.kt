@@ -263,7 +263,7 @@ fun DiaryScreen(
                             ) {
                                 IconButton(
                                     onClick = { viewModel.prevDay() },
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
                                     colors = IconButtonDefaults.iconButtonColors(
                                         containerColor = Color.Transparent,
                                         contentColor = chipContentColor
@@ -291,7 +291,7 @@ fun DiaryScreen(
                                 if (canGoNext) {
                                     IconButton(
                                         onClick = { viewModel.nextDay() },
-                                        modifier = Modifier.size(32.dp),
+                                        modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
                                         colors = IconButtonDefaults.iconButtonColors(
                                             containerColor = Color.Transparent,
                                             contentColor = chipContentColor

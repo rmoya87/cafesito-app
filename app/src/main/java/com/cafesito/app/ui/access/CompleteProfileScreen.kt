@@ -77,12 +77,12 @@ fun CompleteProfileScreen(
                 if (imageUri != null) {
                     AsyncImage(
                         model = imageUri,
-                        contentDescription = null,
+                        contentDescription = "Foto de perfil",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(Icons.Default.PhotoCamera, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.PhotoCamera, contentDescription = "Añadir foto de perfil", Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             TextButton(onClick = { launcher.launch("image/*") }) {

@@ -229,11 +229,11 @@ fun AddPantryItemScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             if (imageUri != null) {
-                                AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                                AsyncImage(model = imageUri, contentDescription = "Imagen del café", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                             } else if (existingImageUrl.isNotBlank()) {
-                                AsyncImage(model = existingImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                                AsyncImage(model = existingImageUrl, contentDescription = "Imagen del café", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                             } else {
-                                Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(44.dp))
+                                Icon(Icons.Default.AddAPhoto, contentDescription = "Añadir foto del café", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(44.dp))
                             }
                         }
                         
@@ -493,7 +493,7 @@ fun VisualOptionTile(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+            Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(24.dp))
             Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = tint, textAlign = TextAlign.Center)
         }
     }

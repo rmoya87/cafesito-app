@@ -200,7 +200,7 @@ fun AddStockScreen(
                     singleLine = true,
                     leadingIcon = { 
                         Box(modifier = Modifier.padding(start = 4.dp)) {
-                            Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) 
                         }
                     },
                     trailingIcon = {

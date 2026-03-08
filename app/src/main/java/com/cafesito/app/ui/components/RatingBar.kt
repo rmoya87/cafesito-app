@@ -27,7 +27,7 @@ fun RatingBar(
             val icon = if (isSelected) Icons.Filled.Star else Icons.Outlined.Star
             val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
             val modifier = if (isInteractive && onRatingChanged != null) Modifier.clickable { onRatingChanged(i.toFloat()) } else Modifier
-            Icon(icon, contentDescription = null, tint = tint, modifier = modifier.size(starSize))
+            Icon(icon, contentDescription = "Estrella $i de $starCount", tint = tint, modifier = modifier.size(starSize))
         }
     }
 }

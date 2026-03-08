@@ -258,7 +258,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                 ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         }
@@ -334,7 +334,7 @@ fun CoffeeFavoritePremiumItem(
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffeeDetails.coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = coffeeDetails.coffee.nombre,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(70.dp)
@@ -346,7 +346,7 @@ fun CoffeeFavoritePremiumItem(
                 Text(text = coffeeDetails.coffee.marca.uppercase(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onFavoriteClick) {
-                Icon(Icons.Default.Favorite, contentDescription = null, tint = ElectricRed, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Favorite, contentDescription = "Favorito", tint = ElectricRed, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -378,7 +378,7 @@ fun CoffeeFavoriteListItem(
             ) {
                 AsyncImage(
                     model = coffeeDetails.coffee.imageUrl,
-                    contentDescription = null,
+                    contentDescription = coffeeDetails.coffee.nombre,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(60.dp)
@@ -409,11 +409,12 @@ fun CoffeeFavoriteListItem(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
+                    .minimumInteractiveComponentSize()
                     .size(28.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
-                    contentDescription = null,
+                    contentDescription = "Quitar de favoritos",
                     tint = ElectricRed,
                     modifier = Modifier.size(20.dp)
                 )

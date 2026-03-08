@@ -13,6 +13,8 @@
 4. [Reglas Cursor por plataforma](#4-reglas-cursor-por-plataforma)
 5. [Webapp — Diario: rejilla de meta y máscara de scroll](#5-webapp--diario-rejilla-de-meta-y-máscara-de-scroll)
 6. [Referencias a otros documentos](#6-referencias-a-otros-documentos)
+7. [Resumen de cambios — accesibilidad, diario, documentación (03–04 mar 2026)](#7-resumen-de-cambios--accesibilidad-diario-documentación-0304-mar-2026)
+8. [Release notes Android desde última publicación (git)](#8-release-notes-android-desde-última-publicación-git)
 
 ---
 
@@ -157,6 +159,83 @@ Además: `docs-before-code.mdc` (siempre) — consultar docs antes de actuar.
 | Compliance Play Console, orientación, edge-to-edge | `docs/ANDROID_PLAY_CONSOLE_COMPLIANCE.md` |
 | ASO y App Links (assetlinks.json) | `docs/ASO_PLAY_STORE.md` |
 | Revisión manual de crashes (sin automatización en CI) | `docs/CRASH_FIX_WEEKLY.md` |
+
+---
+
+## 7. Resumen de cambios — accesibilidad, diario, documentación (03–04 mar 2026)
+
+Recopilación de lo modificado en las sesiones recientes (diario webapp, accesibilidad Android y webapp, documentación de diseño y pruebas).
+
+### 7.1 Webapp
+
+| Ámbito | Archivo(s) | Cambio |
+|--------|------------|--------|
+| **Diario — rejilla de meta** | `webApp/src/styles/features.css` | `.diary-entry-meta-grid`: `gap: 8px 30px` (base); en `@media (max-width: 899px)` → `gap: 8px 25px`. |
+| **Diario — máscara de scroll** | `webApp/src/styles/features.css` | `.diary-entry-meta-scroll`: por defecto `mask-image: none`; clases `.has-scroll-left` y `.has-scroll-right` aplican gradientes solo cuando hay contenido oculto a ese lado. |
+| **Diario — lógica máscara** | `webApp/src/features/diary/DiaryView.tsx` | Estado `metaScrollLeft` / `metaScrollRight`, callback `updateMetaScrollEdges()`, suscripción a `scroll` y `ResizeObserver` en el contenedor de meta; clases dinámicas en el div. |
+| **Diario — alt en imágenes** | `webApp/src/features/diary/DiarySheets.tsx` | Imágenes de café en despensa y sugerencias: `alt={row.coffee.nombre}` y `alt={coffee.nombre}`; imagen placeholder taza con `alt=""` y `aria-hidden="true"`. |
+| **Tests** | `webApp/src/App.test.tsx` | Test de humo: navegar a Diario y comprobar que se muestra contenido del diario (texto "mi diario" o "sin café o agua registrada"). |
+
+### 7.2 Android — accesibilidad
+
+Se sustituyeron **todos** los `contentDescription = null` e `Icon(..., null)` por descripciones útiles para TalkBack y se aseguró área táctil mínima en un botón crítico.
+
+| Ámbito | Archivo(s) | Cambio |
+|--------|------------|--------|
+| **Diario** | `EditNormalStockScreen.kt`, `AddDiaryEntryScreen.kt`, `DiaryComponents.kt`, `AddPantryItemScreen.kt`, `AddStockScreen.kt` | Imágenes de café → nombre del café; iconos WaterDrop, LocalCafe, Search, AddCircle, CoffeeMaker → "Añadir agua", "Añadir café", "Buscar", "Crear café", "Método de elaboración"; portafiltro → "Gramos"; MoreHoriz → "Opciones"; chips → `label`; ChevronRight → "Abrir". |
+| **BrewLab** | `BrewLabCards.kt`, `BrewLabComponents.kt` | Imágenes de café → nombre; Add → "Añadir café a la despensa"; AddCircle, Search, Play/Pause → "Crear mi café", "Buscar café", "Iniciar"/"Pausar"; CoffeeMaker, AutoAwesome, ChevronRight → descripciones acordes; tips → `tip.label`. |
+| **Valoraciones** | `RatingBar.kt`, `SemicircleRatingBar.kt`, `UserReviewCard.kt` | Estrellas → "Estrella i de n" / "Valoración i de 5"; imagen reseña y café → "Imagen de la reseña" / nombre; estrella → "Valoración". |
+| **Búsqueda / perfil** | `SearchScreen.kt`, `SearchUsersScreen.kt`, `CompleteProfileScreen.kt`, `UserSuggestionCard.kt`, `ProfileComponents.kt`, `FollowingScreen.kt`, `FollowersScreen.kt` | Imágenes de café y favoritos → nombre / "Quitar de favoritos" | "Añadir a favoritos"; Search → "Buscar" o "Buscar usuarios"; foto perfil → "Foto de perfil" / "Añadir foto de perfil"; avatar sugerencias → "Avatar de {username}"; IconButton favoritos en SearchScreen → `minimumInteractiveComponentSize()` (área táctil ≥ 48 dp). |
+| **Timeline / publicaciones** | `TimelineComponents.kt`, `PostCard.kt`, `AddPostScreen.kt` | Imágenes de post y café → "Imagen del post" / nombre; iconos PhotoCamera, Close, Schedule, CoffeeMaker → "Cámara", "Cerrar", "Hora", `option.label`; DetailPremiumBlock → `label`; Coffee, ArrowForwardIos, AddPhotoAlternate → "Añadir café", "Seleccionar café", "Añadir foto". |
+| **Detalle / acceso** | `DetailScreen.kt`, `LoginScreen.kt`, `RecommendationCarousel.kt` | Editar/Añadir reseña → "Editar reseña" / "Añadir reseña"; icono opción login → `title`; imagen recomendación → nombre del café. |
+| **Diario — máscara de scroll** | `TimelineComponents.kt` (`DiaryEntryItem`) | Máscara condicional en la fila de meta (LazyRow): gradientes izquierda/derecha según `hasScrollLeft` / `hasScrollRight` derivados del estado de scroll, alineado con el comportamiento de la webapp. |
+
+### 7.3 Documentación creada o actualizada
+
+| Documento | Descripción |
+|-----------|-------------|
+| **`docs/DESIGN_TOKENS.md`** | Tokens de diseño (colores día/noche, espaciados, radios) para Web y Android; variables CSS y uso en Compose. |
+| **`docs/UX_EMPTY_AND_ERROR_STATES.md`** | Patrón unificado para listas vacías (mensaje, icono, CTA) y errores de red (mensaje + "Reintentar"). |
+| **`docs/SHARED_BUSINESS_LOGIC.md`** | Qué lógica es compartida (Kotlin shared), replicada (Web TS) o por plataforma; diario, brew, recomendaciones, fechas. |
+| **`docs/SMOKE_TESTS.md`** | Flujo crítico (login → diario → detalle/añadir) y dónde implementar tests de humo en Web (Vitest/RTL) y Android (instrumented/Compose). |
+| **`docs/ACCESSIBILITY_MINIMA.md`** | Criterios mínimos: aria-label / contentDescription, área de tap ≥ 44px / 48 dp, contraste WCAG. |
+| **`docs/README.md`** | Enlaces a los cinco documentos anteriores en la sección "Arquitectura y gobernanza". |
+| **`docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md`** | Sección 5 (diario webapp), sección 6 (referencias), esta sección 7 (resumen). |
+
+### 7.4 Resumen por tipo de cambio
+
+- **UI/UX:** Rejilla y máscara de scroll en diario (webapp y Android); área táctil mínima en botón favoritos (Android).
+- **Accesibilidad:** contentDescription/aria-label y alt en iconos, imágenes y controles; documento de criterios mínimos.
+- **Calidad:** Test de humo web (navegación a Diario); documentos de smoke tests, estados vacío/error y lógica compartida.
+- **Mantenibilidad:** DESIGN_TOKENS, README y registro actualizados para no desalinear Web y Android.
+
+---
+
+## 8. Release notes Android desde última publicación (git)
+
+**Fecha:** 2026-03-05. **Ámbito:** workflow Release & Deploy (Android).
+
+### Objetivo
+
+Que las notas “Qué hay de nuevo” en Play Store reflejen **todos los cambios desde la última versión que el usuario tenía instalada**, usando el historial de git en lugar de textos genéricos.
+
+### Cambios en `.github/workflows/release-deploy.yml`
+
+1. **Checkout:** Se añade `fetch-tags: true` para que el job tenga los tags `deploy/android/<pista>/*` creados en despliegues anteriores.
+2. **Generar release notes:**
+   - Se busca el último tag `deploy/android/<track>/<versionCode>` que sea ancestro de HEAD (por pista: internal, alpha, beta, production).
+   - Se ejecuta `git log TAG..HEAD --no-merges --pretty=format:%s` y se formatea como lista de viñetas.
+   - Se filtran mensajes `chore(release):` y `[skip ci]`; se eliminan duplicados; se limita a 500 caracteres (límite de Play).
+   - Si no hay tag previo (primera publicación), se usa el texto genérico: "Mejoras y correcciones. ¡Gracias por usar Cafesito!".
+3. **Tag tras subida a Play:** Después de “Upload to Google Play” y antes de “Save last deployed version”, se crea el tag anotado `deploy/android/<track>/<versionCode>` en el commit actual (el del bump) y se hace push. Así la próxima ejecución puede tomar ese tag como “última versión desplegada”.
+
+### Documentación
+
+- **`docs/RELEASE_DEPLOY_WORKFLOW.md`:** Actualizada la descripción del job `release-android` (notas desde git, tag de deploy).
+
+### Primera ejecución
+
+En la primera vez que corra el workflow **no** existirán tags `deploy/android/*`; las release notes serán el texto genérico. A partir del primer despliegue exitoso se creará el tag y las siguientes releases mostrarán los commits desde esa versión.
 
 ---
 

@@ -301,7 +301,7 @@ fun WaterRegistrationStepPremium(
             ) {
                 Icon(
                     Icons.Default.WaterDrop,
-                    contentDescription = null,
+                    contentDescription = "Añadir agua",
                     modifier = Modifier.size(80.dp),
                     tint = waterBlue
                 )
@@ -420,7 +420,7 @@ fun CoffeeSelectionStepPremium(
                 singleLine = true,
                 leadingIcon = { 
                     Box(modifier = Modifier.padding(start = 4.dp)) {
-                        Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                        Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) 
                     }
                 },
                 trailingIcon = {
@@ -448,7 +448,7 @@ fun CoffeeSelectionStepPremium(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                     modifier = Modifier.height(32.dp)
                 ) {
-                    Icon(Icons.Default.AddCircle, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.AddCircle, contentDescription = "Crear café", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
                     Text("Crear mi café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                 }
@@ -486,7 +486,7 @@ fun CoffeeDoseStepPremium(
             ) {
                 Icon(
                     Icons.Default.LocalCafe,
-                    contentDescription = null,
+                    contentDescription = "Añadir café",
                     modifier = Modifier.size(80.dp),
                     tint = coffeeColor
                 )
@@ -602,7 +602,7 @@ fun CoffeeTypeStepPremium(
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        Icon(Icons.Default.CoffeeMaker, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+                        Icon(Icons.Default.CoffeeMaker, contentDescription = "Método de elaboración", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(option.label, fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center)
@@ -649,7 +649,7 @@ fun CoffeeSizeStepPremium(
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        Icon(Icons.Default.LocalCafe, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.LocalCafe, contentDescription = "Café", tint = MaterialTheme.colorScheme.primary)
                     }
                     Column {
                         Text(option.label, fontWeight = FontWeight.Bold)
@@ -703,7 +703,7 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
         Column {
             AsyncImage(
                 model = item.coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = item.coffee.nombre,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().height(100.dp)
             )
@@ -721,7 +721,7 @@ fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffee.coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = coffee.coffee.nombre,
                 modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )

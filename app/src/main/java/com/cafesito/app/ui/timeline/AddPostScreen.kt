@@ -314,7 +314,7 @@ private fun PostDetailsStepPremium(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Coffee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.Coffee, contentDescription = "Añadir café", tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(10.dp))
                 Text("Añadir café", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.width(8.dp))
@@ -333,7 +333,7 @@ private fun PostDetailsStepPremium(
                     )
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = null,
+                        contentDescription = "Seleccionar café",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.align(Alignment.CenterEnd)
                     )
@@ -366,7 +366,7 @@ private fun PostDetailsStepPremium(
                     shape = CircleShape,
                     color = Color.Black.copy(alpha = 0.6f)
                 ) {
-                    Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                    Icon(Icons.Default.Close, contentDescription = "Quitar foto", tint = Color.White, modifier = Modifier.padding(4.dp))
                 }
             }
         } else {
@@ -381,7 +381,7 @@ private fun PostDetailsStepPremium(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Añadir foto", tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(10.dp))
                     Text("Añadir foto", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 }
@@ -407,7 +407,7 @@ private fun PostDetailsStepPremium(
                     value = searchQuery,
                     onValueChange = viewModel::onSearchQueryChanged,
                     placeholder = { Text("Buscar café") },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
                     trailingIcon = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(
@@ -462,7 +462,7 @@ private fun PostDetailsStepPremium(
                             ) {
                                 AsyncImage(
                                     model = coffee.coffee.imageUrl,
-                                    contentDescription = null,
+                                    contentDescription = coffee.coffee.nombre,
                                     modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)),
                                     contentScale = ContentScale.Crop
                                 )
@@ -518,7 +518,7 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
             value = searchQuery, 
             onValueChange = viewModel::onSearchQueryChanged, 
             placeholder = { Text("Busca café") },
-            leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurface) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar café", tint = MaterialTheme.colorScheme.onSurface) },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
@@ -562,7 +562,7 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
             items(coffeeList) { coffee ->
                 PremiumCard(modifier = Modifier.fillMaxWidth().clickable { viewModel.selectCoffee(coffee) }) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        AsyncImage(model = coffee.coffee.imageUrl, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Fit)
+                        AsyncImage(model = coffee.coffee.imageUrl, contentDescription = coffee.coffee.nombre, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Fit)
                         Spacer(Modifier.width(16.dp))
                         Column {
                             Text(coffee.coffee.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)

@@ -143,7 +143,7 @@ fun PostCard(
             SubcomposeAsyncImage(
                 model = post.imageUrl,
                 loading = { ShimmerItem(Modifier.fillMaxWidth().height(350.dp)) },
-                contentDescription = null,
+                contentDescription = "Imagen del post",
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -169,7 +169,7 @@ fun PostCard(
                     ) {
                         AsyncImage(
                             model = tag.coffeeImageUrl,
-                            contentDescription = null,
+                            contentDescription = tag.coffeeName,
                             modifier = Modifier
                                 .size(46.dp)
                                 .clip(RoundedCornerShape(12.dp)),
@@ -336,7 +336,7 @@ private fun InteractionItem(
                     }
                 }
             } else {
-                Icon(icon, null, tint = color, modifier = Modifier.fillMaxSize())
+                Icon(icon, contentDescription = "Acción", tint = color, modifier = Modifier.fillMaxSize())
             }
         }
 

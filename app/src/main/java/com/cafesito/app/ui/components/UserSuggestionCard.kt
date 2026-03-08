@@ -121,7 +121,7 @@ fun UserSuggestionCard(
         ) {
             AsyncImage(
                 model = user.avatarUrl,
-                contentDescription = null,
+                contentDescription = "Avatar de ${user.username}",
                 modifier = Modifier.size(70.dp).clip(CircleShape),
                 contentScale = ContentScale.Crop
             )

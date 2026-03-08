@@ -294,7 +294,7 @@ fun CommentsSheet(
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                Icon(Icons.Default.PhotoCamera, contentDescription = "Cámara", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
                             }
                         }
 
@@ -363,7 +363,7 @@ fun CommentsSheet(
                                 shape = CircleShape,
                                 color = Color.Black.copy(alpha = 0.65f)
                             ) {
-                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White, modifier = Modifier.padding(4.dp))
                             }
                         }
                     }
@@ -698,7 +698,7 @@ private fun CommentRow(
     ) {
         AsyncImage(
             model = author?.avatarUrl ?: "",
-            contentDescription = null,
+            contentDescription = author?.let { "Avatar de ${it.fullName.ifBlank { it.username } }" } ?: "Avatar",
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
@@ -810,7 +810,7 @@ fun MentionText(
                             } else {
                                 SubcomposeAsyncImage(
                                     model = mentionUser?.avatarUrl,
-                                    contentDescription = null,
+                                    contentDescription = "Avatar de ${mentionUser?.username ?: "usuario"}",
                                     modifier = Modifier
                                         .size(14.dp)
                                         .clip(CircleShape),
@@ -918,7 +918,7 @@ private fun ComposerMentionPill(user: UserEntity) {
             } else {
                 SubcomposeAsyncImage(
                     model = user.avatarUrl,
-                    contentDescription = null,
+                    contentDescription = "Avatar de ${user.username}",
                     modifier = Modifier
                         .size(14.dp)
                         .clip(CircleShape),
@@ -1041,7 +1041,7 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
         border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
     ) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier
+            AsyncImage(model = user.avatarUrl, contentDescription = "Avatar de ${user.fullName.ifBlank { user.username } }", modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape))
             Spacer(Modifier.width(8.dp))
@@ -1103,7 +1103,7 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
             Box(Modifier
                 .size(32.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column {
@@ -1200,7 +1200,7 @@ fun DiaryEntryItem(
                 if (entry.type == "CUP" && !coffeeImageUrl.isNullOrBlank() && !isRegistroRapido) {
                     AsyncImage(
                         model = coffeeImageUrl,
-                        contentDescription = null,
+                        contentDescription = entry.coffeeName.ifBlank { "Imagen del café" },
                         modifier = Modifier
                             .size(46.dp)
                             .clip(RoundedCornerShape(12.dp)),
@@ -1219,14 +1219,14 @@ fun DiaryEntryItem(
                         if (entry.type == "WATER") {
                             Icon(
                                 imageVector = Icons.Default.WaterDrop,
-                                contentDescription = null,
+                                contentDescription = "Entrada de agua",
                                 tint = WaterBlue,
                                 modifier = Modifier.size(20.dp)
                             )
                         } else {
                             Icon(
                                 if (isRegistroRapido) Icons.Filled.LocalCafe else Icons.Default.Coffee,
-                                null,
+                                contentDescription = if (isRegistroRapido) "Registro rápido" else "Entrada de café",
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -1267,7 +1267,7 @@ fun DiaryEntryItem(
                     onClick = {},
                     enabled = false,
                     label = { Text(dateStr, fontSize = 11.sp) },
-                    leadingIcon = { Icon(Icons.Default.Schedule, null, modifier = Modifier.size(14.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora", modifier = Modifier.size(14.dp)) }
                 )
             }
 
@@ -1575,7 +1575,7 @@ fun DiaryEntryEditBottomSheet(
                                         contentScale = ContentScale.Fit
                                     )
                                 } else {
-                                    Icon(Icons.Default.CoffeeMaker, null, tint = iconTint)
+                                    Icon(Icons.Default.CoffeeMaker, contentDescription = option.label, tint = iconTint)
                                 }
                                 Text(
                                     text = option.label,
@@ -1596,7 +1596,7 @@ fun DiaryEntryEditBottomSheet(
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.grano_cafe),
-                                contentDescription = null,
+                                contentDescription = "Cafeína",
                                 modifier = Modifier.size(20.dp),
                                 tint = Color.Unspecified
                             )
@@ -1620,7 +1620,7 @@ fun DiaryEntryEditBottomSheet(
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.portafiltro),
-                                contentDescription = null,
+                                contentDescription = "Dosis",
                                 modifier = Modifier.size(20.dp),
                                 tint = Color.Unspecified
                             )
@@ -1664,7 +1664,7 @@ fun DiaryEntryEditBottomSheet(
                                             contentScale = ContentScale.Fit
                                         )
                                     } else {
-                                        Icon(Icons.Default.LocalCafe, null, modifier = Modifier.size(16.dp), tint = chipContent)
+                                        Icon(Icons.Default.LocalCafe, contentDescription = option.label, modifier = Modifier.size(16.dp), tint = chipContent)
                                     }
                                     Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
                                 }
@@ -1682,7 +1682,7 @@ fun DiaryEntryEditBottomSheet(
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.WaterDrop,
-                                contentDescription = null,
+                                contentDescription = "Agua",
                                 tint = WaterBlue,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -1697,7 +1697,7 @@ fun DiaryEntryEditBottomSheet(
                         value = timeText,
                         onValueChange = { timeText = it.take(5) },
                         label = { Text("Tiempo (HH:mm)") },
-                        leadingIcon = { Icon(Icons.Default.Schedule, null, modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora", modifier = Modifier.size(18.dp)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         textStyle = editFieldTextStyle,
@@ -1711,7 +1711,7 @@ fun DiaryEntryEditBottomSheet(
                     value = timeText,
                     onValueChange = { timeText = it.take(5) },
                     label = { Text("Tiempo (HH:mm)") },
-                    leadingIcon = { Icon(Icons.Default.Schedule, null) },
+                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = editFieldTextStyle,
@@ -1896,7 +1896,7 @@ private fun MetricPill(
             ) {
                 Image(
                     painter = icon,
-                    contentDescription = null,
+                    contentDescription = label,
                     modifier = Modifier.size(24.dp),
                     contentScale = ContentScale.Fit
                 )
@@ -1932,7 +1932,7 @@ private fun MetricPillContent(
                     .width(26.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
             }
             Column {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -2080,7 +2080,7 @@ fun ModalMenuOption(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = title,
                 tint = color,
                 modifier = Modifier.size(24.dp)
             )
@@ -2094,7 +2094,7 @@ fun ModalMenuOption(
             Spacer(Modifier.weight(1f))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
+                contentDescription = "Abrir",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -2123,7 +2123,7 @@ fun ModalMenuOption(
         ) {
             Icon(
                 painter = iconPainter,
-                contentDescription = null,
+                contentDescription = title,
                 tint = color,
                 modifier = Modifier.size(24.dp)
             )
@@ -2137,7 +2137,7 @@ fun ModalMenuOption(
             Spacer(Modifier.weight(1f))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
+                contentDescription = "Abrir",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -2296,7 +2296,7 @@ fun EditPostBottomSheet(
             ) {
                 AsyncImage(
                     model = imageUrl,
-                    contentDescription = null,
+                    contentDescription = "Imagen seleccionada",
                     modifier = Modifier.fillMaxWidth(),
                     contentScale = ContentScale.FillWidth
                 )
@@ -2392,12 +2392,12 @@ fun EditReviewBottomSheet(
                 if (imageUrl != null) {
                     AsyncImage(
                         model = imageUrl,
-                        contentDescription = null,
+                        contentDescription = "Imagen de la reseña",
                         modifier = Modifier.fillMaxWidth(),
                         contentScale = ContentScale.FillWidth
                     )
                 } else {
-                    Icon(Icons.Default.AddAPhoto, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.AddAPhoto, contentDescription = "Añadir foto", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -2408,7 +2408,7 @@ fun EditReviewBottomSheet(
                 repeat(5) { i ->
                     Icon(
                         imageVector = if (rating > i) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = null,
+                        contentDescription = "Valoración ${i + 1} de 5",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .padding(horizontal = 4.dp)

@@ -37,4 +37,13 @@
     <string name="add_stock_save_button">GUARDAR EN DESPENSA</string>
     <string name="add_stock_select_title">SELECCIONAR</string>
     <string name="add_stock_search_placeholder">Busca un café o marca</string>
+
+    <!-- Estados vacío y error (ver docs/UX_EMPTY_AND_ERROR_STATES.md) -->
+    <string name="empty_diary_no_entries">Sin café o agua registrada</string>
+    <string name="empty_diary_no_pantry">No hay café en tu despensa</string>
+    <string name="empty_timeline_no_posts">No hay publicaciones disponibles</string>
+    <string name="empty_notifications">No tienes notificaciones</string>
+    <string name="empty_favorites">No hay cafés favoritos</string>
+    <string name="error_load_data">No se han podido cargar los datos.</string>
+    <string name="error_retry">Reintentar</string>
 </resources>

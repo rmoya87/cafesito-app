@@ -187,7 +187,7 @@ fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: 
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+        Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(4.dp))
         Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
@@ -212,7 +212,7 @@ fun PantryPremiumCard(
             Box {
                 AsyncImage(
                     model = item.coffee.imageUrl,
-                    contentDescription = null,
+                    contentDescription = item.coffee.nombre,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -229,7 +229,7 @@ fun PantryPremiumCard(
                             .clickable { onOptionsClick(item.coffee.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.MoreHoriz, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -600,11 +600,11 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+            Icon(icon, contentDescription = title, tint = color, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(16.dp))
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

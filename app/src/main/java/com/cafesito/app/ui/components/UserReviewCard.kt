@@ -81,7 +81,7 @@ fun UserReviewCard(
             if (info.review.imageUrl != null) {
                 AsyncImage(
                     model = info.review.imageUrl,
-                    contentDescription = null,
+                    contentDescription = "Imagen de la reseña",
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight(),
@@ -102,7 +102,7 @@ fun UserReviewCard(
                     ) {
                         AsyncImage(
                             model = info.coffeeDetails.coffee.imageUrl,
-                            contentDescription = null,
+                            contentDescription = info.coffeeDetails.coffee.nombre,
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(12.dp)),
@@ -126,7 +126,7 @@ fun UserReviewCard(
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, null, tint = OrangeYellow, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Star, contentDescription = "Valoración", tint = OrangeYellow, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = String.format(Locale.getDefault(), "%.1f", info.review.rating),

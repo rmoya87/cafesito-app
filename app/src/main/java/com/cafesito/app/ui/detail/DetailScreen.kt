@@ -328,7 +328,7 @@ private fun DetailContent(
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                     shape = RoundedCornerShape(20.dp)
                                 ) {
-                                    Icon(if (userReview != null) Icons.Default.Edit else Icons.Default.Add, null, Modifier.size(16.dp))
+                                    Icon(if (userReview != null) Icons.Default.Edit else Icons.Default.Add, contentDescription = if (userReview != null) "Editar reseña" else "Añadir reseña", Modifier.size(16.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(text = if (userReview != null) "EDITAR" else "AÑADIR")
                                 }

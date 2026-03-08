@@ -346,7 +346,7 @@ private fun FeatureRowUnified(icon: ImageVector, title: String, desc: String) {
             modifier = Modifier.size(44.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Icon(icon, contentDescription = title, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
             }
         }
         Spacer(modifier = Modifier.width(16.dp))

@@ -513,9 +513,9 @@ function DiarySheets({
                           >
                             <span className="diary-coffee-select-pantry-card-img">
                               {row.coffee.image_url ? (
-                                <img src={row.coffee.image_url} alt="" loading="lazy" decoding="async" />
+                                <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" decoding="async" />
                               ) : (
-                                <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" />
+                                <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" aria-hidden="true" />
                               )}
                             </span>
                             <div className="diary-coffee-select-pantry-copy">
@@ -596,9 +596,9 @@ function DiarySheets({
                             }}
                           >
                             {coffee.image_url ? (
-                              <img src={coffee.image_url} alt="" loading="lazy" decoding="async" />
+                              <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
                             ) : (
-                              <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" />
+                              <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" aria-hidden="true" />
                             )}
                             <div className="diary-coffee-select-item-copy">
                               <strong>{coffee.nombre}</strong>
