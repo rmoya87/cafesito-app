@@ -28,8 +28,22 @@ function detectPwaStandalone(): void {
     document.documentElement.classList.remove("pwa-standalone");
   }
 }
+
+function saveLastUserAccess(): void {
+  if (typeof window === "undefined" || !localStorage) return;
+  const user = localStorage.getItem("currentUser");
+  if (user) {
+    const lastAccessData = {
+      user,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem("lastUserAccess", JSON.stringify(lastAccessData));
+  }
+}
+
 if (typeof window !== "undefined") {
   detectPwaStandalone();
+  saveLastUserAccess();
   window.matchMedia("(display-mode: standalone)").addEventListener("change", detectPwaStandalone);
 }
 
@@ -101,4 +115,3 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </RootErrorBoundary>
   </React.StrictMode>
 );
-
