@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, startTransition } from "react";
 import { buildRoute, getAppRootPath, toCoffeeSlug } from "../../core/routing";
 import type { CoffeeRow, TabId } from "../../types";
 
@@ -28,22 +28,24 @@ export function useCoffeeDetailNavigation({
       const coffee = coffeesById.get(coffeeId);
       if (!coffee) return;
       const slug = coffeeSlugById.get(coffeeId) ?? toCoffeeSlug(coffee.nombre, coffee.marca);
-      setDetailCoffeeId(coffeeId);
-      if (sourceTab === "diary") {
-        setDetailHostTab(null);
-        setActiveTab("coffee");
-      } else if (mode === "desktop") {
-        setDetailHostTab(sourceTab);
-      } else {
-        setDetailHostTab(null);
-        setActiveTab("coffee");
-      }
       const routePath = buildRoute("coffee", searchMode, profileUsername, slug);
       const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
       const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
-      if (window.location.pathname !== fullPath) {
-        window.history.pushState({}, "", `${fullPath}${window.location.search}${window.location.hash}`);
-      }
+      startTransition(() => {
+        setDetailCoffeeId(coffeeId);
+        if (sourceTab === "diary") {
+          setDetailHostTab(null);
+          setActiveTab("coffee");
+        } else if (mode === "desktop") {
+          setDetailHostTab(sourceTab);
+        } else {
+          setDetailHostTab(null);
+          setActiveTab("coffee");
+        }
+        if (window.location.pathname !== fullPath) {
+          window.history.pushState({}, "", `${fullPath}${window.location.search}${window.location.hash}`);
+        }
+      });
     },
     [coffeeSlugById, coffeesById, mode, profileUsername, searchMode, setActiveTab, setDetailCoffeeId, setDetailHostTab]
   );

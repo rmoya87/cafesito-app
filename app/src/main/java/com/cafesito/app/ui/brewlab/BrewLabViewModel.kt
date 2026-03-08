@@ -363,6 +363,7 @@ class BrewLabViewModel @Inject constructor(
         _hasTimerStarted.value = false
     }
 
+
     fun saveToDiary(onSuccess: () -> Unit) {
         val coffee = _selectedCoffee.value ?: return
         val isFromPantry = _isCoffeeFromPantry.value

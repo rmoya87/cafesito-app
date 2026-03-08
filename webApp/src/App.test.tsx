@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const createQueryBuilder = () => {
@@ -43,5 +43,13 @@ describe("App", () => {
     expect((await screen.findAllByRole("button", { name: "Elabora" })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("button", { name: "Diario" })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("button", { name: "Perfil" })).length).toBeGreaterThan(0);
+  });
+
+  it("muestra vista de diario al navegar a Diario (humo)", async () => {
+    render(<App />);
+    const diarioButtons = await screen.findAllByRole("button", { name: "Diario" });
+    expect(diarioButtons.length).toBeGreaterThan(0);
+    fireEvent.click(diarioButtons[0]);
+    await expect(screen.findByText(/mi diario|sin café o agua registrada/i)).resolves.toBeInTheDocument();
   });
 });

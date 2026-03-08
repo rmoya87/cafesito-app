@@ -1,4 +1,4 @@
-import { useState, type MutableRefObject } from "react";
+import { useEffect, useState, type MutableRefObject } from "react";
 import type { CoffeeRow, UserRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Topbar } from "../../ui/components";
@@ -59,7 +59,12 @@ export function CreatePostSheet({
   onSelectCoffee: (coffeeId: string) => void;
 }) {
   const [coffeeSearchFocus, setCoffeeSearchFocus] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const showCoffeeSearchCancel = Boolean(coffeeQuery || coffeeSearchFocus);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [activeUser?.avatar_url]);
 
   return (
     <>
@@ -90,7 +95,19 @@ export function CreatePostSheet({
               />
               {activeUser ? (
                 <div className="create-post-user-row">
-                  {activeUser.avatar_url ? <img src={activeUser.avatar_url} alt={activeUser.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" /> : <div className="create-post-user-fallback">{activeUser.username.slice(0, 1).toUpperCase()}</div>}
+                  {activeUser.avatar_url && !avatarLoadFailed ? (
+                    <img
+                      src={activeUser.avatar_url}
+                      alt={activeUser.username}
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      onError={() => setAvatarLoadFailed(true)}
+                    />
+                  ) : (
+                    <div className="create-post-user-fallback">{activeUser.username.slice(0, 1).toUpperCase()}</div>
+                  )}
                   <div>
                     <p>{activeUser.full_name}</p>
                     <span>@{activeUser.username}</span>

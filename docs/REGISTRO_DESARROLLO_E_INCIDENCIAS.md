@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-05
+**Última actualización:** 2026-03-04
 
 ---
 
@@ -10,7 +10,9 @@
 1. [Elaboración (Brew), UI, colores, Italiana](#1-elaboración-brew-ui-colores-italiana)
 2. [Incidencias CI/CD y TypeScript (deploy-web)](#2-incidencias-cicd-y-typescript-deploy-web)
 3. [Ramas y entornos](#3-ramas-y-entornos)
-4. [Referencias a otros documentos](#4-referencias-a-otros-documentos)
+4. [Reglas Cursor por plataforma](#4-reglas-cursor-por-plataforma)
+5. [Webapp — Diario: rejilla de meta y máscara de scroll](#5-webapp--diario-rejilla-de-meta-y-máscara-de-scroll)
+6. [Referencias a otros documentos](#6-referencias-a-otros-documentos)
 
 ---
 
@@ -109,10 +111,47 @@ Si en remoto ya no existe `beta`, `main:beta` la crea. Si existe, la actualiza (
 
 ---
 
-## 4. Referencias a otros documentos
+## 4. Reglas Cursor por plataforma
+
+En `.cursor/rules/` hay reglas específicas que se aplican al editar código de cada plataforma:
+
+| Plataforma | Archivo | Cuándo se aplica |
+|------------|---------|-------------------|
+| **WebApp** | `webapp-react-typescript.mdc` | Al editar `webApp/**/*.ts`, `*.tsx`, `*.css`, `*.mjs` |
+| **Android (app)** | `android-kotlin-compose.mdc` (siempre) + `android-app-especifico.mdc` | General siempre; contexto de `app/` al editar `app/**/*.kt`, `*.xml` |
+| **iOS** | `ios-swiftui.mdc` | Al editar `iosApp/**/*.swift`, `Package.swift` |
+
+Además: `docs-before-code.mdc` (siempre) — consultar docs antes de actuar.
+
+---
+
+## 5. Webapp — Diario: rejilla de meta y máscara de scroll
+
+**Fecha:** 2026-03-04. **Ámbito:** solo webapp (`webApp/`).
+
+### 5.1 Rejilla de meta (`.diary-entry-meta-grid`)
+
+- **Base (todas las anchuras):** `gap: 8px 30px` (antes `24px`). Archivo: `webApp/src/styles/features.css`.
+- **En `@media (max-width: 899px)`:** En los dos bloques que afectan a `.diary-entry-meta-grid`, el `gap` se unificó a `8px 25px` (uno tenía `20px`, otro `8px 10px`). Así en móvil/tablet la rejilla usa 8px entre filas y 25px entre columnas.
+
+### 5.2 Máscara de scroll (`.diary-entry-meta-scroll`)
+
+- **Comportamiento:** Por defecto no se muestra máscara (`mask-image: none`). La máscara izquierda solo se muestra cuando hay scroll horizontal y hay contenido que ha “desaparecido” a la izquierda (`scrollLeft > 0`). La máscara derecha solo cuando hay más contenido a la derecha (`scrollLeft + clientWidth < scrollWidth`).
+- **Implementación:**
+  - **CSS:** Clases `.has-scroll-left` y `.has-scroll-right` aplican los gradientes correspondientes; si ambas están presentes se usa un único gradiente que difumina ambos lados. Archivo: `webApp/src/styles/features.css`.
+  - **Lógica:** En `DiaryView.tsx` se añadieron estado `metaScrollLeft` y `metaScrollRight`, callback `updateMetaScrollEdges()` (actualiza esos estados según `scrollLeft` y dimensiones del nodo), y suscripción a `scroll` y `ResizeObserver` en el contenedor `.diary-entry-meta-scroll`. Las clases `has-scroll-left` / `has-scroll-right` se aplican al mismo div según ese estado.
+
+---
+
+## 6. Referencias a otros documentos
 
 | Tema | Documento |
 |------|-----------|
+| Tokens de diseño (colores, espaciados, radios) Web + Android | `docs/DESIGN_TOKENS.md` |
+| Estados vacío y error (patrón unificado) | `docs/UX_EMPTY_AND_ERROR_STATES.md` |
+| Lógica de negocio compartida (diario, brew, recomendaciones) | `docs/SHARED_BUSINESS_LOGIC.md` |
+| Tests de humo (flujo crítico) | `docs/SMOKE_TESTS.md` |
+| Accesibilidad mínima (aria, 44px, WCAG) | `docs/ACCESSIBILITY_MINIMA.md` |
 | Workflow release y deploy (triggers, ramas, jobs) | `docs/RELEASE_DEPLOY_WORKFLOW.md` |
 | Changelog detallado Brew/UI/colores/Italiana (04–05 mar) | `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md` |
 | Compliance Play Console, orientación, edge-to-edge | `docs/ANDROID_PLAY_CONSOLE_COMPLIANCE.md` |

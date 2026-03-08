@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -206,7 +207,7 @@ fun CommentsSheet(
                         editingCommentId = null
                         textValue = TextFieldValue("")
                     }, modifier = Modifier.size(16.dp)) {
-                        Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -329,6 +330,8 @@ fun CommentsSheet(
 
                         Spacer(Modifier.weight(1f))
 
+                        val sendDisabledBg = if (isSystemInDarkTheme()) Color(0xFF424242) else Color(0xFFBDBDBD)
+                        val sendDisabledContent = if (isSystemInDarkTheme()) Color.Black else Color.White
                         IconButton(
                             onClick = {
                                 if (editingCommentId != null) {
@@ -344,7 +347,8 @@ fun CommentsSheet(
                             modifier = Modifier.size(40.dp),
                             colors = IconButtonDefaults.iconButtonColors(
                                 contentColor = MaterialTheme.colorScheme.primary,
-                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                disabledContainerColor = sendDisabledBg,
+                                disabledContentColor = sendDisabledContent
                             )
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar", modifier = Modifier.size(24.dp))
@@ -595,7 +599,7 @@ private fun NotificationRow(
             Box {
                 AsyncImage(
                     model = avatarUrl,
-                    contentDescription = null,
+                    contentDescription = "Avatar",
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
@@ -1139,7 +1143,7 @@ fun SwipeableDiaryItem(
                     .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(Icons.Default.Delete, null, tint = Color.White, modifier = Modifier.padding(end = 16.dp))
+                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.White, modifier = Modifier.padding(end = 16.dp))
             }
         }
     ) {
@@ -1280,11 +1284,56 @@ fun DiaryEntryItem(
                         !(firstVisible && lastVisible && lastItemEnd <= info.viewportEndOffset)
                     }
                 }
+                val hasScrollLeft by remember {
+                    derivedStateOf {
+                        metaRowState.firstVisibleItemIndex > 0 || metaRowState.firstVisibleItemScrollOffset > 0
+                    }
+                }
+                val hasScrollRight by remember {
+                    derivedStateOf {
+                        val info = metaRowState.layoutInfo
+                        if (info.totalItemsCount == 0 || info.visibleItemsInfo.isEmpty()) false
+                        else {
+                            val last = info.visibleItemsInfo.last()
+                            val lastEnd = last.offset + last.size
+                            lastEnd > info.viewportEndOffset - 1 || (metaRowState.firstVisibleItemIndex + info.visibleItemsInfo.size < info.totalItemsCount)
+                        }
+                    }
+                }
+                val surfaceColor = MaterialTheme.colorScheme.surface
+                val metaRowModifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (hasScrollLeft || hasScrollRight) Modifier.drawWithContent {
+                            drawContent()
+                            val w = size.width
+                            val edge = 16.dp.toPx().coerceAtMost(w / 4f)
+                            if (hasScrollLeft) {
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(surfaceColor, surfaceColor.copy(alpha = 0f))
+                                    ),
+                                    size = androidx.compose.ui.geometry.Size(edge, size.height)
+                                )
+                            }
+                            if (hasScrollRight) {
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        startX = w - edge,
+                                        endX = w,
+                                        colors = listOf(surfaceColor.copy(alpha = 0f), surfaceColor)
+                                    ),
+                                    topLeft = androidx.compose.ui.geometry.Offset(w - edge, 0f),
+                                    size = androidx.compose.ui.geometry.Size(edge, size.height)
+                                )
+                            }
+                        } else Modifier
+                    )
                 LazyRow(
                     state = metaRowState,
                     userScrollEnabled = metaCarouselEnabled,
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = metaRowModifier
                 ) {
                     item {
                         MetricPill(
@@ -1497,13 +1546,15 @@ fun DiaryEntryEditBottomSheet(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
+                val unselectedChipBg = if (isDark) Color.Black else Color.White
+                val unselectedChipContent = if (isDark) Color.White else Color.Black
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
                         Surface(
                             onClick = { selectedPreparation = option.label },
                             shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surface,
+                            color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
                                 color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -1515,6 +1566,7 @@ fun DiaryEntryEditBottomSheet(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
+                                val iconTint = if (isSelected) Color.Black else unselectedChipContent
                                 if (resId != 0) {
                                     Image(
                                         painter = painterResource(id = resId),
@@ -1523,12 +1575,12 @@ fun DiaryEntryEditBottomSheet(
                                         contentScale = ContentScale.Fit
                                     )
                                 } else {
-                                    Icon(Icons.Default.CoffeeMaker, null, tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.CoffeeMaker, null, tint = iconTint)
                                 }
                                 Text(
                                     text = option.label,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = if (isSelected) Color.Black else unselectedChipContent,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
                             }
@@ -1590,10 +1642,12 @@ fun DiaryEntryEditBottomSheet(
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
+                        val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBg
+                        val chipContent = if (isSelected) Color.Black else unselectedChipContent
                         Surface(
                             onClick = { selectedSize = option.label },
                             shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface,
+                            color = chipBg,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
                                 color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -1610,11 +1664,11 @@ fun DiaryEntryEditBottomSheet(
                                             contentScale = ContentScale.Fit
                                         )
                                     } else {
-                                        Icon(Icons.Default.LocalCafe, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Icon(Icons.Default.LocalCafe, null, modifier = Modifier.size(16.dp), tint = chipContent)
                                     }
-                                    Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                                    Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
                                 }
-                                Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = chipContent.copy(alpha = 0.85f))
                             }
                         }
                     }
@@ -2153,25 +2207,24 @@ fun ReviewOptionsBottomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsBottomSheet(
-    onDismiss: () -> Unit, 
-    onEditClick: () -> Unit, 
+    onDismiss: () -> Unit,
+    onEditClick: () -> Unit,
     onDeleteAccountClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
-        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
         Column(Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp)) {
             Text(
-                "GENERAL", 
-                style = MaterialTheme.typography.labelMedium, 
-                color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                "GENERAL",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
             )
-            
             ModalMenuOption(
                 title = "Editar Perfil",
                 icon = Icons.Default.Edit,

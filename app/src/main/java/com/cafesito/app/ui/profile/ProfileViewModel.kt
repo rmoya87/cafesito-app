@@ -230,6 +230,10 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun retry() {
+        _error.value = null
+    }
+
     fun logout() {
         viewModelScope.launch {
             userRepository.logout()

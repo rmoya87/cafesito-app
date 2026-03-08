@@ -1,0 +1,1604 @@
+/**
+ * Overrides cuando el usuario fuerza tema oscuro (html.theme-dark) y el sistema está en claro.
+ * Las reglas de @media (prefers-color-scheme: light) en features.css siguen aplicando;
+ * aquí anulamos los elementos que usan colores explícitos (pure-white, etc.) o que
+ * no heredan bien las variables de tokens.
+ */
+
+/* Perfil y sugerencias */
+html.theme-dark .profile-bio {
+  color: var(--text-subtle);
+}
+
+html.theme-dark .profile-username {
+  color: var(--text-main);
+}
+
+html.theme-dark .profile-stat-value {
+  color: var(--text-main);
+}
+
+html.theme-dark .profile-stat-label {
+  color: var(--text-subtle);
+}
+
+html.theme-dark .profile-follow-button:not(.is-following) {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+  border: none;
+}
+
+html.theme-dark .profile-follow-button.is-following {
+  background: transparent !important;
+  color: var(--pure-white) !important;
+  border: 1px solid var(--pure-white) !important;
+}
+
+html.theme-dark .search-users-follow:not(.action-button-following) {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+  border: none;
+}
+
+html.theme-dark .search-users-follow.action-button-following {
+  background: transparent !important;
+  color: var(--pure-white) !important;
+  border: 1px solid var(--pure-white) !important;
+}
+
+html.theme-dark .suggestion-strip .mini-user-card.suggestion-user-card {
+  background: var(--pure-black);
+}
+
+html.theme-dark .suggestion-strip .suggestion-follow-btn:not(.action-button-following) {
+  background: var(--caramel-soft) !important;
+  border: none !important;
+  color: var(--pure-black) !important;
+}
+
+html.theme-dark .suggestion-strip .suggestion-follow-btn.action-button-following {
+  background: transparent !important;
+  color: var(--pure-white) !important;
+  border: 1px solid var(--pure-white) !important;
+}
+
+html.theme-dark .notification-follow-button:not(.is-following) {
+  background: var(--caramel-soft);
+  color: var(--pure-black);
+}
+
+/* Diario: topbar add, period chip */
+html.theme-dark .diary-topbar-add,
+html.theme-dark .diary-period-chip {
+  background: var(--surface);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
+/* Notificaciones y sheets */
+html.theme-dark .notifications-overlay {
+  background: var(--screen-dark-background);
+}
+
+html.theme-dark .notifications-panel,
+html.theme-dark .notifications-header {
+  background: var(--screen-dark-background);
+  --notifications-item-bg: var(--pure-black);
+  --notifications-item-bg-unread: rgba(255, 255, 255, 0.06);
+  --notifications-item-border: #000000;
+  --notifications-item-border-unread: rgba(212, 163, 115, 0.35);
+}
+
+html.theme-dark .sheet-card,
+html.theme-dark .sheet-header {
+  background: var(--modal-surface-bg);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .sheet-input-shell {
+  background: var(--modal-field-bg);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .sheet-card .icon-button {
+  background: var(--surface);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
+/* Buscador y filtros */
+html.theme-dark .topbar-search .search-wide,
+html.theme-dark .topbar-search-users .search-wide {
+  background: var(--modal-field-bg);
+  color: var(--text-main);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .search-filter-item {
+  background: var(--surface);
+}
+
+html.theme-dark .search-filter-item.is-selected {
+  background: var(--surface);
+  border-color: var(--caramel-accent);
+}
+
+html.theme-dark .search-recent-list {
+  border-bottom-color: var(--border-light);
+}
+
+/* Feed, cards, post menu */
+html.theme-dark .feed-head .post-menu-trigger,
+html.theme-dark .profile-topbar-menu-trigger,
+html.theme-dark .comments-list .post-menu-trigger {
+  background: var(--surface);
+  color: var(--text-main);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .filter-chip {
+  background: var(--pure-black);
+  border: none;
+  color: var(--text-main);
+}
+
+html.theme-dark .filter-chip.is-active {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+  border: none;
+}
+
+html.theme-dark .filter-chip-count {
+  background: var(--caramel-soft);
+  color: var(--pure-black);
+}
+
+/* Detalle café */
+html.theme-dark .coffee-detail {
+  background: var(--screen-dark-background);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html.theme-dark .coffee-detail-body {
+  background: var(--screen-dark-background);
+  border-top-color: var(--border-light);
+}
+
+html.theme-dark .coffee-detail-section-first {
+  background: var(--screen-dark-background);
+  border: none;
+}
+
+html.theme-dark .coffee-detail-stat {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .coffee-detail-topbar {
+  background: var(--screen-dark-background);
+  border-bottom-color: var(--border-light);
+}
+
+html.theme-dark .coffee-detail-topbar-icon {
+  background: var(--pure-white);
+  color: var(--pure-black);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+html.theme-dark .coffee-detail-topbar-icon.is-active {
+  color: var(--electric-red);
+  background: rgba(255, 59, 48, 0.2);
+  border-color: rgba(255, 59, 48, 0.4);
+}
+
+html.theme-dark .coffee-detail-hero,
+html.theme-dark .coffee-detail-image {
+  background: var(--surface);
+}
+
+html.theme-dark .coffee-detail-rating-badge {
+  background: var(--surface);
+  color: var(--text-main);
+}
+
+html.theme-dark .coffee-detail-acquire-row {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .coffee-detail-tech-item,
+html.theme-dark .brew-barista-tip {
+  border-bottom-color: var(--border-light);
+  border-color: var(--border-light);
+  background: var(--surface);
+}
+
+html.theme-dark .coffee-detail-review-camera {
+  background: var(--surface);
+  color: var(--text-main);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .comment-action-sheet {
+  background: var(--modal-surface-bg);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .comment-action-title,
+html.theme-dark .comment-action-button {
+  color: var(--text-main);
+}
+
+html.theme-dark .feed-image {
+  background: var(--surface);
+}
+
+html.theme-dark .coffee-tag-card {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .feed-card-premium {
+  background: var(--surface);
+}
+
+html.theme-dark .badge-dot {
+  border-color: var(--surface);
+}
+
+/* Create post, composer */
+html.theme-dark .create-post-header {
+  background: var(--modal-header-bg);
+}
+
+html.theme-dark .create-post-composer-card,
+html.theme-dark .create-post-coffee-row,
+html.theme-dark .create-post-add-photo-row,
+html.theme-dark .create-post-image-stage,
+html.theme-dark .create-post-gallery-item {
+  background: var(--surface);
+}
+
+html.theme-dark .create-post-composer-card .create-post-textarea.search-wide,
+html.theme-dark .create-post-composer-card .search-wide {
+  background: var(--surface);
+}
+
+/* Diary sheets, cards, pantry */
+html.theme-dark .diary-sheet,
+html.theme-dark .diary-sheet-action {
+  background: var(--surface);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
+html.theme-dark .diary-pantry-card,
+html.theme-dark .diary-pantry-foot {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .diary-analytics-card {
+  background: var(--surface);
+  border: none;
+}
+
+/* Brew */
+html.theme-dark .brew-method-card-native {
+  background: var(--surface);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
+html.theme-dark .brew-pantry-card,
+html.theme-dark .brew-suggestion-card {
+  background: var(--surface);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
+html.theme-dark .brew-tech-card,
+html.theme-dark .brew-prep-card,
+html.theme-dark .brew-result-card {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .brew-barista-tip {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+/* FAB y botones primarios (ya en tokens, refuerzo por si el light los pinta) */
+html.theme-dark .fab {
+  background: var(--caramel-soft);
+  color: var(--pure-black) !important;
+}
+
+/* Fechas / timestamps modo noche */
+html.theme-dark .feed-head .feed-meta,
+html.theme-dark .comment-time,
+html.theme-dark .coffee-detail-opinion-copy .feed-meta,
+html.theme-dark .coffee-detail .coffee-card .feed-meta,
+html.theme-dark .profile-post-user .feed-meta,
+html.theme-dark .diary-entry-time-pill {
+  color: #b8b8b8 !important;
+}
+
+/* ========== Timeline: modo oscuro ========== */
+html.theme-dark .content.content-timeline {
+  background: var(--screen-dark-background);
+}
+
+html.theme-dark .timeline-empty,
+html.theme-dark .timeline-error {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+html.theme-dark .timeline-empty p {
+  color: var(--text-subtle);
+}
+
+html.theme-dark .timeline-banner {
+  background: rgba(15, 9, 5, 0.94);
+  color: var(--caramel-soft);
+}
+
+html.theme-dark .timeline-overlay-card {
+  background: rgba(15, 9, 5, 0.94);
+  color: var(--caramel-soft);
+}
+
+html.theme-dark .timeline-overlay-row {
+  color: var(--caramel-soft);
+}
+
+html.theme-dark .timeline-spinner {
+  border-color: rgba(212, 163, 115, 0.3);
+  border-top-color: var(--caramel-soft);
+}
+
+html.theme-dark .composer-card,
+html.theme-dark .feed-card {
+  background: var(--surface);
+  border: none;
+}
+
+html.theme-dark .composer-title {
+  color: var(--text-main);
+}
+
+html.theme-dark .composer-sub,
+html.theme-dark .feed-head .feed-meta,
+html.theme-dark .feed-stats {
+  color: var(--text-subtle);
+}
+
+html.theme-dark .feed-head .feed-user,
+html.theme-dark .feed-user {
+  color: var(--text-main);
+}
+
+html.theme-dark .feed-text {
+  color: var(--text-main);
+}
+
+html.theme-dark .feed-card-premium {
+  background: var(--surface);
+}
+
+html.theme-dark .feed-image {
+  background: var(--surface);
+}
+
+html.theme-dark .shimmer-card {
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 100%);
+}
+
+html.theme-dark .feed-follow-chip {
+  color: var(--text-main);
+}
+
+html.theme-dark .feed-follow-chip.is-following {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Timeline columna lateral: sugerencias y mini cards */
+html.theme-dark .timeline-side-column .mini-card,
+html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-card {
+  background: var(--surface);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
+html.theme-dark .timeline-side-column .mini-coffee-card .feed-user,
+html.theme-dark .timeline-side-column .mini-coffee-card .coffee-sub,
+html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-coffee-card .feed-user,
+html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-coffee-card .coffee-sub {
+  color: var(--text-main);
+}
+
+html.theme-dark .timeline-side-column .mini-user-card .feed-user,
+html.theme-dark .timeline-side-column .mini-user-card .feed-meta,
+html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-user,
+html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-meta {
+  color: var(--text-main);
+}
+
+html.theme-dark .timeline-side-column .suggestion-strip .suggestion-subtitle,
+html.theme-dark .timeline-shell-desktop .timeline-side-column .suggestion-strip .suggestion-subtitle {
+  color: var(--text-subtle);
+}
+
+/* Mention chips modo noche */
+html.theme-dark .mention-chip,
+html.theme-dark .mention-button {
+  border-color: rgba(212, 163, 115, 0.45);
+}
+
+html.theme-dark .mention-chip-avatar,
+html.theme-dark .mention-button-avatar,
+html.theme-dark .mention-chip-fallback,
+html.theme-dark .mention-button-avatar-fallback {
+  border-color: rgba(212, 163, 115, 0.4);
+  background: rgba(212, 163, 115, 0.15);
+}
+
+/* Bloques dark de features: diary delete, stock edit, create coffee, etc. */
+html.theme-dark .diary-calendar-day-dot {
+  border-color: var(--screen-dark-background);
+}
+
+html.theme-dark .diary-delete-confirm-cancel {
+  border-color: var(--text-main);
+  color: var(--text-main);
+}
+
+html.theme-dark .diary-delete-confirm-submit {
+  background: var(--electric-red);
+  color: var(--pure-black);
+}
+
+html.theme-dark .coffee-card.is-selected {
+  background: var(--pure-black);
+}
+
+html.theme-dark .profile-adn-continue-button.action-button,
+html.theme-dark .profile-adn-continue-button.action-button:hover,
+html.theme-dark .profile-adn-continue-button.action-button:focus-visible {
+  background: var(--caramel-soft) !important;
+  border-color: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+}
+
+html.theme-dark .diary-stock-edit-cancel {
+  border-color: rgba(255, 255, 255, 0.62);
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .diary-stock-edit-save {
+  background: var(--caramel-soft);
+  border-color: var(--caramel-soft);
+  color: var(--pure-black) !important;
+}
+
+html.theme-dark .diary-edit-entry-sheet .diary-edit-entry-metric-field {
+  background: var(--surface);
+}
+
+html.theme-dark .diary-edit-entry-presets .period-chip {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+  border: 1px solid var(--border-light);
+}
+
+html.theme-dark .diary-edit-entry-presets .period-chip {
+  background: #000000 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-dark .diary-edit-entry-presets .period-chip.is-active {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+  border: 1px solid #6f4e37;
+  box-shadow: none;
+}
+
+html.theme-dark .diary-edit-entry-size-presets .diary-coffee-size-chip {
+  background: #000000 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html.theme-dark .diary-edit-entry-size-presets .diary-coffee-size-chip span,
+html.theme-dark .diary-edit-entry-size-presets .diary-coffee-size-chip small {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html.theme-dark .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+}
+
+html.theme-dark .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
+html.theme-dark .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
+  color: var(--pure-black) !important;
+}
+
+html.theme-dark .create-coffee-profile-origin,
+html.theme-dark .create-coffee-format-block {
+  border: none;
+}
+
+html.theme-dark .create-coffee-profile-origin .create-coffee-choice,
+html.theme-dark .create-coffee-profile-origin .create-coffee-country .search-wide,
+html.theme-dark .create-coffee-format-block .create-coffee-choice,
+html.theme-dark .create-coffee-format-block .create-coffee-caffeine-switch,
+html.theme-dark .create-coffee-format-block .create-coffee-quantity-input,
+html.theme-dark .create-coffee-format-block .create-coffee-quantity-row .create-coffee-quantity-input {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Café etiquetado (timeline) — !important para ganar a features */
+html.theme-dark .coffee-tag-card,
+html.theme-dark .coffee-tag-card .coffee-tag-copy {
+  background: var(--surface) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-dark .coffee-tag-card .coffee-origin,
+html.theme-dark .coffee-tag-card .coffee-tag-name,
+html.theme-dark .coffee-tag-card .coffee-tag-brand {
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .coffee-tag-card .coffee-tag-image-fallback {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-subtle) !important;
+}
+
+/* Nuevo post (modal): label, texto, publicar */
+html.theme-dark .create-post-label,
+html.theme-dark .create-post-secondary,
+html.theme-dark .create-post-publish {
+  color: var(--modal-text-main) !important;
+}
+
+html.theme-dark .create-post-header,
+html.theme-dark .create-post-header .topbar-icon-button {
+  color: var(--modal-text-main) !important;
+}
+
+html.theme-dark .create-post-image-stage,
+html.theme-dark .create-post-composer-card,
+html.theme-dark .create-post-coffee-row,
+html.theme-dark .create-post-add-photo-row,
+html.theme-dark .create-post-gallery-item {
+  background: var(--modal-field-bg) !important;
+  color: var(--muted-cream) !important;
+  border-color: var(--border-light) !important;
+}
+
+/* Personas que podrías seguir: título de sección */
+html.theme-dark .suggestion-strip .section-title {
+  color: var(--text-subtle) !important;
+}
+
+html.theme-dark .suggestion-strip .mini-user-card.suggestion-user-card {
+  background: var(--pure-black) !important;
+  border: none !important;
+}
+
+/* Comentarios: panel inline, textarea, enviar */
+html.theme-dark .comment-inline-panel {
+  background: transparent !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-dark .composer-input-shell,
+html.theme-dark .composer-input-shell .search-wide {
+  background: var(--surface) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .composer-input-textarea {
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .composer-input-textarea::placeholder {
+  color: var(--text-subtle) !important;
+}
+
+html.theme-dark .send-button:disabled {
+  background: #424242 !important;
+  color: #000000 !important;
+}
+
+/* Detalle café: título sobre hero — no debe cambiar (siempre blanco sobre imagen) */
+html.theme-dark .coffee-detail-title {
+  color: var(--pure-white) !important;
+}
+
+/* Detalle café: clips técnicos, adquirir, sección */
+html.theme-dark .coffee-detail-tech-item,
+html.theme-dark .coffee-detail .brew-barista-tip {
+  background: var(--surface) !important;
+  border: none !important;
+}
+
+html.theme-dark .coffee-detail-tech-icon-wrap,
+html.theme-dark .coffee-detail-tech-icon,
+html.theme-dark .brew-barista-icon .ui-icon {
+  color: var(--caramel-soft) !important;
+}
+
+html.theme-dark .coffee-detail-tech-copy strong,
+html.theme-dark .brew-barista-copy strong {
+  color: var(--text-subtle) !important;
+}
+
+html.theme-dark .coffee-detail-tech-copy em,
+html.theme-dark .brew-barista-copy em {
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .coffee-detail-acquire-row {
+  background: var(--surface) !important;
+  color: var(--text-main) !important;
+  border: none !important;
+}
+
+html.theme-dark .coffee-detail-acquire-main strong,
+html.theme-dark .coffee-detail-acquire-icon,
+html.theme-dark .coffee-detail-acquire-chevron {
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .coffee-detail .section-title {
+  color: var(--text-main) !important;
+}
+
+/* Brew prep: pasos preinfusión, pausar, iniciar, timeline */
+html.theme-dark .brew-prep-card {
+  background: var(--surface) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-dark .brew-prep-phase,
+html.theme-dark .brew-prep-next,
+html.theme-dark .brew-prep-time-labels small,
+html.theme-dark .brew-prep-total {
+  color: var(--text-subtle) !important;
+}
+
+html.theme-dark .brew-prep-clock {
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .brew-prep-total strong {
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .brew-prep-bar {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+html.theme-dark .brew-prep-bar i {
+  background: var(--text-main) !important;
+}
+
+html.theme-dark .brew-prep-advice-list li,
+html.theme-dark .brew-prep-advice-card {
+  background: var(--surface) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .brew-prep-action-secondary {
+  border-color: var(--caramel-soft) !important;
+  color: var(--caramel-soft) !important;
+}
+
+html.theme-dark .action-button.brew-prep-action-primary.is-running {
+  background: #d63a3a !important;
+  color: var(--pure-white) !important;
+}
+
+/* Editar actividad (diario): sheet, campos, pasos, botones */
+html.theme-dark .diary-edit-entry-sheet,
+html.theme-dark .diary-edit-entry-sheet .sheet-header,
+html.theme-dark .diary-edit-entry-sheet .sheet-title {
+  background: var(--modal-header-bg) !important;
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .diary-edit-entry-header-action {
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .diary-edit-entry-metric-field {
+  background: var(--surface) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-dark .diary-edit-entry-metric-field > span {
+  color: var(--text-subtle) !important;
+}
+
+html.theme-dark .diary-edit-entry-input,
+html.theme-dark .diary-edit-entry-step {
+  background: var(--surface) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .diary-edit-entry-unit {
+  color: var(--text-subtle) !important;
+}
+
+html.theme-dark .diary-edit-entry-block-title {
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .diary-edit-entry-sheet .diary-sheet-form label > span {
+  color: var(--text-subtle) !important;
+}
+
+html.theme-dark .diary-edit-entry-cancel {
+  background: transparent !important;
+  border-color: var(--text-main) !important;
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .diary-edit-entry-save {
+  background: var(--caramel-soft) !important;
+  border-color: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+}
+
+html.theme-dark .diary-edit-entry-presets .period-chip {
+  background: #000000 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+html.theme-dark .diary-edit-entry-presets .period-chip.is-active {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+}
+
+/* Topbar calendario / selecciona periodo */
+html.theme-dark .topbar-timeline {
+  background: var(--screen-dark-background) !important;
+}
+
+html.theme-dark .topbar-timeline .diary-period-chip,
+html.theme-dark .topbar-timeline .diary-period-chip-with-arrows,
+html.theme-dark .topbar-timeline .diary-chip-arrow,
+html.theme-dark .topbar-timeline .diary-chip-date {
+  background: var(--surface) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-main) !important;
+}
+
+/* Action buttons, CTA, follow (bloque dark grande de features) */
+html.theme-dark .coffee-detail-opinions-cta,
+html.theme-dark .action-button.coffee-detail-sensory-submit:not(:disabled),
+html.theme-dark .action-button.action-button--primary,
+html.theme-dark .action-button.brew-prep-action-primary:not(.is-running),
+html.theme-dark .action-button.brew-result-action-primary,
+html.theme-dark .brew-prep-action-primary,
+html.theme-dark .brew-result-action-primary {
+  background: var(--caramel-soft);
+  color: var(--pure-black) !important;
+}
+
+html.theme-dark .comment-action-button.is-danger {
+  background: var(--electric-red);
+  color: var(--pure-black);
+}
+
+html.theme-dark .notifications-swipe-bg {
+  color: var(--pure-black);
+}
+
+html.theme-dark .profile-inline-metrics .diary-edit-entry-metric-field {
+  background: #000000 !important;
+  border: none !important;
+}
+
+html.theme-dark .profile-inline-metrics .diary-edit-entry-metric-field > span {
+  color: #ffffff !important;
+}
+
+html.theme-dark .profile-inline-metrics .profile-inline-name-input,
+html.theme-dark .profile-inline-metrics .profile-inline-bio-input {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+html.theme-dark .profile-inline-save-button {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+  border: none !important;
+}
+
+html.theme-dark .suggestion-strip .suggestion-subtitle {
+  color: var(--text-subtle);
+}
+
+/* Bloque light: lista genérica de cards/botones/inputs con fondo blanco → modo noche */
+html.theme-dark .sidebar-meta,
+html.theme-dark .icon-button,
+html.theme-dark .chip-button,
+html.theme-dark .search-wide,
+html.theme-dark .coffee-profile-card,
+html.theme-dark .composer-card,
+html.theme-dark .feed-card,
+html.theme-dark .coffee-card,
+html.theme-dark .metric-card,
+html.theme-dark .diary-card,
+html.theme-dark .diary-empty-card,
+html.theme-dark .config-card,
+html.theme-dark .method-card,
+html.theme-dark .brew-timer,
+html.theme-dark .mini-card,
+html.theme-dark .coffee-select,
+html.theme-dark .premium-tabs,
+html.theme-dark .status-chip,
+html.theme-dark .step {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+/* wordmark, nav activo, etc.: color modo noche */
+html.theme-dark .wordmark,
+html.theme-dark .coffee-origin,
+html.theme-dark .status-chip,
+html.theme-dark .nav-item.is-active,
+html.theme-dark .score-pill,
+html.theme-dark .metric-pill,
+html.theme-dark .step.is-active {
+  color: var(--caramel-accent);
+}
+
+/* ========== Botones: modo oscuro (forzar colores) ========== */
+html.theme-dark .action-button {
+  background: rgba(var(--caramel-soft-rgb), 0.2) !important;
+  color: var(--caramel-soft) !important;
+  border-color: transparent !important;
+}
+
+html.theme-dark .action-button:hover,
+html.theme-dark .action-button:focus-visible {
+  background: rgba(var(--caramel-soft-rgb), 0.3) !important;
+  color: var(--caramel-soft) !important;
+}
+
+html.theme-dark .action-button.action-button--primary,
+html.theme-dark .action-button.brew-prep-action-primary:not(.is-running),
+html.theme-dark .action-button.brew-result-action-primary,
+html.theme-dark .action-button.coffee-detail-sensory-submit:not(:disabled),
+html.theme-dark .coffee-detail-opinions-cta {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+  border-color: var(--caramel-soft) !important;
+}
+
+html.theme-dark .action-button.action-button-ghost {
+  background: var(--surface-muted) !important;
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .text-button {
+  background: transparent !important;
+  color: var(--caramel-soft) !important;
+}
+
+html.theme-dark .icon-button,
+html.theme-dark .chip-button {
+  background: var(--surface) !important;
+  color: var(--caramel-soft) !important;
+  border-color: transparent !important;
+}
+
+html.theme-dark .icon-button.is-active {
+  background: rgba(var(--caramel-soft-rgb), 0.14) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--caramel-soft) !important;
+}
+
+html.theme-dark .topbar-icon-button {
+  background: transparent !important;
+  color: var(--text-main) !important;
+}
+
+html.theme-dark .comment-action-button {
+  color: var(--caramel-soft) !important;
+}
+
+html.theme-dark .comment-action-button:hover {
+  background: rgba(var(--caramel-soft-rgb), 0.14) !important;
+}
+
+html.theme-dark .comment-action-button.is-danger {
+  background: var(--electric-red) !important;
+  color: var(--pure-black) !important;
+}
+
+html.theme-dark .diary-sheet-action {
+  background: var(--surface) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-dark .diary-sheet-action.is-active {
+  background: rgba(var(--caramel-soft-rgb), 0.14) !important;
+  border-color: rgba(var(--caramel-soft-rgb), 0.4) !important;
+  color: var(--caramel-soft) !important;
+}
+
+/* ========== Tema forzado CLARO (html.theme-light): anular @media (prefers-color-scheme: dark) ========== */
+/* Modales, sheets, notificaciones */
+html.theme-light .sheet-card,
+html.theme-light .sheet-header {
+  background: var(--modal-surface-bg);
+  border-color: var(--border-light);
+}
+
+html.theme-light .sheet-input-shell,
+html.theme-light .sheet-card .icon-button {
+  background: var(--modal-field-bg);
+  border-color: var(--border-light);
+  color: var(--modal-text-main);
+}
+
+html.theme-light .notifications-panel,
+html.theme-light .notifications-header {
+  background: var(--screen-light-background);
+}
+
+html.theme-light .notifications-overlay {
+  background: var(--screen-light-background);
+}
+
+/* Tabs (diario, perfil) */
+html.theme-light .diary-tabs,
+html.theme-light .profile-tabs {
+  background: var(--pure-white);
+  border: none;
+}
+
+html.theme-light .diary-tabs .premium-tab,
+html.theme-light .profile-tabs .premium-tab {
+  color: var(--espresso-medium);
+}
+
+html.theme-light .diary-tabs .premium-tab.is-active,
+html.theme-light .profile-tabs .premium-tab.is-active {
+  background: var(--caramel-accent) !important;
+  color: var(--pure-white) !important;
+}
+
+/* Cards genéricos e iconos/topbar (refuerzo) */
+html.theme-light .sidebar-meta,
+html.theme-light .icon-button,
+html.theme-light .chip-button,
+html.theme-light .search-wide,
+html.theme-light .coffee-profile-card,
+html.theme-light .composer-card,
+html.theme-light .feed-card,
+html.theme-light .coffee-card,
+html.theme-light .metric-card,
+html.theme-light .diary-card,
+html.theme-light .diary-empty-card,
+html.theme-light .config-card,
+html.theme-light .method-card,
+html.theme-light .brew-timer,
+html.theme-light .mini-card,
+html.theme-light .coffee-select,
+html.theme-light .premium-tabs,
+html.theme-light .status-chip,
+html.theme-light .step {
+  background: var(--pure-white);
+  border-color: var(--border-light);
+}
+
+html.theme-light .wordmark,
+html.theme-light .nav-item.is-active,
+html.theme-light .score-pill,
+html.theme-light .metric-pill,
+html.theme-light .step.is-active {
+  color: var(--caramel-accent);
+}
+
+/* ========== Botones: modo claro (forzar colores) ========== */
+html.theme-light .action-button {
+  background: rgba(var(--caramel-soft-rgb), 0.2) !important;
+  color: var(--caramel-accent) !important;
+  border-color: transparent !important;
+}
+
+html.theme-light .action-button:hover,
+html.theme-light .action-button:focus-visible {
+  background: rgba(111, 78, 55, 0.14) !important;
+  color: var(--caramel-accent) !important;
+}
+
+html.theme-light .action-button.action-button--primary,
+html.theme-light .action-button.brew-prep-action-primary:not(.is-running),
+html.theme-light .action-button.brew-result-action-primary,
+html.theme-light .action-button.coffee-detail-sensory-submit:not(:disabled),
+html.theme-light .coffee-detail-opinions-cta {
+  background: var(--caramel-accent) !important;
+  color: var(--pure-white) !important;
+  border-color: var(--caramel-accent) !important;
+}
+
+html.theme-light .action-button.action-button-ghost {
+  background: var(--surface-muted) !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .text-button {
+  background: transparent !important;
+  color: var(--caramel-accent) !important;
+}
+
+html.theme-light .icon-button,
+html.theme-light .chip-button {
+  background: var(--pure-white) !important;
+  color: var(--caramel-accent) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-light .icon-button.is-active {
+  background: rgba(111, 78, 55, 0.14) !important;
+  border-color: var(--border-light) !important;
+  color: var(--caramel-accent) !important;
+}
+
+html.theme-light .topbar-icon-button {
+  background: transparent !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .comment-action-button {
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .comment-action-button:hover {
+  background: rgba(111, 78, 55, 0.08) !important;
+}
+
+html.theme-light .comment-action-button.is-danger {
+  color: #b3261e !important;
+}
+
+html.theme-light .diary-sheet-action {
+  background: var(--pure-white) !important;
+  color: var(--espresso-deep) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-light .diary-sheet-action.is-active {
+  background: rgba(111, 78, 55, 0.08) !important;
+  border-color: rgba(111, 78, 55, 0.24) !important;
+  color: var(--espresso-deep) !important;
+}
+
+/* Filter chips, buscador */
+html.theme-light .filter-chip {
+  background: var(--pure-white);
+  border: none;
+  color: var(--text-main);
+}
+
+html.theme-light .filter-chip.is-active {
+  background: var(--caramel-accent) !important;
+  color: var(--pure-white) !important;
+}
+
+html.theme-light .filter-chip-count {
+  background: var(--caramel-accent);
+  color: var(--pure-white);
+}
+
+html.theme-light .topbar-search .search-wide,
+html.theme-light .topbar-search-users .search-wide {
+  background: var(--pure-white);
+  color: var(--espresso-deep);
+  border-color: #b0b0b0;
+}
+
+/* Post menu trigger, feed */
+html.theme-light .feed-head .post-menu-trigger,
+html.theme-light .profile-topbar-menu-trigger,
+html.theme-light .comments-list .post-menu-trigger {
+  background: var(--pure-white);
+  color: #111111;
+  border-color: #d3d3d3;
+}
+
+/* Diary topbar add, period chip */
+html.theme-light .diary-topbar-add,
+html.theme-light .diary-period-chip {
+  background: var(--pure-white);
+  border-color: var(--border-light);
+  color: var(--espresso-deep);
+}
+
+/* Detalle café, create post, brew, diary sheets */
+html.theme-light .coffee-detail,
+html.theme-light .coffee-detail-body,
+html.theme-light .coffee-detail-section-first,
+html.theme-light .coffee-detail-stat,
+html.theme-light .coffee-detail-topbar {
+  background: var(--screen-light-background);
+  border-color: var(--border-light);
+}
+
+html.theme-light .coffee-detail-topbar-icon {
+  background: var(--pure-white);
+  color: var(--pure-black);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+html.theme-light .create-post-header,
+html.theme-light .create-post-composer-card,
+html.theme-light .create-post-coffee-row,
+html.theme-light .create-post-add-photo-row,
+html.theme-light .create-post-image-stage,
+html.theme-light .create-post-gallery-item {
+  background: var(--pure-white);
+}
+
+html.theme-light .diary-sheet,
+html.theme-light .diary-sheet-action,
+html.theme-light .diary-pantry-card,
+html.theme-light .diary-pantry-foot,
+html.theme-light .diary-analytics-card {
+  background: var(--pure-white);
+  border-color: var(--border-light);
+  color: var(--espresso-deep);
+}
+
+html.theme-light .brew-method-card-native,
+html.theme-light .brew-pantry-card,
+html.theme-light .brew-suggestion-card,
+html.theme-light .brew-tech-card,
+html.theme-light .brew-prep-card,
+html.theme-light .brew-result-card,
+html.theme-light .brew-barista-tip {
+  background: var(--pure-white);
+  border-color: var(--border-light);
+  color: var(--espresso-deep);
+}
+
+html.theme-light .fab {
+  background: var(--espresso-deep);
+  color: var(--pure-white) !important;
+}
+
+/* Fechas modo día */
+html.theme-light .feed-head .feed-meta,
+html.theme-light .comment-time,
+html.theme-light .coffee-detail-opinion-copy .feed-meta,
+html.theme-light .coffee-detail .coffee-card .feed-meta,
+html.theme-light .profile-post-user .feed-meta,
+html.theme-light .diary-entry-time-pill {
+  color: #5c5c5c !important;
+}
+
+/* ========== Timeline: modo claro ========== */
+html.theme-light .content.content-timeline {
+  background: var(--screen-light-background);
+}
+
+html.theme-light .timeline-empty,
+html.theme-light .timeline-error {
+  background: var(--pure-white);
+  border-color: var(--border-light);
+}
+
+html.theme-light .timeline-empty p {
+  color: var(--espresso-medium);
+}
+
+html.theme-light .timeline-banner {
+  background: rgba(26, 18, 11, 0.9);
+  color: var(--caramel-accent);
+}
+
+html.theme-light .timeline-overlay-card {
+  background: rgba(26, 18, 11, 0.94);
+  color: var(--caramel-accent);
+}
+
+html.theme-light .timeline-overlay-row {
+  color: var(--caramel-accent);
+}
+
+html.theme-light .timeline-spinner {
+  border-color: rgba(111, 78, 55, 0.3);
+  border-top-color: var(--caramel-accent);
+}
+
+html.theme-light .composer-card,
+html.theme-light .feed-card {
+  background: var(--pure-white);
+  border: none;
+}
+
+html.theme-light .composer-title {
+  color: var(--espresso-deep);
+}
+
+html.theme-light .composer-sub,
+html.theme-light .feed-head .feed-meta,
+html.theme-light .feed-stats {
+  color: var(--espresso-medium);
+}
+
+html.theme-light .feed-head .feed-user,
+html.theme-light .feed-user {
+  color: var(--espresso-deep);
+}
+
+html.theme-light .feed-text {
+  color: var(--espresso-deep);
+}
+
+html.theme-light .feed-card-premium {
+  background: var(--pure-white);
+}
+
+html.theme-light .feed-image {
+  background: var(--pure-white);
+}
+
+html.theme-light .shimmer-card {
+  background: linear-gradient(90deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 100%);
+}
+
+html.theme-light .feed-follow-chip {
+  color: var(--espresso-deep);
+}
+
+html.theme-light .feed-follow-chip.is-following {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(26, 18, 11, 0.2);
+}
+
+/* Timeline columna lateral: sugerencias y mini cards modo día */
+html.theme-light .timeline-side-column .mini-card,
+html.theme-light .timeline-shell-desktop .timeline-side-column .mini-card {
+  background: var(--pure-white);
+  border-color: var(--border-light);
+  color: var(--espresso-deep);
+}
+
+html.theme-light .timeline-side-column .mini-coffee-card .feed-user,
+html.theme-light .timeline-side-column .mini-coffee-card .coffee-sub,
+html.theme-light .timeline-shell-desktop .timeline-side-column .mini-coffee-card .feed-user,
+html.theme-light .timeline-shell-desktop .timeline-side-column .mini-coffee-card .coffee-sub {
+  color: var(--espresso-deep);
+}
+
+html.theme-light .timeline-side-column .mini-user-card .feed-user,
+html.theme-light .timeline-side-column .mini-user-card .feed-meta,
+html.theme-light .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-user,
+html.theme-light .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-meta {
+  color: var(--espresso-deep);
+}
+
+html.theme-light .timeline-side-column .suggestion-strip .suggestion-subtitle,
+html.theme-light .timeline-shell-desktop .timeline-side-column .suggestion-strip .suggestion-subtitle {
+  color: var(--espresso-medium);
+}
+
+/* Café etiquetado (timeline) modo día — !important */
+html.theme-light .coffee-tag-card,
+html.theme-light .coffee-tag-card .coffee-tag-copy {
+  background: var(--pure-white) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-light .coffee-tag-card .coffee-origin,
+html.theme-light .coffee-tag-card .coffee-tag-name,
+html.theme-light .coffee-tag-card .coffee-tag-brand {
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .coffee-tag-card .coffee-tag-image-fallback {
+  background: #f4f4f4 !important;
+  color: var(--espresso-medium) !important;
+}
+
+/* Nuevo post (modal) modo día */
+html.theme-light .create-post-label,
+html.theme-light .create-post-secondary,
+html.theme-light .create-post-publish {
+  color: var(--modal-text-main) !important;
+}
+
+html.theme-light .create-post-header,
+html.theme-light .create-post-header .topbar-icon-button {
+  color: var(--modal-text-main) !important;
+}
+
+html.theme-light .create-post-image-stage,
+html.theme-light .create-post-composer-card,
+html.theme-light .create-post-coffee-row,
+html.theme-light .create-post-add-photo-row,
+html.theme-light .create-post-gallery-item {
+  background: var(--pure-white) !important;
+  color: var(--espresso-medium) !important;
+  border-color: var(--border-light) !important;
+}
+
+/* Personas que podrías seguir: título sección */
+html.theme-light .suggestion-strip .section-title {
+  color: var(--espresso-medium) !important;
+}
+
+html.theme-light .suggestion-strip .mini-user-card.suggestion-user-card {
+  background: var(--pure-white) !important;
+  border: none !important;
+}
+
+/* Comentarios: panel inline, textarea modo día */
+html.theme-light .comment-inline-panel {
+  background: transparent !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-light .composer-input-shell,
+html.theme-light .composer-input-shell .search-wide {
+  background: var(--pure-white) !important;
+  border-color: var(--border-light) !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .composer-input-textarea {
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .composer-input-textarea::placeholder {
+  color: var(--espresso-medium) !important;
+}
+
+html.theme-light .send-button:disabled {
+  background: #bdbdbd !important;
+  color: #ffffff !important;
+}
+
+/* Detalle café: título sobre hero — no debe cambiar (siempre blanco) */
+html.theme-light .coffee-detail-title {
+  color: var(--pure-white) !important;
+}
+
+/* Detalle café: clips técnicos, adquirir modo día */
+html.theme-light .coffee-detail-tech-item,
+html.theme-light .coffee-detail .brew-barista-tip {
+  background: var(--pure-white) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-light .coffee-detail-tech-copy strong,
+html.theme-light .brew-barista-copy strong {
+  color: #5c5c5c !important;
+}
+
+html.theme-light .coffee-detail-tech-copy em,
+html.theme-light .brew-barista-copy em {
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .coffee-detail-acquire-row {
+  background: var(--pure-white) !important;
+  border-color: var(--border-light) !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .coffee-detail-acquire-main strong,
+html.theme-light .coffee-detail-acquire-icon,
+html.theme-light .coffee-detail-acquire-chevron {
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .coffee-detail .section-title {
+  color: var(--espresso-deep) !important;
+}
+
+/* Brew prep modo día: pasos, pausar, iniciar */
+html.theme-light .brew-prep-card {
+  background: var(--pure-white) !important;
+  border-color: rgba(26, 18, 11, 0.08) !important;
+}
+
+html.theme-light .brew-prep-phase,
+html.theme-light .brew-prep-next,
+html.theme-light .brew-prep-time-labels small,
+html.theme-light .brew-prep-total {
+  color: #7f766f !important;
+}
+
+html.theme-light .brew-prep-clock {
+  color: var(--pure-black) !important;
+}
+
+html.theme-light .brew-prep-total strong {
+  color: var(--pure-black) !important;
+}
+
+html.theme-light .brew-prep-bar {
+  background: rgba(26, 18, 11, 0.12) !important;
+}
+
+html.theme-light .brew-prep-bar i {
+  background: var(--pure-black) !important;
+}
+
+html.theme-light .brew-prep-advice-list li,
+html.theme-light .brew-prep-advice-card {
+  background: #efefef !important;
+  border-color: rgba(26, 18, 11, 0.08) !important;
+  color: #2f2f2f !important;
+}
+
+html.theme-light .brew-prep-action-primary {
+  background: var(--caramel-accent) !important;
+  color: var(--pure-white) !important;
+}
+
+html.theme-light .brew-prep-action-secondary {
+  border-color: var(--espresso-deep) !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .action-button.brew-prep-action-primary.is-running {
+  background: #d63a3a !important;
+  color: var(--text-main) !important;
+}
+
+/* Editar actividad (diario) modo día */
+html.theme-light .diary-edit-entry-sheet,
+html.theme-light .diary-edit-entry-sheet .sheet-header,
+html.theme-light .diary-edit-entry-sheet .sheet-title {
+  background: var(--modal-header-bg) !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .diary-edit-entry-header-action {
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .diary-edit-entry-metric-field {
+  background: var(--pure-white) !important;
+  border-color: var(--border-light) !important;
+}
+
+html.theme-light .diary-edit-entry-metric-field > span {
+  color: var(--espresso-medium) !important;
+}
+
+html.theme-light .diary-edit-entry-input,
+html.theme-light .diary-edit-entry-step {
+  background: var(--pure-white) !important;
+  border-color: var(--border-light) !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .diary-edit-entry-unit {
+  color: #6f6760 !important;
+}
+
+html.theme-light .diary-edit-entry-block-title {
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .diary-edit-entry-sheet .diary-sheet-form label > span {
+  color: var(--espresso-medium) !important;
+}
+
+html.theme-light .diary-edit-entry-cancel {
+  background: var(--pure-white) !important;
+  border-color: var(--border-light) !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .diary-edit-entry-save {
+  background: var(--caramel-accent) !important;
+  border-color: var(--caramel-accent) !important;
+  color: var(--pure-white) !important;
+}
+
+html.theme-light .diary-edit-entry-presets .period-chip {
+  background: #ffffff !important;
+  border-color: var(--border-light) !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .diary-edit-entry-presets .period-chip.is-active {
+  background: var(--caramel-soft) !important;
+  border-color: #6f4e37 !important;
+  color: var(--pure-black) !important;
+}
+
+html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip {
+  background: #ffffff !important;
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip span,
+html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip small {
+  color: var(--espresso-deep) !important;
+}
+
+html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active {
+  background: var(--caramel-soft) !important;
+  color: var(--pure-black) !important;
+}
+
+html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
+html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
+  color: var(--pure-black) !important;
+}
+
+/* Editar perfil (nombre y bio): modo día = fondo blanco, texto negro */
+html.theme-light .profile-inline-metrics .diary-edit-entry-metric-field {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+html.theme-light .profile-inline-metrics .diary-edit-entry-metric-field > span {
+  color: #000000 !important;
+}
+
+html.theme-light .profile-inline-metrics .profile-inline-name-input,
+html.theme-light .profile-inline-metrics .profile-inline-bio-input {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: none !important;
+}
+
+html.theme-light .profile-inline-save-button {
+  background: var(--caramel-accent) !important;
+  color: var(--pure-white) !important;
+  border: none !important;
+}
+
+/* Cambiar foto: fondo transparente en ambos temas */
+html.theme-dark .profile-inline-change-photo,
+html.theme-light .profile-inline-change-photo {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Topbar calendario / selecciona periodo modo día */
+html.theme-light .topbar-timeline {
+  background: rgba(247, 247, 247, 0.86) !important;
+}
+
+html.theme-light .topbar-timeline.topbar-scrolled {
+  background: rgba(247, 247, 247, 0.95) !important;
+}
+
+html.theme-light .topbar-timeline .diary-period-chip,
+html.theme-light .topbar-timeline .diary-period-chip-with-arrows,
+html.theme-light .topbar-timeline .diary-chip-arrow,
+html.theme-light .topbar-timeline .diary-chip-date {
+  background: var(--pure-white) !important;
+  border-color: var(--border-light) !important;
+  color: var(--espresso-deep) !important;
+}

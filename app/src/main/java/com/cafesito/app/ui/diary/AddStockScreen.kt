@@ -208,7 +208,8 @@ fun AddStockScreen(
                             onClick = {
                                 nativeScannerLauncher.launch(Intent(context, NativeBarcodeScannerActivity::class.java))
                             },
-                            modifier = Modifier.padding(end = 12.dp)
+                            modifier = Modifier.padding(end = 12.dp),
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
                         ) {
                             BarcodeActionIcon(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant

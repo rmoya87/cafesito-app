@@ -138,12 +138,17 @@ class DiaryRepository @Inject constructor(
         }
     }
 
+    companion object {
+        /** Tipo de entrada: taza de café (por defecto). */
+        const val TYPE_CUP = "CUP"
+    }
+
     suspend fun addDiaryEntry(
-        coffeeId: String?, 
-        coffeeName: String, 
+        coffeeId: String?,
+        coffeeName: String,
         coffeeBrand: String,
-        caffeineAmount: Int, 
-        type: String = "CUP", 
+        caffeineAmount: Int,
+        type: String = TYPE_CUP,
         amountMl: Int = 250,
         coffeeGrams: Int = 15,
         preparationType: String = "Espresso",
@@ -161,7 +166,7 @@ class DiaryRepository @Inject constructor(
         val rowId = diaryDao.insertDiaryEntry(entry)
         val entryWithId = entry.copy(id = rowId)
         
-        if (coffeeId != null && type == "CUP" && reduceFromPantry) {
+        if (coffeeId != null && type == TYPE_CUP && reduceFromPantry) {
             val pantryItems = diaryDao.getPantryItems(user.id).first()
             val pantryItem = pantryItems.find { it.coffeeId == coffeeId }
             if (pantryItem != null) {
@@ -185,7 +190,6 @@ class DiaryRepository @Inject constructor(
             }
         }
     }
-
 
     private suspend fun enqueueDiaryEntryForSync(localEntryId: Long, error: Throwable?) {
         val existing = diaryDao.getPendingDiarySyncEntries().find { it.localEntryId == localEntryId }

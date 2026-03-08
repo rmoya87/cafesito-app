@@ -220,7 +220,9 @@ fun TimelineScreen(
                         items(5) { ShimmerItem(Modifier.fillMaxWidth().height(400.dp).padding(16.dp)) }
                     }
                 }
-                is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+                is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ErrorStateMessage(message = state.message, onRetry = { viewModel.refreshData() })
+                }
                 is TimelineUiState.Success -> {
                     val usersByUsername = remember(state.allUsers) { state.allUsers.associateBy { it.username.lowercase() } }
                     if (state.items.isEmpty()) {

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "./Button";
 import { Textarea } from "./Textarea";
 import { cn } from "./cn";
@@ -52,6 +52,7 @@ export function ComposerInputShell({
   toolsWrapClassName?: string;
   extraContent?: ReactNode;
 }) {
+  const [failedAvatarUrls, setFailedAvatarUrls] = useState<Set<string>>(new Set());
   const mentionRegex = /(^|\s)@([A-Za-z0-9._-]{2,30})(?=\s|$)/g;
   const richParts: Array<{
     type: "text" | "mention";
@@ -106,7 +107,7 @@ export function ComposerInputShell({
               className="mention-chip"
               onClick={() => onInsertMention?.(user.username)}
             >
-              {user.avatar_url ? (
+              {user.avatar_url && !failedAvatarUrls.has(user.avatar_url) ? (
                 <img
                   className="mention-chip-avatar"
                   src={user.avatar_url}
@@ -115,6 +116,7 @@ export function ComposerInputShell({
                   decoding="async"
                   referrerPolicy="no-referrer"
                   crossOrigin="anonymous"
+                  onError={() => setFailedAvatarUrls((prev) => new Set(prev).add(user.avatar_url!))}
                 />
               ) : (
                 <span className="mention-chip-fallback">{user.username.slice(0, 1).toUpperCase()}</span>

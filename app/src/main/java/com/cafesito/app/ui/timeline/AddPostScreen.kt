@@ -410,18 +410,21 @@ private fun PostDetailsStepPremium(
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = {
-                                val options = GmsBarcodeScannerOptions.Builder()
-                                    .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
-                                    .build()
-                                GmsBarcodeScanning.getClient(context, options)
-                                    .startScan()
-                                    .addOnSuccessListener { barcode ->
+                            IconButton(
+                                onClick = {
+                                    val options = GmsBarcodeScannerOptions.Builder()
+                                        .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                                        .build()
+                                    GmsBarcodeScanning.getClient(context, options)
+                                        .startScan()
+                                        .addOnSuccessListener { barcode ->
                                         barcode.rawValue?.let { value ->
                                             viewModel.onSearchQueryChanged(value)
                                         }
                                     }
-                            }) {
+                                },
+                                colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
+                            ) {
                                 BarcodeActionIcon(tint = MaterialTheme.colorScheme.onSurface)
                             }
                             Spacer(Modifier.width(8.dp))
@@ -518,18 +521,21 @@ private fun CoffeeSelectionStepPremium(viewModel: AddPostViewModel) {
             leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurface) },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = {
-                        val options = GmsBarcodeScannerOptions.Builder()
-                            .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
-                            .build()
-                        GmsBarcodeScanning.getClient(context, options)
-                            .startScan()
-                            .addOnSuccessListener { barcode ->
-                                barcode.rawValue?.let { value ->
-                                    viewModel.onSearchQueryChanged(value)
+                    IconButton(
+                        onClick = {
+                            val options = GmsBarcodeScannerOptions.Builder()
+                                .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8)
+                                .build()
+                            GmsBarcodeScanning.getClient(context, options)
+                                .startScan()
+                                .addOnSuccessListener { barcode ->
+                                    barcode.rawValue?.let { value ->
+                                        viewModel.onSearchQueryChanged(value)
+                                    }
                                 }
-                            }
-                    }) {
+                        },
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
+                    ) {
                         BarcodeActionIcon(tint = MaterialTheme.colorScheme.onSurface)
                     }
                     Spacer(Modifier.width(8.dp))

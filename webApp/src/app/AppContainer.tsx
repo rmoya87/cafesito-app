@@ -36,6 +36,7 @@ import { useAppUiEffects } from "../hooks/domains/useAppUiEffects";
 import { useCoffeeSeoMeta } from "../hooks/domains/useCoffeeSeoMeta";
 import { useCoffeeRouteSync, useRouteCanonicalSync, useRouteGuardSync } from "../hooks/domains/useRouteSync";
 import { getSupabaseClient, supabaseConfigError } from "../supabase";
+import { applyThemeToDocument, getThemeMode } from "../core/theme";
 import { TopBar } from "../features/topbar/TopBar";
 import {
   LazyTimelineView,
@@ -84,6 +85,11 @@ export function AppContainer() {
   const isNotFoundRoute = !isKnownRoute(window.location.pathname);
   const { mode, viewportWidth } = useResponsiveMode();
   const [activeTab, setActiveTab] = useState<TabId>(initialRoute.tab);
+
+  /* Sincronizar clase theme-light/theme-dark en html con la preferencia guardada (por si se perdió) */
+  useEffect(() => {
+    applyThemeToDocument(getThemeMode());
+  }, []);
 
   const [globalStatus, setGlobalStatus] = useState("Cargando datos...");
 
@@ -176,8 +182,11 @@ export function AppContainer() {
   const [brewRunning, setBrewRunning] = useState(false);
   const [diaryTab, setDiaryTab] = useState<"actividad" | "despensa">("actividad");
   const [diaryPeriod, setDiaryPeriod] = useState<"hoy" | "7d" | "30d">("hoy");
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [selectedDiaryDate, setSelectedDiaryDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [showDiaryQuickActions, setShowDiaryQuickActions] = useState(false);
   const [showDiaryPeriodSheet, setShowDiaryPeriodSheet] = useState(false);
+  const [showDiaryCalendarSheet, setShowDiaryCalendarSheet] = useState(false);
   const [showDiaryWaterSheet, setShowDiaryWaterSheet] = useState(false);
   const [diaryWaterMlDraft, setDiaryWaterMlDraft] = useState("250");
   const [showDiaryCoffeeSheet, setShowDiaryCoffeeSheet] = useState(false);
@@ -400,6 +409,25 @@ export function AppContainer() {
     onBlocked: requestLogin,
     fallbackPath: loginRootPath
   });
+
+  // Al cargar o cambiar de página: guardar como último acceso (tab, path y fecha)
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined" || !localStorage) return;
+      const path = window.location.pathname;
+      localStorage.setItem(
+        "cafesito_last_page",
+        JSON.stringify({
+          tab: activeTab,
+          path,
+          searchMode,
+          lastAccessAt: new Date().toISOString()
+        })
+      );
+    } catch {
+      // ignore
+    }
+  }, [activeTab, searchMode]);
 
   // Si hay error de auth (login fallido, 500, callback con error), llevar a /timeline para no dejar en URL de error
   useEffect(() => {
@@ -1182,7 +1210,6 @@ export function AppContainer() {
     return (
       <LoginGate
         loading={authBusy}
-        message={authBusy ? "Redirigiendo a Google..." : undefined}
         errorMessage={authError}
         onGoogleLogin={handleGoogleLogin}
         onGoogleCredential={handleGoogleCredential}
@@ -1235,6 +1262,7 @@ export function AppContainer() {
         onOpenCoffee={(coffeeId) => {
           openCoffeeDetail(coffeeId, "timeline");
         }}
+        onOpenCreatePost={openCreatePostComposer}
         sidePanel={activeSidePanelTarget === "timeline" ? detailPanel : null}
       />
     ) : null;
@@ -1387,6 +1415,7 @@ export function AppContainer() {
         tab={diaryTab}
         setTab={setDiaryTab}
         period={diaryPeriod}
+        selectedDiaryDate={selectedDiaryDate}
         entries={diaryEntriesActivity}
         coffeeCatalog={brewCoffeeCatalog}
         pantryRows={pantryCoffeeRows}
@@ -1609,6 +1638,12 @@ export function AppContainer() {
       showAddPantrySheet={showDiaryAddPantrySheet}
       onCloseQuickActions={() => setShowDiaryQuickActions(false)}
       onClosePeriodSheet={() => setShowDiaryPeriodSheet(false)}
+      showCalendarSheet={showDiaryCalendarSheet}
+      onCloseCalendarSheet={() => setShowDiaryCalendarSheet(false)}
+      selectedDiaryDate={selectedDiaryDate}
+      setSelectedDiaryDate={setSelectedDiaryDate}
+      diaryTodayStr={todayStr}
+      diaryEntries={diaryEntries}
       onCloseWaterSheet={() => setShowDiaryWaterSheet(false)}
       onCloseCoffeeSheet={() => {
         setLastCreatedCoffeeNameForSheet(null);
@@ -1669,40 +1704,42 @@ export function AppContainer() {
       onClearBarcodeDetectedValue={() => setBarcodeDetectedValueForDiary(null)}
     />
   );
+  const showAndroidBanner = mode === "mobile" && isAndroidMobile && !androidBannerDismissed;
+
   return (
     <div
       className={`layout ${mode} ${mode === "desktop" && isSearchUsersPage ? "is-search-users-page" : ""}`.trim()}
     >
+      {showAndroidBanner ? (
+        <div className="android-install-banner-wrap">
+          <aside className="android-install-banner android-install-banner-fixed" role="banner" aria-label="Instalar app">
+            <a
+              href="https://play.google.com/store/apps/details?id=com.cafesito.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="android-install-banner-link"
+            >
+              <span className="android-install-banner-icon" aria-hidden="true">
+                <UiIcon name="shop" className="ui-icon" />
+              </span>
+              <span className="android-install-banner-text">Instala la app Cafesito en Google Play</span>
+            </a>
+            <Button
+              variant="plain"
+              type="button"
+              className="android-install-banner-dismiss"
+              aria-label="Cerrar"
+              onClick={dismissAndroidBanner}
+            >
+              <UiIcon name="close" className="ui-icon" />
+            </Button>
+          </aside>
+          <div className="android-install-banner-spacer" aria-hidden="true" />
+        </div>
+      ) : null}
       <OfflineBanner />
       {mode === "desktop" && !isSearchUsersPage ? navRail : null}
-      <main className={`main-shell ${mode === "mobile" && isAndroidMobile && !androidBannerDismissed ? "has-android-banner" : ""}`.trim()}>
-        {mode === "mobile" && isAndroidMobile && !androidBannerDismissed ? (
-          <div className="android-install-banner-wrap">
-            <aside className="android-install-banner android-install-banner-fixed" role="banner" aria-label="Instalar app">
-              <a
-                href="https://play.google.com/store/apps/details?id=com.cafesito.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="android-install-banner-link"
-              >
-                <span className="android-install-banner-icon" aria-hidden="true">
-                  <UiIcon name="shop" className="ui-icon" />
-                </span>
-                <span className="android-install-banner-text">Instala la app Cafesito en Google Play</span>
-              </a>
-              <Button
-                variant="plain"
-                type="button"
-                className="android-install-banner-dismiss"
-                aria-label="Cerrar"
-                onClick={dismissAndroidBanner}
-              >
-                <UiIcon name="close" className="ui-icon" />
-              </Button>
-            </aside>
-            <div className="android-install-banner-spacer" aria-hidden="true" />
-          </div>
-        ) : null}
+      <main className="main-shell">
         {guardedActiveTab !== "coffee" ? (
         <TopBar
           activeTab={guardedActiveTab}
@@ -1727,6 +1764,21 @@ export function AppContainer() {
           onTimelineSearchUsers={topbarActions.onTimelineSearchUsers}
           onTimelineNotifications={topbarActions.onTimelineNotifications}
           diaryPeriod={diaryPeriod}
+          diarySelectedDate={selectedDiaryDate}
+          diaryTodayStr={todayStr}
+          onDiaryPrevDay={() => {
+            const d = new Date(selectedDiaryDate + "T12:00:00");
+            d.setDate(d.getDate() - 1);
+            setSelectedDiaryDate(d.toISOString().slice(0, 10));
+          }}
+          onDiaryNextDay={() => {
+            const d = new Date(selectedDiaryDate + "T12:00:00");
+            const today = new Date(todayStr + "T12:00:00");
+            if (d.getTime() >= today.getTime()) return;
+            d.setDate(d.getDate() + 1);
+            setSelectedDiaryDate(d.toISOString().slice(0, 10));
+          }}
+          onDiaryOpenCalendarSheet={() => setShowDiaryCalendarSheet(true)}
           onDiaryOpenQuickActions={topbarActions.onDiaryOpenQuickActions}
           onDiaryOpenPeriodSelector={topbarActions.onDiaryOpenPeriodSelector}
           scrolled={topbarScrolled}

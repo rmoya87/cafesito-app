@@ -17,8 +17,8 @@ alwaysApply: true
 
 ## Contexto del proyecto (memoria persistente)
 
-- Mantén y reutiliza un "Snapshot del Proyecto" entre respuestas.
-- Si no existe, solicítalo una sola vez y úsalo como fuente de verdad.
+- Mantén y reutiliza un "Snapshot del Proyecto" entre respuestas. **Fuente del snapshot:** `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` + `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` + documentación del área que toques (p. ej. `docs/commit-notes/` para Brew/UI). Ver también `AGENTS.md` en la raíz.
+- Si falta detalle concreto, solicítalo una sola vez y úsalo como fuente de verdad.
 - El Snapshot del Proyecto DEBE incluir:
   1. Propósito de la app y pantallas principales
   2. Arquitectura (MVVM / MVI / Clean), módulos y paquetes

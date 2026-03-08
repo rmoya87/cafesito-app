@@ -64,6 +64,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -116,6 +117,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.camera.NativeBarcodeScannerActivity
+import com.cafesito.app.ui.components.ErrorStateMessage
 import com.cafesito.app.ui.components.PremiumCard
 import com.cafesito.app.ui.components.ShimmerItem
 import com.cafesito.app.ui.components.TagChip
@@ -200,7 +202,8 @@ private fun SearchTopBar(
                                 trailingIcon = {
                                     IconButton(
                                         onClick = onBarcodeClick,
-                                        modifier = Modifier.padding(end = 12.dp)
+                                        modifier = Modifier.padding(end = 12.dp),
+                                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
                                     ) {
                                         BarcodeActionIcon(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -485,7 +488,9 @@ fun SearchScreen(
                             items(3) { ShimmerItem(Modifier.fillMaxWidth().height(350.dp).padding(16.dp)) }
                         }
                     }
-                    is SearchUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+                    is SearchUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                ErrorStateMessage(message = state.message, onRetry = { viewModel.refreshData() })
+                            }
                     is SearchUiState.Success -> {
                         if (state.coffees.isEmpty() && !isRefreshing) {
                             Box(

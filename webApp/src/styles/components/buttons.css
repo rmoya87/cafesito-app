@@ -41,14 +41,15 @@
   letter-spacing: var(--tracking-tight);
 }
 
+/* Área de tap ≥ 44px para iconos (accesibilidad WCAG 2.5.5) */
 .icon-button,
 .chip-button {
   position: relative;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   padding: 8px 10px;
-  min-width: 42px;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   background: var(--surface);
   color: var(--caramel-soft);
   font-size: var(--font-size-xs);
@@ -64,10 +65,12 @@
   background: rgba(var(--caramel-soft-rgb), 0.14);
 }
 
+/* Área de tap ≥ 44px (accesibilidad WCAG 2.5.5) */
 .topbar-icon-button {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 999px;
   padding: 0;
   border: 1px solid transparent;

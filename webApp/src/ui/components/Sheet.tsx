@@ -1,11 +1,146 @@
-import { createContext, forwardRef, useCallback, useContext, useEffect, useRef, useState, type HTMLAttributes } from "react";
+import { createContext, forwardRef, useCallback, useContext, useEffect, useRef, type HTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "./cn";
 
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 const SNAP_DURATION_MS = 220;
 
+/** Elementos que no deben iniciar arrastre: el usuario hace clic/tap en ellos para actuar */
+const DRAG_SKIP_SELECTOR =
+  "button, a, input, select, textarea, [contenteditable=\"true\"], [role=\"button\"], [role=\"tab\"], [role=\"menuitem\"], [role=\"option\"], .sheet-drag-ignore";
+
 const SheetDismissContext = createContext<(() => void) | null>(null);
+
+function useSheetDrag(
+  triggerRef: React.RefObject<HTMLElement | null>,
+  getCard: () => HTMLElement | null,
+  onDismiss: (() => void) | null,
+  skipIfInteractive: boolean
+) {
+  const startYRef = useRef(0);
+  const startTranslateRef = useRef(0);
+  const currentTranslateRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const didDragRef = useRef(false);
+  const lastMoveTimeRef = useRef(0);
+  const lastYRef = useRef(0);
+  const onDismissRef = useRef(onDismiss);
+  const getCardRef = useRef(getCard);
+  const triggerRefRef = useRef(triggerRef);
+  onDismissRef.current = onDismiss;
+  getCardRef.current = getCard;
+  triggerRefRef.current = triggerRef;
+
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      const trigger = triggerRefRef.current?.current ?? null;
+      if (!trigger) return;
+      if (skipIfInteractive) {
+        const target = e.target as Node;
+        if (!trigger.contains(target)) return;
+      }
+      const card = getCardRef.current();
+      if (!card) return;
+      if (skipIfInteractive) {
+        const target = e.target as Node;
+        if (!card.contains(target)) return;
+        const targetEl = e.target as Element;
+        if (targetEl.closest?.(".sheet-handle")) return;
+        if (targetEl.closest?.(DRAG_SKIP_SELECTOR)) return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const style = window.getComputedStyle(card);
+      const matrix = new DOMMatrix(style.transform);
+      const currentTy = matrix.m42;
+      startYRef.current = e.clientY;
+      startTranslateRef.current = currentTy;
+      currentTranslateRef.current = currentTy;
+      isDraggingRef.current = true;
+      didDragRef.current = false;
+      lastMoveTimeRef.current = Date.now();
+      lastYRef.current = e.clientY;
+      trigger.setPointerCapture(e.pointerId);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      const card = getCardRef.current();
+      if (!card) return;
+      didDragRef.current = true;
+      const dy = e.clientY - startYRef.current;
+      const translate = Math.max(0, startTranslateRef.current + dy);
+      currentTranslateRef.current = translate;
+      lastYRef.current = e.clientY;
+      lastMoveTimeRef.current = Date.now();
+      card.style.transform = `translateY(${translate}px)`;
+      card.style.transition = "none";
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      const card = getCardRef.current();
+      const trigger = triggerRefRef.current?.current ?? null;
+      try {
+        if (trigger) trigger.releasePointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      isDraggingRef.current = false;
+
+      if (didDragRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      if (!card) return;
+
+      const ty = currentTranslateRef.current;
+      const dt = Date.now() - lastMoveTimeRef.current;
+      const velocity = dt > 0 ? (e.clientY - lastYRef.current) / dt : 0;
+      const shouldClose = ty >= DRAG_CLOSE_THRESHOLD_PX || (ty > 20 && velocity > 0.15);
+
+      if (shouldClose && onDismissRef.current) {
+        card.style.transition = "";
+        card.style.transform = "";
+        onDismissRef.current();
+        return;
+      }
+
+      card.style.transition = `transform ${SNAP_DURATION_MS}ms cubic-bezier(0.2, 0.9, 0.2, 1)`;
+      card.style.transform = "translateY(0)";
+      const onEnd = () => {
+        card.style.transition = "";
+        card.removeEventListener("transitionend", onEnd);
+      };
+      card.addEventListener("transitionend", onEnd);
+    };
+
+    const opts = { passive: false, capture: true };
+    if (skipIfInteractive) {
+      document.addEventListener("pointerdown", onPointerDown, opts);
+    } else {
+      const trigger = triggerRef.current;
+      if (trigger) trigger.addEventListener("pointerdown", onPointerDown, opts);
+    }
+    document.addEventListener("pointermove", onPointerMove, { passive: true });
+    document.addEventListener("pointerup", onPointerUp, { capture: true });
+    document.addEventListener("pointercancel", onPointerUp, { capture: true });
+
+    return () => {
+      if (skipIfInteractive) {
+        document.removeEventListener("pointerdown", onPointerDown, true);
+      } else {
+        const trigger = triggerRef.current;
+        if (trigger) trigger.removeEventListener("pointerdown", onPointerDown, true);
+      }
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp, { capture: true });
+      document.removeEventListener("pointercancel", onPointerUp, { capture: true });
+    };
+  }, [skipIfInteractive]);
+}
 
 type SheetOverlayProps = HTMLAttributes<HTMLDivElement> & {
   onDismiss?: () => void;
@@ -37,6 +172,15 @@ export const SheetOverlay = forwardRef<HTMLDivElement, SheetOverlayProps>(functi
     }
     focusable[0].focus();
   }, [trapFocus]);
+
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent | React.PointerEvent) => {
+      if (e.target !== e.currentTarget) return;
+      e.preventDefault();
+      onDismiss?.();
+    },
+    [onDismiss]
+  );
 
   const overlay = (
     <SheetDismissContext.Provider value={onDismiss ?? null}>
@@ -74,6 +218,11 @@ export const SheetOverlay = forwardRef<HTMLDivElement, SheetOverlayProps>(functi
         }}
         {...props}
       >
+        <div
+          className="sheet-overlay-backdrop"
+          aria-hidden
+          onClick={handleBackdropClick}
+        />
         {children}
       </div>
     </SheetDismissContext.Provider>
@@ -85,112 +234,44 @@ export const SheetOverlay = forwardRef<HTMLDivElement, SheetOverlayProps>(functi
   return overlay;
 });
 
-export function SheetCard({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("sheet-card", className)} {...props} />;
-}
+export const SheetCard = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(function SheetCard(
+  { className, children, ...props },
+  ref
+) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const dragLayerRef = useRef<HTMLDivElement | null>(null);
+  const onDismiss = useContext(SheetDismissContext);
+  const getCard = useCallback(() => dragLayerRef.current?.closest<HTMLElement>(".sheet-card") ?? null, []);
+  useSheetDrag(dragLayerRef, getCard, onDismiss ?? null, false);
+
+  return (
+    <div
+      ref={(node) => {
+        cardRef.current = node;
+        if (typeof ref === "function") ref(node);
+        else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }}
+      className={cn("sheet-card", className)}
+      {...props}
+    >
+      <div
+        ref={dragLayerRef}
+        className="sheet-card-drag-layer"
+        aria-hidden="true"
+      />
+      <div className="sheet-card-content">
+        {children}
+      </div>
+    </div>
+  );
+});
 
 export function SheetHandle({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   const onDismiss = useContext(SheetDismissContext);
   const handleRef = useRef<HTMLDivElement | null>(null);
-  const startYRef = useRef(0);
-  const startTranslateRef = useRef(0);
-  const currentTranslateRef = useRef(0);
-  const isDraggingRef = useRef(false);
-  const didDragRef = useRef(false);
-  const lastMoveTimeRef = useRef(0);
-  const lastYRef = useRef(0);
-  const [draggable] = useState(() => Boolean(onDismiss));
-
-  const getCard = useCallback(() => {
-    const el = handleRef.current;
-    return el?.closest<HTMLElement>(".sheet-card") ?? null;
-  }, []);
-
-  useEffect(() => {
-    if (!onDismiss || !handleRef.current) return;
-    const handle = handleRef.current;
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.button !== 0) return;
-      const card = getCard();
-      if (!card) return;
-      const style = window.getComputedStyle(card);
-      const matrix = new DOMMatrix(style.transform);
-      const currentTy = matrix.m42;
-      startYRef.current = e.clientY;
-      startTranslateRef.current = currentTy;
-      currentTranslateRef.current = currentTy;
-      isDraggingRef.current = true;
-      didDragRef.current = false;
-      lastMoveTimeRef.current = Date.now();
-      lastYRef.current = e.clientY;
-      handle.setPointerCapture(e.pointerId);
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      const card = getCard();
-      if (!card) return;
-      didDragRef.current = true;
-      const dy = e.clientY - startYRef.current;
-      const translate = Math.max(0, startTranslateRef.current + dy);
-      currentTranslateRef.current = translate;
-      lastYRef.current = e.clientY;
-      lastMoveTimeRef.current = Date.now();
-      card.style.transform = `translateY(${translate}px)`;
-      card.style.transition = "none";
-    };
-
-    const onPointerUp = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      const card = getCard();
-      try {
-        handle.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-      isDraggingRef.current = false;
-
-      if (didDragRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      if (!card) return;
-
-      const ty = currentTranslateRef.current;
-      const dt = Date.now() - lastMoveTimeRef.current;
-      const velocity = dt > 0 ? (e.clientY - lastYRef.current) / dt : 0;
-      const shouldClose = ty >= DRAG_CLOSE_THRESHOLD_PX || (ty > 20 && velocity > 0.15);
-
-      if (shouldClose && onDismiss) {
-        card.style.transition = "";
-        card.style.transform = "";
-        onDismiss();
-        return;
-      }
-
-      card.style.transition = `transform ${SNAP_DURATION_MS}ms cubic-bezier(0.2, 0.9, 0.2, 1)`;
-      card.style.transform = "translateY(0)";
-      const onEnd = () => {
-        card.style.transition = "";
-        card.removeEventListener("transitionend", onEnd);
-      };
-      card.addEventListener("transitionend", onEnd);
-    };
-
-    handle.addEventListener("pointerdown", onPointerDown, { passive: true });
-    document.addEventListener("pointermove", onPointerMove, { passive: true });
-    document.addEventListener("pointerup", onPointerUp, { capture: true });
-    document.addEventListener("pointercancel", onPointerUp, { capture: true });
-
-    return () => {
-      handle.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("pointermove", onPointerMove);
-      document.removeEventListener("pointerup", onPointerUp, { capture: true });
-      document.removeEventListener("pointercancel", onPointerUp, { capture: true });
-    };
-  }, [onDismiss, getCard]);
+  const getCard = useCallback(() => handleRef.current?.closest<HTMLElement>(".sheet-card") ?? null, []);
+  useSheetDrag(handleRef, getCard, onDismiss, false);
+  const draggable = Boolean(onDismiss);
 
   return (
     <div

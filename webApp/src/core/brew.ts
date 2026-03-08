@@ -1,6 +1,62 @@
 import type { BrewStep } from "../types";
 import { normalizeLookupText } from "./text";
 
+/** Contrato compartido con Android/shared: mismo JSON que BrewSharePayload (Kotlin). */
+export type BrewSharePayload = {
+  method: string;
+  coffeeId?: string | null;
+  coffeeName?: string | null;
+  waterMl: number;
+  ratio: number;
+  espresso_sec?: number | null;
+};
+
+const BREW_SHARE_BASE = "https://cafesitoapp.com/brewlab";
+
+function base64UrlEncodeUtf8(str: string): string {
+  if (typeof btoa === "undefined") return "";
+  const binary = encodeURIComponent(str).replace(/%([0-9a-fA-F]{2})/g, (_, hex) =>
+    String.fromCharCode(Number.parseInt(hex, 16))
+  );
+  return btoa(binary);
+}
+
+function base64UrlDecodeUtf8(b64: string): string {
+  if (typeof atob === "undefined") return "";
+  const binary = atob(b64);
+  return decodeURIComponent(
+    Array.from(binary, (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")
+  );
+}
+
+export function buildBrewShareUrl(payload: BrewSharePayload): string {
+  const json = JSON.stringify(payload);
+  const encoded = base64UrlEncodeUtf8(json);
+  return `${BREW_SHARE_BASE}?p=${encodeURIComponent(encoded)}`;
+}
+
+export function parseBrewSharePayloadFromSearchParams(searchParams: URLSearchParams): BrewSharePayload | null {
+  const p = searchParams.get("p");
+  if (!p) return null;
+  try {
+    const decoded = base64UrlDecodeUtf8(decodeURIComponent(p));
+    const parsed = JSON.parse(decoded) as unknown;
+    if (parsed && typeof parsed === "object" && "method" in parsed && "waterMl" in parsed && "ratio" in parsed) {
+      return {
+        method: String((parsed as BrewSharePayload).method),
+        coffeeId: (parsed as BrewSharePayload).coffeeId ?? null,
+        coffeeName: (parsed as BrewSharePayload).coffeeName ?? null,
+        waterMl: Number((parsed as BrewSharePayload).waterMl),
+        ratio: Number((parsed as BrewSharePayload).ratio),
+        espresso_sec: (parsed as BrewSharePayload).espresso_sec ?? null
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export type BrewPhaseInfo = {
   label: string;
   instruction: string;

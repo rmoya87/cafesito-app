@@ -154,7 +154,7 @@ class SearchViewModel @Inject constructor(
 
         val isSearching = q.isNotBlank() || origins.isNotEmpty() || roasts.isNotEmpty() || specialties.isNotEmpty() || formats.isNotEmpty() || rating > 0f
         SearchUiState.Success(if (isSearching) filtered else filtered.take(limit), !isSearching) as SearchUiState
-    }.catch { emit(SearchUiState.Error(it.message ?: "Error desconocido")) }
+    }.catch { emit(SearchUiState.Error(it.message ?: "No se han podido cargar los datos.")) }
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SearchUiState.Loading)
 
     fun onItemDisplayed(index: Int) {

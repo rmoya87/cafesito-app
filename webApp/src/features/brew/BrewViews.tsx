@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { BREW_METHODS } from "../../config/brew";
+import { EMPTY } from "../../core/emptyErrorStrings";
 import { formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
@@ -399,7 +400,7 @@ export function BrewLabView({
                 </Button>
               </div>
             ) : (
-              <p className="coffee-sub">{q ? "No hay coincidencias en tu despensa." : "Tu despensa está vacía."}</p>
+              <p className="coffee-sub">{q ? EMPTY.BREW_NO_MATCHES : EMPTY.BREW_EMPTY_PANTRY}</p>
             )}
           </div>
 
@@ -480,7 +481,7 @@ export function BrewLabView({
               ))}
             </ul>
           ) : (
-            <p className="coffee-sub">No hay sugerencias disponibles.</p>
+            <p className="coffee-sub">{EMPTY.BREW_NO_SUGGESTIONS}</p>
           )}
         </section>
       ) : null}

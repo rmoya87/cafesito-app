@@ -426,7 +426,8 @@ fun CoffeeSelectionStepPremium(
                 trailingIcon = {
                     IconButton(
                         onClick = onBarcodeClick,
-                        modifier = Modifier.padding(end = 12.dp)
+                        modifier = Modifier.padding(end = 12.dp),
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
                     ) {
                         BarcodeActionIcon(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant

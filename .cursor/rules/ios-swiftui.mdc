@@ -1,0 +1,35 @@
+---
+description: iOS con SwiftUI, Shared (KMP) vía SPM/XCFramework, wrappers ViewModel, paridad con Android
+globs: iosApp/**/*.swift, iosApp/Package.swift
+alwaysApply: false
+---
+
+# iOS: SwiftUI + Shared (KMP)
+
+## Stack y estructura
+
+- **UI:** SwiftUI. Lenguaje: Swift. Mínimo: iOS 14.1+.
+- **Lógica compartida:** Módulo `shared` (Kotlin Multiplatform) expuesto como **XCFramework** y consumido por **Swift Package Manager** (SPM). `Package.swift` en `iosApp/` declara el target binario `Shared.xcframework`. No dupliques en Swift reglas de negocio que ya estén en `shared/`.
+- **Estructura:** `iosApp/CafesitoIOS/` — App, vistas y wrappers. Referencia de setup: `docs/STEP7_IOS_SETUP.md`, `docs/STEP6_SWIFTUI.md`.
+
+## Integración con Shared (KMP)
+
+- Los ViewModels y flujos de negocio viven en `shared/`. En iOS se exponen mediante **wrappers** que adaptan `StateFlow`/`Flow` a `ObservableObject` y `@Published` (p. ej. Combine con `asPublisher()` o callbacks). Patrón: `XxxViewModelWrapper: ObservableObject` que mantiene una referencia al ViewModel de KMP y actualiza estado cuando el Flow emite.
+- **No reimplementes** en Swift la lógica de dominio (búsqueda, Brew, recomendaciones, etc.). Usa los casos de uso y ViewModels de `shared` y limita el código Swift a: UI (SwiftUI), binding con el wrapper, y navegación.
+- Generación del XCFramework: `./gradlew :shared:assembleSharedReleaseXCFramework`. Copiar el resultado a `iosApp/Shared.xcframework` según `docs/STEP7_IOS_SETUP.md`.
+
+## Convenciones SwiftUI
+
+- Vistas en `View`; estado con `@State`, `@StateObject`, `@ObservedObject` según corresponda. Preferir composición de vistas pequeñas.
+- Accesibilidad: etiquetas y hints donde aplique. Diseño que escale (evitar tamaños fijos innecesarios).
+- Tema y colores: alinear con el design system del proyecto (paridad con Android/WebApp); usar tokens o constantes si existen en el repo.
+
+## Paridad con Android y WebApp
+
+- Flujos principales (búsqueda, Brew Lab, diario, perfil, detalle café) deben mantener paridad de comportamiento con Android y WebApp. Si se añade un flujo nuevo en `shared/`, iOS debe consumirlo vía wrapper y pantallas SwiftUI equivalentes.
+- Consultar `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` (principios, `/shared` como SSOT) y `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` para cambios recientes que afecten a flujos compartidos.
+
+## Verificación
+
+- Compilar en Xcode con el package `Shared` añadido. Ejecutar en simulador.
+- Tras cambios en `shared/`, regenerar el XCFramework y volver a compilar la app iOS.

@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.profile
 
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -98,7 +99,9 @@ fun ProfileScreen(
                     items(3) { PostCardShimmer() }
                 }
             }
-            is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+            is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                ErrorStateMessage(message = state.message, onRetry = { viewModel.retry() })
+            }
             ProfileUiState.LoggedOut -> {
                 Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             }

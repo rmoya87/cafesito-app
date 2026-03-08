@@ -25,6 +25,12 @@ export function LoginGate({
   const loginVideoSrc = assetBase + "login_bg.mp4";
   const logoSrc = assetBase + "logo.png";
 
+  // Móvil: evitar que se pueda arrastrar la página de login hacia arriba/abajo
+  useEffect(() => {
+    document.body.classList.add("is-login-gate");
+    return () => document.body.classList.remove("is-login-gate");
+  }, []);
+
   // One Tap: sugiere "Continuar como [email]" si el usuario tiene sesión en Google
   useEffect(() => {
     if (!googleClientId || !onGoogleCredential) return;
@@ -61,14 +67,6 @@ export function LoginGate({
       <p className="login-sheet-description">
         Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.
       </p>
-      <p className="login-sheet-terms">
-        Al continuar, aceptas nuestra{" "}
-        <a href={assetBase + "legal/privacidad.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Política de Privacidad</a>
-        , las{" "}
-        <a href={assetBase + "legal/condiciones.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Condiciones del Servicio</a>
-        {" "}y{" "}
-        <a href={assetBase + "legal/eliminacion-cuenta.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Eliminación de datos</a>.
-      </p>
       <div className="login-google-button-container">
         <GoogleSignInButton
           label="Registrarse con Google"
@@ -77,6 +75,14 @@ export function LoginGate({
           onClick={onGoogleLogin ?? undefined}
         />
       </div>
+      <p className="login-sheet-terms">
+        Al continuar, aceptas nuestra{" "}
+        <a href={assetBase + "legal/privacidad.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Política de Privacidad</a>
+        , las{" "}
+        <a href={assetBase + "legal/condiciones.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Condiciones del Servicio</a>
+        {" "}y{" "}
+        <a href={assetBase + "legal/eliminacion-cuenta.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Eliminación de datos</a>.
+      </p>
       {message ? <p className="login-hint">{message}</p> : null}
       {errorMessage ? <p className="login-error">{errorMessage}</p> : null}
     </>
@@ -143,7 +149,7 @@ export function LoginGate({
               </article>
             </section>
 
-            <Button variant="plain" className="login-start-button" onClick={() => setShowMobileSheet(true)}>
+            <Button variant="primary" className="login-start-button action-button--primary" onClick={() => setShowMobileSheet(true)}>
               EMPEZAR AHORA
             </Button>
           </div>

@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { EMPTY } from "../../core/emptyErrorStrings";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
@@ -376,6 +377,7 @@ export function ProfileView({
   const [savingPostEdit, setSavingPostEdit] = useState(false);
   const [togglingFollow, setTogglingFollow] = useState(false);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const [profilePostsAvatarFailed, setProfilePostsAvatarFailed] = useState(false);
   const [likeBurstPostId, setLikeBurstPostId] = useState<string | null>(null);
   const [showAdnAnalysisSheet, setShowAdnAnalysisSheet] = useState(false);
   const likeBurstTimerRef = useRef<number | null>(null);
@@ -473,6 +475,7 @@ export function ProfileView({
   }, [user.bio, user.full_name]);
   useEffect(() => {
     setAvatarLoadFailed(false);
+    setProfilePostsAvatarFailed(false);
   }, [user.avatar_url]);
   useEffect(() => {
     if (!canEditProfile) return;
@@ -731,8 +734,17 @@ export function ProfileView({
               <article>
                 <header className="feed-head">
                   <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
-                    {user.avatar_url ? (
-                      <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                    {user.avatar_url && !profilePostsAvatarFailed ? (
+                      <img
+                        className="avatar avatar-photo"
+                        src={user.avatar_url}
+                        alt={user.username}
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        onError={() => setProfilePostsAvatarFailed(true)}
+                      />
                     ) : (
                       <div className="avatar" aria-hidden="true">{initials}</div>
                     )}
@@ -804,7 +816,7 @@ export function ProfileView({
                 </footer>
               </article>
             </li>
-            )) : <li className="feed-card profile-empty-card">Aún no hay publicaciones</li>}
+            )) : <li className="feed-card profile-empty-card">{EMPTY.PROFILE_NO_POSTS}</li>}
           </ul>
           {posts.length ? (
             <div className="profile-post-masonry-desktop">
@@ -815,8 +827,17 @@ export function ProfileView({
                       <article>
                         <header className="feed-head">
                           <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
-                            {user.avatar_url ? (
-                              <img className="avatar avatar-photo" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                            {user.avatar_url && !profilePostsAvatarFailed ? (
+                              <img
+                                className="avatar avatar-photo"
+                                src={user.avatar_url}
+                                alt={user.username}
+                                loading="lazy"
+                                decoding="async"
+                                referrerPolicy="no-referrer"
+                                crossOrigin="anonymous"
+                                onError={() => setProfilePostsAvatarFailed(true)}
+                              />
                             ) : (
                               <div className="avatar" aria-hidden="true">{initials}</div>
                             )}
@@ -986,7 +1007,7 @@ export function ProfileView({
           <ul className="coffee-list profile-favorite-list">
             {favoriteCoffees.length ? favoriteCoffees.map((coffee) => (
               <ProfileFavoriteItem key={coffee.id} coffee={coffee} onOpenCoffee={onOpenCoffee} onRemoveFavorite={onRemoveFavorite} />
-            )) : <li className="coffee-card profile-empty-card">No hay cafés favoritos</li>}
+            )) : <li className="coffee-card profile-empty-card">{EMPTY.FAVORITES}</li>}
           </ul>
             </div>
           </div>

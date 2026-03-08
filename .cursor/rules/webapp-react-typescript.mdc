@@ -1,0 +1,31 @@
+---
+description: WebApp React + TypeScript, Vite, estilos, paridad con Android, sin duplicar lógica de shared
+globs: webApp/**/*.ts, webApp/**/*.tsx, webApp/**/*.css, webApp/**/*.mjs
+alwaysApply: false
+---
+
+# WebApp: React + TypeScript
+
+## Stack y entorno
+
+- **Framework:** React 18, TypeScript, Vite. Build: `npm run build`. Tests: Vitest (`npm run test`), E2E: Playwright.
+- **Estado:** hooks (useState, useReducer, useMemo, useCallback, useRef). Evitar dependencias inestables en useEffect que provoquen bucles (usar useRef para callbacks si hace falta).
+- **Estilos:** CSS en `webApp/src/styles/` (tokens en `tokens.css`, features en `features.css`). Variables de tema: `--caramel-soft`, `--caramel-accent`, `--pure-white`, `--pure-black`, `--text-main`, `--slider-track-inactive`. Modo día/noche con `prefers-color-scheme` o clases. No inventes colores sin usar las variables del sistema.
+- **Rutas y navegación:** `webApp/src/core/routing.ts`, `parseRoute`, `buildRoute`. Tabs: `TabId` = timeline | search | brewlab | diary | profile | coffee. Consultar `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` para flujos (Brew, topbar, ramas).
+
+## Regla crítica: dominio y shared
+
+- **No dupliques** en TypeScript lógica de negocio que ya exista en `shared/` (Kotlin). La WebApp solo adapta transporte/API, estado de UI y presentación. Si una regla (p. ej. Brew, recomendaciones, validaciones) está en `shared/`, consume o reimplementa por contrato; no reescribas la lógica a mano en `webApp/src/features/**`.
+- **Paridad con Android:** En flujos compartidos (Brew Lab, diario, perfil, detalle café) mantén paridad de comportamiento y de criterios de UI (colores tiempo negro/blanco, café marrón, sliders, pasos). Referencia: `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md`.
+
+## Convenciones de código
+
+- Componentes funcionales; tipos explícitos para props. Evitar `any`.
+- Callbacks estables: `useCallback` con deps correctas; si un `useEffect` recibe un callback del padre y actualiza estado del padre, usar `useRef` para el callback para no provocar "Maximum update depth exceeded".
+- Nombres de clases CSS: kebab-case, prefijos por feature (p. ej. `brew-`, `diary-`, `topbar-`).
+- Tests: unit con Vitest + Testing Library; cubrir lógica de hooks y componentes críticos.
+
+## Verificación
+
+- Antes de dar por cerrado: `cd webApp && npx tsc --noEmit` sin errores; `npm run test` si tocas lógica testeada.
+- Si cambias flujos que existen en Android, comprobar que el comportamiento y la documentación (REGISTRO, commit-notes) sigan alineados.

@@ -189,7 +189,7 @@ fun PostCard(
                             AssistChip(onClick = {}, enabled = false, label = { Text(String.format(java.util.Locale.getDefault(), "%.1f ★", it)) })
                             Spacer(Modifier.width(6.dp))
                         }
-                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = "Ver detalle del café", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -221,8 +221,8 @@ fun PostCard(
 
                     if (!showHeader && isOwnPost) {
                         Spacer(Modifier.weight(1f))
-                        IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.MoreHoriz, null, tint = MaterialTheme.colorScheme.onSurface)
+                        IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones de la publicación", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }

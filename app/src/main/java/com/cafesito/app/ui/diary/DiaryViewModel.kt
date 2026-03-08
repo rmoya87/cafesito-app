@@ -32,6 +32,10 @@ data class DiaryAnalytics(
     val cupsCount: Int,
     val totalCaffeine: Int,
     val averageCaffeine: Int,
+    /** Media de un día en los últimos 30 días (común Android/iOS/webapp). */
+    val avgCaffeineLast30: Int,
+    val avgCupsLast30: Float,
+    val avgHydrationPctLast30: Int,
     /** Porcentaje de tendencia cafeína vs objetivo (lógica compartida con webApp). */
     val caffeineTrendPct: Int,
     /** Porcentaje de tendencia hidratación vs objetivo (lógica compartida con webApp). */
@@ -54,27 +58,66 @@ class DiaryViewModel @Inject constructor(
     private val _selectedPeriod = MutableStateFlow(DiaryPeriod.HOY)
     val selectedPeriod: StateFlow<DiaryPeriod> = _selectedPeriod.asStateFlow()
 
+    private val calendarTodayStart: Long
+        get() {
+            val c = Calendar.getInstance()
+            c.set(Calendar.HOUR_OF_DAY, 0); c.set(Calendar.MINUTE, 0); c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0)
+            return c.timeInMillis
+        }
+    private val _selectedDiaryDateMs = MutableStateFlow(calendarTodayStart)
+    val selectedDiaryDateMs: StateFlow<Long> = _selectedDiaryDateMs.asStateFlow()
+
+    fun setSelectedDiaryDateMs(dayStartMs: Long) { _selectedDiaryDateMs.value = dayStartMs }
+    fun prevDay() {
+        val c = Calendar.getInstance().apply { timeInMillis = _selectedDiaryDateMs.value }
+        c.add(Calendar.DAY_OF_MONTH, -1)
+        c.set(Calendar.HOUR_OF_DAY, 0); c.set(Calendar.MINUTE, 0); c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0)
+        _selectedDiaryDateMs.value = c.timeInMillis
+    }
+    fun nextDay() {
+        if (_selectedDiaryDateMs.value >= calendarTodayStart) return
+        val c = Calendar.getInstance().apply { timeInMillis = _selectedDiaryDateMs.value }
+        c.add(Calendar.DAY_OF_MONTH, 1)
+        c.set(Calendar.HOUR_OF_DAY, 0); c.set(Calendar.MINUTE, 0); c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0)
+        _selectedDiaryDateMs.value = c.timeInMillis
+    }
+
     private val allEntriesFlow = diaryRepository.getDiaryEntries()
+
+    /** Todas las entradas del diario (sin filtrar por periodo), para el calendario y marcar días con café/agua. */
+    val allDiaryEntries: StateFlow<List<DiaryEntryEntity>> = allEntriesFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val diaryEntries: StateFlow<List<DiaryEntryEntity>> = combine(
         allEntriesFlow,
-        _selectedPeriod
-    ) { entries, period ->
+        _selectedPeriod,
+        _selectedDiaryDateMs
+    ) { entries, period, selectedDateMs ->
         val calendar = Calendar.getInstance()
-        when (period) {
-            DiaryPeriod.HOY -> {
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
-            }
+        val startTime = when (period) {
+            DiaryPeriod.HOY -> selectedDateMs
             DiaryPeriod.SEMANA -> {
+                calendar.timeInMillis = selectedDateMs
                 calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek); calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+                calendar.timeInMillis
             }
             DiaryPeriod.MES -> {
+                calendar.timeInMillis = selectedDateMs
                 calendar.set(Calendar.DAY_OF_MONTH, 1); calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+                calendar.timeInMillis
             }
         }
-        val startTime = calendar.timeInMillis
+        val endTime = when (period) {
+            DiaryPeriod.HOY -> startTime + 86400000L
+            DiaryPeriod.SEMANA -> startTime + 604800000L
+            DiaryPeriod.MES -> {
+                calendar.timeInMillis = startTime
+                calendar.add(Calendar.MONTH, 1)
+                calendar.timeInMillis
+            }
+        }
         entries
-            .filter { it.timestamp >= startTime }
+            .filter { it.timestamp >= startTime && it.timestamp < endTime }
             .sortedByDescending { it.timestamp }
     }
     .onEach { _isLoading.value = false } 
@@ -89,20 +132,26 @@ class DiaryViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val analytics: StateFlow<DiaryAnalytics?> = combine(allEntriesFlow, _selectedPeriod) { entries, period ->
+    val analytics: StateFlow<DiaryAnalytics?> = combine(allEntriesFlow, _selectedPeriod, _selectedDiaryDateMs) { entries, period, selectedDateMs ->
         val calendar = Calendar.getInstance()
         val now = System.currentTimeMillis()
-        
+        calendar.timeInMillis = now
+        calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+        val startOfToday = calendar.timeInMillis
+
         val (currentEntries, previousEntries, averageValue) = when (period) {
             DiaryPeriod.HOY -> {
-                calendar.timeInMillis = now
-                calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
-                val startOfToday = calendar.timeInMillis
-                val dailySums = entries.groupBy { 
+                val dayStart = selectedDateMs
+                val dayEnd = dayStart + 86400000L
+                val dailySums = entries.groupBy {
                     val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
                     "${c.get(Calendar.YEAR)}-${c.get(Calendar.DAY_OF_YEAR)}"
                 }.values.map { it.filter { e -> e.type == "CUP" }.sumOf { e -> e.caffeineAmount } }
-                Triple(entries.filter { it.timestamp >= startOfToday }, entries.filter { it.timestamp in (startOfToday - 86400000) until startOfToday }, if(dailySums.isEmpty()) 0 else dailySums.average().toInt())
+                Triple(
+                    entries.filter { it.timestamp in dayStart until dayEnd },
+                    entries.filter { it.timestamp in (dayStart - 86400000) until dayStart },
+                    if (dailySums.isEmpty()) 0 else dailySums.average().toInt()
+                )
             }
             DiaryPeriod.SEMANA -> {
                 calendar.timeInMillis = now
@@ -133,6 +182,25 @@ class DiaryViewModel @Inject constructor(
         val caffeineTrendPct = DiaryAnalyticsTargets.trendPercent(totalCaffeine, caffeineTarget)
         val hydrationTrendPct = DiaryAnalyticsTargets.trendPercent(totalWaterMl, hydrationTarget)
         val hydrationProgressPct = DiaryAnalyticsTargets.hydrationProgressPercent(totalWaterMl, sharedPeriod)
+
+        val dayMs = 86400000L
+        val hydrationTargetDay = 2000
+        val last30Avg = run {
+            calendar.timeInMillis = now
+            calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+            val todayStart = calendar.timeInMillis
+            var sumCaffeine = 0; var sumCups = 0; var sumHydrationPct = 0
+            for (i in 0 until 30) {
+                val dayStart = todayStart - (29 - i) * dayMs
+                val dayEnd = dayStart + dayMs
+                val dayEntries = entries.filter { it.timestamp in dayStart until dayEnd }
+                sumCaffeine += dayEntries.filter { it.type == "CUP" }.sumOf { it.caffeineAmount }
+                sumCups += dayEntries.count { it.type == "CUP" }
+                val waterMl = dayEntries.filter { it.type == "WATER" }.sumOf { it.amountMl }
+                sumHydrationPct += (waterMl.toDouble() / hydrationTargetDay * 100).toInt().coerceIn(0, 100)
+            }
+            Triple(sumCaffeine / 30, sumCups / 30.0, sumHydrationPct / 30)
+        }
 
         val chartData = when (period) {
             DiaryPeriod.HOY -> {
@@ -177,6 +245,9 @@ class DiaryViewModel @Inject constructor(
             cupsCount = currentEntries.count { it.type == "CUP" },
             totalCaffeine = totalCaffeine,
             averageCaffeine = averageValue,
+            avgCaffeineLast30 = last30Avg.first,
+            avgCupsLast30 = last30Avg.second.toFloat(),
+            avgHydrationPctLast30 = last30Avg.third,
             caffeineTrendPct = caffeineTrendPct,
             hydrationTrendPct = hydrationTrendPct,
             hydrationProgressPct = hydrationProgressPct,
@@ -218,7 +289,8 @@ class DiaryViewModel @Inject constructor(
     }
     
     suspend fun addWaterConsumption(amountMl: Int) {
-        diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None", null)
+            diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None", null)
+
         refreshDiaryWidget()
     }
     

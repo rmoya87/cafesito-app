@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { EMPTY } from "../../core/emptyErrorStrings";
 import { toRelativeMinutes } from "../../core/time";
 import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserRow } from "../../types";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
@@ -77,6 +78,12 @@ export function CoffeeDetailView({
   const [savingStock, setSavingStock] = useState(false);
   const [savingReview, setSavingReview] = useState(false);
   const [deletingReview, setDeletingReview] = useState(false);
+  const [currentUserAvatarFailed, setCurrentUserAvatarFailed] = useState(false);
+  const [failedReviewAvatarUrls, setFailedReviewAvatarUrls] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setCurrentUserAvatarFailed(false);
+  }, [currentUser?.avatar_url]);
 
   const sensoryKeys: Array<keyof typeof sensoryDraft> = ["aroma", "sabor", "cuerpo", "acidez", "dulzura"];
   const sensoryLabels: Record<keyof typeof sensoryDraft, string> = {
@@ -164,6 +171,23 @@ export function CoffeeDetailView({
               }}
             >
               <UiIcon name="stock" className="ui-icon" />
+            </IconButton>
+            <IconButton
+              tone="topbar"
+              className="coffee-detail-topbar-icon"
+              aria-label="Compartir café"
+              onClick={() => {
+                const shareBase = "https://cafesitoapp.com";
+                const url = typeof window !== "undefined" ? `${shareBase}${window.location.pathname}` : "";
+                const text = `${coffee.marca ?? ""} ${coffee.nombre} – Cafesito: ${url}`.trim();
+                if (typeof navigator !== "undefined" && navigator.share) {
+                  void navigator.share({ title: `${coffee.marca ?? ""} ${coffee.nombre}`.trim(), url, text });
+                } else if (navigator.clipboard?.writeText) {
+                  void navigator.clipboard.writeText(text);
+                }
+              }}
+            >
+              <UiIcon name="share" className="ui-icon" />
             </IconButton>
           </div>
         </div>
@@ -273,7 +297,7 @@ export function CoffeeDetailView({
           </Button>
         </div>
         {!hasAnyOpinions ? (
-          <p className="coffee-detail-opinions-empty">No hay opiniones aún. ¡Sé el primero!</p>
+          <p className="coffee-detail-opinions-empty">{EMPTY.OPINIONS}</p>
         ) : null}
         {currentUserReview ? (
           <article className="coffee-card coffee-detail-opinion-preview">
@@ -291,8 +315,17 @@ export function CoffeeDetailView({
                   }}
                 >
                   <span className="coffee-detail-opinion-user">
-                    {currentUser.avatar_url ? (
-                      <img className="coffee-detail-opinion-avatar" src={currentUser.avatar_url} alt={currentUser.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                    {currentUser.avatar_url && !currentUserAvatarFailed ? (
+                      <img
+                        className="coffee-detail-opinion-avatar"
+                        src={currentUser.avatar_url}
+                        alt={currentUser.username}
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        onError={() => setCurrentUserAvatarFailed(true)}
+                      />
                     ) : (
                       <span className="coffee-detail-opinion-avatar" aria-hidden="true">
                         {(currentUser.username ?? "tu").slice(0, 2).toUpperCase()}
@@ -335,8 +368,17 @@ export function CoffeeDetailView({
                     }}
                   >
                     <span className="coffee-detail-opinion-user">
-                      {review.user.avatar_url ? (
-                        <img className="coffee-detail-opinion-avatar" src={review.user.avatar_url} alt={review.user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                      {review.user.avatar_url && !failedReviewAvatarUrls.has(review.user.avatar_url) ? (
+                        <img
+                          className="coffee-detail-opinion-avatar"
+                          src={review.user.avatar_url}
+                          alt={review.user.username}
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                          onError={() => setFailedReviewAvatarUrls((prev) => new Set(prev).add(review.user!.avatar_url))}
+                        />
                       ) : (
                         <span className="coffee-detail-opinion-avatar" aria-hidden="true">
                           {(review.user.username ?? "us").slice(0, 2).toUpperCase()}

@@ -290,3 +290,323 @@
     color: var(--pure-black);
   }
 }
+
+/* Preferencia de usuario: forzar tema claro (Ajustes > Apariencia > Claro) */
+html.theme-light {
+  color-scheme: light;
+  --google-btn-bg: var(--espresso-deep);
+  --google-btn-text: var(--pure-white);
+  --search-border-inactive: #e0e0e0;
+  --espresso-deep: #1a120b;
+  --espresso-medium: #3c2a21;
+  --caramel-accent: #6f4e37;
+  --caramel-soft: #6f4e37;
+  --caramel-soft-rgb: 111, 78, 55;
+  --focus-ring: rgba(111, 78, 55, 0.24);
+  --border-light: rgba(224, 224, 224, 0.4);
+  --nav-rail-border: rgba(0, 0, 0, 0.14);
+  --border-default: #d7d3cf;
+  --border-strong: #cec7c1;
+  --modal-surface-bg: var(--screen-light-background);
+  --modal-header-bg: var(--screen-light-background);
+  --modal-field-bg: var(--pure-white);
+  --modal-field-border: var(--border-light);
+  --modal-text-main: var(--espresso-deep);
+  --modal-text-muted: var(--espresso-medium);
+  --surface: #ffffff;
+  --surface-elevated: #f3f3f3;
+  --surface-muted: #f0efee;
+  --text-main: var(--espresso-deep);
+  --text-subtle: #2b241f;
+  --text-muted: var(--espresso-medium);
+  --slider-track-inactive: rgba(0, 0, 0, 0.12);
+}
+html.theme-light,
+html.theme-light body,
+html.theme-light #root,
+html.theme-light .layout,
+html.theme-light .main-shell,
+html.theme-light .main-shell-scroll {
+  background: var(--screen-light-background);
+}
+
+/* Anular estilos del bloque @media (prefers-color-scheme: dark) cuando tema forzado claro */
+html.theme-light .sidebar,
+html.theme-light .topbar,
+html.theme-light .bottom-tabs {
+  background: rgba(255, 255, 255, 0.84);
+  border: none;
+}
+
+html.theme-light .nav-desktop {
+  border-right-color: var(--nav-rail-border);
+}
+
+html.theme-light .bottom-tabs .nav-item {
+  color: rgba(39, 34, 29, 0.6);
+}
+
+html.theme-light .bottom-tabs .nav-item.is-active {
+  color: var(--caramel-accent);
+}
+
+html.theme-light .topbar-timeline {
+  background: rgba(247, 247, 247, 0.86);
+}
+
+html.theme-light .topbar-timeline.topbar-scrolled {
+  background: rgba(247, 247, 247, 0.95);
+}
+
+html.theme-light .topbar.topbar-search,
+html.theme-light .topbar.topbar-search-users,
+html.theme-light .topbar.topbar-search.topbar-scrolled,
+html.theme-light .topbar.topbar-search-users.topbar-scrolled {
+  background: rgba(247, 247, 247, 0.88);
+  backdrop-filter: blur(8px);
+  border-color: transparent;
+}
+
+html.theme-light .topbar-icon-button {
+  color: var(--espresso-deep);
+}
+
+html.theme-light .topbar .topbar-icon-button,
+html.theme-light .topbar .topbar-icon-button.is-active:not(.coffee-topbar-favorite),
+html.theme-light .topbar .title,
+html.theme-light .topbar .topbar-brand-title,
+html.theme-light .topbar .wordmark,
+html.theme-light .topbar .diary-period-chip,
+html.theme-light .topbar .diary-topbar-add,
+html.theme-light .topbar .topbar-create-coffee-save {
+  color: var(--pure-black);
+}
+
+/* Preferencia de usuario: forzar tema oscuro (Ajustes > Apariencia > Oscuro) */
+html.theme-dark {
+  color-scheme: dark;
+  --google-btn-bg: var(--caramel-soft);
+  --google-btn-text: var(--pure-black);
+  --search-border-inactive: rgba(255, 255, 255, 0.28);
+  --espresso-deep: #e8c9a8;
+  --espresso-medium: #d4a373;
+  --caramel-accent: #d4a373;
+  --caramel-soft: #d4a373;
+  --caramel-soft-rgb: 212, 163, 115;
+  --focus-ring: rgba(212, 163, 115, 0.24);
+  --border-light: #000000;
+  --nav-rail-border: rgba(255, 255, 255, 0.32);
+  --border-default: #000000;
+  --border-strong: #000000;
+  --modal-field-border: #000000;
+  --slider-track-inactive: rgba(255, 255, 255, 0.22);
+  --modal-surface-bg: var(--screen-dark-background);
+  --modal-header-bg: var(--screen-dark-background);
+  --modal-field-bg: var(--pure-black);
+  /* Anular variables que @media (prefers-color-scheme: light) asigna a :root */
+  --surface: #000000;
+  --surface-elevated: #212121;
+  --surface-muted: rgba(255, 255, 255, 0.04);
+  --text-main: #ffffff;
+  --text-subtle: #bdb7b2;
+  --text-muted: var(--muted-cream);
+  --modal-text-main: #ffffff;
+  --modal-text-muted: #bdb7b2;
+}
+html.theme-dark,
+html.theme-dark body,
+html.theme-dark #root,
+html.theme-dark .layout,
+html.theme-dark .main-shell,
+html.theme-dark .main-shell-scroll {
+  background: var(--screen-dark-background);
+}
+
+/* Anular estilos del bloque @media (prefers-color-scheme: light) cuando tema forzado oscuro */
+html.theme-dark .sidebar,
+html.theme-dark .topbar,
+html.theme-dark .bottom-tabs {
+  background: var(--screen-dark-background);
+  border: none;
+}
+
+html.theme-dark .nav-desktop {
+  border-right-color: var(--nav-rail-border);
+}
+
+html.theme-dark .bottom-tabs .nav-item {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+html.theme-dark .bottom-tabs .nav-item.is-active {
+  color: var(--caramel-accent);
+}
+
+html.theme-dark .topbar-timeline {
+  background: rgba(33, 33, 33, 0.86);
+}
+
+html.theme-dark .topbar-timeline.topbar-scrolled {
+  background: rgba(33, 33, 33, 0.95);
+}
+
+html.theme-dark .topbar.topbar-search,
+html.theme-dark .topbar.topbar-search-users,
+html.theme-dark .topbar.topbar-search.topbar-scrolled,
+html.theme-dark .topbar.topbar-search-users.topbar-scrolled {
+  background: rgba(33, 33, 33, 0.88);
+  backdrop-filter: blur(8px);
+  border-color: transparent;
+}
+
+html.theme-dark .topbar-icon-button {
+  color: var(--pure-white);
+}
+
+/* Mismas reglas que @media (prefers-color-scheme: dark) para que al forzar Oscuro se vea modo noche aunque el navegador esté en claro */
+html.theme-dark .notifications-panel {
+  --notifications-item-border: #000000;
+  --notifications-item-border-unread: #000000;
+}
+
+html.theme-dark .filter-chip,
+html.theme-dark .ui-switch,
+html.theme-dark .nav-item,
+html.theme-dark .coffee-detail-section + .coffee-detail-section,
+html.theme-dark .coffee-detail-topbar,
+html.theme-dark .brew-barista-tip,
+html.theme-dark .coffee-detail-stat,
+html.theme-dark .coffee-detail-review-camera,
+html.theme-dark .coffee-detail-review-cancel,
+html.theme-dark .coffee-detail-empty,
+html.theme-dark .refresh-chip.is-refreshing,
+html.theme-dark .search-recent-list,
+html.theme-dark .search-recent-chip,
+html.theme-dark .search-filter-item.is-selected,
+html.theme-dark .search-users-row,
+html.theme-dark .diary-analytics-info,
+html.theme-dark .diary-analytics-tooltip,
+html.theme-dark .brew-pantry-card,
+html.theme-dark .brew-suggestion-card,
+html.theme-dark .brew-method-card-native.is-active,
+html.theme-dark .coffee-select.is-active,
+html.theme-dark .brew-suggestion-card.is-active,
+html.theme-dark .nav-desktop,
+html.theme-dark .comments-list .post-menu-trigger,
+html.theme-dark .feed-head .post-menu-trigger,
+html.theme-dark .profile-edit-avatar,
+html.theme-dark .profile-edit-avatar-preview,
+html.theme-dark .diary-tabs,
+html.theme-dark .create-post-coffee-image,
+html.theme-dark .edit-image-picker,
+html.theme-dark .notification-item,
+html.theme-dark .search-users-follow.action-button-following,
+html.theme-dark .sheet-card .icon-button {
+  border-color: #000000;
+}
+
+html.theme-dark .coffee-detail-topbar,
+html.theme-dark .search-recent-list {
+  border-bottom-color: #000000;
+}
+
+html.theme-dark .coffee-detail-review-input-shell,
+html.theme-dark .coffee-detail-review-input-shell:focus-within {
+  background: var(--pure-black);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+html.theme-dark .filter-chip,
+html.theme-dark .filter-chip.is-active {
+  background: var(--pure-black);
+  border: none;
+}
+
+html.theme-dark .filter-chip-count {
+  background: var(--caramel-soft);
+  color: var(--pure-black);
+}
+
+html.theme-dark .coffee-detail-body {
+  border-radius: 24px 24px 0 0;
+}
+
+html.theme-dark .coffee-detail-section-first {
+  border-top-left-radius: 30px;
+  border-top-right-radius: 30px;
+}
+
+html.theme-dark .action-button.action-button--primary,
+html.theme-dark .action-button.coffee-detail-sensory-submit:not(:disabled),
+html.theme-dark .coffee-detail-opinions-cta {
+  background: var(--caramel-soft);
+  color: var(--pure-black);
+}
+
+html.theme-dark .create-coffee-choice,
+html.theme-dark .create-coffee-profile-origin,
+html.theme-dark .create-coffee-format-block,
+html.theme-dark .create-coffee-image-card,
+html.theme-dark .create-coffee-country .search-wide,
+html.theme-dark .create-coffee-quantity-row .create-coffee-quantity-input,
+html.theme-dark .create-coffee-format-block .create-coffee-quantity-input,
+html.theme-dark .create-coffee-inline-field .search-wide,
+html.theme-dark .create-coffee-grid .search-wide {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+html.theme-dark .bottom-tabs,
+html.theme-dark .diary-card,
+html.theme-dark .diary-empty-card,
+html.theme-dark .diary-analytics-card,
+html.theme-dark .diary-topbar-add,
+html.theme-dark .diary-period-chip,
+html.theme-dark .diary-sheet-action,
+html.theme-dark .diary-sheet-action-pantry,
+html.theme-dark .diary-pantry-card,
+html.theme-dark .search-recent-chip,
+html.theme-dark .brew-pantry-card,
+html.theme-dark .brew-pantry-add-card,
+html.theme-dark .brew-suggestion-card,
+html.theme-dark .diary-tabs,
+html.theme-dark .profile-tabs,
+html.theme-dark .brew-barista-tip,
+html.theme-dark .coffee-detail-stat,
+html.theme-dark .coffee-detail-empty,
+html.theme-dark .search-users-row,
+html.theme-dark .not-found-card,
+html.theme-dark .composer-card,
+html.theme-dark .feed-card,
+html.theme-dark .metric-card,
+html.theme-dark .settings-item,
+html.theme-dark .card,
+html.theme-dark .coffee-card,
+html.theme-dark .config-card,
+html.theme-dark .coffee-profile-card,
+html.theme-dark .feed-card-premium,
+html.theme-dark .timeline-empty,
+html.theme-dark .notifications-reply,
+html.theme-dark .brew-tech-card,
+html.theme-dark .brew-timer-card,
+html.theme-dark .brew-prep-card,
+html.theme-dark .brew-result-card,
+html.theme-dark .brew-taste-chip,
+html.theme-dark .brew-result-reco {
+  border: none;
+}
+
+html.theme-dark .topbar .topbar-icon-button,
+html.theme-dark .topbar .topbar-icon-button.is-active:not(.coffee-topbar-favorite),
+html.theme-dark .topbar .title,
+html.theme-dark .topbar .topbar-brand-title,
+html.theme-dark .topbar .wordmark,
+html.theme-dark .topbar .diary-period-chip,
+html.theme-dark .topbar .diary-topbar-add,
+html.theme-dark .topbar .topbar-create-coffee-save {
+  color: var(--pure-white);
+}
+
+html.theme-dark .fab,
+html.theme-dark .fab .ui-icon {
+  color: var(--pure-black);
+}

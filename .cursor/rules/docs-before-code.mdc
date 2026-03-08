@@ -1,20 +1,21 @@
 ---
-description: Consultar docs antes de codificar; avisar antes de modificar documentación
+description: Consultar docs antes de codificar; leer la parte que impacta tus decisiones; avisar antes de modificar documentación
 alwaysApply: true
 ---
 
 # Docs antes de código
 
-## Consultar documentación
+## Consultar documentación antes de actuar
 
-Antes de escribir o modificar código:
+Antes de escribir o modificar código, o de tomar decisiones que afecten al proyecto:
 
-1. **Revisa** la documentación relevante en:
-   - `docs/README.md` (índice y estructura; punto de entrada).
-   - `docs/` (raíz del proyecto)
-   - `webApp/docs/` (si el cambio afecta a la web app)
-
-2. **Usa** esa documentación como fuente de verdad para arquitectura, convenciones, APIs y flujos ya descritos.
+1. **Lee** la documentación relevante. Entra por `docs/README.md` (índice) e **ir a la parte que impacta** las decisiones que debes tomar o tener en cuenta para la tarea actual.
+2. **Documentos que suelen impactar decisiones:**
+   - `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` — cambios recientes, incidencias resueltas (p. ej. deploy-web, TypeScript), política de ramas (main, beta, alpha, Interna), flujo main → beta.
+   - `docs/RELEASE_DEPLOY_WORKFLOW.md` — cuándo se ejecuta el workflow, ramas, jobs, secretos.
+   - `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md` — elaboración (Brew), UI, colores, modo Italiana, sliders, tiempos (si tocas Brew Lab o temas Android/WebApp).
+   - `docs/` (raíz) y `webApp/docs/` — según el ámbito del cambio.
+3. **Usa** esa documentación como fuente de verdad para arquitectura, convenciones, APIs y flujos ya descritos; tenla en cuenta en las decisiones que tomes.
 
 ## Cambios en la documentación
 
