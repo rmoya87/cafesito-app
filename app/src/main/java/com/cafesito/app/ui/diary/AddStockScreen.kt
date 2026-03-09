@@ -200,7 +200,7 @@ fun AddStockScreen(
                     singleLine = true,
                     leadingIcon = { 
                         Box(modifier = Modifier.padding(start = 4.dp)) {
-                            Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) 
                         }
                     },
                     trailingIcon = {
@@ -208,7 +208,8 @@ fun AddStockScreen(
                             onClick = {
                                 nativeScannerLauncher.launch(Intent(context, NativeBarcodeScannerActivity::class.java))
                             },
-                            modifier = Modifier.padding(end = 12.dp)
+                            modifier = Modifier.padding(end = 12.dp),
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
                         ) {
                             BarcodeActionIcon(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant

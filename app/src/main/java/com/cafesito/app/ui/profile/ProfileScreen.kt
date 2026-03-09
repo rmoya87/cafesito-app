@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.profile
 
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -37,6 +38,7 @@ fun ProfileScreen(
     onCoffeeClick: (String) -> Unit,
     onFollowersClick: (Int) -> Unit,
     onFollowingClick: (Int) -> Unit,
+    onHistorialClick: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -98,7 +100,9 @@ fun ProfileScreen(
                     items(3) { PostCardShimmer() }
                 }
             }
-            is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+            is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                ErrorStateMessage(message = state.message, onRetry = { viewModel.retry() })
+            }
             ProfileUiState.LoggedOut -> {
                 Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             }
@@ -235,6 +239,7 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
+                        onHistorialClick = onHistorialClick,
                         onDeleteAccountClick = { showDeleteAccountConfirm = true },
                         onLogoutClick = {
                             runWithBiometricReauth(

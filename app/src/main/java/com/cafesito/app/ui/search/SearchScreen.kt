@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -64,6 +65,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -116,6 +118,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.camera.NativeBarcodeScannerActivity
+import com.cafesito.app.ui.components.ErrorStateMessage
 import com.cafesito.app.ui.components.PremiumCard
 import com.cafesito.app.ui.components.ShimmerItem
 import com.cafesito.app.ui.components.TagChip
@@ -194,13 +197,14 @@ private fun SearchTopBar(
                                 interactionSource = interactionSource,
                                 leadingIcon = { 
                                     Box(modifier = Modifier.padding(start = 4.dp)) {
-                                        Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                                        Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) 
                                     }
                                 },
                                 trailingIcon = {
                                     IconButton(
                                         onClick = onBarcodeClick,
-                                        modifier = Modifier.padding(end = 12.dp)
+                                        modifier = Modifier.padding(end = 12.dp),
+                                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
                                     ) {
                                         BarcodeActionIcon(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -485,7 +489,9 @@ fun SearchScreen(
                             items(3) { ShimmerItem(Modifier.fillMaxWidth().height(350.dp).padding(16.dp)) }
                         }
                     }
-                    is SearchUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+                    is SearchUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                ErrorStateMessage(message = state.message, onRetry = { viewModel.refreshData() })
+                            }
                     is SearchUiState.Success -> {
                         if (state.coffees.isEmpty() && !isRefreshing) {
                             Box(
@@ -596,7 +602,7 @@ private fun RatingFilterContent(
                 color = MaterialTheme.colorScheme.onSurface)
             if (displayRating > 0) {
                 Spacer(Modifier.width(4.dp))
-                Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Star, contentDescription = "Valoración", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -697,12 +703,12 @@ private fun RecentSearches(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            Icon(Icons.Default.History, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.History, contentDescription = "Recientes", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(8.dp))
             Text("Búsquedas recientes", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
             IconButton(onClick = onClearRecent, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Clear, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         LazyRow(
@@ -749,7 +755,7 @@ private fun CoffeePremiumListItem(
             ) {
                 AsyncImage(
                     model = coffeeDetails.coffee.imageUrl,
-                    contentDescription = null,
+                    contentDescription = coffeeDetails.coffee.nombre,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(60.dp)
@@ -780,11 +786,11 @@ private fun CoffeePremiumListItem(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
-                    .size(28.dp)
+                    .minimumInteractiveComponentSize()
             ) {
                 Icon(
                     imageVector = if (coffeeDetails.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = null,
+                    contentDescription = if (coffeeDetails.isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
                     tint = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp)
                 )
@@ -796,7 +802,7 @@ private fun CoffeePremiumListItem(
 @Composable
 private fun EmptySearchResults(modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Default.Coffee, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
+        Icon(Icons.Default.Coffee, contentDescription = "Sin resultados", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
         Spacer(Modifier.height(16.dp))
         Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
         Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -69,7 +69,8 @@ export type IconName =
   | "taste-sweet"
   | "water"
   | "bottle"
-  | "clock";
+  | "clock"
+  | "share";
 
 type TimelineNotificationItem = {
   id: string;
@@ -489,6 +490,13 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
         <path d="M9.5 7.5V5.8h5V7.5" />
         <path d="M8 7.5l.8 11h6.4l.8-11" />
       </svg>
+    );
+  }
+  if (name === "share") {
+    return (
+      <span className={`${className ?? ""} material-symbol-icon`.trim()} aria-hidden="true">
+        share
+      </span>
     );
   }
   return (

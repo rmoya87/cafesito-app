@@ -1,0 +1,14 @@
+{
+  "name": "Cafesito",
+  "short_name": "Cafesito",
+  "description": "Cafesito web app instalable",
+  "theme_color": "#6f4e37",
+  "background_color": "#6f4e37",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

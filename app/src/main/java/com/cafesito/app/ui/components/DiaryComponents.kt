@@ -117,7 +117,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("CAFEÍNA ESTIMADA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
                         IconButton(onClick = { showInfo = true }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Outlined.Info, contentDescription = "Información", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                         }
                     }
                     Text(
@@ -146,7 +146,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
             Spacer(Modifier.height(24.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MetricBoxPremium("Media", "${analytics.averageCaffeine} mg", Icons.Default.Insights, Modifier.weight(1f))
+                MetricBoxPremium("Media", "${analytics.avgCaffeineLast30} mg", Icons.Default.Insights, Modifier.weight(1f))
                 MetricBoxPremium("Tazas", "${analytics.cupsCount}", Icons.Filled.Coffee, Modifier.weight(1f))
                 MetricBoxPremium("Progreso", "${analytics.hydrationProgressPct}%", Icons.Default.WaterDrop, Modifier.weight(1f))
             }
@@ -187,7 +187,7 @@ fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: 
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+        Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(4.dp))
         Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
@@ -212,24 +212,27 @@ fun PantryPremiumCard(
             Box {
                 AsyncImage(
                     model = item.coffee.imageUrl,
-                    contentDescription = null,
+                    contentDescription = item.coffee.nombre,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
                 )
                 if (onOptionsClick != null) {
+                    val isDark = isSystemInDarkTheme()
+                    val optionsIconTint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    val optionsBgColor = if (isDark) Color.Black else Color.White.copy(alpha = 0.82f)
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(10.dp)
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.82f), CircleShape)
+                            .background(optionsBgColor, CircleShape)
                             .clickable { onOptionsClick(item.coffee.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.MoreHoriz, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = optionsIconTint, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -274,6 +277,28 @@ fun EmptyStateMessage(message: String) {
     }
 }
 
+/** Estado de error de red/carga: mensaje + botón Reintentar. Patrón unificado (ver docs/UX_EMPTY_AND_ERROR_STATES.md). */
+@Composable
+fun ErrorStateMessage(message: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        OutlinedButton(onClick = onRetry) {
+            Text("Reintentar")
+        }
+    }
+}
+
 @Composable
 fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
     Surface(
@@ -305,7 +330,13 @@ fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoffee: () -> Unit, onAddPantry: () -> Unit) {
+fun AddEntryBottomSheet(
+    onDismiss: () -> Unit,
+    onAddWater: () -> Unit,
+    onAddCoffee: () -> Unit,
+    onAddPantry: () -> Unit
+) {
+    val quickActionIconColor = if (isSystemInDarkTheme()) Color.White else Color.Black
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -320,14 +351,243 @@ fun AddEntryBottomSheet(onDismiss: () -> Unit, onAddWater: () -> Unit, onAddCoff
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold
             )
-            ModalMenuOption(title = "Agua", icon = Icons.Default.WaterDrop, color = WaterBlue, onClick = onAddWater)
-            ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = MaterialTheme.colorScheme.onSurface, onClick = onAddCoffee)
+            ModalMenuOption(title = "Agua", icon = Icons.Default.WaterDrop, color = quickActionIconColor, onClick = onAddWater)
+            ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = quickActionIconColor, onClick = onAddCoffee)
             ModalMenuOption(
                 title = "Añadir a Despensa",
                 iconPainter = painterResource(id = R.drawable.shelves_24),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = quickActionIconColor,
                 onClick = onAddPantry
             )
+        }
+    }
+}
+
+private val DIARY_CALENDAR_MONTH_NAMES = listOf(
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiaryDatePickerSheet(
+    onDismiss: () -> Unit,
+    onGoToToday: () -> Unit,
+    onPickDate: (year: Int, month: Int, dayOfMonth: Int) -> Unit,
+    selectedDateMs: Long,
+    entries: List<DiaryEntryEntity>
+) {
+    val todayStartMs = remember {
+        val c = java.util.Calendar.getInstance()
+        c.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        c.set(java.util.Calendar.MINUTE, 0)
+        c.set(java.util.Calendar.SECOND, 0)
+        c.set(java.util.Calendar.MILLISECOND, 0)
+        c.timeInMillis
+    }
+
+    val (datesWithCoffee, datesWithWater) = remember(entries) {
+        val coffee = mutableSetOf<String>()
+        val water = mutableSetOf<String>()
+        val cal = java.util.Calendar.getInstance()
+        entries.forEach { entry ->
+            cal.timeInMillis = entry.timestamp
+            val dateStr = "%04d-%02d-%02d".format(
+                cal.get(java.util.Calendar.YEAR),
+                cal.get(java.util.Calendar.MONTH) + 1,
+                cal.get(java.util.Calendar.DAY_OF_MONTH)
+            )
+            if (entry.type.equals("WATER", ignoreCase = true)) water.add(dateStr)
+            else coffee.add(dateStr)
+        }
+        Pair(coffee, water)
+    }
+
+    val monthsToShow = remember {
+        val now = java.util.Calendar.getInstance()
+        List(24) { i ->
+            val c = java.util.Calendar.getInstance()
+            c.set(now.get(java.util.Calendar.YEAR), now.get(java.util.Calendar.MONTH), 1)
+            c.add(java.util.Calendar.MONTH, -i)
+            Pair(c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH))
+        }
+    }
+
+    val coffeeDotColor = LocalCaramelAccent.current
+    val waterDotColor = WaterBlue
+    val dotBorderColor = MaterialTheme.colorScheme.surfaceContainer
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+    ) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "Selecciona",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    Button(
+                        onClick = onGoToToday,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Ir a hoy")
+                    }
+                }
+            }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                items(monthsToShow.size) { idx ->
+                    val (year, month) = monthsToShow[idx]
+                    val firstDay = java.util.Calendar.getInstance().apply {
+                        set(year, month, 1)
+                    }
+                    val lastDay = java.util.Calendar.getInstance().apply {
+                        set(year, month, firstDay.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))
+                    }
+                    val daysInMonth = firstDay.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+                    val startWeekday = firstDay.get(java.util.Calendar.DAY_OF_WEEK)
+                    val startOffset = (startWeekday - 2 + 7) % 7
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "${DIARY_CALENDAR_MONTH_NAMES[month]} $year",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            listOf("L", "M", "X", "J", "V", "S", "D").forEach { label ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        val cells = remember(startOffset, daysInMonth) {
+                            List(startOffset) { null } + (1..daysInMonth).map { it }
+                        }
+                        val rows = remember(cells) { cells.chunked(7) }
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            rows.forEach { rowCells ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    rowCells.forEach { dayOrNull ->
+                                        if (dayOrNull == null) {
+                                            Spacer(Modifier.size(36.dp))
+                                        } else {
+                                            val day = dayOrNull
+                                            val dateStr = "%04d-%02d-%02d".format(year, month + 1, day)
+                                            val hasCoffee = datesWithCoffee.contains(dateStr)
+                                            val hasWater = datesWithWater.contains(dateStr)
+                                            val dayStartMs = remember(year, month, day) {
+                                                val c = java.util.Calendar.getInstance()
+                                                c.set(year, month, day)
+                                                c.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                                c.set(java.util.Calendar.MINUTE, 0)
+                                                c.set(java.util.Calendar.SECOND, 0)
+                                                c.set(java.util.Calendar.MILLISECOND, 0)
+                                                c.timeInMillis
+                                            }
+                                            val isSelected = dayStartMs == selectedDateMs
+                                            val isToday = dayStartMs == todayStartMs
+                                            Surface(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .then(
+                                                        if (isToday && !isSelected)
+                                                            Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                                                        else Modifier
+                                                    )
+                                                    .clip(RoundedCornerShape(12.dp)),
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = when {
+                                                    isSelected -> MaterialTheme.colorScheme.primary
+                                                    else -> Color.Transparent
+                                                },
+                                                onClick = {
+                                                    onPickDate(year, month, day)
+                                                    onDismiss()
+                                                }
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.Center
+                                                ) {
+                                                    Text(
+                                                        text = day.toString(),
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = when {
+                                                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                                                            isToday -> MaterialTheme.colorScheme.primary
+                                                            else -> MaterialTheme.colorScheme.onSurface
+                                                        }
+                                                    )
+                                                    if (hasCoffee || hasWater) {
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.Center,
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            modifier = Modifier.padding(top = 2.dp)
+                                                        ) {
+                                                            if (hasCoffee) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .size(8.dp)
+                                                                        .clip(CircleShape)
+                                                                        .border(1.dp, dotBorderColor, CircleShape)
+                                                                        .background(coffeeDotColor, CircleShape)
+                                                                )
+                                                                if (hasWater) Spacer(Modifier.width(4.dp))
+                                                            }
+                                                            if (hasWater) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .size(8.dp)
+                                                                        .clip(CircleShape)
+                                                                        .border(1.dp, dotBorderColor, CircleShape)
+                                                                        .background(waterDotColor, CircleShape)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -344,11 +604,11 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+            Icon(icon, contentDescription = title, tint = color, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(16.dp))
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

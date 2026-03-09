@@ -15,6 +15,21 @@ val LocalCaramelAccent = staticCompositionLocalOf { CaramelAccent }
 /** Color para fechas/timestamps: gris oscuro en día, gris claro en noche. */
 val LocalDateMetaColor = staticCompositionLocalOf { DateMetaLight }
 
+/** Preferencia de tema: automático (sistema), claro u oscuro. */
+object ThemeMode {
+    const val KEY = "theme_mode"
+    const val AUTO = "auto"
+    const val LIGHT = "light"
+    const val DARK = "dark"
+}
+
+/** Resuelve si debe usarse tema oscuro según preferencia guardada y sistema. */
+fun resolveDarkTheme(themeMode: String, isSystemInDarkTheme: Boolean): Boolean = when (themeMode) {
+    ThemeMode.DARK -> true
+    ThemeMode.LIGHT -> false
+    else -> isSystemInDarkTheme
+}
+
 private val LightColorScheme = lightColorScheme(
     primary = CaramelAccent,
     onPrimary = Color.White,

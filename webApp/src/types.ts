@@ -105,6 +105,12 @@ export type PantryItemRow = {
   last_updated: number;
 };
 
+/** Café marcado como terminado desde la despensa; fuente de verdad: Supabase tabla pantry_historical. */
+export type FinishedCoffeeRow = {
+  coffee_id: string;
+  finished_at: number;
+};
+
 export type FavoriteRow = {
   coffee_id: string;
   user_id: number;
@@ -165,4 +171,6 @@ export type UserDataBundle = {
   pantryItems: PantryItemRow[];
   favorites: FavoriteRow[];
   customCoffees: CoffeeRow[];
+  /** Historial (cafés terminados): fuente de verdad Supabase tabla pantry_historical */
+  finishedCoffees: FinishedCoffeeRow[];
 };

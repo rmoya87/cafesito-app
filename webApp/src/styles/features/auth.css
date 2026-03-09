@@ -11,6 +11,19 @@
   background: var(--pure-black);
 }
 
+/* Móvil: no poder arrastrar la página de login hacia arriba o abajo */
+@media (max-width: 899px) {
+  body.is-login-gate {
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    -webkit-overflow-scrolling: none;
+  }
+}
+
 .login-left-pane {
   position: relative;
   min-height: 100vh;
@@ -168,18 +181,24 @@
   color: rgba(255, 255, 255, 0.88);
 }
 
+/* Estilo de botón primario (caramelo) manteniendo tamaño y tipografía del CTA */
 .login-start-button {
   flex-shrink: 0;
   width: 100%;
   min-height: 56px;
   border: none;
   border-radius: 16px;
-  background: var(--pure-white);
-  color: var(--espresso-deep);
+  background: var(--caramel-soft);
+  color: var(--pure-black);
   font-weight: 800;
   letter-spacing: 0.12em;
   font-size: 0.88rem;
-  box-shadow: 0 8px 24px var(--sheet-shadow);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.login-start-button:hover,
+.login-start-button:focus-visible {
+  background: var(--caramel-accent);
+  color: var(--pure-black);
 }
 
 /* Modal de login en móvil: aspecto nativo (bottom sheet) */
@@ -248,7 +267,13 @@
 
 .login-sheet-terms .login-legal-link {
   color: var(--caramel-soft);
-  text-decoration: underline;
+  text-decoration: none;
+}
+
+.login-sheet .login-google-button-container,
+.login-sheet-overlay .login-sheet .login-google-button-container {
+  margin-top: 24px;
+  margin-bottom: 24px;
 }
 
 .login-desktop-auth .login-sheet-terms .login-legal-link {

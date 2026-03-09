@@ -2,3 +2,4 @@
 @import "./styles/base.css";
 @import "./styles/components.css";
 @import "./styles/features.css";
+@import "./styles/theme-forced.css";

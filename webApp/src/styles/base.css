@@ -7,6 +7,7 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   color-scheme: light dark;
+  background: var(--screen-dark-background);
 }
 
 html,
@@ -14,6 +15,7 @@ body,
 #root {
   min-height: 100%;
   min-height: 100dvh;
+  min-height: -webkit-fill-available;
 }
 
 body {
@@ -27,12 +29,18 @@ body {
   color: var(--text-main);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
 }
 
 /* PWA standalone: viewport estable y sin rebote de navegador */
 .pwa-standalone body {
   min-height: 100dvh;
+}
+
+/* Sin padding inferior para que el layout llegue al borde y no quede barra debajo del menú */
+body {
+  padding-bottom: 0;
 }
 
 /* Enlaces: que no los pinte iOS/Safari de azul ni subrayado por defecto */
@@ -226,6 +234,15 @@ select {
   textarea,
   select {
     font-size: max(1rem, var(--font-size-md, 1rem));
+  }
+}
+
+/* Móvil: 16px mínimo en inputs para que iOS no haga zoom al enfocar */
+@media (max-width: 899px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }
 

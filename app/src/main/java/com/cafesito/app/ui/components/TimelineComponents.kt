@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.ui.theme.WaterBlue
 import com.cafesito.app.ui.theme.WaterBlueBackground
 import androidx.compose.ui.graphics.Path
@@ -51,6 +52,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -206,7 +208,7 @@ fun CommentsSheet(
                         editingCommentId = null
                         textValue = TextFieldValue("")
                     }, modifier = Modifier.size(16.dp)) {
-                        Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -293,7 +295,7 @@ fun CommentsSheet(
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                Icon(Icons.Default.PhotoCamera, contentDescription = "Cámara", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
                             }
                         }
 
@@ -329,6 +331,8 @@ fun CommentsSheet(
 
                         Spacer(Modifier.weight(1f))
 
+                        val sendDisabledBg = if (isSystemInDarkTheme()) Color(0xFF424242) else Color(0xFFBDBDBD)
+                        val sendDisabledContent = if (isSystemInDarkTheme()) Color.Black else Color.White
                         IconButton(
                             onClick = {
                                 if (editingCommentId != null) {
@@ -344,7 +348,8 @@ fun CommentsSheet(
                             modifier = Modifier.size(40.dp),
                             colors = IconButtonDefaults.iconButtonColors(
                                 contentColor = MaterialTheme.colorScheme.primary,
-                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                disabledContainerColor = sendDisabledBg,
+                                disabledContentColor = sendDisabledContent
                             )
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar", modifier = Modifier.size(24.dp))
@@ -359,7 +364,7 @@ fun CommentsSheet(
                                 shape = CircleShape,
                                 color = Color.Black.copy(alpha = 0.65f)
                             ) {
-                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White, modifier = Modifier.padding(4.dp))
                             }
                         }
                     }
@@ -595,7 +600,7 @@ private fun NotificationRow(
             Box {
                 AsyncImage(
                     model = avatarUrl,
-                    contentDescription = null,
+                    contentDescription = "Avatar",
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
@@ -694,7 +699,7 @@ private fun CommentRow(
     ) {
         AsyncImage(
             model = author?.avatarUrl ?: "",
-            contentDescription = null,
+            contentDescription = author?.let { "Avatar de ${it.fullName.ifBlank { it.username } }" } ?: "Avatar",
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
@@ -806,7 +811,7 @@ fun MentionText(
                             } else {
                                 SubcomposeAsyncImage(
                                     model = mentionUser?.avatarUrl,
-                                    contentDescription = null,
+                                    contentDescription = "Avatar de ${mentionUser?.username ?: "usuario"}",
                                     modifier = Modifier
                                         .size(14.dp)
                                         .clip(CircleShape),
@@ -914,7 +919,7 @@ private fun ComposerMentionPill(user: UserEntity) {
             } else {
                 SubcomposeAsyncImage(
                     model = user.avatarUrl,
-                    contentDescription = null,
+                    contentDescription = "Avatar de ${user.username}",
                     modifier = Modifier
                         .size(14.dp)
                         .clip(CircleShape),
@@ -1037,7 +1042,7 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
         border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
     ) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(model = user.avatarUrl, contentDescription = null, modifier = Modifier
+            AsyncImage(model = user.avatarUrl, contentDescription = "Avatar de ${user.fullName.ifBlank { user.username } }", modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape))
             Spacer(Modifier.width(8.dp))
@@ -1054,6 +1059,8 @@ fun StockSliderSection(
     onValueChange: (Float) -> Unit
 ) {
     var editableValue by remember(value) { mutableStateOf(value.roundToInt().toString()) }
+    val coffeeColor = LocalCaramelAccent.current
+    val inactiveTrackColor = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFE0E0E0)
 
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1083,9 +1090,9 @@ fun StockSliderSection(
             },
             valueRange = 0f..maxValue.coerceAtLeast(1f),
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.outline,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                thumbColor = coffeeColor,
+                activeTrackColor = coffeeColor,
+                inactiveTrackColor = inactiveTrackColor
             )
         )
         Spacer(Modifier.height(8.dp))
@@ -1099,7 +1106,7 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
             Box(Modifier
                 .size(32.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column {
@@ -1139,7 +1146,7 @@ fun SwipeableDiaryItem(
                     .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(Icons.Default.Delete, null, tint = Color.White, modifier = Modifier.padding(end = 16.dp))
+                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.White, modifier = Modifier.padding(end = 16.dp))
             }
         }
     ) {
@@ -1196,7 +1203,7 @@ fun DiaryEntryItem(
                 if (entry.type == "CUP" && !coffeeImageUrl.isNullOrBlank() && !isRegistroRapido) {
                     AsyncImage(
                         model = coffeeImageUrl,
-                        contentDescription = null,
+                        contentDescription = entry.coffeeName.ifBlank { "Imagen del café" },
                         modifier = Modifier
                             .size(46.dp)
                             .clip(RoundedCornerShape(12.dp)),
@@ -1215,14 +1222,14 @@ fun DiaryEntryItem(
                         if (entry.type == "WATER") {
                             Icon(
                                 imageVector = Icons.Default.WaterDrop,
-                                contentDescription = null,
+                                contentDescription = "Entrada de agua",
                                 tint = WaterBlue,
                                 modifier = Modifier.size(20.dp)
                             )
                         } else {
                             Icon(
                                 if (isRegistroRapido) Icons.Filled.LocalCafe else Icons.Default.Coffee,
-                                null,
+                                contentDescription = if (isRegistroRapido) "Registro rápido" else "Entrada de café",
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -1263,7 +1270,7 @@ fun DiaryEntryItem(
                     onClick = {},
                     enabled = false,
                     label = { Text(dateStr, fontSize = 11.sp) },
-                    leadingIcon = { Icon(Icons.Default.Schedule, null, modifier = Modifier.size(14.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora", modifier = Modifier.size(14.dp)) }
                 )
             }
 
@@ -1280,11 +1287,56 @@ fun DiaryEntryItem(
                         !(firstVisible && lastVisible && lastItemEnd <= info.viewportEndOffset)
                     }
                 }
+                val hasScrollLeft by remember {
+                    derivedStateOf {
+                        metaRowState.firstVisibleItemIndex > 0 || metaRowState.firstVisibleItemScrollOffset > 0
+                    }
+                }
+                val hasScrollRight by remember {
+                    derivedStateOf {
+                        val info = metaRowState.layoutInfo
+                        if (info.totalItemsCount == 0 || info.visibleItemsInfo.isEmpty()) false
+                        else {
+                            val last = info.visibleItemsInfo.last()
+                            val lastEnd = last.offset + last.size
+                            lastEnd > info.viewportEndOffset - 1 || (metaRowState.firstVisibleItemIndex + info.visibleItemsInfo.size < info.totalItemsCount)
+                        }
+                    }
+                }
+                val surfaceColor = MaterialTheme.colorScheme.surface
+                val metaRowModifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (hasScrollLeft || hasScrollRight) Modifier.drawWithContent {
+                            drawContent()
+                            val w = size.width
+                            val edge = 16.dp.toPx().coerceAtMost(w / 4f)
+                            if (hasScrollLeft) {
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(surfaceColor, surfaceColor.copy(alpha = 0f))
+                                    ),
+                                    size = androidx.compose.ui.geometry.Size(edge, size.height)
+                                )
+                            }
+                            if (hasScrollRight) {
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        startX = w - edge,
+                                        endX = w,
+                                        colors = listOf(surfaceColor.copy(alpha = 0f), surfaceColor)
+                                    ),
+                                    topLeft = androidx.compose.ui.geometry.Offset(w - edge, 0f),
+                                    size = androidx.compose.ui.geometry.Size(edge, size.height)
+                                )
+                            }
+                        } else Modifier
+                    )
                 LazyRow(
                     state = metaRowState,
                     userScrollEnabled = metaCarouselEnabled,
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = metaRowModifier
                 ) {
                     item {
                         MetricPill(
@@ -1497,13 +1549,15 @@ fun DiaryEntryEditBottomSheet(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
+                val unselectedChipBg = if (isDark) Color.Black else Color.White
+                val unselectedChipContent = if (isDark) Color.White else Color.Black
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
                         Surface(
                             onClick = { selectedPreparation = option.label },
                             shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surface,
+                            color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
                                 color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -1515,6 +1569,7 @@ fun DiaryEntryEditBottomSheet(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
+                                val iconTint = if (isSelected) Color.Black else unselectedChipContent
                                 if (resId != 0) {
                                     Image(
                                         painter = painterResource(id = resId),
@@ -1523,12 +1578,12 @@ fun DiaryEntryEditBottomSheet(
                                         contentScale = ContentScale.Fit
                                     )
                                 } else {
-                                    Icon(Icons.Default.CoffeeMaker, null, tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.CoffeeMaker, contentDescription = option.label, tint = iconTint)
                                 }
                                 Text(
                                     text = option.label,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = if (isSelected) Color.Black else unselectedChipContent,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
                             }
@@ -1544,7 +1599,7 @@ fun DiaryEntryEditBottomSheet(
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.grano_cafe),
-                                contentDescription = null,
+                                contentDescription = "Cafeína",
                                 modifier = Modifier.size(20.dp),
                                 tint = Color.Unspecified
                             )
@@ -1568,7 +1623,7 @@ fun DiaryEntryEditBottomSheet(
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.portafiltro),
-                                contentDescription = null,
+                                contentDescription = "Dosis",
                                 modifier = Modifier.size(20.dp),
                                 tint = Color.Unspecified
                             )
@@ -1590,10 +1645,12 @@ fun DiaryEntryEditBottomSheet(
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
+                        val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBg
+                        val chipContent = if (isSelected) Color.Black else unselectedChipContent
                         Surface(
                             onClick = { selectedSize = option.label },
                             shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface,
+                            color = chipBg,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
                                 color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -1610,11 +1667,11 @@ fun DiaryEntryEditBottomSheet(
                                             contentScale = ContentScale.Fit
                                         )
                                     } else {
-                                        Icon(Icons.Default.LocalCafe, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Icon(Icons.Default.LocalCafe, contentDescription = option.label, modifier = Modifier.size(16.dp), tint = chipContent)
                                     }
-                                    Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                                    Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
                                 }
-                                Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = chipContent.copy(alpha = 0.85f))
                             }
                         }
                     }
@@ -1628,7 +1685,7 @@ fun DiaryEntryEditBottomSheet(
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.WaterDrop,
-                                contentDescription = null,
+                                contentDescription = "Agua",
                                 tint = WaterBlue,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -1643,7 +1700,7 @@ fun DiaryEntryEditBottomSheet(
                         value = timeText,
                         onValueChange = { timeText = it.take(5) },
                         label = { Text("Tiempo (HH:mm)") },
-                        leadingIcon = { Icon(Icons.Default.Schedule, null, modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora", modifier = Modifier.size(18.dp)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         textStyle = editFieldTextStyle,
@@ -1657,7 +1714,7 @@ fun DiaryEntryEditBottomSheet(
                     value = timeText,
                     onValueChange = { timeText = it.take(5) },
                     label = { Text("Tiempo (HH:mm)") },
-                    leadingIcon = { Icon(Icons.Default.Schedule, null) },
+                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = editFieldTextStyle,
@@ -1842,7 +1899,7 @@ private fun MetricPill(
             ) {
                 Image(
                     painter = icon,
-                    contentDescription = null,
+                    contentDescription = label,
                     modifier = Modifier.size(24.dp),
                     contentScale = ContentScale.Fit
                 )
@@ -1878,7 +1935,7 @@ private fun MetricPillContent(
                     .width(26.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
             }
             Column {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1972,7 +2029,11 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 onValueChange = { rem = it }
             )
             Spacer(Modifier.height(40.dp))
-            
+
+            val saveBackground = LocalCaramelAccent.current
+            val saveTextColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+            val cancelBorderAndText = MaterialTheme.colorScheme.onSurface
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1983,21 +2044,24 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                         .weight(1f)
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    border = BorderStroke(1.dp, cancelBorderAndText),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Bold)
                 }
-                
+
                 Button(
-                    onClick = { onSave(total.roundToInt(), rem.roundToInt()) }, 
+                    onClick = { onSave(total.roundToInt(), rem.roundToInt()) },
                     Modifier
                         .weight(1f)
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = saveBackground,
+                        contentColor = saveTextColor
+                    ),
                     shape = RoundedCornerShape(16.dp)
-                ) { 
-                    Text("GUARDAR", fontWeight = FontWeight.Bold) 
+                ) {
+                    Text("GUARDAR", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -2026,7 +2090,7 @@ fun ModalMenuOption(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = title,
                 tint = color,
                 modifier = Modifier.size(24.dp)
             )
@@ -2040,7 +2104,7 @@ fun ModalMenuOption(
             Spacer(Modifier.weight(1f))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
+                contentDescription = "Abrir",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -2069,7 +2133,7 @@ fun ModalMenuOption(
         ) {
             Icon(
                 painter = iconPainter,
-                contentDescription = null,
+                contentDescription = title,
                 tint = color,
                 modifier = Modifier.size(24.dp)
             )
@@ -2083,7 +2147,7 @@ fun ModalMenuOption(
             Spacer(Modifier.weight(1f))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
+                contentDescription = "Abrir",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -2153,25 +2217,38 @@ fun ReviewOptionsBottomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsBottomSheet(
-    onDismiss: () -> Unit, 
-    onEditClick: () -> Unit, 
+    onDismiss: () -> Unit,
+    onEditClick: () -> Unit,
+    onHistorialClick: () -> Unit,
     onDeleteAccountClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
-        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
         Column(Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp)) {
             Text(
-                "GENERAL", 
-                style = MaterialTheme.typography.labelMedium, 
-                color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                "GENERAL",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
             )
-            
+            ModalMenuOption(
+                title = "Historial",
+                icon = Icons.Default.History,
+                color = MaterialTheme.colorScheme.onSurface,
+                onClick = { onDismiss(); onHistorialClick() }
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "CUENTA",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+            )
             ModalMenuOption(
                 title = "Editar Perfil",
                 icon = Icons.Default.Edit,
@@ -2243,7 +2320,7 @@ fun EditPostBottomSheet(
             ) {
                 AsyncImage(
                     model = imageUrl,
-                    contentDescription = null,
+                    contentDescription = "Imagen seleccionada",
                     modifier = Modifier.fillMaxWidth(),
                     contentScale = ContentScale.FillWidth
                 )
@@ -2339,12 +2416,12 @@ fun EditReviewBottomSheet(
                 if (imageUrl != null) {
                     AsyncImage(
                         model = imageUrl,
-                        contentDescription = null,
+                        contentDescription = "Imagen de la reseña",
                         modifier = Modifier.fillMaxWidth(),
                         contentScale = ContentScale.FillWidth
                     )
                 } else {
-                    Icon(Icons.Default.AddAPhoto, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.AddAPhoto, contentDescription = "Añadir foto", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -2355,7 +2432,7 @@ fun EditReviewBottomSheet(
                 repeat(5) { i ->
                     Icon(
                         imageVector = if (rating > i) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = null,
+                        contentDescription = "Valoración ${i + 1} de 5",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .padding(horizontal = 4.dp)

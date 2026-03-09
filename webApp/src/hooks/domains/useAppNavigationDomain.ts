@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { buildRoute, getAppRootPath, parseRoute, toCoffeeSlug } from "../../core/routing";
+import type { ProfileSection } from "../../core/routing";
 import { canNavigateToTab } from "../../core/guards";
 import { normalizeLookupText } from "../../core/text";
 import type { CoffeeRow, TabId, UserRow } from "../../types";
@@ -9,6 +10,7 @@ export function useAppNavigationDomain({
   setSearchMode,
   profileUsername,
   setProfileUsername,
+  setProfileSubPanel,
   users,
   setActiveTab,
   activeUserUsername,
@@ -25,6 +27,7 @@ export function useAppNavigationDomain({
   setSearchMode: (value: "coffees" | "users") => void;
   profileUsername: string | null;
   setProfileUsername: (value: string | null) => void;
+  setProfileSubPanel: (value: "historial" | null) => void;
   users: UserRow[];
   setActiveTab: (value: TabId) => void;
   activeUserUsername: string | null;
@@ -44,6 +47,7 @@ export function useAppNavigationDomain({
         searchMode?: "coffees" | "users";
         profileUserId?: number | null;
         profileUsername?: string | null;
+        profileSection?: ProfileSection;
         coffeeSlug?: string | null;
         replace?: boolean;
       }
@@ -55,19 +59,23 @@ export function useAppNavigationDomain({
       }
       const userById = options?.profileUserId != null ? users.find((item) => item.id === options.profileUserId) ?? null : null;
       const nextProfileUsername = options?.profileUsername ?? userById?.username ?? (tab === "profile" ? profileUsername : null);
+      const nextProfileSection = options?.profileSection ?? (tab === "profile" ? null : undefined);
 
       setActiveTab(tab);
       if (tab === "search") setSearchMode(nextSearchMode);
-      if (tab === "profile") setProfileUsername(nextProfileUsername ?? null);
+      if (tab === "profile") {
+        setProfileUsername(nextProfileUsername ?? null);
+        setProfileSubPanel(nextProfileSection ?? null);
+      }
 
-      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null);
+      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null, nextProfileSection ?? null);
       const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
       const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
       if (window.location.pathname === fullPath) return;
       const method = options?.replace ? "replaceState" : "pushState";
       window.history[method]({}, "", `${fullPath}${window.location.search}${window.location.hash}`);
     },
-    [isAuthenticated, onRequireAuth, profileUsername, searchMode, setActiveTab, setProfileUsername, setSearchMode, users]
+    [isAuthenticated, onRequireAuth, profileUsername, searchMode, setActiveTab, setProfileUsername, setProfileSubPanel, setSearchMode, users]
   );
 
   useEffect(() => {
@@ -77,6 +85,7 @@ export function useAppNavigationDomain({
       setActiveTab(guardedTab);
       setSearchMode(route.searchMode);
       setProfileUsername(route.profileUsername);
+      setProfileSubPanel(route.profileSection ?? null);
       if (guardedTab === "coffee") {
         setDetailHostTab(null);
         if (!route.coffeeSlug) {
@@ -114,7 +123,7 @@ export function useAppNavigationDomain({
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [coffees, isAuthenticated, setActiveTab, setDetailCoffeeId, setDetailHostTab, setProfileUsername, setSearchMode]);
+  }, [coffees, isAuthenticated, setActiveTab, setDetailCoffeeId, setDetailHostTab, setProfileSubPanel, setProfileUsername, setSearchMode]);
 
   const handleNavClick = useCallback(
     (tabId: TabId) => {

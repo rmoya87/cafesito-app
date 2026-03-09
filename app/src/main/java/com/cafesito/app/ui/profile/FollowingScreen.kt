@@ -87,7 +87,7 @@ fun FollowingScreen(
                                 singleLine = true,
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
-                                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 placeholder = { Text("Buscar en seguidos...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 contentPadding = PaddingValues(0.dp),
                                 container = {

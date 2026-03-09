@@ -55,7 +55,8 @@ En **workflow_dispatch** (manual) y en **schedule** (nocturno) no se usa filtro 
    - Condición: rama en `Interna` / `alpha` / `beta` / `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
    - Configura keystore y `google-services.json`, hace bump de versión, build del AAB y subida a la pista de Play correspondiente.
    - Sube también los **símbolos nativos** (`debugSymbols`) generados por el build para que Play Console pueda mostrar ANR y crashes de forma legible.
-   - Las **notas de la versión** (What’s new) se generan de forma automática: se basan en la última versión anterior (último tag o último push), son promocionales y pensadas para el usuario que disfruta la app y el café, sin tecnicismos.
+   - **Notas de la versión (What’s new):** Se generan desde **todos los commits en git desde la última publicación desplegada** en esa pista. Tras cada subida exitosa a Play se crea el tag `deploy/android/<pista>/<versionCode>` (ej. `deploy/android/beta/218`). En la siguiente release se toma el último tag de esa pista que sea ancestro de HEAD y se lista el mensaje de cada commit desde ese tag hasta HEAD (excluyendo merges y commits `chore(release)`). Así el usuario ve en “Qué hay de nuevo” los cambios reales desde la versión que tenía instalada. Si no existe tag previo (primera vez), se muestra un texto genérico.
+   - **Tag de deploy:** Tras “Upload to Google Play” se hace push del tag `deploy/android/<track>/<versionCode>` para que la próxima ejecución pueda calcular las release notes.
 
 3. **deploy-web**  
    - Condición: rama `alpha`, `beta` o `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
@@ -81,7 +82,7 @@ En **Settings → Secrets and variables → Actions**:
 
 **Keystore en base64:** `base64 -w 0 your-release.keystore` (o en PowerShell: codificar el binario). Pegar como una sola línea sin espacios ni saltos.
 
-**Notas (Android):** El workflow sube el release en estado **draft** para revisión manual en Play Console. Añade mensaje promocional `whatsnew-es-ES`. El commit de bump de versión usa `[skip ci]` para evitar loops.
+**Notas (Android):** El workflow sube el release en estado **draft** para revisión manual en Play Console. El archivo `release-notes/whatsnew-es-ES` se genera con los mensajes de commit desde el último tag `deploy/android/<pista>/*` (límite 500 caracteres para Play). El checkout del job usa `fetch-tags: true` para disponer de esos tags. El commit de bump de versión usa `[skip ci]` para evitar loops.
 
 ### Web (Ionos, SFTP)
 

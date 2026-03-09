@@ -136,11 +136,21 @@ export function SearchView({
   const usersBeforeSentinel = showUsersSentinel ? visibleUsers.slice(0, SEARCH_LOAD_MORE_AT_INDEX) : visibleUsers;
   const usersAfterSentinel = showUsersSentinel ? visibleUsers.slice(SEARCH_LOAD_MORE_AT_INDEX) : [];
 
+  const [failedAvatarUrls, setFailedAvatarUrls] = useState<Set<string>>(new Set());
   const renderUserRow = (user: UserRow) => (
     <li key={user.id} className="search-users-row">
       <Button variant="plain" className="search-users-link" onClick={() => onSelectUser(user.id)}>
-        {user.avatar_url ? (
-          <img className="avatar avatar-photo search-users-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+        {user.avatar_url && !failedAvatarUrls.has(user.avatar_url) ? (
+          <img
+            className="avatar avatar-photo search-users-avatar"
+            src={user.avatar_url}
+            alt={user.username}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            onError={() => setFailedAvatarUrls((prev) => new Set(prev).add(user.avatar_url))}
+          />
         ) : (
           <div className="avatar search-users-avatar-fallback" aria-hidden="true">
             {user.username.slice(0, 2).toUpperCase()}

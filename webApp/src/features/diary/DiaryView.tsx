@@ -4,8 +4,10 @@ import {
   caffeineTargetMg,
   hydrationProgressPercent,
   hydrationTargetMl,
+  last30DaysDailyAverages,
   trendPercent
 } from "../../core/diaryAnalytics";
+import { EMPTY } from "../../core/emptyErrorStrings";
 import { normalizeLookupText } from "../../core/text";
 import { UiIcon, type IconName } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs } from "../../ui/components";
@@ -40,11 +42,22 @@ const DIARY_STR = {
   METODO_UPPER: "M" + _c(0x00C9) + "TODO",
 } as const;
 
+/** Formatea solo dígitos a hh:mm insertando ":" tras 2 dígitos (teclado numérico sin dos puntos). */
+function formatTimeInputToHhMm(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length === 0) return "";
+  if (digits.length === 1) return digits;
+  if (digits.length === 2) return `${digits}:`;
+  if (digits.length === 3) return `${digits.slice(0, 2)}:${digits.slice(2, 3)}`;
+  return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+}
+
 export function DiaryView({
   mode,
   tab,
   setTab,
   period,
+  selectedDiaryDate,
   entries,
   coffeeCatalog,
   pantryRows,
@@ -52,6 +65,7 @@ export function DiaryView({
   onEditEntry,
   onUpdatePantryStock,
   onRemovePantryItem,
+  onMarkPantryCoffeeFinished,
   onOpenCoffee,
   onOpenQuickActions
 }: {
@@ -59,6 +73,8 @@ export function DiaryView({
   tab: "actividad" | "despensa";
   setTab: (value: "actividad" | "despensa") => void;
   period: "hoy" | "7d" | "30d";
+  /** Cuando period === "hoy", fecha seleccionada en formato YYYY-MM-DD */
+  selectedDiaryDate?: string;
   entries: DiaryEntryRow[];
   coffeeCatalog: CoffeeRow[];
   pantryRows: Array<{ item: PantryItemRow; coffee?: CoffeeRow }>;
@@ -74,6 +90,7 @@ export function DiaryView({
   ) => Promise<void>;
   onUpdatePantryStock: (coffeeId: string, totalGrams: number, gramsRemaining: number) => Promise<void>;
   onRemovePantryItem: (coffeeId: string) => Promise<void>;
+  onMarkPantryCoffeeFinished?: (coffeeId: string) => Promise<void>;
   onOpenCoffee: (coffeeId: string) => void;
   onOpenQuickActions: () => void;
 }) {
@@ -164,6 +181,8 @@ export function DiaryView({
   const [savingEditEntry, setSavingEditEntry] = useState(false);
   const [pantryOptionsCoffeeId, setPantryOptionsCoffeeId] = useState<string | null>(null);
   const [pantryDeleteConfirmCoffeeId, setPantryDeleteConfirmCoffeeId] = useState<string | null>(null);
+  const [pantryFinishedConfirmCoffeeId, setPantryFinishedConfirmCoffeeId] = useState<string | null>(null);
+  const [markingFinished, setMarkingFinished] = useState(false);
   const [stockEditCoffeeId, setStockEditCoffeeId] = useState<string | null>(null);
   const [stockEditTotal, setStockEditTotal] = useState("");
   const [stockEditRemaining, setStockEditRemaining] = useState("");
@@ -188,6 +207,10 @@ export function DiaryView({
     const now = new Date();
     const start = new Date(now);
     if (period === "hoy") {
+      if (selectedDiaryDate) {
+        const [y, m, d] = selectedDiaryDate.split("-").map(Number);
+        start.setFullYear(y, (m ?? 1) - 1, d ?? 1);
+      }
       start.setHours(0, 0, 0, 0);
     } else if (period === "7d") {
       const day = start.getDay(); // Sunday=0
@@ -199,10 +222,18 @@ export function DiaryView({
       start.setHours(0, 0, 0, 0);
     }
     const startMs = start.getTime();
-    return entries
-      .filter((entry) => Number(entry.timestamp) >= startMs)
-      .sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
-  }, [entries, period]);
+    let filtered = entries.filter(
+      (entry) => Number(entry.timestamp) >= startMs && (entry.type || "").toUpperCase() !== "NOTE"
+    );
+    if (period === "hoy" && selectedDiaryDate) {
+      const [y, m, d] = selectedDiaryDate.split("-").map(Number);
+      const dayEnd = new Date(y, (m ?? 1) - 1, (d ?? 1) + 1);
+      dayEnd.setHours(0, 0, 0, 0);
+      const dayEndMs = dayEnd.getTime();
+      filtered = filtered.filter((entry) => Number(entry.timestamp) < dayEndMs);
+    }
+    return filtered.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+  }, [entries, period, selectedDiaryDate]);
 
   const analytics = useMemo(() => {
     const caffeine = visibleEntries.reduce((acc, entry) => acc + Math.max(0, entry.caffeine_mg || 0), 0);
@@ -211,9 +242,16 @@ export function DiaryView({
       .reduce((acc, entry) => acc + Math.max(0, entry.amount_ml || 0), 0);
     const coffeeCups = visibleEntries.filter((entry) => (entry.type || "").toUpperCase() !== "WATER").length;
     const waterEntries = visibleEntries.filter((entry) => (entry.type || "").toUpperCase() === "WATER").length;
-    const avgCaffeine = coffeeCups > 0 ? Math.round(caffeine / coffeeCups) : 0;
-    return { caffeine, hydrationMl, coffeeCups, waterEntries, avgCaffeine };
+    return { caffeine, hydrationMl, coffeeCups, waterEntries };
   }, [visibleEntries]);
+
+  const last30Avg = useMemo(() => {
+    const now = Date.now();
+    const dayMs = 86400000;
+    const cutoff = now - 30 * dayMs;
+    const entriesLast30 = entries.filter((e) => Number(e.timestamp) >= cutoff);
+    return last30DaysDailyAverages(entriesLast30);
+  }, [entries]);
   const hydrationTarget = hydrationTargetMl(period);
   const caffeineTarget = caffeineTargetMg(period);
   const hydrationProgressPct = hydrationProgressPercent(analytics.hydrationMl, period);
@@ -605,7 +643,7 @@ export function DiaryView({
             }}
           />
         );
-      }) : <li className="diary-empty-card">{DIARY_STR.SIN_CAFE_AGUA}</li>}
+      }) : <li className="diary-empty-card">{EMPTY.DIARY_NO_ENTRIES}</li>}
     </ul>
   );
   const pantryList = (
@@ -654,7 +692,7 @@ export function DiaryView({
             </div>
           </div>
         </li>
-      )) : <li className="diary-empty-card">{DIARY_STR.NO_HAY_CAFE_DESPENSA}</li>}
+      )) : <li className="diary-empty-card">{EMPTY.DIARY_NO_PANTRY}</li>}
     </ul>
   );
 
@@ -792,9 +830,9 @@ export function DiaryView({
           </div>
         </div>
         <div className="analytics-grid">
-          <div className="diary-metric-box">
+          <div className={`diary-metric-box ${last30Avg.avgCaffeinePerDay >= 100 ? "has-long-value" : ""}`.trim()}>
             <UiIcon name="insights" className="ui-icon" />
-            <p className="analytics-value">{analytics.avgCaffeine} mg</p>
+            <p className="analytics-value">{last30Avg.avgCaffeinePerDay}<span className="diary-unit-suffix"> mg</span></p>
             <p className="metric-label">MEDIA</p>
           </div>
           <div className="diary-metric-box">
@@ -889,6 +927,24 @@ export function DiaryView({
                   chevron_right
                 </span>
               </Button>
+              {onMarkPantryCoffeeFinished ? (
+                <Button variant="plain"
+                  type="button"
+                  className="diary-sheet-action diary-sheet-action-pantry"
+                  onClick={() => {
+                    setPantryFinishedConfirmCoffeeId(pantryOptionsCoffeeId);
+                    setPantryOptionsCoffeeId(null);
+                  }}
+                >
+                  <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
+                    check_circle
+                  </span>
+                  <span>Café terminado</span>
+                  <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
+                    chevron_right
+                  </span>
+                </Button>
+              ) : null}
               <Button variant="plain"
                 type="button"
                 className="diary-sheet-action diary-sheet-action-pantry"
@@ -906,6 +962,42 @@ export function DiaryView({
                   chevron_right
                 </span>
               </Button>
+            </div>
+          </SheetCard>
+        </SheetOverlay>
+      ) : null}
+
+      {pantryFinishedConfirmCoffeeId && onMarkPantryCoffeeFinished ? (
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Café terminado" onDismiss={() => setPantryFinishedConfirmCoffeeId(null)} onClick={() => setPantryFinishedConfirmCoffeeId(null)}>
+          <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
+            <div className="diary-delete-confirm-body">
+              <h2 className="diary-delete-confirm-title">Café terminado</h2>
+              <p className="diary-delete-confirm-text">
+                ¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.
+              </p>
+              <div className="diary-delete-confirm-actions">
+                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setPantryFinishedConfirmCoffeeId(null)} disabled={markingFinished}>
+                  Cancelar
+                </Button>
+                <Button variant="plain"
+                  type="button"
+                  className="diary-delete-confirm-submit"
+                  disabled={markingFinished}
+                  onClick={async () => {
+                    if (markingFinished) return;
+                    setMarkingFinished(true);
+                    try {
+                      await onMarkPantryCoffeeFinished(pantryFinishedConfirmCoffeeId);
+                      setPantryFinishedConfirmCoffeeId(null);
+                    } finally {
+                      setMarkingFinished(false);
+                    }
+                  }}
+                >
+                  {markingFinished ? "Guardando..." : "Confirmar"}
+                </Button>
+              </div>
             </div>
           </SheetCard>
         </SheetOverlay>
@@ -958,7 +1050,7 @@ export function DiaryView({
               <label className="diary-stock-edit-field">
                 <span>Cantidad de café total (g)</span>
                 <Input
-                  className="diary-stock-edit-value"
+                  className="diary-stock-edit-value search-wide"
                   type="text"
                   inputMode="numeric"
                   value={String(Math.max(0, Number(stockEditTotal || 0)))}
@@ -979,7 +1071,7 @@ export function DiaryView({
                   }}
                 />
                 <Input
-                  className="diary-stock-edit-slider app-range"
+                  className="diary-stock-edit-slider app-range search-wide"
                   type="range"
                   min={0}
                   max={1000}
@@ -997,7 +1089,7 @@ export function DiaryView({
               <label className="diary-stock-edit-field">
                 <span>Cantidad de café restante (g)</span>
                 <Input
-                  className="diary-stock-edit-value"
+                  className="diary-stock-edit-value search-wide"
                   type="text"
                   inputMode="numeric"
                   value={String(Math.max(0, Number(stockEditRemaining || 0)))}
@@ -1007,7 +1099,7 @@ export function DiaryView({
                   }}
                 />
                 <Input
-                  className="diary-stock-edit-slider app-range"
+                  className="diary-stock-edit-slider app-range search-wide"
                   type="range"
                   min={0}
                   max={Math.max(1, Number(stockEditTotal || 0))}
@@ -1111,7 +1203,7 @@ export function DiaryView({
                         inputMode="numeric"
                         placeholder="HH:mm"
                         value={editTimeText}
-                        onChange={(event) => setEditTimeText(event.target.value.replace(/[^0-9:]/g, "").slice(0, 5))}
+                        onChange={(event) => setEditTimeText(formatTimeInputToHhMm(event.target.value))}
                       />
                     </div>
                   </label>
@@ -1207,7 +1299,7 @@ export function DiaryView({
                         inputMode="numeric"
                         placeholder="HH:mm"
                         value={editTimeText}
-                        onChange={(event) => setEditTimeText(event.target.value.replace(/[^0-9:]/g, "").slice(0, 5))}
+                        onChange={(event) => setEditTimeText(formatTimeInputToHhMm(event.target.value))}
                       />
                     </div>
                   </label>
@@ -1335,6 +1427,8 @@ function DiaryActivityRow({
   const metaInteractingRef = useRef(false);
   const [metaDragging, setMetaDragging] = useState(false);
   const [metaHasOverflow, setMetaHasOverflow] = useState(false);
+  const [metaScrollLeft, setMetaScrollLeft] = useState(false);
+  const [metaScrollRight, setMetaScrollRight] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
   const [swipeActive, setSwipeActive] = useState(false);
   const pointerIdRef = useRef<number | null>(null);
@@ -1440,21 +1534,34 @@ function DiaryActivityRow({
     }, 120);
   };
 
+  const updateMetaScrollEdges = useCallback(() => {
+    const node = metaScrollRef.current;
+    if (!node || !metaItems.length) return;
+    setMetaHasOverflow(node.scrollWidth - node.clientWidth > 1);
+    setMetaScrollLeft(node.scrollLeft > 1);
+    setMetaScrollRight(node.scrollLeft + node.clientWidth < node.scrollWidth - 1);
+  }, [metaItems.length]);
+
   useEffect(() => {
     const node = metaScrollRef.current;
     if (!node || !metaItems.length) {
       setMetaHasOverflow(false);
+      setMetaScrollLeft(false);
+      setMetaScrollRight(false);
       return;
     }
-    const updateOverflow = () => {
-      setMetaHasOverflow(node.scrollWidth - node.clientWidth > 1);
-    };
-    updateOverflow();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => updateOverflow());
+    updateMetaScrollEdges();
+    node.addEventListener("scroll", updateMetaScrollEdges);
+    if (typeof ResizeObserver === "undefined") {
+      return () => node.removeEventListener("scroll", updateMetaScrollEdges);
+    }
+    const observer = new ResizeObserver(updateMetaScrollEdges);
     observer.observe(node);
-    return () => observer.disconnect();
-  }, [metaItems.length]);
+    return () => {
+      node.removeEventListener("scroll", updateMetaScrollEdges);
+      observer.disconnect();
+    };
+  }, [metaItems.length, updateMetaScrollEdges]);
 
   return (
     <li
@@ -1504,7 +1611,7 @@ function DiaryActivityRow({
           {metaItems.length ? (
             <div
               ref={metaScrollRef}
-              className={`diary-entry-meta-scroll ${metaDragging ? "is-dragging" : ""} ${metaHasOverflow ? "" : "is-static"}`.trim()}
+              className={`diary-entry-meta-scroll ${metaDragging ? "is-dragging" : ""} ${metaHasOverflow ? "" : "is-static"} ${metaScrollLeft ? "has-scroll-left" : ""} ${metaScrollRight ? "has-scroll-right" : ""}`.trim()}
               onPointerDown={(event) => {
               if (!metaHasOverflow) return;
               event.stopPropagation();

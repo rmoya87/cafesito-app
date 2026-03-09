@@ -155,7 +155,7 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
                     modifier = Modifier.size(48.dp)
                 )
             } else {
-                Icon(Icons.Default.CoffeeMaker, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                Icon(Icons.Default.CoffeeMaker, contentDescription = "Método de elaboración", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
             }
             Spacer(Modifier.height(12.dp))
             Text(
@@ -243,7 +243,7 @@ fun ChooseCoffeeStep(
                     Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = onCreateCoffeeClick) {
-                        Icon(Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.AddCircle, contentDescription = "Crear mi café", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(4.dp))
                         Text("Crear mi café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
@@ -254,7 +254,7 @@ fun ChooseCoffeeStep(
                     placeholder = { Text("Buscar café...") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(999.dp),
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar café") },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -295,7 +295,7 @@ fun SimpleCoffeeSelectionCard(coffee: Coffee, onClick: () -> Unit) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = coffee.nombre,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(60.dp)
@@ -321,7 +321,7 @@ fun SimpleCoffeeSelectionCard(coffee: Coffee, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Icon(Icons.Filled.Add, null, tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Filled.Add, contentDescription = "Añadir", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -524,7 +524,7 @@ fun ConfigStep(
                                     .padding(20.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                                 Spacer(Modifier.width(16.dp))
                                 Text(
                                     text = valuation,
@@ -786,7 +786,7 @@ fun PreparationStep(
                     ) {
                         Icon(
                             if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = null,
+                            contentDescription = if (isTimerRunning) "Pausar" else "Iniciar",
                             tint = if (isTimerRunning) Color.White else if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(Modifier.width(8.dp))
@@ -942,7 +942,7 @@ private fun PreparationTasteCard(
                     ) {
                         Column(Modifier.padding(24.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                                 Spacer(Modifier.width(12.dp))
                                 @Suppress("DEPRECATION")
                                 Text(
@@ -1027,7 +1027,7 @@ fun PantrySelectionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = item.coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = item.coffee.nombre,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(70.dp)
@@ -1049,7 +1049,7 @@ fun PantrySelectionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                     trackColor = MaterialTheme.colorScheme.outline
                 )
             }
-            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -1214,7 +1214,7 @@ fun BaristaTipPill(tip: BaristaTip, modifier: Modifier = Modifier) {
             Box(Modifier
                 .size(26.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                Icon(icon, contentDescription = tip.label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
             }
             Spacer(Modifier.width(10.dp))
             Column {

@@ -237,7 +237,7 @@ private fun NotificationItemRow(
             Box {
                 AsyncImage(
                     model = avatarUrl,
-                    contentDescription = null,
+                    contentDescription = "Avatar",
                     modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                 )
                 if (isUnread) {

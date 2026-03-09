@@ -269,6 +269,7 @@ export function mapUserDataBundle(input: UserDataBundle): UserDataBundle {
     diaryEntries: input.diaryEntries.map(mapDiaryEntryRow),
     pantryItems: input.pantryItems.map(mapPantryItemRow),
     favorites: input.favorites.map(mapFavoriteRow),
-    customCoffees: input.customCoffees.map(mapCoffeeRow)
+    customCoffees: input.customCoffees.map(mapCoffeeRow),
+    finishedCoffees: input.finishedCoffees.map((r) => ({ coffee_id: r.coffee_id, finished_at: r.finished_at }))
   };
 }

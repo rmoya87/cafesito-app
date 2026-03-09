@@ -1,7 +1,15 @@
 import { useEffect } from "react";
 import { getSupabaseClient } from "../../supabase";
 import { fetchUserData } from "../../data/supabaseApi";
-import type { CoffeeRow, DiaryEntryRow, FavoriteRow, NotificationRow, PantryItemRow, UserRow } from "../../types";
+import type {
+  CoffeeRow,
+  DiaryEntryRow,
+  FavoriteRow,
+  FinishedCoffeeRow,
+  NotificationRow,
+  PantryItemRow,
+  UserRow
+} from "../../types";
 
 type Params = {
   activeUser: UserRow | null;
@@ -9,6 +17,7 @@ type Params = {
   setPantryItems: (value: PantryItemRow[]) => void;
   setFavorites: (value: FavoriteRow[]) => void;
   setCustomCoffees: (value: CoffeeRow[]) => void;
+  setFinishedCoffees: (value: FinishedCoffeeRow[]) => void;
   setNotifications: (value: NotificationRow[]) => void;
   setGlobalStatus: (value: string) => void;
 };
@@ -19,6 +28,7 @@ export function useUserDataLoader({
   setPantryItems,
   setFavorites,
   setCustomCoffees,
+  setFinishedCoffees,
   setNotifications,
   setGlobalStatus
 }: Params): void {
@@ -37,6 +47,7 @@ export function useUserDataLoader({
         setPantryItems(data.pantryItems);
         setFavorites(data.favorites);
         setCustomCoffees(data.customCoffees);
+        setFinishedCoffees(data.finishedCoffees);
         setNotifications(notifications);
       } catch (error) {
         if (cancelled) return;
@@ -86,5 +97,14 @@ export function useUserDataLoader({
       void channel.unsubscribe();
       window.removeEventListener("focus", handleFocus);
     };
-  }, [activeUser, setCustomCoffees, setDiaryEntries, setFavorites, setGlobalStatus, setNotifications, setPantryItems]);
+  }, [
+    activeUser,
+    setCustomCoffees,
+    setDiaryEntries,
+    setFinishedCoffees,
+    setFavorites,
+    setGlobalStatus,
+    setNotifications,
+    setPantryItems
+  ]);
 }

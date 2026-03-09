@@ -167,6 +167,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           ref: refs/heads/${{ env.TARGET_BRANCH }}
 
       - name: Setup Gradle
@@ -273,60 +274,48 @@ jobs:
       - name: Generate release notes
         uses: actions/github-script@v7
         env:
-          COMMIT_BEFORE: ${{ github.event.before }}
+          TRACK: ${{ steps.track.outputs.track }}
         with:
           script: |
             const fs = require('fs');
             const { execSync } = require('child_process');
-            const before = process.env.COMMIT_BEFORE || '';
-            let refSince = before;
+            const track = process.env.TRACK || 'beta';
+            const tagPrefix = `deploy/android/${track}/`;
+            let refSince = null;
             try {
-              const tagsOut = execSync('git tag -l --sort=-v:refname', { encoding: 'utf8' });
+              const tagsOut = execSync(`git tag -l "${tagPrefix}*"`, { encoding: 'utf8' });
               const tags = tagsOut.trim().split(/\n/).filter(Boolean);
-              for (const tag of tags) {
+              const sorted = tags.map(t => {
+                const num = parseInt(t.replace(tagPrefix, ''), 10);
+                return { tag: t, num: isNaN(num) ? 0 : num };
+              }).sort((a, b) => b.num - a.num);
+              for (const { tag } of sorted) {
                 try {
                   execSync(`git merge-base --is-ancestor ${tag} HEAD`, { stdio: 'pipe' });
                   refSince = tag;
                   break;
-                } catch (_) { /* tag not ancestor, skip */ }
+                } catch (_) { /* not ancestor, skip */ }
               }
-            } catch (_) { /* no tags or error, keep refSince */ }
-            if (!refSince) {
-              try {
-                const d = execSync('git rev-parse HEAD~20', { encoding: 'utf8' }).trim();
-                refSince = d;
-              } catch (_) { refSince = 'HEAD~20'; }
-            }
-            let commitCount = 0;
-            try {
-              const out = execSync(`git rev-list --count ${refSince}..HEAD`, { encoding: 'utf8' });
-              commitCount = parseInt(out.trim(), 10) || 0;
             } catch (_) {}
-            const intros = [
-              '¡Esta actualización viene cargada de café! ☕',
-              '¿Listo para más Cafesito? Aquí va lo nuevo.',
-              'Mejoramos la app mientras tú mejoras tu café.',
-              'Otra versión con cariño para los amantes del café.',
-              'Pequeños pasos para que Cafesito siga siendo tu compañero favorito.',
-            ];
-            const bullets = [
-              'Pequeños retoques para que todo vaya sobre ruedas.',
-              'Seguimos mejorando tu experiencia con cada taza.',
-              'Más fluido y agradable de usar.',
-              'Detalles que marcan la diferencia.',
-              'Gracias por acompañarnos en este viaje.',
-            ];
-            const intro = intros[Math.floor(Math.random() * intros.length)];
-            const numBullets = commitCount > 0 ? Math.min(3, 1 + Math.floor(commitCount / 5)) : 2;
-            const chosen = [];
-            const used = new Set();
-            while (chosen.length < numBullets) {
-              const i = Math.floor(Math.random() * bullets.length);
-              if (!used.has(i)) { used.add(i); chosen.push(bullets[i]); }
+            const maxLen = 500;
+            let promo;
+            if (refSince) {
+              let log;
+              try {
+                log = execSync(`git log ${refSince}..HEAD --no-merges --pretty=format:%s`, { encoding: 'utf8' });
+              } catch (_) { log = ''; }
+              const raw = log.trim().split(/\n/).filter(Boolean);
+              const cleaned = raw
+                .map(s => s.replace(/\s*\[skip ci\]\s*/gi, '').trim())
+                .filter(s => s && !/^chore\(release\):/i.test(s));
+              const unique = [...new Set(cleaned)];
+              const bullets = unique.slice(0, 25).map(s => '• ' + s);
+              const intro = 'Cambios desde la última versión:';
+              promo = [intro, '', ...bullets, '', '¡Gracias por usar Cafesito!'].join('\n');
+            } else {
+              promo = 'Mejoras y correcciones. ¡Gracias por usar Cafesito!';
             }
-            const lines = chosen.map(b => '• ' + b);
-            let promo = [intro, '', ...lines, '', '¡Gracias por usar Cafesito!'].join('\n');
-            if (promo.length > 500) promo = promo.slice(0, 497) + '…';
+            if (promo.length > maxLen) promo = promo.slice(0, maxLen - 3) + '…';
             fs.mkdirSync('release-notes', { recursive: true });
             fs.writeFileSync('release-notes/whatsnew-es-ES', promo);
 
@@ -340,6 +329,16 @@ jobs:
           status: completed
           whatsNewDirectory: release-notes
           # debugSymbols: solo si el build genera app/build/outputs/native-debug-symbols/release (cuando hay deps nativas). Si no existe, omitir para no fallar.
+
+      - name: Tag deployed version (for next release notes)
+        run: |
+          VERSION_CODE=$(grep -E 'versionCode\s*=' app/build.gradle.kts | head -n1 | sed -E 's/.*= ([0-9]+).*/\1/')
+          TRACK="${{ steps.track.outputs.track }}"
+          TAG="deploy/android/${TRACK}/${VERSION_CODE}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Android ${TRACK} v${VERSION_CODE} deployed to Play"
+          git push origin "${TAG}"
 
       - name: Save last deployed version for next bump
         run: |

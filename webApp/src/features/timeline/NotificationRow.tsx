@@ -40,6 +40,7 @@ export function NotificationRow({
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [swipeActive, setSwipeActive] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const pointerIdRef = useRef<number | null>(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
@@ -165,8 +166,17 @@ export function NotificationRow({
             }}
           >
             <div className="notifications-avatar-wrap">
-              {user?.avatar_url ? (
-                <img className="avatar avatar-photo notifications-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+              {user?.avatar_url && !avatarError ? (
+                <img
+                  className="avatar avatar-photo notifications-avatar"
+                  src={user.avatar_url}
+                  alt={user.username}
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  onError={() => setAvatarError(true)}
+                />
               ) : (
                 <div className="avatar notifications-avatar" aria-hidden="true">
                   {(user?.username ?? "us").slice(0, 2).toUpperCase()}

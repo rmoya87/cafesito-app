@@ -1,11 +1,120 @@
 import type { ReactNode } from "react";
 import { useState, useMemo, useEffect } from "react";
-import type { CoffeeRow, PantryItemRow } from "../../types";
+import type { CoffeeRow, DiaryEntryRow, PantryItemRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 
 type PantryCoffeeRow = { item: PantryItemRow; coffee: CoffeeRow };
 type CoffeeSheetStep = "select" | "dose" | "tipo" | "tamaño" | "createCoffee";
+
+const MONTH_NAMES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function DiaryCalendarMonthGrid({
+  year,
+  month,
+  selectedDate,
+  onSelectDate,
+  todayStr,
+  datesWithCoffee,
+  datesWithWater
+}: {
+  year: number;
+  month: number;
+  selectedDate: string;
+  onSelectDate: (dateStr: string) => void;
+  todayStr: string;
+  datesWithCoffee: Set<string>;
+  datesWithWater: Set<string>;
+}) {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startWeekday = firstDay.getDay();
+  const startOffset = startWeekday === 0 ? 6 : startWeekday - 1;
+  const rows = useMemo(() => {
+    const cells: Array<{ day: number; dateStr: string } | null> = [];
+    for (let i = 0; i < startOffset; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      cells.push({ day: d, dateStr });
+    }
+    return cells;
+  }, [year, month, daysInMonth]);
+  const dayLabels = ["L", "M", "X", "J", "V", "S", "D"];
+  return (
+    <div className="diary-calendar-month-block">
+      <div className="diary-calendar-month-title">{MONTH_NAMES[month]} {year}</div>
+      <div className="diary-calendar-grid-head" role="row">
+        {dayLabels.map((label) => (
+          <span key={label} className="diary-calendar-grid-head-cell" role="columnheader">{label}</span>
+        ))}
+      </div>
+      <div className="diary-calendar-grid" role="grid">
+        {rows.map((cell, idx) =>
+          cell ? (
+            <button
+              key={cell.dateStr}
+              type="button"
+              className={`diary-calendar-day ${cell.dateStr === selectedDate ? "is-selected" : ""} ${cell.dateStr === todayStr ? "is-today" : ""} ${datesWithCoffee.has(cell.dateStr) ? "has-coffee" : ""} ${datesWithWater.has(cell.dateStr) ? "has-water" : ""}`.trim()}
+              onClick={() => onSelectDate(cell.dateStr)}
+              aria-label={`Día ${cell.day}`}
+            >
+              <span className="diary-calendar-day-num">{cell.day}</span>
+              {(datesWithCoffee.has(cell.dateStr) || datesWithWater.has(cell.dateStr)) && (
+                <span className="diary-calendar-day-dots" aria-hidden="true">
+                  {datesWithCoffee.has(cell.dateStr) && <span className="diary-calendar-day-dot diary-calendar-day-dot-coffee" />}
+                  {datesWithWater.has(cell.dateStr) && <span className="diary-calendar-day-dot diary-calendar-day-dot-water" />}
+                </span>
+              )}
+            </button>
+          ) : (
+            <span key={`empty-${idx}`} className="diary-calendar-day diary-calendar-day-empty" aria-hidden="true" />
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DiaryCalendarScroll({
+  selectedDate,
+  onSelectDate,
+  todayStr,
+  datesWithCoffee,
+  datesWithWater
+}: {
+  selectedDate: string;
+  onSelectDate: (dateStr: string) => void;
+  todayStr: string;
+  datesWithCoffee: Set<string>;
+  datesWithWater: Set<string>;
+}) {
+  const monthsToShow = useMemo(() => {
+    const now = new Date();
+    const list: Array<{ year: number; month: number }> = [];
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      list.push({ year: d.getFullYear(), month: d.getMonth() });
+    }
+    return list;
+  }, []);
+  return (
+    <div className="diary-calendar-scroll">
+      {monthsToShow.map(({ year, month }) => (
+        <DiaryCalendarMonthGrid
+          key={`${year}-${month}`}
+          year={year}
+          month={month}
+          selectedDate={selectedDate}
+          onSelectDate={onSelectDate}
+          todayStr={todayStr}
+          datesWithCoffee={datesWithCoffee}
+          datesWithWater={datesWithWater}
+        />
+      ))}
+    </div>
+  );
+}
 
 function DiarySheets({
   isActive,
@@ -14,6 +123,12 @@ function DiarySheets({
   showWaterSheet,
   showCoffeeSheet,
   showAddPantrySheet,
+  showCalendarSheet = false,
+  onCloseCalendarSheet,
+  selectedDiaryDate = "",
+  setSelectedDiaryDate,
+  diaryTodayStr = "",
+  diaryEntries = [],
   onCloseQuickActions,
   onClosePeriodSheet,
   onCloseWaterSheet,
@@ -78,6 +193,12 @@ function DiarySheets({
   onOpenAddPantrySheet: () => void;
   diaryPeriod: "hoy" | "7d" | "30d";
   setDiaryPeriod: (value: "hoy" | "7d" | "30d") => void;
+  showCalendarSheet?: boolean;
+  onCloseCalendarSheet?: () => void;
+  selectedDiaryDate?: string;
+  setSelectedDiaryDate?: (value: string) => void;
+  diaryTodayStr?: string;
+  diaryEntries?: DiaryEntryRow[];
   diaryWaterMlDraft: string;
   setDiaryWaterMlDraft: (value: string) => void;
   onSaveWater: () => Promise<void>;
@@ -186,6 +307,18 @@ function DiarySheets({
   );
   const doseCoffeeName = selectedCoffeeForDose?.nombre ?? "Registro rápido";
 
+  const { datesWithCoffee, datesWithWater } = useMemo(() => {
+    const coffee = new Set<string>();
+    const water = new Set<string>();
+    diaryEntries.forEach((entry) => {
+      const d = new Date(Number(entry.timestamp));
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if ((entry.type || "").toUpperCase() === "WATER") water.add(dateStr);
+      else coffee.add(dateStr);
+    });
+    return { datesWithCoffee: coffee, datesWithWater: water };
+  }, [diaryEntries]);
+
   const doseSliderMin = 5;
   const doseSliderMax = 30;
   const doseSliderStep = 0.5;
@@ -195,8 +328,8 @@ function DiarySheets({
   return (
     <>
       {showQuickActions ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Nuevo registro" onDismiss={onCloseQuickActions} onClick={onCloseQuickActions}>
-          <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
+        <SheetOverlay className="diary-quick-actions-overlay" role="dialog" aria-modal="true" aria-label="Nuevo registro" onDismiss={onCloseQuickActions} onClick={onCloseQuickActions}>
+          <SheetCard className="diary-sheet diary-quick-actions-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">NUEVO REGISTRO</strong>
@@ -248,6 +381,24 @@ function DiarySheets({
                 </Button>
               ))}
             </div>
+          </SheetCard>
+        </SheetOverlay>
+      ) : null}
+
+      {showCalendarSheet && onCloseCalendarSheet && setSelectedDiaryDate && diaryTodayStr ? (
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Selecciona" onDismiss={onCloseCalendarSheet} onClick={onCloseCalendarSheet}>
+          <SheetCard className="diary-sheet diary-calendar-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
+            <header className="sheet-header diary-calendar-sheet-header">
+              <span className="diary-calendar-sheet-header-spacer" aria-hidden="true" />
+              <strong className="sheet-title">Selecciona</strong>
+              <div className="diary-calendar-sheet-header-end">
+                <Button variant="primary" className="diary-calendar-today-btn" onClick={() => setSelectedDiaryDate(diaryTodayStr)}>
+                  Ir a hoy
+                </Button>
+              </div>
+            </header>
+            <DiaryCalendarScroll selectedDate={selectedDiaryDate} onSelectDate={(dateStr) => setSelectedDiaryDate(dateStr)} todayStr={diaryTodayStr} datesWithCoffee={datesWithCoffee} datesWithWater={datesWithWater} />
           </SheetCard>
         </SheetOverlay>
       ) : null}
@@ -362,9 +513,9 @@ function DiarySheets({
                           >
                             <span className="diary-coffee-select-pantry-card-img">
                               {row.coffee.image_url ? (
-                                <img src={row.coffee.image_url} alt="" loading="lazy" decoding="async" />
+                                <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" decoding="async" />
                               ) : (
-                                <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" />
+                                <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" aria-hidden="true" />
                               )}
                             </span>
                             <div className="diary-coffee-select-pantry-copy">
@@ -445,9 +596,9 @@ function DiarySheets({
                             }}
                           >
                             {coffee.image_url ? (
-                              <img src={coffee.image_url} alt="" loading="lazy" decoding="async" />
+                              <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
                             ) : (
-                              <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" />
+                              <img src="/android-drawable/taza_mediano.png" alt="" loading="lazy" decoding="async" aria-hidden="true" />
                             )}
                             <div className="diary-coffee-select-item-copy">
                               <strong>{coffee.nombre}</strong>

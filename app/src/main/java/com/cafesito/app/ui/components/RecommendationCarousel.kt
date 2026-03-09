@@ -86,7 +86,7 @@ private fun RecommendationCard(
         Column {
             AsyncImage(
                 model = item.coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = item.coffee.nombre ?: "Café",
                 modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)),
                 contentScale = ContentScale.Crop
             )

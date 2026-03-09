@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { CTA, EMPTY, ERROR } from "../../core/emptyErrorStrings";
 import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
@@ -52,6 +53,7 @@ export function TimelineView({
   resolveMentionUser,
   onOpenUserProfile,
   onOpenCoffee,
+  onOpenCreatePost,
   sidePanel
 }: {
   mode: "mobile" | "desktop";
@@ -75,6 +77,7 @@ export function TimelineView({
   resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
   onOpenUserProfile: (userId: number) => void;
   onOpenCoffee: (coffeeId: string) => void;
+  onOpenCreatePost?: () => void;
   sidePanel?: ReactNode;
 }) {
   const [menuPostId, setMenuPostId] = useState<string | null>(null);
@@ -88,6 +91,7 @@ export function TimelineView({
   const [likeBurstPostId, setLikeBurstPostId] = useState<string | null>(null);
   const [dismissingSuggestionIds, setDismissingSuggestionIds] = useState<Set<number>>(new Set());
   const [pendingSuggestionFollowIds, setPendingSuggestionFollowIds] = useState<Set<number>>(new Set());
+  const [failedAvatarUrls, setFailedAvatarUrls] = useState<Set<string>>(new Set());
   const [pullDistance, setPullDistance] = useState(0);
   const editImageInputRef = useRef<HTMLInputElement | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -181,9 +185,12 @@ export function TimelineView({
 
   if (errorMessage) {
     return (
-      <article className="timeline-empty timeline-error">
-        <h3>No pudimos cargar el timeline</h3>
+      <article className="timeline-empty timeline-error" role="alert">
+        <h3>{ERROR.LOAD_DATA}</h3>
         <p>{errorMessage}</p>
+        <Button variant="ghost" className="action-button" onClick={() => void onRefresh()} aria-label={`${ERROR.RETRY} carga`}>
+          {ERROR.RETRY}
+        </Button>
       </article>
     );
   }
@@ -265,17 +272,26 @@ export function TimelineView({
   ) : null;
 
   if (!cards.length) {
+    const emptyTitle = EMPTY.TIMELINE_TITLE;
+    const emptySubtitle = EMPTY.TIMELINE_SUBTITLE;
+    const ctaLabel = CTA.PUBLISH_FIRST;
     if (isDesktopTimeline) {
       return (
         <div className="timeline-shell timeline-shell-desktop">
           <div className="timeline-desktop-columns">
             <div className="timeline-main-column">
               <article className="timeline-empty">
-                <h3>Tu timeline esta vacio</h3>
-                <p>Empieza siguiendo personas o publicando tu primer cafe.</p>
-                <Button variant="primary" className="action-button">
-                  Publica tu primer cafe
-                </Button>
+                <h3>{emptyTitle}</h3>
+                <p>{emptySubtitle}</p>
+                {onOpenCreatePost ? (
+                  <Button variant="primary" className="action-button" onClick={onOpenCreatePost} aria-label={ctaLabel}>
+                    {ctaLabel}
+                  </Button>
+                ) : (
+                  <Button variant="primary" className="action-button" aria-label={ctaLabel}>
+                    {ctaLabel}
+                  </Button>
+                )}
               </article>
             </div>
             {desktopSideContent}
@@ -286,11 +302,17 @@ export function TimelineView({
     return (
       <>
         <article className="timeline-empty">
-          <h3>Tu timeline esta vacio</h3>
-          <p>Empieza siguiendo personas o publicando tu primer cafe.</p>
-          <Button variant="primary" className="action-button">
-            Publica tu primer cafe
-          </Button>
+          <h3>{emptyTitle}</h3>
+          <p>{emptySubtitle}</p>
+          {onOpenCreatePost ? (
+            <Button variant="primary" className="action-button" onClick={onOpenCreatePost} aria-label={ctaLabel}>
+              {ctaLabel}
+            </Button>
+          ) : (
+            <Button variant="primary" className="action-button" aria-label={ctaLabel}>
+              {ctaLabel}
+            </Button>
+          )}
         </article>
         {userSuggestionsSection}
         {recommendationSection}
@@ -333,8 +355,17 @@ export function TimelineView({
                   className="feed-user-link"
                   onClick={() => onOpenUserProfile(card.userId)}
                 >
-                  {card.avatarUrl ? (
-                    <img className="avatar avatar-photo" src={card.avatarUrl} alt={card.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                  {card.avatarUrl && !failedAvatarUrls.has(card.avatarUrl) ? (
+                    <img
+                      className="avatar avatar-photo"
+                      src={card.avatarUrl}
+                      alt={card.username}
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      onError={() => setFailedAvatarUrls((prev) => new Set(prev).add(card.avatarUrl!))}
+                    />
                   ) : (
                     <div className="avatar" aria-hidden="true">
                       {card.userName
@@ -434,8 +465,13 @@ export function TimelineView({
         </div>
       ) : (
         <article className="timeline-empty">
-          <h3>No hay publicaciones disponibles</h3>
-          <p>Publica tu primer cafe o sigue a mas personas.</p>
+          <h3>{EMPTY.TIMELINE_NO_POSTS}</h3>
+          <p>{EMPTY.TIMELINE_NO_POSTS_SUB}</p>
+          {onOpenCreatePost ? (
+            <Button variant="primary" className="action-button" onClick={onOpenCreatePost} aria-label={CTA.PUBLISH_FIRST}>
+              {CTA.PUBLISH_FIRST}
+            </Button>
+          ) : null}
         </article>
       )}
       {activeMenuPost && typeof document !== "undefined"

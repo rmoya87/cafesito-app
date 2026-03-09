@@ -1,6 +1,7 @@
 package com.cafesito.app.data
 
 import androidx.compose.runtime.Immutable
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -241,6 +242,27 @@ data class PantryItemEntity(
     @SerialName("last_updated") val lastUpdated: Long = System.currentTimeMillis()
 )
 
+/** Café marcado como "terminado" desde la despensa del diario. Ordenado por fecha de finalización. */
+@Serializable
+@Entity(
+    tableName = "finished_coffees",
+    indices = [Index(value = ["userId"]), Index(value = ["finished_at"])]
+)
+data class FinishedCoffeeEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @SerialName("user_id") val userId: Int,
+    @SerialName("coffee_id") val coffeeId: String,
+    @ColumnInfo(name = "finished_at") @SerialName("finished_at") val finishedAtMs: Long = System.currentTimeMillis()
+)
+
+/** Inserción en Supabase pantry_historical (sin id; la tabla usa identity). */
+@Serializable
+data class FinishedCoffeeInsert(
+    @SerialName("user_id") val userId: Int,
+    @SerialName("coffee_id") val coffeeId: String,
+    @SerialName("finished_at") val finishedAtMs: Long
+)
+
 // --- CLASES AUXILIARES PARA INSERCIÓN (NO SON ENTIDADES) ---
 
 /**
@@ -293,6 +315,12 @@ data class PantryItemWithDetails(
     val pantryItem: PantryItemEntity,
     val coffee: Coffee,
     val isCustom: Boolean = false
+)
+
+@Immutable
+data class FinishedCoffeeWithDetails(
+    val finishedAtMs: Long,
+    val coffee: Coffee
 )
 
 @Immutable

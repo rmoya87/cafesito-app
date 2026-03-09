@@ -13,8 +13,17 @@ const variantClass: Record<InputVariant, string> = {
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { variant = "default", className, ...props },
+  { variant = "default", className, type, inputMode, ...props },
   ref
 ) {
-  return <input ref={ref} className={cn(variantClass[variant], className)} {...props} />;
+  const effectiveInputMode = inputMode ?? (type === "number" ? "decimal" : undefined);
+  return (
+    <input
+      ref={ref}
+      type={type}
+      inputMode={effectiveInputMode}
+      className={cn(variantClass[variant], className)}
+      {...props}
+    />
+  );
 });

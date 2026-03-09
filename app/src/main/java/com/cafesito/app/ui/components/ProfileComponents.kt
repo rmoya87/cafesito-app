@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.cafesito.app.R
+import com.cafesito.app.data.Coffee
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.CommentWithAuthor
 import com.cafesito.app.data.DiaryEntryEntity
@@ -258,7 +259,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                 ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         }
@@ -334,7 +335,7 @@ fun CoffeeFavoritePremiumItem(
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffeeDetails.coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = coffeeDetails.coffee.nombre,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(70.dp)
@@ -346,7 +347,7 @@ fun CoffeeFavoritePremiumItem(
                 Text(text = coffeeDetails.coffee.marca.uppercase(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onFavoriteClick) {
-                Icon(Icons.Default.Favorite, contentDescription = null, tint = ElectricRed, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Favorite, contentDescription = "Favorito", tint = ElectricRed, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -378,7 +379,7 @@ fun CoffeeFavoriteListItem(
             ) {
                 AsyncImage(
                     model = coffeeDetails.coffee.imageUrl,
-                    contentDescription = null,
+                    contentDescription = coffeeDetails.coffee.nombre,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(60.dp)
@@ -409,15 +410,71 @@ fun CoffeeFavoriteListItem(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
+                    .minimumInteractiveComponentSize()
                     .size(28.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
-                    contentDescription = null,
+                    contentDescription = "Quitar de favoritos",
                     tint = ElectricRed,
                     modifier = Modifier.size(20.dp)
                 )
             }
+        }
+    }
+}
+
+/** Misma fila que favoritos pero con flecha a la derecha (sin corazón). Para historial, etc. */
+@Composable
+fun CoffeeListRowWithChevron(
+    coffee: Coffee,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = coffee.imageUrl,
+                contentDescription = coffee.nombre,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = coffee.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = coffee.marca.uppercase(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Abrir",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }

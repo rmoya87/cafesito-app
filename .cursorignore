@@ -1,0 +1,12 @@
+﻿# Build y dependencias (reducir contexto IA)
+.gradle/
+build/
+**/build/
+webApp/node_modules/
+webApp/dist/
+*.apk
+*.aab
+local.properties
+keystore.properties
+google-services.json
+webApp/.env

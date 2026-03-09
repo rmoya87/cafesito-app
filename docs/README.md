@@ -44,6 +44,11 @@
 | Documento | Descripción |
 |-----------|-------------|
 | `MASTER_ARCHITECTURE_GOVERNANCE.md` | Fuente de verdad: principios, estructura del monorepo, capas, diseño, seguridad, testing, documentación. |
+| `DESIGN_TOKENS.md` | **Tokens de diseño:** colores (marrón día/noche, rojo eliminar, azul agua, fondos), espaciados/gaps, radios. Referencia única para WebApp y Android. |
+| `UX_EMPTY_AND_ERROR_STATES.md` | Patrón unificado para estados vacío (mensaje + CTA) y error de red (mensaje + Reintentar) en Web y Android. |
+| `SHARED_BUSINESS_LOGIC.md` | Qué lógica de negocio es compartida (diario, brew, reseñas, recomendaciones) y dónde vive (shared/, webApp/core/). |
+| `SMOKE_TESTS.md` | Flujo de humo crítico (login → diario → detalle/añadir) y dónde añadir tests en Web y Android. |
+| `ACCESSIBILITY_MINIMA.md` | Criterios mínimos: aria-label/contentDescription, área de tap ≥ 44px, contraste WCAG. |
 | `DEVELOPMENT_WORKFLOW_AI_CURSOR.md` | Flujo para desarrollo con IA: consultar docs antes de código; avisar antes de modificar docs. |
 | `MULTIPLATFORM_EXECUTION_PLAN.md` | Plan de ejecución multiplataforma (Android, iOS, Web); decisión web y auditoría. |
 | `PLAN_OFFLINE_FIRST_Y_FOTOS_CAMARA.md` | Plan offline-first por pantalla, galería/cámara y permisos (Android). |

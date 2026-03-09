@@ -71,7 +71,7 @@ fun EditNormalStockScreen(
                 translationY = -scrollState.firstVisibleItemScrollOffset * 0.4f
                 alpha = 1f - (scrollState.firstVisibleItemScrollOffset / 800f).coerceIn(0f, 1f)
             }) {
-                AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                AsyncImage(model = coffee.imageUrl, contentDescription = coffee.nombre, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                 Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)), startY = 600f)))
                 Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 48.dp, end = 120.dp)) {
                     Text(text = coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
@@ -108,7 +108,7 @@ fun EditNormalStockScreen(
                                 trailingIcon = {
                                     Icon(
                                         painter = painterResource(R.drawable.portafiltro),
-                                        contentDescription = null,
+                                        contentDescription = "Gramos",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 },
@@ -182,7 +182,7 @@ fun EditNormalStockScreen(
                 onClick = onBackClick,
                 modifier = Modifier.statusBarsPadding().padding(16.dp).size(44.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), CircleShape)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

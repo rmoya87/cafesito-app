@@ -196,6 +196,11 @@ Deno.serve(async (req: Request) => {
       consumed = true;
     }
 
+    // Limpieza: borrar eventos ya procesados con más de 7 días para que la tabla no crezca indefinidamente
+    const retentionDays = 7;
+    const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+    await supabase.from("deploy_change_events").delete().lt("processed_at", cutoff);
+
     return new Response(
       JSON.stringify({
         ok: true,

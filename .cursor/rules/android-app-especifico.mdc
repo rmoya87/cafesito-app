@@ -1,0 +1,27 @@
+---
+description: Contexto específico del módulo app (Android): rutas, Brew Lab, tema, navegación
+globs: app/**/*.kt, app/**/*.xml
+alwaysApply: false
+---
+
+# Android: módulo app (contexto específico)
+
+Se aplica al editar código dentro de `app/`. Las reglas generales de Kotlin y Compose están en `android-kotlin-compose.mdc`. Aquí se detalla el contexto propio de este proyecto.
+
+## Estructura relevante
+
+- **Navegación:** `AppNavigation.kt` — rutas y composables (timeline, search, brewlab, diary, profile, coffee detail, addPantryItem, addStock). Callbacks de Brew Lab: `onAddToPantryClick`, `onCreateCoffeeClick`; resultado creado: `savedStateHandle["brewlab_created_coffee_id"]`.
+- **Brew Lab:** `BrewLabScreen.kt`, `BrewLabViewModel.kt`, `BrewLabComponents.kt` (ConfigStep, PreparationStep, BrewTimeline, taste card). Pasos: CHOOSE_METHOD → CHOOSE_COFFEE → CONFIGURATION → BREWING (no hay RESULT; el resultado se integra en BREWING). Tema y sliders: ver `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md`.
+- **Tema y UI:** `Theme.kt` (Material 3, `LocalCaramelAccent`), `Color.kt`. Modo noche: marrón claro con `LocalCaramelAccent` / `CaramelSoft`. Colores de tiempo: negro (día) / blanco (noche). Número de café en Ajustes técnicos: marrón (`LocalCaramelAccent.current`).
+- **Diario y despensa:** `DiaryViewModel`, `AddPantryItemScreen`, `AddDiaryEntryScreen`. Crear café desde Brew Lab: `addPantryItem?onlyActivity=true&origin=brewlab`; campo "Cantidad del café (g)" y `totalGrams` al guardar.
+
+## Reglas de consistencia en app/
+
+- Al tocar Brew Lab, comprobar paridad con WebApp (sliders, pasos, colores, integración del resultado en "Proceso en curso").
+- No inventes colores: usar `MaterialTheme.colorScheme`, `LocalCaramelAccent.current`, o los colores definidos en `Color.kt` (p. ej. `WaterBlue`, `ElectricRed`).
+- Sincronización y favoritos: `SyncManager.syncAll()` incluye `syncFavoritesFromRemote()`; tenerlo en cuenta si cambias flujos de login o datos remotos.
+
+## Documentación de referencia
+
+- `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` — incidencias recientes, ramas, flujo main → beta.
+- `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md` — Brew, UI, colores, Italiana, sliders.

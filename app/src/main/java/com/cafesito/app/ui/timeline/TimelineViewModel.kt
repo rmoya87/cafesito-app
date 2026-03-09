@@ -220,7 +220,7 @@ class TimelineViewModel @Inject constructor(
                 mode = mode
             )
         } catch (e: Exception) {
-            _uiState.value = TimelineUiState.Error(e.message ?: "Error al cargar timeline")
+            _uiState.value = TimelineUiState.Error(e.message ?: "No se han podido cargar los datos.")
             return
         }
 
@@ -268,7 +268,7 @@ class TimelineViewModel @Inject constructor(
                     mode = determineFeedMode(data)
                 )
             } catch (e: Exception) {
-                _uiState.value = TimelineUiState.Error(e.message ?: "Error al cargar más")
+                _uiState.value = TimelineUiState.Error(e.message ?: "No se han podido cargar los datos.")
                 return@launch
             }
 

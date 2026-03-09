@@ -6,6 +6,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -31,6 +32,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -69,17 +72,31 @@ fun DiaryScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
+    val allDiaryEntries by viewModel.allDiaryEntries.collectAsState(initial = emptyList())
     val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
     val analytics by viewModel.analytics.collectAsState(initial = null)
     val availableCoffees by viewModel.availableCoffees.collectAsState(initial = emptyList())
     val selectedPeriod by viewModel.selectedPeriod.collectAsState(initial = DiaryPeriod.HOY)
+    val selectedDiaryDateMs by viewModel.selectedDiaryDateMs.collectAsState(initial = 0L)
     val isLoading by viewModel.isLoading.collectAsState(initial = true)
     
     var showStockSheet by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<PantryItemWithDetails?>(null) }
     var showQuickActions by remember { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
+    var showCalendar by remember { mutableStateOf(false) }
     var selectedEntry by remember { mutableStateOf<DiaryEntryEntity?>(null) }
+    
+    val todayStartMs = remember {
+        val c = Calendar.getInstance()
+        c.set(Calendar.HOUR_OF_DAY, 0); c.set(Calendar.MINUTE, 0); c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0)
+        c.timeInMillis
+    }
+    val isSelectedToday = selectedDiaryDateMs in todayStartMs until (todayStartMs + 86400000L)
+    val dateLabel = remember(selectedDiaryDateMs) {
+        if (selectedDiaryDateMs == 0L) "Hoy" else if (isSelectedToday) "Hoy" else SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(selectedDiaryDateMs))
+    }
+    val canGoNext = !isSelectedToday
     
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
@@ -144,6 +161,7 @@ fun DiaryScreen(
 
     // Estado para la modal de opciones de despensa
     var showPantryOptionsId by remember { mutableStateOf<String?>(null) }
+    var showFinishedConfirmId by remember { mutableStateOf<String?>(null) }
     var itemToDeleteId by remember { mutableStateOf<String?>(null) }
 
     if (showStockSheet && itemToEdit != null) {
@@ -162,11 +180,19 @@ fun DiaryScreen(
         if (selectedItem != null) {
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                 scrimColor = Color.Black.copy(alpha = 0.5f)
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                    Text(
+                        text = "Opciones",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold
+                    )
                     ModalMenuOption(
                         title = "Editar stock",
                         icon = Icons.Default.Edit,
@@ -174,6 +200,15 @@ fun DiaryScreen(
                         onClick = {
                             itemToEdit = selectedItem
                             showStockSheet = true
+                            showPantryOptionsId = null
+                        }
+                    )
+                    ModalMenuOption(
+                        title = "Café terminado",
+                        icon = Icons.Default.Done,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            showFinishedConfirmId = showPantryOptionsId
                             showPantryOptionsId = null
                         }
                     )
@@ -218,6 +253,21 @@ fun DiaryScreen(
         )
     }
 
+    if (showFinishedConfirmId != null) {
+        DeleteConfirmationDialog(
+            onDismissRequest = { showFinishedConfirmId = null },
+            title = "Café terminado",
+            text = "¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.",
+            onConfirm = {
+                val id = showFinishedConfirmId!!
+                viewModel.markCoffeeAsFinished(id) {
+                    viewModel.refreshData()
+                }
+                showFinishedConfirmId = null
+            }
+        )
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
@@ -227,9 +277,68 @@ fun DiaryScreen(
                 navigationContent = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 16.dp)
+                        modifier = Modifier.padding(start = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        PeriodSelectorPremium(selectedPeriod) { showPeriodMenu = true }
+                        if (selectedPeriod == DiaryPeriod.HOY) {
+                            val chipBackground = if (isDarkMode) MaterialTheme.colorScheme.surface else Color.White
+                            val chipBorderColor = MaterialTheme.colorScheme.outline
+                            val chipContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else Color.Black
+                            Row(
+                                modifier = Modifier
+                                    .wrapContentWidth()
+                                    .height(40.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(chipBackground)
+                                    .border(1.dp, chipBorderColor, RoundedCornerShape(24.dp))
+                                    .padding(horizontal = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { viewModel.prevDay() },
+                                    modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = Color.Transparent,
+                                        contentColor = chipContentColor
+                                    )
+                                ) {
+                                    Icon(Icons.Default.ChevronLeft, contentDescription = "Día anterior", modifier = Modifier.size(20.dp))
+                                }
+                                Row(
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .fillMaxHeight()
+                                        .minimumInteractiveComponentSize()
+                                        .clickable(onClick = { showCalendar = true })
+                                        .padding(horizontal = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        dateLabel,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = chipContentColor
+                                    )
+                                }
+                                if (canGoNext) {
+                                    IconButton(
+                                        onClick = { viewModel.nextDay() },
+                                        modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
+                                        colors = IconButtonDefaults.iconButtonColors(
+                                            containerColor = Color.Transparent,
+                                            contentColor = chipContentColor
+                                        )
+                                    ) {
+                                        Icon(Icons.Default.ChevronRight, contentDescription = "Día siguiente", modifier = Modifier.size(20.dp))
+                                    }
+                                } else {
+                                    Spacer(Modifier.size(32.dp))
+                                }
+                            }
+                        } else {
+                            PeriodSelectorPremium(selectedPeriod) { showPeriodMenu = true }
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -410,6 +519,28 @@ fun DiaryScreen(
                 selectedPeriod = selectedPeriod,
                 onDismiss = { showPeriodMenu = false },
                 onPeriodSelected = { viewModel.setPeriod(it) }
+            )
+        }
+
+        if (showCalendar) {
+            DiaryDatePickerSheet(
+                onDismiss = { showCalendar = false },
+                onGoToToday = {
+                    viewModel.setSelectedDiaryDateMs(todayStartMs)
+                },
+                onPickDate = { year, month, dayOfMonth ->
+                    val c = Calendar.getInstance()
+                    c.set(Calendar.YEAR, year)
+                    c.set(Calendar.MONTH, month)
+                    c.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    c.set(Calendar.HOUR_OF_DAY, 0)
+                    c.set(Calendar.MINUTE, 0)
+                    c.set(Calendar.SECOND, 0)
+                    c.set(Calendar.MILLISECOND, 0)
+                    viewModel.setSelectedDiaryDateMs(c.timeInMillis)
+                },
+                selectedDateMs = selectedDiaryDateMs,
+                entries = allDiaryEntries
             )
         }
 

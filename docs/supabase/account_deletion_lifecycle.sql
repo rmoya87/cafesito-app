@@ -52,6 +52,7 @@ begin
   delete from public.coffee_sensory_profiles where user_id = p_user_id;
   delete from public.diary_entries where user_id = p_user_id;
   delete from public.pantry_items where user_id = p_user_id;
+  delete from public.pantry_historical where user_id = p_user_id;
   delete from public.notifications_db where user_id = p_user_id;
   delete from public.follows where follower_id = p_user_id or followed_id = p_user_id;
   delete from public.posts_db where user_id = p_user_id;

@@ -221,8 +221,21 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
     .select("coffee_id,user_id,saved_at")
     .eq("user_id", userId)
     .limit(500);
-  const [diaryRes, pantryRes, favoritesRes] = await Promise.all([diaryReq, pantryReq, favoritesReq]);
-  throwIfError(diaryRes.error ?? pantryRes.error ?? favoritesRes.error);
+
+  const finishedCoffeesReq = supabase
+    .from("pantry_historical")
+    .select("coffee_id,finished_at")
+    .eq("user_id", userId)
+    .order("finished_at", { ascending: false })
+    .limit(500);
+
+  const [diaryRes, pantryRes, favoritesRes, finishedRes] = await Promise.all([
+    diaryReq,
+    pantryReq,
+    favoritesReq,
+    finishedCoffeesReq
+  ]);
+  throwIfError(diaryRes.error ?? pantryRes.error ?? favoritesRes.error ?? finishedRes.error);
 
   // Custom coffees live in coffees with is_custom = true and user_id set.
   let customCoffees: CoffeeRow[] = [];
@@ -243,7 +256,10 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
     diaryEntries: (diaryRes.data ?? []) as UserDataBundle["diaryEntries"],
     pantryItems: (pantryRes.data ?? []) as UserDataBundle["pantryItems"],
     favorites: (favoritesRes.data ?? []) as UserDataBundle["favorites"],
-    customCoffees
+    customCoffees,
+    finishedCoffees: (finishedRes.data ?? []).map(
+      (r: { coffee_id: string; finished_at: number }) => ({ coffee_id: r.coffee_id, finished_at: r.finished_at })
+    ) as UserDataBundle["finishedCoffees"]
   });
 }
 
@@ -574,6 +590,21 @@ export async function upsertPantryStock(payload: {
 export async function deletePantryItem(coffeeId: string, userId: number): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase.from("pantry_items").delete().eq("coffee_id", coffeeId).eq("user_id", userId);
+  throwIfError(error);
+}
+
+/** Añade un café al historial (tabla pantry_historical). Fuente de verdad Supabase; coordinado con Android. */
+export async function insertFinishedCoffee(
+  userId: number,
+  coffeeId: string,
+  finishedAt: number
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from("pantry_historical").insert({
+    user_id: userId,
+    coffee_id: coffeeId,
+    finished_at: finishedAt
+  });
   throwIfError(error);
 }
 

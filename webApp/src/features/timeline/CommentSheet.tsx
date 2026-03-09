@@ -1,11 +1,12 @@
-import type { MutableRefObject } from "react";
+import { type MutableRefObject, useState } from "react";
+import { EMPTY } from "../../core/emptyErrorStrings";
 import { toRelativeMinutes } from "../../core/time";
 import type { CommentRow, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 
-export function CommentSheet({
+export default function CommentSheet({
   open,
   rows,
   usersById,
@@ -70,6 +71,7 @@ export function CommentSheet({
   commentImageName: string;
   onRemoveImage: () => void;
 }) {
+  const [failedAvatarUrls, setFailedAvatarUrls] = useState<Set<string>>(new Set());
   if (!open) return null;
   const canSubmitComment = commentDraft.trim().length > 0 || Boolean(commentImagePreviewUrl);
   return (
@@ -87,8 +89,17 @@ export function CommentSheet({
                 return (
                   <li key={row.id} data-comment-id={row.id} className={`sheet-item ${highlightedCommentId === row.id ? "is-highlighted" : ""}`}>
                     <div className="sheet-item-head">
-                      {user?.avatar_url ? (
-                        <img className="comment-avatar" src={user.avatar_url} alt={user.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                      {user?.avatar_url && !failedAvatarUrls.has(user.avatar_url) ? (
+                        <img
+                          className="comment-avatar"
+                          src={user.avatar_url}
+                          alt={user.username}
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                          onError={() => setFailedAvatarUrls((prev) => new Set(prev).add(user!.avatar_url))}
+                        />
                       ) : (
                         <div className="comment-avatar comment-avatar-fallback" aria-hidden="true">
                           {(user?.username ?? "us").slice(0, 2).toUpperCase()}
@@ -99,7 +110,7 @@ export function CommentSheet({
                         <p className="comment-author comment-time">{toRelativeMinutes(row.timestamp ?? 0).toUpperCase()}</p>
                       </div>
                       {isOwnComment ? (
-                        <IconButton type="button" tone="default" className="post-menu-trigger" onClick={() => onOpenMenu(row.id)}>
+                        <IconButton type="button" tone="default" className="post-menu-trigger" onClick={() => onOpenMenu(row.id)} aria-label="Opciones del comentario">
                           <UiIcon name="more" className="ui-icon" />
                         </IconButton>
                       ) : null}
@@ -110,7 +121,7 @@ export function CommentSheet({
                   </li>
                 );
               })
-            : <li className="sheet-item comments-empty">No hay comentarios todavía</li>}
+            : <li className="sheet-item comments-empty">{EMPTY.COMMENTS}</li>}
         </ul>
 
         {activeMenuRow ? (
@@ -188,10 +199,10 @@ export function CommentSheet({
                   <IconButton type="button" tone="default" onClick={() => commentImageInputRef.current?.click()} aria-label="Agregar foto">
                     <UiIcon name="camera" className="ui-icon" />
                   </IconButton>
-                  <IconButton type="button" tone="default" onClick={() => setCommentDraft(`${commentDraft}@`)}>
+                  <IconButton type="button" tone="default" onClick={() => setCommentDraft(`${commentDraft}@`)} aria-label="Insertar mención">
                     <UiIcon name="at" className="ui-icon" />
                   </IconButton>
-                  <IconButton type="button" tone="default" className={showEmojiPanel ? "is-active" : ""} onClick={() => setShowEmojiPanel(!showEmojiPanel)}>
+                  <IconButton type="button" tone="default" className={showEmojiPanel ? "is-active" : ""} onClick={() => setShowEmojiPanel(!showEmojiPanel)} aria-label={showEmojiPanel ? "Ocultar emojis" : "Mostrar emojis"}>
                     <UiIcon name="smile" className="ui-icon" />
                   </IconButton>
                 </>

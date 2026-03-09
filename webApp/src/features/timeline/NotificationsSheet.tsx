@@ -86,7 +86,7 @@ export function NotificationsSheet({
               tone="topbar"
               className="icon-button topbar-icon-button notifications-back"
               onClick={onClose}
-              aria-label="Atras"
+              aria-label="Atrás"
             >
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>

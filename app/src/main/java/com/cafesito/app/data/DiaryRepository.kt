@@ -19,6 +19,7 @@ import javax.inject.Singleton
 class DiaryRepository @Inject constructor(
     private val diaryDao: DiaryDao,
     private val coffeeDao: CoffeeDao,
+    private val finishedCoffeeDao: FinishedCoffeeDao,
     private val supabaseDataSource: SupabaseDataSource,
     private val userRepository: UserRepository,
     private val connectivityObserver: ConnectivityObserver,
@@ -96,6 +97,53 @@ class DiaryRepository @Inject constructor(
         }
         .flowOn(Dispatchers.IO)
 
+    fun getFinishedCoffees(): Flow<List<FinishedCoffeeWithDetails>> = combine(
+        _refreshTrigger.onStart { emit(Unit) },
+        userRepository.getActiveUserFlow()
+    ) { _, activeUser -> activeUser }
+        .flatMapLatest { user ->
+            if (user == null) return@flatMapLatest flowOf(emptyList())
+            combine(
+                finishedCoffeeDao.getFinishedCoffeesByUser(user.id),
+                coffeeDao.getAllCoffeesWithDetails()
+            ) { finishedList, coffeesWithDetails ->
+                finishedList.mapNotNull { e ->
+                    coffeesWithDetails.find { it.coffee.id == e.coffeeId }?.let { details ->
+                        FinishedCoffeeWithDetails(e.finishedAtMs, details.coffee)
+                    }
+                }
+            }.onStart {
+                if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                    externalScope.launch { syncFinishedCoffees() }
+                }
+            }
+        }
+        .flowOn(Dispatchers.IO)
+
+    /** Sincroniza historial desde Supabase (fuente de verdad): reemplaza el contenido local. */
+    suspend fun syncFinishedCoffees() {
+        val user = userRepository.getActiveUser() ?: return
+        try {
+            val remote = supabaseDataSource.getFinishedCoffees(user.id)
+            finishedCoffeeDao.deleteAllForUser(user.id)
+            remote.forEach { entity ->
+                finishedCoffeeDao.insertFinishedCoffee(
+                    FinishedCoffeeEntity(id = entity.id, userId = entity.userId, coffeeId = entity.coffeeId, finishedAtMs = entity.finishedAtMs)
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("DiaryRepository", "Error syncing finished coffees", e)
+        }
+    }
+
+    suspend fun markCoffeeAsFinished(coffeeId: String) = withContext(Dispatchers.IO) {
+        val user = userRepository.getActiveUser() ?: return@withContext
+        val now = System.currentTimeMillis()
+        supabaseDataSource.insertFinishedCoffee(FinishedCoffeeInsert(userId = user.id, coffeeId = coffeeId, finishedAtMs = now))
+        deletePantryItem(coffeeId)
+        syncFinishedCoffees()
+    }
+
     suspend fun syncPantryItems() {
         val user = userRepository.getActiveUser() ?: return
         try {
@@ -138,12 +186,17 @@ class DiaryRepository @Inject constructor(
         }
     }
 
+    companion object {
+        /** Tipo de entrada: taza de café (por defecto). */
+        const val TYPE_CUP = "CUP"
+    }
+
     suspend fun addDiaryEntry(
-        coffeeId: String?, 
-        coffeeName: String, 
+        coffeeId: String?,
+        coffeeName: String,
         coffeeBrand: String,
-        caffeineAmount: Int, 
-        type: String = "CUP", 
+        caffeineAmount: Int,
+        type: String = TYPE_CUP,
         amountMl: Int = 250,
         coffeeGrams: Int = 15,
         preparationType: String = "Espresso",
@@ -161,7 +214,7 @@ class DiaryRepository @Inject constructor(
         val rowId = diaryDao.insertDiaryEntry(entry)
         val entryWithId = entry.copy(id = rowId)
         
-        if (coffeeId != null && type == "CUP" && reduceFromPantry) {
+        if (coffeeId != null && type == TYPE_CUP && reduceFromPantry) {
             val pantryItems = diaryDao.getPantryItems(user.id).first()
             val pantryItem = pantryItems.find { it.coffeeId == coffeeId }
             if (pantryItem != null) {
@@ -185,7 +238,6 @@ class DiaryRepository @Inject constructor(
             }
         }
     }
-
 
     private suspend fun enqueueDiaryEntryForSync(localEntryId: Long, error: Throwable?) {
         val existing = diaryDao.getPendingDiarySyncEntries().find { it.localEntryId == localEntryId }

@@ -4,10 +4,12 @@ import { App } from "./App";
 import { Button } from "./ui/components";
 import { getAppAssetBase } from "./core/appAssets";
 import { initGa4 } from "./core/ga4";
+import { applyThemeToDocument, getThemeMode } from "./core/theme";
 import "@fontsource-variable/material-symbols-outlined/fill.css";
 import "./styles.css";
 
 initGa4();
+applyThemeToDocument(getThemeMode());
 
 // Solo en dev: ?safe-area=1 simula el notch de iOS (topbar con espacio superior) para validar sin iPhone
 if (import.meta.env.DEV && typeof window !== "undefined" && window.location.search.includes("safe-area=1")) {
@@ -28,8 +30,22 @@ function detectPwaStandalone(): void {
     document.documentElement.classList.remove("pwa-standalone");
   }
 }
+
+function saveLastUserAccess(): void {
+  if (typeof window === "undefined" || !localStorage) return;
+  const user = localStorage.getItem("currentUser");
+  if (user) {
+    const lastAccessData = {
+      user,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem("lastUserAccess", JSON.stringify(lastAccessData));
+  }
+}
+
 if (typeof window !== "undefined") {
   detectPwaStandalone();
+  saveLastUserAccess();
   window.matchMedia("(display-mode: standalone)").addEventListener("change", detectPwaStandalone);
 }
 
@@ -101,4 +117,3 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </RootErrorBoundary>
   </React.StrictMode>
 );
-

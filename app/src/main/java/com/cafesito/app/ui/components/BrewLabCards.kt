@@ -52,7 +52,7 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
         Column {
             AsyncImage(
                 model = item.coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = item.coffee.nombre,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -103,7 +103,7 @@ fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
         ) {
             AsyncImage(
                 model = coffee.coffee.imageUrl,
-                contentDescription = null,
+                contentDescription = coffee.coffee.nombre,
                 modifier = Modifier
                     .size(50.dp)
                     .clip(RoundedCornerShape(12.dp)),
@@ -157,7 +157,7 @@ fun PantryAddActionCard(onClick: () -> Unit) {
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = plusColor, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Add, contentDescription = "Añadir café a la despensa", tint = plusColor, modifier = Modifier.size(24.dp))
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.detail
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -64,8 +65,21 @@ import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.utils.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.Normalizer
 import java.util.Locale
 import kotlin.math.roundToInt
+
+/** Slug para URL de detalle de café (compatible con WebApp toCoffeeSlug). */
+private fun toCoffeeSlug(nombre: String, marca: String): String {
+    fun slugify(value: String): String {
+        val normalized = Normalizer.normalize(value, Normalizer.Form.NFD).replace(Regex("\\p{M}"), "").replace(Regex("\\s+"), " ").trim().lowercase()
+        return normalized.replace(Regex("[^a-z0-9\\s-]"), "").replace(Regex("\\s+"), "-").replace(Regex("-+"), "-").replace(Regex("^-|-$"), "")
+    }
+    val baseFromName = slugify(nombre)
+    if (baseFromName.length > 10) return baseFromName.ifBlank { "cafe" }
+    val withBrand = slugify("$nombre ${marca.ifBlank { "" }}")
+    return withBrand.ifBlank { baseFromName.ifBlank { "cafe" } }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,7 +108,9 @@ fun DetailScreen(
         ) {
             when (val state = uiState) {
                 is DetailUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-                is DetailUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(state.message, color = MaterialTheme.colorScheme.onSurface) }
+                is DetailUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ErrorStateMessage(message = state.message, onRetry = { viewModel.loadInitialIfNeeded() })
+                }
                 is DetailUiState.Success -> {
                     DetailContent(
                         coffeeDetails = state.coffee,
@@ -197,7 +213,7 @@ private fun DetailContent(
             translationY = -scrollState.firstVisibleItemScrollOffset * 0.5f
             alpha = 1f - (scrollState.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
         }) {
-            AsyncImage(model = coffee.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            AsyncImage(model = coffee.imageUrl, contentDescription = "Foto del café ${coffee.nombre}", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(
                 colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
                 startY = 600f
@@ -312,7 +328,7 @@ private fun DetailContent(
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                     shape = RoundedCornerShape(20.dp)
                                 ) {
-                                    Icon(if (userReview != null) Icons.Default.Edit else Icons.Default.Add, null, Modifier.size(16.dp))
+                                    Icon(if (userReview != null) Icons.Default.Edit else Icons.Default.Add, contentDescription = if (userReview != null) "Editar reseña" else "Añadir reseña", Modifier.size(16.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(text = if (userReview != null) "EDITAR" else "AÑADIR")
                                 }
@@ -398,11 +414,28 @@ private fun DetailContent(
             horizontalArrangement = Arrangement.SpaceBetween, 
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = Color.Black, onClick = onBackClick)
+            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = Color.Black, contentDescription = "Volver", onClick = onBackClick)
             Row {
+                GlassyIconButton(
+                    icon = Icons.Default.Share,
+                    iconColor = Color.Black,
+                    contentDescription = "Compartir café",
+                    onClick = {
+                        val slug = toCoffeeSlug(coffee.nombre, coffee.marca)
+                        val link = "https://cafesitoapp.com/coffee/$slug/"
+                        val text = "${coffee.marca} ${coffee.nombre} – Cafesito: $link"
+                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, text)
+                        }
+                        context.startActivity(Intent.createChooser(sendIntent, "Compartir café"))
+                    }
+                )
+                Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
                     iconPainter = painterResource(id = R.drawable.shelves_24),
                     iconColor = Color.Black,
+                    contentDescription = "Añadir a despensa",
                     onClick = { showStockDialog = true }
                 )
                 Spacer(Modifier.width(12.dp))
@@ -410,6 +443,7 @@ private fun DetailContent(
                     icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     iconColor = if (coffeeDetails.isFavorite) ElectricRed else Color.Black,
                     premiumAnimated = true,
+                    contentDescription = if (coffeeDetails.isFavorite) "Quitar de favoritos" else "Guardar en favoritos",
                     onClick = { onFavoriteToggle(!coffeeDetails.isFavorite) }
                 )
             }
@@ -423,6 +457,7 @@ fun GlassyIconButton(
     iconPainter: Painter? = null,
     iconColor: Color,
     premiumAnimated: Boolean = false,
+    contentDescription: String? = null,
     onClick: () -> Unit
 ) {
     val iconScale = remember { Animatable(1f) }
@@ -475,7 +510,7 @@ fun GlassyIconButton(
             when {
                 iconPainter != null -> Icon(
                     painter = iconPainter,
-                    contentDescription = null,
+                    contentDescription = contentDescription,
                     tint = iconColor,
                     modifier = Modifier
                         .size(20.dp)
@@ -489,7 +524,7 @@ fun GlassyIconButton(
                 )
                 icon != null -> Icon(
                     imageVector = icon,
-                    contentDescription = null,
+                    contentDescription = contentDescription,
                     tint = iconColor,
                     modifier = Modifier
                         .size(20.dp)
@@ -546,7 +581,7 @@ fun DetailReviewPremiumItem(
             Spacer(Modifier.height(12.dp))
             AsyncImage(
                 model = info.review.imageUrl,
-                contentDescription = null,
+                contentDescription = "Imagen de la reseña",
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(RoundedCornerShape(24.dp))
             )
@@ -577,11 +612,11 @@ fun PremiumCharacteristicBar(label: String, value: Float) {
 fun BuyPremiumCard(url: String, onClick: (String) -> Unit) {
     PremiumCard(modifier = Modifier.clickable { onClick(url) }) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Storefront, null, tint = MaterialTheme.colorScheme.onSurface)
+            Icon(Icons.Default.Storefront, contentDescription = "Tienda", tint = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.width(16.dp))
             val domain = url.removePrefix("https://").removePrefix("www.").substringBefore("/")
             Text(text = domain.uppercase(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Ir a la tienda", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -743,11 +778,11 @@ fun ReviewBottomSheet(
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             if (selectedImageUri != null) {
-                                AsyncImage(model = selectedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                AsyncImage(model = selectedImageUri, contentDescription = "Foto de la reseña", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                             } else if (!existingReview?.imageUrl.isNullOrBlank()) {
-                                AsyncImage(model = existingReview?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                AsyncImage(model = existingReview?.imageUrl, contentDescription = "Foto de la reseña", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                             } else {
-                                Icon(Icons.Default.PhotoCamera, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.PhotoCamera, contentDescription = "Añadir foto a la reseña", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             }
                         }
 
@@ -842,6 +877,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
     var name by remember { mutableStateOf(coffeeDetails.coffee.nombre.toCoffeeNameFormat()) }
     var brand by remember { mutableStateOf(coffeeDetails.coffee.marca.toCoffeeBrandFormat()) }
     val isInPantry = currentStock != null
+    val caramelColor = LocalCaramelAccent.current
 
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
@@ -875,7 +911,11 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                 onValueChange = { rem = it }
             )
             Spacer(Modifier.height(40.dp))
-            
+
+            val saveBackground = caramelColor
+            val saveTextColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+            val cancelBorderAndText = MaterialTheme.colorScheme.onSurface
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -884,19 +924,22 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f).height(54.dp),
                     shape = RoundedCornerShape(28.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    border = BorderStroke(1.dp, cancelBorderAndText),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
                 ) {
                     Text(text = "CANCELAR", fontWeight = FontWeight.Bold)
                 }
-                
+
                 Button(
-                    onClick = { onSave(total.roundToInt(), rem.roundToInt(), if(isCustom) name else null, if(isCustom) brand else null) }, 
-                    modifier = Modifier.weight(1f).height(54.dp), 
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    onClick = { onSave(total.roundToInt(), rem.roundToInt(), if(isCustom) name else null, if(isCustom) brand else null) },
+                    modifier = Modifier.weight(1f).height(54.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = saveBackground,
+                        contentColor = saveTextColor
+                    ),
                     shape = RoundedCornerShape(28.dp)
-                ) { 
-                    Text(text = if (isInPantry) "ACTUALIZAR" else "AÑADIR", fontWeight = FontWeight.Bold) 
+                ) {
+                    Text(text = if (isInPantry) "ACTUALIZAR" else "AÑADIR", fontWeight = FontWeight.Bold)
                 }
             }
         }

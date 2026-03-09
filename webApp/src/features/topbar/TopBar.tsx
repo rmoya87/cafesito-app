@@ -24,6 +24,11 @@ export function TopBar({
   onTimelineSearchUsers,
   onTimelineNotifications,
   diaryPeriod,
+  diarySelectedDate,
+  diaryTodayStr,
+  onDiaryPrevDay,
+  onDiaryNextDay,
+  onDiaryOpenCalendarSheet,
   onDiaryOpenQuickActions,
   onDiaryOpenPeriodSelector,
   scrolled,
@@ -45,6 +50,9 @@ export function TopBar({
   onProfileDeleteAccount,
   profileMenuEnabled,
   onProfileOpenEdit,
+  onHistorialClick,
+  profileSubPanel,
+  onHistorialBack,
   onCoffeeBack,
   coffeeTopbarFavoriteActive,
   coffeeTopbarStockActive,
@@ -70,6 +78,11 @@ export function TopBar({
   onTimelineSearchUsers: () => void;
   onTimelineNotifications: () => void;
   diaryPeriod: "hoy" | "7d" | "30d";
+  diarySelectedDate: string;
+  diaryTodayStr: string;
+  onDiaryPrevDay: () => void;
+  onDiaryNextDay: () => void;
+  onDiaryOpenCalendarSheet: () => void;
   onDiaryOpenQuickActions: () => void;
   onDiaryOpenPeriodSelector: () => void;
   scrolled: boolean;
@@ -91,6 +104,9 @@ export function TopBar({
   onProfileDeleteAccount: () => Promise<void> | void;
   profileMenuEnabled: boolean;
   onProfileOpenEdit: () => void;
+  onHistorialClick?: () => void;
+  profileSubPanel?: "historial" | null;
+  onHistorialBack?: () => void;
   onCoffeeBack: () => void;
   coffeeTopbarFavoriteActive: boolean;
   coffeeTopbarStockActive: boolean;
@@ -130,7 +146,7 @@ export function TopBar({
       return (
         <header className={`topbar topbar-search-users ${showSearchCancel ? "has-cancel" : ""} ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
           <div className="topbar-slot">
-            <IconButton tone="topbar" className="search-users-back" onClick={onSearchBack} aria-label="Atras">
+            <IconButton tone="topbar" className="search-users-back" onClick={onSearchBack} aria-label="Atrás">
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           </div>
@@ -192,7 +208,7 @@ export function TopBar({
             aria-label="Busqueda"
           />
           {showSearchBarcodeButton ? (
-            <IconButton className="search-coffee-trailing-button" aria-label="Escanear codigo" onClick={onSearchBarcodeClick}>
+            <IconButton className="search-coffee-trailing-button" aria-label="Escanear código" onClick={onSearchBarcodeClick}>
               <UiIcon name="barcode" className="ui-icon" />
             </IconButton>
           ) : null}
@@ -229,7 +245,7 @@ export function TopBar({
       return (
         <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
           <div className="topbar-slot">
-            <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Atras">
+            <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Atrás">
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           </div>
@@ -253,7 +269,7 @@ export function TopBar({
       <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
         <div className="topbar-slot">
           {brewStep !== "method" ? (
-            <IconButton tone="topbar" onClick={onBrewBack} aria-label="Atras">
+            <IconButton tone="topbar" onClick={onBrewBack} aria-label="Atrás">
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           ) : null}
@@ -262,8 +278,8 @@ export function TopBar({
         <div className="topbar-slot topbar-slot-end">
           {brewStep === "config" ? (
             <IconButton tone="topbar" onClick={onBrewForward} aria-label="Empezar">
-              <UiIcon name="arrow-right" className="ui-icon" />
-            </IconButton>
+                <UiIcon name="arrow-right" className="ui-icon" />
+              </IconButton>
           ) : brewResultShowGuardar ? (
             <button
               type="button"
@@ -280,11 +296,45 @@ export function TopBar({
   }
 
   if (activeTab === "diary") {
-    const periodLabel = diaryPeriod === "hoy" ? "HOY" : diaryPeriod === "7d" ? "SEMANA" : "MES";
+    const isToday = diarySelectedDate === diaryTodayStr;
+    const dateLabel =
+      diaryPeriod === "hoy"
+        ? isToday
+          ? "Hoy"
+          : (() => {
+              const [y, m, d] = diarySelectedDate.split("-").map(Number);
+              const d2 = String(d ?? 0).padStart(2, "0");
+              const m2 = String((m ?? 1)).padStart(2, "0");
+              return `${d2}/${m2}`;
+            })()
+        : diaryPeriod === "7d"
+          ? "SEMANA"
+          : "MES";
+    const handleDateOrPeriodClick = diaryPeriod === "hoy" ? onDiaryOpenCalendarSheet : onDiaryOpenPeriodSelector;
     return (
       <header className={`topbar topbar-centered topbar-timeline topbar-diary ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
-        <div className="topbar-slot">
-          <Button variant="chip" className="diary-period-chip" onClick={onDiaryOpenPeriodSelector}>{periodLabel}</Button>
+        <div className="topbar-slot diary-topbar-date-slot">
+          {diaryPeriod === "hoy" ? (
+            <div className="diary-period-chip diary-period-chip-with-arrows" role="group" aria-label="Navegación por día">
+              <button type="button" className="diary-chip-arrow" onClick={(e) => { e.stopPropagation(); onDiaryPrevDay(); }} aria-label="Día anterior">
+                <UiIcon name="arrow-left" className="ui-icon" />
+              </button>
+              <button type="button" className="diary-chip-date" onClick={(e) => { e.stopPropagation(); handleDateOrPeriodClick(); }} aria-label="Seleccionar fecha">
+                {dateLabel}
+              </button>
+              {isToday ? (
+                <span className="diary-chip-arrow diary-chip-arrow-placeholder" aria-hidden="true" />
+              ) : (
+                <button type="button" className="diary-chip-arrow" onClick={(e) => { e.stopPropagation(); onDiaryNextDay(); }} aria-label="Día siguiente">
+                  <UiIcon name="arrow-right" className="ui-icon" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <Button variant="chip" className="diary-period-chip" onClick={handleDateOrPeriodClick} aria-label="Seleccionar periodo">
+              {dateLabel}
+            </Button>
+          )}
         </div>
         <h1 className="title title-upper topbar-title-center">MI DIARIO</h1>
         <div className="topbar-slot topbar-slot-end">
@@ -297,6 +347,19 @@ export function TopBar({
   }
 
   if (activeTab === "profile") {
+    if (profileSubPanel === "historial") {
+      return (
+        <header className={`topbar topbar-centered topbar-timeline topbar-historial ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`} dir="ltr">
+          <div className="topbar-slot topbar-slot-back">
+            <IconButton tone="topbar" aria-label="Volver" onClick={onHistorialBack}>
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </IconButton>
+          </div>
+          <h1 className="title title-upper topbar-title-center">HISTORIAL</h1>
+          <div className="topbar-slot topbar-slot-end" />
+        </header>
+      );
+    }
     return (
       <>
         <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
@@ -317,6 +380,21 @@ export function TopBar({
                   <SheetHandle aria-hidden="true" />
                   <div className="diary-sheet-list">
                     <p className="profile-options-section-title">General</p>
+                    {onHistorialClick ? (
+                      <Button
+                        variant="plain"
+                        className="diary-sheet-action diary-sheet-action-pantry"
+                        onClick={() => {
+                          setShowProfileOptions(false);
+                          onHistorialClick();
+                        }}
+                      >
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">history</span>
+                        <span>Historial</span>
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                      </Button>
+                    ) : null}
+                    <p className="profile-options-section-title" style={{ marginTop: "1rem" }}>Cuenta</p>
                     <Button
                       variant="plain"
                       className="diary-sheet-action diary-sheet-action-pantry"

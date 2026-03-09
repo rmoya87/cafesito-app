@@ -1,5 +1,10 @@
 import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { requestAccountDeletion, syncAccountLifecycleAfterLogin, toggleFavoriteCoffee } from "../data/supabaseApi";
+import {
+  insertFinishedCoffee,
+  requestAccountDeletion,
+  syncAccountLifecycleAfterLogin,
+  toggleFavoriteCoffee
+} from "../data/supabaseApi";
 import { BREW_METHODS, COMMENT_EMOJIS } from "../config/brew";
 import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/routing";
 import { sendPageView } from "../core/ga4";
@@ -36,7 +41,9 @@ import { useAppUiEffects } from "../hooks/domains/useAppUiEffects";
 import { useCoffeeSeoMeta } from "../hooks/domains/useCoffeeSeoMeta";
 import { useCoffeeRouteSync, useRouteCanonicalSync, useRouteGuardSync } from "../hooks/domains/useRouteSync";
 import { getSupabaseClient, supabaseConfigError } from "../supabase";
+import { applyThemeToDocument, getThemeMode } from "../core/theme";
 import { TopBar } from "../features/topbar/TopBar";
+import { HistorialView } from "../features/profile/HistorialView";
 import {
   LazyTimelineView,
   LazySearchView,
@@ -48,7 +55,7 @@ import {
   LazyNotFoundView
 } from "./lazyViews";
 import { NotificationsSheet } from "../features/timeline/NotificationsSheet";
-import { CommentSheet } from "../features/timeline/CommentSheet";
+import CommentSheet from "../features/timeline/CommentSheet";
 import { CreatePostSheet } from "../features/timeline/CreatePostSheet";
 import { MobileBarcodeScannerSheet } from "../features/search/MobileBarcodeScannerSheet";
 import { LoginGate } from "../features/auth/LoginGate";
@@ -69,6 +76,7 @@ import type {
   CommentRow,
   DiaryEntryRow,
   FavoriteRow,
+  FinishedCoffeeRow,
   FollowRow,
   LikeRow,
   NotificationRow,
@@ -85,6 +93,11 @@ export function AppContainer() {
   const { mode, viewportWidth } = useResponsiveMode();
   const [activeTab, setActiveTab] = useState<TabId>(initialRoute.tab);
 
+  /* Sincronizar clase theme-light/theme-dark en html con la preferencia guardada (por si se perdió) */
+  useEffect(() => {
+    applyThemeToDocument(getThemeMode());
+  }, []);
+
   const [globalStatus, setGlobalStatus] = useState("Cargando datos...");
 
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -99,7 +112,11 @@ export function AppContainer() {
 
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntryRow[]>([]);
   const [pantryItems, setPantryItems] = useState<PantryItemRow[]>([]);
+  const [finishedCoffees, setFinishedCoffees] = useState<FinishedCoffeeRow[]>([]);
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
+  const [profileSubPanel, setProfileSubPanel] = useState<"historial" | null>(
+    () => (initialRoute.tab === "profile" && "profileSection" in initialRoute && initialRoute.profileSection === "historial" ? "historial" : null)
+  );
   const [follows, setFollows] = useState<FollowRow[]>([]);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
 
@@ -176,8 +193,11 @@ export function AppContainer() {
   const [brewRunning, setBrewRunning] = useState(false);
   const [diaryTab, setDiaryTab] = useState<"actividad" | "despensa">("actividad");
   const [diaryPeriod, setDiaryPeriod] = useState<"hoy" | "7d" | "30d">("hoy");
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [selectedDiaryDate, setSelectedDiaryDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [showDiaryQuickActions, setShowDiaryQuickActions] = useState(false);
   const [showDiaryPeriodSheet, setShowDiaryPeriodSheet] = useState(false);
+  const [showDiaryCalendarSheet, setShowDiaryCalendarSheet] = useState(false);
   const [showDiaryWaterSheet, setShowDiaryWaterSheet] = useState(false);
   const [diaryWaterMlDraft, setDiaryWaterMlDraft] = useState("250");
   const [showDiaryCoffeeSheet, setShowDiaryCoffeeSheet] = useState(false);
@@ -314,6 +334,7 @@ export function AppContainer() {
     }
     return users[0] ?? null;
   }, [sessionEmail, users]);
+
   const { runWithAuth } = useAuthActionGuard({ sessionEmail, onRequireAuth: requestLogin });
 
   const reloadInitialData = useInitialDataLoader({
@@ -337,9 +358,14 @@ export function AppContainer() {
     setPantryItems,
     setFavorites,
     setCustomCoffees,
+    setFinishedCoffees,
     setNotifications,
     setGlobalStatus
   });
+
+  useEffect(() => {
+    if (!activeUser) setFinishedCoffees([]);
+  }, [activeUser]);
 
   const {
     showCreateCoffeeComposer,
@@ -380,6 +406,7 @@ export function AppContainer() {
     setSearchMode,
     profileUsername,
     setProfileUsername,
+    setProfileSubPanel,
     users,
     setActiveTab,
     activeUserUsername: activeUser?.username ?? null,
@@ -400,6 +427,25 @@ export function AppContainer() {
     onBlocked: requestLogin,
     fallbackPath: loginRootPath
   });
+
+  // Al cargar o cambiar de página: guardar como último acceso (tab, path y fecha)
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined" || !localStorage) return;
+      const path = window.location.pathname;
+      localStorage.setItem(
+        "cafesito_last_page",
+        JSON.stringify({
+          tab: activeTab,
+          path,
+          searchMode,
+          lastAccessAt: new Date().toISOString()
+        })
+      );
+    } catch {
+      // ignore
+    }
+  }, [activeTab, searchMode]);
 
   // Si hay error de auth (login fallido, 500, callback con error), llevar a /timeline para no dejar en URL de error
   useEffect(() => {
@@ -639,6 +685,17 @@ export function AppContainer() {
     setBrewStep,
     navigateToDiary: () => navigateToTab("diary")
   });
+  const handleMarkPantryCoffeeFinished = useCallback(
+    async (coffeeId: string) => {
+      if (!activeUser?.id) return;
+      const finishedAt = Date.now();
+      await insertFinishedCoffee(activeUser.id, coffeeId, finishedAt);
+      await handleRemovePantryItem(coffeeId);
+      setFinishedCoffees((prev) => [...prev, { coffee_id: coffeeId, finished_at: finishedAt }]);
+    },
+    [activeUser?.id, handleRemovePantryItem]
+  );
+
   const selectedDiaryCoffee = useMemo(
     () => diaryCoffeeOptions.find((coffee) => coffee.id === diaryCoffeeIdDraft) ?? diaryCoffeeOptions[0] ?? null,
     [diaryCoffeeIdDraft, diaryCoffeeOptions]
@@ -1182,7 +1239,6 @@ export function AppContainer() {
     return (
       <LoginGate
         loading={authBusy}
-        message={authBusy ? "Redirigiendo a Google..." : undefined}
         errorMessage={authError}
         onGoogleLogin={handleGoogleLogin}
         onGoogleCredential={handleGoogleCredential}
@@ -1235,6 +1291,7 @@ export function AppContainer() {
         onOpenCoffee={(coffeeId) => {
           openCoffeeDetail(coffeeId, "timeline");
         }}
+        onOpenCreatePost={openCreatePostComposer}
         sidePanel={activeSidePanelTarget === "timeline" ? detailPanel : null}
       />
     ) : null;
@@ -1387,6 +1444,7 @@ export function AppContainer() {
         tab={diaryTab}
         setTab={setDiaryTab}
         period={diaryPeriod}
+        selectedDiaryDate={selectedDiaryDate}
         entries={diaryEntriesActivity}
         coffeeCatalog={brewCoffeeCatalog}
         pantryRows={pantryCoffeeRows}
@@ -1394,12 +1452,24 @@ export function AppContainer() {
         onEditEntry={handleUpdateDiaryEntry}
         onUpdatePantryStock={handleUpdatePantryStock}
         onRemovePantryItem={handleRemovePantryItem}
+        onMarkPantryCoffeeFinished={handleMarkPantryCoffeeFinished}
         onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "diary")}
         onOpenQuickActions={() => setShowDiaryQuickActions(true)}
       />
     ) : null;
   const profileContent =
     guardedActiveTab === "profile" && profileUser ? (
+      profileSubPanel === "historial" ? (
+        <HistorialView
+          finishedCoffees={finishedCoffees}
+          coffeeCatalog={brewCoffeeCatalog}
+          onBack={() => {
+          setProfileSubPanel(null);
+          navigateToTab("profile", { replace: true });
+        }}
+          onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "profile")}
+        />
+      ) : (
       <LazyProfileView
         user={profileUser}
         mode={mode}
@@ -1448,6 +1518,7 @@ export function AppContainer() {
         externalEditProfileSignal={profileEditSignal}
         sidePanel={activeSidePanelTarget === "profile" ? detailPanel : null}
       />
+      )
     ) : null;
   const authPromptOverlay = (
     <AuthPromptOverlay
@@ -1609,6 +1680,12 @@ export function AppContainer() {
       showAddPantrySheet={showDiaryAddPantrySheet}
       onCloseQuickActions={() => setShowDiaryQuickActions(false)}
       onClosePeriodSheet={() => setShowDiaryPeriodSheet(false)}
+      showCalendarSheet={showDiaryCalendarSheet}
+      onCloseCalendarSheet={() => setShowDiaryCalendarSheet(false)}
+      selectedDiaryDate={selectedDiaryDate}
+      setSelectedDiaryDate={setSelectedDiaryDate}
+      diaryTodayStr={todayStr}
+      diaryEntries={diaryEntries}
       onCloseWaterSheet={() => setShowDiaryWaterSheet(false)}
       onCloseCoffeeSheet={() => {
         setLastCreatedCoffeeNameForSheet(null);
@@ -1669,40 +1746,42 @@ export function AppContainer() {
       onClearBarcodeDetectedValue={() => setBarcodeDetectedValueForDiary(null)}
     />
   );
+  const showAndroidBanner = mode === "mobile" && isAndroidMobile && !androidBannerDismissed;
+
   return (
     <div
       className={`layout ${mode} ${mode === "desktop" && isSearchUsersPage ? "is-search-users-page" : ""}`.trim()}
     >
+      {showAndroidBanner ? (
+        <div className="android-install-banner-wrap">
+          <aside className="android-install-banner android-install-banner-fixed" role="banner" aria-label="Instalar app">
+            <a
+              href="https://play.google.com/store/apps/details?id=com.cafesito.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="android-install-banner-link"
+            >
+              <span className="android-install-banner-icon" aria-hidden="true">
+                <UiIcon name="shop" className="ui-icon" />
+              </span>
+              <span className="android-install-banner-text">Instala la app Cafesito en Google Play</span>
+            </a>
+            <Button
+              variant="plain"
+              type="button"
+              className="android-install-banner-dismiss"
+              aria-label="Cerrar"
+              onClick={dismissAndroidBanner}
+            >
+              <UiIcon name="close" className="ui-icon" />
+            </Button>
+          </aside>
+          <div className="android-install-banner-spacer" aria-hidden="true" />
+        </div>
+      ) : null}
       <OfflineBanner />
       {mode === "desktop" && !isSearchUsersPage ? navRail : null}
-      <main className={`main-shell ${mode === "mobile" && isAndroidMobile && !androidBannerDismissed ? "has-android-banner" : ""}`.trim()}>
-        {mode === "mobile" && isAndroidMobile && !androidBannerDismissed ? (
-          <div className="android-install-banner-wrap">
-            <aside className="android-install-banner android-install-banner-fixed" role="banner" aria-label="Instalar app">
-              <a
-                href="https://play.google.com/store/apps/details?id=com.cafesito.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="android-install-banner-link"
-              >
-                <span className="android-install-banner-icon" aria-hidden="true">
-                  <UiIcon name="shop" className="ui-icon" />
-                </span>
-                <span className="android-install-banner-text">Instala la app Cafesito en Google Play</span>
-              </a>
-              <Button
-                variant="plain"
-                type="button"
-                className="android-install-banner-dismiss"
-                aria-label="Cerrar"
-                onClick={dismissAndroidBanner}
-              >
-                <UiIcon name="close" className="ui-icon" />
-              </Button>
-            </aside>
-            <div className="android-install-banner-spacer" aria-hidden="true" />
-          </div>
-        ) : null}
+      <main className="main-shell">
         {guardedActiveTab !== "coffee" ? (
         <TopBar
           activeTab={guardedActiveTab}
@@ -1727,6 +1806,21 @@ export function AppContainer() {
           onTimelineSearchUsers={topbarActions.onTimelineSearchUsers}
           onTimelineNotifications={topbarActions.onTimelineNotifications}
           diaryPeriod={diaryPeriod}
+          diarySelectedDate={selectedDiaryDate}
+          diaryTodayStr={todayStr}
+          onDiaryPrevDay={() => {
+            const d = new Date(selectedDiaryDate + "T12:00:00");
+            d.setDate(d.getDate() - 1);
+            setSelectedDiaryDate(d.toISOString().slice(0, 10));
+          }}
+          onDiaryNextDay={() => {
+            const d = new Date(selectedDiaryDate + "T12:00:00");
+            const today = new Date(todayStr + "T12:00:00");
+            if (d.getTime() >= today.getTime()) return;
+            d.setDate(d.getDate() + 1);
+            setSelectedDiaryDate(d.toISOString().slice(0, 10));
+          }}
+          onDiaryOpenCalendarSheet={() => setShowDiaryCalendarSheet(true)}
           onDiaryOpenQuickActions={topbarActions.onDiaryOpenQuickActions}
           onDiaryOpenPeriodSelector={topbarActions.onDiaryOpenPeriodSelector}
           scrolled={topbarScrolled}
@@ -1748,6 +1842,11 @@ export function AppContainer() {
           onProfileDeleteAccount={handleDeleteAccount}
           profileMenuEnabled={Boolean(profileUser && activeUser && profileUser.id === activeUser.id)}
           onProfileOpenEdit={triggerProfileEdit}
+          onHistorialClick={() => {
+            navigateToTab("profile", { profileSection: "historial" });
+          }}
+          profileSubPanel={profileSubPanel}
+          onHistorialBack={() => setProfileSubPanel(null)}
           onCoffeeBack={() => {
             void runWithAuth(async () => {
               if (window.history.length > 1) {

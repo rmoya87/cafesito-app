@@ -294,3 +294,18 @@ interface DiaryDao {
     @Query("DELETE FROM pending_diary_sync WHERE localEntryId = :localEntryId")
     suspend fun deletePendingDiarySync(localEntryId: Long)
 }
+
+@Dao
+interface FinishedCoffeeDao {
+    @Query("SELECT * FROM finished_coffees WHERE userId = :userId ORDER BY finished_at DESC")
+    fun getFinishedCoffeesByUser(userId: Int): Flow<List<FinishedCoffeeEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFinishedCoffee(entity: FinishedCoffeeEntity): Long
+
+    @Query("DELETE FROM finished_coffees WHERE id = :id")
+    suspend fun deleteById(id: Long): Int
+
+    @Query("DELETE FROM finished_coffees WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: Int): Int
+}

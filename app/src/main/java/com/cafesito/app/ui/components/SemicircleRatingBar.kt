@@ -45,7 +45,7 @@ fun SemicircleRatingBar(
             
             Icon(
                 imageVector = if (isFilled) Icons.Filled.Star else Icons.Outlined.StarOutline,
-                contentDescription = null,
+                contentDescription = "Valoración $i de 5",
                 modifier = Modifier
                     .size(48.dp)
                     .clickableWithoutRipple { onRatingChanged(i.toFloat()) },
