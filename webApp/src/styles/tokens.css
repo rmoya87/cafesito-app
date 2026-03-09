@@ -39,7 +39,8 @@
   --nav-rail-border: rgba(0, 0, 0, 0.14);
 
   --pure-black: #000000;
-  --screen-dark-background: #212121;
+  /* Por defecto modo día (#f7f7f7); en @media (prefers-color-scheme: dark) se sobreescribe a #212121 */
+  --screen-dark-background: #f7f7f7;
   /* Modo día: marrón (caramel-accent). Modo noche se sobreescribe a marrón claro. */
   --caramel-soft: #6f4e37;
   --caramel-soft-rgb: 111, 78, 55;
@@ -100,6 +101,7 @@
   }
 
   :root {
+    --screen-dark-background: #212121;
     --google-btn-bg: var(--caramel-soft);
     --google-btn-text: var(--pure-black);
     --search-border-inactive: rgba(255, 255, 255, 0.28);
@@ -294,6 +296,8 @@
 /* Preferencia de usuario: forzar tema claro (Ajustes > Apariencia > Claro) */
 html.theme-light {
   color-scheme: light;
+  /* En tema claro todo lo que usa --screen-dark-background debe verse #f7f7f7 */
+  --screen-dark-background: var(--screen-light-background);
   --google-btn-bg: var(--espresso-deep);
   --google-btn-text: var(--pure-white);
   --search-border-inactive: #e0e0e0;
@@ -387,6 +391,7 @@ html.theme-light .topbar .topbar-create-coffee-save {
 /* Preferencia de usuario: forzar tema oscuro (Ajustes > Apariencia > Oscuro) */
 html.theme-dark {
   color-scheme: dark;
+  --screen-dark-background: #212121;
   --google-btn-bg: var(--caramel-soft);
   --google-btn-text: var(--pure-black);
   --search-border-inactive: rgba(255, 255, 255, 0.28);

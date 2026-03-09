@@ -12,54 +12,30 @@ input {
   height: 100vh;
 }
 
-/* Móvil: fondo en html/body y layout; un solo scroll en main-shell-scroll */
 @media (max-width: 899px) {
-  html,
-  body {
+  .layout {
     min-height: 100dvh;
     min-height: -webkit-fill-available;
-    height: 100%;
-    overflow: hidden;
-    background: var(--screen-dark-background);
+    height: 100dvh;
+    height: -webkit-fill-available;
   }
-  #root {
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+}
+
+/* Móvil: layout a altura completa; -webkit-fill-available evita barra bajo el menú en iOS Safari */
+@media (max-width: 899px) {
+  body {
+    background: transparent;
   }
   .layout {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    height: 100dvh;
+    height: -webkit-fill-available;
     background: var(--screen-dark-background);
-  }
-  .layout .main-shell {
-    flex: 1 1 0%;
-    min-height: 0;
-    height: auto;
-    overflow: hidden;
-  }
-  .layout .main-shell-scroll {
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-  }
-  .layout .main-shell-scroll .content {
-    touch-action: pan-y;
   }
 }
 @media (max-width: 899px) and (prefers-color-scheme: light) {
-  html,
-  body,
-  #root,
-  .layout,
-  .layout .main-shell,
-  .layout .main-shell-scroll {
+  .layout {
     background: var(--screen-light-background);
   }
 }
@@ -11941,6 +11917,8 @@ html.theme-dark .content.content-profile {
   }
 
   :root {
+    /* En modo día todo lo que usa --screen-dark-background debe verse claro (#f7f7f7) */
+    --screen-dark-background: var(--screen-light-background);
     --modal-surface-bg: var(--screen-light-background);
     --modal-header-bg: var(--screen-light-background);
     --modal-field-bg: var(--pure-white);
@@ -11958,16 +11936,8 @@ html.theme-dark .content.content-profile {
     --focus-ring: rgba(111, 78, 55, 0.2);
   }
 
-  html,
-  body,
-  #root,
-  .layout,
-  .main-shell,
-  .main-shell-scroll {
-    background: var(--screen-light-background);
-  }
-
   body {
+    background: var(--screen-light-background);
     color: var(--espresso-deep);
   }
 
@@ -14068,21 +14038,6 @@ html.theme-dark .content.content-profile {
 }
 
 /* PWA "Añadir a escritorio" (iOS/Android): fallback safe-area para que el topbar no quede bajo la notch/barra de estado */
-/* Topbar y bottom-tabs transparentes para que no se vea franja negra: el fondo de la página (html/layout) se ve a través */
-.pwa-standalone .topbar,
-.pwa-standalone .topbar-timeline,
-.pwa-standalone .topbar-historial,
-.pwa-standalone .topbar-search,
-.pwa-standalone .topbar-search-users,
-.pwa-standalone .notifications-header {
-  background: transparent !important;
-  backdrop-filter: none;
-}
-.pwa-standalone .bottom-tabs {
-  background: transparent !important;
-  backdrop-filter: none;
-  box-shadow: none;
-}
 .pwa-standalone .topbar {
   --topbar-hide-offset: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
