@@ -1,7 +1,7 @@
 # Workflow Release & Deploy
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-05  
+**Última actualización:** 2026-03-09  
 **Fuente de verdad:** comportamiento por rama y despliegue (Android + Web).
 
 Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que gestiona el release de Android en Google Play y el despliegue de la web en Ionos según la rama.
@@ -9,7 +9,7 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 ## Cuándo se ejecuta
 
 - **Push** a ramas: `Interna`, `Interno`, `alpha`, `beta`, `Producción`, `Produccion` (las ramas canónicas son **alpha** y **beta** en minúsculas). **main** no está en la lista: un push a main no dispara el workflow (y el job `changes` tiene `if` que excluye push a main).
-- **workflow_dispatch**: ejecución manual desde Actions → "Run workflow", eligiendo rama y opciones (solo Android, solo web, etc.).
+- **workflow_dispatch**: ejecución manual desde Actions → "Run workflow", eligiendo rama y opciones (solo Android, solo web, etc.). Antes de desplegar, el workflow **hace merge de `main` en la rama elegida** (y push), para que "Solo webapp" o "Solo Android" desplieguen **todos los cambios que hay en main** (ver más abajo).
 - **Programado (schedule)**: todos los días a las **03:00 UTC** (deploy nocturno). La rama objetivo se define con la variable de repositorio `NIGHTLY_DEPLOY_BRANCH` (por defecto: `beta`).
 
 ### Si no quieres que se ejecute solo por cambios en cafés
@@ -31,6 +31,15 @@ En **push a otras ramas** (Interna, Producción): solo se ejecuta cada job si ha
 
 En **workflow_dispatch** (manual) y en **schedule** (nocturno) no se usa filtro por ficheros: el usuario elige “solo Android” / “solo web” en manual, y en schedule la cola de Supabase decide si hay deploy web.
 
+### Ejecución manual (workflow_dispatch): merge de main en la rama elegida
+
+Cuando usas **Run workflow** con una rama (p. ej. **beta**) y marcas **Solo webapp** o **Solo Android**, el workflow hace lo siguiente para que el despliegue incluya **todos los cambios de main**:
+
+1. **Job `sync-main-into-branch`** (solo en workflow_dispatch): hace checkout de la rama elegida, hace **merge de `origin/main`** en esa rama y hace **push**. Así la rama queda actualizada con el último código de main.
+2. Los jobs **release-android** y **deploy-web** dependen de este job; hacen checkout de la rama ya actualizada y construyen/despliegan desde ahí.
+
+Por tanto, no hace falta mergear main en beta a mano antes de pulsar "Run workflow": el propio workflow actualiza la rama con main y luego despliega solo el target que hayas elegido (webapp o Android) con todo el código actual de main.
+
 | Rama         | Release Android (Play Console)     | Deploy web (Ionos)              |
 |-------------|-------------------------------------|----------------------------------|
 | **main**    | No se ejecuta el workflow           | —                                |
@@ -44,21 +53,24 @@ En **workflow_dispatch** (manual) y en **schedule** (nocturno) no se usa filtro 
 
 ## Jobs del workflow
 
-1. **changes**  
+1. **sync-main-into-branch** (solo en workflow_dispatch)  
+   Actualiza la rama elegida con `main` antes de desplegar: hace checkout de esa rama, `git merge origin/main` y push. Así, "Solo webapp" o "Solo Android" despliegan todos los cambios de main. En push y schedule este job no se ejecuta.
+
+2. **changes**  
    Decide qué jobs ejecutar (`android` / `web`):
    - **Push a alpha o beta:** siempre `android=true` y `web=true` (siempre se despliegan ambos).
    - **Push a otras ramas:** usa `dorny/paths-filter` sobre los ficheros modificados: `android=true` si hay ficheros que impactan Android, `web=true` si hay ficheros que impactan `webApp/`.
    - **workflow_dispatch:** el usuario elige “solo Android”, “solo web” o ambos.
    - **schedule:** consulta `consume-deploy-changes` en Supabase; `web=true` solo si hay pendientes en la cola; `android=false` en schedule (evita releases diarios de Play sin push).
 
-2. **release-android**  
+3. **release-android**  
    - Condición: rama en `Interna` / `alpha` / `beta` / `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
    - Configura keystore y `google-services.json`, hace bump de versión, build del AAB y subida a la pista de Play correspondiente.
    - Sube también los **símbolos nativos** (`debugSymbols`) generados por el build para que Play Console pueda mostrar ANR y crashes de forma legible.
    - **Notas de la versión (What’s new):** Se generan desde **todos los commits en git desde la última publicación desplegada** en esa pista. Tras cada subida exitosa a Play se crea el tag `deploy/android/<pista>/<versionCode>` (ej. `deploy/android/beta/218`). En la siguiente release se toma el último tag de esa pista que sea ancestro de HEAD y se lista el mensaje de cada commit desde ese tag hasta HEAD (excluyendo merges y commits `chore(release)`). Así el usuario ve en “Qué hay de nuevo” los cambios reales desde la versión que tenía instalada. Si no existe tag previo (primera vez), se muestra un texto genérico.
    - **Tag de deploy:** Tras “Upload to Google Play” se hace push del tag `deploy/android/<track>/<versionCode>` para que la próxima ejecución pueda calcular las release notes.
 
-3. **deploy-web**  
+4. **deploy-web**  
    - Condición: rama `alpha`, `beta` o `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
    - Ejecuta `npm ci`, `npm test`, `npm run build` en `webApp` y sube el contenido de `webApp/dist/` por **SFTP** (SSH) a Ionos en `/cafesito-web/app/`.
 
@@ -109,7 +121,7 @@ No hay workflow automático. Los crashes se revisan y resuelven **desde Cursor**
 
 - **main**: no hace nada.
 - **Push a Interna / alpha / beta / Producción**: release Android **solo si** hay ficheros que impactan Android; deploy web **solo si** hay ficheros que impactan la webapp (`webApp/`). Si cambian ficheros de ambos, se despliegan ambos.
-- **workflow_dispatch**: eliges manualmente “solo Android”, “solo web” o ambos (sin filtro por ficheros).
+- **workflow_dispatch**: eliges manualmente “solo Android”, “solo web” o ambos (sin filtro por ficheros). Antes de desplegar se hace merge de main en la rama elegida, así que el despliegue incluye todos los cambios de main.
 - **schedule**: deploy web según cola Supabase; Android no se publica en schedule.
 - Para cambiar la rama nocturna, ajusta `NIGHTLY_DEPLOY_BRANCH` en Variables de GitHub Actions.
 
