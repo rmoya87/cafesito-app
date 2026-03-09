@@ -23,20 +23,35 @@ input {
 
 /* Móvil: layout a altura completa; -webkit-fill-available evita barra bajo el menú en iOS Safari */
 @media (max-width: 899px) {
-  body {
-    background: transparent;
+  html,
+  body,
+  #root {
+    background: var(--screen-dark-background);
   }
   .layout {
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
-    height: 100dvh;
-    height: -webkit-fill-available;
+    min-height: 100%;
+    height: 100%;
     background: var(--screen-dark-background);
   }
 }
 @media (max-width: 899px) and (prefers-color-scheme: light) {
+  html,
+  body,
+  #root,
   .layout {
     background: var(--screen-light-background);
+  }
+}
+
+/* iOS Safari (web y PWA): usar viewport "small" para evitar franjas al mostrar/ocultar controles del navegador */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 899px) {
+    .notifications-overlay,
+    .notifications-panel {
+      min-height: 100svh;
+      height: 100svh;
+      max-height: 100svh;
+    }
   }
 }
 
@@ -1385,7 +1400,7 @@ input {
 
 .coffee-detail-hero-top-actions {
   position: absolute;
-  top: 10px;
+  top: calc(10px + env(safe-area-inset-top, 0px));
   left: 10px;
   right: 10px;
   z-index: 3;
@@ -14187,6 +14202,9 @@ html.theme-dark .content.content-profile {
   margin-top: calc(106px + env(safe-area-inset-top, 44px));
   padding-top: 10px;
 }
+.pwa-standalone .coffee-detail-hero-top-actions {
+  top: calc(10px + env(safe-area-inset-top, 44px));
+}
 @media (max-width: 899px) {
   .pwa-standalone .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
     padding: calc(12px + env(safe-area-inset-top, 44px)) 12px 12px;
@@ -14233,6 +14251,9 @@ html.theme-dark .content.content-profile {
 .dev-safe-area-sim .topbar-search-users {
   min-height: calc(var(--topbar-height) + 47px);
   padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
+}
+.dev-safe-area-sim .coffee-detail-hero-top-actions {
+  top: calc(10px + 47px);
 }
 @media (max-width: 899px) {
   .dev-safe-area-sim .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
