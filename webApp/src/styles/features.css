@@ -968,23 +968,39 @@ input {
 .diary-calendar-sheet-overlay .diary-calendar-scroll {
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .diary-calendar-sheet {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior: contain;
+  height: 85vh;
+  max-height: 85vh;
+}
+/* Contenedor del contenido del sheet: flex para que .diary-calendar-scroll tenga altura acotada y haga scroll */
+.diary-calendar-sheet .sheet-card-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.diary-calendar-sheet .sheet-handle,
+.diary-calendar-sheet .sheet-header {
+  flex-shrink: 0;
 }
 .diary-calendar-scroll {
   flex: 1;
   min-height: 0;
-  max-height: 60vh;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 12px 20px;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   overscroll-behavior-y: contain;
+  position: relative;
 }
 
 .diary-calendar-month-block {
@@ -4361,15 +4377,9 @@ input {
   border-radius: 28px 28px 0 0;
 }
 
-/* Sheet "Nuevo registro" (Agua, Café, Despensa): safe-area, fondo completo y parte inferior pintada (webapp y PWA) */
+/* Sheet "Nuevo registro" (Agua, Café, Despensa): solo lo necesario, no pantalla completa */
 .diary-quick-actions-overlay {
   box-sizing: border-box;
-  background: var(--screen-dark-background);
-}
-@media (prefers-color-scheme: light) {
-  .diary-quick-actions-overlay {
-    background: var(--screen-light-background);
-  }
 }
 .diary-quick-actions-sheet {
   padding-top: env(safe-area-inset-top, 0px);
@@ -4386,18 +4396,15 @@ input {
 }
 @media (max-width: 899px) {
   .diary-quick-actions-overlay {
-    padding-bottom: 0;
-    align-items: stretch;
-    min-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .diary-quick-actions-sheet {
     padding-top: max(env(safe-area-inset-top, 0px), 12px);
     padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
-    min-height: 100dvh;
-    height: 100%;
-    max-height: none;
-    border-radius: 0;
-    box-shadow: none;
+    min-height: auto;
+    max-height: min(85vh, 420px);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -5631,7 +5638,7 @@ input {
   min-width: 4ch;
   border: none;
   padding: 0;
-  font-size: 4rem;
+  font-size: 50px !important;
   font-weight: 700;
   line-height: 1.2;
   text-align: right;
@@ -5884,7 +5891,7 @@ input {
   min-width: 4ch;
   border: none;
   padding: 0;
-  font-size: 4rem;
+  font-size: 50px !important;
   font-weight: 700;
   line-height: 1.2;
   text-align: right;
@@ -9996,7 +10003,7 @@ html.theme-dark .content.content-profile {
 }
 
 .notifications-header .topbar-slot:first-child {
-  margin-left: 0;
+  margin-left: 10px;
   min-width: 40px;
   justify-content: flex-start;
 }
@@ -11776,7 +11783,7 @@ html.theme-dark .content.content-profile {
     bottom: 104px;
   }
   .pwa-standalone .fab {
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(95px + env(safe-area-inset-bottom, 0px));
   }
 
   .sheet-overlay {
@@ -14133,17 +14140,10 @@ html.theme-dark .content.content-profile {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
 }
-/* PWA: sheet "Nuevo registro" mismo patrón que móvil (altura completa, sin límite, fondo en overlay y sheet) */
+/* PWA: sheet "Nuevo registro" mismo que móvil (solo lo necesario, no pantalla completa) */
 .pwa-standalone .diary-quick-actions-overlay {
-  padding-bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
-  min-height: 100dvh;
-  background: var(--screen-dark-background);
-}
-@media (prefers-color-scheme: light) {
-  .pwa-standalone .diary-quick-actions-overlay {
-    background: var(--screen-light-background);
-  }
 }
 .pwa-standalone .diary-quick-actions-sheet {
   padding-top: env(safe-area-inset-top, 44px);
@@ -14159,8 +14159,8 @@ html.theme-dark .content.content-profile {
 }
 @media (max-width: 899px) {
   .pwa-standalone .diary-quick-actions-sheet {
-    min-height: 100dvh;
-    height: 100%;
+    min-height: auto;
+    max-height: min(85vh, 420px);
   }
 }
 /* PWA: cabecera notificaciones misma altura que buscador usuarios (sin padding extra en overlay) */
