@@ -55,10 +55,11 @@ input {
 }
 @media (max-width: 899px) and (prefers-color-scheme: light) {
   html,
-  body {
-    background: var(--screen-light-background);
-  }
-  .layout {
+  body,
+  #root,
+  .layout,
+  .layout .main-shell,
+  .layout .main-shell-scroll {
     background: var(--screen-light-background);
   }
 }
@@ -11957,8 +11958,16 @@ html.theme-dark .content.content-profile {
     --focus-ring: rgba(111, 78, 55, 0.2);
   }
 
-  body {
+  html,
+  body,
+  #root,
+  .layout,
+  .main-shell,
+  .main-shell-scroll {
     background: var(--screen-light-background);
+  }
+
+  body {
     color: var(--espresso-deep);
   }
 
@@ -14059,6 +14068,21 @@ html.theme-dark .content.content-profile {
 }
 
 /* PWA "Añadir a escritorio" (iOS/Android): fallback safe-area para que el topbar no quede bajo la notch/barra de estado */
+/* Topbar y bottom-tabs transparentes para que no se vea franja negra: el fondo de la página (html/layout) se ve a través */
+.pwa-standalone .topbar,
+.pwa-standalone .topbar-timeline,
+.pwa-standalone .topbar-historial,
+.pwa-standalone .topbar-search,
+.pwa-standalone .topbar-search-users,
+.pwa-standalone .notifications-header {
+  background: transparent !important;
+  backdrop-filter: none;
+}
+.pwa-standalone .bottom-tabs {
+  background: transparent !important;
+  backdrop-filter: none;
+  box-shadow: none;
+}
 .pwa-standalone .topbar {
   --topbar-hide-offset: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
