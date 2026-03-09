@@ -4364,12 +4364,19 @@ input {
 /* Sheet "Nuevo registro" (Agua, Café, Despensa): safe-area, fondo completo y parte inferior pintada (webapp y PWA) */
 .diary-quick-actions-overlay {
   box-sizing: border-box;
+  background: var(--screen-dark-background);
+}
+@media (prefers-color-scheme: light) {
+  .diary-quick-actions-overlay {
+    background: var(--screen-light-background);
+  }
 }
 .diary-quick-actions-sheet {
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
   min-height: min(80vh, 400px);
+  max-height: none;
   background: var(--screen-dark-background);
 }
 @media (prefers-color-scheme: light) {
@@ -4379,10 +4386,18 @@ input {
 }
 @media (max-width: 899px) {
   .diary-quick-actions-overlay {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: 0;
+    align-items: stretch;
+    min-height: 100dvh;
   }
   .diary-quick-actions-sheet {
     padding-top: max(env(safe-area-inset-top, 0px), 12px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+    min-height: 100dvh;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
@@ -4417,17 +4432,24 @@ input {
   font-size: 18px;
 }
 
-/* Icones Agua / Café / Añadir a despensa (Nuevo registro): blanco en noche, negro en día */
+/* Icones Agua / Café / Añadir a despensa (Nuevo registro): negro en día, blanco en noche */
 .diary-sheet-action.is-water .ui-icon:first-child,
 .diary-sheet-action.is-coffee .ui-icon:first-child,
 .diary-sheet-action.is-pantry .ui-icon:first-child {
-  color: #000000;
+  color: #000000 !important;
+}
+@media (prefers-color-scheme: light) {
+  .diary-sheet-action.is-water .ui-icon:first-child,
+  .diary-sheet-action.is-coffee .ui-icon:first-child,
+  .diary-sheet-action.is-pantry .ui-icon:first-child {
+    color: #000000 !important;
+  }
 }
 @media (prefers-color-scheme: dark) {
   .diary-sheet-action.is-water .ui-icon:first-child,
   .diary-sheet-action.is-coffee .ui-icon:first-child,
   .diary-sheet-action.is-pantry .ui-icon:first-child {
-    color: #ffffff;
+    color: #ffffff !important;
   }
 }
 
@@ -5652,7 +5674,7 @@ input {
   pointer-events: none;
 }
 
-/* Móvil: sheet de agua a pantalla completa (no modal) */
+/* Móvil: sheet de agua a pantalla completa (no modal), safe-area como pantalla normal */
 @media (max-width: 640px) {
   .diary-water-sheet-overlay {
     align-items: stretch;
@@ -5670,6 +5692,8 @@ input {
     box-shadow: none;
     display: flex;
     flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    box-sizing: border-box;
   }
 
   .diary-water-sheet-overlay .diary-water-sheet .diary-sheet-form {
@@ -5698,6 +5722,8 @@ input {
     box-shadow: none;
     display: flex;
     flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    box-sizing: border-box;
   }
 
   .diary-coffee-sheet-overlay .diary-coffee-sheet .sheet-handle {
@@ -5736,6 +5762,8 @@ input {
     box-shadow: none;
     display: flex;
     flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    box-sizing: border-box;
   }
 
   .diary-pantry-sheet-overlay .diary-pantry-sheet .sheet-handle {
@@ -13004,16 +13032,11 @@ html.theme-dark .content.content-profile {
     color: var(--espresso-deep);
   }
 
-  .diary-sheet-action.is-water .ui-icon:first-child {
-    color: #2196f3;
-  }
-
-  .diary-sheet-action.is-coffee .ui-icon:first-child {
-    color: var(--espresso-deep);
-  }
-
+  /* Nuevo registro: iconos Agua/Café/Despensa negro en modo día (no azul/marrón) */
+  .diary-sheet-action.is-water .ui-icon:first-child,
+  .diary-sheet-action.is-coffee .ui-icon:first-child,
   .diary-sheet-action.is-pantry .ui-icon:first-child {
-    color: #6f4e37;
+    color: #000000 !important;
   }
 
   .diary-sheet-action.is-active {
@@ -13116,11 +13139,11 @@ html.theme-dark .content.content-profile {
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active {
     background: var(--caramel-soft) !important;
     border: 1px solid #6f4e37;
-    color: var(--pure-black);
+    color: #ffffff;
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
-    color: var(--pure-black);
+    color: #ffffff;
   }
 
   .diary-edit-entry-cancel {
@@ -14110,21 +14133,34 @@ html.theme-dark .content.content-profile {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
 }
-/* PWA: sheet "Nuevo registro" (Agua, Café, Añadir a despensa) misma altura que Mi diario (notch) y parte inferior pintada */
+/* PWA: sheet "Nuevo registro" mismo patrón que móvil (altura completa, sin límite, fondo en overlay y sheet) */
 .pwa-standalone .diary-quick-actions-overlay {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: 0;
   box-sizing: border-box;
+  min-height: 100dvh;
+  background: var(--screen-dark-background);
+}
+@media (prefers-color-scheme: light) {
+  .pwa-standalone .diary-quick-actions-overlay {
+    background: var(--screen-light-background);
+  }
 }
 .pwa-standalone .diary-quick-actions-sheet {
   padding-top: env(safe-area-inset-top, 44px);
   padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
-  min-height: min(80vh, 400px);
+  max-height: none;
   background: var(--screen-dark-background);
 }
 @media (prefers-color-scheme: light) {
   .pwa-standalone .diary-quick-actions-sheet {
     background: var(--screen-light-background);
+  }
+}
+@media (max-width: 899px) {
+  .pwa-standalone .diary-quick-actions-sheet {
+    min-height: 100dvh;
+    height: 100%;
   }
 }
 /* PWA: cabecera notificaciones misma altura que buscador usuarios (sin padding extra en overlay) */
