@@ -12,29 +12,52 @@ input {
   height: 100vh;
 }
 
+/* Móvil: fondo en html/body y layout; un solo scroll en main-shell-scroll */
 @media (max-width: 899px) {
-  .layout {
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
-    height: 100dvh;
-    height: -webkit-fill-available;
-  }
-}
-
-/* Móvil: layout a altura completa; -webkit-fill-available evita barra bajo el menú en iOS Safari */
-@media (max-width: 899px) {
+  html,
   body {
-    background: transparent;
-  }
-  .layout {
     min-height: 100dvh;
     min-height: -webkit-fill-available;
-    height: 100dvh;
-    height: -webkit-fill-available;
+    height: 100%;
+    overflow: hidden;
     background: var(--screen-dark-background);
+  }
+  #root {
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--screen-dark-background);
+  }
+  .layout .main-shell {
+    flex: 1 1 0%;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+  .layout .main-shell-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+  .layout .main-shell-scroll .content {
+    touch-action: pan-y;
   }
 }
 @media (max-width: 899px) and (prefers-color-scheme: light) {
+  html,
+  body {
+    background: var(--screen-light-background);
+  }
   .layout {
     background: var(--screen-light-background);
   }
