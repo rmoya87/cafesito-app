@@ -708,10 +708,10 @@ input {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     padding-bottom: 2px;
-    margin-left: -2px;
-    margin-right: -2px;
-    padding-left: 2px;
-    padding-right: 2px;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: var(--app-shell-gutter);
+    padding-right: 0;
   }
 
   .topbar-search-chips .filter-chip {
@@ -961,12 +961,30 @@ input {
   flex-shrink: 0;
 }
 
+.diary-calendar-sheet-overlay {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+.diary-calendar-sheet-overlay .diary-calendar-scroll {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+.diary-calendar-sheet {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
 .diary-calendar-scroll {
+  flex: 1;
+  min-height: 0;
   max-height: 60vh;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 12px 20px;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
 }
 
 .diary-calendar-month-block {
@@ -4343,6 +4361,31 @@ input {
   border-radius: 28px 28px 0 0;
 }
 
+/* Sheet "Nuevo registro" (Agua, Café, Despensa): safe-area, fondo completo y parte inferior pintada (webapp y PWA) */
+.diary-quick-actions-overlay {
+  box-sizing: border-box;
+}
+.diary-quick-actions-sheet {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  min-height: min(80vh, 400px);
+  background: var(--screen-dark-background);
+}
+@media (prefers-color-scheme: light) {
+  .diary-quick-actions-sheet {
+    background: var(--screen-light-background);
+  }
+}
+@media (max-width: 899px) {
+  .diary-quick-actions-overlay {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .diary-quick-actions-sheet {
+    padding-top: max(env(safe-area-inset-top, 0px), 12px);
+  }
+}
+
 .diary-sheet-list {
   padding: 4px 18px 24px;
   display: grid;
@@ -4657,9 +4700,14 @@ input {
 
 .diary-edit-entry-header {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 44px 1fr auto;
   align-items: center;
   gap: 8px;
+}
+.diary-edit-entry-header-spacer {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
 }
 
 .diary-edit-entry-sheet .sheet-title {
@@ -5400,9 +5448,11 @@ input {
     color: var(--espresso-deep);
     border-color: var(--border-light);
   }
-  .diary-edit-entry-presets .period-chip.is-active {
+  .diary-edit-entry-presets .period-chip.is-active,
+  .diary-edit-entry-method-chip.is-active,
+  .diary-edit-entry-method-chip.is-active span {
     background: var(--caramel-soft) !important;
-    color: var(--pure-black);
+    color: #ffffff;
     border-color: #6f4e37;
   }
 
@@ -5416,12 +5466,12 @@ input {
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active {
     background: var(--caramel-soft) !important;
-    color: var(--pure-black);
+    color: #ffffff;
     border-color: #6f4e37;
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
-    color: var(--pure-black);
+    color: #ffffff;
   }
 
   .profile-inline-save-button {
@@ -11697,6 +11747,9 @@ html.theme-dark .content.content-profile {
     right: 18px;
     bottom: 104px;
   }
+  .pwa-standalone .fab {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
 
   .sheet-overlay {
     padding: 0;
@@ -14057,23 +14110,34 @@ html.theme-dark .content.content-profile {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
 }
-/* PWA: sheet "Nuevo registro" (Agua, Café, Añadir a despensa) con safe-area inferior */
+/* PWA: sheet "Nuevo registro" (Agua, Café, Añadir a despensa) misma altura que Mi diario (notch) y parte inferior pintada */
 .pwa-standalone .diary-quick-actions-overlay {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
 }
 .pwa-standalone .diary-quick-actions-sheet {
+  padding-top: env(safe-area-inset-top, 44px);
   padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
+  min-height: min(80vh, 400px);
+  background: var(--screen-dark-background);
 }
-/* PWA: cabecera notificaciones con espacio para notch (mismo patrón que buscador) */
+@media (prefers-color-scheme: light) {
+  .pwa-standalone .diary-quick-actions-sheet {
+    background: var(--screen-light-background);
+  }
+}
+/* PWA: cabecera notificaciones misma altura que buscador usuarios (sin padding extra en overlay) */
 .pwa-standalone .notifications-overlay {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: 0;
+  align-items: flex-start;
   box-sizing: border-box;
 }
 .pwa-standalone .notifications-overlay .notifications-header {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
+  padding-left: var(--app-shell-gutter);
+  padding-right: var(--app-shell-gutter);
 }
 .pwa-standalone .main-shell-scroll {
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));

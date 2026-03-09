@@ -1576,7 +1576,11 @@ html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-activ
 
 html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
 html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
-  color: var(--pure-black) !important;
+  color: #ffffff !important;
+}
+html.theme-light .diary-edit-entry-method-chip.is-active,
+html.theme-light .diary-edit-entry-method-chip.is-active span {
+  color: #ffffff !important;
 }
 
 /* Editar perfil (nombre y bio): modo día = fondo blanco, texto negro */

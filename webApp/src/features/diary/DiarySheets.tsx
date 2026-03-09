@@ -386,7 +386,7 @@ function DiarySheets({
       ) : null}
 
       {showCalendarSheet && onCloseCalendarSheet && setSelectedDiaryDate && diaryTodayStr ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Selecciona" onDismiss={onCloseCalendarSheet} onClick={onCloseCalendarSheet}>
+        <SheetOverlay className="diary-calendar-sheet-overlay" role="dialog" aria-modal="true" aria-label="Selecciona" onDismiss={onCloseCalendarSheet} onClick={onCloseCalendarSheet}>
           <SheetCard className="diary-sheet diary-calendar-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-calendar-sheet-header">

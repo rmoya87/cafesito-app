@@ -1154,16 +1154,7 @@ export function DiaryView({
           <SheetCard className="diary-sheet diary-edit-entry-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-edit-entry-header">
-              <Button
-                variant="plain"
-                type="button"
-                className="diary-edit-entry-header-action diary-edit-entry-close"
-                onClick={() => setEditEntryId(null)}
-                disabled={savingEditEntry}
-                aria-label="Cerrar"
-              >
-                <UiIcon name="close" className="ui-icon" />
-              </Button>
+              <span className="diary-edit-entry-header-spacer" aria-hidden="true" />
               <strong className="sheet-title">Editar</strong>
               <Button
                 variant="plain"
