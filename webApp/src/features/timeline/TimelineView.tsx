@@ -53,6 +53,7 @@ export function TimelineView({
   resolveMentionUser,
   onOpenUserProfile,
   onOpenCoffee,
+  onOpenCreatePost,
   sidePanel
 }: {
   mode: "mobile" | "desktop";
