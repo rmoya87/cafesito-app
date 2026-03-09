@@ -12,6 +12,8 @@
 # - Android: ficheros en app/, shared/, gradle/, build.gradle.kts, etc.
 # - Webapp: ficheros bajo webApp/.
 # workflow_dispatch y schedule no usan filtro por ficheros (manual y cola Supabase).
+# En workflow_dispatch se hace merge de main en la rama elegida antes de desplegar, para que
+# "Solo webapp" o "Solo Android" desplieguen todos los cambios de main.
 # Ver docs/RELEASE_DEPLOY_WORKFLOW.md
 
 name: Release & Deploy
@@ -64,6 +66,25 @@ env:
   TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta' }}
 
 jobs:
+  # En "Run workflow" manual: actualiza la rama elegida con main para que el despliegue incluya todos los cambios de main
+  sync-main-into-branch:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refs/heads/${{ env.TARGET_BRANCH }}
+
+      - name: Merge main into branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main -m "Merge main into ${{ env.TARGET_BRANCH }} for deploy [skip ci]"
+          git push origin "HEAD:${{ env.TARGET_BRANCH }}"
+
   changes:
     if: github.event_name != 'push' || github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -157,8 +178,10 @@ jobs:
 
   # Subida a Google Play solo si hay cambios en Android
   release-android:
-    needs: changes
+    needs: [changes, sync-main-into-branch]
     if: |
+      always() &&
+      (needs.sync-main-into-branch.result == 'success' || needs.sync-main-into-branch.result == 'skipped') &&
       needs.changes.outputs.android == 'true' &&
       (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta'))
     runs-on: ubuntu-latest
@@ -359,8 +382,10 @@ jobs:
 
   # Deploy web a Ionos: en alpha, beta y Producción solo si web está en los cambios (no cuando android_only)
   deploy-web:
-    needs: changes
+    needs: [changes, sync-main-into-branch]
     if: |
+      always() &&
+      (needs.sync-main-into-branch.result == 'success' || needs.sync-main-into-branch.result == 'skipped') &&
       needs.changes.outputs.web == 'true' &&
       contains(fromJSON('["Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta')
     runs-on: ubuntu-latest
