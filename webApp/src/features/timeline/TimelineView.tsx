@@ -188,7 +188,7 @@ export function TimelineView({
       <article className="timeline-empty timeline-error" role="alert">
         <h3>{ERROR.LOAD_DATA}</h3>
         <p>{errorMessage}</p>
-        <Button variant="secondary" className="action-button" onClick={() => void onRefresh()} aria-label={`${ERROR.RETRY} carga`}>
+        <Button variant="ghost" className="action-button" onClick={() => void onRefresh()} aria-label={`${ERROR.RETRY} carga`}>
           {ERROR.RETRY}
         </Button>
       </article>
