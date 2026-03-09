@@ -877,6 +877,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
     var name by remember { mutableStateOf(coffeeDetails.coffee.nombre.toCoffeeNameFormat()) }
     var brand by remember { mutableStateOf(coffeeDetails.coffee.marca.toCoffeeBrandFormat()) }
     val isInPantry = currentStock != null
+    val caramelColor = LocalCaramelAccent.current
 
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
@@ -910,7 +911,11 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                 onValueChange = { rem = it }
             )
             Spacer(Modifier.height(40.dp))
-            
+
+            val saveBackground = caramelColor
+            val saveTextColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+            val cancelBorderAndText = MaterialTheme.colorScheme.onSurface
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -919,19 +924,22 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f).height(54.dp),
                     shape = RoundedCornerShape(28.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    border = BorderStroke(1.dp, cancelBorderAndText),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
                 ) {
                     Text(text = "CANCELAR", fontWeight = FontWeight.Bold)
                 }
-                
+
                 Button(
-                    onClick = { onSave(total.roundToInt(), rem.roundToInt(), if(isCustom) name else null, if(isCustom) brand else null) }, 
-                    modifier = Modifier.weight(1f).height(54.dp), 
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    onClick = { onSave(total.roundToInt(), rem.roundToInt(), if(isCustom) name else null, if(isCustom) brand else null) },
+                    modifier = Modifier.weight(1f).height(54.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = saveBackground,
+                        contentColor = saveTextColor
+                    ),
                     shape = RoundedCornerShape(28.dp)
-                ) { 
-                    Text(text = if (isInPantry) "ACTUALIZAR" else "AÑADIR", fontWeight = FontWeight.Bold) 
+                ) {
+                    Text(text = if (isInPantry) "ACTUALIZAR" else "AÑADIR", fontWeight = FontWeight.Bold)
                 }
             }
         }

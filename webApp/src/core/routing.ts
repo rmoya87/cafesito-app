@@ -14,17 +14,20 @@ export function parseRoute(pathname: string) {
       tab: "search" as TabId,
       searchMode: (second === "users" ? "users" : "coffees") as "coffees" | "users",
       profileUsername: null,
-      coffeeSlug: null
+      coffeeSlug: null,
+      profileSection: null
     };
   }
-  if (first === "brewlab") return { tab: "brewlab" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null };
-  if (first === "diary") return { tab: "diary" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null };
+  if (first === "brewlab") return { tab: "brewlab" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null };
+  if (first === "diary") return { tab: "diary" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null };
   if (first === "profile") {
+    const profileSection = second === "historial" ? ("historial" as const) : null;
     return {
       tab: "profile" as TabId,
       searchMode: "coffees" as const,
-      profileUsername: second ? decodeURIComponent(second) : null,
-      coffeeSlug: null
+      profileUsername: profileSection ? null : (second ? decodeURIComponent(second) : null),
+      coffeeSlug: null,
+      profileSection
     };
   }
   if (first === "coffee") {
@@ -32,10 +35,11 @@ export function parseRoute(pathname: string) {
       tab: "coffee" as TabId,
       searchMode: "coffees" as const,
       profileUsername: null,
-      coffeeSlug: second ? decodeURIComponent(second) : null
+      coffeeSlug: second ? decodeURIComponent(second) : null,
+      profileSection: null
     };
   }
-  return { tab: "timeline" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null };
+  return { tab: "timeline" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null };
 }
 
 const TAB_SEGMENTS = ["timeline", "search", "brewlab", "diary", "profile", "coffee"];
@@ -87,16 +91,22 @@ export function toCoffeeSlug(name: string, brand?: string | null, forceBrand = f
   return baseWithBrand || baseFromName || "cafe";
 }
 
+export type ProfileSection = "historial" | null;
+
 export function buildRoute(
   tab: TabId,
   searchMode: "coffees" | "users",
   profileUsername: string | null,
-  coffeeSlug?: string | null
+  coffeeSlug?: string | null,
+  profileSection?: ProfileSection
 ): string {
   if (tab === "search") return searchMode === "users" ? "/search/users" : "/search";
   if (tab === "brewlab") return "/brewlab";
   if (tab === "diary") return "/diary";
-  if (tab === "profile") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}` : "/profile";
+  if (tab === "profile") {
+    if (profileSection === "historial") return "/profile/historial";
+    return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}` : "/profile";
+  }
   if (tab === "coffee") return coffeeSlug ? `/coffee/${encodeURIComponent(coffeeSlug)}/` : "/timeline";
   return "/timeline";
 }

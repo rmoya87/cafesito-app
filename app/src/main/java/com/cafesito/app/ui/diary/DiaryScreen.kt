@@ -161,6 +161,7 @@ fun DiaryScreen(
 
     // Estado para la modal de opciones de despensa
     var showPantryOptionsId by remember { mutableStateOf<String?>(null) }
+    var showFinishedConfirmId by remember { mutableStateOf<String?>(null) }
     var itemToDeleteId by remember { mutableStateOf<String?>(null) }
 
     if (showStockSheet && itemToEdit != null) {
@@ -179,11 +180,19 @@ fun DiaryScreen(
         if (selectedItem != null) {
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                 scrimColor = Color.Black.copy(alpha = 0.5f)
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                    Text(
+                        text = "Opciones",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold
+                    )
                     ModalMenuOption(
                         title = "Editar stock",
                         icon = Icons.Default.Edit,
@@ -191,6 +200,15 @@ fun DiaryScreen(
                         onClick = {
                             itemToEdit = selectedItem
                             showStockSheet = true
+                            showPantryOptionsId = null
+                        }
+                    )
+                    ModalMenuOption(
+                        title = "Café terminado",
+                        icon = Icons.Default.Done,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            showFinishedConfirmId = showPantryOptionsId
                             showPantryOptionsId = null
                         }
                     )
@@ -231,6 +249,21 @@ fun DiaryScreen(
                     viewModel.refreshData()
                 }
                 itemToDeleteId = null
+            }
+        )
+    }
+
+    if (showFinishedConfirmId != null) {
+        DeleteConfirmationDialog(
+            onDismissRequest = { showFinishedConfirmId = null },
+            title = "Café terminado",
+            text = "¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.",
+            onConfirm = {
+                val id = showFinishedConfirmId!!
+                viewModel.markCoffeeAsFinished(id) {
+                    viewModel.refreshData()
+                }
+                showFinishedConfirmId = null
             }
         )
     }

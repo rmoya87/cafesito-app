@@ -65,6 +65,7 @@ export function DiaryView({
   onEditEntry,
   onUpdatePantryStock,
   onRemovePantryItem,
+  onMarkPantryCoffeeFinished,
   onOpenCoffee,
   onOpenQuickActions
 }: {
@@ -89,6 +90,7 @@ export function DiaryView({
   ) => Promise<void>;
   onUpdatePantryStock: (coffeeId: string, totalGrams: number, gramsRemaining: number) => Promise<void>;
   onRemovePantryItem: (coffeeId: string) => Promise<void>;
+  onMarkPantryCoffeeFinished?: (coffeeId: string) => Promise<void>;
   onOpenCoffee: (coffeeId: string) => void;
   onOpenQuickActions: () => void;
 }) {
@@ -179,6 +181,8 @@ export function DiaryView({
   const [savingEditEntry, setSavingEditEntry] = useState(false);
   const [pantryOptionsCoffeeId, setPantryOptionsCoffeeId] = useState<string | null>(null);
   const [pantryDeleteConfirmCoffeeId, setPantryDeleteConfirmCoffeeId] = useState<string | null>(null);
+  const [pantryFinishedConfirmCoffeeId, setPantryFinishedConfirmCoffeeId] = useState<string | null>(null);
+  const [markingFinished, setMarkingFinished] = useState(false);
   const [stockEditCoffeeId, setStockEditCoffeeId] = useState<string | null>(null);
   const [stockEditTotal, setStockEditTotal] = useState("");
   const [stockEditRemaining, setStockEditRemaining] = useState("");
@@ -923,6 +927,24 @@ export function DiaryView({
                   chevron_right
                 </span>
               </Button>
+              {onMarkPantryCoffeeFinished ? (
+                <Button variant="plain"
+                  type="button"
+                  className="diary-sheet-action diary-sheet-action-pantry"
+                  onClick={() => {
+                    setPantryFinishedConfirmCoffeeId(pantryOptionsCoffeeId);
+                    setPantryOptionsCoffeeId(null);
+                  }}
+                >
+                  <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
+                    check_circle
+                  </span>
+                  <span>Café terminado</span>
+                  <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
+                    chevron_right
+                  </span>
+                </Button>
+              ) : null}
               <Button variant="plain"
                 type="button"
                 className="diary-sheet-action diary-sheet-action-pantry"
@@ -940,6 +962,42 @@ export function DiaryView({
                   chevron_right
                 </span>
               </Button>
+            </div>
+          </SheetCard>
+        </SheetOverlay>
+      ) : null}
+
+      {pantryFinishedConfirmCoffeeId && onMarkPantryCoffeeFinished ? (
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Café terminado" onDismiss={() => setPantryFinishedConfirmCoffeeId(null)} onClick={() => setPantryFinishedConfirmCoffeeId(null)}>
+          <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+            <SheetHandle aria-hidden="true" />
+            <div className="diary-delete-confirm-body">
+              <h2 className="diary-delete-confirm-title">Café terminado</h2>
+              <p className="diary-delete-confirm-text">
+                ¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.
+              </p>
+              <div className="diary-delete-confirm-actions">
+                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setPantryFinishedConfirmCoffeeId(null)} disabled={markingFinished}>
+                  Cancelar
+                </Button>
+                <Button variant="plain"
+                  type="button"
+                  className="diary-delete-confirm-submit"
+                  disabled={markingFinished}
+                  onClick={async () => {
+                    if (markingFinished) return;
+                    setMarkingFinished(true);
+                    try {
+                      await onMarkPantryCoffeeFinished(pantryFinishedConfirmCoffeeId);
+                      setPantryFinishedConfirmCoffeeId(null);
+                    } finally {
+                      setMarkingFinished(false);
+                    }
+                  }}
+                >
+                  {markingFinished ? "Guardando..." : "Confirmar"}
+                </Button>
+              </div>
             </div>
           </SheetCard>
         </SheetOverlay>
@@ -992,7 +1050,7 @@ export function DiaryView({
               <label className="diary-stock-edit-field">
                 <span>Cantidad de café total (g)</span>
                 <Input
-                  className="diary-stock-edit-value"
+                  className="diary-stock-edit-value search-wide"
                   type="text"
                   inputMode="numeric"
                   value={String(Math.max(0, Number(stockEditTotal || 0)))}
@@ -1013,7 +1071,7 @@ export function DiaryView({
                   }}
                 />
                 <Input
-                  className="diary-stock-edit-slider app-range"
+                  className="diary-stock-edit-slider app-range search-wide"
                   type="range"
                   min={0}
                   max={1000}
@@ -1031,7 +1089,7 @@ export function DiaryView({
               <label className="diary-stock-edit-field">
                 <span>Cantidad de café restante (g)</span>
                 <Input
-                  className="diary-stock-edit-value"
+                  className="diary-stock-edit-value search-wide"
                   type="text"
                   inputMode="numeric"
                   value={String(Math.max(0, Number(stockEditRemaining || 0)))}
@@ -1041,7 +1099,7 @@ export function DiaryView({
                   }}
                 />
                 <Input
-                  className="diary-stock-edit-slider app-range"
+                  className="diary-stock-edit-slider app-range search-wide"
                   type="range"
                   min={0}
                   max={Math.max(1, Number(stockEditTotal || 0))}

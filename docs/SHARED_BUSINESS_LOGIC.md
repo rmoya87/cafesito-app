@@ -64,7 +64,16 @@
 
 ---
 
-## 6. Resumen
+## 6. Historial (cafés terminados)
+
+- **Fuente de verdad:** Supabase tabla `pantry_historical` (`user_id`, `coffee_id`, `finished_at`). No hay tabla local como fuente; Room (Android) y estado en web son caché/sincronizados desde Supabase.
+- **Android:** `SupabaseDataSource.getFinishedCoffees` / `insertFinishedCoffee`; `DiaryRepository.syncFinishedCoffees()` actualiza Room desde Supabase; al marcar "Café terminado" se inserta en Supabase, se borra de `pantry_items` (Supabase + local) y se re-sincroniza el historial.
+- **WebApp:** `fetchUserData` incluye `pantry_historical`; `insertFinishedCoffee` al marcar terminado; se elimina de despensa (`pantry_items`) y el estado local se actualiza.
+- **Coordinación:** Ambas plataformas leen/escriben la misma tabla; el historial se comparte entre dispositivos y se respalda en Supabase.
+
+---
+
+## 7. Resumen
 
 | Área | Shared (Kotlin) | WebApp (TypeScript) | Notas |
 |------|-----------------|----------------------|--------|
@@ -74,5 +83,6 @@
 | Reseñas | shared (validación + repo) | API + validación en front | Criterios alineados. |
 | Recomendaciones | `TimelineViewModel.buildCoffeeRecommendations` | Lógica front o API | Misma regla (tags, exclusiones). |
 | Fechas/horas | — | — | Mismos formatos por contexto. |
+| Historial (cafés terminados) | — | — | **Supabase** `pantry_historical`; Android y web sincronizados. |
 
 Al cambiar una regla de negocio en uno de los lados, comprobar si debe reflejarse en el otro y actualizar este documento.

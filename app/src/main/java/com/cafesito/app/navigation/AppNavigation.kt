@@ -60,6 +60,7 @@ import com.cafesito.app.ui.access.*
 import com.cafesito.app.ui.brewlab.*
 import com.cafesito.app.ui.detail.DetailScreen
 import com.cafesito.app.ui.diary.*
+import com.cafesito.app.ui.historial.HistorialScreen
 import com.cafesito.app.ui.profile.*
 import com.cafesito.app.ui.search.SearchScreen
 import com.cafesito.app.ui.timeline.*
@@ -539,7 +540,8 @@ fun AppNavigation(
                         },
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
                         onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
-                        onFollowingClick = { id -> navController.navigate("profile/$id/following") }
+                        onFollowingClick = { id -> navController.navigate("profile/$id/following") },
+                        onHistorialClick = { navController.navigate("historial") }
                     )
                 }
 
@@ -587,6 +589,13 @@ fun AppNavigation(
                     route = "detail/{coffeeId}",
                     arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
                 ) { DetailScreen(onBackClick = { navController.popBackStack() }) }
+
+                composable("historial") {
+                    HistorialScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") }
+                    )
+                }
 
                 composable(
                     route = "addPost?postType={postType}",

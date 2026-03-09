@@ -15,6 +15,7 @@
 6. [Referencias a otros documentos](#6-referencias-a-otros-documentos)
 7. [Resumen de cambios — accesibilidad, diario, documentación (03–04 mar 2026)](#7-resumen-de-cambios--accesibilidad-diario-documentación-0304-mar-2026)
 8. [Release notes Android desde última publicación (git)](#8-release-notes-android-desde-última-publicación-git)
+9. [Resumen de cambios — historial, detalle café (04 mar 2026)](#9-resumen-de-cambios--historial-detalle-café-04-mar-2026)
 
 ---
 
@@ -236,6 +237,36 @@ Que las notas “Qué hay de nuevo” en Play Store reflejen **todos los cambios
 ### Primera ejecución
 
 En la primera vez que corra el workflow **no** existirán tags `deploy/android/*`; las release notes serán el texto genérico. A partir del primer despliegue exitoso se creará el tag y las siguientes releases mostrarán los commits desde esa versión.
+
+---
+
+## 9. Resumen de cambios — historial, detalle café (04 mar 2026)
+
+Cambios de UI/UX en webapp: página historial (sin scroll innecesario en desktop) y botones del detalle de café (favorito, despensa, compartir) con fondo y borde siempre blancos.
+
+### 9.1 Webapp — Historial (desktop): sin scroll innecesario
+
+- **Problema:** En versión desktop, la página de historial mostraba barra de scroll aunque no hubiera suficientes ítems para justificarla.
+- **Causa:** `.content.content-profile` y `.historial-view` tenían `min-height: 100%` y `min-height: 100dvh`, forzando una altura mínima de viewport y provocando overflow.
+- **Solución:** Se eliminaron esas propiedades de `min-height` en ambos bloques. La altura del contenido depende solo de los ítems; el fondo de la zona vacía lo aporta `.main-shell-scroll` (tokens).
+- **Archivos:** `webApp/src/styles/features.css` (`.content.content-profile`, `.historial-view`).
+
+### 9.2 Webapp — Detalle café: botones favorito, despensa y compartir
+
+- **Objetivo:** Los botones del hero del detalle de café (favorito, despensa, compartir) deben tener **siempre** fondo blanco y borde blanco/claro (día y noche), estén activos o no. Solo el **icono** puede cambiar de color (p. ej. rojo cuando favorito está activo).
+- **Cambios:**
+  - Se forzó `background: var(--pure-white) !important` y `border: 1px solid rgba(0, 0, 0, 0.12) !important` para `.coffee-detail-topbar-icon` y `.coffee-detail-topbar-icon.is-active`, de modo que las reglas genéricas de `topbar-icon-button` (p. ej. `background: transparent` en modo oscuro) no los sobrescriban.
+  - El estado activo solo modifica el color del icono: `color: var(--electric-red)` en `.is-active` y en `.is-active .ui-icon`.
+  - Misma lógica aplicada en `@media (prefers-color-scheme: dark)`, en bloques desktop y en `theme-forced.css` para `html.theme-dark` y `html.theme-light`.
+- **Terminología:** En comentarios del CSS se sustituyó "me gusta" por "favorito" en los bloques del detalle de café.
+- **Archivos:** `webApp/src/styles/features.css`, `webApp/src/styles/theme-forced.css`.
+
+### 9.3 Resumen por archivo
+
+| Archivo | Cambio |
+|---------|--------|
+| `webApp/src/styles/features.css` | `.content.content-profile` y `.historial-view` sin `min-height`; `.coffee-detail-topbar-icon` / `.is-active` con bg y borde blancos `!important`; comentarios "favorito" en lugar de "me gusta". |
+| `webApp/src/styles/theme-forced.css` | `html.theme-dark` y `html.theme-light`: mismo bg y borde blancos para los iconos del detalle café; solo color del icono en rojo cuando `.is-active`. |
 
 ---
 

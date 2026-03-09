@@ -350,11 +350,13 @@ html.theme-light .bottom-tabs .nav-item.is-active {
   color: var(--caramel-accent);
 }
 
-html.theme-light .topbar-timeline {
+html.theme-light .topbar-timeline,
+html.theme-light .topbar-historial {
   background: rgba(247, 247, 247, 0.86);
 }
 
-html.theme-light .topbar-timeline.topbar-scrolled {
+html.theme-light .topbar-timeline.topbar-scrolled,
+html.theme-light .topbar-historial.topbar-scrolled {
   background: rgba(247, 247, 247, 0.95);
 }
 
@@ -442,11 +444,13 @@ html.theme-dark .bottom-tabs .nav-item.is-active {
   color: var(--caramel-accent);
 }
 
-html.theme-dark .topbar-timeline {
+html.theme-dark .topbar-timeline,
+html.theme-dark .topbar-historial {
   background: rgba(33, 33, 33, 0.86);
 }
 
-html.theme-dark .topbar-timeline.topbar-scrolled {
+html.theme-dark .topbar-timeline.topbar-scrolled,
+html.theme-dark .topbar-historial.topbar-scrolled {
   background: rgba(33, 33, 33, 0.95);
 }
 

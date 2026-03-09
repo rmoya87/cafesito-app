@@ -180,16 +180,18 @@ html.theme-dark .coffee-detail-topbar {
   border-bottom-color: var(--border-light);
 }
 
-html.theme-dark .coffee-detail-topbar-icon {
-  background: var(--pure-white);
-  color: var(--pure-black);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-}
-
+/* Detalle café: favorito, despensa, compartir — siempre bg y borde blancos (día y noche) */
+html.theme-dark .coffee-detail-topbar-icon,
 html.theme-dark .coffee-detail-topbar-icon.is-active {
+  background: var(--pure-white) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+html.theme-dark .coffee-detail-topbar-icon {
+  color: var(--pure-black);
+}
+html.theme-dark .coffee-detail-topbar-icon.is-active,
+html.theme-dark .coffee-detail-topbar-icon.is-active .ui-icon {
   color: var(--electric-red);
-  background: rgba(255, 59, 48, 0.2);
-  border-color: rgba(255, 59, 48, 0.4);
 }
 
 html.theme-dark .coffee-detail-hero,
@@ -235,7 +237,7 @@ html.theme-dark .feed-image {
 }
 
 html.theme-dark .coffee-tag-card {
-  background: var(--surface);
+  background: #212121;
   border-color: var(--border-light);
 }
 
@@ -545,13 +547,15 @@ html.theme-dark .create-coffee-format-block .create-coffee-quantity-row .create-
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-/* Café etiquetado (timeline) — !important para ganar a features */
+/* Café etiquetado (timeline): todo el componente (ui-button-md + coffee-tag-card) con bg gris oscuro en modo oscuro */
+html.theme-dark button.ui-button-md.coffee-tag-card,
+html.theme-dark button.coffee-tag-card,
+html.theme-dark .ui-button-md.coffee-tag-card,
 html.theme-dark .coffee-tag-card,
 html.theme-dark .coffee-tag-card .coffee-tag-copy {
-  background: var(--surface) !important;
+  background: #212121 !important;
   border-color: var(--border-light) !important;
 }
-
 html.theme-dark .coffee-tag-card .coffee-origin,
 html.theme-dark .coffee-tag-card .coffee-tag-name,
 html.theme-dark .coffee-tag-card .coffee-tag-brand {
@@ -773,7 +777,8 @@ html.theme-dark .diary-edit-entry-presets .period-chip.is-active {
 }
 
 /* Topbar calendario / selecciona periodo */
-html.theme-dark .topbar-timeline {
+html.theme-dark .topbar-timeline,
+html.theme-dark .topbar-historial {
   background: var(--screen-dark-background) !important;
 }
 
@@ -938,6 +943,13 @@ html.theme-dark .diary-sheet-action {
   border-color: var(--border-light) !important;
 }
 
+/* Iconos Agua / Café / Añadir a despensa (Nuevo registro): blanco en modo noche */
+html.theme-dark .diary-sheet-action.is-water .ui-icon:first-child,
+html.theme-dark .diary-sheet-action.is-coffee .ui-icon:first-child,
+html.theme-dark .diary-sheet-action.is-pantry .ui-icon:first-child {
+  color: #ffffff !important;
+}
+
 html.theme-dark .diary-sheet-action.is-active {
   background: rgba(var(--caramel-soft-rgb), 0.14) !important;
   border-color: rgba(var(--caramel-soft-rgb), 0.4) !important;
@@ -1087,6 +1099,13 @@ html.theme-light .diary-sheet-action {
   border-color: var(--border-light) !important;
 }
 
+/* Iconos Agua / Café / Añadir a despensa (Nuevo registro): negro en modo día */
+html.theme-light .diary-sheet-action.is-water .ui-icon:first-child,
+html.theme-light .diary-sheet-action.is-coffee .ui-icon:first-child,
+html.theme-light .diary-sheet-action.is-pantry .ui-icon:first-child {
+  color: #000000 !important;
+}
+
 html.theme-light .diary-sheet-action.is-active {
   background: rgba(111, 78, 55, 0.08) !important;
   border-color: rgba(111, 78, 55, 0.24) !important;
@@ -1144,10 +1163,15 @@ html.theme-light .coffee-detail-topbar {
   border-color: var(--border-light);
 }
 
-html.theme-light .coffee-detail-topbar-icon {
-  background: var(--pure-white);
+html.theme-light .coffee-detail-topbar-icon,
+html.theme-light .coffee-detail-topbar-icon.is-active {
+  background: var(--pure-white) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
   color: var(--pure-black);
-  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+html.theme-light .coffee-detail-topbar-icon.is-active,
+html.theme-light .coffee-detail-topbar-icon.is-active .ui-icon {
+  color: var(--electric-red);
 }
 
 html.theme-light .create-post-header,
@@ -1586,11 +1610,13 @@ html.theme-light .profile-inline-change-photo {
 }
 
 /* Topbar calendario / selecciona periodo modo día */
-html.theme-light .topbar-timeline {
+html.theme-light .topbar-timeline,
+html.theme-light .topbar-historial {
   background: rgba(247, 247, 247, 0.86) !important;
 }
 
-html.theme-light .topbar-timeline.topbar-scrolled {
+html.theme-light .topbar-timeline.topbar-scrolled,
+html.theme-light .topbar-historial.topbar-scrolled {
   background: rgba(247, 247, 247, 0.95) !important;
 }
 

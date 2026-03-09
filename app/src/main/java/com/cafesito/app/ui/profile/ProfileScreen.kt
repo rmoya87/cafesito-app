@@ -38,6 +38,7 @@ fun ProfileScreen(
     onCoffeeClick: (String) -> Unit,
     onFollowersClick: (Int) -> Unit,
     onFollowingClick: (Int) -> Unit,
+    onHistorialClick: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -238,6 +239,7 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
+                        onHistorialClick = onHistorialClick,
                         onDeleteAccountClick = { showDeleteAccountConfirm = true },
                         onLogoutClick = {
                             runWithBiometricReauth(

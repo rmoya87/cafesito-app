@@ -219,17 +219,20 @@ fun PantryPremiumCard(
                         .aspectRatio(1f)
                 )
                 if (onOptionsClick != null) {
+                    val isDark = isSystemInDarkTheme()
+                    val optionsIconTint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    val optionsBgColor = if (isDark) Color.Black else Color.White.copy(alpha = 0.82f)
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(10.dp)
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.82f), CircleShape)
+                            .background(optionsBgColor, CircleShape)
                             .clickable { onOptionsClick(item.coffee.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = optionsIconTint, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -333,6 +336,7 @@ fun AddEntryBottomSheet(
     onAddCoffee: () -> Unit,
     onAddPantry: () -> Unit
 ) {
+    val quickActionIconColor = if (isSystemInDarkTheme()) Color.White else Color.Black
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -347,12 +351,12 @@ fun AddEntryBottomSheet(
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold
             )
-            ModalMenuOption(title = "Agua", icon = Icons.Default.WaterDrop, color = WaterBlue, onClick = onAddWater)
-            ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = MaterialTheme.colorScheme.onSurface, onClick = onAddCoffee)
+            ModalMenuOption(title = "Agua", icon = Icons.Default.WaterDrop, color = quickActionIconColor, onClick = onAddWater)
+            ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = quickActionIconColor, onClick = onAddCoffee)
             ModalMenuOption(
                 title = "Añadir a Despensa",
                 iconPainter = painterResource(id = R.drawable.shelves_24),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = quickActionIconColor,
                 onClick = onAddPantry
             )
         }

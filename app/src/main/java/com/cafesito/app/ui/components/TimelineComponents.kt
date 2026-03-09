@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.ui.theme.WaterBlue
 import com.cafesito.app.ui.theme.WaterBlueBackground
 import androidx.compose.ui.graphics.Path
@@ -1058,6 +1059,8 @@ fun StockSliderSection(
     onValueChange: (Float) -> Unit
 ) {
     var editableValue by remember(value) { mutableStateOf(value.roundToInt().toString()) }
+    val coffeeColor = LocalCaramelAccent.current
+    val inactiveTrackColor = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFE0E0E0)
 
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1087,9 +1090,9 @@ fun StockSliderSection(
             },
             valueRange = 0f..maxValue.coerceAtLeast(1f),
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.outline,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                thumbColor = coffeeColor,
+                activeTrackColor = coffeeColor,
+                inactiveTrackColor = inactiveTrackColor
             )
         )
         Spacer(Modifier.height(8.dp))
@@ -2026,7 +2029,11 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 onValueChange = { rem = it }
             )
             Spacer(Modifier.height(40.dp))
-            
+
+            val saveBackground = LocalCaramelAccent.current
+            val saveTextColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+            val cancelBorderAndText = MaterialTheme.colorScheme.onSurface
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -2037,21 +2044,24 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                         .weight(1f)
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    border = BorderStroke(1.dp, cancelBorderAndText),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Bold)
                 }
-                
+
                 Button(
-                    onClick = { onSave(total.roundToInt(), rem.roundToInt()) }, 
+                    onClick = { onSave(total.roundToInt(), rem.roundToInt()) },
                     Modifier
                         .weight(1f)
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = saveBackground,
+                        contentColor = saveTextColor
+                    ),
                     shape = RoundedCornerShape(16.dp)
-                ) { 
-                    Text("GUARDAR", fontWeight = FontWeight.Bold) 
+                ) {
+                    Text("GUARDAR", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -2209,6 +2219,7 @@ fun ReviewOptionsBottomSheet(
 fun SettingsBottomSheet(
     onDismiss: () -> Unit,
     onEditClick: () -> Unit,
+    onHistorialClick: () -> Unit,
     onDeleteAccountClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
@@ -2221,6 +2232,19 @@ fun SettingsBottomSheet(
         Column(Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp)) {
             Text(
                 "GENERAL",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+            )
+            ModalMenuOption(
+                title = "Historial",
+                icon = Icons.Default.History,
+                color = MaterialTheme.colorScheme.onSurface,
+                onClick = { onDismiss(); onHistorialClick() }
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "CUENTA",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)

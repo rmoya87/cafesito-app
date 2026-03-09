@@ -1,5 +1,10 @@
 import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { requestAccountDeletion, syncAccountLifecycleAfterLogin, toggleFavoriteCoffee } from "../data/supabaseApi";
+import {
+  insertFinishedCoffee,
+  requestAccountDeletion,
+  syncAccountLifecycleAfterLogin,
+  toggleFavoriteCoffee
+} from "../data/supabaseApi";
 import { BREW_METHODS, COMMENT_EMOJIS } from "../config/brew";
 import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/routing";
 import { sendPageView } from "../core/ga4";
@@ -38,6 +43,7 @@ import { useCoffeeRouteSync, useRouteCanonicalSync, useRouteGuardSync } from "..
 import { getSupabaseClient, supabaseConfigError } from "../supabase";
 import { applyThemeToDocument, getThemeMode } from "../core/theme";
 import { TopBar } from "../features/topbar/TopBar";
+import { HistorialView } from "../features/profile/HistorialView";
 import {
   LazyTimelineView,
   LazySearchView,
@@ -49,7 +55,7 @@ import {
   LazyNotFoundView
 } from "./lazyViews";
 import { NotificationsSheet } from "../features/timeline/NotificationsSheet";
-import { CommentSheet } from "../features/timeline/CommentSheet";
+import CommentSheet from "../features/timeline/CommentSheet";
 import { CreatePostSheet } from "../features/timeline/CreatePostSheet";
 import { MobileBarcodeScannerSheet } from "../features/search/MobileBarcodeScannerSheet";
 import { LoginGate } from "../features/auth/LoginGate";
@@ -70,6 +76,7 @@ import type {
   CommentRow,
   DiaryEntryRow,
   FavoriteRow,
+  FinishedCoffeeRow,
   FollowRow,
   LikeRow,
   NotificationRow,
@@ -105,7 +112,11 @@ export function AppContainer() {
 
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntryRow[]>([]);
   const [pantryItems, setPantryItems] = useState<PantryItemRow[]>([]);
+  const [finishedCoffees, setFinishedCoffees] = useState<FinishedCoffeeRow[]>([]);
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
+  const [profileSubPanel, setProfileSubPanel] = useState<"historial" | null>(
+    () => (initialRoute.tab === "profile" && "profileSection" in initialRoute && initialRoute.profileSection === "historial" ? "historial" : null)
+  );
   const [follows, setFollows] = useState<FollowRow[]>([]);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
 
@@ -323,6 +334,7 @@ export function AppContainer() {
     }
     return users[0] ?? null;
   }, [sessionEmail, users]);
+
   const { runWithAuth } = useAuthActionGuard({ sessionEmail, onRequireAuth: requestLogin });
 
   const reloadInitialData = useInitialDataLoader({
@@ -346,9 +358,14 @@ export function AppContainer() {
     setPantryItems,
     setFavorites,
     setCustomCoffees,
+    setFinishedCoffees,
     setNotifications,
     setGlobalStatus
   });
+
+  useEffect(() => {
+    if (!activeUser) setFinishedCoffees([]);
+  }, [activeUser]);
 
   const {
     showCreateCoffeeComposer,
@@ -389,6 +406,7 @@ export function AppContainer() {
     setSearchMode,
     profileUsername,
     setProfileUsername,
+    setProfileSubPanel,
     users,
     setActiveTab,
     activeUserUsername: activeUser?.username ?? null,
@@ -667,6 +685,17 @@ export function AppContainer() {
     setBrewStep,
     navigateToDiary: () => navigateToTab("diary")
   });
+  const handleMarkPantryCoffeeFinished = useCallback(
+    async (coffeeId: string) => {
+      if (!activeUser?.id) return;
+      const finishedAt = Date.now();
+      await insertFinishedCoffee(activeUser.id, coffeeId, finishedAt);
+      await handleRemovePantryItem(coffeeId);
+      setFinishedCoffees((prev) => [...prev, { coffee_id: coffeeId, finished_at: finishedAt }]);
+    },
+    [activeUser?.id, handleRemovePantryItem]
+  );
+
   const selectedDiaryCoffee = useMemo(
     () => diaryCoffeeOptions.find((coffee) => coffee.id === diaryCoffeeIdDraft) ?? diaryCoffeeOptions[0] ?? null,
     [diaryCoffeeIdDraft, diaryCoffeeOptions]
@@ -1423,12 +1452,24 @@ export function AppContainer() {
         onEditEntry={handleUpdateDiaryEntry}
         onUpdatePantryStock={handleUpdatePantryStock}
         onRemovePantryItem={handleRemovePantryItem}
+        onMarkPantryCoffeeFinished={handleMarkPantryCoffeeFinished}
         onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "diary")}
         onOpenQuickActions={() => setShowDiaryQuickActions(true)}
       />
     ) : null;
   const profileContent =
     guardedActiveTab === "profile" && profileUser ? (
+      profileSubPanel === "historial" ? (
+        <HistorialView
+          finishedCoffees={finishedCoffees}
+          coffeeCatalog={brewCoffeeCatalog}
+          onBack={() => {
+          setProfileSubPanel(null);
+          navigateToTab("profile", { replace: true });
+        }}
+          onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "profile")}
+        />
+      ) : (
       <LazyProfileView
         user={profileUser}
         mode={mode}
@@ -1477,6 +1518,7 @@ export function AppContainer() {
         externalEditProfileSignal={profileEditSignal}
         sidePanel={activeSidePanelTarget === "profile" ? detailPanel : null}
       />
+      )
     ) : null;
   const authPromptOverlay = (
     <AuthPromptOverlay
@@ -1800,6 +1842,11 @@ export function AppContainer() {
           onProfileDeleteAccount={handleDeleteAccount}
           profileMenuEnabled={Boolean(profileUser && activeUser && profileUser.id === activeUser.id)}
           onProfileOpenEdit={triggerProfileEdit}
+          onHistorialClick={() => {
+            navigateToTab("profile", { profileSection: "historial" });
+          }}
+          profileSubPanel={profileSubPanel}
+          onHistorialBack={() => setProfileSubPanel(null)}
           onCoffeeBack={() => {
             void runWithAuth(async () => {
               if (window.history.length > 1) {

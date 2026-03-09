@@ -128,6 +128,9 @@ class DiaryViewModel @Inject constructor(
         .onEach { _isLoading.value = false } 
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val finishedCoffees: StateFlow<List<FinishedCoffeeWithDetails>> = diaryRepository.getFinishedCoffees()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val availableCoffees: StateFlow<List<CoffeeWithDetails>> = coffeeRepository.allCoffees
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -337,6 +340,18 @@ class DiaryViewModel @Inject constructor(
                 Log.e("DIARY_VIEWMODEL", "Error removing from pantry", e)
             }
         } 
+    }
+
+    fun markCoffeeAsFinished(coffeeId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                diaryRepository.markCoffeeAsFinished(coffeeId)
+                refreshDiaryWidget()
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("DIARY_VIEWMODEL", "Error marking coffee as finished", e)
+            }
+        }
     }
     
     fun saveCustomCoffee(

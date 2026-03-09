@@ -50,6 +50,9 @@ export function TopBar({
   onProfileDeleteAccount,
   profileMenuEnabled,
   onProfileOpenEdit,
+  onHistorialClick,
+  profileSubPanel,
+  onHistorialBack,
   onCoffeeBack,
   coffeeTopbarFavoriteActive,
   coffeeTopbarStockActive,
@@ -101,6 +104,9 @@ export function TopBar({
   onProfileDeleteAccount: () => Promise<void> | void;
   profileMenuEnabled: boolean;
   onProfileOpenEdit: () => void;
+  onHistorialClick?: () => void;
+  profileSubPanel?: "historial" | null;
+  onHistorialBack?: () => void;
   onCoffeeBack: () => void;
   coffeeTopbarFavoriteActive: boolean;
   coffeeTopbarStockActive: boolean;
@@ -341,6 +347,19 @@ export function TopBar({
   }
 
   if (activeTab === "profile") {
+    if (profileSubPanel === "historial") {
+      return (
+        <header className={`topbar topbar-centered topbar-timeline topbar-historial ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`} dir="ltr">
+          <div className="topbar-slot topbar-slot-back">
+            <IconButton tone="topbar" aria-label="Volver" onClick={onHistorialBack}>
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </IconButton>
+          </div>
+          <h1 className="title title-upper topbar-title-center">HISTORIAL</h1>
+          <div className="topbar-slot topbar-slot-end" />
+        </header>
+      );
+    }
     return (
       <>
         <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
@@ -361,6 +380,21 @@ export function TopBar({
                   <SheetHandle aria-hidden="true" />
                   <div className="diary-sheet-list">
                     <p className="profile-options-section-title">General</p>
+                    {onHistorialClick ? (
+                      <Button
+                        variant="plain"
+                        className="diary-sheet-action diary-sheet-action-pantry"
+                        onClick={() => {
+                          setShowProfileOptions(false);
+                          onHistorialClick();
+                        }}
+                      >
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">history</span>
+                        <span>Historial</span>
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                      </Button>
+                    ) : null}
+                    <p className="profile-options-section-title" style={{ marginTop: "1rem" }}>Cuenta</p>
                     <Button
                       variant="plain"
                       className="diary-sheet-action diary-sheet-action-pantry"

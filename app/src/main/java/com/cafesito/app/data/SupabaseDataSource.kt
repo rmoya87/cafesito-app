@@ -444,6 +444,17 @@ class SupabaseDataSource @Inject constructor(
     }
     suspend fun deletePantryItem(coffeeId: String, userId: Int) { client.postgrest["pantry_items"].delete { filter { eq("coffee_id", coffeeId); eq("user_id", userId) } } }
 
+    // --- HISTORIAL (pantry_historical): fuente de verdad Supabase
+    suspend fun getFinishedCoffees(userId: Int): List<FinishedCoffeeEntity> =
+        client.postgrest["pantry_historical"].select {
+            filter { eq("user_id", userId) }
+            order("finished_at", Order.DESCENDING)
+        }.decodeList<FinishedCoffeeEntity>()
+
+    suspend fun insertFinishedCoffee(insert: FinishedCoffeeInsert) {
+        client.postgrest["pantry_historical"].insert(insert)
+    }
+
     // --- NOTIFICACIONES ---
     suspend fun insertNotification(notification: NotificationEntity) {
         try {

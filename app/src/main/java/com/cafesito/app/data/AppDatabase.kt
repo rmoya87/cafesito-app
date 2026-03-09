@@ -19,10 +19,11 @@ import androidx.room.RoomDatabase
         DiaryEntryEntity::class,
         PendingDiarySyncEntity::class,
         PantryItemEntity::class,
+        FinishedCoffeeEntity::class,
         UserTokenEntity::class,
         ActiveSessionEntity::class
     ],
-    version = 34,
+    version = 35,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,5 +31,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun socialDao(): SocialDao
     abstract fun diaryDao(): DiaryDao
+    abstract fun finishedCoffeeDao(): FinishedCoffeeDao
     abstract fun sessionDao(): SessionDao
 }

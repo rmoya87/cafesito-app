@@ -452,7 +452,8 @@ input {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-.topbar-timeline {
+.topbar-timeline,
+.topbar-historial {
   top: 0;
   height: var(--topbar-height);
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
@@ -462,7 +463,8 @@ input {
   background: var(--screen-dark-background);
 }
 
-.topbar-timeline.topbar-scrolled {
+.topbar-timeline.topbar-scrolled,
+.topbar-historial.topbar-scrolled {
   background: var(--screen-dark-background);
 }
 
@@ -742,6 +744,11 @@ input {
 .topbar-slot-end {
   justify-content: flex-end;
   gap: 6px;
+}
+
+/* Volver siempre a la izquierda (por si flex/grid invierte en RTL) */
+.topbar-slot-back {
+  order: -1;
 }
 
 .topbar-result-save {
@@ -1083,11 +1090,14 @@ input {
 }
 
 .topbar-timeline .topbar-slot,
-.topbar-timeline .topbar-slot-end {
+.topbar-timeline .topbar-slot-end,
+.topbar-historial .topbar-slot,
+.topbar-historial .topbar-slot-end {
   min-height: 40px;
 }
 
-.topbar-timeline .topbar-icon-button .ui-icon {
+.topbar-timeline .topbar-icon-button .ui-icon,
+.topbar-historial .topbar-icon-button .ui-icon {
   width: 24px;
   height: 24px;
 }
@@ -1294,6 +1304,12 @@ input {
   gap: 6px;
 }
 
+/* Favorito, despensa, compartir: siempre bg y borde blancos (día y noche), activo o no */
+.coffee-detail-topbar-icon,
+.coffee-detail-topbar-icon.is-active {
+  background: var(--pure-white) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
 .coffee-detail-topbar-icon {
   width: 40px;
   height: 40px;
@@ -1302,8 +1318,6 @@ input {
   padding: 0;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: var(--pure-white);
   color: var(--pure-black);
   display: inline-flex;
   align-items: center;
@@ -1315,10 +1329,10 @@ input {
   height: 22px;
 }
 
-.coffee-detail-topbar-icon.is-active {
+/* Solo el icono en rojo cuando está activo; bg y borde siguen blancos */
+.coffee-detail-topbar-icon.is-active,
+.coffee-detail-topbar-icon.is-active .ui-icon {
   color: var(--electric-red);
-  background: rgba(var(--electric-red-rgb), 0.16);
-  border-color: rgba(var(--electric-red-rgb), 0.34);
 }
 
 /* Corazón favorito en detalle de café: siempre rojo (igual que en preview del buscador) */
@@ -1403,8 +1417,9 @@ input {
 
 .coffee-detail-top-icon.is-active {
   color: var(--electric-red);
-  background: rgba(var(--electric-red-rgb), 0.16);
-  border-color: rgba(var(--electric-red-rgb), 0.34);
+}
+.coffee-detail-top-icon.is-active .ui-icon {
+  color: var(--electric-red);
 }
 
 .coffee-detail-title {
@@ -2031,11 +2046,14 @@ input {
 .coffee-detail-stock {
   gap: 18px;
   padding-top: 10px;
+  width: 100%;
+  min-width: 0;
 }
 
 .coffee-detail-stock-field {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .coffee-detail-stock-label {
@@ -2065,6 +2083,7 @@ input {
   box-shadow: none;
 }
 
+/* Base: ancho y reset; colores con .app-range .app-range--caramel (igual que añadir café) */
 .coffee-detail-stock-slider.search-wide {
   appearance: none;
   -webkit-appearance: none;
@@ -2077,43 +2096,14 @@ input {
   min-height: 44px;
   box-sizing: border-box;
   touch-action: none;
-  accent-color: var(--espresso-deep);
 }
 
-.coffee-detail-stock-slider.search-wide::-webkit-slider-runnable-track {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.coffee-detail-stock-slider.search-wide::-moz-range-track {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.coffee-detail-stock-slider.search-wide::-moz-range-progress {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--espresso-deep);
-}
-
-.coffee-detail-stock-slider.search-wide::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 24px;
-  border-radius: 4px;
-  border: none;
-  background: var(--screen-dark-background);
-  margin-top: -9px;
-}
-
-.coffee-detail-stock-slider.search-wide::-moz-range-thumb {
-  width: 12px;
-  height: 24px;
-  border-radius: 4px;
-  border: none;
-  background: var(--screen-dark-background);
+/* Botones Cancelar/Guardar a todo el ancho del modal (como en diario) */
+.coffee-detail-stock-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
 }
 
 .coffee-detail-stock-cancel,
@@ -2277,6 +2267,8 @@ input {
   display: grid;
   gap: 10px;
   padding: 4px 14px 2px;
+  width: 100%;
+  min-width: 0;
 }
 
 .coffee-detail-tech-sheet-grid p {
@@ -4382,16 +4374,18 @@ input {
   font-size: 18px;
 }
 
-.diary-sheet-action.is-water .ui-icon:first-child {
-  color: #2196f3;
-}
-
-.diary-sheet-action.is-coffee .ui-icon:first-child {
-  color: var(--caramel-soft);
-}
-
+/* Icones Agua / Café / Añadir a despensa (Nuevo registro): blanco en noche, negro en día */
+.diary-sheet-action.is-water .ui-icon:first-child,
+.diary-sheet-action.is-coffee .ui-icon:first-child,
 .diary-sheet-action.is-pantry .ui-icon:first-child {
-  color: #bdb7b2;
+  color: #000000;
+}
+@media (prefers-color-scheme: dark) {
+  .diary-sheet-action.is-water .ui-icon:first-child,
+  .diary-sheet-action.is-coffee .ui-icon:first-child,
+  .diary-sheet-action.is-pantry .ui-icon:first-child {
+    color: #ffffff;
+  }
 }
 
 .diary-sheet-action .ui-icon:last-child {
@@ -4726,11 +4720,14 @@ input {
   display: grid;
   gap: 20px;
   padding-top: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
 .diary-stock-edit-field {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .diary-stock-edit-field > span {
@@ -6904,17 +6901,18 @@ input {
 }
 
 @media (prefers-color-scheme: dark) {
-  /* Detalle café: botones volver / me gusta / despensa — siempre blancos */
-  .coffee-detail-topbar-icon {
-    background: var(--pure-white);
-    color: var(--pure-black);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-  }
-
+  /* Detalle café: botones volver / favorito / despensa / compartir — siempre blancos */
+  .coffee-detail-topbar-icon,
   .coffee-detail-topbar-icon.is-active {
+    background: var(--pure-white) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  }
+  .coffee-detail-topbar-icon {
+    color: var(--pure-black);
+  }
+  .coffee-detail-topbar-icon.is-active,
+  .coffee-detail-topbar-icon.is-active .ui-icon {
     color: var(--electric-red);
-    background: rgba(255, 59, 48, 0.2);
-    border-color: rgba(255, 59, 48, 0.4);
   }
 
   /* Botones con fondo marrón claro (caramelo): texto negro en modo noche */
@@ -7501,6 +7499,89 @@ input {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-subtle);
+}
+
+/* Contenedor perfil (y historial): mismo fondo que el resto; sin min-height para no forzar scroll en desktop */
+.content.content-profile {
+  box-sizing: border-box;
+  background: var(--screen-light-background);
+}
+html.theme-dark .content.content-profile {
+  background: var(--screen-dark-background);
+}
+
+@media (prefers-color-scheme: dark) {
+  .content.content-profile {
+    background: var(--screen-dark-background);
+  }
+}
+
+/* Historial: laterales como el resto (solo padding del .content); altura según contenido (no forzar scroll) */
+.historial-view {
+  padding: 16px 0 80px;
+  box-sizing: border-box;
+}
+
+.historial-view-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.historial-empty-text {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 1rem;
+}
+
+.historial-back {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: var(--caramel-accent);
+  color: var(--pure-white);
+  font-weight: 600;
+}
+
+.historial-section {
+  margin-bottom: 24px;
+}
+
+.historial-section-title {
+  margin: 0 0 8px;
+  padding: 4px 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-subtle);
+  text-transform: none;
+}
+
+.historial-view .profile-favorite-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historial-row.profile-favorite-row {
+  grid-template-columns: 70px minmax(0, 1fr) auto;
+}
+
+.historial-row .profile-favorite-copy {
+  padding-right: 0;
+}
+
+.historial-row .historial-item-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-subtle);
+}
+
+.historial-row .historial-item-chevron .ui-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .profile-theme-chips {
@@ -11303,6 +11384,14 @@ input {
   cursor: pointer;
 }
 
+/* Modo oscuro (sistema o forzado): fondo gris oscuro para café etiquetado en timeline */
+@media (prefers-color-scheme: dark) {
+  .coffee-tag-card,
+  .coffee-tag-card .coffee-tag-copy {
+    background: #212121 !important;
+  }
+}
+
 .coffee-tag-card .ui-icon {
   margin-left: auto;
 }
@@ -11448,7 +11537,8 @@ input {
   }
 
   .topbar-timeline,
-  .topbar-search-users {
+  .topbar-search-users,
+  .topbar-historial {
     min-height: calc(56px + env(safe-area-inset-top, 0px));
     padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--space-3) var(--space-2);
     gap: var(--space-2);
@@ -11868,11 +11958,13 @@ input {
     color: var(--caramel-accent);
   }
 
-  .topbar-timeline {
+  .topbar-timeline,
+  .topbar-historial {
     background: rgba(247, 247, 247, 0.86);
   }
 
-  .topbar-timeline.topbar-scrolled {
+  .topbar-timeline.topbar-scrolled,
+  .topbar-historial.topbar-scrolled {
     background: rgba(247, 247, 247, 0.95);
   }
 
@@ -12175,10 +12267,17 @@ input {
     background: var(--pure-white);
   }
 
+  .coffee-detail-topbar-icon,
+  .coffee-detail-topbar-icon.is-active {
+    background: var(--pure-white) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  }
   .coffee-detail-topbar-icon {
-    background: var(--pure-white);
     color: var(--pure-black);
-    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+  .coffee-detail-topbar-icon.is-active,
+  .coffee-detail-topbar-icon.is-active .ui-icon {
+    color: var(--electric-red);
   }
 
   .coffee-detail-stock-save {
@@ -12191,12 +12290,6 @@ input {
     background: var(--caramel-accent) !important;
     border-color: var(--caramel-accent) !important;
     color: #ffffff !important;
-  }
-
-  .coffee-detail-topbar-icon.is-active {
-    color: var(--electric-red);
-    background: rgba(255, 59, 48, 0.1);
-    border-color: rgba(255, 59, 48, 0.24);
   }
 
   .coffee-detail-tech-item,
@@ -13693,7 +13786,8 @@ input {
 @media (max-width: 899px) {
 
   .topbar-timeline,
-  .topbar-search-users {
+  .topbar-search-users,
+  .topbar-historial {
     padding: calc(7px + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 7px;
     gap: 7px;
   }
@@ -13947,7 +14041,8 @@ input {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
 }
-.pwa-standalone .topbar-timeline {
+.pwa-standalone .topbar-timeline,
+.pwa-standalone .topbar-historial {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
 }
@@ -13959,6 +14054,15 @@ input {
 .pwa-standalone .topbar-search-users {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
+}
+/* PWA: sheet "Nuevo registro" (Agua, Café, Añadir a despensa) con safe-area inferior */
+.pwa-standalone .diary-quick-actions-overlay {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+.pwa-standalone .diary-quick-actions-sheet {
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
 }
 /* PWA: cabecera notificaciones con espacio para notch (mismo patrón que buscador) */
 .pwa-standalone .notifications-overlay {
@@ -13986,7 +14090,8 @@ input {
     padding: calc(12px + env(safe-area-inset-top, 44px)) 12px 12px;
   }
   .pwa-standalone .topbar-timeline,
-  .pwa-standalone .topbar-search-users {
+  .pwa-standalone .topbar-search-users,
+  .pwa-standalone .topbar-historial {
     min-height: calc(56px + env(safe-area-inset-top, 44px));
     padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--space-3) var(--space-2);
   }
@@ -13994,7 +14099,8 @@ input {
     padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) 10px;
   }
   .pwa-standalone .topbar-timeline,
-  .pwa-standalone .topbar-search-users {
+  .pwa-standalone .topbar-search-users,
+  .pwa-standalone .topbar-historial {
     padding: calc(7px + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
   }
   .pwa-standalone .notifications-overlay .notifications-header {
@@ -14012,7 +14118,8 @@ input {
   min-height: calc(var(--topbar-height) + 47px);
   padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
 }
-.dev-safe-area-sim .topbar-timeline {
+.dev-safe-area-sim .topbar-timeline,
+.dev-safe-area-sim .topbar-historial {
   min-height: calc(var(--topbar-height) + 47px);
   padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
 }
@@ -14030,14 +14137,16 @@ input {
     padding: calc(12px + 47px) 12px 12px;
   }
   .dev-safe-area-sim .topbar-timeline,
-  .dev-safe-area-sim .topbar-search-users {
+  .dev-safe-area-sim .topbar-search-users,
+  .dev-safe-area-sim .topbar-historial {
     min-height: calc(56px + 47px);
     padding: calc(var(--space-2) + 47px) var(--space-3) var(--space-2);
   }
 }
 @media (max-width: 899px) {
   .dev-safe-area-sim .topbar-timeline,
-  .dev-safe-area-sim .topbar-search-users {
+  .dev-safe-area-sim .topbar-search-users,
+  .dev-safe-area-sim .topbar-historial {
     padding: calc(7px + 47px) var(--app-shell-gutter) 7px;
   }
   .dev-safe-area-sim .topbar-search {

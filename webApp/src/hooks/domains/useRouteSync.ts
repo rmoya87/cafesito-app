@@ -19,7 +19,7 @@ export function useRouteCanonicalSync(isAuthenticated?: boolean) {
       return;
     }
     const route = parseRoute(pathname);
-    const routePath = buildRoute(route.tab, route.searchMode, route.profileUsername, route.coffeeSlug);
+    const routePath = buildRoute(route.tab, route.searchMode, route.profileUsername, route.coffeeSlug, route.profileSection);
     const normalized = base === "/" ? routePath : `${base}${routePath}`;
     if (pathname !== normalized) {
       window.history.replaceState({}, "", `${normalized}${window.location.search}${window.location.hash}`);

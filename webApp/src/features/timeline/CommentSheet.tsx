@@ -6,7 +6,7 @@ import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 
-export function CommentSheet({
+export default function CommentSheet({
   open,
   rows,
   usersById,

@@ -328,8 +328,8 @@ function DiarySheets({
   return (
     <>
       {showQuickActions ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Nuevo registro" onDismiss={onCloseQuickActions} onClick={onCloseQuickActions}>
-          <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
+        <SheetOverlay className="diary-quick-actions-overlay" role="dialog" aria-modal="true" aria-label="Nuevo registro" onDismiss={onCloseQuickActions} onClick={onCloseQuickActions}>
+          <SheetCard className="diary-sheet diary-quick-actions-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <strong className="sheet-title">NUEVO REGISTRO</strong>

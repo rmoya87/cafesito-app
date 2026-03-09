@@ -224,7 +224,7 @@ fun AddPantryItemScreen(
                             modifier = Modifier
                                 .size(130.dp)
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .background(Color.White)
                                 .clickable { showImagePickerSheet = true },
                             contentAlignment = Alignment.Center
                         ) {

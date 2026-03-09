@@ -509,7 +509,7 @@ export function CoffeeDetailView({
               <section className="coffee-detail-stock-field">
                 <p className="coffee-detail-stock-label">Cantidad de cafe total (g)</p>
                 <Input
-                  className="coffee-detail-stock-value-input"
+                  className="coffee-detail-stock-value-input search-wide"
                   type="text"
                   inputMode="numeric"
                   value={String(stockDraft.total)}
@@ -524,12 +524,17 @@ export function CoffeeDetailView({
                   aria-label="Cantidad de cafe total"
                 />
                 <Input
-                  className="coffee-detail-stock-slider"
+                  className="coffee-detail-stock-slider app-range app-range--caramel search-wide"
                   type="range"
                   min={0}
                   max={1000}
                   step={1}
                   value={Math.max(0, Math.min(1000, stockDraft.total))}
+                  style={
+                    {
+                      "--range-progress": `${Math.max(0, Math.min(100, (Math.max(0, Math.min(1000, stockDraft.total)) / 1000) * 100))}%`
+                    } as CSSProperties
+                  }
                   onChange={(event) => {
                     const nextTotal = Number(event.target.value);
                     onStockDraftChange({
@@ -545,7 +550,7 @@ export function CoffeeDetailView({
               <section className="coffee-detail-stock-field">
                 <p className="coffee-detail-stock-label">Cantidad de cafe restante (g)</p>
                 <Input
-                  className="coffee-detail-stock-value-input"
+                  className="coffee-detail-stock-value-input search-wide"
                   type="text"
                   inputMode="numeric"
                   value={String(stockDraft.remaining)}
@@ -560,12 +565,20 @@ export function CoffeeDetailView({
                   aria-label="Cantidad de cafe restante"
                 />
                 <Input
-                  className="coffee-detail-stock-slider"
+                  className="coffee-detail-stock-slider app-range app-range--caramel search-wide"
                   type="range"
                   min={0}
                   max={Math.max(1, stockDraft.total)}
                   step={1}
                   value={Math.max(0, Math.min(stockDraft.remaining, Math.max(1, stockDraft.total)))}
+                  style={
+                    {
+                      "--range-progress": `${Math.max(
+                        0,
+                        Math.min(100, (Math.max(0, Math.min(stockDraft.remaining, Math.max(1, stockDraft.total))) / Math.max(1, stockDraft.total)) * 100)
+                      )}%`
+                    } as CSSProperties
+                  }
                   onChange={(event) => {
                     onStockDraftChange({ ...stockDraft, remaining: Number(event.target.value) });
                     if (stockSheetError) setStockSheetError(null);
@@ -575,7 +588,7 @@ export function CoffeeDetailView({
               </section>
               {stockSheetError ? <p className="coffee-detail-sheet-error">{stockSheetError}</p> : null}
             </div>
-            <div className="coffee-detail-actions coffee-detail-sheet-actions">
+            <div className="coffee-detail-actions coffee-detail-sheet-actions coffee-detail-stock-actions">
               <Button variant="plain"
                 className="action-button coffee-detail-stock-cancel"
                 disabled={savingStock}
