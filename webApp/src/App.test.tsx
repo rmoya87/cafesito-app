@@ -52,4 +52,12 @@ describe("App", () => {
     fireEvent.click(diarioButtons[0]);
     await expect(screen.findByText(/mi diario|sin café o agua registrada/i)).resolves.toBeInTheDocument();
   });
+
+  it("muestra vista de explorar al navegar a Explorar (humo)", async () => {
+    render(<App />);
+    const explorarButtons = await screen.findAllByRole("button", { name: "Explorar" });
+    expect(explorarButtons.length).toBeGreaterThan(0);
+    fireEvent.click(explorarButtons[0]);
+    await expect(screen.findByRole("textbox", { name: "Busqueda" })).resolves.toBeInTheDocument();
+  });
 });

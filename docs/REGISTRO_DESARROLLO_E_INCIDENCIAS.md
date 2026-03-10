@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-04
+**Última actualización:** 2026-03-05
 
 ---
 
@@ -16,6 +16,7 @@
 7. [Resumen de cambios — accesibilidad, diario, documentación (03–04 mar 2026)](#7-resumen-de-cambios--accesibilidad-diario-documentación-0304-mar-2026)
 8. [Release notes Android desde última publicación (git)](#8-release-notes-android-desde-última-publicación-git)
 9. [Resumen de cambios — historial, detalle café (04 mar 2026)](#9-resumen-de-cambios--historial-detalle-café-04-mar-2026)
+10. [Resumen de cambios — calendario, layout, merge (mar 2026)](#10-resumen-de-cambios--calendario-layout-merge-mar-2026)
 
 ---
 
@@ -267,6 +268,34 @@ Cambios de UI/UX en webapp: página historial (sin scroll innecesario en desktop
 |---------|--------|
 | `webApp/src/styles/features.css` | `.content.content-profile` y `.historial-view` sin `min-height`; `.coffee-detail-topbar-icon` / `.is-active` con bg y borde blancos `!important`; comentarios "favorito" en lugar de "me gusta". |
 | `webApp/src/styles/theme-forced.css` | `html.theme-dark` y `html.theme-light`: mismo bg y borde blancos para los iconos del detalle café; solo color del icono en rojo cuando `.is-active`. |
+
+---
+
+## 10. Resumen de cambios — calendario, layout, merge (mar 2026)
+
+Cambios en webapp: scroll del calendario en desktop, layout móvil al 100 %, resolución de conflictos de merge y actualización del remote de Git.
+
+### 10.1 Calendario del diario — scroll en desktop
+
+- **Problema:** En versión desktop, el calendario (modal al pulsar la fecha en Mi diario) no hacía scroll entre meses.
+- **Causa:** El contenedor del contenido del sheet (`.sheet-card-content`) no era flex; `.diary-calendar-scroll` con `flex: 1` y `min-height: 0` no tenía altura acotada.
+- **Solución:** En `.diary-calendar-sheet .sheet-card-content` se añadió `display: flex`, `flex-direction: column`, `min-height: 0`, `flex: 1`, `overflow: hidden`. Handle y header con `flex-shrink: 0`. Así `.diary-calendar-scroll` queda con altura fija y `overflow-y: auto` hace scroll.
+- **Archivos:** `webApp/src/styles/features.css`.
+
+### 10.2 Layout móvil — altura 100 %
+
+- **Cambio:** En `@media (max-width: 899px)`, `.layout` pasó de `min-height: 100dvh` / `height: 100dvh` (y fallbacks `-webkit-fill-available`) a `min-height: 100%` y `height: 100%`.
+- **Archivos:** `webApp/src/styles/features.css`.
+
+### 10.3 Conflictos de merge en features.css
+
+- **Problema:** El build fallaba con `[postcss] Unknown word ours` en la línea 32: quedaban marcadores de merge (`<<<<<<< ours`, `=======`, `>>>>>>> theirs`).
+- **Solución:** Se eliminaron los marcadores y se dejó una única versión del bloque `.layout` (la que usa 100 % según el punto anterior).
+- **Archivos:** `webApp/src/styles/features.css`.
+
+### 10.4 Remote de Git
+
+- **Cambio:** El repositorio se movió a `https://github.com/rmoya87/cafesito-app.git`. Se actualizó el remote con `git remote set-url origin https://github.com/rmoya87/cafesito-app.git` para que push/pull usen la nueva URL.
 
 ---
 
