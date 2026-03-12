@@ -10,6 +10,9 @@ input {
 .layout {
   min-height: 100vh;
   height: 100vh;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 @media (max-width: 899px) {
@@ -121,9 +124,13 @@ input {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  overflow-x: hidden;
   position: relative;
   width: min(100%, 860px);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .main-shell > *:first-child {
@@ -134,7 +141,9 @@ input {
 .main-shell-scroll {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   overflow: auto;
+  overflow-x: hidden;
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   padding: 10px var(--app-shell-gutter) 120px;
   -webkit-overflow-scrolling: touch;
@@ -1250,8 +1259,8 @@ input {
 
 .content {
   padding-top: 6px;
-  display: grid;
-  gap: 12px;
+  min-width: 0;
+  display: block;
 }
 
 .content.content-coffee {
@@ -1959,14 +1968,16 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .profile-activity-list {
   list-style: none;
   margin: 0;
-  padding: 0 var(--app-shell-gutter, 0px) 0 0;
+  padding: 0 var(--app-shell-gutter) 0 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   min-width: 0;
+  max-width: 100%;
   box-sizing: border-box;
   border: none;
   border-right: none;
+  overflow-x: hidden;
 }
 
 .profile-activity-item {
@@ -2006,6 +2017,8 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   font-size: var(--font-size-base);
   line-height: 1.35;
   color: var(--text-main);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .profile-activity-text strong {
@@ -7894,24 +7907,29 @@ html.theme-dark .diary-day-header.is-today {
 
 .profile-head-copy {
   min-width: 0;
-  width: min(560px, calc(100vw - 20px));
+  width: min(560px, calc(100% - 24px));
+  max-width: 100%;
   text-align: center;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .profile-inline-edit {
-  width: min(560px, calc(100vw - 20px));
+  width: min(560px, calc(100% - 24px));
+  max-width: 100%;
   --profile-edit-control-width: min(340px, 100%);
   margin: 0 auto;
   display: grid;
   gap: 12px;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .profile-inline-metrics {
   grid-template-columns: 1fr;
   gap: 10px;
-  width: min(460px, calc(100vw - 28px));
-  max-width: none;
+  width: min(460px, calc(100% - 24px));
+  max-width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -8184,12 +8202,14 @@ html.theme-dark .diary-day-header.is-today {
 
 .profile-stats-row {
   margin: 8px auto 0;
-  width: min(540px, calc(100% - 6px));
+  width: min(540px, calc(100% - 24px));
+  max-width: 100%;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px;
   align-items: end;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .profile-stat-item {
@@ -8240,6 +8260,8 @@ html.theme-dark .diary-day-header.is-today {
   gap: 6px;
   box-sizing: border-box;
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .profile-tabs .tab-sliding-indicator {
@@ -8258,6 +8280,9 @@ html.theme-dark .diary-day-header.is-today {
 
 .profile-content-wrap {
   min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .profile-tabs .premium-tab {
@@ -8278,10 +8303,21 @@ html.theme-dark .diary-day-header.is-today {
   color: var(--pure-black);
 }
 
+.profile-tab-swipe {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
 .profile-tab-panels-wrap {
   overflow: hidden;
   width: 100%;
+  max-width: 100%;
   margin-top: 20px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .profile-tab-panels {
@@ -8294,6 +8330,8 @@ html.theme-dark .diary-day-header.is-today {
   flex: 0 0 33.333%;
   width: 33.333%;
   min-width: 33.333%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .profile-section-head {
@@ -8659,9 +8697,18 @@ html.theme-dark .diary-day-header.is-today {
   color: var(--text-subtle);
 }
 
-/* Contenedor perfil (y historial): mismo fondo que el resto; sin min-height para no forzar scroll en desktop */
+/* Contenedor perfil: forzar block (nunca grid) para evitar overflow horizontal */
+.main-shell-scroll.is-profile .content,
 .content.content-profile {
+  display: block !important;
   box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.main-shell-scroll.is-profile .content,
+.content.content-profile {
   background: var(--screen-light-background);
 }
 html.theme-dark .content.content-profile {
@@ -9289,6 +9336,9 @@ html.theme-dark .content.content-profile {
 
 .diary-activity-section {
   margin-top: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .diary-section-title {
@@ -16011,6 +16061,23 @@ html.theme-dark .brew-barista-sheet-close:hover {
   -webkit-transform: none;
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
+  /* Rellenar franja transparente entre borde superior de pantalla y topbar (PWA: barra de estado) */
+  background: var(--screen-dark-background);
+}
+.pwa-standalone .topbar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: env(safe-area-inset-top, 24px);
+  background: var(--screen-dark-background);
+}
+@media (prefers-color-scheme: light) {
+  html.theme-light .pwa-standalone .topbar,
+  html.theme-light .pwa-standalone .topbar::before {
+    background: var(--screen-light-background);
+  }
 }
 .pwa-standalone .topbar-timeline,
 .pwa-standalone .topbar-historial {
@@ -16064,6 +16131,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
 .pwa-standalone .main-shell-scroll {
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding-top: 10px;
+  overflow-x: hidden;
 }
 .pwa-standalone .main-shell-scroll.is-coffee {
   margin-top: env(safe-area-inset-top, 44px);
