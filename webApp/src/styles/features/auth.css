@@ -1,10 +1,9 @@
 .login-gate {
   min-height: 100vh;
   min-height: 100dvh;
-  height: 100dvh;
-  max-height: 100dvh;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: none;
   padding: 0;
   color: var(--text-main);
@@ -28,7 +27,6 @@
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
-  height: 100dvh;
   overflow: hidden;
   background: var(--pure-black);
   display: flex;
@@ -199,6 +197,16 @@
 .login-start-button:focus-visible {
   background: var(--caramel-accent);
   color: var(--pure-black);
+}
+
+@media (prefers-color-scheme: light) {
+  .login-start-button {
+    color: #ffffff;
+  }
+  .login-start-button:hover,
+  .login-start-button:focus-visible {
+    color: #ffffff;
+  }
 }
 
 /* Modal de login en móvil: aspecto nativo (bottom sheet) */

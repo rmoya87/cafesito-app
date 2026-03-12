@@ -12,6 +12,8 @@
 # - Android: ficheros en app/, shared/, gradle/, build.gradle.kts, etc.
 # - Webapp: ficheros bajo webApp/.
 # workflow_dispatch y schedule no usan filtro por ficheros (manual y cola Supabase).
+# En workflow_dispatch se hace merge de main en la rama elegida antes de desplegar, para que
+# "Solo webapp" o "Solo Android" desplieguen todos los cambios de main.
 # Ver docs/RELEASE_DEPLOY_WORKFLOW.md
 
 name: Release & Deploy
@@ -64,6 +66,25 @@ env:
   TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta' }}
 
 jobs:
+  # En "Run workflow" manual: actualiza la rama elegida con main para que el despliegue incluya todos los cambios de main
+  sync-main-into-branch:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: refs/heads/${{ env.TARGET_BRANCH }}
+
+      - name: Merge main into branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main -m "Merge main into ${{ env.TARGET_BRANCH }} for deploy [skip ci]"
+          git push origin "HEAD:${{ env.TARGET_BRANCH }}"
+
   changes:
     if: github.event_name != 'push' || github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -81,7 +102,7 @@ jobs:
 
       - name: Checkout for file filter (push only)
         if: github.event_name == 'push'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 2
 
@@ -133,7 +154,7 @@ jobs:
             echo "queue_response=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          BODY='{"resource":"coffees","consume":true}'
+          BODY='{"resource":"coffees","consume":false}'
           if [[ -n "${SUPABASE_DEPLOY_QUEUE_TOKEN}" ]]; then
             RESPONSE=$(curl -fsS -X POST "${SUPABASE_DEPLOY_QUEUE_URL}" \
               -H "content-type: application/json" \
@@ -155,16 +176,19 @@ jobs:
             echo "web=false" >> "$GITHUB_OUTPUT"
           fi
 
+
   # Subida a Google Play solo si hay cambios en Android
   release-android:
-    needs: changes
+    needs: [changes, sync-main-into-branch]
     if: |
+      always() &&
+      (needs.sync-main-into-branch.result == 'success' || needs.sync-main-into-branch.result == 'skipped') &&
       needs.changes.outputs.android == 'true' &&
       (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -241,6 +265,8 @@ jobs:
           git config --local --unset-all push.pushOption || true
           git add app/build.gradle.kts
           git commit -m "chore(release): bump version [skip ci]"
+          git fetch origin "${TARGET_BRANCH}"
+          git rebase "origin/${TARGET_BRANCH}"
           git push origin "HEAD:${TARGET_BRANCH}"
 
       - name: Build release bundle
@@ -355,12 +381,16 @@ jobs:
           git config --local --unset-all push.pushOption || true
           git add scripts/last_deployed_version.txt
           git commit -m "chore(release): last deployed versionCode ${VERSION_CODE} [skip ci]"
+          git fetch origin "${TARGET_BRANCH}"
+          git rebase "origin/${TARGET_BRANCH}"
           git push origin "HEAD:${TARGET_BRANCH}"
 
   # Deploy web a Ionos: en alpha, beta y Producción solo si web está en los cambios (no cuando android_only)
   deploy-web:
-    needs: changes
+    needs: [changes, sync-main-into-branch]
     if: |
+      always() &&
+      (needs.sync-main-into-branch.result == 'success' || needs.sync-main-into-branch.result == 'skipped') &&
       needs.changes.outputs.web == 'true' &&
       contains(fromJSON('["Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta')
     runs-on: ubuntu-latest
@@ -368,12 +398,12 @@ jobs:
       run:
         working-directory: webApp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: refs/heads/${{ env.TARGET_BRANCH }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
@@ -533,3 +563,42 @@ jobs:
           remote_path: /cafesito-web/
           sftp_only: true
           delete_remote_files: false
+
+      - name: Mark Supabase queue changes as consumed (nightly only, after successful deploy)
+        if: github.event_name == 'schedule' && needs.changes.outputs.queue_response != ''
+        env:
+          SUPABASE_DEPLOY_QUEUE_URL: ${{ secrets.SUPABASE_DEPLOY_QUEUE_URL }}
+          SUPABASE_DEPLOY_QUEUE_TOKEN: ${{ secrets.SUPABASE_DEPLOY_QUEUE_TOKEN }}
+        run: |
+          if [[ -z "${SUPABASE_DEPLOY_QUEUE_URL}" ]]; then
+            echo "SUPABASE_DEPLOY_QUEUE_URL is empty. Skipping consume step."
+            exit 0
+          fi
+          BODY='{"resource":"coffees","consume":true}'
+          if [[ -n "${SUPABASE_DEPLOY_QUEUE_TOKEN}" ]]; then
+            curl -fsS -X POST "${SUPABASE_DEPLOY_QUEUE_URL}" \
+              -H "content-type: application/json" \
+              -H "x-deploy-token: ${SUPABASE_DEPLOY_QUEUE_TOKEN}" \
+              -d "${BODY}" > /dev/null
+          else
+            curl -fsS -X POST "${SUPABASE_DEPLOY_QUEUE_URL}" \
+              -H "content-type: application/json" \
+              -d "${BODY}" > /dev/null
+          fi
+
+      # Opcional: purgar caché CDN/proxy tras desplegar para que los usuarios vean la nueva versión de inmediato.
+      # Configura el secret CACHE_PURGE_URL con la URL de tu API de purge (ej. Cloudflare, KeyCDN, etc.).
+      - name: Purge cache after deploy (optional)
+        env:
+          CACHE_PURGE_URL: ${{ secrets.CACHE_PURGE_URL }}
+        run: |
+          if [[ -z "${CACHE_PURGE_URL}" ]]; then
+            echo "CACHE_PURGE_URL not set. Skipping cache purge."
+            exit 0
+          fi
+          echo "Purging cache..."
+          if curl -fsS -X POST "${CACHE_PURGE_URL}"; then
+            echo "Cache purge requested successfully."
+          else
+            echo "::warning::Cache purge request failed or URL returned non-2xx. Check CACHE_PURGE_URL and CDN docs."
+          fi

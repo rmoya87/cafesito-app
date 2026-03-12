@@ -264,20 +264,23 @@ interface DiaryDao {
     @Query("DELETE FROM diary_entries WHERE id = :entryId")
     suspend fun deleteDiaryEntryById(entryId: Long): Int
 
-    @Query("SELECT * FROM pantry_items WHERE userId = :userId")
+    @Query("SELECT * FROM pantry_items WHERE userId = :userId ORDER BY lastUpdated DESC")
     fun getPantryItems(userId: Int): Flow<List<PantryItemEntity>>
+
+    @Query("SELECT * FROM pantry_items WHERE id = :id")
+    suspend fun getPantryItemById(id: String): PantryItemEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPantryItem(item: PantryItemEntity): Long
 
-    @Query("DELETE FROM pantry_items WHERE userId = :userId AND coffeeId NOT IN (:keepCoffeeIds)")
-    suspend fun deletePantryItemsForUserNotIn(userId: Int, keepCoffeeIds: List<String>): Int
+    @Query("DELETE FROM pantry_items WHERE userId = :userId AND id NOT IN (:keepIds)")
+    suspend fun deletePantryItemsForUserNotIn(userId: Int, keepIds: List<String>): Int
 
     @Query("DELETE FROM pantry_items WHERE userId = :userId")
     suspend fun deleteAllPantryItemsForUser(userId: Int): Int
 
-    @Query("DELETE FROM pantry_items WHERE coffeeId = :coffeeId AND userId = :userId")
-    suspend fun deletePantryItem(coffeeId: String, userId: Int): Int
+    @Query("DELETE FROM pantry_items WHERE id = :id")
+    suspend fun deletePantryItemById(id: String): Int
 
     @Query("DELETE FROM diary_entries WHERE userId = :userId AND id NOT IN (:keepIds)")
     suspend fun deleteDiaryEntriesForUserNotIn(userId: Int, keepIds: List<Long>): Int

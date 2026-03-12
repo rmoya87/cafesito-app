@@ -61,6 +61,7 @@ class CustomCoffeeRepositoryTest {
         override suspend fun upsertFavorite(favorite: com.cafesito.shared.data.model.FavoriteDto) = Unit
         override suspend fun deleteFavorite(coffeeId: String, userId: Int) = Unit
         override suspend fun upsertReview(review: com.cafesito.shared.data.model.ReviewDto) = Unit
+        override suspend fun getReviewByUserAndCoffee(userId: Int, coffeeId: String): com.cafesito.shared.data.model.ReviewDto? = null
     }
 
     private fun sampleCoffee(id: String) = CustomCoffeeDto(

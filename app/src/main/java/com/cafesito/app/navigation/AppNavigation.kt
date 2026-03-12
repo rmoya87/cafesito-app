@@ -25,16 +25,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Book
-import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.*
@@ -123,10 +123,7 @@ fun AppNavigation(
         when (nav.type) {
             "NOTIFICATIONS" -> navController.navigate("notifications")
             "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
-            "MENTION", "COMMENT" -> nav.targetId?.let { postId ->
-                val route = if (nav.commentId != null) "timeline?postId=$postId&commentId=${nav.commentId}" else "timeline?postId=$postId"
-                navController.navigate(route)
-            }
+            "MENTION", "COMMENT" -> navController.navigate("timeline")
         }
         onNotificationConsumed()
     }
@@ -134,7 +131,6 @@ fun AppNavigation(
     LaunchedEffect(shortcutAction) {
         when (shortcutAction) {
             "SEARCH" -> navController.navigate("search")
-            "NEW_POST" -> navController.navigate("addPost")
             "BREWLAB" -> navController.navigate("brewlab")
             "DIARY" -> navController.navigate("diary")
             else -> return@LaunchedEffect
@@ -153,8 +149,8 @@ fun AppNavigation(
     val navItems = remember {
         listOf(
             Triple("timeline", "Inicio", Icons.Filled.Home),
-            Triple("search", "Explorar", Icons.Filled.Explore),
-            Triple("brewlab", "Elabora", Icons.Filled.Science),
+            Triple("search", "Explorar", Icons.Filled.Search),
+            Triple("brewlab", "Elabora", Icons.Filled.AddCircle),
             Triple("diary", "Diario", Icons.Filled.Book),
             Triple("profile", "Perfil", Icons.Filled.Person)
         )
@@ -188,8 +184,8 @@ fun AppNavigation(
                                 if (isSelected) return@NavigationRailItem
                                 val destination = if (route == "profile") "profile/0" else route
                                 navController.navigate(destination) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     restoreState = true
                                 }
                             },
@@ -205,8 +201,8 @@ fun AppNavigation(
                                     Icon(
                                         imageVector = if (isSelected) icon else when (label) {
                                             "Inicio" -> Icons.Outlined.Home
-                                            "Explorar" -> Icons.Outlined.Explore
-                                            "Elabora" -> Icons.Outlined.Science
+                                            "Explorar" -> Icons.Outlined.Search
+                                            "Elabora" -> Icons.Outlined.AddCircleOutline
                                             "Diario" -> Icons.Outlined.Book
                                             "Perfil" -> Icons.Outlined.Person
                                             else -> icon
@@ -267,19 +263,9 @@ fun AppNavigation(
                     )
                 }
 
-                composable(
-                    route = "timeline?postId={postId}&commentId={commentId}",
-                    arguments = listOf(
-                        navArgument("postId") { type = NavType.StringType; nullable = true; defaultValue = null },
-                        navArgument("commentId") { type = NavType.IntType; defaultValue = -1 }
-                    )
-                ) { backStackEntry ->
-                    val postId = backStackEntry.arguments?.getString("postId")
-                    val commentIdArg = backStackEntry.arguments?.getInt("commentId") ?: -1
-                    val commentId = commentIdArg.takeIf { it >= 0 }
-                    val publishingPending by backStackEntry.savedStateHandle.getStateFlow("publishing_pending", false).collectAsState()
+                composable("timeline") {
                     TimelineScreen(
-                        onUserClick = { id -> 
+                        onUserClick = { id ->
                             if (id == 0) {
                                 navController.navigate("profile/0") {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -289,13 +275,16 @@ fun AppNavigation(
                             } else navController.navigate("profile/$id")
                         },
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                        onAddPostClick = { navController.navigate("addPost") },
-                        onSearchUsersClick = { navController.navigate("searchUsers") },
+                        onBrewLabClick = {
+                            navController.navigate("brewlab") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onAddToPantryClick = { navController.navigate("addStock?origin=timeline") },
                         onNotificationsClick = { navController.navigate("notifications") },
-                        initialPostId = postId,
-                        initialCommentId = commentId,
-                        publishingPending = publishingPending,
-                        onPublishingPendingConsumed = { backStackEntry.savedStateHandle["publishing_pending"] = false }
+                        onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
                     )
                 }
 
@@ -317,14 +306,7 @@ fun AppNavigation(
                         onDeleteNotification = { notification -> viewModel.deleteNotification(notification) },
                         onReplyToNotification = { notification ->
                             when (notification) {
-                                is TimelineNotification.Mention -> {
-                                    if (notification.commentId >= 0) {
-                                        navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
-                                    } else {
-                                        navController.navigate("timeline?postId=${notification.postId}")
-                                    }
-                                }
-                                is TimelineNotification.Comment -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("timeline")
                                 else -> Unit
                             }
                         },
@@ -333,14 +315,7 @@ fun AppNavigation(
                             viewModel.markNotificationRead(notification)
                             when (notification) {
                                 is TimelineNotification.Follow -> navController.navigate("profile/${notification.user.id}")
-                                is TimelineNotification.Mention -> {
-                                    if (notification.commentId >= 0) {
-                                        navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
-                                    } else {
-                                        navController.navigate("timeline?postId=${notification.postId}")
-                                    }
-                                }
-                                is TimelineNotification.Comment -> navController.navigate("timeline?postId=${notification.postId}&commentId=${notification.commentId}")
+                                is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("timeline")
                             }
                         },
                         isRefreshing = isRefreshing,
@@ -382,7 +357,7 @@ fun AppNavigation(
                     val createdCoffeeId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_created_coffee_id", null).collectAsState()
                     BrewLabScreen(
                         onNavigateToDiary = {
-                            navController.navigate("diary") { popUpTo("brewlab") { inclusive = false } }
+                            navController.navigate("diary") { popUpTo("brewlab") { inclusive = true } }
                         },
                         onAddToPantryClick = { navController.navigate("addStock?origin=brewlab") },
                         onCreateCoffeeClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab") },
@@ -431,8 +406,11 @@ fun AppNavigation(
                             else navController.navigate("addPantryItem?onlyActivity=true")
                         },
                         onSuccess = {
-                            if (origin == "brewlab") { /* pop ya hecho en onSuccessWithCoffeeId */ }
-                            else navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }
+                            when (origin) {
+                                "brewlab" -> { /* pop ya hecho en onSuccessWithCoffeeId */ }
+                                "timeline" -> navController.popBackStack()
+                                else -> navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }
+                            }
                         },
                         onSuccessWithCoffeeId = if (origin == "brewlab") { coffeeId ->
                             navController.getBackStackEntry("brewlab").savedStateHandle["brewlab_created_coffee_id"] = coffeeId
@@ -527,9 +505,10 @@ fun AppNavigation(
                     arguments = listOf(navArgument("userId") { type = NavType.IntType })
                 ) { backStackEntry ->
                     val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                    val profileEntry = remember(userId) { navController.getBackStackEntry("profile/$userId") }
                     ProfileScreen(
                         onBackClick = { navController.popBackStack() },
-                        onUserClick = { id -> 
+                        onUserClick = { id ->
                             if (id == 0) {
                                 navController.navigate("profile/0") {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -541,7 +520,59 @@ fun AppNavigation(
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
                         onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
                         onFollowingClick = { id -> navController.navigate("profile/$id/following") },
-                        onHistorialClick = { navController.navigate("historial") }
+                        onHistorialClick = { navController.navigate("historial") },
+                        onFavoritosListClick = { navController.navigate("profile/$userId/favorites") },
+                        onOpenListClick = { listId, listName ->
+                            val encoded = android.net.Uri.encode(listName)
+                            navController.navigate("profile/$userId/list/$listId?listName=${encoded ?: ""}")
+                        },
+                        onOpenUserListClick = { targetUserId, listId ->
+                            navController.navigate("profile/$targetUserId/list/$listId")
+                        },
+                        onSearchUsersClick = { navController.navigate("searchUsers") },
+                        profileBackStackEntry = profileEntry
+                    )
+                }
+
+                composable(
+                    route = "profile/{userId}/favorites",
+                    arguments = listOf(navArgument("userId") { type = NavType.IntType })
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+                    val parentEntry = remember(userId) { navController.getBackStackEntry("profile/$userId") }
+                    val profileViewModel: ProfileViewModel = hiltViewModel(parentEntry)
+                    FavoritosListScreen(
+                        onBackClick = {
+                            parentEntry.savedStateHandle.set("profile_return_tab", 2)
+                            navController.popBackStack()
+                        },
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                        viewModel = profileViewModel
+                    )
+                }
+
+                composable(
+                    route = "profile/{userId}/list/{listId}?listName={listName}",
+                    arguments = listOf(
+                        navArgument("userId") { type = NavType.IntType },
+                        navArgument("listId") { type = NavType.StringType },
+                        navArgument("listName") { type = NavType.StringType; defaultValue = "" }
+                    )
+                ) { listBackStackEntry ->
+                    val userId = listBackStackEntry.arguments?.getInt("userId") ?: 0
+                    val profileEntry = remember(userId) { navController.getBackStackEntry("profile/$userId") }
+                    val profileViewModel: ProfileViewModel = hiltViewModel(profileEntry)
+                    ListDetailScreen(
+                        onBackClick = {
+                            profileEntry.savedStateHandle.set("profile_return_tab", 2)
+                            navController.popBackStack()
+                        },
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                        onListDeleted = {
+                            profileViewModel.refreshData()
+                            navController.popBackStack()
+                        },
+                        viewModel = hiltViewModel(listBackStackEntry)
                     )
                 }
 
@@ -597,17 +628,6 @@ fun AppNavigation(
                     )
                 }
 
-                composable(
-                    route = "addPost?postType={postType}",
-                    arguments = listOf(navArgument("postType") { type = NavType.StringType; defaultValue = "PUBLICATION" })
-                ) { backStackEntry ->
-                    val postTypeArg = backStackEntry.arguments?.getString("postType")
-                    AddPostScreen(
-                        onBackClick = { navController.popBackStack() },
-                        onPublishSuccess = { navController.previousBackStackEntry?.savedStateHandle?.set("publishing_pending", true) },
-                        initialPostType = if (postTypeArg.equals("OPINION", ignoreCase = true)) PostType.OPINION else PostType.PUBLICATION
-                    )
-                }
             }
         }
 
@@ -647,8 +667,8 @@ fun AppNavigation(
                                         Icon(
                                             imageVector = if (isSelected) icon else when (label) {
                                                 "Inicio" -> Icons.Outlined.Home
-                                                "Explorar" -> Icons.Outlined.Explore
-                                                "Elabora" -> Icons.Outlined.Science
+                                                "Explorar" -> Icons.Outlined.Search
+                                                "Elabora" -> Icons.Outlined.AddCircleOutline
                                                 "Diario" -> Icons.Outlined.Book
                                                 "Perfil" -> Icons.Outlined.Person
                                                 else -> icon
@@ -667,8 +687,8 @@ fun AppNavigation(
                                     if (isSelected) return@NavigationBarItem
                                     val destination = if (route == "profile") "profile/0" else route
                                     navController.navigate(destination) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                         launchSingleTop = true
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                         restoreState = true
                                     }
                                 }

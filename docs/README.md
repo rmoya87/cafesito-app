@@ -59,6 +59,7 @@
 |-----------|-------------|
 | `RELEASE_DEPLOY_WORKFLOW.md` | **Fuente de verdad:** cuándo se ejecuta el workflow, ramas (Interna/Alpha/Beta/Producción), jobs, secretos (Android/Play + Web Ionos), configuración Play Console, revisión de crashes. |
 | `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` | **Registro reciente:** cambios de desarrollo, incidencias resueltas (p. ej. deploy-web/TypeScript), política de ramas (main, beta, alpha, Interna) y flujo main → beta. Consultar en próximos desarrollos o incidencias. |
+| `REGISTRO_CAMBIOS_PARIDAD_Y_MEJORAS_2026-03.md` | **Paridad Web/Android (mar 2026):** inventario de cambios y eliminaciones (actividad perfil, ADN, despensa, listas, diario, elaboración, auth, Supabase) para futuras modificaciones y mejoras. |
 | `supabase/webhook-coffees-trigger-build.md` | Deploy web: prerender de cafés, SEO, requisitos servidor (SPA fallback), webhook Supabase → build (actualizar web sin Git). |
 
 ### 4.3 Runbooks y operación
@@ -91,11 +92,12 @@
 |-----------|-------------|
 | `commit-notes/commit-*.md` | Notas por despliegue; enlazadas desde la tabla en `RELEASE_DEPLOY_WORKFLOW.md`. |
 
-### 4.7 WebApp
+### 4.7 WebApp y port Android
 
 | Documento | Descripción |
 |-----------|-------------|
 | `webApp/docs/ACCESSIBILITY_AUDIT.md` | Auditoría de accesibilidad (scope, validaciones, riesgos, regresión). |
+| `CHANGELOG_WEB_UI_AND_ANDROID_PORT.md` | Changelog de cambios en la WebApp y guía de traslado nativo a Android (paridad funcional). |
 
 ---
 

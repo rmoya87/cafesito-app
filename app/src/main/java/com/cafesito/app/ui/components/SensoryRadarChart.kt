@@ -1,6 +1,7 @@
 package com.cafesito.app.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.cafesito.app.ui.theme.LocalCaramelAccent
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
@@ -23,6 +25,9 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
+/** Orden fijo de ejes igual que webapp (Aroma, Sabor, Cuerpo, Acidez, Dulzura) para que la gráfica sea completa y consistente. */
+private val RADAR_LABELS = listOf("Aroma", "Sabor", "Cuerpo", "Acidez", "Dulzura")
+
 @Composable
 fun SensoryRadarChart(
     data: Map<String, Float>,
@@ -31,10 +36,10 @@ fun SensoryRadarChart(
     lineColor: Color = LocalCaramelAccent.current,
     fillColor: Color = LocalCaramelAccent.current.copy(alpha = 0.3f),
     labelColor: Color = MaterialTheme.colorScheme.onSurface,
-    gridColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+    gridColor: Color = if (isSystemInDarkTheme()) Color(0xFF757575) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
 ) {
-    val labels = data.keys.toList()
-    val values = data.values.toList()
+    val labels = RADAR_LABELS
+    val values = RADAR_LABELS.map { key -> (data[key] ?: 0f).coerceIn(0f, maxValue) }
     val textMeasurer = rememberTextMeasurer()
     val labelStyle = TextStyle(color = labelColor, fontSize = 10.sp) // Reducido un poco para que entre mejor
 
@@ -99,13 +104,14 @@ fun SensoryRadarChart(
                 )
             }
 
-            // 3. Draw Data Path (Polígono de datos)
+            // 3. Draw Data Path (Polígono de datos) — fórmulas igual que web: startAngle=-π/2, factor=value/10
             if (values.isNotEmpty()) {
+                val startAngle = -PI.toFloat() / 2
                 val dataPath = Path().apply {
                     for (i in values.indices) {
-                        val angle = -PI.toFloat() / 2 + i * angleStep
-                        val normalizedValue = (values[i] / maxValue).coerceIn(0f, 1f)
-                        val r = radius * normalizedValue
+                        val angle = startAngle + i * angleStep
+                        val factor = (values[i] / maxValue).coerceIn(0f, 1f)
+                        val r = radius * factor
                         val x = center.x + r * cos(angle)
                         val y = center.y + r * sin(angle)
                         if (i == 0) moveTo(x, y) else lineTo(x, y)
@@ -115,20 +121,28 @@ fun SensoryRadarChart(
 
                 drawPath(path = dataPath, color = fillColor)
                 drawPath(
-                    path = dataPath, 
-                    color = lineColor, 
+                    path = dataPath,
+                    color = lineColor,
                     style = Stroke(width = 2.dp.toPx())
                 )
-                
-                // Puntos de datos (Vértices)
+
+                // Puntos en cada vértice (igual que web: circle r=3 → ~5dp para que se vean)
+                val pointRadiusPx = 5.dp.toPx()
+                val pointStrokeWidthPx = 1.dp.toPx()
                 for (i in values.indices) {
-                    val angle = -PI.toFloat() / 2 + i * angleStep
-                    val r = radius * (values[i] / maxValue).coerceIn(0f, 1f)
-                    drawCircle(
-                        color = lineColor,
-                        radius = 4.dp.toPx(),
-                        center = Offset(center.x + r * cos(angle), center.y + r * sin(angle))
-                    )
+                    val angle = startAngle + i * angleStep
+                    val factor = (values[i] / maxValue).coerceIn(0f, 1f)
+                    val r = radius * factor
+                    val px = center.x + r * cos(angle)
+                    val py = center.y + r * sin(angle)
+                    val pointCenter = Offset(px, py)
+                    // Relleno sólido (como web profile-adn-radar-point)
+                    drawCircle(color = lineColor, radius = pointRadiusPx, center = pointCenter)
+                    // Borde para que destaquen en cualquier fondo
+                    val oval = Path().apply {
+                        addOval(Rect(pointCenter.x - pointRadiusPx, pointCenter.y - pointRadiusPx, pointCenter.x + pointRadiusPx, pointCenter.y + pointRadiusPx))
+                    }
+                    drawPath(oval, color = labelColor, style = Stroke(width = pointStrokeWidthPx))
                 }
             }
         }

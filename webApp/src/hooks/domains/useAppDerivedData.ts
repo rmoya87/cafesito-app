@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getOrderedBrewMethods } from "../../config/brew";
 import { buildNormalizedOptions, normalizeLookupText, splitAtomizedList, toEventTimestamp, toUiOptionValue } from "../../core/text";
 import { toCoffeeSlug } from "../../core/routing";
 import { toRelativeMinutes } from "../../core/time";
@@ -15,6 +16,7 @@ import type {
   PantryItemRow,
   PostCoffeeTagRow,
   PostRow,
+  ProfileActivityItem,
   TimelineCard,
   UserRow
 } from "../../types";
@@ -36,6 +38,11 @@ export function useAppDerivedData({
   follows,
   activeUser,
   profileUsername,
+  profileUserDiaryEntries = [],
+  profileUserFavorites = [],
+  allListItemsForActivity = [],
+  profileUserListItems = [],
+  followedUsersActivityData = [],
   searchQuery,
   searchSelectedOrigins,
   searchSelectedRoasts,
@@ -46,13 +53,11 @@ export function useAppDerivedData({
   createPostCoffeeQuery,
   brewCoffeeId,
   newPostText,
-  commentDraft,
-  commentSheetPostId,
-  commentMenuId,
   dismissedNotificationIds,
   notificationsLastSeenAt,
   detailCoffeeId,
-  notifications
+  notifications,
+  recommendationDateKey = new Date().toISOString().slice(0, 10)
 }: {
   users: UserRow[];
   coffees: CoffeeRow[];
@@ -69,6 +74,19 @@ export function useAppDerivedData({
   follows: FollowRow[];
   activeUser: UserRow | null;
   profileUsername: string | null;
+  /** Diario del usuario del perfil cuando se visita un perfil ajeno (para pestaña Actividad). */
+  profileUserDiaryEntries?: DiaryEntryRow[];
+  /** Favoritos/listas del usuario del perfil cuando se visita un perfil ajeno (para pestaña Actividad). */
+  profileUserFavorites?: FavoriteRow[];
+  allListItemsForActivity?: { list_id: string; coffee_id: string; created_at: number }[];
+  profileUserListItems?: { list_id: string; coffee_id: string; created_at: number }[];
+  /** Actividad (diario primera vez, favoritos, listas) de usuarios que sigues, para fusionar en mi perfil. */
+  followedUsersActivityData?: Array<{
+    userId: number;
+    diaryEntries: DiaryEntryRow[];
+    favorites: FavoriteRow[];
+    listItems: { list_id: string; coffee_id: string; created_at: number }[];
+  }>;
   searchQuery: string;
   searchSelectedOrigins: Set<string>;
   searchSelectedRoasts: Set<string>;
@@ -79,13 +97,12 @@ export function useAppDerivedData({
   createPostCoffeeQuery: string;
   brewCoffeeId: string;
   newPostText: string;
-  commentDraft: string;
-  commentSheetPostId: string | null;
-  commentMenuId: number | null;
   dismissedNotificationIds: Set<string>;
   notificationsLastSeenAt: number;
   detailCoffeeId: string | null;
   notifications: NotificationRow[];
+  /** Clave de fecha (YYYY-MM-DD) para que las recomendaciones del día varíen cada día */
+  recommendationDateKey?: string;
 }) {
   const brewCoffeeCatalog = useMemo(() => {
     if (!customCoffees.length) return coffees;
@@ -386,28 +403,19 @@ export function useAppDerivedData({
     return users.filter((user) => normalizeLookupText(user.username).includes(query)).slice(0, 6);
   }, [newPostText, users]);
 
-  const selectedCoffeeForBrew = useMemo(
-    () => brewCoffeeCatalog.find((coffee) => coffee.id === brewCoffeeId) ?? brewCoffeeCatalog[0] ?? null,
-    [brewCoffeeCatalog, brewCoffeeId]
-  );
+  const selectedCoffeeForBrew = useMemo(() => {
+    if (!brewCoffeeId || brewCoffeeId.trim() === "") return null;
+    return brewCoffeeCatalog.find((coffee) => coffee.id === brewCoffeeId) ?? null;
+  }, [brewCoffeeCatalog, brewCoffeeId]);
 
+  /** Todos los ítems de despensa (registros distintos; el mismo café puede aparecer varias veces). */
   const brewPantryItems = useMemo(() => {
     const coffeeById = new Map<string, CoffeeRow>();
     brewCoffeeCatalog.forEach((coffee) => {
       coffeeById.set(String(coffee.id), coffee);
     });
 
-    const latestByCoffee = new Map<string, PantryItemRow>();
-    pantryItems.forEach((item) => {
-      const coffeeId = String(item.coffee_id);
-      if (!coffeeId) return;
-      const prev = latestByCoffee.get(coffeeId);
-      if (!prev || Number(item.last_updated ?? 0) > Number(prev.last_updated ?? 0)) {
-        latestByCoffee.set(coffeeId, item);
-      }
-    });
-
-    return Array.from(latestByCoffee.values())
+    return pantryItems
       .map((item) => {
         const coffeeId = String(item.coffee_id);
         const coffee = coffeeById.get(coffeeId);
@@ -422,6 +430,7 @@ export function useAppDerivedData({
   }, [brewCoffeeCatalog, pantryItems]);
 
   const diaryEntriesActivity = diaryEntries.slice(0, 80);
+  const orderedBrewMethods = useMemo(() => getOrderedBrewMethods(diaryEntries), [diaryEntries]);
   const pantryCoffeeRows = pantryItems
     .map((item) => ({ item, coffee: brewCoffeeCatalog.find((coffee) => coffee.id === item.coffee_id) }))
     .filter((row): row is { item: PantryItemRow; coffee: CoffeeRow } => row.coffee != null);
@@ -445,6 +454,20 @@ export function useAppDerivedData({
     }
     return usersById.get(activeUser?.id ?? -1) ?? null;
   }, [activeUser?.id, profileUsername, users, usersById]);
+
+  /** Usuarios que siguen al perfil visitado (seguidores). */
+  const profileFollowersUsers = useMemo((): UserRow[] => {
+    if (!profileUser) return [];
+    const ids = follows.filter((f) => f.followed_id === profileUser.id).map((f) => f.follower_id);
+    return ids.map((id) => usersById.get(id)).filter((u): u is UserRow => u != null);
+  }, [profileUser, follows, usersById]);
+
+  /** Usuarios a los que sigue el perfil visitado (siguiendo). */
+  const profileFollowingUsers = useMemo((): UserRow[] => {
+    if (!profileUser) return [];
+    const ids = follows.filter((f) => f.follower_id === profileUser.id).map((f) => f.followed_id);
+    return ids.map((id) => usersById.get(id)).filter((u): u is UserRow => u != null);
+  }, [profileUser, follows, usersById]);
 
   const profilePosts = useMemo(
     () => timelineCards.filter((card) => card.userId === (profileUser?.id ?? -1)),
@@ -535,10 +558,278 @@ export function useAppDerivedData({
     return new Set(follows.filter((follow) => follow.follower_id === activeUser.id).map((follow) => follow.followed_id));
   }, [activeUser, follows]);
 
+  /** Actividad de usuarios que sigues: opiniones (con valoración y comentario), primera vez café, listas públicas. */
+  const profileFollowedActivity = useMemo((): ProfileActivityItem[] => {
+    if (!followingIds.size) return [];
+    const list: ProfileActivityItem[] = [];
+    coffeeReviews.forEach((review) => {
+      const uid = review.user_id ?? -1;
+      if (!followingIds.has(uid)) return;
+      const u = usersById.get(uid);
+      const coffee = coffeesById.get(review.coffee_id);
+      list.push({
+        id: `review-${review.id ?? review.timestamp}-${uid}`,
+        type: "review",
+        userId: uid,
+        userName: u?.full_name ?? `Usuario ${uid}`,
+        username: u?.username ?? `user${uid}`,
+        avatarUrl: u?.avatar_url ?? "",
+        timestamp: review.timestamp ?? 0,
+        label: "opinó sobre un café",
+        coffeeId: review.coffee_id,
+        coffeeName: coffee?.nombre ?? null,
+        rating: review.rating,
+        comment: review.comment ?? null
+      });
+    });
+    return list.sort((a, b) => b.timestamp - a.timestamp);
+  }, [coffeeReviews, followingIds, usersById, coffeesById]);
+
+  /** Primera vez por café solo si ese café tiene una sola entrada; si lo ha tomado más veces no se muestra en actividad. Excluye agua. */
+  const firstTimeCoffeeFromDiary = useMemo(() => {
+    return (entries: DiaryEntryRow[]): DiaryEntryRow[] => {
+      const countByCoffee = new Map<string, number>();
+      const byCoffee = new Map<string, DiaryEntryRow>();
+      for (const entry of entries) {
+        if ((entry.type ?? "").toUpperCase() === "WATER") continue;
+        const cid = entry.coffee_id ?? "";
+        if (!cid) continue;
+        countByCoffee.set(cid, (countByCoffee.get(cid) ?? 0) + 1);
+        const existing = byCoffee.get(cid);
+        if (!existing || (entry.timestamp ?? 0) < (existing.timestamp ?? 0)) {
+          byCoffee.set(cid, entry);
+        }
+      }
+      return Array.from(byCoffee.values()).filter((entry) => (countByCoffee.get(entry.coffee_id ?? "") ?? 0) === 1);
+    };
+  }, []);
+
+  /** Actividad del usuario actual: reviews, favoritos, listas, y solo "probó por primera vez" por café (no cada consumo). */
+  const profileOwnActivity = useMemo((): ProfileActivityItem[] => {
+    if (!activeUser) return [];
+    const u = usersById.get(activeUser.id);
+    const list: ProfileActivityItem[] = [];
+    coffeeReviews.forEach((review) => {
+      if ((review.user_id ?? -1) !== activeUser.id) return;
+      const coffee = coffeesById.get(review.coffee_id);
+      list.push({
+        id: `review-${review.id ?? review.timestamp}-${activeUser.id}`,
+        type: "review",
+        userId: activeUser.id,
+        userName: u?.full_name ?? activeUser.full_name,
+        username: u?.username ?? activeUser.username,
+        avatarUrl: u?.avatar_url ?? activeUser.avatar_url ?? "",
+        timestamp: review.timestamp ?? 0,
+        label: "opinaste sobre un café",
+        coffeeId: review.coffee_id,
+        coffeeName: coffee?.nombre ?? null,
+        rating: review.rating,
+        comment: review.comment ?? null
+      });
+    });
+    favorites.forEach((fav) => {
+      if (fav.user_id !== activeUser.id) return;
+      const coffee = coffeesById.get(fav.coffee_id);
+      list.push({
+        id: `favorite-${fav.coffee_id}-${fav.saved_at}`,
+        type: "favorite",
+        userId: activeUser.id,
+        userName: u?.full_name ?? activeUser.full_name,
+        username: u?.username ?? activeUser.username,
+        avatarUrl: u?.avatar_url ?? activeUser.avatar_url ?? "",
+        timestamp: fav.saved_at,
+        label: "añadió un café a la lista",
+        coffeeId: fav.coffee_id,
+        coffeeName: coffee?.nombre ?? null
+      });
+    });
+    firstTimeCoffeeFromDiary(diaryEntries).forEach((entry) => {
+      const coffee = coffeesById.get(entry.coffee_id ?? "");
+      list.push({
+        id: `diary-first-${entry.id}`,
+        type: "diary",
+        userId: activeUser.id,
+        userName: u?.full_name ?? activeUser.full_name,
+        username: u?.username ?? activeUser.username,
+        avatarUrl: u?.avatar_url ?? activeUser.avatar_url ?? "",
+        timestamp: entry.timestamp ?? 0,
+        label: "probó por primera vez",
+        coffeeId: entry.coffee_id ?? undefined,
+        coffeeName: entry.coffee_name ?? coffee?.nombre ?? null
+      });
+    });
+    allListItemsForActivity.forEach((item) => {
+      const coffee = coffeesById.get(item.coffee_id);
+      list.push({
+        id: `list-${item.list_id}-${item.coffee_id}-${item.created_at}`,
+        type: "favorite",
+        userId: activeUser.id,
+        userName: u?.full_name ?? activeUser.full_name,
+        username: u?.username ?? activeUser.username,
+        avatarUrl: u?.avatar_url ?? activeUser.avatar_url ?? "",
+        timestamp: item.created_at,
+        label: "añadió un café a la lista",
+        coffeeId: item.coffee_id,
+        coffeeName: coffee?.nombre ?? null,
+        listId: item.list_id,
+        listName: (item as { list_name?: string }).list_name ?? null
+      });
+    });
+    return list.sort((a, b) => b.timestamp - a.timestamp);
+  }, [activeUser, coffeeReviews, favorites, diaryEntries, firstTimeCoffeeFromDiary, allListItemsForActivity, usersById, coffeesById]);
+
+  /** Perfil de terceros: solo la actividad de ese usuario (opiniones, primera vez café, listas públicas). No se incluye la de personas que ese usuario sigue. */
+  const profileUserActivity = useMemo((): ProfileActivityItem[] => {
+    if (!profileUser || profileUser.id === activeUser?.id) return [];
+    const u = usersById.get(profileUser.id);
+    const list: ProfileActivityItem[] = [];
+    coffeeReviews.forEach((review) => {
+      if ((review.user_id ?? -1) !== profileUser.id) return;
+      const coffee = coffeesById.get(review.coffee_id);
+      list.push({
+        id: `review-${review.id ?? review.timestamp}-${profileUser.id}`,
+        type: "review",
+        userId: profileUser.id,
+        userName: u?.full_name ?? profileUser.full_name,
+        username: u?.username ?? profileUser.username,
+        avatarUrl: u?.avatar_url ?? profileUser.avatar_url ?? "",
+        timestamp: review.timestamp ?? 0,
+        label: "opinó sobre un café",
+        coffeeId: review.coffee_id,
+        coffeeName: coffee?.nombre ?? null,
+        rating: review.rating,
+        comment: review.comment ?? null
+      });
+    });
+    firstTimeCoffeeFromDiary(profileUserDiaryEntries).forEach((entry) => {
+      const coffee = coffeesById.get(entry.coffee_id ?? "");
+      list.push({
+        id: `diary-first-${entry.id}`,
+        type: "diary",
+        userId: profileUser.id,
+        userName: u?.full_name ?? profileUser.full_name,
+        username: u?.username ?? profileUser.username,
+        avatarUrl: u?.avatar_url ?? profileUser.avatar_url ?? "",
+        timestamp: entry.timestamp ?? 0,
+        label: "probó por primera vez",
+        coffeeId: entry.coffee_id ?? undefined,
+        coffeeName: entry.coffee_name ?? coffee?.nombre ?? null
+      });
+    });
+    profileUserFavorites.forEach((fav) => {
+      const coffee = coffeesById.get(fav.coffee_id);
+      list.push({
+        id: `favorite-${fav.coffee_id}-${fav.saved_at}`,
+        type: "favorite",
+        userId: profileUser.id,
+        userName: u?.full_name ?? profileUser.full_name,
+        username: u?.username ?? profileUser.username,
+        avatarUrl: u?.avatar_url ?? profileUser.avatar_url ?? "",
+        timestamp: fav.saved_at,
+        label: "añadió un café a la lista",
+        coffeeId: fav.coffee_id,
+        coffeeName: coffee?.nombre ?? null
+      });
+    });
+    profileUserListItems.forEach((item) => {
+      if (!(item as { is_public?: boolean }).is_public) return;
+      const coffee = coffeesById.get(item.coffee_id);
+      list.push({
+        id: `list-${item.list_id}-${item.coffee_id}-${item.created_at}`,
+        type: "favorite",
+        userId: profileUser.id,
+        userName: u?.full_name ?? profileUser.full_name,
+        username: u?.username ?? profileUser.username,
+        avatarUrl: u?.avatar_url ?? profileUser.avatar_url ?? "",
+        timestamp: item.created_at,
+        label: "añadió un café a la lista",
+        coffeeId: item.coffee_id,
+        coffeeName: coffee?.nombre ?? null,
+        listId: item.list_id,
+        listName: (item as { list_name?: string }).list_name ?? null
+      });
+    });
+    return list.sort((a, b) => b.timestamp - a.timestamp);
+  }, [profileUser, activeUser?.id, coffeeReviews, profileUserDiaryEntries, profileUserFavorites, profileUserListItems, firstTimeCoffeeFromDiary, usersById, coffeesById]);
+
+  /** Actividad construida desde followedUsersActivityData (primera vez café, favoritos, listas) por cada usuario que sigues. */
+  const followedUsersExtraActivity = useMemo((): ProfileActivityItem[] => {
+    const list: ProfileActivityItem[] = [];
+    for (const { userId, diaryEntries: de, favorites: fav, listItems: li } of followedUsersActivityData) {
+      const u = usersById.get(userId);
+      if (!u) continue;
+      firstTimeCoffeeFromDiary(de).forEach((entry) => {
+        const coffee = coffeesById.get(entry.coffee_id ?? "");
+        list.push({
+          id: `followed-diary-first-${userId}-${entry.id}`,
+          type: "diary",
+          userId,
+          userName: u.full_name,
+          username: u.username ?? "",
+          avatarUrl: u.avatar_url ?? "",
+          timestamp: entry.timestamp ?? 0,
+          label: "probó por primera vez",
+          coffeeId: entry.coffee_id ?? undefined,
+          coffeeName: entry.coffee_name ?? coffee?.nombre ?? null
+        });
+      });
+      fav.forEach((f) => {
+        const coffee = coffeesById.get(f.coffee_id);
+        list.push({
+          id: `followed-fav-${userId}-${f.coffee_id}-${f.saved_at}`,
+          type: "favorite",
+          userId,
+          userName: u.full_name,
+          username: u.username ?? "",
+          avatarUrl: u.avatar_url ?? "",
+          timestamp: f.saved_at,
+          label: "añadió un café a la lista",
+          coffeeId: f.coffee_id,
+          coffeeName: coffee?.nombre ?? null
+        });
+      });
+      li.forEach((item) => {
+        const it = item as { list_id: string; coffee_id: string; created_at: number; list_name?: string; is_public?: boolean };
+        if (!it.is_public) return;
+        const coffee = coffeesById.get(item.coffee_id);
+        list.push({
+          id: `followed-list-${userId}-${item.list_id}-${item.coffee_id}-${item.created_at}`,
+          type: "favorite",
+          userId,
+          userName: u.full_name,
+          username: u.username ?? "",
+          avatarUrl: u.avatar_url ?? "",
+          timestamp: item.created_at,
+          label: "añadió un café a la lista",
+          coffeeId: item.coffee_id,
+          coffeeName: coffee?.nombre ?? null,
+          listId: item.list_id,
+          listName: it.list_name ?? null
+        });
+      });
+    }
+    return list.sort((a, b) => b.timestamp - a.timestamp);
+  }, [followedUsersActivityData, firstTimeCoffeeFromDiary, usersById, coffeesById]);
+
+  /** Mi perfil: mis actividades (opiniones, primera vez, listas) + actividades de cada usuario que sigo (solo listas públicas). */
+  const profileMineAndFollowedActivity = useMemo((): ProfileActivityItem[] => {
+    const merged = [...profileOwnActivity, ...profileFollowedActivity, ...followedUsersExtraActivity];
+    return merged.sort((a, b) => b.timestamp - a.timestamp);
+  }, [profileOwnActivity, profileFollowedActivity, followedUsersExtraActivity]);
+
   const followerCounts = useMemo(() => {
     const map = new Map<number, number>();
     follows.forEach((follow) => {
       map.set(follow.followed_id, (map.get(follow.followed_id) ?? 0) + 1);
+    });
+    return map;
+  }, [follows]);
+
+  /** Por usuario: cuántos sigue (following count). */
+  const followingCounts = useMemo(() => {
+    const map = new Map<number, number>();
+    follows.forEach((follow) => {
+      map.set(follow.follower_id, (map.get(follow.follower_id) ?? 0) + 1);
     });
     return map;
   }, [follows]);
@@ -554,7 +845,7 @@ export function useAppDerivedData({
 
   const timelineRecommendations = useMemo(() => {
     if (!coffees.length) return [] as CoffeeRow[];
-    if (!activeUser) return coffees.slice(0, 5);
+    if (!activeUser) return coffees.slice(0, 9);
 
     // Referencia: favoritos, despensa y visitados (ej. café actual en detalle)
     const referenceIds = new Set<string>();
@@ -590,14 +881,25 @@ export function useAppDerivedData({
           return tags.some((t) => t && preferenceTags.has(t));
         });
 
-    const seed = (activeUser.id * 31 + coffees.length) % 1_000_000;
+    const dateSeed = recommendationDateKey.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const seed = (activeUser.id * 31 + coffees.length + dateSeed * 7) % 1_000_000;
     const shuffled = [...similar].sort((a, b) => {
       const ha = (a.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) + seed) % 1000;
       const hb = (b.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) + seed) % 1000;
       return ha - hb;
     });
-    return shuffled.slice(0, 5);
-  }, [activeUser, coffees, detailCoffeeId, favorites, pantryItems]);
+    const normalizeMarca = (m: string | null) => (m?.trim().toLowerCase() ?? "") || "\u0000";
+    const seenMarcas = new Set<string>();
+    const result: CoffeeRow[] = [];
+    for (const coffee of shuffled) {
+      if (result.length >= 9) break;
+      const marcaKey = normalizeMarca(coffee.marca);
+      if (seenMarcas.has(marcaKey)) continue;
+      seenMarcas.add(marcaKey);
+      result.push(coffee);
+    }
+    return result;
+  }, [activeUser, coffees, detailCoffeeId, favorites, pantryItems, recommendationDateKey]);
 
   const timelineSuggestions = useMemo(
     () =>
@@ -615,28 +917,6 @@ export function useAppDerivedData({
     if (second === first) second = Math.min(timelineCards.length - 1, second + 1);
     return [first, second];
   }, [activeUser?.id, timelineCards.length]);
-
-  const commentSheetRows = useMemo(
-    () =>
-      [...(commentsByPostId.get(commentSheetPostId ?? "") ?? [])]
-        .sort((a, b) => a.timestamp - b.timestamp)
-        .slice(-120),
-    [commentSheetPostId, commentsByPostId]
-  );
-
-  const activeCommentMenuRow = useMemo(
-    () => commentSheetRows.find((row) => row.id === commentMenuId) ?? null,
-    [commentMenuId, commentSheetRows]
-  );
-
-  const commentMentionSuggestions = useMemo(() => {
-    const draftParts = commentDraft.split(/\s+/);
-    const token = draftParts[draftParts.length - 1] ?? "";
-    if (!token.startsWith("@")) return [];
-    const query = normalizeLookupText(token.slice(1));
-    if (!query) return users.slice(0, 8);
-    return users.filter((user) => normalizeLookupText(user.username).includes(query)).slice(0, 8);
-  }, [commentDraft, users]);
 
   const timelineNotifications = useMemo<TimelineNotificationItem[]>(() => {
     if (!activeUser) return [];
@@ -716,6 +996,7 @@ export function useAppDerivedData({
     selectedCoffeeForBrew,
     brewPantryItems,
     diaryEntriesActivity,
+    orderedBrewMethods,
     pantryCoffeeRows,
     diaryCoffeeOptions,
     profileUser,
@@ -733,14 +1014,18 @@ export function useAppDerivedData({
     followersCount,
     followingCount,
     followingIds,
+    profileFollowersUsers,
+    profileFollowingUsers,
+    profileFollowedActivity,
+    profileOwnActivity,
+    profileUserActivity,
+    profileMineAndFollowedActivity,
     followerCounts,
+    followingCounts,
     filteredSearchUsers,
     timelineRecommendations,
     timelineSuggestions,
     timelineSuggestionIndices,
-    commentSheetRows,
-    activeCommentMenuRow,
-    commentMentionSuggestions,
     visibleTimelineNotifications,
     showNotificationsBadge
   };

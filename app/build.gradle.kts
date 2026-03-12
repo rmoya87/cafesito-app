@@ -42,8 +42,8 @@ android {
         applicationId = "com.cafesito.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 220
-        versionName = "2026.3.3"
+        versionCode = 224
+        versionName = "2026.3.10"
 
         testInstrumentationRunner = "com.cafesito.app.HiltTestRunner"
 
@@ -195,6 +195,7 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+    implementation(libs.coil.svg)
 
     // Tests
     testImplementation(libs.junit)

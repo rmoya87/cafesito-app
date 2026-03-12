@@ -63,7 +63,6 @@ export function useInitialDataLoader(params: Params): () => Promise<void> {
       setComments(data.comments);
       setPostCoffeeTags(data.postCoffeeTags);
       setFollows(data.follows);
-      setBrewCoffeeId((prev) => prev || data.coffees[0]?.id || "");
       setGlobalStatus("Listo");
     } catch (error) {
       setGlobalStatus(`Error: ${(error as Error).message}`);

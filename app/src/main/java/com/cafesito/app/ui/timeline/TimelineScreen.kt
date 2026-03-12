@@ -6,90 +6,64 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.CoffeeMaker
+import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.cafesito.app.data.PostWithDetails
+import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
-import kotlinx.coroutines.launch
-import kotlin.math.max
-import kotlin.random.Random
+import com.cafesito.shared.domain.brew.BREW_METHOD_AGUA
+import com.cafesito.shared.domain.brew.BREW_METHOD_OTROS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineScreen(
     onUserClick: (Int) -> Unit,
     onCoffeeClick: (String) -> Unit,
-    onAddPostClick: () -> Unit,
-    onSearchUsersClick: () -> Unit,
+    onBrewLabClick: () -> Unit,
+    onAddToPantryClick: () -> Unit,
     onNotificationsClick: () -> Unit,
-    initialPostId: String? = null,
-    initialCommentId: Int? = null,
-    publishingPending: Boolean = false,
-    onPublishingPendingConsumed: () -> Unit = {},
+    onEditCoffeeClick: (String) -> Unit = {},
     viewModel: TimelineViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val isPublishingContent by viewModel.isPublishingContent.collectAsState()
-    
-    var showCommentSheetId by remember { mutableStateOf<String?>(null) }
-    var highlightedCommentId by remember { mutableStateOf<Int?>(null) }
-    var hasHandledInitialDeepLink by rememberSaveable { mutableStateOf(false) }
-    
+
     val unreadCount by viewModel.unreadCount.collectAsState()
     val badgeScale = remember { Animatable(1f) }
     val hasUnread = unreadCount > 0
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    val listState = rememberLazyListState()
-    var showReviewOptions by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
-
-    var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
-    var reviewToEdit by remember { mutableStateOf<TimelineItem.ReviewItem?>(null) }
-    var itemToDelete by remember { mutableStateOf<Any?>(null) }
-
-    val suggestionIndices = remember(uiState) {
-        val state = uiState as? TimelineUiState.Success ?: return@remember emptyList()
-        val itemsCount = state.items.size
-        if (itemsCount < 3) return@remember emptyList()
-        val random = Random(max(itemsCount, 1) + state.activeUser.id)
-        val first = random.nextInt(1, itemsCount)
-        var second = random.nextInt(1, itemsCount)
-        if (second == first) second = (second + 1).coerceAtMost(itemsCount - 1)
-        listOf(first, second)
-    }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -105,13 +79,6 @@ fun TimelineScreen(
         }
     }
 
-    LaunchedEffect(publishingPending) {
-        if (publishingPending) {
-            viewModel.startPublishingContent()
-            onPublishingPendingConsumed()
-        }
-    }
-
     LaunchedEffect(hasUnread) {
         if (hasUnread) {
             badgeScale.snapTo(1.9f)
@@ -122,45 +89,119 @@ fun TimelineScreen(
         }
     }
 
+    var showPantryOptionsId by remember { mutableStateOf<String?>(null) }
+    var itemToEdit by remember { mutableStateOf<PantryItemWithDetails?>(null) }
+    var showStockSheet by remember { mutableStateOf(false) }
+    var itemToDeleteId by remember { mutableStateOf<String?>(null) }
+    var showFinishedConfirmId by remember { mutableStateOf<String?>(null) }
 
-    var lastItemCount by remember { mutableIntStateOf(0) }
-    LaunchedEffect(uiState) {
-        val currentState = uiState
-        if (currentState is TimelineUiState.Success) {
-            val currentCount = currentState.items.size
-            if (currentCount > lastItemCount && lastItemCount != 0) {
-                listState.animateScrollToItem(0)
+    val state = uiState as? TimelineUiState.Success
+    val pantryItems = state?.pantryItems ?: emptyList()
+
+    if (showStockSheet && itemToEdit != null) {
+        StockEditBottomSheet(
+            item = itemToEdit!!,
+            onDismiss = { showStockSheet = false },
+            onSave = { total, remaining ->
+                viewModel.updateStock(itemToEdit!!.pantryItem.id, total, remaining)
+                showStockSheet = false
+                itemToEdit = null
             }
-            lastItemCount = currentCount
+        )
+    }
+
+    if (showPantryOptionsId != null) {
+        val selectedItem = pantryItems.find { it.pantryItem.id == showPantryOptionsId }
+        if (selectedItem != null) {
+            ModalBottomSheet(
+                onDismissRequest = { showPantryOptionsId = null },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                scrimColor = Color.Black.copy(alpha = 0.5f)
+            ) {
+                Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                    Text(
+                        text = "Opciones",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold
+                    )
+                    ModalMenuOption(
+                        title = "Editar stock",
+                        icon = Icons.Default.Edit,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            itemToEdit = selectedItem
+                            showStockSheet = true
+                            showPantryOptionsId = null
+                        }
+                    )
+                    ModalMenuOption(
+                        title = "Café terminado",
+                        icon = Icons.Default.Done,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            showFinishedConfirmId = showPantryOptionsId
+                            showPantryOptionsId = null
+                        }
+                    )
+                    if (selectedItem.isCustom) {
+                        ModalMenuOption(
+                            title = "Editar café",
+                            icon = Icons.Default.LocalCafe,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            onClick = {
+                                onEditCoffeeClick(selectedItem.coffee.id)
+                                showPantryOptionsId = null
+                            }
+                        )
+                    }
+                    ModalMenuOption(
+                        title = "Eliminar de la despensa",
+                        icon = Icons.Default.Delete,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            itemToDeleteId = showPantryOptionsId
+                            showPantryOptionsId = null
+                        }
+                    )
+                }
+            }
         }
     }
 
-    LaunchedEffect(isRefreshing) {
-        if (!isRefreshing && lastItemCount > 0) {
-            listState.animateScrollToItem(0)
-        }
+    if (itemToDeleteId != null) {
+        DeleteConfirmationDialog(
+            onDismissRequest = { itemToDeleteId = null },
+            title = "Eliminar de la despensa",
+            text = "¿Estás seguro de eliminar este café? Se borrará tu stock actual.",
+            onConfirm = {
+                val id = itemToDeleteId!!
+                viewModel.removeFromPantry(id) { }
+                itemToDeleteId = null
+            }
+        )
     }
 
-    LaunchedEffect(uiState, initialPostId, initialCommentId) {
-        if (hasHandledInitialDeepLink) return@LaunchedEffect
-        val postId = initialPostId ?: return@LaunchedEffect
-        val successState = uiState as? TimelineUiState.Success ?: return@LaunchedEffect
-
-        val index = successState.items.indexOfFirst { item ->
-            (item as? TimelineItem.PostItem)?.details?.post?.id == postId
-        }
-        if (index >= 0) {
-            listState.animateScrollToItem(index)
-            showCommentSheetId = postId
-            highlightedCommentId = initialCommentId
-            hasHandledInitialDeepLink = true
-        }
+    if (showFinishedConfirmId != null) {
+        DeleteConfirmationDialog(
+            onDismissRequest = { showFinishedConfirmId = null },
+            title = "Café terminado",
+            text = "¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.",
+            onConfirm = {
+                val id = showFinishedConfirmId!!
+                viewModel.markCoffeeAsFinished(id) { }
+                showFinishedConfirmId = null
+            }
+        )
     }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { 
+        topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
@@ -169,11 +210,6 @@ fun TimelineScreen(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onSearchUsersClick) {
-                        Icon(Icons.Default.Search, contentDescription = "Buscar Usuarios", modifier = Modifier.size(24.dp))
-                    }
                 },
                 actions = {
                     IconButton(onClick = onNotificationsClick) {
@@ -195,312 +231,180 @@ fun TimelineScreen(
                     scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddPostClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = CircleShape,
-                modifier = Modifier
-                    .padding(bottom = 100.dp, end = 8.dp)
-                    .size(56.dp) 
-            ) { Icon(Icons.Default.Add, contentDescription = "Nuevo Post", modifier = Modifier.size(24.dp)) }
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = { viewModel.refreshData() },
-                modifier = Modifier.fillMaxSize()
-            ) {
-                when (val state = uiState) {
-                is TimelineUiState.Loading -> {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(5) { ShimmerItem(Modifier.fillMaxWidth().height(400.dp).padding(16.dp)) }
-                    }
-                }
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refreshData() },
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            when (val state = uiState) {
+                is TimelineUiState.Loading -> TimelineLoadingContent()
                 is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorStateMessage(message = state.message, onRetry = { viewModel.refreshData() })
                 }
                 is TimelineUiState.Success -> {
-                    val usersByUsername = remember(state.allUsers) { state.allUsers.associateBy { it.username.lowercase() } }
-                    if (state.items.isEmpty()) {
-                        TimelineEmptyState(
-                            suggestedUsers = state.suggestedUsers,
-                            topics = state.recommendedTopics,
-                            onFollowClick = { viewModel.toggleFollowSuggestion(it) },
-                            onUserClick = { userId ->
-                                if (userId == state.activeUser.id) onUserClick(0)
-                                else onUserClick(userId)
-                            },
-                            onAddPostClick = onAddPostClick
-                        )
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 120.dp)
-                        ) {
-                            itemsIndexed(
-                                items = state.items,
-                                key = { _, item -> item.stableKey }
-                            ) { index, item ->
-                                viewModel.loadMoreIfNeeded(index)
-                                if (suggestionIndices.isNotEmpty() && index == suggestionIndices[0] && state.recommendations.isNotEmpty()) {
-                                    Column {
-                                        RecommendationCarousel(
-                                            recommendations = state.recommendations,
-                                            onCoffeeClick = onCoffeeClick
-                                        )
-                                        Spacer(Modifier.height(24.dp))
-                                    }
-                                }
-                                if (suggestionIndices.size > 1 && index == suggestionIndices[1] && state.suggestedUsers.isNotEmpty()) {
-                                    UserSuggestionCarousel(
-                                        users = state.suggestedUsers,
-                                        followingIds = state.myFollowingIds,
-                                        onUserClick = { userId ->
-                                            if (userId == state.activeUser.id) onUserClick(0)
-                                            else onUserClick(userId)
-                                        },
-                                        onFollowClick = { viewModel.toggleFollowSuggestion(it) }
-                                    )
-                                    Spacer(Modifier.height(32.dp))
-                                }
-                                AnimatedVisibility(
-                                    visible = true,
-                                    enter = fadeIn(animationSpec = tween(500, delayMillis = index * 50)) +
-                                            slideInVertically(initialOffsetY = { 20 })
-                                ) {
-                                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                                        when (item) {
-                                            is TimelineItem.PostItem -> PostCard(
-                                                details = item.details,
-                                                isLiked = item.details.likes.any { it.userId == state.activeUser.id },
-                                                onUserClick = {
-                                                    val userId = item.details.post.userId
-                                                    if (userId == state.activeUser.id) onUserClick(0)
-                                                    else onUserClick(userId)
-                                                },
-                                                onCommentClick = {
-                                                    highlightedCommentId = null
-                                                    showCommentSheetId = item.details.post.id
-                                                },
-                                                onLikeClick = { viewModel.toggleLike(item.details.post.id) },
-                                                isOwnPost = item.details.post.userId == state.activeUser.id,
-                                                onEditClick = { postToEdit = item.details },
-                                                onDeleteClick = { itemToDelete = item.details },
-                                                onCoffeeClick = onCoffeeClick,
-                                                onMentionClick = { username ->
-                                                    scope.launch {
-                                                        viewModel.getUserIdByUsername(username)?.let { mentionedUserId ->
-                                                            if (mentionedUserId == state.activeUser.id) onUserClick(0)
-                                                            else onUserClick(mentionedUserId)
-                                                        }
-                                                    }
-                                                },
-                                                resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
-                                            )
-                                            is TimelineItem.ReviewItem -> {
-                                                val isOwnReview = item.reviewInfo.review.userId == state.activeUser.id
-                                                if (isOwnReview) {
-                                                    val dismissState = rememberSwipeToDismissBoxState(
-                                                        confirmValueChange = {
-                                                            if (it == SwipeToDismissBoxValue.EndToStart) {
-                                                                viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
-                                                                true
-                                                            } else false
-                                                        }
-                                                    )
-
-                                                    SwipeToDismissBox(
-                                                        state = dismissState,
-                                                        enableDismissFromStartToEnd = false,
-                                                        backgroundContent = {
-                                                            val isDragging = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
-                                                            val color = if (isDragging) ElectricRed else Color.Transparent
-                                                            Box(
-                                                                Modifier
-                                                                    .fillMaxSize()
-                                                                    .clip(RoundedCornerShape(24.dp))
-                                                                    .background(color),
-                                                                contentAlignment = Alignment.CenterEnd
-                                                            ) {
-                                                                if (isDragging) {
-                                                                    Icon(
-                                                                        imageVector = Icons.Default.Delete,
-                                                                        contentDescription = "Borrar",
-                                                                        tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
-                                                                        modifier = Modifier
-                                                                            .padding(end = 24.dp)
-                                                                            .graphicsLayer {
-                                                                                val p = dismissState.progress
-                                                                                alpha = if (p > 0.05f) p.coerceIn(0f, 1f) else 0f
-                                                                                scaleX = if (p > 0.05f) p.coerceIn(0.5f, 1f) else 0.5f
-                                                                                scaleY = if (p > 0.05f) p.coerceIn(0.5f, 1f) else 0.5f
-                                                                            }
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
-                                                    ) {
-                                                        Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
-                                                            UserReviewCard(
-                                                                info = item.reviewInfo,
-                                                                isOwnReview = true,
-                                                                onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
-                                                            )
-                                                        }
-                                                    }
-                                                } else {
-                                                    UserReviewCard(
-                                                        info = item.reviewInfo,
-                                                        isOwnReview = false,
-                                                        onClick = { onCoffeeClick(item.reviewInfo.coffeeDetails.coffee.id) }
-                                                    )
-                                                }
-                                            }
-                                            else -> {}
-                                        }
-                                    }
-                                }
-                            }
-                            if (state.isLoadingMore) {
-                                item {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator()
-                                    }
-                                }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 88.dp)
+                    ) {
+                        item {
+                            HomeBrewMethodsCarousel(
+                                methodNames = state.orderedBrewMethodNames,
+                                onMethodClick = onBrewLabClick
+                            )
+                        }
+                        item {
+                            Spacer(Modifier.height(16.dp))
+                            HomePantrySection(
+                                pantryItems = state.pantryItems,
+                                onCoffeeClick = onCoffeeClick,
+                                onAddToPantryClick = onAddToPantryClick,
+                                onOptionsClick = { showPantryOptionsId = it }
+                            )
+                        }
+                        item {
+                            Spacer(Modifier.height(16.dp))
+                            RecommendationCarousel(
+                                recommendations = state.recommendations,
+                                onCoffeeClick = onCoffeeClick
+                            )
+                        }
+                        if (state.suggestedUsers.isNotEmpty()) {
+                            item {
+                                Spacer(Modifier.height(16.dp))
+                                UserSuggestionCarousel(
+                                    users = state.suggestedUsers,
+                                    followingIds = state.myFollowingIds,
+                                    onUserClick = { userId ->
+                                        if (userId == state.activeUser.id) onUserClick(0)
+                                        else onUserClick(userId)
+                                    },
+                                    onFollowClick = { viewModel.toggleFollowSuggestion(it) }
+                                )
                             }
                         }
                     }
                 }
-                }
             }
+        }
+    }
+}
 
-            AnimatedVisibility(
-                visible = isPublishingContent,
-                enter = fadeIn(tween(220)) + slideInVertically(initialOffsetY = { -it / 2 }),
-                exit = fadeOut(tween(180)) + slideOutVertically(targetOffsetY = { -it / 2 }),
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 12.dp)
-                    .padding(horizontal = 16.dp)
-            ) {
-                val premiumGradient = Brush.horizontalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
-                    )
-                )
+@Composable
+private fun HomeBrewMethodsCarousel(
+    methodNames: List<String>,
+    onMethodClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val iconResMap = remember {
+        mapOf(
+            "Aeropress" to "maq_aeropress",
+            "Chemex" to "maq_chemex",
+            "Espresso" to "maq_espresso",
+            "Goteo" to "maq_goteo",
+            "Hario V60" to "maq_hario_v60",
+            "Italiana" to "maq_italiana",
+            "Manual" to "maq_manual",
+            "Prensa francesa" to "maq_prensa_francesa",
+            "Sifón" to "maq_sifon",
+            "Turco" to "maq_turco",
+            BREW_METHOD_OTROS to "relampago",
+            BREW_METHOD_AGUA to "agua"
+        )
+    }
+
+    Column(modifier = modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(methodNames) { name ->
+                val iconResName = iconResMap[name] ?: "maq_manual"
+                val resId = remember(iconResName) {
+                    context.resources.getIdentifier(iconResName, "drawable", context.packageName)
+                }
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 10.dp,
-                    shadowElevation = 8.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                    modifier = Modifier
+                        .width(100.dp)
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(onClick = onMethodClick),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    tonalElevation = 2.dp
                 ) {
                     Column(
                         modifier = Modifier
-                            .background(premiumGradient)
-                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.2.dp
+                        if (resId != 0) {
+                            Image(
+                                painter = painterResource(id = resId),
+                                contentDescription = name,
+                                modifier = Modifier.size(36.dp),
+                                contentScale = ContentScale.Fit
                             )
-                            Spacer(Modifier.width(10.dp))
-                            @Suppress("DEPRECATION")
-                            Text(
-                                text = "Publicando tu contenido...",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
+                        } else {
+                            Icon(
+                                Icons.Default.CoffeeMaker,
+                                contentDescription = name,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp)
                             )
                         }
-                        Spacer(Modifier.height(10.dp))
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(50)),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = name.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
         }
+    }
+}
 
-        if (itemToDelete != null) {
-            DeleteConfirmationDialog(
-                onDismissRequest = { itemToDelete = null },
-                onConfirm = {
-                    val item = itemToDelete
-                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                    else if (item is TimelineItem.ReviewItem) viewModel.deleteReview(item.reviewInfo.coffeeDetails.coffee.id)
-                    itemToDelete = null
-                },
-                title = "Borrar",
-                text = "Una vez borrado no se puede recuperar. ¿Estás seguro?"
-            )
-        }
-        showCommentSheetId?.let { id ->
-            CommentsSheet(
-                postId = id,
-                onDismiss = {
-                    showCommentSheetId = null
-                    highlightedCommentId = null
-                },
-                onAddComment = { viewModel.onAddComment(id, it) },
-                onNavigateToProfile = { userId ->
-                    val activeId = (uiState as? TimelineUiState.Success)?.activeUser?.id
-                    if (userId == activeId) onUserClick(0)
-                    else onUserClick(userId)
-                },
-                highlightedCommentId = highlightedCommentId
-            )
-        }
-        showReviewOptions?.let { review ->
-            ReviewOptionsBottomSheet(
-                onDismiss = { showReviewOptions = null },
-                onEditClick = { 
-                    showReviewOptions = null
-                    reviewToEdit = review 
-                },
-                onDeleteClick = { 
-                    showReviewOptions = null
-                    itemToDelete = review 
-                }
-            )
-        }
-        postToEdit?.let { details ->
-            EditPostBottomSheet(
-                initialText = details.post.comment,
-                initialImage = details.post.imageUrl,
-                onDismiss = { postToEdit = null },
-                onConfirm = { newText, newImageUrl ->
-                    viewModel.updatePost(details.post.id, newText, newImageUrl)
-                    postToEdit = null
-                }
-            )
-        }
-        reviewToEdit?.let { item ->
-            EditReviewBottomSheet(
-                initialRating = item.reviewInfo.review.rating,
-                initialComment = item.reviewInfo.review.comment,
-                initialImage = item.reviewInfo.review.imageUrl,
-                onDismiss = { reviewToEdit = null },
-                onConfirm = { rating, comment, imageUrl ->
-                    viewModel.updateReview(item.reviewInfo.coffeeDetails.coffee.id, rating, comment, imageUrl)
-                    reviewToEdit = null
-                }
-            )
+@Composable
+private fun HomePantrySection(
+    pantryItems: List<PantryItemWithDetails>,
+    onCoffeeClick: (String) -> Unit,
+    onAddToPantryClick: () -> Unit,
+    onOptionsClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+        Text(
+            text = "Tu despensa",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(pantryItems, key = { it.pantryItem.id }) { item ->
+                PantryPremiumMiniCard(
+                    item = item,
+                    onClick = { onCoffeeClick(item.coffee.id) },
+                    onOptionsClick = onOptionsClick
+                )
+            }
+            item(key = "home-add-pantry-card") {
+                PantryAddActionCard(onClick = onAddToPantryClick)
+            }
         }
     }
 }

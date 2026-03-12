@@ -64,7 +64,7 @@ export function useAuthSession(): UseAuthSessionResult {
       return;
     }
 
-    // Si el callback OAuth devolvió error en el hash (ej. 500, server_error), mostrarlo para que el contenedor redirija a /timeline
+    // Si el callback OAuth devolvió error en el hash (ej. 500, server_error), mostrarlo para que el contenedor redirija a /home
     const hash = window.location.hash?.replace(/^#/, "") || "";
     const params = new URLSearchParams(hash);
     const hashError = params.get("error") || params.get("error_description");
@@ -128,7 +128,7 @@ export function useAuthSession(): UseAuthSessionResult {
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      // Redirect tras login: usar la raíz del sitio para evitar 500 en Apache (Ionos) con /timeline?code=...
+      // Redirect tras login: usar la raíz del sitio para evitar 500 en Apache (Ionos) con /home?code=...
       // En Supabase → Authentication → URL Configuration añade cada Redirect URL (raíz y, si pruebas en red local, esa IP).
       const hostname = typeof window !== "undefined" ? window.location.hostname : "";
       const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -179,13 +179,13 @@ export function useAuthSession(): UseAuthSessionResult {
     if (sessionEmail) setShowAuthPrompt(false);
   }, [sessionEmail]);
 
-  // Tras callback OAuth en raíz (/?code=...): dejar URL limpia en /timeline
+  // Tras callback OAuth en raíz (/?code=...): dejar URL limpia en /home
   useEffect(() => {
     if (!sessionEmail) return;
     const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
     const search = window.location.search || "";
     if (pathname !== "/" || !search.includes("code=")) return;
-    window.history.replaceState(null, "", "/timeline");
+    window.history.replaceState(null, "", "/home");
   }, [sessionEmail]);
 
   return {

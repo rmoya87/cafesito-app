@@ -37,6 +37,8 @@ val WaterBlueBackground = Color(0xFFE3F2FD) // fondo suave para entradas de agua
 val DisabledGray = Color(0xFF9E9E9E)
 
 val SuccessGreen = Color(0xFF81C784)
+/** Verde eléctrico para estado activo de listas (favoritos/listas custom). */
+val ElectricGreen = Color(0xFF00E676)
 val ElectricRed = Color(0xFFFF3B30)
 val ErrorRed = ElectricRed
 val OrangeYellow = Color(0xFFFFB300)

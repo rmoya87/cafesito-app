@@ -67,6 +67,9 @@
   --water-blue-bg: #e3f2fd;
   --disabled-gray: #9e9e9e;
   --success-green: #81c784;
+  /** Verde eléctrico para estado activo de listas (favoritos/listas custom) en detalle café y topbar. */
+  --electric-green: #00e676;
+  --electric-green-rgb: 0, 230, 118;
   --electric-red: #ff3b30;
   --orange-yellow: #ffb300;
   --focus-ring: rgba(111, 78, 55, 0.24);
@@ -92,6 +95,13 @@
   --sheet-overlay-bg: rgba(0, 0, 0, 0.55);
   --sheet-shadow: rgba(0, 0, 0, 0.44);
   --ui-switch-track-bg: rgba(255, 255, 255, 0.08);
+  /* Switch inactivo: visible en fondos claros (tarjetas, superficie clara) */
+  --ui-switch-track-off: rgba(0, 0, 0, 0.12);
+  --ui-switch-border-off: rgba(0, 0, 0, 0.2);
+  /* Cajas/tarjetas de superficie: borde, sombra y redondeo unificados (como temporizador) */
+  --surface-card-border: 1px solid rgba(0, 0, 0, 0.08);
+  --surface-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --surface-card-radius: 12px;
   --scrollbar-thumb: #5c5c5c;
 }
 
@@ -119,11 +129,20 @@
     --border-strong: #000000;
     --modal-field-border: #000000;
     --slider-track-inactive: rgba(255, 255, 255, 0.22);
+    /* Switch inactivo: visible en fondos oscuros */
+    --ui-switch-track-off: rgba(255, 255, 255, 0.15);
+    --ui-switch-border-off: rgba(255, 255, 255, 0.25);
+    /* Cajas/tarjetas de superficie en modo oscuro */
+    --surface-card-border: 1px solid rgba(255, 255, 255, 0.12);
+    --surface-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    --surface-card-radius: 12px;
     /* Modales/sheets: mismo fondo que el resto de la app */
     --modal-surface-bg: var(--screen-dark-background);
     --modal-header-bg: var(--screen-dark-background);
     /* Campos de texto (comentar, reseña, composer): fondo negro como en Android */
     --modal-field-bg: var(--pure-black);
+    /* Superficie tipo tarjeta en modo noche (elaboración, recomendaciones, filas) */
+    --surface-1: #212121;
   }
 
   .notifications-panel {
@@ -354,13 +373,36 @@ html.theme-light .bottom-tabs .nav-item.is-active {
   color: var(--caramel-accent);
 }
 
-html.theme-light .topbar-timeline,
-html.theme-light .topbar-historial {
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) {
+  background: var(--caramel-accent);
+}
+
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile).topbar-scrolled {
+  background: var(--caramel-accent);
+}
+
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button,
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button .ui-icon,
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button svg,
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .title,
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-brand-title {
+  color: var(--pure-black) !important;
+  fill: currentColor;
+}
+
+html.theme-light .topbar-historial,
+html.theme-light .topbar-home.topbar-home-inicio,
+html.theme-light .topbar-home.topbar-diary,
+html.theme-light .topbar-home.topbar-brew,
+html.theme-light .topbar-home.topbar-profile {
   background: rgba(247, 247, 247, 0.86);
 }
 
-html.theme-light .topbar-timeline.topbar-scrolled,
-html.theme-light .topbar-historial.topbar-scrolled {
+html.theme-light .topbar-historial.topbar-scrolled,
+html.theme-light .topbar-home.topbar-home-inicio.topbar-scrolled,
+html.theme-light .topbar-home.topbar-diary.topbar-scrolled,
+html.theme-light .topbar-home.topbar-brew.topbar-scrolled,
+html.theme-light .topbar-home.topbar-profile.topbar-scrolled {
   background: rgba(247, 247, 247, 0.95);
 }
 
@@ -412,6 +454,7 @@ html.theme-dark {
   --modal-field-bg: var(--pure-black);
   /* Anular variables que @media (prefers-color-scheme: light) asigna a :root */
   --surface: #000000;
+  --surface-1: #212121;
   --surface-elevated: #212121;
   --surface-muted: rgba(255, 255, 255, 0.04);
   --text-main: #ffffff;
@@ -449,13 +492,36 @@ html.theme-dark .bottom-tabs .nav-item.is-active {
   color: var(--caramel-accent);
 }
 
-html.theme-dark .topbar-timeline,
-html.theme-dark .topbar-historial {
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) {
+  background: var(--caramel-accent);
+}
+
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile).topbar-scrolled {
+  background: var(--caramel-accent);
+}
+
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button,
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button .ui-icon,
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button svg,
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .title,
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-brand-title {
+  color: var(--pure-black) !important;
+  fill: currentColor;
+}
+
+html.theme-dark .topbar-historial,
+html.theme-dark .topbar-home.topbar-home-inicio,
+html.theme-dark .topbar-home.topbar-diary,
+html.theme-dark .topbar-home.topbar-brew,
+html.theme-dark .topbar-home.topbar-profile {
   background: rgba(33, 33, 33, 0.86);
 }
 
-html.theme-dark .topbar-timeline.topbar-scrolled,
-html.theme-dark .topbar-historial.topbar-scrolled {
+html.theme-dark .topbar-historial.topbar-scrolled,
+html.theme-dark .topbar-home.topbar-home-inicio.topbar-scrolled,
+html.theme-dark .topbar-home.topbar-diary.topbar-scrolled,
+html.theme-dark .topbar-home.topbar-brew.topbar-scrolled,
+html.theme-dark .topbar-home.topbar-profile.topbar-scrolled {
   background: rgba(33, 33, 33, 0.95);
 }
 

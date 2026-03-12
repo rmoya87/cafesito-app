@@ -88,6 +88,30 @@ class BrewEngineTest {
     }
 
     @Test
+    fun rapido_caffeine_approximate_by_type_and_size() {
+        val espresso30 = BrewEngine.estimateCaffeineMg(
+            BrewCaffeineInput(BrewSource.BREWLAB, BREW_METHOD_OTROS, 0.0, hasCaffeine = true, amountMl = 30, drinkType = "Espresso")
+        )
+        assertTrue(espresso30 in 60..70)
+        val mediano = BrewEngine.estimateCaffeineMg(
+            BrewCaffeineInput(BrewSource.BREWLAB, BREW_METHOD_OTROS, 0.0, hasCaffeine = true, amountMl = 275, drinkType = "Americano")
+        )
+        assertTrue(mediano in 140..150)
+        val decaf = BrewEngine.estimateCaffeineMg(
+            BrewCaffeineInput(BrewSource.BREWLAB, BREW_METHOD_OTROS, 0.0, hasCaffeine = false, amountMl = 180, drinkType = "Filter")
+        )
+        assertTrue(decaf in 0..10)
+    }
+
+    @Test
+    fun rapido_approximate_coffee_grams_by_type_and_size() {
+        assertEquals(18, BrewEngine.approximateCoffeeGramsForRapido(30, "Espresso"))
+        assertTrue(BrewEngine.approximateCoffeeGramsForRapido(60, "Espresso") in 35..37)
+        assertTrue(BrewEngine.approximateCoffeeGramsForRapido(275, "Americano") in 15..17)
+        assertTrue(BrewEngine.approximateCoffeeGramsForRapido(180, "Filter") in 11..13)
+    }
+
+    @Test
     fun method_profile_contract_vector_for_espresso() {
         val profile = BrewEngine.methodProfileFor("Espresso")
         assertEquals(25, profile.waterMinMl)

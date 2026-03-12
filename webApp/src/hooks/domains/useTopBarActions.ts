@@ -25,7 +25,7 @@ export function useTopBarActions({
 }: {
   searchMode: "coffees" | "users";
   resetSearchUi: () => void;
-  navigateToTab: (tab: "timeline" | "search", options?: Record<string, unknown>) => void;
+  navigateToTab: (tab: "home" | "search", options?: Record<string, unknown>) => void;
   setShowBarcodeScannerSheet: (value: boolean) => void;
   isMobileOsDevice: boolean;
   setShowNotificationsPanel: (value: boolean) => void;
@@ -53,7 +53,7 @@ export function useTopBarActions({
       onSearchBack: () => {
         if (searchMode === "users") {
           resetSearchUi();
-          navigateToTab("timeline");
+          navigateToTab("home");
           return;
         }
         resetSearchUi();
@@ -76,7 +76,6 @@ export function useTopBarActions({
           });
         }
       },
-      onDiaryOpenQuickActions: () => setShowDiaryQuickActions(true),
       onDiaryOpenPeriodSelector: () => setShowDiaryPeriodSheet(true),
       onBrewBack: () => {
         if (showCreateCoffeeComposer) {
@@ -84,19 +83,14 @@ export function useTopBarActions({
           return;
         }
         if (brewStep === "coffee") setBrewStep("method");
-        else if (brewStep === "config") setBrewStep("coffee");
+        else if (brewStep === "result") setBrewStep("method");
         else if (brewStep === "brewing") {
           setTimerSeconds(0);
           setBrewRunning(false);
-          setBrewStep("config");
+          setBrewStep("method");
         }
       },
-      onBrewForward: () => {
-        if (brewStep !== "config") return;
-        setTimerSeconds(0);
-        setBrewRunning(false);
-        setBrewStep("brewing");
-      },
+      onBrewForward: () => {},
       onCoffeeTopbarToggleFavorite: () => {
         void runWithAuth(async () => {
           await saveDetailFavorite();
@@ -123,7 +117,6 @@ export function useTopBarActions({
       setNotificationsLastSeenAt,
       setShowBarcodeScannerSheet,
       setShowDiaryPeriodSheet,
-      setShowDiaryQuickActions,
       setShowNotificationsPanel,
       setTimerSeconds,
       showCreateCoffeeComposer,

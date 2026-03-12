@@ -1,8 +1,8 @@
 .card,
 .coffee-card,
 .config-card {
-  border-radius: var(--radius-card);
-  border: none;
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
   background: var(--surface);
 }
 

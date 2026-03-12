@@ -7,6 +7,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import coil.Coil
 import coil.ImageLoader
+import coil.decode.SvgDecoder
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 
@@ -18,6 +19,7 @@ object AppUiInitializer {
 
     private fun setupCoil(activity: Activity) {
         val imageLoader = ImageLoader.Builder(activity)
+            .components { add(SvgDecoder.Factory()) }
             .memoryCache { MemoryCache.Builder(activity).maxSizePercent(0.25).build() }
             .diskCache {
                 DiskCache.Builder()

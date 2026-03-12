@@ -53,8 +53,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
@@ -88,6 +86,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -115,11 +114,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cafesito.app.R
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.camera.NativeBarcodeScannerActivity
 import com.cafesito.app.ui.components.ErrorStateMessage
 import com.cafesito.app.ui.components.PremiumCard
+import com.cafesito.app.ui.components.SearchLoadingContent
 import com.cafesito.app.ui.components.ShimmerItem
 import com.cafesito.app.ui.components.TagChip
 import com.cafesito.app.ui.theme.*
@@ -381,6 +382,11 @@ fun SearchScreen(
 
     val isLoading = uiState is SearchUiState.Loading && !isRefreshing
 
+    // Refrescar desde Supabase al entrar en la pestaña para que aparezcan cafés recién añadidos
+    LaunchedEffect(Unit) {
+        viewModel.refreshData()
+    }
+
     val currentFilterCounts = remember(selectedOrigins, selectedRoasts, selectedSpecialties, selectedFormats, minRating) {
         mapOf(
             "País" to selectedOrigins.size,
@@ -481,14 +487,7 @@ fun SearchScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 when (val state = uiState) {
-                    is SearchUiState.Loading -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 100.dp)
-                        ) {
-                            items(3) { ShimmerItem(Modifier.fillMaxWidth().height(350.dp).padding(16.dp)) }
-                        }
-                    }
+                    is SearchUiState.Loading -> SearchLoadingContent()
                     is SearchUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 ErrorStateMessage(message = state.message, onRetry = { viewModel.refreshData() })
                             }
@@ -510,8 +509,7 @@ fun SearchScreen(
                                     Box(modifier = Modifier.padding(vertical = 4.dp)) {
                                         CoffeePremiumListItem(
                                             coffeeDetails = coffeeDetails,
-                                            onCoffeeClick = onCoffeeClick,
-                                            onFavoriteClick = { viewModel.toggleFavorite(coffeeDetails.coffee.id, coffeeDetails.isFavorite) }
+                                            onCoffeeClick = onCoffeeClick
                                         )
                                     }
                                 }
@@ -734,8 +732,7 @@ private fun RecentSearches(
 @Composable
 private fun CoffeePremiumListItem(
     coffeeDetails: CoffeeWithDetails,
-    onCoffeeClick: (String) -> Unit,
-    onFavoriteClick: () -> Unit
+    onCoffeeClick: (String) -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -764,7 +761,7 @@ private fun CoffeePremiumListItem(
                 
                 Spacer(Modifier.width(16.dp))
                 
-                Column(modifier = Modifier.weight(1f).padding(end = 36.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = coffeeDetails.coffee.nombre.toCoffeeNameFormat(),
                         style = MaterialTheme.typography.titleMedium,
@@ -780,21 +777,6 @@ private fun CoffeePremiumListItem(
                     )
                 }
             }
-
-            IconButton(
-                onClick = onFavoriteClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .minimumInteractiveComponentSize()
-            ) {
-                Icon(
-                    imageVector = if (coffeeDetails.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (coffeeDetails.isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
-                    tint = if (coffeeDetails.isFavorite) ElectricRed else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
         }
     }
 }
@@ -806,5 +788,7 @@ private fun EmptySearchResults(modifier: Modifier = Modifier) {
         Spacer(Modifier.height(16.dp))
         Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
         Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Text("Desliza hacia abajo para actualizar la lista desde el servidor.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
     }
 }

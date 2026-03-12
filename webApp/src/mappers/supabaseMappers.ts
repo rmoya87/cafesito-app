@@ -219,6 +219,7 @@ export function mapDiaryEntryRow(input: unknown): DiaryEntryRow {
 export function mapPantryItemRow(input: unknown): PantryItemRow {
   const row = (input ?? {}) as Record<string, unknown>;
   return {
+    id: toStringOrEmpty(row.id),
     coffee_id: toStringOrEmpty(row.coffee_id),
     user_id: toNumberOr(row.user_id, 0),
     grams_remaining: toNumberOr(row.grams_remaining, 0),

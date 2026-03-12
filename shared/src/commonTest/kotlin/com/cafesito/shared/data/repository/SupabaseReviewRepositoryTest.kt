@@ -70,5 +70,6 @@ class SupabaseReviewRepositoryTest {
             if (shouldThrow) error("boom")
             didUpsertReview = true
         }
+        override suspend fun getReviewByUserAndCoffee(userId: Int, coffeeId: String): ReviewDto? = null
     }
 }

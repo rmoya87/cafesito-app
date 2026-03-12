@@ -25,11 +25,24 @@ class DetailViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val diaryRepository: DiaryRepository,
     private val reviewRepository: ReviewRepository,
+    private val supabaseDataSource: SupabaseDataSource,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
     private val coffeeId: String = checkNotNull(savedStateHandle["coffeeId"])
+
+    private val _userLists = kotlinx.coroutines.flow.MutableStateFlow<List<UserListRow>>(emptyList())
+    private val _coffeeIdsInUserLists = kotlinx.coroutines.flow.MutableStateFlow<List<String>>(emptyList())
+
+    init {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            userRepository.getActiveUser()?.let { user ->
+                _userLists.value = supabaseDataSource.getUserLists(user.id)
+                _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInUserLists(user.id)
+            }
+        }
+    }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DetailUiState> = combine(
@@ -42,8 +55,10 @@ class DetailViewModel @Inject constructor(
         ) { activeUser, coffee, allReviews, sensoryProfiles, pantryItems ->
             PentaState(activeUser, coffee, allReviews, sensoryProfiles, pantryItems)
         },
-        coffeeRepository.favorites
-    ) { penta, favorites ->
+        coffeeRepository.favorites,
+        _userLists,
+        _coffeeIdsInUserLists
+    ) { penta, favorites, userLists, coffeeIdsInUserLists ->
         val activeUser = penta.activeUser
         val coffee = penta.coffee
         val allReviews = penta.allReviews
@@ -83,6 +98,7 @@ class DetailViewModel @Inject constructor(
 
         val pantryDetails = pantryItems.find { it.coffee.id == coffeeId }
 
+        val isListActive = isFavoriteLocally || coffeeId in coffeeIdsInUserLists
         DetailUiState.Success(
             coffee = updatedCoffee,
             reviews = reviewsForThisCoffee,
@@ -91,7 +107,9 @@ class DetailViewModel @Inject constructor(
             currentPantryItem = pantryDetails?.pantryItem,
             sensoryAverages = sensoryAverages,
             sensoryEditorsCount = sensoryEditorsCount,
-            activeUser = activeUser
+            activeUser = activeUser,
+            userLists = userLists,
+            isListActive = isListActive
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
 
@@ -114,6 +132,22 @@ class DetailViewModel @Inject constructor(
         }
     }
 
+    fun addCoffeeToList(listId: String) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            supabaseDataSource.addUserListItem(listId, coffeeId)
+            _coffeeIdsInUserLists.update { if (coffeeId in it) it else it + coffeeId }
+        }
+    }
+
+    fun createList(name: String, isPublic: Boolean) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            userRepository.getActiveUser()?.let { user ->
+                val newList = supabaseDataSource.createUserList(user.id, name, isPublic)
+                _userLists.update { it + newList }
+            }
+        }
+    }
+
     fun updateStock(total: Int, remaining: Int, name: String? = null, brand: String? = null) {
         viewModelScope.launch {
             val currentState = uiState.value as? DetailUiState.Success
@@ -132,7 +166,12 @@ class DetailViewModel @Inject constructor(
                     totalGrams = total
                 )
             }
-            diaryRepository.updatePantryStockFull(coffeeId, total, remaining)
+            val pantryId = currentState?.currentPantryItem?.id
+            if (pantryId != null) {
+                diaryRepository.updatePantryStockById(pantryId, total, remaining)
+            } else {
+                diaryRepository.addToPantry(coffeeId, total)
+            }
         }
     }
 
@@ -220,14 +259,16 @@ class DetailViewModel @Inject constructor(
 sealed interface DetailUiState {
     data object Loading : DetailUiState
     data class Success(
-        val coffee: CoffeeWithDetails, 
+        val coffee: CoffeeWithDetails,
         val reviews: List<UserReviewInfo>,
         val userReview: ReviewEntity?,
         val isCustom: Boolean,
         val currentPantryItem: PantryItemEntity?,
         val sensoryAverages: Map<String, Float>,
         val sensoryEditorsCount: Int,
-        val activeUser: UserEntity? = null
+        val activeUser: UserEntity? = null,
+        val userLists: List<UserListRow> = emptyList(),
+        val isListActive: Boolean = false
     ) : DetailUiState
     data class Error(val message: String) : DetailUiState
 }

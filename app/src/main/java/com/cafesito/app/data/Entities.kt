@@ -199,6 +199,44 @@ data class LocalFavorite(
     @SerialName("saved_at") val savedAt: Long = System.currentTimeMillis()
 )
 
+/** Lista personalizada del usuario (tabla user_lists en Supabase). */
+@Serializable
+data class UserListRow(
+    val id: String,
+    @SerialName("user_id") val userId: Long,
+    val name: String,
+    @SerialName("is_public") val isPublic: Boolean,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+/** Ítem de lista (coffee_id en user_list_items). */
+@Serializable
+data class UserListItemRow(
+    @SerialName("coffee_id") val coffeeId: String
+)
+
+/** Ítem de lista con metadatos para feed de actividad (solo listas públicas en perfiles ajenos). */
+data class ListItemActivityRow(
+    val listId: String,
+    val listName: String,
+    val isPublic: Boolean,
+    val coffeeId: String,
+    val createdAt: Long
+)
+
+@Serializable
+data class UserListInsert(
+    @SerialName("user_id") val userId: Long,
+    val name: String,
+    @SerialName("is_public") val isPublic: Boolean
+)
+
+@Serializable
+data class UserListItemInsert(
+    @SerialName("list_id") val listId: String,
+    @SerialName("coffee_id") val coffeeId: String
+)
+
 @Serializable
 @Entity(
     tableName = "diary_entries",
@@ -233,8 +271,9 @@ data class PendingDiarySyncEntity(
 )
 
 @Serializable
-@Entity(tableName = "pantry_items", primaryKeys = ["coffeeId", "userId"])
+@Entity(tableName = "pantry_items")
 data class PantryItemEntity(
+    @PrimaryKey @SerialName("id") val id: String,
     @SerialName("coffee_id") val coffeeId: String,
     @SerialName("user_id") val userId: Int,
     @SerialName("grams_remaining") val gramsRemaining: Int,
@@ -330,6 +369,42 @@ data class UserReviewInfo(
     val authorName: String?, 
     val authorAvatarUrl: String?
 )
+
+/** Item del feed de actividad en perfil: opinión, primera vez café o añadido a lista pública. */
+@Immutable
+sealed class ProfileActivityItem {
+    abstract val userId: Int
+    abstract val userName: String
+    abstract val avatarUrl: String?
+    abstract val timestamp: Long
+
+    data class Review(val reviewInfo: UserReviewInfo) : ProfileActivityItem() {
+        override val userId: Int get() = reviewInfo.review.userId
+        override val userName: String get() = reviewInfo.authorName ?: ""
+        override val avatarUrl: String? get() = reviewInfo.authorAvatarUrl
+        override val timestamp: Long get() = reviewInfo.review.timestamp
+    }
+
+    data class FirstTimeCoffee(
+        override val userId: Int,
+        override val userName: String,
+        override val avatarUrl: String?,
+        override val timestamp: Long,
+        val coffeeId: String,
+        val coffeeName: String
+    ) : ProfileActivityItem()
+
+    data class AddedToList(
+        override val userId: Int,
+        override val userName: String,
+        override val avatarUrl: String?,
+        override val timestamp: Long,
+        val coffeeId: String,
+        val coffeeName: String,
+        val listId: String,
+        val listName: String
+    ) : ProfileActivityItem()
+}
 
 @Immutable
 data class CoffeeWithDetails(

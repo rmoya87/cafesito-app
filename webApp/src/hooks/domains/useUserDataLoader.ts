@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { getSupabaseClient } from "../../supabase";
 import { fetchUserData } from "../../data/supabaseApi";
+import type { UserListItemActivityRow } from "../../data/supabaseApi";
 import type {
   CoffeeRow,
   DiaryEntryRow,
@@ -8,6 +9,7 @@ import type {
   FinishedCoffeeRow,
   NotificationRow,
   PantryItemRow,
+  UserListRow,
   UserRow
 } from "../../types";
 
@@ -16,6 +18,9 @@ type Params = {
   setDiaryEntries: (value: DiaryEntryRow[]) => void;
   setPantryItems: (value: PantryItemRow[]) => void;
   setFavorites: (value: FavoriteRow[]) => void;
+  setUserLists: (value: UserListRow[]) => void;
+  setCoffeeIdsInUserLists: (value: string[]) => void;
+  setAllListItemsForActivity: (value: UserListItemActivityRow[]) => void;
   setCustomCoffees: (value: CoffeeRow[]) => void;
   setFinishedCoffees: (value: FinishedCoffeeRow[]) => void;
   setNotifications: (value: NotificationRow[]) => void;
@@ -27,6 +32,9 @@ export function useUserDataLoader({
   setDiaryEntries,
   setPantryItems,
   setFavorites,
+  setUserLists,
+  setCoffeeIdsInUserLists,
+  setAllListItemsForActivity,
   setCustomCoffees,
   setFinishedCoffees,
   setNotifications,
@@ -39,13 +47,21 @@ export function useUserDataLoader({
     const loadInitialData = async () => {
       try {
         const data = await fetchUserData(activeUser.id);
-        const { fetchNotifications } = await import("../../data/supabaseApi");
-        const notifications = await fetchNotifications(activeUser.id);
+        const { fetchNotifications, fetchUserLists, fetchCoffeeIdsInUserLists, fetchAllListItemsForActivity } = await import("../../data/supabaseApi");
+        const [notifications, userLists, coffeeIdsInLists, listItemsForActivity] = await Promise.all([
+          fetchNotifications(activeUser.id),
+          fetchUserLists(activeUser.id),
+          fetchCoffeeIdsInUserLists(activeUser.id),
+          fetchAllListItemsForActivity(activeUser.id)
+        ]);
         if (cancelled) return;
 
         setDiaryEntries(data.diaryEntries);
         setPantryItems(data.pantryItems);
         setFavorites(data.favorites);
+        setUserLists(userLists);
+        setCoffeeIdsInUserLists(coffeeIdsInLists);
+        setAllListItemsForActivity(listItemsForActivity);
         setCustomCoffees(data.customCoffees);
         setFinishedCoffees(data.finishedCoffees);
         setNotifications(notifications);
@@ -105,6 +121,9 @@ export function useUserDataLoader({
     setFavorites,
     setGlobalStatus,
     setNotifications,
-    setPantryItems
+    setPantryItems,
+    setCoffeeIdsInUserLists,
+    setAllListItemsForActivity,
+    setUserLists
   ]);
 }

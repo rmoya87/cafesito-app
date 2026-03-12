@@ -1,5 +1,5 @@
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
-import { upsertCustomCoffee, upsertPantryStock, uploadImageFile } from "../../data/supabaseApi";
+import { insertPantryItem, upsertCustomCoffee, uploadImageFile } from "../../data/supabaseApi";
 import type { CoffeeRow, PantryItemRow, UserRow } from "../../types";
 
 const initialDraft = {
@@ -82,13 +82,13 @@ export function useCreateCoffeeDomain({
       });
 
       if (!fromPantrySheet) {
-        const pantryRow = await upsertPantryStock({
+        const pantryRow = await insertPantryItem({
           coffeeId: created.id,
           userId: activeUser.id,
           totalGrams: Math.max(1, createCoffeeDraft.totalGrams || 250),
           gramsRemaining: Math.max(1, createCoffeeDraft.totalGrams || 250)
         });
-        setPantryItems((prev) => [pantryRow, ...prev.filter((item) => !(item.coffee_id === pantryRow.coffee_id && item.user_id === pantryRow.user_id))]);
+        setPantryItems((prev) => [pantryRow, ...prev]);
       }
 
       setCustomCoffees((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
@@ -96,10 +96,10 @@ export function useCreateCoffeeDomain({
         setShowCreateCoffeeComposer(false);
         if (fromBrewChooser) {
           setBrewCoffeeId(created.id);
-          setBrewStep("config");
+          setBrewStep("method");
         } else {
           setBrewCoffeeId(created.id);
-          setBrewStep("config");
+          setBrewStep("method");
         }
       }
       setCreateCoffeeDraft(initialDraft);

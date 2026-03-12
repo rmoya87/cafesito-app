@@ -1,4 +1,4 @@
-import { type Dispatch, type MutableRefObject, type RefObject, type SetStateAction, useEffect } from "react";
+import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect } from "react";
 
 export function useAppUiEffects({
   timelineActionBanner,
@@ -10,28 +10,17 @@ export function useAppUiEffects({
   showNotificationsPanel,
   showCreatePost,
   showCreatePostCoffeeSheet,
-  commentSheetPostId,
   showCreateCoffeeComposer,
   resetCreatePostComposer,
   setShowNotificationsPanel,
   setShowCreatePostCoffeeSheet,
-  setCommentSheetPostId,
-  setCommentDraft,
-  setHighlightedCommentId,
   setShowCreateCoffeeComposer,
-  editingCommentId,
-  setCommentMenuId,
-  setEditingCommentId,
   showAuthPrompt,
   setShowAuthPrompt,
-  commentListRef,
-  comments,
-  commentImagePreviewUrl,
-  highlightedCommentId,
   handledTimelineDeepLink,
   setHandledTimelineDeepLink,
   posts,
-  navigateToTimelineReplace,
+  navigateToHomeReplace,
   setNotificationsLastSeenAt,
   notificationsLastSeenAt,
   visibleTimelineNotifications,
@@ -41,35 +30,24 @@ export function useAppUiEffects({
 }: {
   timelineActionBanner: string | null;
   setTimelineActionBanner: (value: string | null) => void;
-  activeTab: "timeline" | "search" | "coffee" | "brewlab" | "diary" | "profile";
+  activeTab: "home" | "search" | "coffee" | "brewlab" | "diary" | "profile";
   searchMode: "users" | "coffees";
   searchFocusCoffeeProfile: boolean;
   setSearchActiveFilterType: (value: "origen" | "especialidad" | "tueste" | "formato" | "nota" | null) => void;
   showNotificationsPanel: boolean;
   showCreatePost: boolean;
   showCreatePostCoffeeSheet: boolean;
-  commentSheetPostId: string | null;
   showCreateCoffeeComposer: boolean;
   resetCreatePostComposer: () => void;
   setShowNotificationsPanel: (value: boolean) => void;
   setShowCreatePostCoffeeSheet: (value: boolean) => void;
-  setCommentSheetPostId: (value: string | null) => void;
-  setCommentDraft: (value: string) => void;
-  setHighlightedCommentId: (value: number | null) => void;
   setShowCreateCoffeeComposer: (value: boolean) => void;
-  editingCommentId: number | null;
-  setCommentMenuId: (value: number | null) => void;
-  setEditingCommentId: (value: number | null) => void;
   showAuthPrompt: boolean;
   setShowAuthPrompt: (value: boolean) => void;
-  commentListRef: RefObject<HTMLUListElement | null>;
-  comments: Array<{ id: number; post_id: string; timestamp: number }>;
-  commentImagePreviewUrl: string;
-  highlightedCommentId: number | null;
   handledTimelineDeepLink: boolean;
   setHandledTimelineDeepLink: (value: boolean) => void;
   posts: Array<{ id: string }>;
-  navigateToTimelineReplace: () => void;
+  navigateToHomeReplace: () => void;
   setNotificationsLastSeenAt: Dispatch<SetStateAction<number>>;
   notificationsLastSeenAt: number;
   visibleTimelineNotifications: Array<{ timestamp: number }>;
@@ -96,21 +74,12 @@ export function useAppUiEffects({
       if (showNotificationsPanel) setShowNotificationsPanel(false);
       if (showCreatePost) resetCreatePostComposer();
       if (showCreatePostCoffeeSheet) setShowCreatePostCoffeeSheet(false);
-      if (commentSheetPostId) {
-        setCommentSheetPostId(null);
-        setCommentDraft("");
-        setHighlightedCommentId(null);
-      }
       if (showCreateCoffeeComposer) setShowCreateCoffeeComposer(false);
     };
     window.addEventListener("keydown", onEscSheet);
     return () => window.removeEventListener("keydown", onEscSheet);
   }, [
-    commentSheetPostId,
     resetCreatePostComposer,
-    setCommentDraft,
-    setCommentSheetPostId,
-    setHighlightedCommentId,
     setShowCreateCoffeeComposer,
     setShowCreatePostCoffeeSheet,
     setShowNotificationsPanel,
@@ -123,26 +92,13 @@ export function useAppUiEffects({
   ]);
 
   useEffect(() => {
-    const hasModal = Boolean(commentSheetPostId || showCreatePost || showNotificationsPanel || showCreatePostCoffeeSheet);
+    const hasModal = Boolean(showCreatePost || showNotificationsPanel || showCreatePostCoffeeSheet);
     const prev = document.body.style.overflow;
     if (hasModal) document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [commentSheetPostId, showCreatePost, showCreatePostCoffeeSheet, showNotificationsPanel]);
-
-  useEffect(() => {
-    const onEsc = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setCommentMenuId(null);
-      if (editingCommentId) {
-        setEditingCommentId(null);
-        setCommentDraft("");
-      }
-    };
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [editingCommentId, setCommentDraft, setCommentMenuId, setEditingCommentId]);
+  }, [showCreatePost, showCreatePostCoffeeSheet, showNotificationsPanel]);
 
   useEffect(() => {
     if (activeTab !== "search" || searchMode !== "users") return;
@@ -151,53 +107,6 @@ export function useAppUiEffects({
     }, 40);
     return () => window.clearTimeout(id);
   }, [activeTab, searchMode]);
-
-  useEffect(() => {
-    if (!commentSheetPostId) return;
-    const list = commentListRef.current;
-    if (!list) return;
-    list.scrollTop = list.scrollHeight;
-  }, [commentSheetPostId, commentListRef, comments, editingCommentId]);
-
-  useEffect(() => {
-    return () => {
-      if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
-    };
-  }, [commentImagePreviewUrl]);
-
-  useEffect(() => {
-    if (!commentSheetPostId || !highlightedCommentId) return;
-    const list = commentListRef.current;
-    if (!list) return;
-    const target = list.querySelector<HTMLElement>(`[data-comment-id="${highlightedCommentId}"]`);
-    if (!target) return;
-    target.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [commentListRef, commentSheetPostId, comments, highlightedCommentId]);
-
-  useEffect(() => {
-    if (handledTimelineDeepLink) return;
-    const params = new URLSearchParams(window.location.search);
-    const postId = params.get("postId");
-    const commentIdRaw = params.get("commentId");
-    const commentId = commentIdRaw ? Number(commentIdRaw) : null;
-    if (!postId) return;
-    if (!posts.some((post) => post.id === postId)) return;
-    navigateToTimelineReplace();
-    setCommentSheetPostId(postId);
-    if (commentId != null && Number.isFinite(commentId)) setHighlightedCommentId(commentId);
-    setHandledTimelineDeepLink(true);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("postId");
-    url.searchParams.delete("commentId");
-    window.history.replaceState({}, "", url.toString());
-  }, [
-    handledTimelineDeepLink,
-    navigateToTimelineReplace,
-    posts,
-    setCommentSheetPostId,
-    setHandledTimelineDeepLink,
-    setHighlightedCommentId
-  ]);
 
   useEffect(
     () => () => {
@@ -223,7 +132,7 @@ export function useAppUiEffects({
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
-      if (activeTab !== "timeline") return;
+      if (activeTab !== "home") return;
       void handleRefreshTimeline();
     };
     window.addEventListener("focus", onVisible);

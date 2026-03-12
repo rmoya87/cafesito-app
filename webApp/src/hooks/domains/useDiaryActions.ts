@@ -1,6 +1,7 @@
 import { useCallback } from "react";
-import { createDiaryEntry, deleteDiaryEntry, deletePantryItem, updateDiaryEntry, upsertPantryStock } from "../../data/supabaseApi";
+import { createDiaryEntry, deleteDiaryEntry, deletePantryItemById, updateDiaryEntry, updatePantryItem } from "../../data/supabaseApi";
 import { cupSizeLabelForAmountMl, estimateCaffeineMg, hasCaffeineFromLabel } from "../../core/brewEngine";
+import { normalizeLookupText } from "../../core/text";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow, UserRow } from "../../types";
 
 export function useDiaryActions({
@@ -29,23 +30,40 @@ export function useDiaryActions({
   navigateToDiary: () => void;
 }) {
   const saveBrewToDiary = useCallback(
-    async (taste: string) => {
-      if (!activeUser || !selectedCoffee) return;
-      const caffeineMg = estimateCaffeineMg({
-        source: "brewlab",
-        methodOrPreparation: brewMethod || "Metodo",
-        coffeeGrams,
-        hasCaffeine: hasCaffeineFromLabel(selectedCoffee.cafeina)
-      });
-      const preparationType = `Lab: ${brewMethod || "Metodo"} (${taste})`;
+    async (taste: string, drinkType?: string) => {
+      if (!activeUser) return;
+      const normMethod = normalizeLookupText(brewMethod || "");
+      const isRapido = normMethod === "rapido" || normMethod === "otros";
+      const drinkTypeVal = drinkType?.trim() || "Espresso";
+      const gramsToSave = Math.max(0, coffeeGrams);
+      const caffeineMg = selectedCoffee
+        ? estimateCaffeineMg({
+            source: "brewlab",
+            methodOrPreparation: brewMethod || "Metodo",
+            coffeeGrams: gramsToSave,
+            hasCaffeine: hasCaffeineFromLabel(selectedCoffee.cafeina),
+            ...(isRapido && waterMl > 0 ? { amountMl: waterMl, drinkType: drinkTypeVal } : {})
+          })
+        : isRapido && waterMl > 0
+          ? estimateCaffeineMg({
+              source: "brewlab",
+              methodOrPreparation: brewMethod || "Metodo",
+              coffeeGrams: 0,
+              hasCaffeine: true,
+              amountMl: waterMl,
+              drinkType: drinkTypeVal
+            })
+          : 0;
+      const methodPart = `Lab: ${brewMethod || "Metodo"} (${taste})`;
+      const preparationType = drinkType?.trim() ? `${methodPart}|${drinkType.trim()}` : methodPart;
       const sizeLabel = cupSizeLabelForAmountMl(waterMl);
       const created = await createDiaryEntry({
         userId: activeUser.id,
-        coffeeId: selectedCoffee.id,
-        coffeeName: selectedCoffee.nombre,
+        coffeeId: selectedCoffee?.id ?? null,
+        coffeeName: selectedCoffee?.nombre ?? "Café",
         amountMl: waterMl,
         caffeineMg,
-        coffeeGrams,
+        coffeeGrams: gramsToSave,
         preparationType,
         sizeLabel,
         type: "CUP"
@@ -59,6 +77,7 @@ export function useDiaryActions({
     [activeUser, brewMethod, coffeeGrams, navigateToDiary, selectedCoffee, setBrewRunning, setBrewStep, setDiaryEntries, setTimerSeconds, waterMl]
   );
 
+  /** Elimina solo la entrada del diario (actividad). No modifica la despensa: el café sigue en pantry si estaba. */
   const handleDeleteDiaryEntry = useCallback(
     async (entryId: number) => {
       if (!activeUser) return;
@@ -95,28 +114,21 @@ export function useDiaryActions({
   );
 
   const handleUpdatePantryStock = useCallback(
-    async (coffeeId: string, totalGrams: number, gramsRemaining: number) => {
+    async (pantryItemId: string, totalGrams: number, gramsRemaining: number) => {
       if (!activeUser) return;
       const total = Math.max(1, Math.round(totalGrams));
       const remaining = Math.max(0, Math.min(total, Math.round(gramsRemaining)));
-      const updated = await upsertPantryStock({
-        coffeeId,
-        userId: activeUser.id,
-        totalGrams: total,
-        gramsRemaining: remaining
-      });
-      setPantryItems((prev) =>
-        [updated, ...prev.filter((row) => !(row.user_id === updated.user_id && row.coffee_id === updated.coffee_id))]
-      );
+      const updated = await updatePantryItem(pantryItemId, { totalGrams: total, gramsRemaining: remaining });
+      setPantryItems((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
     },
     [activeUser, setPantryItems]
   );
 
   const handleRemovePantryItem = useCallback(
-    async (coffeeId: string) => {
+    async (pantryItemId: string) => {
       if (!activeUser) return;
-      await deletePantryItem(coffeeId, activeUser.id);
-      setPantryItems((prev) => prev.filter((row) => !(row.user_id === activeUser.id && row.coffee_id === coffeeId)));
+      await deletePantryItemById(pantryItemId);
+      setPantryItems((prev) => prev.filter((row) => row.id !== pantryItemId));
     },
     [activeUser, setPantryItems]
   );

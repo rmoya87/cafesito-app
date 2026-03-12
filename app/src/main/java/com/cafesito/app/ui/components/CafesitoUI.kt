@@ -72,10 +72,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.cafesito.app.R
 import com.cafesito.app.data.CoffeeWithDetails
-import com.cafesito.app.data.CommentWithAuthor
 import com.cafesito.app.data.DiaryEntryEntity
 import com.cafesito.app.data.PantryItemWithDetails
-import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.brewlab.BrewLabViewModel
@@ -224,9 +222,22 @@ fun GlassyTopBar(
 
 @Composable
 fun ShimmerItem(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmerAlpha"
+    )
+    val isDark = isSystemInDarkTheme()
+    val baseAlpha = if (isDark) 0.12f else 0.08f
+    val animAlpha = baseAlpha + alpha
     Box(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = animAlpha.coerceIn(0.05f, 0.3f)), RoundedCornerShape(16.dp))
     )
 }
 
@@ -270,24 +281,16 @@ fun ProfileHeaderShimmer() {
 }
 
 @Composable
-fun PostCardShimmer() {
-    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Column {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)))
-            Spacer(Modifier.height(16.dp))
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                ShimmerItem(modifier = Modifier
-                    .height(20.dp)
-                    .fillMaxWidth(0.7f))
-                Spacer(Modifier.height(8.dp))
-                ShimmerItem(modifier = Modifier
-                    .height(16.dp)
-                    .fillMaxWidth(0.9f))
+fun ProfileActivityCardShimmer() {
+    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            ShimmerItem(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                ShimmerItem(modifier = Modifier.height(18.dp).fillMaxWidth(0.6f))
+                Spacer(Modifier.height(6.dp))
+                ShimmerItem(modifier = Modifier.height(14.dp).fillMaxWidth(0.4f))
             }
-            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -393,6 +396,194 @@ fun PantryItemShimmer() {
                     .height(4.dp)
                     .clip(CircleShape))
             }
+        }
+    }
+}
+
+/** Skeleton de carga para Home (Timeline): carrusel métodos 100x100, Tu despensa (160dp cards), Cafés recomendados (220x180). */
+@Composable
+fun TimelineLoadingContent() {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 88.dp)
+    ) {
+        item {
+            Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(5) {
+                        ShimmerItem(Modifier.size(100.dp).clip(RoundedCornerShape(20.dp)))
+                    }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+        item {
+            Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+                ShimmerItem(Modifier.padding(horizontal = 16.dp).height(22.dp).width(140.dp))
+                Spacer(Modifier.height(12.dp))
+                LazyRow(
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(4) {
+                        ShimmerItem(Modifier.width(160.dp).height(220.dp).clip(RoundedCornerShape(24.dp)))
+                    }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+        item {
+            Column(Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
+                ShimmerItem(Modifier.padding(horizontal = 16.dp).height(22.dp).width(180.dp))
+                Spacer(Modifier.height(12.dp))
+                LazyRow(
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(3) {
+                        ShimmerItem(Modifier.width(220.dp).height(180.dp).clip(RoundedCornerShape(12.dp)))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Una fila de skeleton que imita CoffeePremiumListItem: 86dp altura, imagen 60dp + texto. */
+@Composable
+private fun SearchListItemShimmer() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(86.dp)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ShimmerItem(Modifier.size(60.dp).clip(RoundedCornerShape(12.dp)))
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            ShimmerItem(Modifier.height(18.dp).fillMaxWidth(0.85f))
+            Spacer(Modifier.height(8.dp))
+            ShimmerItem(Modifier.height(14.dp).fillMaxWidth(0.5f))
+        }
+    }
+}
+
+/** Skeleton de carga para Explorar (Search): lista de filas tipo CoffeePremiumListItem. */
+@Composable
+fun SearchLoadingContent() {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 100.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(10) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.Transparent,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            ) {
+                SearchListItemShimmer()
+            }
+        }
+    }
+}
+
+/** Skeleton de carga para Elaboración (BrewLab): carrusel métodos, card café, tipo/tamaño, config. */
+@Composable
+fun BrewLabLoadingContent() {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 120.dp)
+    ) {
+        item {
+            Spacer(Modifier.height(16.dp))
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(5) {
+                    ShimmerItem(Modifier.size(140.dp).clip(RoundedCornerShape(24.dp)))
+                }
+            }
+        }
+        item { Spacer(Modifier.height(20.dp)) }
+        item {
+            PremiumCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                Row(
+                    Modifier.padding(24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShimmerItem(Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)))
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        ShimmerItem(Modifier.height(18.dp).fillMaxWidth(0.7f))
+                        Spacer(Modifier.height(8.dp))
+                        ShimmerItem(Modifier.height(14.dp).fillMaxWidth(0.4f))
+                    }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(24.dp)) }
+        item {
+            Column(Modifier.padding(horizontal = 24.dp)) {
+                ShimmerItem(Modifier.height(16.dp).width(80.dp))
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(4) { ShimmerItem(Modifier.height(36.dp).width(90.dp).clip(RoundedCornerShape(12.dp))) }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(20.dp)) }
+        item {
+            Column(Modifier.padding(horizontal = 24.dp)) {
+                ShimmerItem(Modifier.height(16.dp).width(100.dp))
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(4) { ShimmerItem(Modifier.height(36.dp).width(80.dp).clip(RoundedCornerShape(12.dp))) }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(24.dp)) }
+        item {
+            PremiumCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                Column(Modifier.padding(24.dp)) {
+                    ShimmerItem(Modifier.height(18.dp).width(180.dp))
+                    Spacer(Modifier.height(16.dp))
+                    ShimmerItem(Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(12.dp)))
+                }
+            }
+        }
+    }
+}
+
+/** Skeleton de carga para detalle de café: imagen, título, bloques de datos. */
+@Composable
+fun DetailLoadingContent() {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        item {
+            ShimmerItem(Modifier.fillMaxWidth().height(280.dp))
+            Spacer(Modifier.height(20.dp))
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                ShimmerItem(Modifier.height(28.dp).fillMaxWidth(0.85f))
+                Spacer(Modifier.height(8.dp))
+                ShimmerItem(Modifier.height(20.dp).fillMaxWidth(0.5f))
+                Spacer(Modifier.height(24.dp))
+                repeat(4) {
+                    ShimmerItem(Modifier.height(48.dp).fillMaxWidth())
+                    Spacer(Modifier.height(12.dp))
+                }
+                Spacer(Modifier.height(16.dp))
+                ShimmerItem(Modifier.height(24.dp).width(120.dp))
+                Spacer(Modifier.height(12.dp))
+                ShimmerItem(Modifier.height(80.dp).fillMaxWidth())
+                ShimmerItem(Modifier.height(80.dp).fillMaxWidth())
+            }
+            Spacer(Modifier.height(32.dp))
         }
     }
 }

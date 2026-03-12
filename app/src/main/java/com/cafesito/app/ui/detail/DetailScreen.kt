@@ -107,7 +107,7 @@ fun DetailScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             when (val state = uiState) {
-                is DetailUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+                is DetailUiState.Loading -> DetailLoadingContent()
                 is DetailUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorStateMessage(message = state.message, onRetry = { viewModel.loadInitialIfNeeded() })
                 }
@@ -127,7 +127,11 @@ fun DetailScreen(
                         onSensorySubmit = { a, sa, cu, ac, du -> viewModel.submitSensoryProfile(a, sa, cu, ac, du) },
                         sensoryAverages = state.sensoryAverages,
                         sensoryEditorsCount = state.sensoryEditorsCount,
-                        allUsers = allUsers
+                        allUsers = allUsers,
+                        userLists = state.userLists,
+                        isListActive = state.isListActive,
+                        onCreateList = { name, isPublic -> viewModel.createList(name, isPublic) },
+                        onAddCoffeeToList = { viewModel.addCoffeeToList(it) }
                     )
                 }
             }
@@ -152,7 +156,11 @@ private fun DetailContent(
     onSensorySubmit: (Float, Float, Float, Float, Float) -> Unit,
     sensoryAverages: Map<String, Float>,
     sensoryEditorsCount: Int,
-    allUsers: List<UserEntity>
+    allUsers: List<UserEntity>,
+    userLists: List<com.cafesito.app.data.UserListRow> = emptyList(),
+    isListActive: Boolean = false,
+    onCreateList: (name: String, isPublic: Boolean) -> Unit = { _, _ -> },
+    onAddCoffeeToList: (listId: String) -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
     val coffee = coffeeDetails.coffee
@@ -161,6 +169,8 @@ private fun DetailContent(
     var showAddReviewDialog by remember { mutableStateOf(false) }
     var showStockDialog by remember { mutableStateOf(false) }
     var showSensoryEditor by remember { mutableStateOf(false) }
+    var showAddToListModal by remember { mutableStateOf(false) }
+    var showCreateListSheet by remember { mutableStateOf(false) }
 
     if (showAddReviewDialog) {
         ReviewBottomSheet(
@@ -203,6 +213,36 @@ private fun DetailContent(
                     map["Dulzura"] ?: 0f
                 )
                 showSensoryEditor = false
+            }
+        )
+    }
+
+    if (showCreateListSheet) {
+        com.cafesito.app.ui.components.CreateListBottomSheet(
+            onDismiss = { showCreateListSheet = false },
+            onCreate = { name, isPublic ->
+                onCreateList(name, isPublic)
+                showCreateListSheet = false
+                showAddToListModal = true
+            }
+        )
+    }
+
+    if (showAddToListModal) {
+        com.cafesito.app.ui.components.AddToListBottomSheet(
+            onDismiss = { showAddToListModal = false },
+            userLists = userLists,
+            onCreateListRequest = {
+                showAddToListModal = false
+                showCreateListSheet = true
+            },
+            onAddToList = { listId ->
+                onAddCoffeeToList(listId)
+                showAddToListModal = false
+            },
+            onFavoriteToggle = {
+                onFavoriteToggle(true)
+                showAddToListModal = false
             }
         )
     }
@@ -440,11 +480,11 @@ private fun DetailContent(
                 )
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
-                    icon = if (coffeeDetails.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    iconColor = if (coffeeDetails.isFavorite) ElectricRed else Color.Black,
+                    iconPainter = if (isListActive) rememberListAltCheckSvgPainter() else rememberListAltAddSvgPainter(),
+                    iconColor = if (isListActive) ElectricGreen else Color.Black,
                     premiumAnimated = true,
-                    contentDescription = if (coffeeDetails.isFavorite) "Quitar de favoritos" else "Guardar en favoritos",
-                    onClick = { onFavoriteToggle(!coffeeDetails.isFavorite) }
+                    contentDescription = if (isListActive) "Quitar de listas" else "Añadir a listas",
+                    onClick = { showAddToListModal = true }
                 )
             }
         }

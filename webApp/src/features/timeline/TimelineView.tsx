@@ -1,10 +1,13 @@
-import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type CSSProperties, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CTA, EMPTY, ERROR } from "../../core/emptyErrorStrings";
+import { getOrderedBrewMethods, type BrewMethodItem } from "../../config/brew";
+import { EMPTY, ERROR } from "../../core/emptyErrorStrings";
 import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
+
+export type TimelineHeroUser = { fullName: string; username: string; avatarUrl: string | null };
 
 function SuggestionAvatar({
   avatarUrl,
@@ -43,18 +46,24 @@ export function TimelineView({
   errorMessage,
   refreshing,
   activeUserId,
-  onOpenComments,
-  onToggleLike,
   onToggleFollow,
-  onEditPost,
-  onDeletePost,
   onRefresh,
   onMentionClick,
   resolveMentionUser,
   onOpenUserProfile,
   onOpenCoffee,
-  onOpenCreatePost,
-  sidePanel
+  onOpenSearch,
+  activeUserDisplay,
+  sidePanel,
+  onOpenBrewToMethod,
+  orderedBrewMethods = [],
+  pantryItems = [],
+  onPantryCoffeeClick,
+  onAddCoffeeToDiary,
+  onAddToPantry,
+  onUpdatePantryStock,
+  onRemovePantryItem,
+  onMarkPantryCoffeeFinished
 }: {
   mode: "mobile" | "desktop";
   cards: TimelineCard[];
@@ -67,51 +76,121 @@ export function TimelineView({
   errorMessage: string | null;
   refreshing: boolean;
   activeUserId: number | null;
-  onOpenComments: (postId: string) => void;
-  onToggleLike: (postId: string) => void;
   onToggleFollow: (userId: number) => void;
-  onEditPost: (postId: string, newText: string, newImageUrl: string, imageFile?: File | null) => Promise<void>;
-  onDeletePost: (postId: string) => Promise<void>;
   onRefresh: () => Promise<void>;
   onMentionClick: (username: string) => void;
   resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
   onOpenUserProfile: (userId: number) => void;
   onOpenCoffee: (coffeeId: string) => void;
-  onOpenCreatePost?: () => void;
+  onOpenSearch?: () => void;
+  activeUserDisplay?: TimelineHeroUser | null;
   sidePanel?: ReactNode;
+  /** Al pulsar un método de elaboración: ir a pestaña Elabora en el paso de elegir café con ese método */
+  onOpenBrewToMethod?: (methodName: string) => void;
+  /** Métodos de elaboración ordenados (más usados primero, luego alfabético, Otros al final). */
+  orderedBrewMethods?: BrewMethodItem[];
+  /** Filas de despensa (mismo formato que en Elige tu café). Si no se pasa, no se muestra el bloque. */
+  pantryItems?: Array<{ item: { id: string; coffee_id: string }; coffee: CoffeeRow; total: number; remaining: number; progress: number }>;
+  /** Al pulsar un café de despensa: ir a elaboración dosis (CONFIGURA) y al terminar ir a Mi diario */
+  onPantryCoffeeClick?: (coffeeId: string) => void;
+  /** Al pulsar «Añadir café» en el menú de despensa: abrir «Añade café a mi diario» (DOSIS) con el café preseleccionado */
+  onAddCoffeeToDiary?: (coffeeId: string) => void;
+  /** Al pulsar el + de despensa: flujo añadir a despensa; al terminar volver a home (timeline) */
+  onAddToPantry?: () => void;
+  /** Opciones despensa (como en Mi diario): editar stock, café terminado, eliminar */
+  onUpdatePantryStock?: (pantryItemId: string, totalGrams: number, gramsRemaining: number) => Promise<void>;
+  onRemovePantryItem?: (pantryItemId: string) => Promise<void>;
+  onMarkPantryCoffeeFinished?: (pantryItemId: string) => Promise<void>;
 }) {
-  const [menuPostId, setMenuPostId] = useState<string | null>(null);
-  const [deletePostConfirmId, setDeletePostConfirmId] = useState<string | null>(null);
-  const [deletingPost, setDeletingPost] = useState(false);
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState("");
-  const [editingImageUrl, setEditingImageUrl] = useState("");
-  const [editingImageFile, setEditingImageFile] = useState<File | null>(null);
-  const [editingImagePreviewUrl, setEditingImagePreviewUrl] = useState("");
-  const [likeBurstPostId, setLikeBurstPostId] = useState<string | null>(null);
+  const [pantryOptionsCoffeeId, setPantryOptionsCoffeeId] = useState<string | null>(null);
+  const [pantryDeleteConfirmCoffeeId, setPantryDeleteConfirmCoffeeId] = useState<string | null>(null);
+  const [pantryFinishedConfirmCoffeeId, setPantryFinishedConfirmCoffeeId] = useState<string | null>(null);
+  const [stockEditCoffeeId, setStockEditCoffeeId] = useState<string | null>(null);
+  const [stockEditTotal, setStockEditTotal] = useState("");
+  const [stockEditRemaining, setStockEditRemaining] = useState("");
+  const [savingStock, setSavingStock] = useState(false);
+  const [removingStock, setRemovingStock] = useState(false);
+  const [markingFinished, setMarkingFinished] = useState(false);
+
   const [dismissingSuggestionIds, setDismissingSuggestionIds] = useState<Set<number>>(new Set());
   const [pendingSuggestionFollowIds, setPendingSuggestionFollowIds] = useState<Set<number>>(new Set());
   const [failedAvatarUrls, setFailedAvatarUrls] = useState<Set<string>>(new Set());
   const [pullDistance, setPullDistance] = useState(0);
-  const editImageInputRef = useRef<HTMLInputElement | null>(null);
   const touchStartY = useRef<number | null>(null);
   const pullActive = useRef(false);
-  const likeBurstTimerRef = useRef<number | null>(null);
+  const elaborationScrollRef = useRef<HTMLDivElement | null>(null);
+  const despensaScrollRef = useRef<HTMLDivElement | null>(null);
+  const recommendationsScrollRef = useRef<HTMLDivElement | null>(null);
+  const suggestionsScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const [carouselHasScroll, setCarouselHasScroll] = useState({
+    elaboration: false,
+    despensa: false,
+    recommendations: false,
+    suggestions: false
+  });
+
+  const checkCarouselOverflow = useCallback(() => {
+    const hasOverflow = (el: HTMLDivElement | null, threshold = 2): boolean => {
+      if (!el) return false;
+      const clientW = Math.round(el.getBoundingClientRect().width);
+      if (clientW < 250) return false;
+      const contentW = Math.round(el.scrollWidth);
+      return contentW > clientW + threshold;
+    };
+
+    setCarouselHasScroll({
+      elaboration: hasOverflow(elaborationScrollRef.current),
+      despensa: hasOverflow(despensaScrollRef.current, 20),
+      recommendations: hasOverflow(recommendationsScrollRef.current),
+      suggestions: hasOverflow(suggestionsScrollRef.current)
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    const runCheck = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => checkCarouselOverflow());
+      });
+    };
+
+    runCheck();
+    window.addEventListener("resize", runCheck);
+
+    const refs = [elaborationScrollRef, despensaScrollRef, recommendationsScrollRef, suggestionsScrollRef];
+    const observers: ResizeObserver[] = [];
+
+    if (typeof ResizeObserver !== "undefined") {
+      refs.forEach((ref) => {
+        const el = ref.current;
+        if (!el) return;
+        const ro = new ResizeObserver(runCheck);
+        ro.observe(el);
+        observers.push(ro);
+        const firstChild = el.firstElementChild;
+        if (firstChild) {
+          const roChild = new ResizeObserver(runCheck);
+          roChild.observe(firstChild);
+          observers.push(roChild);
+        }
+      });
+    }
+
+    return () => {
+      window.removeEventListener("resize", runCheck);
+      observers.forEach((ro) => ro.disconnect());
+    };
+  }, [checkCarouselOverflow, mode, pantryItems.length, recommendations.length, suggestions.length]);
+
+  const CAROUSEL_SCROLL_PX = 280;
+  const scrollCarousel = useCallback((ref: { current: HTMLDivElement | null }, direction: "prev" | "next") => {
+    const el = ref.current;
+    if (!el) return;
+    const delta = direction === "prev" ? -CAROUSEL_SCROLL_PX : CAROUSEL_SCROLL_PX;
+    el.scrollBy({ left: delta, behavior: "smooth" });
+  }, []);
   const visibleCards = cards;
   const isDesktopTimeline = mode === "desktop";
-  const activeMenuPost = useMemo(
-    () => visibleCards.find((card) => card.id === menuPostId) ?? null,
-    [menuPostId, visibleCards]
-  );
-
-  const closeEditModal = useCallback(() => {
-    if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
-    setEditingPostId(null);
-    setEditingText("");
-    setEditingImageUrl("");
-    setEditingImageFile(null);
-    setEditingImagePreviewUrl("");
-  }, [editingImagePreviewUrl]);
 
   const isMobileLike = typeof window !== "undefined" ? window.innerWidth < 900 : false;
   const pullProgress = Math.min(1, pullDistance / 84);
@@ -142,36 +221,19 @@ export function TimelineView({
     if (shouldRefresh) void onRefresh();
   };
 
-  useEffect(() => {
-    const onEsc = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setMenuPostId(null);
-      if (editingPostId) closeEditModal();
-    };
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [closeEditModal, editingPostId]);
+  const stockEditTarget = useMemo(
+    () => (stockEditCoffeeId ? pantryItems.find((r) => r.item.id === stockEditCoffeeId) ?? null : null),
+    [pantryItems, stockEditCoffeeId]
+  );
 
-  useEffect(() => {
-    if (!editingPostId) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [editingPostId]);
-
-  useEffect(() => {
-    return () => {
-      if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
-    };
-  }, [editingImagePreviewUrl]);
-
-  useEffect(() => {
-    return () => {
-      if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
-    };
-  }, []);
+  const recommendationChunks = useMemo(() => {
+    const size = 3;
+    const chunks: typeof recommendations[] = [];
+    for (let i = 0; i < recommendations.length; i += size) {
+      chunks.push(recommendations.slice(i, i + size));
+    }
+    return chunks;
+  }, [recommendations]);
 
   if (loading) {
     return (
@@ -195,23 +257,187 @@ export function TimelineView({
     );
   }
 
+  const elaborationMethodsToShow = orderedBrewMethods.length > 0 ? orderedBrewMethods : getOrderedBrewMethods([]);
+  const elaborationMethodsBlock = onOpenBrewToMethod ? (
+    <section className="timeline-elaboration-methods" aria-label="Formas de elaboración">
+      <div className="timeline-carousel-with-nav">
+        <div ref={elaborationScrollRef} className="timeline-elaboration-methods-scroll">
+          {elaborationMethodsToShow.map((method) => (
+            <Button
+              key={method.name}
+              variant="plain"
+              type="button"
+              className="timeline-elaboration-method-circle"
+              onClick={() => onOpenBrewToMethod(method.name)}
+              aria-label={`Elaborar con ${method.name}`}
+            >
+              <span className="timeline-elaboration-method-circle-inner">
+                {method.icon === "bolt" ? (
+                  <UiIcon name="bolt" className="ui-icon timeline-elaboration-method-icon-bolt" aria-hidden="true" />
+                ) : method.icon === "water" ? (
+                  <UiIcon name="water" className="ui-icon timeline-elaboration-method-icon-water" aria-hidden="true" />
+                ) : (
+                  <img src={method.icon} alt="" loading="lazy" decoding="async" />
+                )}
+              </span>
+              <span className="timeline-elaboration-method-label">{method.name}</span>
+            </Button>
+          ))}
+        </div>
+        {carouselHasScroll.elaboration ? (
+          <div className="timeline-carousel-nav">
+            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(elaborationScrollRef, "prev")}>
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </button>
+            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(elaborationScrollRef, "next")}>
+              <UiIcon name="arrow-right" className="ui-icon" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  ) : null;
+
+  const hasPantryOptions = onPantryCoffeeClick != null || onAddCoffeeToDiary != null || onAddToPantry != null || onUpdatePantryStock != null || onRemovePantryItem != null || onMarkPantryCoffeeFinished != null;
+  const parsedStockTotal = Number(stockEditTotal || 0);
+  const parsedStockRemaining = Number(stockEditRemaining || 0);
+  const canSaveStock =
+    Number.isFinite(parsedStockTotal) &&
+    Number.isFinite(parsedStockRemaining) &&
+    parsedStockTotal >= 1 &&
+    parsedStockRemaining >= 0 &&
+    parsedStockRemaining <= parsedStockTotal;
+  const stockValidationMessage =
+    (!Number.isFinite(parsedStockTotal) || !Number.isFinite(parsedStockRemaining))
+      ? "Introduce valores válidos."
+      : parsedStockTotal < 1
+        ? "El total debe ser mayor que 0."
+        : parsedStockRemaining < 0
+          ? "El restante no puede ser negativo."
+          : parsedStockRemaining > parsedStockTotal
+            ? "El restante no puede superar el total."
+            : "";
+
+  const pantryBlock = hasPantryOptions ? (
+    <section className="timeline-despensa suggestion-strip" aria-label="Tu despensa">
+      <p className="section-title">TU DESPENSA</p>
+      <div className="timeline-carousel-with-nav">
+        <div ref={despensaScrollRef} className="timeline-despensa-scroll">
+        <div className="brew-pantry-row">
+          {pantryItems.map((row) => (
+            <div
+              key={row.item.id}
+              className="brew-pantry-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => onPantryCoffeeClick?.(row.coffee.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onPantryCoffeeClick?.(row.coffee.id);
+                }
+              }}
+            >
+              <div className="diary-pantry-top">
+                {row.coffee.image_url ? (
+                  <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" decoding="async" />
+                ) : (
+                  <span className="brew-pantry-fallback" aria-hidden="true">{row.coffee.nombre.slice(0, 1).toUpperCase()}</span>
+                )}
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="diary-pantry-options"
+                  aria-label="Opciones"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPantryOptionsCoffeeId(row.item.id);
+                  }}
+                >
+                  <UiIcon name="more" className="ui-icon" />
+                </Button>
+              </div>
+              <div className="brew-pantry-body">
+                <strong>{row.coffee.nombre}</strong>
+                <small>{Math.round(row.remaining)}/{Math.round(row.total)}g</small>
+                <div className="brew-pantry-progress" aria-hidden="true">
+                  <span style={{ width: `${Math.max(0, Math.min(100, row.progress * 100))}%` }} />
+                </div>
+              </div>
+            </div>
+          ))}
+          {onAddToPantry ? (
+            <Button
+              variant="plain"
+              type="button"
+              className="brew-pantry-add-card"
+              aria-label="Añadir café a despensa"
+              onClick={onAddToPantry}
+            >
+              <span className="brew-pantry-add-main" aria-hidden="true">
+                <span className="brew-pantry-add-icon-wrap">
+                  <UiIcon name="add" className="ui-icon" />
+                </span>
+              </span>
+              <span className="brew-pantry-add-footer" aria-hidden="true" />
+            </Button>
+          ) : null}
+        </div>
+        </div>
+        {carouselHasScroll.despensa ? (
+          <div className="timeline-carousel-nav">
+            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(despensaScrollRef, "prev")}>
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </button>
+            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(despensaScrollRef, "next")}>
+              <UiIcon name="arrow-right" className="ui-icon" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  ) : null;
+
   const recommendationSection = recommendations.length ? (
-    <section className="suggestion-strip">
-      <p className="section-title">Recomendados para tu paladar</p>
-      <div className="horizontal-cards">
-        {recommendations.map((coffee) => (
-          <Button
-            key={coffee.id}
-            variant="plain"
-            className="mini-card mini-coffee-card mini-coffee-link"
-            onClick={() => onOpenCoffee(coffee.id)}
-          >
-            {coffee.image_url ? <img className="mini-cover" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
-            <p className="coffee-origin">{coffee.pais_origen ?? "Origen"}</p>
-            <p className="feed-user">{coffee.nombre}</p>
-            <p className="coffee-sub">{(coffee.marca || "").toUpperCase()}</p>
-          </Button>
-        ))}
+    <section className="suggestion-strip timeline-recommendations-day" aria-label="Recomendaciones del día">
+      <p className="section-title">Recomendaciones del día</p>
+      <div className="timeline-carousel-with-nav">
+        <div ref={recommendationsScrollRef} className="timeline-recommendations-list timeline-carousel-scroll">
+          {recommendationChunks.map((chunk, chunkIndex) => (
+            <div key={chunkIndex} className="timeline-recommendation-card">
+              {chunk.map((coffee) => (
+                <Button
+                  key={coffee.id}
+                  variant="plain"
+                  className="timeline-recommendation-row"
+                  onClick={() => onOpenCoffee(coffee.id)}
+                >
+                  <span className="timeline-recommendation-row-image">
+                    {coffee.image_url ? (
+                      <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
+                    ) : (
+                      <span className="timeline-recommendation-row-placeholder" aria-hidden="true" />
+                    )}
+                  </span>
+                  <span className="timeline-recommendation-row-copy">
+                    <span className="timeline-recommendation-row-name">{coffee.nombre}</span>
+                    <span className="timeline-recommendation-row-brand">{(coffee.marca || "").trim() || "—"}</span>
+                  </span>
+                </Button>
+              ))}
+            </div>
+          ))}
+        </div>
+        {carouselHasScroll.recommendations ? (
+          <div className="timeline-carousel-nav">
+            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(recommendationsScrollRef, "prev")}>
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </button>
+            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(recommendationsScrollRef, "next")}>
+              <UiIcon name="arrow-right" className="ui-icon" />
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   ) : null;
@@ -219,7 +445,8 @@ export function TimelineView({
   const userSuggestionsSection = suggestions.length ? (
     <section className="suggestion-strip">
       <p className="section-title">Personas que podrias seguir</p>
-      <div className="horizontal-cards">
+      <div className="timeline-carousel-with-nav">
+        <div ref={suggestionsScrollRef} className="horizontal-cards timeline-carousel-scroll">
         {suggestions.map((user) => {
           const isDismissing = dismissingSuggestionIds.has(user.id);
           const isPendingFollow = pendingSuggestionFollowIds.has(user.id);
@@ -258,41 +485,41 @@ export function TimelineView({
             </article>
           );
         })}
+        </div>
+        {carouselHasScroll.suggestions ? (
+          <div className="timeline-carousel-nav">
+            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(suggestionsScrollRef, "prev")}>
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </button>
+            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(suggestionsScrollRef, "next")}>
+              <UiIcon name="arrow-right" className="ui-icon" />
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   ) : null;
 
   const desktopSideContent = sidePanel ? (
     <aside className="timeline-side-column">{sidePanel}</aside>
-  ) : (userSuggestionsSection || recommendationSection) ? (
-    <aside className="timeline-side-column">
-      {userSuggestionsSection}
-      {recommendationSection}
-    </aside>
   ) : null;
 
   if (!cards.length) {
     const emptyTitle = EMPTY.TIMELINE_TITLE;
     const emptySubtitle = EMPTY.TIMELINE_SUBTITLE;
-    const ctaLabel = CTA.PUBLISH_FIRST;
     if (isDesktopTimeline) {
       return (
         <div className="timeline-shell timeline-shell-desktop">
-          <div className="timeline-desktop-columns">
+          <div className={`timeline-desktop-columns ${desktopSideContent ? "timeline-desktop-columns-has-side" : ""}`.trim()}>
             <div className="timeline-main-column">
+              {elaborationMethodsBlock}
+              {pantryBlock}
+              {recommendationSection}
               <article className="timeline-empty">
                 <h3>{emptyTitle}</h3>
                 <p>{emptySubtitle}</p>
-                {onOpenCreatePost ? (
-                  <Button variant="primary" className="action-button" onClick={onOpenCreatePost} aria-label={ctaLabel}>
-                    {ctaLabel}
-                  </Button>
-                ) : (
-                  <Button variant="primary" className="action-button" aria-label={ctaLabel}>
-                    {ctaLabel}
-                  </Button>
-                )}
               </article>
+              {userSuggestionsSection}
             </div>
             {desktopSideContent}
           </div>
@@ -301,21 +528,14 @@ export function TimelineView({
     }
     return (
       <>
+        {elaborationMethodsBlock}
+        {pantryBlock}
+        {recommendationSection}
         <article className="timeline-empty">
           <h3>{emptyTitle}</h3>
           <p>{emptySubtitle}</p>
-          {onOpenCreatePost ? (
-            <Button variant="primary" className="action-button" onClick={onOpenCreatePost} aria-label={ctaLabel}>
-              {ctaLabel}
-            </Button>
-          ) : (
-            <Button variant="primary" className="action-button" aria-label={ctaLabel}>
-              {ctaLabel}
-            </Button>
-          )}
         </article>
         {userSuggestionsSection}
-        {recommendationSection}
       </>
     );
   }
@@ -335,215 +555,130 @@ export function TimelineView({
         <span className={`pull-dot ${pullProgress >= 1 ? "is-ready" : ""}`} />
       </div>
 
-      {visibleCards.length ? (
-        <div className="timeline-desktop-columns">
+      <div className={`timeline-desktop-columns ${isDesktopTimeline && desktopSideContent ? "timeline-desktop-columns-has-side" : ""}`.trim()}>
           <div className="timeline-main-column">
-            <ul className="feed-list">
-              {visibleCards.map((card, index) => (
-                <Fragment key={card.id}>
-                  {!isDesktopTimeline && recommendationSection && suggestionIndices[0] != null && index === suggestionIndices[0] ? (
-                    <li className="feed-inline-item">{recommendationSection}</li>
-                  ) : null}
-                  {!isDesktopTimeline && userSuggestionsSection && suggestionIndices[1] != null && index === suggestionIndices[1] ? (
-                    <li className="feed-inline-item">{userSuggestionsSection}</li>
-                  ) : null}
-                  <li className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
-                    <article>
-              <header className="feed-head">
-                <Button variant="plain"
-                  type="button"
-                  className="feed-user-link"
-                  onClick={() => onOpenUserProfile(card.userId)}
-                >
-                  {card.avatarUrl && !failedAvatarUrls.has(card.avatarUrl) ? (
-                    <img
-                      className="avatar avatar-photo"
-                      src={card.avatarUrl}
-                      alt={card.username}
-                      loading="lazy"
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      crossOrigin="anonymous"
-                      onError={() => setFailedAvatarUrls((prev) => new Set(prev).add(card.avatarUrl!))}
-                    />
-                  ) : (
-                    <div className="avatar" aria-hidden="true">
-                      {card.userName
-                        .split(" ")
-                        .map((part) => part[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </div>
-                  )}
-                  <div>
-                    <p className="feed-user">{card.userName}</p>
-                    <div className="feed-meta-row" style={{ display: "flex", alignItems: "center", gap: "8px" }}><p className="feed-meta">{card.minsAgoLabel.toUpperCase()}</p>{card.rating ? (<span className="feed-card-rating" style={{ display: "inline-flex", alignItems: "center", gap: "2px", color: "var(--caramel-soft)", fontSize: "var(--font-size-xs)", fontWeight: "bold" }}><UiIcon name="star" className="ui-icon" />{card.rating.toFixed(1)}</span>) : null}</div>
-                  </div>
-                </Button>
-                {activeUserId === card.userId ? (
-                  <IconButton
-                    tone="default"
-                    className="post-menu-trigger"
-                    onClick={() => setMenuPostId(card.id)}
-                    aria-label="Opciones"
-                  >
-                    <UiIcon name="more" className="ui-icon" />
-                  </IconButton>
-                ) : null}
-              </header>
-
-              {card.text ? (
-                <p className="feed-text">
-                  <MentionText text={card.text} onMentionClick={onMentionClick} resolveMentionUser={resolveMentionUser} />
-                </p>
-              ) : null}
-
-              {card.imageUrl ? <img className={`feed-image ${card.text ? "" : "feed-image-no-text"}`.trim()} src={card.imageUrl} alt="Publicacion" loading="lazy" decoding="async" /> : null}
-
-              {card.coffeeTagName ? (
-                <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => card.coffeeId && onOpenCoffee(card.coffeeId)} disabled={!card.coffeeId}>
-                  <div className="coffee-tag-card-media">
-                    {card.coffeeImageUrl ? (
-                      <img className="coffee-tag-image" src={card.coffeeImageUrl} alt={card.coffeeTagName} loading="lazy" decoding="async" />
-                    ) : (
-                      <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
-                        <UiIcon name="coffee" className="ui-icon" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="coffee-tag-copy">
-                    <p className="coffee-origin">CAFE ETIQUETADO</p>
-                    <p className="coffee-tag-name">{card.coffeeTagName}</p>
-                    {card.coffeeTagBrand ? <p className="coffee-tag-brand">{card.coffeeTagBrand.toUpperCase()}</p> : null}
-                  </div>
-                  <UiIcon name="chevron-right" className="ui-icon" />
-                </Button>
-              ) : null}
-
-              <footer className="feed-stats">
-                <Button variant="plain"
-                  type="button"
-                  className={`inline-action action-like ${card.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === card.id ? "is-bursting" : ""}`}
-                  onClick={() => {
-                    if (!card.likedByActiveUser) {
-                      setLikeBurstPostId(card.id);
-                      if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
-                      likeBurstTimerRef.current = window.setTimeout(() => {
-                        setLikeBurstPostId(null);
-                        likeBurstTimerRef.current = null;
-                      }, 520);
-                    }
-                    onToggleLike(card.id);
-                  }}
-                >
-                  <span className="like-icon-wrap">
-                    <UiIcon name={card.likedByActiveUser ? "coffee-filled" : "coffee"} className="ui-icon" />
-                    <span className="like-burst" aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
-                      <span />
-                      <span />
-                      <span />
-                    </span>
-                  </span>
-                  {card.likes > 0 ? <span>{card.likes}</span> : null}
-                </Button>
-                <Button variant="plain" type="button" className="inline-action" onClick={() => onOpenComments(card.id)}>
-                  <UiIcon name="chat" className="ui-icon" />
-                  {card.comments > 0 ? <span>{card.comments}</span> : null}
-                </Button>
-              </footer>
-                    </article>
-                  </li>
-                </Fragment>
-              ))}
-            </ul>
+            {elaborationMethodsBlock}
+            {pantryBlock}
+            {recommendationSection}
+            {!visibleCards.length ? (
+              <article className="timeline-empty">
+                <h3>{EMPTY.TIMELINE_NO_POSTS}</h3>
+                <p>{EMPTY.TIMELINE_NO_POSTS_SUB}</p>
+              </article>
+            ) : null}
+            {userSuggestionsSection}
           </div>
           {isDesktopTimeline ? desktopSideContent : null}
         </div>
-      ) : (
-        <article className="timeline-empty">
-          <h3>{EMPTY.TIMELINE_NO_POSTS}</h3>
-          <p>{EMPTY.TIMELINE_NO_POSTS_SUB}</p>
-          {onOpenCreatePost ? (
-            <Button variant="primary" className="action-button" onClick={onOpenCreatePost} aria-label={CTA.PUBLISH_FIRST}>
-              {CTA.PUBLISH_FIRST}
-            </Button>
-          ) : null}
-        </article>
-      )}
-      {activeMenuPost && typeof document !== "undefined"
+      {pantryOptionsCoffeeId && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setMenuPostId(null)} onClick={() => setMenuPostId(null)}>
-              <SheetCard className="diary-sheet diary-sheet-pantry-options profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => setPantryOptionsCoffeeId(null)} onClick={() => setPantryOptionsCoffeeId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-pantry-options" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-sheet-list">
-                  <Button variant="plain"
-                    className="diary-sheet-action diary-sheet-action-pantry"
-                    onClick={() => {
-                      setDeletePostConfirmId(activeMenuPost.id);
-                      setMenuPostId(null);
-                    }}
-                  >
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
-                    <span>Borrar</span>
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                  </Button>
-                  <Button variant="plain"
-                    className="diary-sheet-action diary-sheet-action-pantry"
-                    onClick={() => {
-                      setEditingPostId(activeMenuPost.id);
-                      setEditingText(activeMenuPost.text);
-                      const initialImage = activeMenuPost.imageUrl ?? "";
-                      setEditingImageUrl(initialImage);
-                      setEditingImageFile(null);
-                      setEditingImagePreviewUrl(initialImage);
-                      setMenuPostId(null);
-                    }}
-                  >
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
-                    <span>Editar</span>
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                  </Button>
+                  {onAddCoffeeToDiary ? (
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-sheet-action diary-sheet-action-pantry"
+                      onClick={() => {
+                        const row = pantryItems.find((r) => r.item.id === pantryOptionsCoffeeId);
+                        if (row) onAddCoffeeToDiary(row.coffee.id);
+                        setPantryOptionsCoffeeId(null);
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">add_circle</span>
+                      <span>Añadir café</span>
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                    </Button>
+                  ) : null}
+                  {onUpdatePantryStock ? (
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-sheet-action diary-sheet-action-pantry"
+                      onClick={() => {
+                        const row = pantryItems.find((r) => r.item.id === pantryOptionsCoffeeId);
+                        if (!row) return;
+                        setStockEditTotal(String(Math.max(1, row.total)));
+                        setStockEditRemaining(String(Math.max(0, row.remaining)));
+                        setStockEditCoffeeId(pantryOptionsCoffeeId);
+                        setPantryOptionsCoffeeId(null);
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">edit</span>
+                      <span>Editar stock</span>
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                    </Button>
+                  ) : null}
+                  {onMarkPantryCoffeeFinished ? (
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-sheet-action diary-sheet-action-pantry"
+                      onClick={() => {
+                        setPantryFinishedConfirmCoffeeId(pantryOptionsCoffeeId);
+                        setPantryOptionsCoffeeId(null);
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">check_circle</span>
+                      <span>Café terminado</span>
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                    </Button>
+                  ) : null}
+                  {onRemovePantryItem ? (
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-sheet-action diary-sheet-action-pantry"
+                      disabled={removingStock}
+                      onClick={() => {
+                        setPantryDeleteConfirmCoffeeId(pantryOptionsCoffeeId);
+                        setPantryOptionsCoffeeId(null);
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">delete</span>
+                      <span>Eliminar de la despensa</span>
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                    </Button>
+                  ) : null}
                 </div>
               </SheetCard>
             </SheetOverlay>,
             document.body
           )
         : null}
-      {deletePostConfirmId && typeof document !== "undefined"
+      {pantryFinishedConfirmCoffeeId && onMarkPantryCoffeeFinished && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Café terminado" onDismiss={() => setPantryFinishedConfirmCoffeeId(null)} onClick={() => setPantryFinishedConfirmCoffeeId(null)}>
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
-                  <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
+                  <h2 className="diary-delete-confirm-title">Café terminado</h2>
                   <p className="diary-delete-confirm-text">
-                    ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
+                    ¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.
                   </p>
                   <div className="diary-delete-confirm-actions">
-                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setDeletePostConfirmId(null)} disabled={deletingPost}>
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setPantryFinishedConfirmCoffeeId(null)} disabled={markingFinished}>
                       Cancelar
                     </Button>
                     <Button
                       variant="plain"
                       type="button"
                       className="diary-delete-confirm-submit"
-                      disabled={deletingPost}
+                      disabled={markingFinished}
                       onClick={async () => {
-                        if (deletingPost) return;
-                        setDeletingPost(true);
+                        if (markingFinished) return;
+                        setMarkingFinished(true);
                         try {
-                          await onDeletePost(deletePostConfirmId);
-                          setDeletePostConfirmId(null);
+                          await onMarkPantryCoffeeFinished(pantryFinishedConfirmCoffeeId);
+                          setPantryFinishedConfirmCoffeeId(null);
                         } finally {
-                          setDeletingPost(false);
+                          setMarkingFinished(false);
                         }
                       }}
                     >
-                      {deletingPost ? "Eliminando..." : "Eliminar"}
+                      {markingFinished ? "Guardando..." : "Confirmar"}
                     </Button>
                   </div>
                 </div>
@@ -552,72 +687,146 @@ export function TimelineView({
             document.body
           )
         : null}
-      {editingPostId && typeof document !== "undefined"
+      {pantryDeleteConfirmCoffeeId && onRemovePantryItem && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay
-              role="dialog"
-              aria-modal="true"
-              aria-label="Editar publicacion"
-              onDismiss={closeEditModal}
-              onClick={closeEditModal}
-            >
-              <SheetCard onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <div className="create-post-body edit-post-sheet">
-              <h3 className="edit-post-title">Editar</h3>
-              <Input
-                ref={editImageInputRef}
-                type="file"
-                accept="image/*"
-                className="file-input-hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null;
-                  if (!file) return;
-                  if (editingImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(editingImagePreviewUrl);
-                  const preview = URL.createObjectURL(file);
-                  setEditingImageFile(file);
-                  setEditingImagePreviewUrl(preview);
-                }}
-              />
-              <Button variant="plain"
-                type="button"
-                className="edit-image-picker"
-                onClick={() => editImageInputRef.current?.click()}
-              >
-                {editingImagePreviewUrl.trim() ? (
-                  <img className="create-post-preview" src={editingImagePreviewUrl.trim()} alt="Previsualizacion" loading="lazy" decoding="async" />
-                ) : (
-                  <span className="edit-image-placeholder">Seleccionar imagen</span>
-                )}
-              </Button>
-              <Textarea
-                className="search-wide sheet-input"
-                placeholder="Descripción"
-                value={editingText}
-                rows={4}
-                onChange={(event) => setEditingText(event.target.value)}
-              />
-              <div className="create-post-actions edit-post-actions-native">
-                <Button variant="ghost"
-                  className="action-button action-button-ghost edit-post-cancel"
-                  onClick={closeEditModal}
-                >
-                  CANCELAR
-                </Button>
-                <Button variant="primary"
-                  className="action-button edit-post-save"
-                  disabled={!editingText.trim() && !editingImageUrl.trim() && !editingImageFile}
-                  onClick={async () => {
-                    await onEditPost(editingPostId, editingText.trim(), editingImageUrl.trim(), editingImageFile);
-                    closeEditModal();
-                  }}
-                >
-                  GUARDAR
-                </Button>
-              </div>
-            </div>
-          </SheetCard>
-        </SheetOverlay>,
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar de la despensa" onDismiss={() => setPantryDeleteConfirmCoffeeId(null)} onClick={() => setPantryDeleteConfirmCoffeeId(null)}>
+              <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-delete-confirm-body">
+                  <h2 className="diary-delete-confirm-title">Eliminar de la despensa</h2>
+                  <p className="diary-delete-confirm-text">
+                    ¿Estás seguro de eliminar este café? Se borrará tu stock actual.
+                  </p>
+                  <div className="diary-delete-confirm-actions">
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setPantryDeleteConfirmCoffeeId(null)} disabled={removingStock}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-delete-confirm-submit"
+                      disabled={removingStock}
+                      onClick={async () => {
+                        if (removingStock) return;
+                        setRemovingStock(true);
+                        try {
+                          await onRemovePantryItem(pantryDeleteConfirmCoffeeId);
+                          setPantryDeleteConfirmCoffeeId(null);
+                        } finally {
+                          setRemovingStock(false);
+                        }
+                      }}
+                    >
+                      {removingStock ? "Eliminando..." : "Eliminar"}
+                    </Button>
+                  </div>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {stockEditTarget && onUpdatePantryStock && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar stock" onDismiss={() => setStockEditCoffeeId(null)} onClick={() => setStockEditCoffeeId(null)}>
+              <SheetCard className="diary-sheet diary-stock-edit-sheet" onClick={(event) => event.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <header className="sheet-header diary-stock-edit-header">
+                  <strong className="sheet-title">Editar Stock</strong>
+                </header>
+                <div className="diary-sheet-form diary-stock-edit-form">
+                  <label className="diary-stock-edit-field">
+                    <span>Cantidad de café total (g)</span>
+                    <Input
+                      className="diary-stock-edit-value search-wide"
+                      type="text"
+                      inputMode="numeric"
+                      value={String(Math.max(0, Number(stockEditTotal || 0)))}
+                      onChange={(event) => {
+                        const digitsOnly = event.target.value.replace(/[^0-9]/g, "");
+                        const nextTotal = String(Number(digitsOnly || 0));
+                        setStockEditTotal(nextTotal);
+                        const parsedNextTotal = Number(nextTotal || 0);
+                        const parsedCurrentRemaining = Number(stockEditRemaining || 0);
+                        if (Number.isFinite(parsedNextTotal) && parsedNextTotal >= 0 && Number.isFinite(parsedCurrentRemaining) && parsedCurrentRemaining > parsedNextTotal) {
+                          setStockEditRemaining(String(parsedNextTotal));
+                        }
+                      }}
+                    />
+                    <Input
+                      className="diary-stock-edit-slider app-range search-wide"
+                      type="range"
+                      min={0}
+                      max={1000}
+                      step={1}
+                      value={Math.max(0, Math.min(1000, Number(stockEditTotal || 0)))}
+                      style={{ "--range-progress": `${Math.max(0, Math.min(100, (Math.max(0, Math.min(1000, Number(stockEditTotal || 0))) / 1000) * 100))}%` } as CSSProperties}
+                      onChange={(event) => {
+                        const nextTotal = Number(event.target.value);
+                        setStockEditTotal(String(nextTotal));
+                        const currentRemaining = Number(stockEditRemaining || 0);
+                        if (currentRemaining > nextTotal) setStockEditRemaining(String(nextTotal));
+                      }}
+                    />
+                  </label>
+                  <label className="diary-stock-edit-field">
+                    <span>Cantidad de café restante (g)</span>
+                    <Input
+                      className="diary-stock-edit-value search-wide"
+                      type="text"
+                      inputMode="numeric"
+                      value={String(Math.max(0, Number(stockEditRemaining || 0)))}
+                      onChange={(event) => {
+                        const digitsOnly = event.target.value.replace(/[^0-9]/g, "");
+                        setStockEditRemaining(String(Number(digitsOnly || 0)));
+                      }}
+                    />
+                    <Input
+                      className="diary-stock-edit-slider app-range search-wide"
+                      type="range"
+                      min={0}
+                      max={Math.max(1, Number(stockEditTotal || 0))}
+                      step={1}
+                      value={Math.max(0, Math.min(Number(stockEditRemaining || 0), Math.max(1, Number(stockEditTotal || 0))))}
+                      style={{
+                        "--range-progress": `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            (Math.max(0, Math.min(Number(stockEditRemaining || 0), Math.max(1, Number(stockEditTotal || 0)))) / Math.max(1, Number(stockEditTotal || 0))) * 100
+                          )
+                        )}%`
+                      } as CSSProperties}
+                      onChange={(event) => setStockEditRemaining(event.target.value)}
+                    />
+                  </label>
+                  {!canSaveStock && stockValidationMessage ? <p className="diary-inline-error">{stockValidationMessage}</p> : null}
+                  <div className="diary-sheet-form-actions diary-stock-edit-actions">
+                    <Button variant="plain" type="button" className="action-button diary-stock-edit-cancel" onClick={() => setStockEditCoffeeId(null)} disabled={savingStock}>
+                      CANCELAR
+                    </Button>
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="action-button diary-stock-edit-save"
+                      disabled={savingStock || !canSaveStock}
+                      onClick={async () => {
+                        if (savingStock || !canSaveStock) return;
+                        setSavingStock(true);
+                        try {
+                          await onUpdatePantryStock(stockEditTarget.item.id, parsedStockTotal, parsedStockRemaining);
+                          setStockEditCoffeeId(null);
+                        } finally {
+                          setSavingStock(false);
+                        }
+                      }}
+                    >
+                      {savingStock ? "GUARDANDO..." : "GUARDAR"}
+                    </Button>
+                  </div>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
             document.body
           )
         : null}

@@ -2,13 +2,16 @@
   padding: 14px 14px 12px;
   display: grid;
   gap: 10px;
-  border-radius: 16px;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .profile-adn-radar-card {
-  border: 1px solid var(--border-light);
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 26px;
   padding: 16px 14px 12px;
 }
 
@@ -38,8 +41,9 @@
 }
 
 .profile-adn-analysis-panel {
-  border: 1px solid var(--border-light);
-  border-radius: 24px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: var(--modal-surface-bg);
   overflow: hidden;
 }
@@ -140,8 +144,9 @@
 }
 
 .profile-adn-recommend-card {
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: rgba(255, 255, 255, 0.05);
   padding: 14px 16px 14px;
 }
@@ -199,6 +204,25 @@
   background: var(--caramel-soft);
   border-color: var(--caramel-soft);
   color: var(--pure-black);
+}
+
+/* Modo noche: card matriz ADN y análisis de preferencia con fondo negro */
+@media (prefers-color-scheme: dark) {
+  .profile-adn-card,
+  .profile-adn-radar-card,
+  .profile-adn-analysis-panel {
+    background: #000 !important;
+  }
+  .profile-adn-radar-ring,
+  .profile-adn-radar-axis {
+    stroke: rgba(255, 255, 255, 0.35);
+  }
+  .profile-adn-radar-label {
+    fill: rgba(255, 255, 255, 0.9);
+  }
+  .profile-adn-recommend-card {
+    background: rgba(255, 255, 255, 0.06) !important;
+  }
 }
 
 @media (max-width: 640px) {

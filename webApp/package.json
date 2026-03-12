@@ -18,8 +18,11 @@
     "@ericblade/quagga2": "^1.12.1",
     "@fontsource-variable/material-symbols-outlined": "^5.2.36",
     "@supabase/supabase-js": "^2.49.1",
+    "chart.js": "^4.4.6",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "html5-qrcode": "^2.3.8",
     "react": "^18.3.1",
+    "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {

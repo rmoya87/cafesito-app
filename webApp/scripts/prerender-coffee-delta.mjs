@@ -105,7 +105,7 @@ async function main() {
   const deleteListPath = path.join(distDir, "coffee-deletes.txt");
   const supabaseUrl = await readEnvFallback("VITE_SUPABASE_URL");
   const supabaseAnonKey = await readEnvFallback("VITE_SUPABASE_ANON_KEY");
-  const siteUrlRaw = (await readEnvFallback("VITE_SITE_URL")) || "https://cafesito.app";
+  const siteUrlRaw = (await readEnvFallback("VITE_SITE_URL")) || "https://cafesitoapp.com";
   const siteUrl = siteUrlRaw.replace(/\/+$/, "");
   const siteUrlObject = new URL(siteUrl);
   const appBasePath = (() => {

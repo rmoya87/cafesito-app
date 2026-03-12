@@ -41,11 +41,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +74,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.ExperimentalMaterial3Api
 import coil.compose.AsyncImage
 import com.cafesito.app.R
 import com.cafesito.app.data.Coffee
@@ -86,6 +89,7 @@ import com.cafesito.app.ui.brewlab.BrewLabViewModel
 import com.cafesito.app.ui.brewlab.BaristaTip
 import com.cafesito.app.ui.brewlab.BrewMethod
 import com.cafesito.app.ui.brewlab.BrewPhaseInfo
+import com.cafesito.shared.domain.brew.BREW_METHOD_OTROS
 import com.cafesito.shared.domain.brew.BrewMethodProfile
 import com.cafesito.shared.domain.brew.BrewTimeProfile
 import com.cafesito.app.ui.diary.DiaryAnalytics
@@ -129,17 +133,21 @@ fun ChooseMethodStep(methods: List<BrewMethod>, onSelect: (BrewMethod) -> Unit) 
 }
 
 @Composable
-fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Boolean = false, onClick: () -> Unit) {
     val context = LocalContext.current
     val resId = remember(method.iconResName) {
         context.resources.getIdentifier(method.iconResName, "drawable", context.packageName)
     }
+    val cardColor = if (selected) LocalCaramelAccent.current else Color.Black
+    val contentColor = if (selected) Color.White else Color.White
 
-    PremiumCard(
+    Surface(
         modifier = modifier
             .height(140.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(24.dp),
+        color = cardColor,
+        border = if (selected) BorderStroke(0.dp, Color.Transparent) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier
@@ -152,10 +160,11 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
                 Image(
                     painter = painterResource(id = resId),
                     contentDescription = method.name,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(48.dp),
+                    contentScale = ContentScale.Fit
                 )
             } else {
-                Icon(Icons.Default.CoffeeMaker, contentDescription = "Método de elaboración", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                Icon(Icons.Default.CoffeeMaker, contentDescription = "Método de elaboración", tint = contentColor, modifier = Modifier.size(32.dp))
             }
             Spacer(Modifier.height(12.dp))
             Text(
@@ -163,10 +172,273 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, onClick: () ->
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = contentColor,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+private data class BrewLabPrepOption(val label: String, val drawableName: String?)
+private data class BrewLabSizeOption(val label: String, val rangeLabel: String, val defaultMl: Int, val drawableName: String)
+
+private val BREWLAB_TIPO_OPTIONS = listOf(
+    BrewLabPrepOption("Espresso", "espresso"),
+    BrewLabPrepOption("Americano", "americano"),
+    BrewLabPrepOption("Capuchino", "capuchino"),
+    BrewLabPrepOption("Latte", "latte"),
+    BrewLabPrepOption("Macchiato", "macchiato"),
+    BrewLabPrepOption("Moca", "moca"),
+    BrewLabPrepOption("Goteo", null),
+    BrewLabPrepOption("Otro", null)
+)
+private val BREWLAB_SIZE_OPTIONS = listOf(
+    BrewLabSizeOption("Espresso", "25–30 ml", 30, "taza_espresso"),
+    BrewLabSizeOption("Pequeño", "150–200 ml", 180, "taza_pequeno"),
+    BrewLabSizeOption("Mediano", "250–300 ml", 275, "taza_mediano"),
+    BrewLabSizeOption("Grande", "350–400 ml", 375, "taza_grande"),
+    BrewLabSizeOption("Tazón XL", "450–500 ml", 475, "taza_xl")
+)
+
+@Composable
+fun BrewLabMainStepContent(
+    brewMethods: List<BrewMethod>,
+    selectedMethod: BrewMethod?,
+    onSelectMethod: (BrewMethod) -> Unit,
+    selectedCoffee: Coffee?,
+    onSelectCoffeeClick: () -> Unit,
+    pantryItems: List<PantryItemWithDetails>,
+    allCoffees: List<CoffeeWithDetails>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onAddToPantryClick: () -> Unit,
+    onCreateCoffeeClick: () -> Unit,
+    onCoffeeSelected: (Coffee, Boolean) -> Unit,
+    drinkType: String,
+    onDrinkTypeChange: (String) -> Unit,
+    selectedSizeLabel: String?,
+    onSizeSelected: (label: String, defaultMl: Float) -> Unit,
+    isEspressoMethod: Boolean,
+    isRatioEditable: Boolean,
+    isWaterEditable: Boolean,
+    brewTimeSeconds: Int,
+    timeProfile: BrewTimeProfile,
+    methodProfile: BrewMethodProfile,
+    ratio: Float,
+    coffeeGrams: Float,
+    valuation: String,
+    baristaTips: List<BaristaTip>,
+    brewTimerEnabled: Boolean,
+    onBrewTimerEnabledChange: (Boolean) -> Unit,
+    viewModel: BrewLabViewModel
+) {
+    val scrollState = rememberScrollState()
+    val methodsListState = rememberLazyListState()
+    LaunchedEffect(Unit) {
+        methodsListState.scrollToItem(0)
+    }
+    LaunchedEffect(brewMethods.size) {
+        if (brewMethods.isNotEmpty()) methodsListState.scrollToItem(0)
+    }
+    val water by viewModel.waterAmount.collectAsState(initial = 250f)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(bottom = 120.dp)
+    ) {
+        Spacer(Modifier.height(16.dp))
+        LazyRow(
+            state = methodsListState,
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(brewMethods, key = { it.name }) { method ->
+                val selected = method.name == selectedMethod?.name
+                MethodCard(
+                    method = method,
+                    modifier = Modifier.width(140.dp),
+                    selected = selected
+                ) { onSelectMethod(method) }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+        PremiumCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .clickable(onClick = onSelectCoffeeClick),
+            shape = RoundedCornerShape(20.dp),
+            containerColor = Color.Black
+        ) {
+            Row(
+                Modifier.padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedCoffee?.nombre?.take(40) ?: "Selecciona café",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Tipo",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+        Spacer(Modifier.height(8.dp))
+        val context = LocalContext.current
+        val unselectedChipBg = Color.Black
+        val unselectedChipContent = Color.White
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(BREWLAB_TIPO_OPTIONS, key = { it.label }) { option ->
+                    val isSelected = drinkType.equals(option.label, ignoreCase = true)
+                    val selectedTextColor = Color.White
+                    Surface(
+                        onClick = { onDrinkTypeChange(option.label) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
+                        border = if (isSelected) BorderStroke(0.dp, Color.Transparent) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
+                            val iconTint = if (isSelected) selectedTextColor else unselectedChipContent
+                            if (resId != 0) {
+                                Image(
+                                    painter = painterResource(id = resId),
+                                    contentDescription = option.label,
+                                    modifier = Modifier.size(28.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else {
+                                Icon(Icons.Default.CoffeeMaker, contentDescription = option.label, tint = iconTint, modifier = Modifier.size(28.dp))
+                            }
+                            Text(
+                                text = option.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) selectedTextColor else unselectedChipContent,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+        }
+
+        if (selectedMethod?.isAgua != true) {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = "Tamaño",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            val contextSize = LocalContext.current
+            val unselectedChipBgSize = Color.Black
+            val unselectedChipContentSize = Color.White
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(BREWLAB_SIZE_OPTIONS, key = { it.label }) { option ->
+                    val isSelected = selectedSizeLabel == option.label
+                    val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBgSize
+                    val chipContent = if (isSelected) Color.White else unselectedChipContentSize
+                    Surface(
+                        onClick = { onSizeSelected(option.label, option.defaultMl.toFloat()) },
+                        shape = RoundedCornerShape(14.dp),
+                        color = chipBg,
+                        border = if (isSelected) BorderStroke(0.dp, Color.Transparent) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            val sizeResId = contextSize.resources.getIdentifier(option.drawableName, "drawable", contextSize.packageName)
+                            if (sizeResId != 0) {
+                                Image(
+                                    painter = painterResource(id = sizeResId),
+                                    contentDescription = option.label,
+                                    modifier = Modifier.size(24.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else {
+                                Icon(Icons.Default.LocalCafe, contentDescription = option.label, modifier = Modifier.size(20.dp), tint = chipContent)
+                            }
+                            Column {
+                                Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
+                                Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = chipContent.copy(alpha = 0.9f))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (selectedMethod != null && !selectedMethod.isOtros) {
+            Spacer(Modifier.height(16.dp))
+            ConfigStep(
+                    methodName = selectedMethod?.name,
+                    isEspressoMethod = isEspressoMethod,
+                    isRatioEditable = isRatioEditable,
+                    isWaterEditable = isWaterEditable,
+                    isAguaMethod = selectedMethod?.isAgua == true,
+                    brewTimeSeconds = brewTimeSeconds,
+                    timeProfile = timeProfile,
+                    methodProfile = methodProfile,
+                    water = water,
+                    ratio = ratio,
+                    coffeeGrams = coffeeGrams,
+                    valuation = valuation,
+                    baristaTips = baristaTips,
+                    viewModel = viewModel
+                )
+        }
+
+        if (selectedMethod != null && !selectedMethod.isOtros && !selectedMethod.isAgua) {
+            Spacer(Modifier.height(16.dp))
+            PremiumCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(20.dp),
+                containerColor = Color.Black
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Temporizador",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(checked = brewTimerEnabled, onCheckedChange = onBrewTimerEnabledChange)
+                }
+            }
         }
     }
 }
@@ -220,8 +492,8 @@ fun ChooseCoffeeStep(
                     contentPadding = PaddingValues(start = 24.dp, end = 0.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(filteredPantry, key = { it.coffee.id + "_pantry" }) { item ->
-                        PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
+                    items(filteredPantry, key = { it.pantryItem.id }) { item ->
+                        PantryPremiumMiniCard(item = item, onClick = { onCoffeeSelected(item.coffee, true) })
                     }
                     item(key = "brewlab-add-pantry-card") {
                         PantryAddActionCard(onClick = onAddToPantryClick)
@@ -243,9 +515,7 @@ fun ChooseCoffeeStep(
                     Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = onCreateCoffeeClick) {
-                        Icon(Icons.Default.AddCircle, contentDescription = "Crear mi café", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Crear mi café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text("Crea tu café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 OutlinedTextField(
@@ -326,12 +596,14 @@ fun SimpleCoffeeSelectionCard(coffee: Coffee, onClick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigStep(
     methodName: String?,
     isEspressoMethod: Boolean,
     isRatioEditable: Boolean,
     isWaterEditable: Boolean,
+    isAguaMethod: Boolean = false,
     brewTimeSeconds: Int,
     timeProfile: BrewTimeProfile,
     methodProfile: BrewMethodProfile,
@@ -359,21 +631,32 @@ fun ConfigStep(
     }
     val sliderInactiveTrackColor = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFE0E0E0)
     val coffeeColor = LocalCaramelAccent.current
+    val isOtrosMethod = methodName == BREW_METHOD_OTROS // "Rápido"
+    var showBaristaModal by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Spacer(Modifier.height(24.dp))
-            Column(Modifier.padding(horizontal = 24.dp)) {
-                SectionHeader("AJUSTES TÉCNICOS")
-
-            PremiumCard {
+    Column(Modifier.fillMaxWidth()) {
+        Spacer(Modifier.height(16.dp))
+        val configTitle = if (isAguaMethod) "Configura tu Agua" else "Configura tu ${methodName ?: "elaboración"}"
+        Text(
+            text = configTitle,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+        Spacer(Modifier.height(8.dp))
+        PremiumCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+            Box {
                 Column(Modifier.padding(24.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        if (isWaterEditable) {
+                    if (isOtrosMethod) {
+                        Text(
+                            text = "Este método no tiene parámetros específicos.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    } else if (isAguaMethod) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             BrewMetricInputBlock(
                                 label = "Agua (ml)",
                                 value = waterDraft,
@@ -393,130 +676,157 @@ fun ConfigStep(
                                     }
                                 }
                             )
-                            Spacer(Modifier.width(14.dp))
+                            Slider(
+                                modifier = Modifier.weight(2f),
+                                value = water,
+                                onValueChange = { viewModel.setWaterAmount(it) },
+                                valueRange = methodProfile.waterMinMl.toFloat()..methodProfile.waterMaxMl.toFloat(),
+                                steps = 0,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = waterBlue,
+                                    activeTrackColor = waterBlue,
+                                    inactiveTrackColor = sliderInactiveTrackColor,
+                                    activeTickColor = Color.Transparent,
+                                    inactiveTickColor = Color.Transparent
+                                )
+                            )
                         }
-                        BrewMetricInputBlock(
-                            label = "Café (g)",
-                            value = coffeeDraft,
-                            valueColor = coffeeColor,
-                            keyboardType = KeyboardType.Decimal,
-                            modifier = Modifier.weight(1f),
-                            onValueChange = { raw ->
-                                val normalized = raw.replace(",", ".")
-                                if (normalized.count { it == '.' } > 1) return@BrewMetricInputBlock
-                                if (normalized.any { !it.isDigit() && it != '.' }) return@BrewMetricInputBlock
-                                coffeeDraft = raw
-                                normalized.toFloatOrNull()?.let { viewModel.setCoffeeGrams(it) }
+                    } else {
+                    if (isWaterEditable) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            BrewMetricInputBlock(
+                                label = "Agua (ml)",
+                                value = waterDraft,
+                                valueColor = waterBlue,
+                                keyboardType = KeyboardType.Number,
+                                modifier = Modifier.weight(1f),
+                                onValueChange = { raw ->
+                                    val filtered = raw.filter { it.isDigit() }
+                                    waterDraft = filtered
+                                    filtered.toFloatOrNull()?.let { parsed ->
+                                        viewModel.setWaterAmount(
+                                            parsed.coerceIn(
+                                                methodProfile.waterMinMl.toFloat(),
+                                                methodProfile.waterMaxMl.toFloat()
+                                            )
+                                        )
+                                    }
+                                }
+                            )
+                            Slider(
+                                modifier = Modifier.weight(2f),
+                                value = water,
+                                onValueChange = { viewModel.setWaterAmount(it) },
+                                valueRange = methodProfile.waterMinMl.toFloat()..methodProfile.waterMaxMl.toFloat(),
+                                steps = 0,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = waterBlue,
+                                    activeTrackColor = waterBlue,
+                                    inactiveTrackColor = sliderInactiveTrackColor,
+                                    activeTickColor = Color.Transparent,
+                                    inactiveTickColor = Color.Transparent
+                                )
+                            )
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
+
+                    run {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            BrewMetricInputBlock(
+                                label = "Café (g)",
+                                value = coffeeDraft,
+                                valueColor = coffeeColor,
+                                keyboardType = KeyboardType.Decimal,
+                                modifier = Modifier.weight(1f),
+                                onValueChange = { raw ->
+                                    val normalized = raw.replace(",", ".")
+                                    if (normalized.count { it == '.' } > 1) return@BrewMetricInputBlock
+                                    if (normalized.any { !it.isDigit() && it != '.' }) return@BrewMetricInputBlock
+                                    coffeeDraft = raw
+                                    normalized.toFloatOrNull()?.let { viewModel.setCoffeeGrams(it) }
+                                }
+                            )
+                            if (isRatioEditable) {
+                                Column(modifier = Modifier.weight(2f)) {
+                                    Slider(
+                                        value = ratio,
+                                        onValueChange = { viewModel.setRatio(it) },
+                                        valueRange = methodProfile.ratioMin.toFloat()..methodProfile.ratioMax.toFloat(),
+                                        steps = 0,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = MaterialTheme.colorScheme.primary,
+                                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                                            inactiveTrackColor = sliderInactiveTrackColor,
+                                            activeTickColor = Color.Transparent,
+                                            inactiveTickColor = Color.Transparent
+                                        )
+                                    )
+                                }
+                            } else {
+                                val coffeeMin = (methodProfile.waterMinMl / methodProfile.ratioMax).toFloat().coerceAtLeast(1f)
+                                val coffeeMax = (methodProfile.waterMaxMl / methodProfile.ratioMin).toFloat().coerceIn(coffeeMin, 250f)
+                                val ratioLabelValue = if (methodProfile.ratioStep < 1.0) String.format(Locale.US, "%.1f", ratio) else ratio.roundToInt().toString()
+                                val ratioTitle = "RATIO 1:$ratioLabelValue - $ratioProfile"
+                                Column(modifier = Modifier.weight(2f)) {
+                                    @Suppress("DEPRECATION")
+                                    Text(ratioTitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Slider(
+                                        value = coffeeGrams.coerceIn(coffeeMin, coffeeMax),
+                                        onValueChange = { viewModel.setCoffeeGrams(it) },
+                                        valueRange = coffeeMin..coffeeMax,
+                                        steps = 0,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = coffeeColor,
+                                            activeTrackColor = coffeeColor,
+                                            inactiveTrackColor = sliderInactiveTrackColor,
+                                            activeTickColor = Color.Transparent,
+                                            inactiveTickColor = Color.Transparent
+                                        )
+                                    )
+                                }
                             }
-                        )
-                        if (isEspressoMethod) {
-                            Spacer(Modifier.width(14.dp))
-                            val timeColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
+
+                    if (isEspressoMethod) {
+                        val timeSliderColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             BrewMetricInputBlock(
                                 label = "Tiempo (s)",
                                 value = brewTimeSeconds.toString(),
-                                valueColor = timeColor,
+                                valueColor = timeSliderColor,
                                 keyboardType = KeyboardType.Number,
                                 modifier = Modifier.weight(1f),
                                 onValueChange = { raw ->
                                     raw.filter { it.isDigit() }.toIntOrNull()?.let { viewModel.setBrewTimeSeconds(it) }
                                 }
                             )
+                            Slider(
+                                modifier = Modifier.weight(2f),
+                                value = brewTimeSeconds.toFloat(),
+                                onValueChange = { viewModel.setBrewTimeSeconds(it.roundToInt()) },
+                                valueRange = timeProfile.minSeconds.toFloat()..timeProfile.maxSeconds.toFloat(),
+                                steps = 0,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = timeSliderColor,
+                                    activeTrackColor = timeSliderColor,
+                                    inactiveTrackColor = sliderInactiveTrackColor,
+                                    activeTickColor = Color.Transparent,
+                                    inactiveTickColor = Color.Transparent
+                                )
+                            )
                         }
                     }
 
-                    Spacer(Modifier.height(32.dp))
-                    if (isWaterEditable) {
-                        @Suppress("DEPRECATION")
-                        Text("CANTIDAD DE AGUA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = water,
-                            onValueChange = { viewModel.setWaterAmount(it) },
-                            valueRange = methodProfile.waterMinMl.toFloat()..methodProfile.waterMaxMl.toFloat(),
-                            steps = 0,
-                            colors = SliderDefaults.colors(
-                                thumbColor = waterBlue,
-                                activeTrackColor = waterBlue,
-                                inactiveTrackColor = sliderInactiveTrackColor,
-                                activeTickColor = Color.Transparent,
-                                inactiveTickColor = Color.Transparent
-                            )
-                        )
-                        Spacer(Modifier.height(24.dp))
-                    }
-
-                    if (isWaterEditable && !isRatioEditable) {
-                        val coffeeMin = (methodProfile.waterMinMl / methodProfile.ratioMax).toFloat().coerceAtLeast(1f)
-                        val coffeeMax = (methodProfile.waterMaxMl / methodProfile.ratioMin).toFloat().coerceIn(coffeeMin, 250f)
-                        @Suppress("DEPRECATION")
-                        Text("CANTIDAD DE CAFÉ (g)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = coffeeGrams.coerceIn(coffeeMin, coffeeMax),
-                            onValueChange = { viewModel.setCoffeeGrams(it) },
-                            valueRange = coffeeMin..coffeeMax,
-                            steps = 0,
-                            colors = SliderDefaults.colors(
-                                thumbColor = coffeeColor,
-                                activeTrackColor = coffeeColor,
-                                inactiveTrackColor = sliderInactiveTrackColor,
-                                activeTickColor = Color.Transparent,
-                                inactiveTickColor = Color.Transparent
-                            )
-                        )
-                        Spacer(Modifier.height(24.dp))
-                    }
-
-                    if (isRatioEditable) {
-                        val ratioLabelValue = if (methodProfile.ratioStep < 1.0) String.format(Locale.US, "%.1f", ratio) else ratio.roundToInt().toString()
-                        val label = "RATIO 1:$ratioLabelValue · $ratioProfile"
-
-                        @Suppress("DEPRECATION")
-                        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = ratio,
-                            onValueChange = { viewModel.setRatio(it) },
-                            valueRange = methodProfile.ratioMin.toFloat()..methodProfile.ratioMax.toFloat(),
-                            steps = 0,
-                            colors = SliderDefaults.colors(
-                                thumbColor = MaterialTheme.colorScheme.primary,
-                                activeTrackColor = MaterialTheme.colorScheme.primary,
-                                inactiveTrackColor = sliderInactiveTrackColor,
-                                activeTickColor = Color.Transparent,
-                                inactiveTickColor = Color.Transparent
-                            )
-                        )
-                        Spacer(Modifier.height(24.dp))
-                    }
-
-                    if (isEspressoMethod) {
-                        val timeSliderColor = if (isSystemInDarkTheme()) Color.White else Color.Black
-                        @Suppress("DEPRECATION")
-                        Text(
-                            "TIEMPO DE EXTRACCIÓN (${brewTimeSeconds}s)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Slider(
-                            value = brewTimeSeconds.toFloat(),
-                            onValueChange = { viewModel.setBrewTimeSeconds(it.roundToInt()) },
-                            valueRange = timeProfile.minSeconds.toFloat()..timeProfile.maxSeconds.toFloat(),
-                            steps = 0,
-                            colors = SliderDefaults.colors(
-                                thumbColor = timeSliderColor,
-                                activeTrackColor = timeSliderColor,
-                                inactiveTrackColor = sliderInactiveTrackColor,
-                                activeTickColor = Color.Transparent,
-                                inactiveTickColor = Color.Transparent
-                            )
-                        )
-                    }
-
-                    if (valuation.isNotEmpty()) {
+                    if (baristaTips.isNotEmpty() && !isAguaMethod) {
                         Spacer(Modifier.height(24.dp))
                         Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            onClick = { showBaristaModal = true },
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                             shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         ) {
                             Row(
                                 modifier = Modifier
@@ -524,45 +834,54 @@ fun ConfigStep(
                                     .padding(20.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                                Spacer(Modifier.width(16.dp))
                                 Text(
-                                    text = valuation,
+                                    text = "Consejos del barista",
                                     style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    lineHeight = 22.sp
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
                 }
+                }
             }
-            }
+        }
 
-            Spacer(Modifier.height(24.dp))
-            @Suppress("DEPRECATION")
-            Text("CONSEJOS DEL BARISTA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 24.dp))
-            Spacer(Modifier.height(16.dp))
-            val baristaColumns = remember(baristaTips) { baristaTips.chunked(3) }
-            LazyRow(
-                state = rememberLazyListState(),
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(start = 24.dp, end = 0.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+        if (showBaristaModal && baristaTips.isNotEmpty()) {
+            val baristaSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { showBaristaModal = false },
+                sheetState = baristaSheetState,
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
-                items(baristaColumns) { columnTips ->
-                    Column(
-                        modifier = Modifier.widthIn(min = 220.dp, max = 260.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                        .padding(bottom = 32.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Box(
+                        Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        columnTips.forEach { tip ->
-                            BaristaTipPill(tip = tip, modifier = Modifier.fillMaxWidth())
-                        }
+                        Text(
+                            "Consejos del barista",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    baristaTips.forEach { tip ->
+                        BaristaTipPill(tip = tip, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
                     }
                 }
             }
-            Spacer(Modifier.height(28.dp))
         }
     }
 }
@@ -626,7 +945,8 @@ fun PreparationStep(
             Column(modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth(), horizontalAlignment = Alignment.Start) {
             PremiumCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(32.dp)
+                shape = RoundedCornerShape(32.dp),
+                containerColor = Color.Black
             ) {
                 Box {
                     WaterWaveAnimation(
@@ -639,7 +959,7 @@ fun PreparationStep(
                             Text(
                                 text = currentPhase.label,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color.White
                             )
 
                             BoxWithConstraints(
@@ -674,7 +994,7 @@ fun PreparationStep(
                             Text(
                                 text = "Siguiente: $nextLabel",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color.White
                             )
 
                             Spacer(Modifier.height(24.dp))
@@ -692,9 +1012,9 @@ fun PreparationStep(
                                     text = String.format("TOTAL %02d:%02d", totalSeconds / 60, totalSeconds % 60),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = Color.White
                                 )
-                                val timeDisplayColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                                val timeDisplayColor = Color.White
                                 @Suppress("DEPRECATION")
                                 Text(
                                     text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60),
@@ -892,17 +1212,8 @@ private fun PreparationTasteCard(
         "Aspero" to Icons.Default.Grain,
         "Dulce" to Icons.Default.Favorite
     )
-    PremiumCard(modifier = Modifier.padding(horizontal = 24.dp)) {
+    PremiumCard(modifier = Modifier.fillMaxWidth(), containerColor = Color.Black) {
         Column(Modifier.padding(24.dp)) {
-            Text(
-                text = "¿QUÉ SABOR HAS OBTENIDO?",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Black,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(24.dp))
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -936,27 +1247,27 @@ private fun PreparationTasteCard(
                 Column {
                     Spacer(Modifier.height(32.dp))
                     Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        color = Color.Black,
                         shape = RoundedCornerShape(24.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        border = BorderStroke(0.dp, Color.Transparent)
                     ) {
                         Column(Modifier.padding(24.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = LocalCaramelAccent.current, modifier = Modifier.size(24.dp))
                                 Spacer(Modifier.width(12.dp))
                                 @Suppress("DEPRECATION")
                                 Text(
                                     "Recomendación",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = LocalCaramelAccent.current
                                 )
                             }
                             Spacer(Modifier.height(16.dp))
                             Text(
                                 text = recommendation ?: "",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = Color.White,
                                 lineHeight = 24.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -965,6 +1276,24 @@ private fun PreparationTasteCard(
                 }
             }
         }
+    }
+}
+
+/** Pantalla de resultado: selección de sabor (Guardar en topBar). Mismo ancho que elaboración. */
+@Composable
+fun ResultStep(
+    selectedTaste: String?,
+    recommendation: String?,
+    onSave: () -> Unit,
+    viewModel: BrewLabViewModel
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp)
+    ) {
+        PreparationTasteCard(selectedTaste, recommendation, viewModel)
     }
 }
 
@@ -1194,7 +1523,7 @@ private fun baristaTipIcon(iconKey: String): ImageVector {
     return when (iconKey) {
         "grind" -> Icons.Default.Grain
         "thermostat" -> Icons.Default.Thermostat
-        "water" -> Icons.Default.WaterDrop
+        "water" -> Icons.Default.Grain
         "clock" -> Icons.Default.AccessTime
         "coffee" -> Icons.Default.Coffee
         else -> Icons.Default.AutoAwesome
@@ -1204,6 +1533,12 @@ private fun baristaTipIcon(iconKey: String): ImageVector {
 @Composable
 fun BaristaTipPill(tip: BaristaTip, modifier: Modifier = Modifier) {
     val icon = baristaTipIcon(tip.iconKey)
+    val useDrawable = tip.iconKey == "water" || tip.iconKey == "bolt"
+    val drawableId = when (tip.iconKey) {
+        "water" -> com.cafesito.app.R.drawable.agua
+        "bolt" -> com.cafesito.app.R.drawable.relampago
+        else -> null
+    }
     PremiumCard(modifier = modifier) {
         Row(
             modifier = Modifier
@@ -1214,7 +1549,16 @@ fun BaristaTipPill(tip: BaristaTip, modifier: Modifier = Modifier) {
             Box(Modifier
                 .size(26.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = tip.label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                if (useDrawable && drawableId != null) {
+                    Image(
+                        painter = painterResource(id = drawableId),
+                        contentDescription = tip.label,
+                        modifier = Modifier.size(14.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Icon(icon, contentDescription = tip.label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                }
             }
             Spacer(Modifier.width(10.dp))
             Column {

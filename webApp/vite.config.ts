@@ -83,7 +83,7 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
-  base: "./",
+  base: "/",
   envDir: __dirname,
   build: {
     rollupOptions: {

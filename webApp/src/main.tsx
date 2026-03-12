@@ -15,7 +15,6 @@ applyThemeToDocument(getThemeMode());
 if (import.meta.env.DEV && typeof window !== "undefined" && window.location.search.includes("safe-area=1")) {
   document.documentElement.classList.add("dev-safe-area-sim");
 }
-
 // PWA "Añadir a escritorio" (iOS/Android): respetar notch/barra de estado para que el topbar no quede debajo
 function detectPwaStandalone(): void {
   if (typeof document === "undefined" || !document.documentElement) return;
@@ -45,6 +44,10 @@ function saveLastUserAccess(): void {
 
 if (typeof window !== "undefined") {
   detectPwaStandalone();
+  // Solo en dev: ?pwa=1 simula modo PWA (standalone) para probar estilos sin instalar la app
+  if (import.meta.env.DEV && window.location.search.includes("pwa=1")) {
+    document.documentElement.classList.add("pwa-standalone");
+  }
   saveLastUserAccess();
   window.matchMedia("(display-mode: standalone)").addEventListener("change", detectPwaStandalone);
 }

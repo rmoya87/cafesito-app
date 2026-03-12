@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,10 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -45,6 +41,10 @@ import com.cafesito.app.data.DiaryEntryEntity
 import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
+import com.cafesito.app.ui.diary.formatMonthOnly
+import com.cafesito.app.ui.diary.formatMonthYear
+import com.cafesito.app.ui.diary.formatWeekRange
+import com.cafesito.app.ui.diary.getMondayOfWeek
 import com.cafesito.app.ui.utils.formatRelativeTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -52,7 +52,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiaryScreen(
     navigateTo: String = "",
@@ -75,6 +75,9 @@ fun DiaryScreen(
     val allDiaryEntries by viewModel.allDiaryEntries.collectAsState(initial = emptyList())
     val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
     val analytics by viewModel.analytics.collectAsState(initial = null)
+    val habitStats by viewModel.habitStats.collectAsState()
+    val consumptionStats by viewModel.consumptionStats.collectAsState()
+    val baristaStats by viewModel.baristaStats.collectAsState()
     val availableCoffees by viewModel.availableCoffees.collectAsState(initial = emptyList())
     val selectedPeriod by viewModel.selectedPeriod.collectAsState(initial = DiaryPeriod.HOY)
     val selectedDiaryDateMs by viewModel.selectedDiaryDateMs.collectAsState(initial = 0L)
@@ -82,10 +85,10 @@ fun DiaryScreen(
     
     var showStockSheet by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<PantryItemWithDetails?>(null) }
-    var showQuickActions by remember { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
     var showCalendar by remember { mutableStateOf(false) }
     var selectedEntry by remember { mutableStateOf<DiaryEntryEntity?>(null) }
+    var showBaristaCoffeesSheet by remember { mutableStateOf(false) }
     
     val todayStartMs = remember {
         val c = Calendar.getInstance()
@@ -93,15 +96,30 @@ fun DiaryScreen(
         c.timeInMillis
     }
     val isSelectedToday = selectedDiaryDateMs in todayStartMs until (todayStartMs + 86400000L)
-    val dateLabel = remember(selectedDiaryDateMs) {
-        if (selectedDiaryDateMs == 0L) "Hoy" else if (isSelectedToday) "Hoy" else SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(selectedDiaryDateMs))
+    val dateLabel = remember(selectedDiaryDateMs, selectedPeriod) {
+        when (selectedPeriod) {
+            DiaryPeriod.SEMANA -> formatWeekRange(if (selectedDiaryDateMs != 0L) selectedDiaryDateMs else getMondayOfWeek(System.currentTimeMillis()))
+            DiaryPeriod.MES -> if (selectedDiaryDateMs != 0L) formatMonthOnly(selectedDiaryDateMs) else formatMonthOnly(Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis)
+            else -> if (selectedDiaryDateMs == 0L) "Hoy" else if (isSelectedToday) "Hoy" else SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(selectedDiaryDateMs))
+        }
     }
-    val canGoNext = !isSelectedToday
+    val canGoNext = when (selectedPeriod) {
+        DiaryPeriod.SEMANA -> selectedDiaryDateMs < getMondayOfWeek(System.currentTimeMillis())
+        DiaryPeriod.MES -> {
+            val cal = Calendar.getInstance().apply { timeInMillis = selectedDiaryDateMs }
+            val now = Calendar.getInstance()
+            cal.get(Calendar.YEAR) < now.get(Calendar.YEAR) || (cal.get(Calendar.YEAR) == now.get(Calendar.YEAR) && cal.get(Calendar.MONTH) < now.get(Calendar.MONTH))
+        }
+        else -> !isSelectedToday
+    }
     
-    val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
     var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshDiaryEntries()
+    }
     var showPantryPlaceholder by remember { mutableStateOf(false) }
     val isDarkMode = isSystemInDarkTheme()
 
@@ -124,17 +142,8 @@ fun DiaryScreen(
         }
     }
 
-    LaunchedEffect(navigateTo) {
-        if (navigateTo == "pantry") {
-            pagerState.scrollToPage(1)
-        }
-    }
-
     LaunchedEffect(forcePantry) {
-        if (forcePantry) {
-            pagerState.scrollToPage(1)
-            onConsumeForcePantry()
-        }
+        if (forcePantry) onConsumeForcePantry()
     }
 
     LaunchedEffect(showPendingPantryPlaceholder) {
@@ -143,12 +152,6 @@ fun DiaryScreen(
             delay(1800)
             showPantryPlaceholder = false
             onConsumePendingPantryPlaceholder()
-        }
-    }
-
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage == 0) {
-            viewModel.refreshData()
         }
     }
 
@@ -169,14 +172,14 @@ fun DiaryScreen(
             item = itemToEdit!!,
             onDismiss = { showStockSheet = false },
             onSave = { total, remaining ->
-                viewModel.updateStock(itemToEdit!!.coffee.id, total, remaining)
+                viewModel.updateStock(itemToEdit!!.pantryItem.id, total, remaining)
                 showStockSheet = false
             }
         )
     }
 
     if (showPantryOptionsId != null) {
-        val selectedItem = pantryItems.find { it.coffee.id == showPantryOptionsId }
+        val selectedItem = pantryItems.find { it.pantryItem.id == showPantryOptionsId }
         if (selectedItem != null) {
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
@@ -218,9 +221,9 @@ fun DiaryScreen(
                             icon = Icons.Default.LocalCafe,
                             color = MaterialTheme.colorScheme.onSurface,
                             onClick = {
-                                val id = showPantryOptionsId!!
+                                val coffeeId = selectedItem.coffee.id
                                 showPantryOptionsId = null
-                                onEditCoffeeClick(id)
+                                onEditCoffeeClick(coffeeId)
                             }
                         )
                     }
@@ -280,86 +283,76 @@ fun DiaryScreen(
                         modifier = Modifier.padding(start = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        if (selectedPeriod == DiaryPeriod.HOY) {
-                            val chipBackground = if (isDarkMode) MaterialTheme.colorScheme.surface else Color.White
-                            val chipBorderColor = MaterialTheme.colorScheme.outline
-                            val chipContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else Color.Black
+                        val chipBackground = if (isDarkMode) MaterialTheme.colorScheme.surface else Color.White
+                        val chipBorderColor = MaterialTheme.colorScheme.outline
+                        val chipContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else Color.Black
+                        Row(
+                            modifier = Modifier
+                                .wrapContentWidth()
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(chipBackground)
+                                .border(1.dp, chipBorderColor, RoundedCornerShape(24.dp))
+                                .padding(horizontal = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    when (selectedPeriod) {
+                                        DiaryPeriod.SEMANA -> viewModel.prevWeek()
+                                        DiaryPeriod.MES -> viewModel.prevMonth()
+                                        else -> viewModel.prevDay()
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = Color.Transparent,
+                                    contentColor = chipContentColor
+                                )
+                            ) {
+                                Icon(Icons.Default.ChevronLeft, contentDescription = if (selectedPeriod == DiaryPeriod.MES) "Mes anterior" else "Anterior", modifier = Modifier.size(20.dp))
+                            }
                             Row(
                                 modifier = Modifier
-                                    .wrapContentWidth()
-                                    .height(40.dp)
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .background(chipBackground)
-                                    .border(1.dp, chipBorderColor, RoundedCornerShape(24.dp))
-                                    .padding(horizontal = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .weight(1f, fill = false)
+                                    .fillMaxHeight()
+                                    .minimumInteractiveComponentSize()
+                                    .clickable(onClick = { showPeriodMenu = true })
+                                    .padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
                             ) {
+                                Text(
+                                    dateLabel,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = chipContentColor
+                                )
+                            }
+                            if (canGoNext) {
                                 IconButton(
-                                    onClick = { viewModel.prevDay() },
+                                    onClick = {
+                                        when (selectedPeriod) {
+                                            DiaryPeriod.SEMANA -> viewModel.nextWeek()
+                                            DiaryPeriod.MES -> viewModel.nextMonth()
+                                            else -> viewModel.nextDay()
+                                        }
+                                    },
                                     modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
                                     colors = IconButtonDefaults.iconButtonColors(
                                         containerColor = Color.Transparent,
                                         contentColor = chipContentColor
                                     )
                                 ) {
-                                    Icon(Icons.Default.ChevronLeft, contentDescription = "Día anterior", modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.ChevronRight, contentDescription = if (selectedPeriod == DiaryPeriod.MES) "Mes siguiente" else "Siguiente", modifier = Modifier.size(20.dp))
                                 }
-                                Row(
-                                    modifier = Modifier
-                                        .weight(1f, fill = false)
-                                        .fillMaxHeight()
-                                        .minimumInteractiveComponentSize()
-                                        .clickable(onClick = { showCalendar = true })
-                                        .padding(horizontal = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        dateLabel,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = chipContentColor
-                                    )
-                                }
-                                if (canGoNext) {
-                                    IconButton(
-                                        onClick = { viewModel.nextDay() },
-                                        modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
-                                        colors = IconButtonDefaults.iconButtonColors(
-                                            containerColor = Color.Transparent,
-                                            contentColor = chipContentColor
-                                        )
-                                    ) {
-                                        Icon(Icons.Default.ChevronRight, contentDescription = "Día siguiente", modifier = Modifier.size(20.dp))
-                                    }
-                                } else {
-                                    Spacer(Modifier.size(32.dp))
-                                }
+                            } else {
+                                Spacer(Modifier.size(32.dp))
                             }
-                        } else {
-                            PeriodSelectorPremium(selectedPeriod) { showPeriodMenu = true }
                         }
                     }
                 },
-                scrollBehavior = scrollBehavior,
-                actions = {
-                    IconButton(
-                        onClick = { showQuickActions = true },
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(40.dp),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (isDarkMode) Color.Black else Color.White,
-                            contentColor = if (isDarkMode) Color.White else Color.Black
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Añadir",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
+                scrollBehavior = scrollBehavior
             )
         }
     ) { padding ->
@@ -385,120 +378,106 @@ fun DiaryScreen(
                 } else if (currentAnalytics != null) {
                     CaffeinePremiumCard(currentAnalytics)
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
+            }
+            item {
+                Text(
+                    text = "Hábito",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+                DiaryHabitCard(habitStats)
+            }
+            item {
+                Text(
+                    text = "Consumo",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+                DiaryConsumptionCard(consumptionStats)
+            }
+            item {
+                Text(
+                    text = "Barista",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+                DiaryBaristaCard(baristaStats, onCafesProbadosClick = { showBaristaCoffeesSheet = true })
             }
 
-            stickyHeader {
-                PremiumTabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    tabs = listOf("ACTIVIDAD", "DESPENSA"),
-                    onTabSelected = { 
-                        coroutineScope.launch { pagerState.animateScrollToPage(it, animationSpec = tween(120)) }
-                    }
+            item {
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    text = "ACTIVIDAD",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
-            
-            item {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillParentMaxHeight(),
-                    verticalAlignment = Alignment.Top,
-                    userScrollEnabled = false
-                ) { page ->
-                    when(page) {
-                        0 -> {
-                            if (isLoading) {
-                                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    item { Spacer(Modifier.height(6.dp)) }
-                                    items(5) { 
-                                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                            DiaryItemShimmer()
-                                        }
-                                    }
-                                }
-                            } else if (entries.isEmpty()) {
-                                EmptyStateMessage("Sin café o agua registrada")
-                            } else {
-                                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    item { Spacer(Modifier.height(6.dp)) }
-                                    itemsIndexed(entries, key = { _, it -> "${it.id}_${it.timestamp}" }) { index, entry ->
-                                        if (selectedPeriod != DiaryPeriod.HOY) {
-                                            val dayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(entry.timestamp))
-                                            val previousDayKey = entries.getOrNull(index - 1)?.let {
-                                                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(it.timestamp))
-                                            }
-                                            if (dayKey != previousDayKey) {
-                                                Text(
-                                                    text = SimpleDateFormat("d MMMM", Locale.forLanguageTag("es-ES")).format(Date(entry.timestamp)),
-                                                    style = MaterialTheme.typography.titleSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-                                                )
-                                            }
-                                        }
-                                        val isNew = entry.timestamp >= System.currentTimeMillis() - 10_000
-                                        AnimatedVisibility(
-                                            visible = true,
-                                            enter = fadeIn(animationSpec = tween(220)) +
-                                                slideInVertically(initialOffsetY = { it / 5 }, animationSpec = tween(220)) +
-                                                scaleIn(initialScale = 0.92f, animationSpec = tween(220)),
-                                            label = "DiaryEntryAppear"
-                                        ) {
-                                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                                SwipeableDiaryItem(
-                                                    entry = entry,
-                                                    coffeeImageUrl = if (entry.type == "CUP") coffeeImageMap[entry.coffeeId] else null,
-                                                    highlightNew = isNew,
-                                                    selectedPeriod = selectedPeriod,
-                                                    enableDeleteSwipe = true,
-                                                    onDelete = { viewModel.deleteEntry(entry.id) },
-                                                    onClick = { selectedEntry = entry }
-                                                )
-                                            }
-                                        }
-                                    }
-                                    item { Spacer(Modifier.height(140.dp)) }
-                                }
-                            }
+
+            if (isLoading) {
+                items(5) {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        DiaryItemShimmer()
+                    }
+                }
+            } else if (entries.isEmpty()) {
+                item { EmptyStateMessage("Sin café o agua registrada") }
+            } else {
+                itemsIndexed(entries, key = { _, it -> "${it.id}_${it.timestamp}" }) { index, entry ->
+                    if (selectedPeriod != DiaryPeriod.HOY) {
+                        val dayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(entry.timestamp))
+                        val previousDayKey = entries.getOrNull(index - 1)?.let {
+                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(it.timestamp))
                         }
-                        1 -> {
-                             if (isLoading) {
-                                LazyVerticalGrid(
-                                    columns = GridCells.Fixed(2),
-                                    contentPadding = PaddingValues(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    items(4) { PantryItemShimmer() }
-                                }
-                            } else if (pantryItems.isEmpty()) {
-                                EmptyStateMessage("No hay café en tu despensa")
-                            } else {
-                                LazyVerticalGrid(
-                                    columns = GridCells.Fixed(2),
-                                    contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 140.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    if (showPantryPlaceholder) {
-                                        item { PantryItemShimmer() }
-                                    }
-                                    items(pantryItems, key = { it.coffee.id }) { item ->
-                                        PantryPremiumCard(
-                                            item = item,
-                                            onClick = onCoffeeClick,
-                                            onOptionsClick = { coffeeId -> showPantryOptionsId = coffeeId }
-                                        )
-                                    }
-                                }
+                        if (dayKey != previousDayKey) {
+                            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(todayStartMs))
+                            val isCurrentDay = dayKey == todayStr
+                            val dayHeaderColor = when {
+                                isCurrentDay && isDarkMode -> Color.White
+                                isCurrentDay && !isDarkMode -> Color.Black
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
+                            Text(
+                                text = SimpleDateFormat("d MMMM", Locale.forLanguageTag("es-ES")).format(Date(entry.timestamp)),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = dayHeaderColor,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                            )
+                        }
+                    }
+                    val isNew = entry.timestamp >= System.currentTimeMillis() - 10_000
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(animationSpec = tween(220)) +
+                            slideInVertically(initialOffsetY = { it / 5 }, animationSpec = tween(220)) +
+                            scaleIn(initialScale = 0.92f, animationSpec = tween(220)),
+                        label = "DiaryEntryAppear"
+                    ) {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                            SwipeableDiaryItem(
+                                entry = entry,
+                                coffeeImageUrl = if (entry.type == "CUP") coffeeImageMap[entry.coffeeId] else null,
+                                highlightNew = isNew,
+                                selectedPeriod = selectedPeriod,
+                                enableDeleteSwipe = true,
+                                onDelete = { viewModel.deleteEntry(entry.id) },
+                                onClick = { selectedEntry = entry }
+                            )
                         }
                     }
                 }
             }
+
+            item { Spacer(Modifier.height(140.dp)) }
         }
         }
 
@@ -517,8 +496,12 @@ fun DiaryScreen(
         if (showPeriodMenu) {
             PeriodBottomSheet(
                 selectedPeriod = selectedPeriod,
+                selectedDateMs = selectedDiaryDateMs,
+                canGoNextMonth = canGoNext,
                 onDismiss = { showPeriodMenu = false },
-                onPeriodSelected = { viewModel.setPeriod(it) }
+                onPeriodSelected = { viewModel.setPeriod(it) },
+                onPrevMonth = { viewModel.prevMonth() },
+                onNextMonth = { viewModel.nextMonth() }
             )
         }
 
@@ -526,7 +509,7 @@ fun DiaryScreen(
             DiaryDatePickerSheet(
                 onDismiss = { showCalendar = false },
                 onGoToToday = {
-                    viewModel.setSelectedDiaryDateMs(todayStartMs)
+                    viewModel.setSelectedDiaryDateMs(getMondayOfWeek(System.currentTimeMillis()))
                 },
                 onPickDate = { year, month, dayOfMonth ->
                     val c = Calendar.getInstance()
@@ -537,19 +520,17 @@ fun DiaryScreen(
                     c.set(Calendar.MINUTE, 0)
                     c.set(Calendar.SECOND, 0)
                     c.set(Calendar.MILLISECOND, 0)
-                    viewModel.setSelectedDiaryDateMs(c.timeInMillis)
+                    viewModel.setSelectedDiaryDateMs(getMondayOfWeek(c.timeInMillis))
                 },
                 selectedDateMs = selectedDiaryDateMs,
                 entries = allDiaryEntries
             )
         }
 
-        if (showQuickActions) {
-            AddEntryBottomSheet(
-                onDismiss = { showQuickActions = false },
-                onAddWater = { onAddWaterClick(); showQuickActions = false },
-                onAddCoffee = { onAddCoffeeClick(); showQuickActions = false },
-                onAddPantry = { onAddStockClick(); showQuickActions = false }
+        if (showBaristaCoffeesSheet) {
+            BaristaCoffeesListSheet(
+                coffees = baristaStats.coffeesWithFirstTried,
+                onDismiss = { showBaristaCoffeesSheet = false }
             )
         }
     }

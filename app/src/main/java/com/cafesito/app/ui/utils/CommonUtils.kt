@@ -12,15 +12,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-// --- ONBOARDING DATA ---
-data class OnboardingPage(val title: String, val description: String, val icon: String)
-
-val onboardingPages = listOf(
-    OnboardingPage("¡Bienvenido!", "La comunidad para los amantes del café de especialidad.", "☕"),
-    OnboardingPage("Comparte tu Pasión", "Publica tus momentos cafeteros y descubre otros tipos de café.", "📸"),
-    OnboardingPage("Tu Diario de Cata", "Valora cada café y crea tu propio perfil sensorial personalizado.", "📊")
-)
-
 // --- CAFFEINE LOGIC ---
 object CaffeineCalculator {
     private val baseCaffeineMap = mapOf(

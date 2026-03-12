@@ -50,28 +50,34 @@ class CoffeeRepository @Inject constructor(
         ).flow
     }
 
+    /** Pide a Supabase todos los cafés (una sola petición). Lo que devuelva depende de RLS.
+     *  Para ver toda la tabla, en Supabase aplica la política "Coffees readable by authenticated (all rows)" (coffees_rls.sql). */
+    private suspend fun fetchAllCoffees(): List<Coffee> {
+        return supabaseDataSource.getAllCoffees()
+    }
+
     val allCoffees: Flow<List<CoffeeWithDetails>> = _refreshTrigger
         .flatMapLatest {
             networkBoundResource(
                 resourceKey = "all_coffees",
                 query = { coffeeDao.getAllCoffeesWithDetails() },
                 fetch = {
-                    val user = userRepository.getActiveUser()
-                    val public = supabaseDataSource.getAllCoffees()
-                    val custom = user?.let { supabaseDataSource.getCustomCoffees(it.id) } ?: emptyList()
+                    val all = fetchAllCoffees()
                     val reviews = supabaseDataSource.getAllReviews()
-                    Triple(public, custom, reviews)
+                    Pair(all, reviews)
                 },
-                saveFetchResult = { (public, custom, reviews) ->
+                saveFetchResult = { (all, reviews) ->
                     withContext(Dispatchers.IO) {
-                        coffeeDao.insertCoffees(public + custom)
+                        coffeeDao.insertCoffees(all)
                         coffeeDao.upsertReviews(reviews)
                     }
                 },
                 scope = externalScope,
                 connectivityObserver = connectivityObserver
             )
-        }.flowOn(Dispatchers.IO)
+        }
+        .onStart { emit(emptyList()) }
+        .flowOn(Dispatchers.IO)
 
     fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = _refreshTrigger
         .flatMapLatest {
@@ -150,11 +156,23 @@ class CoffeeRepository @Inject constructor(
     }
 
     suspend fun syncCoffees() {
-        val user = userRepository.getActiveUser()
-        val public = supabaseDataSource.getAllCoffees()
-        val custom = user?.let { supabaseDataSource.getCustomCoffees(it.id) } ?: emptyList()
-        coffeeDao.insertCoffees(public + custom)
+        val all = fetchAllCoffees()
+        coffeeDao.insertCoffees(all)
+        lastSyncMap["all_coffees"] = System.currentTimeMillis()
+        Log.d("CoffeeRepository", "syncCoffees: ${all.size} cafés (públicos + custom + referenciados)")
         triggerRefresh()
+    }
+
+    /** Obtiene un café por ID desde caché o Supabase (para resolver nombre en actividad cuando no está en allCoffees). */
+    suspend fun getCoffeeById(id: String): Coffee? = withContext(Dispatchers.IO) {
+        coffeeDao.getCoffeeById(id) ?: run {
+            try {
+                supabaseDataSource.getCoffeesByIds(listOf(id)).firstOrNull()?.also { coffeeDao.insertCoffees(listOf(it)) }
+            } catch (e: Exception) {
+                Log.w("CoffeeRepository", "getCoffeeById($id) failed", e)
+                null
+            }
+        }
     }
 
     suspend fun findCoffeeIdByBarcode(rawBarcode: String): String? = withContext(Dispatchers.IO) {

@@ -1,45 +1,33 @@
 import type { ReactNode } from "react";
 import type { TabId } from "../types";
-import { IconButton } from "../ui/components";
-import { UiIcon } from "../ui/iconography";
 
 export function AppContentRouter({
   activeTab,
   mode,
-  timelineContent,
+  homeContent,
   searchContent,
   coffeeContent,
   brewContent,
   diaryContent,
-  profileContent,
-  onOpenCreatePost
+  profileContent
 }: {
   activeTab: TabId;
   mode: string;
-  timelineContent: ReactNode;
+  homeContent: ReactNode;
   searchContent: ReactNode;
   coffeeContent: ReactNode;
   brewContent: ReactNode;
   diaryContent: ReactNode;
   profileContent: ReactNode;
-  onOpenCreatePost: () => void;
 }) {
   return (
-    <>
-      <section aria-live="polite" className={`content content-${activeTab}`.trim()}>
-        {activeTab === "timeline" ? timelineContent : null}
-        {activeTab === "search" ? searchContent : null}
-        {activeTab === "coffee" ? coffeeContent : null}
-        {activeTab === "brewlab" ? brewContent : null}
-        {activeTab === "diary" ? diaryContent : null}
-        {activeTab === "profile" ? profileContent : null}
-      </section>
-
-      {activeTab === "timeline" && mode !== "desktop" ? (
-        <IconButton className="fab" aria-label="Nuevo Post" onClick={onOpenCreatePost}>
-          <UiIcon name="add" className="ui-icon" />
-        </IconButton>
-      ) : null}
-    </>
+    <section aria-live="polite" className={`content content-${activeTab}`.trim()}>
+      {activeTab === "home" ? homeContent : null}
+      {activeTab === "search" ? searchContent : null}
+      {activeTab === "coffee" ? coffeeContent : null}
+      {activeTab === "brewlab" ? brewContent : null}
+      {activeTab === "diary" ? diaryContent : null}
+      {activeTab === "profile" ? profileContent : null}
+    </section>
   );
 }

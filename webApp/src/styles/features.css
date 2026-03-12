@@ -10,6 +10,9 @@ input {
 .layout {
   min-height: 100vh;
   height: 100vh;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 @media (max-width: 899px) {
@@ -23,20 +26,35 @@ input {
 
 /* Móvil: layout a altura completa; -webkit-fill-available evita barra bajo el menú en iOS Safari */
 @media (max-width: 899px) {
-  body {
-    background: transparent;
+  html,
+  body,
+  #root {
+    background: var(--screen-dark-background);
   }
   .layout {
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
-    height: 100dvh;
-    height: -webkit-fill-available;
+    min-height: 100%;
+    height: 100%;
     background: var(--screen-dark-background);
   }
 }
 @media (max-width: 899px) and (prefers-color-scheme: light) {
+  html,
+  body,
+  #root,
   .layout {
     background: var(--screen-light-background);
+  }
+}
+
+/* iOS Safari (web y PWA): usar viewport "small" para evitar franjas al mostrar/ocultar controles del navegador */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 899px) {
+    .notifications-overlay,
+    .notifications-panel {
+      min-height: 100svh;
+      height: 100svh;
+      max-height: 100svh;
+    }
   }
 }
 
@@ -106,9 +124,13 @@ input {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  overflow-x: hidden;
   position: relative;
   width: min(100%, 860px);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .main-shell > *:first-child {
@@ -119,7 +141,9 @@ input {
 .main-shell-scroll {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   overflow: auto;
+  overflow-x: hidden;
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   padding: 10px var(--app-shell-gutter) 120px;
   -webkit-overflow-scrolling: touch;
@@ -348,7 +372,7 @@ input {
     padding-top: 2px;
   }
 
-  .content.content-timeline,
+  .content.content-home,
   .content.content-search,
   .content.content-diary,
   .content.content-profile,
@@ -452,7 +476,38 @@ input {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-.topbar-timeline,
+/* Topbar Inicio: mismos colores que diario/elaboración/perfil (fondo estándar) */
+.topbar-home.topbar-home-inicio,
+.topbar-home.topbar-diary,
+.topbar-home.topbar-historial,
+.topbar-home.topbar-brew,
+.topbar-home.topbar-profile {
+  top: 0;
+  height: var(--topbar-height);
+  min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+  padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 4px;
+  border-radius: 0;
+  box-sizing: border-box;
+  background: var(--screen-dark-background);
+}
+
+.topbar-home.topbar-home-inicio.topbar-scrolled,
+.topbar-home.topbar-diary.topbar-scrolled,
+.topbar-home.topbar-historial.topbar-scrolled,
+.topbar-home.topbar-brew.topbar-scrolled,
+.topbar-home.topbar-profile.topbar-scrolled {
+  background: var(--screen-dark-background);
+}
+
+/* Flecha siguiente en elaboración: inactiva = gris claro */
+.topbar-brew .topbar-brew-next-inactive,
+.topbar-brew .topbar-brew-next-inactive .ui-icon {
+  color: rgba(0, 0, 0, 0.28);
+}
+.topbar-brew .topbar-brew-next-inactive .ui-icon svg {
+  fill: currentColor;
+}
+
 .topbar-historial {
   top: 0;
   height: var(--topbar-height);
@@ -463,7 +518,6 @@ input {
   background: var(--screen-dark-background);
 }
 
-.topbar-timeline.topbar-scrolled,
 .topbar-historial.topbar-scrolled {
   background: var(--screen-dark-background);
 }
@@ -708,10 +762,10 @@ input {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     padding-bottom: 2px;
-    margin-left: -2px;
-    margin-right: -2px;
-    padding-left: 2px;
-    padding-right: 2px;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: var(--app-shell-gutter);
+    padding-right: 0;
   }
 
   .topbar-search-chips .filter-chip {
@@ -730,8 +784,9 @@ input {
   grid-template-columns: 86px 1fr 86px;
 }
 
+/* Columnas simétricas para que "MI DIARIO" quede centrado */
 .topbar-diary {
-  grid-template-columns: minmax(140px, max-content) 1fr 40px;
+  grid-template-columns: minmax(140px, max-content) 1fr minmax(140px, max-content);
 }
 
 .topbar-slot,
@@ -744,6 +799,16 @@ input {
 .topbar-slot-end {
   justify-content: flex-end;
   gap: 6px;
+}
+
+/* Botón 3 puntos en círculo (detalle de lista) */
+.topbar-list-options-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Volver siempre a la izquierda (por si flex/grid invierte en RTL) */
@@ -961,12 +1026,46 @@ input {
   flex-shrink: 0;
 }
 
+.diary-calendar-sheet-overlay {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+.diary-calendar-sheet-overlay .diary-calendar-scroll {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.diary-calendar-sheet {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  height: 85vh;
+  max-height: 85vh;
+}
+/* Contenedor del contenido del sheet: flex para que .diary-calendar-scroll tenga altura acotada y haga scroll */
+.diary-calendar-sheet .sheet-card-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.diary-calendar-sheet .sheet-handle,
+.diary-calendar-sheet .sheet-header {
+  flex-shrink: 0;
+}
 .diary-calendar-scroll {
-  max-height: 60vh;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 12px 20px;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  position: relative;
 }
 
 .diary-calendar-month-block {
@@ -1089,14 +1188,14 @@ input {
   }
 }
 
-.topbar-timeline .topbar-slot,
-.topbar-timeline .topbar-slot-end,
+.topbar-home .topbar-slot,
+.topbar-home .topbar-slot-end,
 .topbar-historial .topbar-slot,
 .topbar-historial .topbar-slot-end {
   min-height: 40px;
 }
 
-.topbar-timeline .topbar-icon-button .ui-icon,
+.topbar-home .topbar-icon-button .ui-icon,
 .topbar-historial .topbar-icon-button .ui-icon {
   width: 24px;
   height: 24px;
@@ -1160,8 +1259,8 @@ input {
 
 .content {
   padding-top: 6px;
-  display: grid;
-  gap: 12px;
+  min-width: 0;
+  display: block;
 }
 
 .content.content-coffee {
@@ -1195,9 +1294,13 @@ input {
   }
 }
 
-.content.content-timeline,
+.content.content-home,
 .content.content-brewlab {
   padding-top: 0;
+}
+
+.content.content-brewlab > * {
+  min-width: 0;
 }
 
 .tab-filters {
@@ -1215,16 +1318,617 @@ input {
 
 .timeline-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Marrón solo en la zona del hero: el bloque se extiende con márgenes negativos (arriba y laterales) */
+.timeline-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: -10px;
+  margin-left: calc(-1 * var(--app-shell-gutter));
+  margin-right: calc(-1 * var(--app-shell-gutter));
+  padding: calc(10px + var(--space-4)) calc(var(--app-shell-gutter) + var(--space-4)) var(--space-6);
+  flex-shrink: 0;
+  background: var(--caramel-accent);
+}
+
+.timeline-hero-greeting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.timeline-hero-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.timeline-hero-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--pure-white);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.timeline-hero-greeting-text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--pure-white);
+  margin: 0;
+}
+
+.timeline-hero-strip {
+  padding: var(--space-4) var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.timeline-hero-strip .timeline-hero-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--pure-white);
+  margin: 0;
+}
+
+.timeline-hero .timeline-search-row .search-coffee-input {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  color: var(--espresso-deep);
+}
+
+.timeline-hero .timeline-search-row .search-coffee-placeholder {
+  color: var(--espresso-medium);
+}
+
+.timeline-hero .timeline-search-row .search-coffee-leading-icon {
+  color: var(--espresso-medium);
+}
+
+.timeline-search-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.timeline-search-row .search-coffee-field {
+  width: 100%;
+}
+
+/* Solo el buscador falso (sin .topbar-search) tiene input no interactivo */
+.timeline-search-row:not(.topbar-search) .timeline-search-input {
+  pointer-events: none;
+  cursor: pointer;
+}
+
+/* Hero: mismo layout que topbar-search (campo + cancel) sin chips */
+.timeline-hero .timeline-hero-search-row.topbar-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0;
+  gap: 6px var(--space-2);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  background: transparent;
+  transition: grid-template-columns var(--duration-normal) var(--ease-standard);
+}
+.timeline-hero .timeline-hero-search-row.topbar-search.has-cancel {
+  grid-template-columns: minmax(0, 1fr) 84px;
+}
+
+.timeline-search-row .search-coffee-placeholder span {
+  animation: none;
+}
+
+/* Formas de elaboración: ancho completo hasta ambos bordes (izq. con margen inicial, der. pegada) */
+.timeline-elaboration-methods {
+  flex-shrink: 0;
+  min-width: 0;
+  width: calc(100% + 2 * var(--app-shell-gutter));
+  max-width: none;
+  margin-top: var(--space-6);
+  margin-left: calc(-1 * var(--app-shell-gutter));
+  margin-right: 0;
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) 0;
+  background: var(--screen-light-background);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+html.theme-dark .timeline-elaboration-methods {
+  background: var(--screen-dark-background);
+}
+
+/* Modo noche por sistema (prefers-color-scheme: dark): mismo estilo que html.theme-dark — fondos negros, activos marrón sin borde */
+@media (prefers-color-scheme: dark) {
+  .timeline-elaboration-methods,
+  .brew-select-step .timeline-elaboration-methods {
+    background: transparent !important;
+  }
+  /* Círculos método y tipo: negro por defecto; activo marrón sin borde */
+  .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
+    background: #000 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  }
+  .brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+    background: var(--caramel-accent) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .timeline-elaboration-method-label,
+  .brew-select-step .timeline-elaboration-method-label,
+  .brew-tipo-strip .timeline-elaboration-method-label {
+    color: #ffffff !important;
+  }
+  .brew-select-step .brew-select-section-title,
+  .brew-select-step .section-title.brew-select-section-title {
+    color: #ffffff !important;
+  }
+  /* Selecciona café, temporizador, tamaño: fondo negro; tamaño activo marrón sin borde */
+  .brew-select-step .brew-timer-row,
+  .brew-select-step .brew-select-coffee-row,
+  .brew-select-step .brew-tamaño-card {
+    background: #000 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+  }
+  .brew-select-step .brew-tamaño-card.is-active {
+    background: var(--caramel-accent) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .brew-select-step .brew-tamaño-card-label {
+    color: #ffffff !important;
+  }
+  .brew-select-step .brew-tamaño-card-range {
+    color: #bdb7b2 !important;
+  }
+  .brew-select-step .brew-coffee-search,
+  .brew-select-step .search-wide {
+    background: #212121 !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+  }
+  /* Card recomendación (resultado y durante proceso) */
+  .brew-result-reco {
+    background: #000 !important;
+    border: none !important;
+  }
+  .brew-result-reco-head strong {
+    color: var(--caramel-accent) !important;
+  }
+  .brew-result-reco p {
+    color: #fff !important;
+  }
+  .brew-prep-card {
+    background: #000 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+  }
+  .brew-prep-advice-list li,
+  .brew-prep-advice-card {
+    background: #000 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
+  }
+  /* Home: módulo método (círculos) — fondo negro */
+  .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-circle-inner {
+    background: #000 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  }
+  .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-label {
+    color: #ffffff !important;
+  }
+  /* Recomendaciones del día (Home): card negro */
+  .timeline-recommendation-card {
+    background: #000 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+  }
+  .timeline-recommendation-card .timeline-recommendation-row {
+    color: #ffffff !important;
+    border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+  }
+  .timeline-recommendation-card .timeline-recommendation-row:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+  }
+  .timeline-recommendation-row-name {
+    color: #ffffff !important;
+  }
+  .timeline-recommendation-row-brand {
+    color: #bdb7b2 !important;
+  }
+  .brew-select-step .timeline-despensa .brew-pantry-card {
+    background: #212121 !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+  }
+  .timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+    fill: rgba(255, 255, 255, 0.85) !important;
+    stroke: rgba(255, 255, 255, 0.5) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+  }
+}
+
+.timeline-elaboration-methods-scroll {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-left: var(--app-shell-gutter);
+  padding-right: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  box-sizing: border-box;
+}
+
+.timeline-elaboration-methods-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.timeline-elaboration-method-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-main);
+  cursor: pointer;
+  min-width: 72px;
+  scroll-snap-align: start;
+}
+
+.timeline-elaboration-method-circle-inner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--pure-white);
+  border: 2px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* En .brew-select-step los círculos se estilizan en theme-forced (negro/marrón). Fuera de elaboración se mantiene surface. */
+html.theme-dark .timeline-elaboration-method-circle-inner {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+html.theme-dark .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
+  background: #000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+  background: var(--caramel-accent) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.timeline-elaboration-method-circle-inner img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-bolt,
+.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-bolt {
+  display: block;
+  flex-shrink: 0;
+  color: var(--text-main);
+  stroke-width: 1.25;
+  stroke: currentColor;
+}
+
+.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+  display: block;
+  flex-shrink: 0;
+  fill: #dadcde;
+  stroke: #000;
+  stroke-width: 1.25px;
+  color: #dadcde;
+  margin: 0 auto;
+}
+
+.timeline-elaboration-method-icon-bolt {
+  display: block;
+  color: var(--text-main);
+}
+
+.timeline-elaboration-method-label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-subtle);
+  text-align: center;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Contenedor carrusel con botones de navegación (solo desktop); en móvil se desliza con el dedo */
+.timeline-carousel-with-nav {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.timeline-carousel-nav {
+  display: none;
+}
+
+.timeline-carousel-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #e0e0e0;
+  color: #616161;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.timeline-carousel-nav-btn:hover {
+  background: #d0d0d0;
+  color: #424242;
+}
+
+.timeline-carousel-nav-btn .ui-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.timeline-carousel-nav-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+html.theme-dark .timeline-carousel-nav-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+html.theme-dark .timeline-carousel-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--pure-white);
+}
+
+@media (min-width: 900px) {
+  .timeline-carousel-nav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    padding-left: var(--app-shell-gutter);
+    padding-right: var(--app-shell-gutter);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Ocultar barra de desplazamiento en desktop en carruseles del timeline y elaboración (Tipo) */
+  .timeline-carousel-with-nav .timeline-elaboration-methods-scroll,
+  .timeline-carousel-with-nav .timeline-despensa-scroll,
+  .timeline-carousel-with-nav .horizontal-cards.timeline-carousel-scroll,
+  .timeline-carousel-with-nav .timeline-recommendations-list,
+  .timeline-carousel-with-nav .brew-tipo-strip {
+    scrollbar-width: none;
+  }
+
+  .timeline-carousel-with-nav .timeline-elaboration-methods-scroll::-webkit-scrollbar,
+  .timeline-carousel-with-nav .timeline-despensa-scroll::-webkit-scrollbar,
+  .timeline-carousel-with-nav .horizontal-cards.timeline-carousel-scroll::-webkit-scrollbar,
+  .timeline-carousel-with-nav .timeline-recommendations-list::-webkit-scrollbar,
+  .timeline-carousel-with-nav .brew-tipo-strip::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Recomendaciones del día: listado con imagen a la izquierda, nombre + marca a la derecha, scroll horizontal */
+.suggestion-strip.timeline-recommendations-day {
+  width: calc(100% + 2 * var(--app-shell-gutter));
+  max-width: none;
+  margin-left: calc(-1 * var(--app-shell-gutter));
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+  margin-right: 0;
+  padding-left: var(--app-shell-gutter);
+  padding-right: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.timeline-recommendations-list {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-4);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding-right: var(--app-shell-gutter);
+}
+.timeline-recommendations-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Una card = 3 cafés en columna; scroll horizontal entre cards */
+.timeline-recommendation-card {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-width: 280px;
+  max-width: 320px;
+  background: var(--surface-1, #fff);
+  border-radius: var(--surface-card-radius, 12px);
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  overflow: hidden;
+  scroll-snap-align: start;
+  box-sizing: border-box;
+}
+
+.timeline-recommendation-card .timeline-recommendation-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  color: var(--text-main);
+  font: inherit;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: 0;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.timeline-recommendation-card .timeline-recommendation-row:last-child {
+  border-bottom: none;
+}
+.timeline-recommendation-card .timeline-recommendation-row:hover {
+  background: var(--surface-elevated, rgba(0, 0, 0, 0.03));
+}
+
+.timeline-recommendation-row-image {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  background: var(--surface-elevated, #eee);
+}
+.timeline-recommendation-row-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.timeline-recommendation-row-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-elevated, #eee);
+}
+
+.timeline-recommendation-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.timeline-recommendation-row-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-main);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.timeline-recommendation-row-brand {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-despensa {
+  flex-shrink: 0;
+  min-width: 0;
+  width: calc(100% + 2 * var(--app-shell-gutter));
+  max-width: none;
+  margin-left: calc(-1 * var(--app-shell-gutter));
+  margin-right: 0;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) 0;
+  padding-left: var(--app-shell-gutter);
+  padding-right: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.timeline-despensa-scroll {
+  min-width: 0;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  box-sizing: border-box;
+}
+
+.timeline-despensa-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.timeline-despensa .brew-pantry-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(158px, 176px);
+  gap: var(--space-3);
+  padding-right: var(--app-shell-gutter);
+  scroll-snap-align: start;
 }
 
 .timeline-desktop-columns {
   display: block;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .timeline-main-column,
 .timeline-side-column {
   min-width: 0;
+  max-width: 100%;
 }
 
 .timeline-side-column {
@@ -1258,6 +1962,97 @@ input {
 
 .profile-post-column {
   gap: var(--space-2);
+}
+
+/* Pestaña Actividad: cards de lo que han hecho las personas que sigues */
+.profile-activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--app-shell-gutter) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-right: none;
+  overflow-x: hidden;
+}
+
+.profile-activity-item {
+  list-style: none;
+  min-width: 0;
+}
+
+/* Mismo color, borde y sombra que historial (profile-favorite-row / coffee-card) */
+.profile-activity-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  color: var(--text-main);
+  background: var(--surface);
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.profile-activity-avatar {
+  flex-shrink: 0;
+}
+
+.profile-activity-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-activity-text {
+  margin: 0 0 2px;
+  font-size: var(--font-size-base);
+  line-height: 1.35;
+  color: var(--text-main);
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.profile-activity-text strong {
+  font-weight: 600;
+}
+
+.profile-activity-coffee-link {
+  padding: 0;
+  margin-left: 2px;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--caramel-accent, #b8860b);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.profile-activity-coffee-link:hover {
+  text-decoration: underline;
+}
+
+.profile-activity-fallback-caption {
+  margin: 0 0 var(--space-3);
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--text-subtle);
+}
+
+.profile-activity-empty {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-base);
+  color: var(--text-subtle);
 }
 
 .profile-coffee-link {
@@ -1332,14 +2127,14 @@ input {
 /* Solo el icono en rojo cuando está activo; bg y borde siguen blancos */
 .coffee-detail-topbar-icon.is-active,
 .coffee-detail-topbar-icon.is-active .ui-icon {
-  color: var(--electric-red);
+  color: var(--electric-green);
 }
 
 /* Corazón favorito en detalle de café: siempre rojo (igual que en preview del buscador) */
 .topbar-coffee .topbar-icon-button.coffee-topbar-favorite.is-active {
-  color: var(--electric-red);
-  background: rgba(var(--electric-red-rgb), 0.16);
-  border-color: rgba(var(--electric-red-rgb), 0.34);
+  color: var(--electric-green);
+  background: rgba(var(--electric-green-rgb), 0.16);
+  border-color: rgba(var(--electric-green-rgb), 0.34);
 }
 
 .coffee-detail-hero {
@@ -1351,7 +2146,7 @@ input {
 
 .coffee-detail-hero-top-actions {
   position: absolute;
-  top: 10px;
+  top: calc(10px + env(safe-area-inset-top, 0px));
   left: 10px;
   right: 10px;
   z-index: 3;
@@ -1694,7 +2489,8 @@ input {
   grid-template-columns: 36px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  border: none;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
   border-radius: 999px;
   background: var(--pure-black);
   padding: 0 12px;
@@ -2345,6 +3141,10 @@ input {
 .coffee-detail-review-card {
   display: grid;
   gap: 9px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  border-radius: var(--surface-card-radius);
 }
 
 .coffee-detail-review-head {
@@ -2635,8 +3435,9 @@ input {
 .mini-card,
 .coffee-select,
 .settings-item {
-  border-radius: 28px;
-  border: none;
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
   background: var(--surface);
 }
 
@@ -2716,8 +3517,9 @@ input {
 }
 
 .coffee-profile-card {
-  border-radius: 28px;
-  border: none;
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
   background: var(--surface);
   overflow: hidden;
 }
@@ -3067,6 +3869,14 @@ input {
 .search-coffee-view .coffee-card,
 .coffee-list .coffee-card {
   border: none;
+}
+
+/* Favoritos en perfil: mismo borde y sombra que ADN (no heredar border:none de .coffee-list .coffee-card) */
+.profile-favorite-list .profile-favorite-row {
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
 }
 
 .coffee-card.is-selected {
@@ -3466,6 +4276,21 @@ input {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 0.8rem;
+  color: var(--text-main);
+}
+
+/* Espacio homogéneo entre secciones del timeline: misma separación antes de cada bloque */
+.timeline-main-column > .suggestion-strip:not(.timeline-recommendations-day):not(.timeline-despensa) {
+  margin-top: var(--space-6);
+}
+
+/* Titulares de sección del timeline: más grandes y con margen inferior homogéneo */
+.timeline-main-column .section-title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .suggestion-strip {
@@ -3644,8 +4469,9 @@ input {
 
 .diary-empty-card {
   padding: 22px 14px;
-  border-radius: 16px;
-  border: 1px solid var(--border-light);
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
   background: var(--surface);
   text-align: center;
   color: var(--text-muted);
@@ -3653,8 +4479,9 @@ input {
 }
 
 .diary-analytics-card {
-  border-radius: 28px;
-  border: none;
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
   background: var(--surface);
   padding: 24px 20px 18px;
   min-width: 0;
@@ -3702,7 +4529,7 @@ input {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
   align-items: start;
-  margin-bottom: 6px;
+  margin-bottom: 14px;
 }
 
 .diary-analytics-head-block {
@@ -3871,10 +4698,12 @@ input {
 }
 
 .diary-chart-scroll {
-  margin-top: 0;
+  margin-top: 8px;
   width: 100%;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -3904,11 +4733,80 @@ input {
   gap: 5px;
 }
 
-.diary-chart.is-week {
-  width: 100%;
+.diary-chart.diary-chart-lines {
+  flex-direction: column;
+  align-items: stretch;
+  height: auto;
+  gap: 4px;
+}
+
+.diary-chart-svg-wrap {
+  flex-shrink: 0;
+  min-height: 100px;
+}
+
+.diary-chart-svg {
+  display: block;
+}
+
+/* Chart.js line chart (diario): ocupa todo el espacio disponible debajo de las métricas */
+.diary-chart.diary-chart-chartjs {
+  flex: 1 1 auto;
+  min-height: 0;
   min-width: 100%;
-  justify-content: space-between;
-  gap: var(--space-2);
+  display: flex;
+  flex-direction: column;
+}
+
+.diary-chartjs-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+}
+
+.diary-chartjs-wrap canvas {
+  display: block;
+}
+
+.diary-chart-line {
+  vector-effect: non-scaling-stroke;
+}
+
+.diary-chart-line-water {
+  stroke: #2196f3;
+  opacity: 0.85;
+}
+
+.diary-chart-line-caffeine {
+  stroke: var(--caramel-soft);
+}
+
+.diary-chart-caffeine-label {
+  fill: var(--caramel-soft);
+  font-size: 10px;
+  font-weight: 700;
+  dominant-baseline: auto;
+}
+
+.diary-chart-labels {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 0;
+  min-width: max-content;
+}
+
+.diary-chart-lines.is-week .diary-chart-labels {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.diary-chart.is-week {
+  justify-content: flex-start;
+  gap: 4px;
 }
 
 .diary-chart-col {
@@ -3920,10 +4818,10 @@ input {
 }
 
 .diary-chart.is-week .diary-chart-col {
-  width: auto;
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 72px;
+  width: 42px;
+  flex: 0 0 42px;
+  min-width: 42px;
+  max-width: none;
 }
 
 .diary-chart-bars {
@@ -4003,6 +4901,138 @@ input {
   opacity: 0.9;
 }
 
+/* Secciones Hábito, Consumo, Barista (mismo patrón que Actividad: título fuera, card debajo) */
+.diary-stats-section {
+  margin-top: 8px;
+}
+
+.diary-stats-section .diary-section-title {
+  margin: 0 0 8px;
+}
+
+.diary-stats-card {
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  padding: 16px 20px;
+}
+
+.diary-stats-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.diary-stats-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--screen-dark-background);
+  font-size: 0.9rem;
+}
+
+.light .diary-stats-card-row {
+  border-bottom-color: var(--screen-light-background);
+}
+
+.diary-stats-card-row:last-child {
+  border-bottom: none;
+}
+
+.diary-stats-card-label {
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+
+.diary-stats-card-value {
+  color: var(--text-main);
+  font-weight: 600;
+  text-align: right;
+  max-width: 70%;
+}
+
+.diary-stats-card-row-clickable {
+  position: relative;
+}
+
+.diary-stats-card-row-tap {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.diary-stats-card-arrow {
+  margin-left: 4px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.diary-barista-coffee-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.diary-barista-coffee-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.diary-barista-coffee-item:hover {
+  background: var(--surface-muted);
+}
+
+.diary-barista-coffee-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.diary-barista-coffee-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-muted);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-subtle);
+}
+
+.diary-barista-coffee-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diary-barista-coffee-name {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.diary-barista-coffee-meta {
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+
 
 .diary-entry-media {
   width: 44px;
@@ -4021,6 +5051,13 @@ input {
 
 .diary-entry-media.is-water .diary-entry-fallback .ui-icon,
 .diary-entry-media.is-water .diary-entry-fallback .material-symbol-icon {
+  color: #2196f3;
+}
+
+/* Gota en actividad: relleno azul */
+.diary-entry-media.is-water .diary-entry-fallback .diary-water-icon-centered {
+  fill: #2196f3;
+  stroke: #1976d2;
   color: #2196f3;
 }
 
@@ -4199,6 +5236,24 @@ input {
   text-transform: capitalize;
 }
 
+/* Día actual: negro en modo día, blanco en modo noche */
+@media (prefers-color-scheme: light) {
+  .diary-day-header.is-today {
+    color: #000;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .diary-day-header.is-today {
+    color: #fff;
+  }
+}
+html.theme-light .diary-day-header.is-today {
+  color: #000;
+}
+html.theme-dark .diary-day-header.is-today {
+  color: #fff;
+}
+
 .diary-entry-delete {
   border: none;
   border-radius: 999px;
@@ -4343,6 +5398,37 @@ input {
   border-radius: 28px 28px 0 0;
 }
 
+/* Sheet "Nuevo registro" (Agua, Café, Despensa): solo lo necesario, no pantalla completa */
+.diary-quick-actions-overlay {
+  box-sizing: border-box;
+}
+.diary-quick-actions-sheet {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  min-height: min(80vh, 400px);
+  max-height: none;
+  background: var(--screen-dark-background);
+}
+@media (prefers-color-scheme: light) {
+  .diary-quick-actions-sheet {
+    background: var(--screen-light-background);
+  }
+}
+@media (max-width: 899px) {
+  .diary-quick-actions-overlay {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .diary-quick-actions-sheet {
+    padding-top: max(env(safe-area-inset-top, 0px), 12px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+    min-height: auto;
+    max-height: min(85vh, 420px);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
 .diary-sheet-list {
   padding: 4px 18px 24px;
   display: grid;
@@ -4351,8 +5437,9 @@ input {
 
 .diary-sheet-action {
   width: 100%;
-  border: 1px solid var(--border-light);
-  border-radius: 16px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: var(--surface);
   color: inherit;
   min-height: 48px;
@@ -4374,17 +5461,24 @@ input {
   font-size: 18px;
 }
 
-/* Icones Agua / Café / Añadir a despensa (Nuevo registro): blanco en noche, negro en día */
+/* Icones Agua / Café / Añadir a despensa (Nuevo registro): negro en día, blanco en noche */
 .diary-sheet-action.is-water .ui-icon:first-child,
 .diary-sheet-action.is-coffee .ui-icon:first-child,
 .diary-sheet-action.is-pantry .ui-icon:first-child {
-  color: #000000;
+  color: #000000 !important;
+}
+@media (prefers-color-scheme: light) {
+  .diary-sheet-action.is-water .ui-icon:first-child,
+  .diary-sheet-action.is-coffee .ui-icon:first-child,
+  .diary-sheet-action.is-pantry .ui-icon:first-child {
+    color: #000000 !important;
+  }
 }
 @media (prefers-color-scheme: dark) {
   .diary-sheet-action.is-water .ui-icon:first-child,
   .diary-sheet-action.is-coffee .ui-icon:first-child,
   .diary-sheet-action.is-pantry .ui-icon:first-child {
-    color: #ffffff;
+    color: #ffffff !important;
   }
 }
 
@@ -4403,6 +5497,34 @@ input {
   background: var(--caramel-soft);
   border-color: var(--caramel-soft);
   color: var(--pure-black);
+}
+
+.diary-sheet-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 0 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border-default, #eee);
+}
+
+.diary-sheet-month-label {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-main);
+  min-width: 8rem;
+  text-align: center;
+}
+
+.diary-sheet-month-arrow {
+  padding: 0.5rem;
+  color: var(--text-main);
+}
+
+.diary-sheet-month-arrow-placeholder {
+  width: 2.5rem;
+  display: inline-block;
 }
 
 .diary-sheet-pantry-options .sheet-title {
@@ -4657,9 +5779,14 @@ input {
 
 .diary-edit-entry-header {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 44px 1fr auto;
   align-items: center;
   gap: 8px;
+}
+.diary-edit-entry-header-spacer {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
 }
 
 .diary-edit-entry-sheet .sheet-title {
@@ -4814,7 +5941,7 @@ input {
   .diary-edit-entry-sheet .diary-edit-entry-metric-field {
     background: var(--surface);
   }
-  /* Preparación: solo el chip seleccionado en marrón; el no seleccionado fondo negro */
+  /* Tipo: solo el chip seleccionado en marrón; el no seleccionado fondo negro */
   .diary-edit-entry-presets .period-chip {
     width: 100%;
     min-width: 0;
@@ -4928,8 +6055,9 @@ input {
 
 .diary-edit-entry-step {
   height: 34px;
-  border: 1px solid var(--border-light);
-  border-radius: 999px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-main);
   font-size: 1rem;
@@ -4996,10 +6124,15 @@ input {
   gap: var(--space-2);
 }
 
-.diary-edit-entry-method-chip img {
+.diary-edit-entry-method-chip img,
+.diary-edit-entry-method-chip .ui-icon {
   width: 22px;
   height: 22px;
   object-fit: contain;
+}
+
+.diary-edit-entry-method-chip .ui-icon {
+  flex-shrink: 0;
 }
 
 .diary-edit-entry-presets .period-chip.is-active {
@@ -5119,8 +6252,9 @@ input {
   display: grid;
   gap: 6px;
   min-height: 66px;
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: var(--pure-white);
   padding: 8px 10px;
 }
@@ -5400,9 +6534,11 @@ input {
     color: var(--espresso-deep);
     border-color: var(--border-light);
   }
-  .diary-edit-entry-presets .period-chip.is-active {
+  .diary-edit-entry-presets .period-chip.is-active,
+  .diary-edit-entry-method-chip.is-active,
+  .diary-edit-entry-method-chip.is-active span {
     background: var(--caramel-soft) !important;
-    color: var(--pure-black);
+    color: #ffffff;
     border-color: #6f4e37;
   }
 
@@ -5416,12 +6552,12 @@ input {
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active {
     background: var(--caramel-soft) !important;
-    color: var(--pure-black);
+    color: #ffffff;
     border-color: #6f4e37;
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
-    color: var(--pure-black);
+    color: #ffffff;
   }
 
   .profile-inline-save-button {
@@ -5559,7 +6695,7 @@ input {
   min-width: 4ch;
   border: none;
   padding: 0;
-  font-size: 4rem;
+  font-size: 50px !important;
   font-weight: 700;
   line-height: 1.2;
   text-align: right;
@@ -5602,7 +6738,7 @@ input {
   pointer-events: none;
 }
 
-/* Móvil: sheet de agua a pantalla completa (no modal) */
+/* Móvil: sheet de agua a pantalla completa (no modal), safe-area como pantalla normal */
 @media (max-width: 640px) {
   .diary-water-sheet-overlay {
     align-items: stretch;
@@ -5620,6 +6756,8 @@ input {
     box-shadow: none;
     display: flex;
     flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    box-sizing: border-box;
   }
 
   .diary-water-sheet-overlay .diary-water-sheet .diary-sheet-form {
@@ -5648,6 +6786,8 @@ input {
     box-shadow: none;
     display: flex;
     flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    box-sizing: border-box;
   }
 
   .diary-coffee-sheet-overlay .diary-coffee-sheet .sheet-handle {
@@ -5686,6 +6826,8 @@ input {
     box-shadow: none;
     display: flex;
     flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    box-sizing: border-box;
   }
 
   .diary-pantry-sheet-overlay .diary-pantry-sheet .sheet-handle {
@@ -5806,7 +6948,7 @@ input {
   min-width: 4ch;
   border: none;
   padding: 0;
-  font-size: 4rem;
+  font-size: 50px !important;
   font-weight: 700;
   line-height: 1.2;
   text-align: right;
@@ -6029,6 +7171,10 @@ input {
 .diary-coffee-select-header .sheet-title {
   justify-self: center;
   text-align: center;
+}
+
+.diary-coffee-select-header-right {
+  /* Espacio derecho para centrar el título; sin nombre ni flecha en la modal */
 }
 
 .diary-coffee-select-close,
@@ -6337,7 +7483,7 @@ input {
 /* Añadir despensa – Paso 1: SELECCIONAR (estilo Android) */
 .diary-pantry-select-header {
   display: grid;
-  grid-template-columns: 44px 1fr 44px;
+  grid-template-columns: 44px 1fr auto;
   align-items: center;
   padding: 10px 8px 12px;
 }
@@ -6347,8 +7493,7 @@ input {
   text-align: center;
 }
 
-.diary-pantry-select-back,
-.diary-pantry-select-action {
+.diary-pantry-select-back {
   width: 44px;
   height: 44px;
   display: inline-flex;
@@ -6356,6 +7501,18 @@ input {
   justify-content: center;
   border: none;
   background: transparent;
+}
+
+.diary-pantry-select-action {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  white-space: nowrap;
 }
 
 .diary-pantry-sheet:has(.diary-pantry-select-header) {
@@ -6753,24 +7910,29 @@ input {
 
 .profile-head-copy {
   min-width: 0;
-  width: min(560px, calc(100vw - 20px));
+  width: min(560px, calc(100% - 24px));
+  max-width: 100%;
   text-align: center;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .profile-inline-edit {
-  width: min(560px, calc(100vw - 20px));
+  width: min(560px, calc(100% - 24px));
+  max-width: 100%;
   --profile-edit-control-width: min(340px, 100%);
   margin: 0 auto;
   display: grid;
   gap: 12px;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .profile-inline-metrics {
   grid-template-columns: 1fr;
   gap: 10px;
-  width: min(460px, calc(100vw - 28px));
-  max-width: none;
+  width: min(460px, calc(100% - 24px));
+  max-width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -6912,7 +8074,7 @@ input {
   }
   .coffee-detail-topbar-icon.is-active,
   .coffee-detail-topbar-icon.is-active .ui-icon {
-    color: var(--electric-red);
+    color: var(--electric-green);
   }
 
   /* Botones con fondo marrón claro (caramelo): texto negro en modo noche */
@@ -7043,18 +8205,35 @@ input {
 
 .profile-stats-row {
   margin: 8px auto 0;
-  width: min(540px, calc(100% - 6px));
+  width: min(540px, calc(100% - 24px));
+  max-width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px;
   align-items: end;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .profile-stat-item {
   display: grid;
   justify-items: center;
   gap: 0;
+}
+
+.profile-stat-clickable {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.profile-stat-clickable:hover .profile-stat-value,
+.profile-stat-clickable:hover .profile-stat-label {
+  opacity: 0.9;
 }
 
 .profile-stat-value {
@@ -7084,6 +8263,8 @@ input {
   gap: 6px;
   box-sizing: border-box;
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .profile-tabs .tab-sliding-indicator {
@@ -7102,6 +8283,9 @@ input {
 
 .profile-content-wrap {
   min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .profile-tabs .premium-tab {
@@ -7122,10 +8306,21 @@ input {
   color: var(--pure-black);
 }
 
+.profile-tab-swipe {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
 .profile-tab-panels-wrap {
   overflow: hidden;
   width: 100%;
+  max-width: 100%;
   margin-top: 20px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .profile-tab-panels {
@@ -7138,6 +8333,8 @@ input {
   flex: 0 0 33.333%;
   width: 33.333%;
   min-width: 33.333%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .profile-section-head {
@@ -7314,7 +8511,7 @@ input {
 .profile-favorite-item {
   width: 100%;
   min-width: 0;
-  border-radius: 18px;
+  border-radius: var(--surface-card-radius);
   position: relative;
   overflow: hidden;
 }
@@ -7349,15 +8546,17 @@ input {
   position: relative;
   width: 100%;
   min-height: 94px;
-  border-radius: 18px;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
   padding: 12px;
   display: grid;
   grid-template-columns: 70px minmax(0, 1fr);
   gap: 16px;
   align-items: center;
-  border: 1px solid var(--border-light);
   transition: transform 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
   touch-action: pan-y;
+  box-sizing: border-box;
 }
 
 .profile-favorite-row.is-swiping {
@@ -7501,16 +8700,27 @@ input {
   color: var(--text-subtle);
 }
 
-/* Contenedor perfil (y historial): mismo fondo que el resto; sin min-height para no forzar scroll en desktop */
+/* Contenedor perfil: forzar block (nunca grid) para evitar overflow horizontal */
+.main-shell-scroll.is-profile .content,
 .content.content-profile {
+  display: block !important;
   box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.main-shell-scroll.is-profile .content,
+.content.content-profile {
   background: var(--screen-light-background);
 }
+html.theme-dark .main-shell-scroll.is-profile .content,
 html.theme-dark .content.content-profile {
   background: var(--screen-dark-background);
 }
 
 @media (prefers-color-scheme: dark) {
+  .main-shell-scroll.is-profile .content,
   .content.content-profile {
     background: var(--screen-dark-background);
   }
@@ -7556,6 +8766,215 @@ html.theme-dark .content.content-profile {
   letter-spacing: 0.02em;
   color: var(--text-subtle);
   text-transform: none;
+}
+
+/* Lista seguidores/siguiendo en perfil: mismo diseño que buscar usuarios */
+.profile-users-list-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.profile-users-list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 12px var(--app-shell-gutter);
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  background: var(--screen-dark-background);
+  border-bottom: 1px solid var(--border-default);
+}
+.profile-users-list-back {
+  padding: 8px;
+  margin: -8px 0 -8px -8px;
+  color: var(--text-main);
+}
+.profile-users-list-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* Pestaña Listas: filas Crea lista nueva + Favoritos (mismo estilo que ADN: fondo, borde, redondeado, sombra) */
+.profile-lists-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px var(--app-shell-gutter);
+}
+.profile-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+.profile-list-row .profile-list-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.profile-list-icon-favorite {
+  color: var(--electric-red, #c62828);
+}
+.profile-list-row span:first-of-type {
+  flex: 0 1 auto;
+}
+.profile-list-row .ui-icon:last-child {
+  margin-left: auto;
+  color: var(--text-subtle);
+}
+
+/* Vista lista Favoritos (orden alfabético): sin header duplicado; cards estilo ADN; swipe para borrar */
+.favoritos-list-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.favoritos-list-empty {
+  padding: 24px var(--app-shell-gutter);
+  margin: 0;
+  color: var(--text-subtle);
+  text-align: center;
+}
+.favoritos-list-list {
+  padding: 12px var(--app-shell-gutter);
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.favoritos-list-item {
+  list-style: none;
+}
+
+/* Cards de detalle de listas (Favoritos / listas custom): misma apariencia que .profile-list-row */
+.favoritos-list-list .favoritos-list-card {
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  padding: 14px 16px;
+}
+
+.favoritos-list-card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  color: var(--text-main);
+  box-sizing: border-box;
+  min-height: 84px;
+}
+.favoritos-list-card .profile-favorite-media {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
+  border-radius: var(--surface-card-radius);
+  overflow: hidden;
+}
+.favoritos-list-card .profile-favorite-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--surface-card-radius);
+  display: block;
+}
+.favoritos-list-card .profile-favorite-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--surface-card-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  font-weight: 700;
+}
+.favoritos-list-card .profile-favorite-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 8px;
+}
+.favoritos-list-card .profile-favorite-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.favoritos-list-card .profile-favorite-marca {
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.favoritos-list-item .profile-favorite-swipe-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 20px;
+  background: var(--electric-red, #c62828);
+  color: var(--pure-white);
+  border-radius: var(--surface-card-radius);
+  z-index: 0;
+}
+.favoritos-list-item .profile-favorite-row {
+  position: relative;
+  z-index: 1;
+}
+
+.create-list-sheet .sheet-header {
+  padding: 8px 14px 10px;
+}
+.create-list-sheet .sheet-body {
+  padding: 16px 18px 24px;
+  display: grid;
+  gap: 12px;
+}
+.create-list-sheet-body .create-list-field {
+  min-height: 56px;
+}
+.create-list-sheet-body .create-list-name-input {
+  width: 100%;
+  min-width: 0;
+}
+.create-list-sheet-body .create-list-privacy-select {
+  width: 100%;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.create-list-hint {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
 }
 
 .historial-view .profile-favorite-list {
@@ -7920,6 +9339,13 @@ html.theme-dark .content.content-profile {
   min-width: 0;
 }
 
+.diary-activity-section {
+  margin-top: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 .diary-section-title {
   margin: 0 0 8px;
   font-size: 0.86rem;
@@ -7998,8 +9424,9 @@ html.theme-dark .content.content-profile {
 }
 
 .brew-pantry-card {
-  border: 1px solid var(--border-light);
-  border-radius: 20px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: var(--surface);
   color: inherit;
   padding: 0;
@@ -8007,6 +9434,14 @@ html.theme-dark .content.content-profile {
   gap: 6px;
   text-align: left;
   overflow: hidden;
+}
+
+.brew-pantry-add-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 158px;
+  min-height: 214px;
 }
 
 .brew-pantry-add-card {
@@ -8021,14 +9456,41 @@ html.theme-dark .content.content-profile {
   overflow: hidden;
 }
 
+.brew-pantry-add-card-half {
+  min-height: 0;
+  flex: 1 1 0;
+  grid-template-rows: 1fr;
+}
+
+.brew-pantry-add-cards .brew-pantry-add-card-half {
+  min-height: 88px;
+}
+
 .brew-pantry-add-main {
   display: grid;
   place-items: center;
+  gap: 6px;
+}
+
+.brew-pantry-add-card-half .brew-pantry-add-main {
+  padding: 8px 0;
+}
+
+.brew-pantry-add-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-main);
 }
 
 .brew-pantry-add-footer {
   display: block;
   height: 52px;
+}
+
+.brew-pantry-add-card-half .brew-pantry-add-footer {
+  display: none;
 }
 
 .brew-pantry-add-icon-wrap {
@@ -8137,8 +9599,9 @@ html.theme-dark .content.content-profile {
 
 .brew-suggestion-card {
   width: 100%;
-  border: none;
-  border-radius: 20px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: var(--surface);
   color: inherit;
   padding: 12px;
@@ -8666,8 +10129,9 @@ html.theme-dark .content.content-profile {
 .brew-method-card-native {
   width: 100%;
   min-height: 140px;
-  border: none;
-  border-radius: 24px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   padding: 16px;
   background: var(--surface);
   color: inherit;
@@ -8698,6 +10162,442 @@ html.theme-dark .content.content-profile {
 .brew-method-card-native.is-active {
   border: 1px solid rgba(255, 255, 255, 0.24);
   box-shadow: 0 0 0 2px rgba(212, 163, 115, 0.18) inset;
+}
+
+.brew-select-step {
+  padding: 0 0 var(--space-6);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Igual que timeline: carrusel a ancho completo, derecha al borde (padding 0), izquierda con gutter inicial al hacer scroll */
+.brew-select-step .timeline-elaboration-methods {
+  width: calc(100% + 2 * var(--app-shell-gutter));
+  max-width: none;
+  margin-left: calc(-1 * var(--app-shell-gutter));
+  margin-right: 0;
+  margin-bottom: var(--space-6);
+  overflow: visible;
+}
+
+.brew-select-step .timeline-elaboration-methods-scroll {
+  padding-left: var(--app-shell-gutter);
+  padding-right: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  overflow-y: visible;
+}
+
+.brew-select-step .timeline-despensa.suggestion-strip,
+.brew-select-step .timeline-despensa {
+  width: calc(100% + 2 * var(--app-shell-gutter));
+  max-width: none;
+  margin-left: calc(-1 * var(--app-shell-gutter));
+  margin-right: 0;
+  padding-left: var(--app-shell-gutter);
+  padding-right: 0;
+  margin-bottom: var(--space-6);
+  overflow: visible;
+}
+
+.brew-select-step .timeline-despensa-scroll {
+  padding-right: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  overflow-y: visible;
+}
+
+.brew-select-step .timeline-despensa .brew-pantry-row {
+  padding-right: 0;
+}
+
+.brew-select-step .brew-pantry-card.is-active {
+  border-color: var(--caramel-accent, #b8860b);
+  box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.25);
+}
+
+.brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+  box-shadow: 0 0 0 1px var(--caramel-accent, #b8860b);
+}
+
+/* Parámetros editables (misma lógica que configuración) y consejos del barista debajo de Tu despensa.
+   Sin padding lateral: igual que el resto del paso (Selecciona café, Tipo, Tamaño); el gutter lo da .main-shell-scroll */
+.brew-select-metrics-and-barista {
+  padding: 0;
+  margin-top: var(--space-6);
+}
+
+/* Mismo tamaño que "TU DESPENSA" (.section-title) */
+.brew-select-section-title {
+  margin: 0 0 var(--space-3);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-main);
+}
+
+/* Fila ancho completo: Temporizador + switch (debajo de Configura tu XXX) */
+.brew-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-4) var(--space-4);
+  margin-top: var(--space-3);
+  background: var(--surface-1, #fff);
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  box-sizing: border-box;
+}
+
+.brew-timer-row-label {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* Rectángulo «Selecciona café» (mismo estilo que temporizador), con flecha a la derecha */
+.brew-select-coffee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-4) var(--space-4);
+  margin-top: var(--space-3);
+  background: var(--surface-1, #fff);
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  box-sizing: border-box;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-main);
+  text-align: left;
+}
+
+.brew-select-coffee-row:hover {
+  opacity: 0.92;
+}
+
+.brew-select-coffee-row-label {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.brew-select-coffee-row-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.brew-select-coffee-row-selected-name {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.brew-select-coffee-row-arrow {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text-main);
+}
+
+/* Sliders Tipo y Tamaño en elaboración (mismas opciones que Mi diario) */
+.brew-tipo-strip-wrap,
+.brew-tamaño-strip-wrap {
+  margin-top: var(--space-4);
+}
+
+.brew-tipo-strip-wrap .brew-select-section-title,
+.brew-tamaño-strip-wrap .brew-select-section-title {
+  margin-bottom: var(--space-2);
+}
+
+.brew-tipo-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0 8px 0;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.brew-tamaño-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.brew-tipo-strip::-webkit-scrollbar,
+.brew-tamaño-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.brew-tipo-strip .timeline-elaboration-method-circle,
+.brew-tamaño-strip .brew-tamaño-card {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+/* En Tipo: etiqueta hasta dos líneas de texto */
+.brew-tipo-strip .timeline-elaboration-method-label {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Marcado seleccionado Tipo: mismo grosor (1px) que Tamaño y que no destaque más que el borde del círculo */
+.brew-tipo-strip .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+  box-shadow: 0 0 0 1px var(--caramel-accent, #b8860b);
+}
+
+/* Tamaño: mismo borde y sombra que «Selecciona café»; marcado seleccionado igual que Tipo (1px) */
+.brew-tamaño-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  background: var(--surface-1, #fff);
+  box-shadow: var(--surface-card-shadow);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.brew-tamaño-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Seleccionado: mismo grosor que el resto (1px borde + 1px anillo), especificidad para que no lo pise otro estilo */
+.brew-tamaño-strip .brew-tamaño-card.is-active {
+  border-color: var(--caramel-accent, #b8860b) !important;
+  box-shadow: var(--surface-card-shadow), 0 0 0 1px var(--caramel-accent, #b8860b) !important;
+}
+
+.brew-tamaño-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brew-tamaño-card-icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.brew-tamaño-card-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brew-tamaño-card-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-main);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
+}
+
+.brew-tamaño-card-range {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-subtle);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
+}
+
+.brew-select-params-layout {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.brew-select-params-col {
+  min-width: 0;
+}
+
+.brew-select-params-card {
+  margin-bottom: 0;
+}
+
+.brew-select-params-card-with-info {
+  position: relative;
+}
+
+.brew-select-params-info-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.brew-select-params-info-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.brew-select-params-info-btn[aria-expanded="true"] {
+  background: var(--caramel-accent, #b8860b);
+  color: var(--pure-white);
+}
+
+.brew-select-params-info-icon {
+  font-style: italic;
+  font-family: Georgia, serif;
+}
+
+/* Modal Consejos del barista (estilo tipo editar actividad) */
+.brew-barista-sheet {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+
+.brew-barista-sheet-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  padding: 8px 14px 10px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.brew-barista-sheet-header-spacer {
+  width: 44px;
+  height: 44px;
+}
+
+.brew-barista-sheet-header .sheet-title {
+  font-size: 1.2rem;
+  letter-spacing: 0;
+  margin: 0;
+  justify-self: center;
+  text-align: center;
+}
+
+.brew-barista-sheet-close {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.brew-barista-sheet-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.brew-barista-sheet-close .ui-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.brew-barista-sheet-list {
+  padding: 12px 14px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.brew-barista-sheet-list .brew-barista-tip {
+  padding: 10px 12px;
+}
+
+html.theme-dark .brew-select-params-info-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+}
+
+html.theme-dark .brew-select-params-info-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+html.theme-dark .brew-select-params-info-btn[aria-expanded="true"] {
+  background: var(--caramel-accent);
+  color: var(--pure-white);
+}
+
+html.theme-dark .brew-barista-sheet-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.brew-select-barista .section-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.brew-select-barista-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.brew-select-barista-tip {
+  padding: 10px 12px;
 }
 
 .method-card,
@@ -8756,9 +10656,10 @@ html.theme-dark .content.content-profile {
 }
 
 .brew-tech-card {
-  border: 1px solid var(--border-light);
-  border-radius: 30px;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
   background: var(--surface);
+  box-shadow: var(--surface-card-shadow);
   padding: 19px;
   display: grid;
   gap: 16px;
@@ -8781,6 +10682,79 @@ html.theme-dark .content.content-profile {
   letter-spacing: 0.11em;
   font-weight: 700;
   color: var(--text-subtle);
+}
+
+/* Filas: campo numérico a la izquierda, slider a la derecha */
+.brew-tech-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.brew-tech-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 5fr);
+  gap: 14px;
+  align-items: start;
+}
+
+/* Slider de agua: alineado por abajo con el campo de la izquierda */
+.brew-tech-rows > .brew-tech-row:first-of-type {
+  align-items: end;
+}
+
+/* Slider de tiempo (espresso): alineado por abajo */
+.brew-tech-row-time {
+  align-items: end;
+}
+
+.brew-tech-row .brew-tech-field {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.brew-tech-row .brew-tech-slider {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.brew-tech-field {
+  display: grid;
+  gap: 2px;
+}
+
+.brew-tech-field span {
+  font-size: 0.7rem;
+  letter-spacing: 0.11em;
+  font-weight: 700;
+  color: var(--text-subtle);
+}
+
+.brew-tech-row-single {
+  grid-template-columns: 1fr;
+}
+
+.brew-tech-row-single .brew-tech-slider {
+  grid-column: 1;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .brew-tech-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .brew-tech-row .brew-tech-field {
+    order: 1;
+    grid-column: 1;
+  }
+
+  .brew-tech-row .brew-tech-slider {
+    order: 2;
+    grid-column: 1;
+    width: 100%;
+  }
 }
 
 .brew-tech-top strong {
@@ -8849,6 +10823,17 @@ html.theme-dark .content.content-profile {
   color: var(--text-subtle);
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.brew-tech-slider-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.7rem;
+  letter-spacing: 0.11em;
+  color: var(--text-subtle);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.3;
 }
 
 /* ========== Slider de rango unificado (config, diario, filtros, perfil sensorial) ========== */
@@ -9158,8 +11143,9 @@ html.theme-dark .content.content-profile {
 }
 
 .brew-prep-card {
-  border: 1px solid var(--border-light);
-  border-radius: 32px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: var(--surface);
   overflow: hidden;
 }
@@ -9174,7 +11160,7 @@ html.theme-dark .content.content-profile {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-subtle);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .brew-prep-clock {
@@ -9394,8 +11380,9 @@ html.theme-dark .content.content-profile {
 }
 
 .brew-result-card {
-  border: 1px solid var(--border-light);
-  border-radius: 28px;
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--surface-card-radius);
   background: var(--surface);
   padding: 18px;
   display: grid;
@@ -9547,26 +11534,59 @@ html.theme-dark .content.content-profile {
   justify-content: center;
 }
 
-@media (min-width: 900px) {
-  .brew-prep-layout {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-    align-items: start;
-  }
+/* Mobile: orden visual temporizador → consejos → botón (left-col con display: contents) */
+.brew-prep-left-col {
+  display: contents;
+}
 
-  .brew-prep-card-timer {
+.brew-prep-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.brew-prep-card-timer {
+  order: 1;
+}
+
+.brew-prep-tips-strip {
+  order: 2;
+}
+
+.brew-prep-actions {
+  order: 3;
+}
+
+@media (min-width: 900px) {
+  .brew-prep-left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     min-width: 0;
     grid-column: 1;
     grid-row: 1;
   }
 
+  .brew-prep-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: start;
+    gap: 14px;
+  }
+
+  .brew-prep-card-timer {
+    min-width: 0;
+    order: unset;
+  }
+
   .brew-prep-tips-strip {
     grid-column: 2;
-    grid-row: 1 / -1;
+    grid-row: 1;
+    order: unset;
   }
 
   .brew-prep-actions {
-    grid-column: 1;
-    grid-row: 2;
+    order: unset;
   }
 
   .brew-prep-head {
@@ -9918,7 +11938,7 @@ html.theme-dark .content.content-profile {
 }
 
 .notifications-header .topbar-slot:first-child {
-  margin-left: 0;
+  margin-left: 10px;
   min-width: 40px;
   justify-content: flex-start;
 }
@@ -11697,6 +13717,9 @@ html.theme-dark .content.content-profile {
     right: 18px;
     bottom: 104px;
   }
+  .pwa-standalone .fab {
+    bottom: calc(95px + env(safe-area-inset-bottom, 0px));
+  }
 
   .sheet-overlay {
     padding: 0;
@@ -11742,11 +13765,11 @@ html.theme-dark .content.content-profile {
 }
 
 @media (min-width: 900px) {
-  .timeline-shell-desktop .timeline-desktop-columns {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: 12px;
-    align-items: start;
+.timeline-shell-desktop .timeline-desktop-columns.timeline-desktop-columns-has-side {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
   }
 
   .timeline-shell-desktop .timeline-side-column {
@@ -12145,9 +14168,9 @@ html.theme-dark .content.content-profile {
   }
 
   .topbar-coffee .topbar-icon-button.coffee-topbar-favorite.is-active {
-    color: var(--electric-red);
-    background: rgba(255, 59, 48, 0.1);
-    border-color: rgba(255, 59, 48, 0.24);
+    color: var(--electric-green);
+    background: rgba(var(--electric-green-rgb), 0.1);
+    border-color: rgba(var(--electric-green-rgb), 0.24);
   }
 
   .diary-topbar-add {
@@ -12279,7 +14302,7 @@ html.theme-dark .content.content-profile {
   }
   .coffee-detail-topbar-icon.is-active,
   .coffee-detail-topbar-icon.is-active .ui-icon {
-    color: var(--electric-red);
+    color: var(--electric-green);
   }
 
   .coffee-detail-stock-save {
@@ -12951,16 +14974,11 @@ html.theme-dark .content.content-profile {
     color: var(--espresso-deep);
   }
 
-  .diary-sheet-action.is-water .ui-icon:first-child {
-    color: #2196f3;
-  }
-
-  .diary-sheet-action.is-coffee .ui-icon:first-child {
-    color: var(--espresso-deep);
-  }
-
+  /* Nuevo registro: iconos Agua/Café/Despensa negro en modo día (no azul/marrón) */
+  .diary-sheet-action.is-water .ui-icon:first-child,
+  .diary-sheet-action.is-coffee .ui-icon:first-child,
   .diary-sheet-action.is-pantry .ui-icon:first-child {
-    color: #6f4e37;
+    color: #000000 !important;
   }
 
   .diary-sheet-action.is-active {
@@ -13063,11 +15081,11 @@ html.theme-dark .content.content-profile {
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active {
     background: var(--caramel-soft) !important;
     border: 1px solid #6f4e37;
-    color: var(--pure-black);
+    color: #ffffff;
   }
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
   .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
-    color: var(--pure-black);
+    color: #ffffff;
   }
 
   .diary-edit-entry-cancel {
@@ -14037,11 +16055,34 @@ html.theme-dark .content.content-profile {
   background: var(--caramel-soft);
 }
 
-/* PWA "Añadir a escritorio" (iOS/Android): fallback safe-area para que el topbar no quede bajo la notch/barra de estado */
+/* PWA "Añadir a escritorio" (iOS/Android): header fijo arriba y safe-area para notch/barra de estado */
 .pwa-standalone .topbar {
   --topbar-hide-offset: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  transform: none;
+  -webkit-transform: none;
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
+  /* Rellenar franja transparente entre borde superior de pantalla y topbar (PWA: barra de estado) */
+  background: var(--screen-dark-background);
+}
+.pwa-standalone .topbar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: env(safe-area-inset-top, 24px);
+  background: var(--screen-dark-background);
+}
+@media (prefers-color-scheme: light) {
+  html.theme-light .pwa-standalone .topbar,
+  html.theme-light .pwa-standalone .topbar::before {
+    background: var(--screen-light-background);
+  }
 }
 .pwa-standalone .topbar-timeline,
 .pwa-standalone .topbar-historial {
@@ -14057,27 +16098,45 @@ html.theme-dark .content.content-profile {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
 }
-/* PWA: sheet "Nuevo registro" (Agua, Café, Añadir a despensa) con safe-area inferior */
+/* PWA: sheet "Nuevo registro" mismo que móvil (solo lo necesario, no pantalla completa) */
 .pwa-standalone .diary-quick-actions-overlay {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
 }
 .pwa-standalone .diary-quick-actions-sheet {
+  padding-top: env(safe-area-inset-top, 44px);
   padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
+  max-height: none;
+  background: var(--screen-dark-background);
 }
-/* PWA: cabecera notificaciones con espacio para notch (mismo patrón que buscador) */
+@media (prefers-color-scheme: light) {
+  .pwa-standalone .diary-quick-actions-sheet {
+    background: var(--screen-light-background);
+  }
+}
+@media (max-width: 899px) {
+  .pwa-standalone .diary-quick-actions-sheet {
+    min-height: auto;
+    max-height: min(85vh, 420px);
+  }
+}
+/* PWA: cabecera notificaciones misma altura que buscador usuarios (sin padding extra en overlay) */
 .pwa-standalone .notifications-overlay {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: 0;
+  align-items: flex-start;
   box-sizing: border-box;
 }
 .pwa-standalone .notifications-overlay .notifications-header {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
+  padding-left: var(--app-shell-gutter);
+  padding-right: var(--app-shell-gutter);
 }
 .pwa-standalone .main-shell-scroll {
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding-top: 10px;
+  overflow-x: hidden;
 }
 .pwa-standalone .main-shell-scroll.is-coffee {
   margin-top: env(safe-area-inset-top, 44px);
@@ -14086,6 +16145,9 @@ html.theme-dark .content.content-profile {
 .pwa-standalone .main-shell-scroll.is-search-coffees {
   margin-top: calc(106px + env(safe-area-inset-top, 44px));
   padding-top: 10px;
+}
+.pwa-standalone .coffee-detail-hero-top-actions {
+  top: calc(10px + env(safe-area-inset-top, 44px));
 }
 @media (max-width: 899px) {
   .pwa-standalone .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
@@ -14133,6 +16195,9 @@ html.theme-dark .content.content-profile {
 .dev-safe-area-sim .topbar-search-users {
   min-height: calc(var(--topbar-height) + 47px);
   padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
+}
+.dev-safe-area-sim .coffee-detail-hero-top-actions {
+  top: calc(10px + 47px);
 }
 @media (max-width: 899px) {
   .dev-safe-area-sim .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {

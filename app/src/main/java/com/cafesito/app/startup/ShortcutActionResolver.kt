@@ -9,7 +9,6 @@ object ShortcutActionResolver {
 
         return when (intent?.data?.toString()) {
             "cafesito://shortcut/search" -> "SEARCH"
-            "cafesito://shortcut/new_post" -> "NEW_POST"
             "cafesito://shortcut/brewlab" -> "BREWLAB"
             "cafesito://shortcut/diary" -> "DIARY"
             else -> null

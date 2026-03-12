@@ -1,4 +1,4 @@
-export type TabId = "timeline" | "search" | "brewlab" | "diary" | "profile" | "coffee";
+export type TabId = "home" | "search" | "brewlab" | "diary" | "profile" | "coffee";
 export type ViewMode = "mobile" | "desktop";
 export type BrewStep = "method" | "coffee" | "config" | "brewing" | "result";
 
@@ -98,6 +98,7 @@ export type DiaryEntryRow = {
 };
 
 export type PantryItemRow = {
+  id: string;
   coffee_id: string;
   user_id: number;
   grams_remaining: number;
@@ -117,6 +118,15 @@ export type FavoriteRow = {
   saved_at: number;
 };
 
+/** Lista personalizada del usuario (tabla user_lists en Supabase). */
+export type UserListRow = {
+  id: string;
+  user_id: number;
+  name: string;
+  is_public: boolean;
+  created_at?: string;
+};
+
 export type FollowRow = {
   follower_id: number;
   followed_id: number;
@@ -132,6 +142,26 @@ export type NotificationRow = {
   timestamp: number;
   is_read: boolean;
   related_id: string | null;
+};
+
+/** Item para la pestaña Actividad del perfil: opiniones, café añadido a lista pública, café probado por primera vez. */
+export type ProfileActivityItem = {
+  id: string;
+  type: "review" | "favorite" | "diary";
+  userId: number;
+  userName: string;
+  username: string;
+  avatarUrl: string;
+  timestamp: number;
+  label: string;
+  coffeeId?: string | null;
+  coffeeName?: string | null;
+  /** Para opiniones: valoración y comentario (clic lleva al detalle del café). */
+  rating?: number;
+  comment?: string | null;
+  /** Para "añadió a lista": id y nombre de la lista pública (clic lleva a esa lista). */
+  listId?: string | null;
+  listName?: string | null;
 };
 
 export type TimelineCard = {

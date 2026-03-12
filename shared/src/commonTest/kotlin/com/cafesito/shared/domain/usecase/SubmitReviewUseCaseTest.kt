@@ -61,5 +61,7 @@ class SubmitReviewUseCaseTest {
             wasCalled = true
             return Result.success(Unit)
         }
+        override suspend fun getReviewByUserAndCoffee(userId: Int, coffeeId: String): Result<Review?> =
+            Result.success(null)
     }
 }

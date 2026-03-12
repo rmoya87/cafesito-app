@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { useState, useMemo, useEffect } from "react";
+import { formatMonthYear, getMondayOfWeek, type DiaryPeriod } from "../../core/diaryAnalytics";
+import { COFFEE_SIZE_OPTIONS, COFFEE_TIPO_OPTIONS } from "../../data/diaryBrewOptions";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -118,18 +120,20 @@ function DiaryCalendarScroll({
 
 function DiarySheets({
   isActive,
-  showQuickActions,
   showPeriodSheet,
   showWaterSheet,
   showCoffeeSheet,
+  coffeeSheetOpenedDirectlyToDose = false,
   showAddPantrySheet,
+  coffeeSheetOpenedFromBrew = false,
+  onCoffeeSelectedForBrew,
+  hideAddPantrySheetBolt = false,
   showCalendarSheet = false,
   onCloseCalendarSheet,
   selectedDiaryDate = "",
   setSelectedDiaryDate,
   diaryTodayStr = "",
   diaryEntries = [],
-  onCloseQuickActions,
   onClosePeriodSheet,
   onCloseWaterSheet,
   onCloseCoffeeSheet,
@@ -139,6 +143,9 @@ function DiarySheets({
   onOpenAddPantrySheet,
   diaryPeriod,
   setDiaryPeriod,
+  selectedDiaryMonth = "",
+  setSelectedDiaryMonth,
+  currentMonthKey = "",
   diaryWaterMlDraft,
   setDiaryWaterMlDraft,
   onSaveWater,
@@ -178,12 +185,17 @@ function DiarySheets({
   onClearBarcodeDetectedValue
 }: {
   isActive: boolean;
-  showQuickActions: boolean;
   showPeriodSheet: boolean;
   showWaterSheet: boolean;
   showCoffeeSheet: boolean;
+  coffeeSheetOpenedDirectlyToDose?: boolean;
+  /** Si true, la modal café se abrió desde elaboración; al elegir un café se llama onCoffeeSelectedForBrew y se cierra. */
+  coffeeSheetOpenedFromBrew?: boolean;
+  /** Si se pasa y coffeeSheetOpenedFromBrew, al elegir un café se invoca con el id y se cierra la modal. */
+  onCoffeeSelectedForBrew?: (coffeeId: string) => void;
   showAddPantrySheet: boolean;
-  onCloseQuickActions: () => void;
+  /** Si true, no se muestra el icono rayo (crear café) en el header de la modal añadir despensa. */
+  hideAddPantrySheetBolt?: boolean;
   onClosePeriodSheet: () => void;
   onCloseWaterSheet: () => void;
   onCloseCoffeeSheet: () => void;
@@ -191,8 +203,11 @@ function DiarySheets({
   onOpenWaterSheet: () => void;
   onOpenCoffeeSheet: () => void;
   onOpenAddPantrySheet: () => void;
-  diaryPeriod: "hoy" | "7d" | "30d";
-  setDiaryPeriod: (value: "hoy" | "7d" | "30d") => void;
+  diaryPeriod: DiaryPeriod;
+  setDiaryPeriod: (value: DiaryPeriod) => void;
+  selectedDiaryMonth?: string;
+  setSelectedDiaryMonth?: (value: string) => void;
+  currentMonthKey?: string;
   showCalendarSheet?: boolean;
   onCloseCalendarSheet?: () => void;
   selectedDiaryDate?: string;
@@ -253,10 +268,13 @@ function DiarySheets({
 
   useEffect(() => {
     if (showCoffeeSheet) {
-      setCoffeeSheetStep("select");
       setDiaryCoffeePreparationDraft("Espresso");
+      // Solo ir a "select" si no hay café preseleccionado (p. ej. desde "Añadir café" en despensa del timeline ya viene con café y paso "dose")
+      if (!diaryCoffeeIdDraft) {
+        setCoffeeSheetStep("select");
+      }
     }
-  }, [showCoffeeSheet, setCoffeeSheetStep, setDiaryCoffeePreparationDraft]);
+  }, [showCoffeeSheet, setCoffeeSheetStep, setDiaryCoffeePreparationDraft, diaryCoffeeIdDraft]);
 
   useEffect(() => {
     if (barcodeDetectedValue != null && barcodeDetectedValue !== "") {
@@ -327,34 +345,6 @@ function DiarySheets({
 
   return (
     <>
-      {showQuickActions ? (
-        <SheetOverlay className="diary-quick-actions-overlay" role="dialog" aria-modal="true" aria-label="Nuevo registro" onDismiss={onCloseQuickActions} onClick={onCloseQuickActions}>
-          <SheetCard className="diary-sheet diary-quick-actions-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">NUEVO REGISTRO</strong>
-            </header>
-            <div className="diary-sheet-list">
-              <Button variant="plain" type="button" className="diary-sheet-action is-water" onClick={onOpenWaterSheet}>
-                <UiIcon name="taste-watery" className="ui-icon" />
-                <span>Agua</span>
-                <UiIcon name="chevron-right" className="ui-icon" />
-              </Button>
-              <Button variant="plain" type="button" className="diary-sheet-action is-coffee" onClick={onOpenCoffeeSheet}>
-                <UiIcon name="coffee-filled" className="ui-icon" />
-                <span>Café</span>
-                <UiIcon name="chevron-right" className="ui-icon" />
-              </Button>
-              <Button variant="plain" type="button" className="diary-sheet-action is-pantry" onClick={onOpenAddPantrySheet}>
-                <UiIcon name="stock" className="ui-icon" />
-                <span>Añadir a Despensa</span>
-                <UiIcon name="chevron-right" className="ui-icon" />
-              </Button>
-            </div>
-          </SheetCard>
-        </SheetOverlay>
-      ) : null}
-
       {showPeriodSheet ? (
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Seleccionar periodo" onDismiss={onClosePeriodSheet} onClick={onClosePeriodSheet}>
           <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
@@ -381,24 +371,61 @@ function DiarySheets({
                 </Button>
               ))}
             </div>
+            {diaryPeriod === "30d" && selectedDiaryMonth && setSelectedDiaryMonth && (
+              <div className="diary-sheet-month-nav" role="group" aria-label="Navegación por mes">
+                <Button
+                  variant="plain"
+                  type="button"
+                  className="diary-sheet-month-arrow"
+                  onClick={() => {
+                    const [y, m] = selectedDiaryMonth.split("-").map(Number);
+                    const d = new Date(y, (m ?? 1) - 1, 1);
+                    d.setMonth(d.getMonth() - 1);
+                    setSelectedDiaryMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+                  }}
+                  aria-label="Mes anterior"
+                >
+                  <UiIcon name="arrow-left" className="ui-icon" />
+                </Button>
+                <span className="diary-sheet-month-label">{formatMonthYear(selectedDiaryMonth)}</span>
+                {selectedDiaryMonth < (currentMonthKey || "9999-12") ? (
+                  <Button
+                    variant="plain"
+                    type="button"
+                    className="diary-sheet-month-arrow"
+                    onClick={() => {
+                      const [y, m] = selectedDiaryMonth.split("-").map(Number);
+                      const d = new Date(y, (m ?? 1) - 1, 1);
+                      d.setMonth(d.getMonth() + 1);
+                      setSelectedDiaryMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+                    }}
+                    aria-label="Mes siguiente"
+                  >
+                    <UiIcon name="arrow-right" className="ui-icon" />
+                  </Button>
+                ) : (
+                  <span className="diary-sheet-month-arrow diary-sheet-month-arrow-placeholder" aria-hidden="true" />
+                )}
+              </div>
+            )}
           </SheetCard>
         </SheetOverlay>
       ) : null}
 
       {showCalendarSheet && onCloseCalendarSheet && setSelectedDiaryDate && diaryTodayStr ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Selecciona" onDismiss={onCloseCalendarSheet} onClick={onCloseCalendarSheet}>
+        <SheetOverlay className="diary-calendar-sheet-overlay" role="dialog" aria-modal="true" aria-label="Selecciona" onDismiss={onCloseCalendarSheet} onClick={onCloseCalendarSheet}>
           <SheetCard className="diary-sheet diary-calendar-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-calendar-sheet-header">
               <span className="diary-calendar-sheet-header-spacer" aria-hidden="true" />
               <strong className="sheet-title">Selecciona</strong>
               <div className="diary-calendar-sheet-header-end">
-                <Button variant="primary" className="diary-calendar-today-btn" onClick={() => setSelectedDiaryDate(diaryTodayStr)}>
+                <Button variant="primary" className="diary-calendar-today-btn" onClick={() => setSelectedDiaryDate(getMondayOfWeek(diaryTodayStr))}>
                   Ir a hoy
                 </Button>
               </div>
             </header>
-            <DiaryCalendarScroll selectedDate={selectedDiaryDate} onSelectDate={(dateStr) => setSelectedDiaryDate(dateStr)} todayStr={diaryTodayStr} datesWithCoffee={datesWithCoffee} datesWithWater={datesWithWater} />
+            <DiaryCalendarScroll selectedDate={selectedDiaryDate} onSelectDate={(dateStr) => setSelectedDiaryDate(getMondayOfWeek(dateStr))} todayStr={diaryTodayStr} datesWithCoffee={datesWithCoffee} datesWithWater={datesWithWater} />
           </SheetCard>
         </SheetOverlay>
       ) : null}
@@ -478,18 +505,7 @@ function DiarySheets({
                     <UiIcon name="close" className="ui-icon" />
                   </Button>
                   <strong className="sheet-title">SELECCIONA</strong>
-                  <Button
-                    variant="plain"
-                    type="button"
-                    className="diary-coffee-select-action"
-                    aria-label="Registro rápido"
-                    onClick={() => {
-                      setDiaryCoffeeIdDraft("");
-                      setCoffeeSheetStep("dose");
-                    }}
-                  >
-                    <UiIcon name="bolt" className="ui-icon" />
-                  </Button>
+                  <div className="diary-coffee-select-header-right" aria-hidden="true" />
                 </header>
                 <div className="diary-coffee-select-body">
                   <section className="diary-coffee-select-section">
@@ -507,8 +523,13 @@ function DiarySheets({
                             type="button"
                             className="diary-coffee-select-pantry-card"
                             onClick={() => {
-                              setDiaryCoffeeIdDraft(row.coffee.id);
-                              setCoffeeSheetStep("dose");
+                              if (coffeeSheetOpenedFromBrew && onCoffeeSelectedForBrew) {
+                                onCoffeeSelectedForBrew(row.coffee.id);
+                                onCloseCoffeeSheet();
+                              } else {
+                                setDiaryCoffeeIdDraft(row.coffee.id);
+                                setCoffeeSheetStep("dose");
+                              }
                             }}
                           >
                             <span className="diary-coffee-select-pantry-card-img">
@@ -591,8 +612,13 @@ function DiarySheets({
                             role="option"
                             className="diary-coffee-select-item"
                             onClick={() => {
-                              setDiaryCoffeeIdDraft(coffee.id);
-                              setCoffeeSheetStep("dose");
+                              if (coffeeSheetOpenedFromBrew && onCoffeeSelectedForBrew) {
+                                onCoffeeSelectedForBrew(coffee.id);
+                                onCloseCoffeeSheet();
+                              } else {
+                                setDiaryCoffeeIdDraft(coffee.id);
+                                setCoffeeSheetStep("dose");
+                              }
                             }}
                           >
                             {coffee.image_url ? (
@@ -637,9 +663,15 @@ function DiarySheets({
               <>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-dose-sheet-header">
-                  <Button variant="plain" type="button" className="diary-dose-back" onClick={() => setCoffeeSheetStep("select")} aria-label="Volver">
-                    <UiIcon name="arrow-left" className="ui-icon" />
-                  </Button>
+                  {coffeeSheetOpenedDirectlyToDose ? (
+                    <Button variant="plain" type="button" className="diary-dose-back diary-dose-close" onClick={onCloseCoffeeSheet} aria-label="Cerrar">
+                      <UiIcon name="close" className="ui-icon" />
+                    </Button>
+                  ) : (
+                    <Button variant="plain" type="button" className="diary-dose-back" onClick={() => setCoffeeSheetStep("select")} aria-label="Volver">
+                      <UiIcon name="arrow-left" className="ui-icon" />
+                    </Button>
+                  )}
                   <strong className="sheet-title">DOSIS</strong>
                   <Button variant="plain" type="button" className="diary-dose-next" onClick={() => setCoffeeSheetStep("tipo")} aria-label="Siguiente">
                     <UiIcon name="arrow-right" className="ui-icon" />
@@ -709,25 +741,7 @@ function DiarySheets({
                 </header>
                 <div className="diary-sheet-form diary-tipo-sheet-form">
                   <div className="diary-tipo-grid" role="listbox" aria-label="Tipo de café">
-                    {[
-                      { label: "Espresso", drawable: "espresso.png" },
-                      { label: "Americano", drawable: "americano.png" },
-                      { label: "Capuchino", drawable: "capuchino.png" },
-                      { label: "Latte", drawable: "latte.png" },
-                      { label: "Macchiato", drawable: "macchiato.png" },
-                      { label: "Moca", drawable: "moca.png" },
-                      { label: "Vienés", drawable: "vienes.png" },
-                      { label: "Irlandés", drawable: "irlandes.png" },
-                      { label: "Frappuccino", drawable: "frappuccino.png" },
-                      { label: "Caramelo macchiato", drawable: "caramel_macchiato.png" },
-                      { label: "Corretto", drawable: "corretto.png" },
-                      { label: "Freddo", drawable: "freddo.png" },
-                      { label: "Latte macchiato", drawable: "latte_macchiato.png" },
-                      { label: "Leche con chocolate", drawable: "leche_con_chocolate.png" },
-                      { label: "Marroquí", drawable: "marroqui.png" },
-                      { label: "Romano", drawable: "romano.png" },
-                      { label: "Descafeinado", drawable: "descafeinado.png" }
-                    ].map(({ label, drawable }) => {
+                    {COFFEE_TIPO_OPTIONS.map(({ label, drawable }) => {
                       const isSelected = diaryCoffeePreparationDraft === label;
                       return (
                         <Button
@@ -766,14 +780,7 @@ function DiarySheets({
                       const selected = isRegistroRapido ? null : diaryCoffeeOptions.find((c) => c.id === diaryCoffeeIdDraft);
                       const coffeeName = selected?.nombre ?? lastCreatedCoffeeNameForSheet ?? "Registro rápido";
                       const ml = Math.max(1, Number(diaryCoffeeMlDraft || 0));
-                      const sizeOptions: { ml: number; label: string }[] = [
-                        { ml: 30, label: "Espresso" },
-                        { ml: 180, label: "Pequeño" },
-                        { ml: 275, label: "Mediano" },
-                        { ml: 375, label: "Grande" },
-                        { ml: 475, label: "Tazón XL" }
-                      ];
-                      const sizeLabel = sizeOptions.find((s) => Math.abs(s.ml - ml) <= 15)?.label ?? null;
+                      const sizeLabel = COFFEE_SIZE_OPTIONS.find((s) => Math.abs(s.ml - ml) <= 15)?.label ?? null;
                       void onSaveCoffee({
                         coffeeId: isRegistroRapido ? null : (diaryCoffeeIdDraft || null),
                         coffeeName,
@@ -792,13 +799,7 @@ function DiarySheets({
                 </header>
                 <div className="diary-sheet-form diary-tamaño-sheet-form">
                   <div className="diary-tamaño-list" role="listbox" aria-label="Tamaño de la taza">
-                    {[
-                      { label: "Espresso", rangeLabel: "25–30 ml", ml: 30, drawable: "taza_espresso.png" },
-                      { label: "Pequeño", rangeLabel: "150–200 ml", ml: 180, drawable: "taza_pequeno.png" },
-                      { label: "Mediano", rangeLabel: "250–300 ml", ml: 275, drawable: "taza_mediano.png" },
-                      { label: "Grande", rangeLabel: "350–400 ml", ml: 375, drawable: "taza_grande.png" },
-                      { label: "Tazón XL", rangeLabel: "450–500 ml", ml: 475, drawable: "taza_xl.png" }
-                    ].map((size) => {
+                    {COFFEE_SIZE_OPTIONS.map((size) => {
                       const currentMl = Number(diaryCoffeeMlDraft || 0);
                       const isSelected = Math.abs(currentMl - size.ml) <= 15;
                       return (
@@ -844,15 +845,15 @@ function DiarySheets({
                   <Button variant="plain" type="button" className="diary-pantry-select-back" onClick={onCloseAddPantrySheet} aria-label="Cerrar">
                     <UiIcon name="arrow-left" className="ui-icon" />
                   </Button>
-                  <strong className="sheet-title">SELECCIONAR</strong>
+                  <strong className="sheet-title">{hideAddPantrySheetBolt ? "SELECCIONA CAFÉ" : "SELECCIONAR"}</strong>
                   <Button
                     variant="plain"
                     type="button"
-                    className="diary-pantry-select-action"
-                    aria-label="Crear café"
+                    className="diary-pantry-select-action diary-pantry-select-action-crea"
+                    aria-label="Crea tu café"
                     onClick={() => setPantrySheetStep("createCoffee")}
                   >
-                    <UiIcon name="bolt" className="ui-icon" />
+                    Crea tu café
                   </Button>
                 </header>
                 <div className="diary-pantry-select-body">

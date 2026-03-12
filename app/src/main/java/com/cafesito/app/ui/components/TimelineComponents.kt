@@ -81,7 +81,6 @@ import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.cafesito.app.R
 import com.cafesito.app.data.CoffeeWithDetails
-import com.cafesito.app.data.CommentWithAuthor
 import com.cafesito.app.data.DiaryEntryEntity
 import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.data.PostWithDetails
@@ -90,12 +89,14 @@ import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.brewlab.BrewLabViewModel
 import com.cafesito.app.ui.brewlab.BrewMethod
 import com.cafesito.app.ui.brewlab.BrewPhaseInfo
+import com.cafesito.shared.domain.brew.BREW_METHOD_AGUA
+import com.cafesito.shared.domain.brew.BREW_METHOD_NAMES
+import com.cafesito.shared.domain.brew.BREW_METHOD_OTROS
 import com.cafesito.app.ui.diary.DiaryAnalytics
 import com.cafesito.app.ui.diary.DiaryPeriod
 import com.cafesito.app.ui.profile.ProfileUiState
 import com.cafesito.app.ui.profile.ProfileViewModel
 import com.cafesito.app.ui.theme.*
-import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
 import com.cafesito.app.ui.utils.formatRelativeTime
 import kotlin.text.Regex
@@ -115,305 +116,6 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 // --- TIMELINE COMPONENTS ---
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CommentsSheet(
-    postId: String,
-    onDismiss: () -> Unit,
-    onAddComment: (String) -> Unit,
-    onNavigateToProfile: (Int) -> Unit,
-    highlightedCommentId: Int? = null,
-    viewModel: CommentsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-) {
-    var textValue by remember { mutableStateOf(TextFieldValue("")) }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var showImagePickerSheet by remember { mutableStateOf(false) }
-    var showEmojiPanel by remember { mutableStateOf(false) }
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
-    val context = LocalContext.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val comments by viewModel.comments.collectAsState()
-    val suggestions by viewModel.mentionSuggestions.collectAsState()
-    val allUsers by viewModel.allUsers.collectAsState()
-    val usersByUsername = remember(allUsers) { allUsers.associateBy { it.username.lowercase() } }
-    val activeUser by viewModel.activeUser.collectAsState()
-    val scope = rememberCoroutineScope()
-    val listState = rememberLazyListState()
-    var editingCommentId by remember { mutableStateOf<Int?>(null) }
-
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) selectedImageUri = pendingCameraUri
-    }
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) selectedImageUri = uri
-    }
-
-    LaunchedEffect(postId) { viewModel.setPostId(postId) }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        // scrimColor removed as it caused compilation error
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
-            Text(
-                text = "Comentarios",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp, bottom = 16.dp)
-            )
-
-            if (comments.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), contentAlignment = Alignment.Center) {
-                    Text("No hay comentarios todavía", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    state = listState,
-                    contentPadding = PaddingValues(bottom = 12.dp, top = 8.dp)
-                ) {
-                    items(comments, key = { it.comment.id }) { item ->
-                        CommentRow(
-                            commentWithAuthor = item,
-                            isOwnComment = item.author?.id == activeUser?.id,
-                            isHighlighted = highlightedCommentId == item.comment.id,
-                            onNavigateToProfile = onNavigateToProfile,
-                            onDeleteClick = { viewModel.deleteComment(item.comment.id) },
-                            onEditClick = {
-                                editingCommentId = item.comment.id
-                                textValue = TextFieldValue(item.comment.text, selection = TextRange(item.comment.text.length))
-                            },
-                            onMentionClick = { username ->
-                                scope.launch {
-                                    viewModel.getUserIdByUsername(username)?.let(onNavigateToProfile)
-                                }
-                            },
-                            resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
-                        )
-                    }
-                }
-            }
-
-            if (editingCommentId != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(horizontal = 16.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Editando comentario", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    IconButton(onClick = {
-                        editingCommentId = null
-                        textValue = TextFieldValue("")
-                    }, modifier = Modifier.size(16.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                // Main Composer Container
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                        .border(1.dp, Color.Transparent, RoundedCornerShape(16.dp))
-                ) {
-                    // Suggestions/Emojis moved inside at the top
-                    AnimatedVisibility(
-                        visible = (suggestions.isNotEmpty() && !showEmojiPanel && !textValue.text.trim().endsWith("@")) || showEmojiPanel,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
-                    ) {
-                        Column {
-                            if (showEmojiPanel) {
-                                FadingLazyRow(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
-                                ) {
-                                    items(listOf("😀", "😍", "🤎", "☕", "🔥", "🙌", "👏", "😋", "🥳", "😎")) { emoji ->
-                                        Surface(
-                                            onClick = {
-                                                val updated = textValue.text + emoji
-                                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                                viewModel.onTextChanged(updated)
-                                            },
-                                            modifier = Modifier.size(40.dp),
-                                            shape = CircleShape,
-                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
-                                            color = MaterialTheme.colorScheme.surface
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text(emoji, fontSize = 16.sp)
-                                            }
-                                        }
-                                    }
-                                }
-                            } else if (suggestions.isNotEmpty() && !textValue.text.trim().endsWith("@")) {
-                                FadingLazyRow(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
-                                ) {
-                                    items(suggestions, key = { it.id }) { user ->
-                                        SuggestionChip(user = user) {
-                                            val updated = insertOrReplaceMentionToken(textValue.text, user.username)
-                                            textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                            viewModel.onTextChanged(updated)
-                                        }
-                                    }
-                                }
-                            }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        }
-                    }
-
-                    MentionComposerField(
-                        value = textValue,
-                        onValueChange = {
-                            textValue = it
-                            viewModel.onTextChanged(it.text)
-                            if (it.text.endsWith("@")) showEmojiPanel = false
-                        },
-                        placeholder = "Añade un comentario...",
-                        validUsers = allUsers,
-                        modifier = Modifier.fillMaxWidth(),
-                        minHeight = 72.dp
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            onClick = { showImagePickerSheet = true },
-                            modifier = Modifier.size(40.dp),
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.PhotoCamera, contentDescription = "Cámara", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
-                            }
-                        }
-
-                        Surface(
-                            onClick = {
-                                val updated = textValue.text + "@"
-                                textValue = TextFieldValue(updated, selection = TextRange(updated.length))
-                                viewModel.onTextChanged(updated)
-                                showEmojiPanel = false
-                                keyboardController?.show()
-                            },
-                            modifier = Modifier.size(40.dp),
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("@", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                            }
-                        }
-
-                        Surface(
-                            onClick = { showEmojiPanel = !showEmojiPanel },
-                            modifier = Modifier.size(40.dp),
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("😊", fontSize = 16.sp)
-                            }
-                        }
-
-                        Spacer(Modifier.weight(1f))
-
-                        val sendDisabledBg = if (isSystemInDarkTheme()) Color(0xFF424242) else Color(0xFFBDBDBD)
-                        val sendDisabledContent = if (isSystemInDarkTheme()) Color.Black else Color.White
-                        IconButton(
-                            onClick = {
-                                if (editingCommentId != null) {
-                                    viewModel.updateComment(editingCommentId!!, textValue.text)
-                                    editingCommentId = null
-                                } else {
-                                    onAddComment(textValue.text)
-                                }
-                                textValue = TextFieldValue("")
-                                selectedImageUri = null
-                            },
-                            enabled = textValue.text.isNotBlank(),
-                            modifier = Modifier.size(40.dp),
-                            colors = IconButtonDefaults.iconButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                disabledContainerColor = sendDisabledBg,
-                                disabledContentColor = sendDisabledContent
-                            )
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar", modifier = Modifier.size(24.dp))
-                        }
-                    }
-
-                    selectedImageUri?.let { uri ->
-                        Box(modifier = Modifier.padding(12.dp).size(88.dp).clip(RoundedCornerShape(12.dp))) {
-                            AsyncImage(model = uri, contentDescription = "Miniatura", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                            Surface(
-                                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clickable { selectedImageUri = null },
-                                shape = CircleShape,
-                                color = Color.Black.copy(alpha = 0.65f)
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White, modifier = Modifier.padding(4.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showImagePickerSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showImagePickerSheet = false }, 
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            // scrimColor removed
-        ) {
-            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-                Text("AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
-                ModalMenuOption("Hacer Foto", Icons.Default.PhotoCamera, MaterialTheme.colorScheme.primary) {
-                    val file = File(context.cacheDir, "captured_${UUID.randomUUID()}.jpg")
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                    pendingCameraUri = uri
-                    cameraLauncher.launch(uri)
-                    showImagePickerSheet = false
-                }
-                ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
-                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    showImagePickerSheet = false
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(comments, highlightedCommentId) {
-        if (highlightedCommentId == null) return@LaunchedEffect
-        val index = comments.indexOfFirst { it.comment.id == highlightedCommentId }
-        if (index >= 0) listState.animateScrollToItem(index)
-    }
-}
-
-private fun insertOrReplaceMentionToken(currentText: String, username: String): String {
-    val parts = currentText.trimEnd().split(" ").toMutableList()
-    if (parts.isEmpty() || parts.firstOrNull().isNullOrBlank()) {
-        return "@$username "
-    }
-
-    val lastIndex = parts.lastIndex
-    parts[lastIndex] = if (parts[lastIndex].startsWith("@")) "@$username" else "${parts[lastIndex]} @$username"
-    return parts.joinToString(" ") + " "
-}
-
 
 @Composable
 fun PremiumTabRow(
@@ -669,87 +371,6 @@ private fun groupNotificationsByRange(notifications: List<TimelineNotification>)
         NotificationSection("last7", "Últimos 7 días", last7),
         NotificationSection("last30", "Últimos 30 días", last30)
     ).filter { it.items.isNotEmpty() }
-}
-
-@Composable
-private fun CommentRow(
-    commentWithAuthor: CommentWithAuthor,
-    isOwnComment: Boolean,
-    isHighlighted: Boolean,
-    onNavigateToProfile: (Int) -> Unit,
-    onDeleteClick: () -> Unit,
-    onEditClick: () -> Unit,
-    onMentionClick: (String) -> Unit,
-    resolveMentionUser: (String) -> UserEntity?
-) {
-    val author = commentWithAuthor.author
-    val comment = commentWithAuthor.comment
-    var showOptionsSheet by remember { mutableStateOf(false) }
-
-    val highlightColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .background(
-                if (isHighlighted) highlightColor else Color.Transparent,
-                RoundedCornerShape(12.dp)
-            )
-            .padding(8.dp)
-    ) {
-        AsyncImage(
-            model = author?.avatarUrl ?: "",
-            contentDescription = author?.let { "Avatar de ${it.fullName.ifBlank { it.username } }" } ?: "Avatar",
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable { author?.id?.let { onNavigateToProfile(it) } }
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = author?.username ?: "Usuario",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.clickable { author?.id?.let { onNavigateToProfile(it) } }
-            )
-            Text(
-                text = formatRelativeTime(comment.timestamp).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = LocalDateMetaColor.current,
-                fontWeight = FontWeight.Normal
-            )
-
-            MentionText(
-                text = comment.text,
-                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                onMentionClick = onMentionClick,
-                resolveMentionUser = resolveMentionUser
-            )
-        }
-
-        if (isOwnComment) {
-            IconButton(onClick = { showOptionsSheet = true }, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Filled.MoreVert, contentDescription = "Opciones", tint = Color.Gray, modifier = Modifier.size(16.dp))
-            }
-        }
-    }
-
-    if (showOptionsSheet) {
-        PostOptionsBottomSheet(
-            onDismiss = { showOptionsSheet = false },
-            onEditClick = {
-                showOptionsSheet = false
-                onEditClick()
-            },
-            onDeleteClick = {
-                showOptionsSheet = false
-                onDeleteClick()
-            }
-        )
-    }
-
 }
 
 @Composable
@@ -1165,20 +786,26 @@ fun DiaryEntryItem(
     val datePattern = if (selectedPeriod == DiaryPeriod.HOY || selectedPeriod == DiaryPeriod.SEMANA || selectedPeriod == DiaryPeriod.MES) "HH:mm" else "dd/MM | HH:mm"
     val dateStr = SimpleDateFormat(datePattern, Locale.getDefault()).format(Date(entry.timestamp))
     val coffeeNameNorm = entry.coffeeName.trim().lowercase()
-    val isRegistroRapido = entry.type == "CUP" && (
+    val isBrewSinCafe = entry.type == "CUP" && coffeeNameNorm == "café"
+    val isRegistroRapido = entry.type == "CUP" && !isBrewSinCafe && (
         entry.coffeeId.isNullOrBlank() ||
         coffeeNameNorm == "registro r\u00E1pido" ||
         coffeeNameNorm == "registro rapido" ||
         Regex("registro\\s*rapido", RegexOption.IGNORE_CASE).containsMatchIn(coffeeNameNorm)
     )
     val rawPreparationType = entry.preparationType.trim()
-    val elaborationMethod = extractDiaryElaborationMethod(rawPreparationType)
-    val preparationValue = if (elaborationMethod != null) "BrewLab" else rawPreparationType.ifBlank { "-" }
-    val preparationDrawableName = diaryPreparationDrawableName(rawPreparationType)
+    val parsed = parsePreparationType(rawPreparationType)
+    val elaborationMethod = parsed.method ?: extractDiaryElaborationMethod(rawPreparationType)
+    val preparationValue = when {
+        elaborationMethod != null -> elaborationMethod
+        rawPreparationType.isNotBlank() -> rawPreparationType
+        else -> "-"
+    }
+    val preparationDrawableName = if (elaborationMethod != null) null else diaryPreparationDrawableName(rawPreparationType)
     val elaborationDrawableName = elaborationMethod?.let { diaryElaborationDrawableName(it) }
     val sizeDrawableName = diarySizeDrawableName(entry.sizeLabel, entry.amountMl)
-    val preparationDrawablePainter = diaryDrawablePainter(preparationDrawableName)
-    val elaborationDrawablePainter = diaryDrawablePainter(elaborationDrawableName)
+    val preparationDrawablePainter = preparationDrawableName?.let { diaryDrawablePainter(it) }
+    val elaborationDrawablePainter = elaborationDrawableName?.let { diaryDrawablePainter(it) }
     val sizeDrawablePainter = diaryDrawablePainter(sizeDrawableName)
     val preparationIcon = diaryPreparationIcon(rawPreparationType)
     val elaborationIcon = elaborationMethod?.let { diaryElaborationIcon(it) }
@@ -1200,7 +827,7 @@ fun DiaryEntryItem(
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (entry.type == "CUP" && !coffeeImageUrl.isNullOrBlank() && !isRegistroRapido) {
+                if (entry.type == "CUP" && !coffeeImageUrl.isNullOrBlank() && !isRegistroRapido && !isBrewSinCafe) {
                     AsyncImage(
                         model = coffeeImageUrl,
                         contentDescription = entry.coffeeName.ifBlank { "Imagen del café" },
@@ -1220,16 +847,24 @@ fun DiaryEntryItem(
                         contentAlignment = Alignment.Center
                     ) {
                         if (entry.type == "WATER") {
-                            Icon(
-                                imageVector = Icons.Default.WaterDrop,
+                            Image(
+                                painter = painterResource(R.drawable.agua),
                                 contentDescription = "Entrada de agua",
-                                tint = WaterBlue,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp),
+                                contentScale = ContentScale.Fit
                             )
                         } else {
                             Icon(
-                                if (isRegistroRapido) Icons.Filled.LocalCafe else Icons.Default.Coffee,
-                                contentDescription = if (isRegistroRapido) "Registro rápido" else "Entrada de café",
+                                when {
+                                    isBrewSinCafe -> Icons.Default.Coffee
+                                    isRegistroRapido -> Icons.Filled.LocalCafe
+                                    else -> Icons.Default.Coffee
+                                },
+                                contentDescription = when {
+                                    isBrewSinCafe -> "Café"
+                                    isRegistroRapido -> "Registro rápido"
+                                    else -> "Entrada de café"
+                                },
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -1242,6 +877,7 @@ fun DiaryEntryItem(
                     Text(
                         text = when {
                             entry.type == "WATER" -> "Agua"
+                            isBrewSinCafe -> "Café"
                             isRegistroRapido -> entry.preparationType.trim().ifBlank { "Registro r\u00E1pido" }.toCoffeeNameFormat()
                             else -> entry.coffeeName.toCoffeeNameFormat()
                         },
@@ -1368,35 +1004,48 @@ fun DiaryEntryItem(
                         }
                     }
                     item {
-                        if (preparationDrawablePainter != null) {
+                        val prepIcon = if (elaborationMethod != null) {
+                            if (elaborationDrawablePainter != null) (elaborationDrawablePainter to null) else (null to elaborationIcon)
+                        } else {
+                            if (preparationDrawablePainter != null) (preparationDrawablePainter to null) else (null to preparationIcon)
+                        }
+                        if (prepIcon.first != null) {
                             MetricPill(
-                                icon = preparationDrawablePainter,
+                                icon = prepIcon.first!!,
                                 label = "PREPARACIÓN",
                                 value = preparationValue
                             )
                         } else {
                             MetricPill(
-                                icon = preparationIcon,
+                                icon = prepIcon.second!!,
                                 label = "PREPARACIÓN",
                                 value = preparationValue
                             )
                         }
                     }
-                    if (elaborationMethod != null && elaborationIcon != null) {
+                    if (parsed.tipo != null) {
                         item {
-                            if (elaborationDrawablePainter != null) {
-                                MetricPill(
-                                    icon = elaborationDrawablePainter,
-                                    label = "MÉTODO",
-                                    value = elaborationMethod
-                                )
+                            val tipoDrawable = diaryDrawablePainter(diaryPreparationDrawableName(parsed.tipo))
+                            if (tipoDrawable != null) {
+                                MetricPill(icon = tipoDrawable, label = "TIPO", value = parsed.tipo)
                             } else {
-                                MetricPill(
-                                    icon = elaborationIcon,
-                                    label = "MÉTODO",
-                                    value = elaborationMethod
-                                )
+                                MetricPill(icon = diaryPreparationIcon(parsed.tipo), label = "TIPO", value = parsed.tipo)
                             }
+                        }
+                    }
+                    if (parsed.taste != null) {
+                        item {
+                            val tasteIcon = when (parsed.taste.lowercase()) {
+                                "dulce" -> Icons.Default.Favorite
+                                "amargo" -> Icons.Default.LocalFireDepartment
+                                "ácido", "acido" -> Icons.Default.Science
+                                "equilibrado" -> Icons.Default.Verified
+                                "salado" -> Icons.Default.Waves
+                                "acuoso" -> Icons.Default.WaterDrop
+                                "aspero", "áspero" -> Icons.Default.Grain
+                                else -> Icons.Default.AutoAwesome
+                            }
+                            MetricPill(icon = tasteIcon, label = "RESULTADO", value = parsed.taste)
                         }
                     }
                 }
@@ -1445,6 +1094,13 @@ fun DiaryEntryEditBottomSheet(
         mutableStateOf(entry.sizeLabel ?: inferSizeLabel(entry.amountMl))
     }
 
+    val (initialMethod, initialTaste, initialTipo) = remember(entry.id) {
+        val p = parsePreparationType(entry.preparationType)
+        Triple(p.method, p.taste, p.tipo)
+    }
+    var selectedBrewMethod by remember(entry.id) { mutableStateOf(initialMethod) }
+    var selectedBrewTaste by remember(entry.id) { mutableStateOf(initialTaste ?: "Equilibrado") }
+
     val preparationOptions = remember(entry.id) {
         val base = listOf(
             PrepOption("Espresso", "espresso"),
@@ -1465,10 +1121,13 @@ fun DiaryEntryEditBottomSheet(
             PrepOption("Romano", "romano"),
             PrepOption("Descafeinado", "descafeinado")
         )
-        if (entry.preparationType in base.map { it.label }) base
-        else base + PrepOption(entry.preparationType, null)
+        val prepForTipo = initialTipo?.takeIf { it.isNotBlank() } ?: entry.preparationType.trim().takeIf { it.isNotBlank() } ?: "Espresso"
+        if (prepForTipo in base.map { it.label }) base
+        else base + PrepOption(prepForTipo, null)
     }
-    var selectedPreparation by remember(entry.id) { mutableStateOf(entry.preparationType) }
+    var selectedPreparation by remember(entry.id) {
+        mutableStateOf(initialTipo?.takeIf { it.isNotBlank() } ?: entry.preparationType.trim().ifBlank { "Espresso" })
+    }
     var errorText by remember(entry.id) { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun handleSaveEditEntry() {
@@ -1494,10 +1153,15 @@ fun DiaryEntryEditBottomSheet(
                 errorText = if (!espressoRangeValid) "Para espresso, la dosis debe estar entre 3.0 y 30.0 g" else "Completa todos los campos correctamente"
                 return
             }
+            val preparationTypeToSave = if (selectedBrewMethod != null) {
+                "Lab: $selectedBrewMethod (${selectedBrewTaste.trim().ifBlank { "Equilibrado" }})|${normalizedPrep}"
+            } else {
+                normalizedPrep
+            }
             entry.copy(
                 caffeineAmount = caffeine,
                 coffeeGrams = grams.roundToInt(),
-                preparationType = selectedPreparation.trim(),
+                preparationType = preparationTypeToSave,
                 sizeLabel = selectedSize,
                 amountMl = sizeOptions.find { it.label == selectedSize }?.defaultMl ?: entry.amountMl,
                 timestamp = updatedTimestamp
@@ -1518,42 +1182,126 @@ fun DiaryEntryEditBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 12.dp)
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .padding(bottom = 28.dp)
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar")
-                }
+            Box(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Editar",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth().align(Alignment.Center)
                 )
-                TextButton(onClick = { handleSaveEditEntry() }) {
-                    Text("Guardar", fontWeight = FontWeight.SemiBold)
+                Row(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { handleSaveEditEntry() }) {
+                        Text("Guardar", fontWeight = FontWeight.SemiBold)
+                    }
                 }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            val brewMethodNamesForWidth = remember { BREW_METHOD_NAMES + listOf(BREW_METHOD_OTROS, BREW_METHOD_AGUA) }
+            val editModalChipLabels = remember(brewMethodNamesForWidth, preparationOptions, sizeOptions) {
+                brewMethodNamesForWidth + preparationOptions.map { it.label } + sizeOptions.map { it.label } +
+                    listOf("Amargo", "Ácido", "Equilibrado", "Salado", "Acuoso", "Aspero", "Dulce")
+            }
+            val editModalChipMinWidth = remember(editModalChipLabels) {
+                val maxWordLen = editModalChipLabels.flatMap { it.split(" ") }.maxOfOrNull { it.length } ?: 8
+                (maxWordLen * 9 + 48).coerceAtLeast(100).dp
             }
 
             if (entry.type == "CUP") {
                 Text(
-                    text = "Preparación",
+                    text = "Método",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
+                Spacer(Modifier.height(4.dp))
+                val brewMethodNames = remember { BREW_METHOD_NAMES + listOf(BREW_METHOD_OTROS, BREW_METHOD_AGUA) }
                 val unselectedChipBg = if (isDark) Color.Black else Color.White
                 val unselectedChipContent = if (isDark) Color.White else Color.Black
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
+                val chipIconSize = 30.dp
+                val chipMinWidth = editModalChipMinWidth
+                val chipMinHeight = 56.dp
+                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 8.dp) {
+                    items(brewMethodNames, key = { it }) { methodName ->
+                        val isSelected = selectedBrewMethod == methodName
+                        val methodDrawable = diaryElaborationDrawableName(methodName)
+                        val iconTint = if (isSelected) Color.White else unselectedChipContent
+                        Surface(
+                            onClick = { selectedBrewMethod = if (selectedBrewMethod == methodName) null else methodName },
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
+                            border = BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier.width(chipMinWidth).heightIn(min = chipMinHeight)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                when {
+                                    methodName == BREW_METHOD_AGUA -> Image(
+                                        painter = painterResource(R.drawable.agua),
+                                        contentDescription = methodName,
+                                        modifier = Modifier.size(chipIconSize),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                    methodName == BREW_METHOD_OTROS -> Image(
+                                        painter = painterResource(R.drawable.relampago),
+                                        contentDescription = methodName,
+                                        modifier = Modifier.size(chipIconSize),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                    else -> {
+                                        val resId = methodDrawable?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
+                                        if (resId != 0) {
+                                            Image(painter = painterResource(id = resId), contentDescription = methodName, modifier = Modifier.size(chipIconSize), contentScale = ContentScale.Fit)
+                                        } else {
+                                            Icon(Icons.Default.CoffeeMaker, contentDescription = methodName, tint = iconTint, modifier = Modifier.size(chipIconSize))
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = methodName,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSelected) Color.White else unselectedChipContent,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Start
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    text = "Tipo",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 8.dp) {
                     items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
+                        val selectedTextColor = Color.White
+                        val iconTint = if (isSelected) selectedTextColor else unselectedChipContent
                         Surface(
                             onClick = { selectedPreparation = option.label },
                             shape = RoundedCornerShape(16.dp),
@@ -1561,36 +1309,35 @@ fun DiaryEntryEditBottomSheet(
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
                                 color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            )
+                            ),
+                            modifier = Modifier.width(chipMinWidth).heightIn(min = chipMinHeight)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
-                                val iconTint = if (isSelected) Color.Black else unselectedChipContent
                                 if (resId != 0) {
-                                    Image(
-                                        painter = painterResource(id = resId),
-                                        contentDescription = option.label,
-                                        modifier = Modifier.size(28.dp),
-                                        contentScale = ContentScale.Fit
-                                    )
+                                    Image(painter = painterResource(id = resId), contentDescription = option.label, modifier = Modifier.size(chipIconSize), contentScale = ContentScale.Fit)
                                 } else {
-                                    Icon(Icons.Default.CoffeeMaker, contentDescription = option.label, tint = iconTint)
+                                    Icon(Icons.Default.CoffeeMaker, contentDescription = option.label, tint = iconTint, modifier = Modifier.size(chipIconSize))
                                 }
                                 Text(
                                     text = option.label,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = if (isSelected) Color.Black else unselectedChipContent,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    color = if (isSelected) selectedTextColor else unselectedChipContent,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Start
                                 )
                             }
                         }
                     }
                 }
 
+                Spacer(Modifier.height(24.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = caffeineText,
@@ -1636,17 +1383,19 @@ fun DiaryEntryEditBottomSheet(
                     )
                 }
 
+                Spacer(Modifier.height(24.dp))
                 Text(
                     text = "Tamaño",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
+                Spacer(Modifier.height(4.dp))
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
                     items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
                         val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBg
-                        val chipContent = if (isSelected) Color.Black else unselectedChipContent
+                        val chipContent = if (isSelected) Color.White else unselectedChipContent
                         Surface(
                             onClick = { selectedSize = option.label },
                             shape = RoundedCornerShape(14.dp),
@@ -1654,29 +1403,35 @@ fun DiaryEntryEditBottomSheet(
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
                                 color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            )
+                            ),
+                            modifier = Modifier.width(editModalChipMinWidth)
                         ) {
-                            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val sizeResId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
-                                    if (sizeResId != 0) {
-                                        Image(
-                                            painter = painterResource(id = sizeResId),
-                                            contentDescription = option.label,
-                                            modifier = Modifier.size(22.dp),
-                                            contentScale = ContentScale.Fit
-                                        )
-                                    } else {
-                                        Icon(Icons.Default.LocalCafe, contentDescription = option.label, modifier = Modifier.size(16.dp), tint = chipContent)
-                                    }
-                                    Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
+                            Row(
+                                Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                val sizeResId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
+                                if (sizeResId != 0) {
+                                    Image(
+                                        painter = painterResource(id = sizeResId),
+                                        contentDescription = option.label,
+                                        modifier = Modifier.size(24.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                } else {
+                                    Icon(Icons.Default.LocalCafe, contentDescription = option.label, modifier = Modifier.size(20.dp), tint = chipContent)
                                 }
-                                Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = chipContent.copy(alpha = 0.85f))
+                                Column {
+                                    Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
+                                    Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = chipContent.copy(alpha = 0.9f))
+                                }
                             }
                         }
                     }
                 }
             } else {
+                Spacer(Modifier.height(24.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = amountText,
@@ -1709,6 +1464,7 @@ fun DiaryEntryEditBottomSheet(
                 }
             }
 
+            Spacer(Modifier.height(24.dp))
             if (entry.type != "WATER") {
                 OutlinedTextField(
                     value = timeText,
@@ -1720,6 +1476,62 @@ fun DiaryEntryEditBottomSheet(
                     textStyle = editFieldTextStyle,
                     colors = editFieldColors
                 )
+            }
+
+            if (entry.type == "CUP" && selectedBrewMethod != null) {
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    text = "Resultado",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+                val tasteOptionsWithIcons = listOf(
+                    "Amargo" to Icons.Default.LocalFireDepartment,
+                    "Ácido" to Icons.Default.Science,
+                    "Equilibrado" to Icons.Default.Verified,
+                    "Salado" to Icons.Default.Waves,
+                    "Acuoso" to Icons.Default.WaterDrop,
+                    "Aspero" to Icons.Default.Grain,
+                    "Dulce" to Icons.Default.Favorite
+                )
+                val unselectedChipBgResult = if (isDark) Color.Black else Color.White
+                val unselectedChipContentResult = if (isDark) Color.White else Color.Black
+                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 8.dp) {
+                    items(tasteOptionsWithIcons, key = { it.first }) { (taste, iconVector) ->
+                        val isSelected = selectedBrewTaste == taste
+                        Surface(
+                            onClick = { selectedBrewTaste = taste },
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected) LocalCaramelAccent.current else unselectedChipBgResult,
+                            border = BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier.width(editModalChipMinWidth)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = iconVector,
+                                    contentDescription = taste,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (isSelected) Color.White else unselectedChipContentResult
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = taste,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSelected) Color.White else unselectedChipContentResult,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             if (errorText != null) {
@@ -1746,10 +1558,27 @@ private data class SizeOption(
     val drawableName: String
 )
 
+/** Resultado de parsear preparation_type: (método, sabor/resultado, tipo de bebida). Formato: "Lab: Método (Sabor)|Tipo". */
+private data class ParsedPreparation(val method: String?, val taste: String?, val tipo: String?)
+
+private fun parsePreparationType(raw: String): ParsedPreparation {
+    val s = raw.trim()
+    if (s.isBlank()) return ParsedPreparation(null, null, null)
+    val pipeIdx = s.indexOf('|')
+    val tipoPart = if (pipeIdx >= 0) s.substring(pipeIdx + 1).trim().takeIf { it.isNotBlank() } else null
+    val leftPart = if (pipeIdx >= 0) s.substring(0, pipeIdx).trim() else s
+    val labMatch = Regex("""(?:^lab:\s*|^elaboracion:\s*)([^()]+?)(?:\s*\(([^)]*)\))?\s*$""", RegexOption.IGNORE_CASE).find(leftPart)
+    return if (labMatch != null) {
+        val method = labMatch.groupValues.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() }
+        val taste = labMatch.groupValues.getOrNull(2)?.trim()?.takeIf { it.isNotBlank() }
+        ParsedPreparation(method, taste, tipoPart)
+    } else ParsedPreparation(null, null, tipoPart)
+}
+
 private fun extractDiaryElaborationMethod(preparationType: String): String? {
-    if (preparationType.isBlank()) return null
-    val match = Regex("""(?:^lab:\s*|^elaboracion:\s*)([^()]+?)(?:\s*\(|$)""", RegexOption.IGNORE_CASE).find(preparationType)
-    return match?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() }
+    return parsePreparationType(preparationType).method
+        ?: (Regex("""(?:^lab:\s*|^elaboracion:\s*)([^()]+?)(?:\s*\(|$)""", RegexOption.IGNORE_CASE).find(preparationType.trim())
+            ?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() })
 }
 
 private fun normalizeDiaryLookupText(value: String): String {
@@ -1781,9 +1610,11 @@ private fun diaryPreparationDrawableName(preparationType: String): String {
     }
 }
 
-private fun diaryElaborationDrawableName(method: String): String {
+private fun diaryElaborationDrawableName(method: String): String? {
     val normalized = normalizeDiaryLookupText(method)
     return when {
+        normalized == "otros" -> "relampago"
+        normalized == "agua" -> "agua"
         normalized.contains("espresso") -> "maq_espresso"
         normalized.contains("v60") || normalized.contains("hario") -> "maq_hario_v60"
         normalized.contains("aero") -> "maq_aeropress"
@@ -1834,6 +1665,7 @@ private fun diaryPreparationIcon(preparationType: String): ImageVector {
 private fun diaryElaborationIcon(method: String): ImageVector {
     val normalized = method.trim().lowercase(Locale.getDefault())
     return when {
+        normalized == "otros" || normalized == "agua" -> Icons.Default.CoffeeMaker
         normalized.contains("espresso") || normalized.contains("moka") -> Icons.Default.CoffeeMaker
         normalized.contains("prensa") -> Icons.Default.LocalCafe
         else -> Icons.Default.Coffee
@@ -2186,36 +2018,6 @@ fun PostOptionsBottomSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReviewOptionsBottomSheet(
-    onDismiss: () -> Unit,
-    onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
-    ) {
-        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
-            ModalMenuOption(
-                title = "Editar",
-                icon = Icons.Default.Edit,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = onEditClick
-            )
-            ModalMenuOption(
-                title = "Borrar",
-                icon = Icons.Default.Delete,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = onDeleteClick
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun SettingsBottomSheet(
     onDismiss: () -> Unit,
     onEditClick: () -> Unit,
@@ -2267,215 +2069,6 @@ fun SettingsBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface,
                 onClick = { onDismiss(); onLogoutClick() }
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditPostBottomSheet(
-    initialText: String,
-    initialImage: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
-) {
-    var text by remember { mutableStateOf(initialText) }
-    var imageUrl by remember { mutableStateOf(initialImage) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let { imageUrl = it.toString() }
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState, 
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(24.dp)
-                .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .navigationBarsPadding()
-        ) {
-            Text(
-                text = "Editar",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(16.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    .clickable { launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = "Imagen seleccionada",
-                    modifier = Modifier.fillMaxWidth(),
-                    contentScale = ContentScale.FillWidth
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Descripción") },
-                shape = RoundedCornerShape(12.dp)
-            )
-            Spacer(Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
-                }
-                Button(
-                    onClick = { onConfirm(text, imageUrl) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text("GUARDAR", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditReviewBottomSheet(
-    initialRating: Float,
-    initialComment: String,
-    initialImage: String?,
-    onDismiss: () -> Unit,
-    onConfirm: (Float, String, String?) -> Unit
-) {
-    var rating by remember { mutableFloatStateOf(initialRating) }
-    var comment by remember { mutableStateOf(initialComment) }
-    var imageUrl by remember { mutableStateOf(initialImage) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let { imageUrl = it.toString() }
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss, 
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
-    ) {
-        Column(
-            Modifier
-                .padding(24.dp)
-                .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .navigationBarsPadding()
-        ) {
-            Text(
-                text = "Editar",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(16.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    .clickable { launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                contentAlignment = Alignment.Center
-            ) {
-                if (imageUrl != null) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = "Imagen de la reseña",
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.FillWidth
-                    )
-                } else {
-                    Icon(Icons.Default.AddAPhoto, contentDescription = "Añadir foto", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                repeat(5) { i ->
-                    Icon(
-                        imageVector = if (rating > i) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = "Valoración ${i + 1} de 5",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .clickable { rating = (i + 1).toFloat() }
-                            .size(32.dp)
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = comment,
-                onValueChange = { comment = it },
-                label = { Text("Tu opinión") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-            Spacer(Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
-                }
-                Button(
-                    onClick = { onConfirm(rating, comment, imageUrl) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text("ACTUALIZAR", fontWeight = FontWeight.Bold)
-                }
-            }
         }
     }
 }

@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-04
+**Última actualización:** 2026-03-12
 
 ---
 
@@ -16,6 +16,8 @@
 7. [Resumen de cambios — accesibilidad, diario, documentación (03–04 mar 2026)](#7-resumen-de-cambios--accesibilidad-diario-documentación-0304-mar-2026)
 8. [Release notes Android desde última publicación (git)](#8-release-notes-android-desde-última-publicación-git)
 9. [Resumen de cambios — historial, detalle café (04 mar 2026)](#9-resumen-de-cambios--historial-detalle-café-04-mar-2026)
+10. [Resumen de cambios — calendario, layout, merge (mar 2026)](#10-resumen-de-cambios--calendario-layout-merge-mar-2026)
+11. [Registro completo: paridad Web/Android y mejoras (mar 2026)](#11-registro-completo-paridad-webandroid-y-mejoras-mar-2026)
 
 ---
 
@@ -267,6 +269,57 @@ Cambios de UI/UX en webapp: página historial (sin scroll innecesario en desktop
 |---------|--------|
 | `webApp/src/styles/features.css` | `.content.content-profile` y `.historial-view` sin `min-height`; `.coffee-detail-topbar-icon` / `.is-active` con bg y borde blancos `!important`; comentarios "favorito" en lugar de "me gusta". |
 | `webApp/src/styles/theme-forced.css` | `html.theme-dark` y `html.theme-light`: mismo bg y borde blancos para los iconos del detalle café; solo color del icono en rojo cuando `.is-active`. |
+
+---
+
+## 10. Resumen de cambios — calendario, layout, merge (mar 2026)
+
+Cambios en webapp: scroll del calendario en desktop, layout móvil al 100 %, resolución de conflictos de merge y actualización del remote de Git.
+
+### 10.1 Calendario del diario — scroll en desktop
+
+- **Problema:** En versión desktop, el calendario (modal al pulsar la fecha en Mi diario) no hacía scroll entre meses.
+- **Causa:** El contenedor del contenido del sheet (`.sheet-card-content`) no era flex; `.diary-calendar-scroll` con `flex: 1` y `min-height: 0` no tenía altura acotada.
+- **Solución:** En `.diary-calendar-sheet .sheet-card-content` se añadió `display: flex`, `flex-direction: column`, `min-height: 0`, `flex: 1`, `overflow: hidden`. Handle y header con `flex-shrink: 0`. Así `.diary-calendar-scroll` queda con altura fija y `overflow-y: auto` hace scroll.
+- **Archivos:** `webApp/src/styles/features.css`.
+
+### 10.2 Layout móvil — altura 100 %
+
+- **Cambio:** En `@media (max-width: 899px)`, `.layout` pasó de `min-height: 100dvh` / `height: 100dvh` (y fallbacks `-webkit-fill-available`) a `min-height: 100%` y `height: 100%`.
+- **Archivos:** `webApp/src/styles/features.css`.
+
+### 10.3 Conflictos de merge en features.css
+
+- **Problema:** El build fallaba con `[postcss] Unknown word ours` en la línea 32: quedaban marcadores de merge (`<<<<<<< ours`, `=======`, `>>>>>>> theirs`).
+- **Solución:** Se eliminaron los marcadores y se dejó una única versión del bloque `.layout` (la que usa 100 % según el punto anterior).
+- **Archivos:** `webApp/src/styles/features.css`.
+
+### 10.4 Remote de Git
+
+- **Cambio:** El repositorio se movió a `https://github.com/rmoya87/cafesito-app.git`. Se actualizó el remote con `git remote set-url origin https://github.com/rmoya87/cafesito-app.git` para que push/pull usen la nueva URL.
+
+---
+
+---
+
+## 11. Registro completo: paridad Web/Android y mejoras (mar 2026)
+
+**Documento de referencia:** [`REGISTRO_CAMBIOS_PARIDAD_Y_MEJORAS_2026-03.md`](REGISTRO_CAMBIOS_PARIDAD_Y_MEJORAS_2026-03.md).
+
+Resumen de lo documentado allí (para futuras modificaciones y mejoras):
+
+| Área | Cambios principales |
+|------|---------------------|
+| **Actividad de perfil** | Homogeneización Web/Android: resolución de nombres de café (`getCoffeeById`/`resolveCoffeeName`), inclusión de perfiles sensoriales en ADN, tiempo relativo (MIN/H/D), cards (opinión, primera vez, lista) con mismo texto y estilo, actividad de seguidos en mi perfil. Combine de 6 flujos en ViewModel con `ProfileCombineState`. |
+| **ADN / radar** | Perfiles sensoriales del usuario en el cálculo; filtrado de muestras con todos los valores en 0; puntos visibles en vértices; fórmulas y escala 0–10 alineadas con web; modo noche. |
+| **Despensa** | Múltiples registros por café (UUID `id` en `pantry_items`); independencia respecto a borrado de diario/listas; stub de café si falta en caché; modal "Crea tu café" sin icono rayo; Android y WebApp por `pantryItemId`. |
+| **Listas** | Iconos list_alt, list_alt_add, list_alt_check; color activo verde eléctrico (#00E676). |
+| **Mi Diario** | Gráfica más alta y margen inferior para no cortar curva; eje X con día actual en negro/blanco; "primera vez" solo con 1 entrada por café. |
+| **Elaboración WebApp** | Café no obligatorio para continuar; resultado opcional al guardar; modo noche; dosis no automática por tamaño. |
+| **Auth / rendimiento** | Manejo de sesión sin refresh token (sin forzar re-login); Timeline refresh en `Dispatchers.IO`. |
+| **Supabase** | `pantry_items.sql` (id UUID), documentos RLS y troubleshooting cafés, nota de independencia pantry. |
+
+En el documento enlazado se detallan archivos tocados, nombres de funciones y referencias a SQL/docs.
 
 ---
 
