@@ -131,7 +131,6 @@ fun AppNavigation(
     LaunchedEffect(shortcutAction) {
         when (shortcutAction) {
             "SEARCH" -> navController.navigate("search")
-            "NEW_POST" -> navController.navigate("timeline")
             "BREWLAB" -> navController.navigate("brewlab")
             "DIARY" -> navController.navigate("diary")
             else -> return@LaunchedEffect
