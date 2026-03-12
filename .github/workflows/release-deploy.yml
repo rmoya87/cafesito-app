@@ -265,6 +265,8 @@ jobs:
           git config --local --unset-all push.pushOption || true
           git add app/build.gradle.kts
           git commit -m "chore(release): bump version [skip ci]"
+          git fetch origin "${TARGET_BRANCH}"
+          git rebase "origin/${TARGET_BRANCH}"
           git push origin "HEAD:${TARGET_BRANCH}"
 
       - name: Build release bundle
@@ -379,6 +381,8 @@ jobs:
           git config --local --unset-all push.pushOption || true
           git add scripts/last_deployed_version.txt
           git commit -m "chore(release): last deployed versionCode ${VERSION_CODE} [skip ci]"
+          git fetch origin "${TARGET_BRANCH}"
+          git rebase "origin/${TARGET_BRANCH}"
           git push origin "HEAD:${TARGET_BRANCH}"
 
   # Deploy web a Ionos: en alpha, beta y Producción solo si web está en los cambios (no cuando android_only)
