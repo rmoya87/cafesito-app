@@ -8711,11 +8711,13 @@ html.theme-dark .diary-day-header.is-today {
 .content.content-profile {
   background: var(--screen-light-background);
 }
+html.theme-dark .main-shell-scroll.is-profile .content,
 html.theme-dark .content.content-profile {
   background: var(--screen-dark-background);
 }
 
 @media (prefers-color-scheme: dark) {
+  .main-shell-scroll.is-profile .content,
   .content.content-profile {
     background: var(--screen-dark-background);
   }
