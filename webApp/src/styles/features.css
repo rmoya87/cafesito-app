@@ -4749,10 +4749,11 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   display: block;
 }
 
-/* Chart.js line chart (diario): usa el alto completo útil de la card */
+/* Chart.js line chart (diario): ocupa todo el espacio disponible debajo de las métricas */
 .diary-chart.diary-chart-chartjs {
-  flex-shrink: 0;
-  min-height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -4762,6 +4763,8 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   width: 100%;
   flex: 1;
   min-height: 140px;
+  display: flex;
+  flex-direction: column;
 }
 
 .diary-chartjs-wrap canvas {
