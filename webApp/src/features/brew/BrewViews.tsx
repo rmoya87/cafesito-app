@@ -118,19 +118,21 @@ export function BrewLabView({
     window.addEventListener("resize", runCheck);
     const refsToObserve = [brewMethodScrollRef, brewTipoScrollRef];
     const observers: ResizeObserver[] = [];
-    refsToObserve.forEach((ref) => {
-      const el = ref.current;
-      if (!el) return;
-      const ro = new ResizeObserver(runCheck);
-      ro.observe(el);
-      observers.push(ro);
-      const firstChild = el.firstElementChild;
-      if (firstChild) {
-        const roChild = new ResizeObserver(runCheck);
-        roChild.observe(firstChild);
-        observers.push(roChild);
-      }
-    });
+    if (typeof ResizeObserver !== "undefined") {
+      refsToObserve.forEach((ref) => {
+        const el = ref.current;
+        if (!el) return;
+        const ro = new ResizeObserver(runCheck);
+        ro.observe(el);
+        observers.push(ro);
+        const firstChild = el.firstElementChild;
+        if (firstChild) {
+          const roChild = new ResizeObserver(runCheck);
+          roChild.observe(firstChild);
+          observers.push(roChild);
+        }
+      });
+    }
     return () => {
       window.removeEventListener("resize", runCheck);
       observers.forEach((ro) => ro.disconnect());

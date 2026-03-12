@@ -408,23 +408,14 @@ export function useAppDerivedData({
     return brewCoffeeCatalog.find((coffee) => coffee.id === brewCoffeeId) ?? null;
   }, [brewCoffeeCatalog, brewCoffeeId]);
 
+  /** Todos los ítems de despensa (registros distintos; el mismo café puede aparecer varias veces). */
   const brewPantryItems = useMemo(() => {
     const coffeeById = new Map<string, CoffeeRow>();
     brewCoffeeCatalog.forEach((coffee) => {
       coffeeById.set(String(coffee.id), coffee);
     });
 
-    const latestByCoffee = new Map<string, PantryItemRow>();
-    pantryItems.forEach((item) => {
-      const coffeeId = String(item.coffee_id);
-      if (!coffeeId) return;
-      const prev = latestByCoffee.get(coffeeId);
-      if (!prev || Number(item.last_updated ?? 0) > Number(prev.last_updated ?? 0)) {
-        latestByCoffee.set(coffeeId, item);
-      }
-    });
-
-    return Array.from(latestByCoffee.values())
+    return pantryItems
       .map((item) => {
         const coffeeId = String(item.coffee_id);
         const coffee = coffeeById.get(coffeeId);

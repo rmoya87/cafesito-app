@@ -160,19 +160,21 @@ export function TimelineView({
     const refs = [elaborationScrollRef, despensaScrollRef, recommendationsScrollRef, suggestionsScrollRef];
     const observers: ResizeObserver[] = [];
 
-    refs.forEach((ref) => {
-      const el = ref.current;
-      if (!el) return;
-      const ro = new ResizeObserver(runCheck);
-      ro.observe(el);
-      observers.push(ro);
-      const firstChild = el.firstElementChild;
-      if (firstChild) {
-        const roChild = new ResizeObserver(runCheck);
-        roChild.observe(firstChild);
-        observers.push(roChild);
-      }
-    });
+    if (typeof ResizeObserver !== "undefined") {
+      refs.forEach((ref) => {
+        const el = ref.current;
+        if (!el) return;
+        const ro = new ResizeObserver(runCheck);
+        ro.observe(el);
+        observers.push(ro);
+        const firstChild = el.firstElementChild;
+        if (firstChild) {
+          const roChild = new ResizeObserver(runCheck);
+          roChild.observe(firstChild);
+          observers.push(roChild);
+        }
+      });
+    }
 
     return () => {
       window.removeEventListener("resize", runCheck);
@@ -324,7 +326,7 @@ export function TimelineView({
         <div className="brew-pantry-row">
           {pantryItems.map((row) => (
             <div
-              key={`${row.coffee.id}-pantry`}
+              key={row.item.id}
               className="brew-pantry-card"
               role="button"
               tabIndex={0}
