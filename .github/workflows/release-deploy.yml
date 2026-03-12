@@ -64,6 +64,8 @@ concurrency:
 
 env:
   TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta' }}
+  # Usar Node.js 24 en acciones JS (checkout, setup-node, etc.) para evitar aviso de deprecación de Node 20
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # En "Run workflow" manual: actualiza la rama elegida con main para que el despliegue incluya todos los cambios de main
@@ -584,4 +586,21 @@ jobs:
             curl -fsS -X POST "${SUPABASE_DEPLOY_QUEUE_URL}" \
               -H "content-type: application/json" \
               -d "${BODY}" > /dev/null
+          fi
+
+      # Opcional: purgar caché CDN/proxy tras desplegar para que los usuarios vean la nueva versión de inmediato.
+      # Configura el secret CACHE_PURGE_URL con la URL de tu API de purge (ej. Cloudflare, KeyCDN, etc.).
+      - name: Purge cache after deploy (optional)
+        env:
+          CACHE_PURGE_URL: ${{ secrets.CACHE_PURGE_URL }}
+        run: |
+          if [[ -z "${CACHE_PURGE_URL}" ]]; then
+            echo "CACHE_PURGE_URL not set. Skipping cache purge."
+            exit 0
+          fi
+          echo "Purging cache..."
+          if curl -fsS -X POST "${CACHE_PURGE_URL}"; then
+            echo "Cache purge requested successfully."
+          else
+            echo "::warning::Cache purge request failed or URL returned non-2xx. Check CACHE_PURGE_URL and CDN docs."
           fi
