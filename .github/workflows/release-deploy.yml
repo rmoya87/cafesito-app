@@ -64,19 +64,15 @@ concurrency:
 
 env:
   TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta' }}
-  # Usar Node.js 24 en acciones JS (checkout, setup-node) para quitar aviso de deprecación Node 20
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   # En "Run workflow" manual: actualiza la rama elegida con main para que el despliegue incluya todos los cambios de main
   sync-main-into-branch:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: refs/heads/${{ env.TARGET_BRANCH }}
@@ -92,8 +88,6 @@ jobs:
   changes:
     if: github.event_name != 'push' || github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     outputs:
       android: ${{ steps.beta_alpha_scope.outputs.android || steps.pathfilter.outputs.android || steps.scope.outputs.android || steps.decide.outputs.android }}
       web: ${{ steps.beta_alpha_scope.outputs.web || steps.pathfilter.outputs.webapp || steps.scope.outputs.web || steps.decide.outputs.web }}
@@ -108,7 +102,7 @@ jobs:
 
       - name: Checkout for file filter (push only)
         if: github.event_name == 'push'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 2
 
@@ -192,11 +186,9 @@ jobs:
       needs.changes.outputs.android == 'true' &&
       (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta'))
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -402,18 +394,16 @@ jobs:
       needs.changes.outputs.web == 'true' &&
       contains(fromJSON('["Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta')
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     defaults:
       run:
         working-directory: webApp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: refs/heads/${{ env.TARGET_BRANCH }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
