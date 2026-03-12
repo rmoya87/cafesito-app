@@ -1,5 +1,5 @@
 import { type Dispatch, type SetStateAction, useCallback } from "react";
-import { createDiaryEntry, upsertPantryStock } from "../../data/supabaseApi";
+import { createDiaryEntry, insertPantryItem } from "../../data/supabaseApi";
 import { estimateCaffeineMg, hasCaffeineFromLabel } from "../../core/brewEngine";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow, UserRow } from "../../types";
 
@@ -136,6 +136,25 @@ export function useDiarySheetActions({
     setShowDiaryWaterSheet(false);
   }, [activeUser, diaryWaterMlDraft, setDiaryEntries, setShowDiaryWaterSheet]);
 
+  /** Registra una entrada de agua en actividad (p. ej. desde elaboración método Agua). No abre/cierra sheet. */
+  const saveWaterWithAmount = useCallback(
+    async (amountMl: number) => {
+      if (!activeUser) return;
+      const amount = Math.max(1, Math.round(amountMl));
+      const created = await createDiaryEntry({
+        userId: activeUser.id,
+        coffeeId: null,
+        coffeeName: "Agua",
+        amountMl: amount,
+        caffeineMg: 0,
+        preparationType: "None",
+        type: "WATER"
+      });
+      setDiaryEntries((prev) => [created, ...prev]);
+    },
+    [activeUser, setDiaryEntries]
+  );
+
   const saveCoffee = useCallback(
     async (payload?: {
       coffeeId: string | null;
@@ -194,22 +213,18 @@ export function useDiarySheetActions({
   const savePantry = useCallback(async () => {
     if (!activeUser || !selectedDiaryPantryCoffee) return;
     const gramsToAdd = Math.max(1, Math.round(Number(diaryPantryGramsDraft || 0)));
-    const existing = pantryItems.find((item) => item.user_id === activeUser.id && item.coffee_id === selectedDiaryPantryCoffee.id);
-    const total = Math.max(gramsToAdd, (existing?.total_grams ?? 0) + gramsToAdd);
-    const remaining = Math.max(gramsToAdd, (existing?.grams_remaining ?? 0) + gramsToAdd);
-    const updated = await upsertPantryStock({
+    const newRow = await insertPantryItem({
       coffeeId: selectedDiaryPantryCoffee.id,
       userId: activeUser.id,
-      totalGrams: total,
-      gramsRemaining: remaining
+      totalGrams: gramsToAdd,
+      gramsRemaining: gramsToAdd
     });
-    setPantryItems((prev) => [updated, ...prev.filter((row) => !(row.user_id === updated.user_id && row.coffee_id === updated.coffee_id))]);
+    setPantryItems((prev) => [newRow, ...prev]);
     setDiaryTab("despensa");
     setShowDiaryAddPantrySheet(false);
   }, [
     activeUser,
     diaryPantryGramsDraft,
-    pantryItems,
     selectedDiaryPantryCoffee,
     setDiaryTab,
     setPantryItems,
@@ -222,6 +237,7 @@ export function useDiarySheetActions({
     openAddPantrySheet,
     setDiaryCoffeeDraftWithCaffeine,
     saveWater,
+    saveWaterWithAmount,
     saveCoffee,
     savePantry
   };

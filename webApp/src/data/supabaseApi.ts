@@ -13,7 +13,8 @@ import type {
   PantryItemRow,
   PostCoffeeTagRow,
   PostRow,
-  UserDataBundle
+  UserDataBundle,
+  UserListRow
 } from "../types";
 import {
   mapCommentRow,
@@ -212,7 +213,7 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
 
   const pantryReq = supabase
     .from("pantry_items")
-    .select("coffee_id,user_id,grams_remaining,total_grams,last_updated")
+    .select("id,coffee_id,user_id,grams_remaining,total_grams,last_updated")
     .eq("user_id", userId)
     .limit(500);
 
@@ -261,6 +262,75 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
       (r: { coffee_id: string; finished_at: number }) => ({ coffee_id: r.coffee_id, finished_at: r.finished_at })
     ) as UserDataBundle["finishedCoffees"]
   });
+}
+
+/** Ítem de lista para feed de actividad (user_list_items con created_at). */
+export type UserListItemActivityRow = {
+  list_id: string;
+  coffee_id: string;
+  created_at: number;
+  list_name?: string;
+  is_public?: boolean;
+};
+
+/** Devuelve ítems de listas del usuario con nombre y visibilidad (solo listas públicas en actividad de terceros). */
+export async function fetchAllListItemsForActivity(userId: number): Promise<UserListItemActivityRow[]> {
+  const supabase = getSupabaseClient();
+  const { data: listsData, error: listsError } = await supabase
+    .from("user_lists")
+    .select("id,name,is_public")
+    .eq("user_id", userId);
+  if (listsError || !listsData?.length) return [];
+  const lists = listsData as { id: string; name: string; is_public: boolean }[];
+  const listIds = lists.map((r) => r.id);
+  const listMap = new Map(lists.map((l) => [l.id, { name: l.name, is_public: l.is_public }]));
+  const { data, error } = await supabase
+    .from("user_list_items")
+    .select("list_id,coffee_id,created_at")
+    .in("list_id", listIds)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  const rows = (data ?? []) as { list_id: string; coffee_id: string; created_at: string }[];
+  return rows.map((r) => {
+    const meta = listMap.get(r.list_id);
+    return {
+      list_id: r.list_id,
+      coffee_id: r.coffee_id,
+      created_at: typeof r.created_at === "number" ? r.created_at : new Date(r.created_at).getTime(),
+      list_name: meta?.name,
+      is_public: meta?.is_public
+    };
+  });
+}
+
+/** Diario, favoritos e ítems de listas de un usuario (perfil visitado) para la pestaña Actividad. */
+export async function fetchProfileUserActivityData(userId: number): Promise<{
+  diaryEntries: DiaryEntryRow[];
+  favorites: FavoriteRow[];
+  listItems: UserListItemActivityRow[];
+}> {
+  const supabase = getSupabaseClient();
+  const diaryReq = supabase
+    .from("diary_entries")
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type")
+    .eq("user_id", userId)
+    .order("timestamp", { ascending: false })
+    .limit(200);
+
+  const favoritesReq = supabase
+    .from("local_favorites")
+    .select("coffee_id,user_id,saved_at")
+    .eq("user_id", userId)
+    .limit(500);
+
+  const [diaryRes, favoritesRes] = await Promise.all([diaryReq, favoritesReq]);
+  if (diaryRes.error || favoritesRes.error) {
+    return { diaryEntries: [], favorites: [], listItems: [] };
+  }
+  const diaryEntries = (diaryRes.data ?? []) as DiaryEntryRow[];
+  const favorites = (favoritesRes.data ?? []) as FavoriteRow[];
+  const listItems = await fetchAllListItemsForActivity(userId);
+  return { diaryEntries, favorites, listItems };
 }
 
 export async function toggleLike(postId: string, userId: number, alreadyLiked: boolean): Promise<LikeRow | null> {
@@ -504,6 +574,128 @@ export async function toggleFavoriteCoffee(
   return payload;
 }
 
+/** Obtiene las listas personalizadas del usuario (user_lists). */
+export async function fetchUserLists(userId: number): Promise<UserListRow[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("user_lists")
+    .select("id,user_id,name,is_public,created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  throwIfError(error);
+  return ((data ?? []) as UserListRow[]).map((row) => ({
+    id: String(row.id),
+    user_id: Number(row.user_id),
+    name: String(row.name ?? ""),
+    is_public: Boolean(row.is_public),
+    created_at: row.created_at
+  }));
+}
+
+/** Crea una lista personalizada y devuelve la fila insertada. */
+export async function createUserList(userId: number, name: string, isPublic: boolean): Promise<UserListRow> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("user_lists")
+    .insert({
+      user_id: userId,
+      name: name.trim(),
+      is_public: isPublic
+    })
+    .select("id,user_id,name,is_public,created_at")
+    .single();
+  throwIfError(error);
+  const row = data as { id: string; user_id: number; name: string; is_public: boolean; created_at?: string };
+  return {
+    id: String(row.id),
+    user_id: Number(row.user_id),
+    name: String(row.name ?? ""),
+    is_public: Boolean(row.is_public),
+    created_at: row.created_at
+  };
+}
+
+/** Ítems de una lista (cafés en user_list_items). */
+export type UserListItemRow = { coffee_id: string };
+
+/** Devuelve los coffee_id que están en al menos una lista del usuario (para mostrar icono activo). */
+export async function fetchCoffeeIdsInUserLists(userId: number): Promise<string[]> {
+  const supabase = getSupabaseClient();
+  const { data: lists } = await supabase.from("user_lists").select("id").eq("user_id", userId);
+  const listIds = ((lists ?? []) as { id: string }[]).map((r) => r.id);
+  if (listIds.length === 0) return [];
+  const { data: items, error } = await supabase
+    .from("user_list_items")
+    .select("coffee_id")
+    .in("list_id", listIds);
+  throwIfError(error);
+  const ids = new Set<string>();
+  ((items ?? []) as UserListItemRow[]).forEach((r) => ids.add(String(r.coffee_id)));
+  return Array.from(ids);
+}
+
+/** Obtiene los coffee_id de una lista personalizada. */
+export async function fetchUserListItems(listId: string): Promise<UserListItemRow[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("user_list_items")
+    .select("coffee_id")
+    .eq("list_id", listId)
+    .order("created_at", { ascending: true });
+  throwIfError(error);
+  return ((data ?? []) as UserListItemRow[]).map((row) => ({ coffee_id: String(row.coffee_id) }));
+}
+
+/** Añade un café a una lista personalizada (idempotente: si ya está, no falla). */
+export async function addUserListItem(listId: string, coffeeId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("user_list_items")
+    .upsert(
+      { list_id: listId, coffee_id: coffeeId },
+      { onConflict: "list_id,coffee_id", ignoreDuplicates: true }
+    );
+  throwIfError(error);
+}
+
+/** Quita un café de una lista personalizada. */
+export async function removeUserListItem(listId: string, coffeeId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("user_list_items")
+    .delete()
+    .eq("list_id", listId)
+    .eq("coffee_id", coffeeId);
+  throwIfError(error);
+}
+
+/** Actualiza nombre y/o visibilidad de una lista personalizada. */
+export async function updateUserList(listId: string, name: string, isPublic: boolean): Promise<UserListRow> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("user_lists")
+    .update({ name: name.trim(), is_public: isPublic })
+    .eq("id", listId)
+    .select("id,user_id,name,is_public,created_at")
+    .single();
+  throwIfError(error);
+  const row = data as { id: string; user_id: number; name: string; is_public: boolean; created_at?: string };
+  return {
+    id: String(row.id),
+    user_id: Number(row.user_id),
+    name: String(row.name ?? ""),
+    is_public: Boolean(row.is_public),
+    created_at: row.created_at
+  };
+}
+
+/** Elimina una lista personalizada (user_list_items en cascada). No modifica pantry_items: los cafés en despensa no se borran. */
+export async function deleteUserList(listId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from("user_lists").delete().eq("id", listId);
+  throwIfError(error);
+}
+
 export async function upsertCoffeeReview(payload: {
   coffeeId: string;
   userId: number;
@@ -564,32 +756,55 @@ export async function upsertCoffeeSensoryProfile(payload: {
   return mapSensoryProfileRow(data);
 }
 
-export async function upsertPantryStock(payload: {
+/** Inserta un nuevo registro en la despensa (el mismo café puede añadirse varias veces). */
+export async function insertPantryItem(payload: {
   coffeeId: string;
   userId: number;
-  gramsRemaining: number;
   totalGrams: number;
+  gramsRemaining?: number;
 }): Promise<PantryItemRow> {
   const supabase = getSupabaseClient();
+  const now = Date.now();
   const row = {
     coffee_id: payload.coffeeId,
     user_id: payload.userId,
-    grams_remaining: payload.gramsRemaining,
     total_grams: payload.totalGrams,
-    last_updated: Date.now()
+    grams_remaining: payload.gramsRemaining ?? payload.totalGrams,
+    last_updated: now
   };
   const { data, error } = await supabase
     .from("pantry_items")
-    .upsert(row, { onConflict: "coffee_id,user_id" })
-    .select("coffee_id,user_id,grams_remaining,total_grams,last_updated")
+    .insert(row)
+    .select("id,coffee_id,user_id,grams_remaining,total_grams,last_updated")
     .single();
   throwIfError(error);
   return mapPantryItemRow(data);
 }
 
-export async function deletePantryItem(coffeeId: string, userId: number): Promise<void> {
+/** Actualiza un registro de despensa por id. */
+export async function updatePantryItem(
+  id: string,
+  payload: { totalGrams: number; gramsRemaining: number }
+): Promise<PantryItemRow> {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.from("pantry_items").delete().eq("coffee_id", coffeeId).eq("user_id", userId);
+  const { data, error } = await supabase
+    .from("pantry_items")
+    .update({
+      total_grams: payload.totalGrams,
+      grams_remaining: payload.gramsRemaining,
+      last_updated: Date.now()
+    })
+    .eq("id", id)
+    .select("id,coffee_id,user_id,grams_remaining,total_grams,last_updated")
+    .single();
+  throwIfError(error);
+  return mapPantryItemRow(data);
+}
+
+/** Elimina un registro de despensa por id. */
+export async function deletePantryItemById(id: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from("pantry_items").delete().eq("id", id);
   throwIfError(error);
 }
 
@@ -683,6 +898,7 @@ export async function createDiaryEntry(payload: {
   return mapDiaryEntryRow(data);
 }
 
+/** Elimina solo la entrada del diario (actividad). No modifica pantry_items: el café en despensa no se borra. */
 export async function deleteDiaryEntry(entryId: number, userId: number): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase.from("diary_entries").delete().eq("id", entryId).eq("user_id", userId);

@@ -31,6 +31,8 @@ export function SearchView({
   onClearCoffeeFilters,
   coffees,
   users,
+  followerCounts,
+  followingCounts,
   followingIds,
   selectedCoffee,
   onSelectCoffee,
@@ -64,6 +66,8 @@ export function SearchView({
   onClearCoffeeFilters: () => void;
   coffees: CoffeeRow[];
   users: UserRow[];
+  followerCounts: Map<number, number>;
+  followingCounts: Map<number, number>;
   followingIds: Set<number>;
   selectedCoffee: CoffeeRow | null;
   onSelectCoffee: (coffeeId: string) => void;
@@ -158,7 +162,9 @@ export function SearchView({
         )}
         <div className="search-users-copy">
           <p className="search-users-username">{user.username}</p>
-          <p className="search-users-fullname">{user.full_name}</p>
+          <p className="search-users-fullname">
+            {followerCounts.get(user.id) ?? 0} seguidores · {followingCounts.get(user.id) ?? 0} siguiendo
+          </p>
         </div>
       </Button>
       <Button

@@ -7,15 +7,6 @@ type GalleryItem = {
 };
 
 export function useTimelineSheetActions(params: {
-  commentImagePreviewUrl: string;
-  setCommentSheetPostId: (value: string | null) => void;
-  setCommentDraft: (value: string) => void;
-  setCommentMenuId: (value: number | null) => void;
-  setHighlightedCommentId: (value: number | null) => void;
-  setCommentImageFile: (value: File | null) => void;
-  setCommentImageName: (value: string) => void;
-  setCommentImagePreviewError: (value: boolean) => void;
-  setCommentImagePreviewUrl: (value: string) => void;
   newPostSelectedImageId: string | null;
   newPostGalleryItems: GalleryItem[];
   setNewPostSelectedImageId: (value: string | null) => void;
@@ -24,15 +15,6 @@ export function useTimelineSheetActions(params: {
   setNewPostGalleryItems: (updater: (prev: GalleryItem[]) => GalleryItem[]) => void;
 }) {
   const {
-    commentImagePreviewUrl,
-    setCommentSheetPostId,
-    setCommentDraft,
-    setCommentMenuId,
-    setHighlightedCommentId,
-    setCommentImageFile,
-    setCommentImageName,
-    setCommentImagePreviewError,
-    setCommentImagePreviewUrl,
     newPostSelectedImageId,
     newPostGalleryItems,
     setNewPostSelectedImageId,
@@ -40,48 +22,6 @@ export function useTimelineSheetActions(params: {
     setNewPostImagePreviewUrl,
     setNewPostGalleryItems
   } = params;
-
-  const closeCommentSheet = useCallback(() => {
-    setCommentSheetPostId(null);
-    setCommentDraft("");
-    setCommentMenuId(null);
-    setHighlightedCommentId(null);
-    if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
-    setCommentImageFile(null);
-    setCommentImageName("");
-    setCommentImagePreviewError(false);
-    setCommentImagePreviewUrl("");
-  }, [
-    commentImagePreviewUrl,
-    setCommentDraft,
-    setCommentImageFile,
-    setCommentImageName,
-    setCommentImagePreviewError,
-    setCommentImagePreviewUrl,
-    setCommentMenuId,
-    setCommentSheetPostId,
-    setHighlightedCommentId
-  ]);
-
-  const pickCommentImage = useCallback(
-    (file: File) => {
-      if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
-      const preview = URL.createObjectURL(file);
-      setCommentImageFile(file);
-      setCommentImageName(file.name);
-      setCommentImagePreviewError(false);
-      setCommentImagePreviewUrl(preview);
-    },
-    [commentImagePreviewUrl, setCommentImageFile, setCommentImageName, setCommentImagePreviewError, setCommentImagePreviewUrl]
-  );
-
-  const removeCommentImage = useCallback(() => {
-    if (commentImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(commentImagePreviewUrl);
-    setCommentImageFile(null);
-    setCommentImageName("");
-    setCommentImagePreviewError(false);
-    setCommentImagePreviewUrl("");
-  }, [commentImagePreviewUrl, setCommentImageFile, setCommentImageName, setCommentImagePreviewError, setCommentImagePreviewUrl]);
 
   const selectCreatePostGalleryItem = useCallback(
     (itemId: string) => {
@@ -109,9 +49,6 @@ export function useTimelineSheetActions(params: {
   }, [newPostSelectedImageId, setNewPostGalleryItems, setNewPostImageFile, setNewPostImagePreviewUrl, setNewPostSelectedImageId]);
 
   return {
-    closeCommentSheet,
-    pickCommentImage,
-    removeCommentImage,
     selectCreatePostGalleryItem,
     removeSelectedCreatePostImage
   };

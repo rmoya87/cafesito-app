@@ -9,10 +9,10 @@ export type IconName =
   | "person"
   | "nav-home-outline"
   | "nav-home-filled"
-  | "nav-explore-outline"
-  | "nav-explore-filled"
-  | "nav-science-outline"
-  | "nav-science-filled"
+  | "nav-search-outline"
+  | "nav-search-filled"
+  | "nav-add-circle-outline"
+  | "nav-add-circle-filled"
   | "nav-book-outline"
   | "nav-book-filled"
   | "nav-person-outline"
@@ -23,6 +23,9 @@ export type IconName =
   | "close"
   | "favorite"
   | "favorite-filled"
+  | "list-alt"
+  | "list-alt-add"
+  | "list-alt-check"
   | "star"
   | "star-filled"
   | "stock"
@@ -94,6 +97,8 @@ export function MaterialSymbolIcon({
   | "auto_awesome"
   | "science"
   | "explore"
+  | "search"
+  | "add_circle"
   | "globe"
   | "verified"
   | "auto_awesome_mosaic"
@@ -148,17 +153,17 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
       </svg>
     );
   }
-  if (name === "nav-explore-outline") {
-    return <MaterialSymbolIcon symbol="explore" filled={false} className={className} />;
+  if (name === "nav-search-outline") {
+    return <MaterialSymbolIcon symbol="search" filled={false} className={className} />;
   }
-  if (name === "nav-explore-filled") {
-    return <MaterialSymbolIcon symbol="explore" filled={true} className={className} />;
+  if (name === "nav-search-filled") {
+    return <MaterialSymbolIcon symbol="search" filled={true} className={className} />;
   }
-  if (name === "nav-science-outline") {
-    return <MaterialSymbolIcon symbol="science" filled={false} className={className} />;
+  if (name === "nav-add-circle-outline") {
+    return <MaterialSymbolIcon symbol="add_circle" filled={false} className={className} />;
   }
-  if (name === "nav-science-filled") {
-    return <MaterialSymbolIcon symbol="science" filled={true} className={className} />;
+  if (name === "nav-add-circle-filled") {
+    return <MaterialSymbolIcon symbol="add_circle" filled={true} className={className} />;
   }
   if (name === "nav-book-outline") {
     return <MaterialSymbolIcon symbol="book" filled={false} className={className} />;
@@ -269,6 +274,36 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
       </svg>
     );
   }
+  if (name === "list-alt") {
+    return (
+      <svg viewBox="0 -960 960 960" className={className} aria-hidden="true" style={{ width: 24, height: 24 }}>
+        <path
+          d="M348.5-291.5Q360-303 360-320t-11.5-28.5Q337-360 320-360t-28.5 11.5Q280-337 280-320t11.5 28.5Q303-280 320-280t28.5-11.5Zm0-160Q360-463 360-480t-11.5-28.5Q337-520 320-520t-28.5 11.5Q280-497 280-480t11.5 28.5Q303-440 320-440t28.5-11.5Zm0-160Q360-623 360-640t-11.5-28.5Q337-680 320-680t-28.5 11.5Q280-657 280-640t11.5 28.5Q303-600 320-600t28.5-11.5ZM440-280h240v-80H440v80Zm0-160h240v-80H440v80Zm0-160h240v-80H440v80ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+  if (name === "list-alt-add") {
+    return (
+      <svg viewBox="0 -960 960 960" className={className} aria-hidden="true" style={{ width: 24, height: 24 }}>
+        <path
+          d="M680-40v-120H560v-80h120v-120h80v120h120v80H760v120h-80ZM200-200v-560 560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v353q-18-11-38-18t-42-11v-324H200v560h280q0 21 3 41t10 39H200Zm148.5-171.5Q360-303 360-320t-11.5-28.5Q337-360 320-360t-28.5 11.5Q280-337 280-320t11.5 28.5Q303-280 320-280t28.5-11.5Zm0-160Q360-463 360-480t-11.5-28.5Q337-520 320-520t-28.5 11.5Q280-497 280-480t11.5 28.5Q303-440 320-440t28.5-11.5Zm0-160Q360-623 360-640t-11.5-28.5Q337-680 320-680t-28.5 11.5Q280-657 280-640t11.5 28.5Q303-600 320-600t28.5-11.5ZM440-440h240v-80H440v80Zm0-160h240v-80H440v80Zm0 320h54q8-23 20-43t28-37H440v80Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+  if (name === "list-alt-check") {
+    return (
+      <svg viewBox="0 -960 960 960" className={className} aria-hidden="true" style={{ width: 24, height: 24 }}>
+        <path
+          d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v308L694-306l-85-85-170 169 102 102H200Zm240-320h240v-80H440v80Zm0-160h240v-80H440v80ZM694-80 552-222l57-56 85 85 170-170 56 57L694-80ZM348.5-451.5Q360-463 360-480t-11.5-28.5Q337-520 320-520t-28.5 11.5Q280-497 280-480t11.5 28.5Q303-440 320-440t28.5-11.5Zm0-160Q360-623 360-640t-11.5-28.5Q337-680 320-680t-28.5 11.5Q280-657 280-640t11.5 28.5Q303-600 320-600t28.5-11.5Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
   if (name === "star") {
     return (
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
@@ -349,7 +384,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     return <MaterialSymbolIcon symbol="water_drop" filled={true} className={className} />;
   }
   if (name === "water") {
-    return <MaterialSymbolIcon symbol="water_drop" filled={true} className={className} />;
+    return <img src="/brew-methods/agua.png" alt="" className={className} aria-hidden="true" />;
   }
   if (name === "bottle") {
     return (
@@ -462,11 +497,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     return <MaterialSymbolIcon symbol="auto_awesome" filled={true} className={className} />;
   }
   if (name === "bolt") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="currentColor">
-        <path d="M14 2L10 11h3l-2 10 8-10h-3l2-10z" />
-      </svg>
-    );
+    return <img src="/brew-methods/relampago.png" alt="" className={className} aria-hidden="true" />;
   }
   if (name === "check-circle-filled") {
     return (

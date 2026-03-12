@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { type DiaryPeriod } from "../../core/diaryAnalytics";
 import type { BrewStep, TabId } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Chip, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -24,19 +25,24 @@ export function TopBar({
   onTimelineSearchUsers,
   onTimelineNotifications,
   diaryPeriod,
+  diaryDateLabel,
   diarySelectedDate,
+  diarySelectedMonth,
   diaryTodayStr,
-  onDiaryPrevDay,
-  onDiaryNextDay,
-  onDiaryOpenCalendarSheet,
-  onDiaryOpenQuickActions,
+  currentMonthKey,
+  onDiaryPrev,
+  onDiaryNext,
   onDiaryOpenPeriodSelector,
+  canDiaryGoNext = false,
   scrolled,
   hidden = false,
   brewStep,
   brewStepTitle,
   onBrewBack,
   onBrewForward,
+  brewCanGoToConfig,
+  brewTimerEnabled = false,
+  onBrewGoToConfig,
   onBrewResultSave,
   brewResultCanSave,
   brewResultSaving,
@@ -52,12 +58,14 @@ export function TopBar({
   onProfileOpenEdit,
   onHistorialClick,
   profileSubPanel,
+  profileListName,
+  onOpenListOptionsSheet,
   onHistorialBack,
   onCoffeeBack,
   coffeeTopbarFavoriteActive,
   coffeeTopbarStockActive,
   onCoffeeTopbarToggleFavorite,
-  onCoffeeTopbarOpenStock
+  onCoffeeTopbarOpenStock,
 }: {
   activeTab: TabId;
   searchQuery: string;
@@ -77,20 +85,26 @@ export function TopBar({
   showNotificationsBadge: boolean;
   onTimelineSearchUsers: () => void;
   onTimelineNotifications: () => void;
-  diaryPeriod: "hoy" | "7d" | "30d";
+  diaryPeriod: DiaryPeriod;
+  diaryDateLabel: string;
   diarySelectedDate: string;
+  diarySelectedMonth: string;
   diaryTodayStr: string;
-  onDiaryPrevDay: () => void;
-  onDiaryNextDay: () => void;
-  onDiaryOpenCalendarSheet: () => void;
-  onDiaryOpenQuickActions: () => void;
+  currentMonthKey: string;
+  onDiaryPrev: () => void;
+  onDiaryNext: () => void;
   onDiaryOpenPeriodSelector: () => void;
+  /** Si false, no se muestra flecha siguiente (semana/mes). */
+  canDiaryGoNext?: boolean;
   scrolled: boolean;
   hidden?: boolean;
   brewStep: BrewStep;
   brewStepTitle: string;
   onBrewBack: () => void;
   onBrewForward: () => void;
+  brewCanGoToConfig?: boolean;
+  brewTimerEnabled?: boolean;
+  onBrewGoToConfig?: () => void;
   onBrewResultSave: () => void;
   brewResultCanSave: boolean;
   brewResultSaving: boolean;
@@ -105,7 +119,10 @@ export function TopBar({
   profileMenuEnabled: boolean;
   onProfileOpenEdit: () => void;
   onHistorialClick?: () => void;
-  profileSubPanel?: "historial" | null;
+  profileSubPanel?: "historial" | "followers" | "following" | "favorites" | "list" | null;
+  profileListName?: string;
+  /** Al pulsar el menú de 3 puntos en la vista de detalle de una lista (solo cuando profileSubPanel === "list"). */
+  onOpenListOptionsSheet?: () => void;
   onHistorialBack?: () => void;
   onCoffeeBack: () => void;
   coffeeTopbarFavoriteActive: boolean;
@@ -130,7 +147,7 @@ export function TopBar({
   }, [activeTab]);
 
   useEffect(() => {
-    if (!showNotificationsBadge || activeTab !== "timeline") return;
+    if (!showNotificationsBadge || activeTab !== "home") return;
     setNotificationPop(true);
     const id = window.setTimeout(() => setNotificationPop(false), 340);
     return () => window.clearTimeout(id);
@@ -243,7 +260,7 @@ export function TopBar({
   if (activeTab === "brewlab") {
     if (brewCreateCoffeeOpen) {
       return (
-        <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
+        <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
           <div className="topbar-slot">
             <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Atrás">
               <UiIcon name="arrow-left" className="ui-icon" />
@@ -266,7 +283,7 @@ export function TopBar({
       );
     }
     return (
-      <header className={`topbar topbar-timeline topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
+      <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
         <div className="topbar-slot">
           {brewStep !== "method" ? (
             <IconButton tone="topbar" onClick={onBrewBack} aria-label="Atrás">
@@ -276,10 +293,18 @@ export function TopBar({
         </div>
         <h1 className="title title-upper topbar-title-center">{brewStepTitle}</h1>
         <div className="topbar-slot topbar-slot-end">
-          {brewStep === "config" ? (
-            <IconButton tone="topbar" onClick={onBrewForward} aria-label="Empezar">
-                <UiIcon name="arrow-right" className="ui-icon" />
-              </IconButton>
+          {brewStep === "method" ? (
+            <IconButton
+              tone="topbar"
+              onClick={() => {
+                if (brewCanGoToConfig && onBrewGoToConfig) onBrewGoToConfig();
+              }}
+              aria-label={brewTimerEnabled ? "Ir a proceso en curso" : "Ir a resultado"}
+              disabled={!brewCanGoToConfig}
+              className={!brewCanGoToConfig ? "topbar-brew-next-inactive" : undefined}
+            >
+              <UiIcon name="arrow-right" className="ui-icon" />
+            </IconButton>
           ) : brewResultShowGuardar ? (
             <button
               type="button"
@@ -296,74 +321,65 @@ export function TopBar({
   }
 
   if (activeTab === "diary") {
-    const isToday = diarySelectedDate === diaryTodayStr;
-    const dateLabel =
-      diaryPeriod === "hoy"
-        ? isToday
-          ? "Hoy"
-          : (() => {
-              const [y, m, d] = diarySelectedDate.split("-").map(Number);
-              const d2 = String(d ?? 0).padStart(2, "0");
-              const m2 = String((m ?? 1)).padStart(2, "0");
-              return `${d2}/${m2}`;
-            })()
-        : diaryPeriod === "7d"
-          ? "SEMANA"
-          : "MES";
-    const handleDateOrPeriodClick = diaryPeriod === "hoy" ? onDiaryOpenCalendarSheet : onDiaryOpenPeriodSelector;
+    const canNext = canDiaryGoNext === true;
+    const arrowLabelPrev = diaryPeriod === "30d" ? "Mes anterior" : "Anterior";
+    const arrowLabelNext = diaryPeriod === "30d" ? "Mes siguiente" : "Siguiente";
     return (
-      <header className={`topbar topbar-centered topbar-timeline topbar-diary ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
+      <header className={`topbar topbar-centered topbar-home topbar-diary ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
         <div className="topbar-slot diary-topbar-date-slot">
-          {diaryPeriod === "hoy" ? (
-            <div className="diary-period-chip diary-period-chip-with-arrows" role="group" aria-label="Navegación por día">
-              <button type="button" className="diary-chip-arrow" onClick={(e) => { e.stopPropagation(); onDiaryPrevDay(); }} aria-label="Día anterior">
-                <UiIcon name="arrow-left" className="ui-icon" />
+          <div className="diary-period-chip diary-period-chip-with-arrows" role="group" aria-label="Seleccionar periodo">
+            <button type="button" className="diary-chip-arrow" onClick={(e) => { e.stopPropagation(); onDiaryPrev(); }} aria-label={arrowLabelPrev}>
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </button>
+            <button type="button" className="diary-chip-date" onClick={(e) => { e.stopPropagation(); onDiaryOpenPeriodSelector(); }} aria-label="Seleccionar periodo">
+              {diaryDateLabel}
+            </button>
+            {canNext ? (
+              <button type="button" className="diary-chip-arrow" onClick={(e) => { e.stopPropagation(); onDiaryNext(); }} aria-label={arrowLabelNext}>
+                <UiIcon name="arrow-right" className="ui-icon" />
               </button>
-              <button type="button" className="diary-chip-date" onClick={(e) => { e.stopPropagation(); handleDateOrPeriodClick(); }} aria-label="Seleccionar fecha">
-                {dateLabel}
-              </button>
-              {isToday ? (
-                <span className="diary-chip-arrow diary-chip-arrow-placeholder" aria-hidden="true" />
-              ) : (
-                <button type="button" className="diary-chip-arrow" onClick={(e) => { e.stopPropagation(); onDiaryNextDay(); }} aria-label="Día siguiente">
-                  <UiIcon name="arrow-right" className="ui-icon" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <Button variant="chip" className="diary-period-chip" onClick={handleDateOrPeriodClick} aria-label="Seleccionar periodo">
-              {dateLabel}
-            </Button>
-          )}
+            ) : (
+              <span className="diary-chip-arrow diary-chip-arrow-placeholder" aria-hidden="true" />
+            )}
+          </div>
         </div>
         <h1 className="title title-upper topbar-title-center">MI DIARIO</h1>
-        <div className="topbar-slot topbar-slot-end">
-          <IconButton tone="topbar" className="diary-topbar-add" aria-label="Agregar" onClick={onDiaryOpenQuickActions}>
-            <UiIcon name="add" className="ui-icon" />
-          </IconButton>
-        </div>
+        <div className="topbar-slot topbar-slot-end diary-topbar-end-spacer" aria-hidden="true" />
       </header>
     );
   }
 
   if (activeTab === "profile") {
-    if (profileSubPanel === "historial") {
+    if (profileSubPanel === "historial" || profileSubPanel === "followers" || profileSubPanel === "following" || profileSubPanel === "favorites" || profileSubPanel === "list") {
+      const sectionTitle = profileSubPanel === "historial" ? "HISTORIAL" : profileSubPanel === "followers" ? "SEGUIDORES" : profileSubPanel === "following" ? "SIGUIENDO" : profileSubPanel === "favorites" ? "FAVORITOS" : (profileListName ?? "Lista").toUpperCase();
       return (
-        <header className={`topbar topbar-centered topbar-timeline topbar-historial ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`} dir="ltr">
+        <header className={`topbar topbar-centered topbar-home topbar-historial ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`} dir="ltr">
           <div className="topbar-slot topbar-slot-back">
             <IconButton tone="topbar" aria-label="Volver" onClick={onHistorialBack}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           </div>
-          <h1 className="title title-upper topbar-title-center">HISTORIAL</h1>
-          <div className="topbar-slot topbar-slot-end" />
+          <h1 className="title title-upper topbar-title-center">{sectionTitle}</h1>
+          <div className="topbar-slot topbar-slot-end">
+            {profileSubPanel === "list" && onOpenListOptionsSheet ? (
+              <IconButton tone="topbar" className="topbar-list-options-btn" aria-label="Opciones de lista" onClick={onOpenListOptionsSheet}>
+                <UiIcon name="more" className="ui-icon" />
+              </IconButton>
+            ) : null}
+          </div>
         </header>
       );
     }
     return (
       <>
-        <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
-          <div className="topbar-slot" />
+        <header className={`topbar topbar-centered topbar-home topbar-profile ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
+          <div className="topbar-slot">
+            {profileMenuEnabled ? (
+              <IconButton tone="topbar" aria-label="Buscar usuarios" onClick={onTimelineSearchUsers}>
+                <UiIcon name="search" className="ui-icon" />
+              </IconButton>
+            ) : null}
+          </div>
           <h1 className="title title-upper topbar-title-center">PERFIL</h1>
           <div className="topbar-slot topbar-slot-end">
             {profileMenuEnabled ? (
@@ -488,7 +504,7 @@ export function TopBar({
 
   if (activeTab === "coffee") {
     return (
-      <header className={`topbar topbar-timeline topbar-centered topbar-coffee ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
+      <header className={`topbar topbar-home topbar-centered topbar-coffee ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
         <div className="topbar-slot">
           <IconButton tone="topbar" onClick={onCoffeeBack} aria-label="Volver">
             <UiIcon name="arrow-left" className="ui-icon" />
@@ -496,8 +512,8 @@ export function TopBar({
         </div>
         <h1 className="title title-upper topbar-title-center">CAFE</h1>
         <div className="topbar-slot topbar-slot-end">
-          <IconButton tone="topbar" className={`coffee-topbar-favorite ${coffeeTopbarFavoriteActive ? "is-active" : ""}`.trim()} aria-label={coffeeTopbarFavoriteActive ? "Quitar de favoritos" : "Guardar en favoritos"} onClick={onCoffeeTopbarToggleFavorite}>
-            <UiIcon name={coffeeTopbarFavoriteActive ? "favorite-filled" : "favorite"} className="ui-icon" />
+          <IconButton tone="topbar" className={`coffee-topbar-favorite ${coffeeTopbarFavoriteActive ? "is-active" : ""}`.trim()} aria-label={coffeeTopbarFavoriteActive ? "Quitar de listas" : "Añadir a listas"} onClick={onCoffeeTopbarToggleFavorite}>
+            <UiIcon name={coffeeTopbarFavoriteActive ? "list-alt-check" : "list-alt-add"} className="ui-icon" />
           </IconButton>
           <IconButton tone="topbar" className={coffeeTopbarStockActive ? "is-active" : ""} aria-label="Añadir a stock" onClick={onCoffeeTopbarOpenStock}>
             <UiIcon name="stock" className="ui-icon" />
@@ -508,12 +524,8 @@ export function TopBar({
   }
 
   return (
-    <header className={`topbar topbar-centered topbar-timeline ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
-      <div className="topbar-slot">
-        <IconButton tone="topbar" aria-label="Buscar Usuarios" onClick={onTimelineSearchUsers}>
-          <UiIcon name="search" className="ui-icon" />
-        </IconButton>
-      </div>
+    <header className={`topbar topbar-centered topbar-home topbar-home-inicio ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
+      <div className="topbar-slot" />
       <h1 className="title title-upper topbar-title-center topbar-brand-title">CAFESITO</h1>
       <div className="topbar-slot topbar-slot-end">
         <IconButton tone="topbar" className={notificationPop ? "notification-pop" : ""} aria-label="Notificaciones" onClick={onTimelineNotifications}>

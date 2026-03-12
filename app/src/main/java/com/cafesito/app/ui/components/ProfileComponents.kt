@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
@@ -66,11 +67,11 @@ import coil.compose.AsyncImage
 import com.cafesito.app.R
 import com.cafesito.app.data.Coffee
 import com.cafesito.app.data.CoffeeWithDetails
-import com.cafesito.app.data.CommentWithAuthor
 import com.cafesito.app.data.DiaryEntryEntity
 import com.cafesito.app.data.PantryItemWithDetails
-import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.UserEntity
+import com.cafesito.app.data.ProfileActivityItem
+import com.cafesito.app.data.UserListRow
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.brewlab.BrewLabViewModel
 import com.cafesito.app.ui.brewlab.BrewMethod
@@ -90,38 +91,20 @@ import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-// --- PROFILE COMPONENTS ---
-
-@Composable
-fun ProfilePosts(
-    posts: List<PostWithDetails>,
-    isCurrentUser: Boolean,
-    activeUser: UserEntity?,
-    viewModel: ProfileViewModel,
-    onUserClick: (Int) -> Unit,
-    listState: LazyListState = rememberLazyListState(),
-    onCommentClick: (String) -> Unit,
-    onEditClick: (PostWithDetails) -> Unit,
-    onDeleteClick: (PostWithDetails) -> Unit
-) {
-    LazyColumn(state = listState, contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
-        items(posts) { item ->
-            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                PostCard(
-                    details = item,
-                    onUserClick = { item.author?.id?.let { onUserClick(it) } },
-                    onCommentClick = { onCommentClick(item.post.id) },
-                    onLikeClick = { viewModel.onToggleLike(item.post.id) },
-                    isLiked = activeUser?.let { me -> item.likes.any { it.userId == me.id } } ?: false,
-                    showHeader = false,
-                    isOwnPost = isCurrentUser,
-                    onEditClick = { onEditClick(item) },
-                    onDeleteClick = { onDeleteClick(item) }
-                )
-            }
+/** Formato igual que webapp toRelativeMinutes: "X MIN", "X H", "X D" (más reciente a menos). */
+private fun formatRelativeTime(timestampMillis: Long): String {
+    val diffMs = (System.currentTimeMillis() - timestampMillis).coerceAtLeast(0L)
+    val mins = (diffMs / 60_000).coerceAtLeast(1L).toInt()
+    return when {
+        mins < 60 -> "${mins} MIN"
+        else -> {
+            val hrs = mins / 60
+            if (hrs < 24) "${hrs} H" else "${hrs / 24} D"
         }
     }
 }
+
+// --- PROFILE COMPONENTS ---
 
 @Composable
 fun ProfileAdn(
@@ -134,7 +117,8 @@ fun ProfileAdn(
             PremiumCard(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable(onClick = onShowSensoryDetail)
+                    .clickable(onClick = onShowSensoryDetail),
+                containerColor = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.surface
             ) {
                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     SensoryRadarChart(
@@ -154,7 +138,7 @@ fun ProfileAdn(
         }
         item {
             Text(
-                text = "Tu ADN se elabora analizando tus cafés favoritos y tus reseñas.",
+                text = "Tu ADN se elabora con los cafés que consumes, tienes en listas o favoritos y has reseñado.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
@@ -284,8 +268,212 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
 }
 
 @Composable
+fun ProfileActivityReviewCard(
+    reviewInfo: UserReviewInfo,
+    onCoffeeClick: (String) -> Unit,
+    onDeleteClick: (() -> Unit)? = null,
+    isCurrentUser: Boolean = false
+) {
+    val coffee = reviewInfo.coffeeDetails.coffee
+    val review = reviewInfo.review
+    val labelLine = if (isCurrentUser) "Opinaste sobre un café" else "${reviewInfo.authorName?.takeIf { it.isNotBlank() } ?: "Usuario"} opinó sobre un café"
+    PremiumCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onCoffeeClick(coffee.id) }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!reviewInfo.authorAvatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = reviewInfo.authorAvatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = (reviewInfo.authorName ?: "?").take(2).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = labelLine,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = coffee.nombre.ifBlank { "Un café" },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SemicircleRatingBar(rating = review.rating, onRatingChanged = {}, modifier = Modifier.height(14.dp))
+                    Spacer(Modifier.width(8.dp))
+                    if (review.comment.isNotBlank()) {
+                        Text(
+                            text = review.comment,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = formatRelativeTime(review.timestamp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (onDeleteClick != null) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar reseña", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileActivityFirstTimeCard(
+    item: ProfileActivityItem.FirstTimeCoffee,
+    onCoffeeClick: () -> Unit
+) {
+    PremiumCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onCoffeeClick)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!item.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = item.avatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = item.userName.take(2).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = "${item.userName} probó por primera vez",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = item.coffeeName.ifBlank { "Un café" },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = formatRelativeTime(item.timestamp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileActivityListCard(
+    item: ProfileActivityItem.AddedToList,
+    onCoffeeClick: () -> Unit,
+    onListClick: (() -> Unit)?
+) {
+    PremiumCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!item.avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = item.avatarUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = item.userName.take(2).uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = "${item.userName} añadió un café a la lista",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = item.coffeeName.ifBlank { "Café" },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable(onClick = onCoffeeClick)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = formatRelativeTime(item.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (onListClick != null && item.listName.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                TextButton(onClick = onListClick) {
+                    Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Ver lista: ${item.listName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+@Suppress("UNUSED_PARAMETER")
 fun ProfileStatsRow(
-    posts: Int,
+    activityCount: Int,
     followers: Int,
     following: Int,
     onFollowersClick: () -> Unit,
@@ -297,7 +485,6 @@ fun ProfileStatsRow(
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        StatItem("Posts", posts.toString())
         StatItem("Seguidores", followers.toString(), onFollowersClick)
         StatItem("Siguiendo", following.toString(), onFollowingClick)
     }
@@ -325,6 +512,371 @@ fun StatItem(label: String, value: String, onClick: (() -> Unit)? = null) {
     }
 }
 
+/** Fila "Crea una lista nueva" en la pestaña Listas (mismo ancho completo que Favoritos). Bordes más cuadrados. */
+@Composable
+fun ListRowCreateList(onClick: () -> Unit) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(16.dp))
+            Text("Crea una lista nueva", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+/** Fila "Favoritos" en la pestaña Listas: corazón + nombre + flecha. Bordes más cuadrados. */
+@Composable
+fun ListRowFavoritos(onClick: () -> Unit) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Favorite, contentDescription = null, tint = ElectricRed, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(16.dp))
+            Text("Favoritos", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Fila de lista personalizada: icono lista + nombre + flecha. Bordes más cuadrados. */
+@Composable
+fun ListRowCustomList(name: String, onClick: () -> Unit) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = rememberListAltSvgPainter(),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Text(name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Modal para crear/editar lista: título centrado, botón a la derecha. Campos como tiempo en editar actividad. Si listIdForEdit != null es modo edición. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateListBottomSheet(
+    onDismiss: () -> Unit,
+    onCreate: (name: String, isPublic: Boolean) -> Unit,
+    listIdForEdit: String? = null,
+    initialName: String = "",
+    initialIsPublic: Boolean = false,
+    onUpdate: ((name: String, isPublic: Boolean) -> Unit)? = null
+) {
+    var name by remember(listIdForEdit, initialName) { mutableStateOf(initialName) }
+    var isPublic by remember(listIdForEdit, initialIsPublic) { mutableStateOf(initialIsPublic) }
+    var privacyExpanded by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val isDark = isSystemInDarkTheme()
+    val fieldBackground = if (isDark) Color.Black else Color.White
+    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val editFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = fieldBackground,
+        unfocusedContainerColor = fieldBackground,
+        focusedBorderColor = LocalCaramelAccent.current,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    )
+    val editFieldTextStyle = MaterialTheme.typography.bodyLarge.copy(
+        fontWeight = FontWeight.Bold,
+        color = fieldTextColor
+    )
+    val isEditMode = listIdForEdit != null
+    val canSave = name.trim().isNotEmpty()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        scrimColor = Color.Black.copy(alpha = 0.5f)
+    ) {
+        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
+            Box(Modifier.fillMaxWidth()) {
+                Text(
+                    if (isEditMode) "Editar lista" else "Nueva lista",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+                TextButton(
+                    onClick = {
+                        if (canSave) {
+                            if (isEditMode) onUpdate?.invoke(name.trim(), isPublic) else onCreate(name.trim(), isPublic)
+                            onDismiss()
+                        }
+                    },
+                    enabled = canSave,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    Text(if (isEditMode) "Guardar" else "Crear lista", fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Spacer(Modifier.height(24.dp))
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nombre de la lista") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = editFieldTextStyle,
+                colors = editFieldColors,
+                shape = RoundedCornerShape(16.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            ExposedDropdownMenuBox(
+                expanded = privacyExpanded,
+                onExpandedChange = { privacyExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = if (isPublic) "Público" else "Privado",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Privacidad") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = privacyExpanded) },
+                    modifier = Modifier
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    textStyle = editFieldTextStyle,
+                    colors = editFieldColors
+                )
+                ExposedDropdownMenu(
+                    expanded = privacyExpanded,
+                    onDismissRequest = { privacyExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Público") },
+                        onClick = { isPublic = true; privacyExpanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Privado") },
+                        onClick = { isPublic = false; privacyExpanded = false }
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = if (isPublic) "Si es público se mostrará en la actividad de los perfiles de las personas que te sigan." else "Si es privado no se mostrará en tu actividad.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** Fila de opción estilo modal (icono + texto + chevron), bordes redondeados como en modal de opciones. */
+@Composable
+private fun AddToListOptionRow(
+    icon: @Composable () -> Unit,
+    label: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { icon() }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Modal bottom sheet "Añadir a lista": estilo como modal de opciones (imagen). Título centrado. Filas redondeadas con icono + texto + chevron. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddToListBottomSheet(
+    onDismiss: () -> Unit,
+    userLists: List<UserListRow>,
+    onCreateListRequest: () -> Unit,
+    onAddToList: (listId: String) -> Unit,
+    onFavoriteToggle: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        scrimColor = Color.Black.copy(alpha = 0.5f)
+    ) {
+        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
+            Text(
+                "Añadir a lista",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(20.dp))
+            AddToListOptionRow(
+                icon = {
+                    Icon(
+                        painter = rememberListAltAddSvgPainter(),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                label = "Crear una lista nueva",
+                onClick = onCreateListRequest
+            )
+            userLists.forEach { list ->
+                Spacer(Modifier.height(8.dp))
+                AddToListOptionRow(
+                    icon = {
+                        Icon(
+                            painter = rememberListAltSvgPainter(),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    label = list.name,
+                    onClick = { onAddToList(list.id); onDismiss() }
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            AddToListOptionRow(
+                icon = {
+                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(24.dp), tint = ElectricRed)
+                },
+                label = "Favoritos",
+                onClick = { onFavoriteToggle(); onDismiss() }
+            )
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** Modal de opciones de lista (Editar / Eliminar): mismo estilo que la modal de opciones del perfil. Sin título. Iconos mismo color (onSurface). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ListOptionsBottomSheet(
+    onDismiss: () -> Unit,
+    onEditList: () -> Unit,
+    onDeleteList: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        scrimColor = Color.Black.copy(alpha = 0.5f)
+    ) {
+        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
+            AddToListOptionRow(
+                icon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface) },
+                label = "Editar lista",
+                onClick = { onDismiss(); onEditList() }
+            )
+            Spacer(Modifier.height(8.dp))
+            AddToListOptionRow(
+                icon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface) },
+                label = "Eliminar lista",
+                onClick = { onDismiss(); onDeleteList() }
+            )
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** Modal de confirmación eliminar lista: mismos estilos que eliminar actividad (DeleteConfirmationDialog). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ListDeleteConfirmBottomSheet(
+    listName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val cancelColor = if (isDark) Color.White else Color.Black
+    val deleteContainer = ElectricRed
+    val deleteContent = if (isDark) Color.Black else Color.White
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        scrimColor = Color.Black.copy(alpha = 0.5f)
+    ) {
+        Column(
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Eliminar lista",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "¿Eliminar la lista \"$listName\"? Se quitarán todos los cafés de la lista.",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, cancelColor),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
+                ) {
+                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = { onConfirm(); onDismiss() },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = deleteContainer, contentColor = deleteContent),
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text("ELIMINAR", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun CoffeeFavoritePremiumItem(
     coffeeDetails: CoffeeWithDetails,
@@ -342,24 +894,32 @@ fun CoffeeFavoritePremiumItem(
                     .clip(RoundedCornerShape(20.dp))
             )
             Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = coffeeDetails.coffee.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                Text(
+                    text = coffeeDetails.coffee.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Text(text = coffeeDetails.coffee.marca.uppercase(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onFavoriteClick) {
-                Icon(Icons.Default.Favorite, contentDescription = "Favorito", tint = ElectricRed, modifier = Modifier.size(20.dp))
+                Icon(painter = rememberListAltCheckSvgPainter(), contentDescription = "Listas", tint = ElectricGreen, modifier = Modifier.size(20.dp))
             }
         }
     }
 }
 
 
-/** Fila de café en listado de favoritos (sin corazón). Para quitar de favoritos usar swipe. */
+/** Fila de café en listado de favoritos/listas. Para quitar usar swipe. showListIcon = false en detalle de lista. */
 @Composable
 fun CoffeeFavoriteListItem(
     coffeeDetails: CoffeeWithDetails,
     onClick: () -> Unit,
-    onFavoriteClick: () -> Unit
+    onFavoriteClick: () -> Unit,
+    showListIcon: Boolean = true
 ) {
     Surface(
         modifier = Modifier
@@ -370,55 +930,53 @@ fun CoffeeFavoriteListItem(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
-        Box {
-            Row(
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = coffeeDetails.coffee.imageUrl,
+                contentDescription = coffeeDetails.coffee.nombre,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
-                AsyncImage(
-                    model = coffeeDetails.coffee.imageUrl,
-                    contentDescription = coffeeDetails.coffee.nombre,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f).padding(end = if (showListIcon) 40.dp else 8.dp)) {
+                Text(
+                    text = coffeeDetails.coffee.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                
-                Spacer(Modifier.width(16.dp))
-                
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = coffeeDetails.coffee.nombre,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = coffeeDetails.coffee.marca.uppercase(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = coffeeDetails.coffee.marca.uppercase(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            IconButton(
-                onClick = onFavoriteClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .minimumInteractiveComponentSize()
-                    .size(28.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Quitar de favoritos",
-                    tint = ElectricRed,
-                    modifier = Modifier.size(20.dp)
-                )
+            if (showListIcon) {
+                IconButton(
+                    onClick = onFavoriteClick,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .size(28.dp)
+                ) {
+                    Icon(
+                        painter = rememberListAltCheckSvgPainter(),
+                        contentDescription = "Quitar de listas",
+                        tint = ElectricGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -515,9 +1073,10 @@ fun SwipeableFavoriteItem(
         }
     ) {
         CoffeeFavoriteListItem(
-            coffeeDetails = coffeeDetails, 
+            coffeeDetails = coffeeDetails,
             onClick = onClick,
-            onFavoriteClick = onRemoveFromFavorites
+            onFavoriteClick = onRemoveFromFavorites,
+            showListIcon = false
         )
     }
 }

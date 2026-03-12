@@ -84,9 +84,13 @@ class DiaryRepository @Inject constructor(
                 diaryDao.getPantryItems(user.id),
                 coffeeDao.getAllCoffeesWithDetails()
             ) { items, coffeesWithDetails ->
-                items.mapNotNull { item ->
-                    coffeesWithDetails.find { it.coffee.id == item.coffeeId }?.let { details ->
+                items.map { item ->
+                    val details = coffeesWithDetails.find { it.coffee.id == item.coffeeId }
+                    if (details != null) {
                         PantryItemWithDetails(item, details.coffee, details.coffee.isCustom)
+                    } else {
+                        // Café aún no en la lista (p. ej. recién sincronizado): mostrar ítem con stub para que la despensa no lo oculte
+                        PantryItemWithDetails(item, stubCoffeeForId(item.coffeeId), false)
                     }
                 }
             }.onStart {
@@ -96,6 +100,10 @@ class DiaryRepository @Inject constructor(
             }
         }
         .flowOn(Dispatchers.IO)
+
+    /** Café mínimo para mostrar un ítem de despensa cuando el detalle aún no está en caché (evita ocultar filas por desfase de emisión). */
+    private fun stubCoffeeForId(coffeeId: String): Coffee =
+        Coffee(id = coffeeId, nombre = "Café")
 
     fun getFinishedCoffees(): Flow<List<FinishedCoffeeWithDetails>> = combine(
         _refreshTrigger.onStart { emit(Unit) },
@@ -136,23 +144,37 @@ class DiaryRepository @Inject constructor(
         }
     }
 
-    suspend fun markCoffeeAsFinished(coffeeId: String) = withContext(Dispatchers.IO) {
+    /** Marca como terminado el registro de despensa con este id (se borra de despensa y se añade a historial). */
+    suspend fun markCoffeeAsFinished(pantryItemId: String) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
+        val item = diaryDao.getPantryItemById(pantryItemId) ?: return@withContext
         val now = System.currentTimeMillis()
-        supabaseDataSource.insertFinishedCoffee(FinishedCoffeeInsert(userId = user.id, coffeeId = coffeeId, finishedAtMs = now))
-        deletePantryItem(coffeeId)
+        supabaseDataSource.insertFinishedCoffee(FinishedCoffeeInsert(userId = user.id, coffeeId = item.coffeeId, finishedAtMs = now))
+        diaryDao.deletePantryItemById(pantryItemId)
+        supabaseDataSource.deletePantryItemById(pantryItemId)
         syncFinishedCoffees()
     }
 
     suspend fun syncPantryItems() {
         val user = userRepository.getActiveUser() ?: return
         try {
-            val remoteItems = supabaseDataSource.getPantryItems(user.id)
-            val keepCoffeeIds = remoteItems.map { it.coffeeId }
-            if (keepCoffeeIds.isEmpty()) {
+            val localItems = diaryDao.getPantryItems(user.id).first()
+            var remoteItems = supabaseDataSource.getPantryItems(user.id)
+            val remoteIds = remoteItems.map { it.id }.toSet()
+            // Subir a Supabase los ítems que solo están en local (p. ej. añadidos sin conexión)
+            localItems.filter { it.id !in remoteIds }.forEach { localItem ->
+                try {
+                    supabaseDataSource.upsertPantryItem(localItem)
+                } catch (e: Exception) {
+                    Log.w("DiaryRepository", "No se pudo subir ítem despensa ${localItem.id}: ${e.message}")
+                }
+            }
+            remoteItems = supabaseDataSource.getPantryItems(user.id)
+            val keepIds = remoteItems.map { it.id }
+            if (keepIds.isEmpty()) {
                 diaryDao.deleteAllPantryItemsForUser(user.id)
             } else {
-                diaryDao.deletePantryItemsForUserNotIn(user.id, keepCoffeeIds)
+                diaryDao.deletePantryItemsForUserNotIn(user.id, keepIds)
             }
             remoteItems.forEach { item ->
                 val localCoffee = coffeeDao.getCoffeeById(item.coffeeId)
@@ -189,6 +211,8 @@ class DiaryRepository @Inject constructor(
     companion object {
         /** Tipo de entrada: taza de café (por defecto). */
         const val TYPE_CUP = "CUP"
+        /** Tipo de entrada: registro de agua (método Agua en elaboración). */
+        const val TYPE_WATER = "WATER"
     }
 
     suspend fun addDiaryEntry(
@@ -201,7 +225,8 @@ class DiaryRepository @Inject constructor(
         coffeeGrams: Int = 15,
         preparationType: String = "Espresso",
         sizeLabel: String? = null,
-        reduceFromPantry: Boolean = true
+        reduceFromPantry: Boolean = true,
+        reduceFromPantryItemId: String? = null
     ) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
         val entry = DiaryEntryEntity(
@@ -215,13 +240,15 @@ class DiaryRepository @Inject constructor(
         val entryWithId = entry.copy(id = rowId)
         
         if (coffeeId != null && type == TYPE_CUP && reduceFromPantry) {
-            val pantryItems = diaryDao.getPantryItems(user.id).first()
-            val pantryItem = pantryItems.find { it.coffeeId == coffeeId }
+            val pantryItem = reduceFromPantryItemId?.let { diaryDao.getPantryItemById(it) }
+                ?: run {
+                    val pantryItems = diaryDao.getPantryItems(user.id).first()
+                    pantryItems.firstOrNull { it.coffeeId == coffeeId && it.gramsRemaining >= coffeeGrams }
+                        ?: pantryItems.firstOrNull { it.coffeeId == coffeeId }
+                }
             if (pantryItem != null) {
-                val updatedItem = pantryItem.copy(
-                    gramsRemaining = (pantryItem.gramsRemaining - coffeeGrams).coerceAtLeast(0),
-                    lastUpdated = System.currentTimeMillis()
-                )
+                val newRemaining = (pantryItem.gramsRemaining - coffeeGrams).coerceAtLeast(0)
+                val updatedItem = pantryItem.copy(gramsRemaining = newRemaining, lastUpdated = System.currentTimeMillis())
                 diaryDao.upsertPantryItem(updatedItem)
                 externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
             }
@@ -354,11 +381,11 @@ class DiaryRepository @Inject constructor(
 
         coffeeDao.insertCoffees(listOf(customCoffee))
         
-        val pantryItem = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == id }
+        val pantryItem = diaryDao.getPantryItems(user.id).first().firstOrNull { it.coffeeId == id }
         if (pantryItem != null) {
-             val updatedItem = pantryItem.copy(totalGrams = totalGrams, lastUpdated = System.currentTimeMillis())
-             diaryDao.upsertPantryItem(updatedItem)
-             externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
+            val updatedItem = pantryItem.copy(totalGrams = totalGrams, gramsRemaining = totalGrams.coerceAtMost(pantryItem.gramsRemaining), lastUpdated = System.currentTimeMillis())
+            diaryDao.upsertPantryItem(updatedItem)
+            externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
         }
 
         externalScope.launch {
@@ -370,21 +397,27 @@ class DiaryRepository @Inject constructor(
         }
     }
 
-    suspend fun updatePantryStockFull(coffeeId: String, totalGrams: Int, gramsRemaining: Int) {
+    /** Actualiza un registro de despensa por id (editar total/restante). */
+    suspend fun updatePantryStockById(id: String, totalGrams: Int, gramsRemaining: Int) {
+        val item = diaryDao.getPantryItemById(id) ?: return
+        val updated = item.copy(totalGrams = totalGrams, gramsRemaining = gramsRemaining.coerceIn(0, totalGrams), lastUpdated = System.currentTimeMillis())
+        diaryDao.upsertPantryItem(updated)
+        externalScope.launch { try { supabaseDataSource.upsertPantryItem(updated) } catch (e: Exception) { } }
+    }
+
+    /** Añade un nuevo registro a la despensa (siempre inserta; el mismo café puede estar varias veces). */
+    suspend fun addToPantry(coffeeId: String, totalGrams: Int) {
         val user = userRepository.getActiveUser() ?: return
-        val item = PantryItemEntity(coffeeId, user.id, gramsRemaining, totalGrams)
+        val id = UUID.randomUUID().toString()
+        val item = PantryItemEntity(id = id, coffeeId = coffeeId, userId = user.id, gramsRemaining = totalGrams, totalGrams = totalGrams)
         diaryDao.upsertPantryItem(item)
         externalScope.launch { try { supabaseDataSource.upsertPantryItem(item) } catch (e: Exception) { } }
     }
 
-    suspend fun addToPantry(coffeeId: String, totalGrams: Int) {
-        val user = userRepository.getActiveUser() ?: return
-        val existing = diaryDao.getPantryItems(user.id).first().find { it.coffeeId == coffeeId }
-        if (existing != null) {
-            updatePantryStockFull(coffeeId, existing.totalGrams + totalGrams, existing.gramsRemaining + totalGrams)
-        } else {
-            updatePantryStockFull(coffeeId, totalGrams, totalGrams)
-        }
+    /** Elimina un registro de despensa por su id. */
+    suspend fun deletePantryItemById(id: String) {
+        diaryDao.deletePantryItemById(id)
+        externalScope.launch { try { supabaseDataSource.deletePantryItemById(id) } catch (e: Exception) { } }
     }
 
     suspend fun updateDiaryEntry(entry: DiaryEntryEntity) = withContext(Dispatchers.IO) {
@@ -400,16 +433,11 @@ class DiaryRepository @Inject constructor(
         }
     }
 
+    /** Elimina una entrada del diario (actividad). No modifica la despensa: el café sigue en pantry_items si estaba. */
     suspend fun deleteDiaryEntry(entryId: Long) = withContext(Dispatchers.IO) {
         diaryDao.deletePendingDiarySync(entryId)
         diaryDao.deleteDiaryEntryById(entryId)
         externalScope.launch { try { supabaseDataSource.deleteDiaryEntry(entryId) } catch (e: Exception) { } }
-    }
-
-    suspend fun deletePantryItem(coffeeId: String) = withContext(Dispatchers.IO) {
-        val user = userRepository.getActiveUser() ?: return@withContext
-        diaryDao.deletePantryItem(coffeeId, user.id)
-        externalScope.launch { try { supabaseDataSource.deletePantryItem(coffeeId, user.id) } catch (e: Exception) { } }
     }
 
     private suspend fun syncLocalCustomCoffees() = withContext(Dispatchers.IO) {

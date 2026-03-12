@@ -3,17 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type GalleryItem = { id: string; file: File; previewUrl: string };
 
 export function useTimelineComposerDomain() {
-  const [commentSheetPostId, setCommentSheetPostId] = useState<string | null>(null);
-  const [commentDraft, setCommentDraft] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [commentMenuId, setCommentMenuId] = useState<number | null>(null);
-  const [highlightedCommentId, setHighlightedCommentId] = useState<number | null>(null);
-  const [showCommentEmojiPanel, setShowCommentEmojiPanel] = useState(false);
-  const [commentImageFile, setCommentImageFile] = useState<File | null>(null);
-  const [commentImageName, setCommentImageName] = useState("");
-  const [commentImagePreviewError, setCommentImagePreviewError] = useState(false);
-  const [commentImagePreviewUrl, setCommentImagePreviewUrl] = useState("");
-
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPostText, setNewPostText] = useState("");
   const [newPostImageFile, setNewPostImageFile] = useState<File | null>(null);
@@ -25,13 +14,6 @@ export function useTimelineComposerDomain() {
   const [createPostCoffeeQuery, setCreatePostCoffeeQuery] = useState("");
   const [showCreatePostEmojiPanel, setShowCreatePostEmojiPanel] = useState(false);
   const newPostImageInputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    setEditingCommentId(null);
-    setCommentMenuId(null);
-    setCommentDraft("");
-    setShowCommentEmojiPanel(false);
-  }, [commentSheetPostId]);
 
   useEffect(() => {
     if (!showCreatePost) return;
@@ -90,26 +72,6 @@ export function useTimelineComposerDomain() {
   }, []);
 
   return {
-    commentSheetPostId,
-    setCommentSheetPostId,
-    commentDraft,
-    setCommentDraft,
-    editingCommentId,
-    setEditingCommentId,
-    commentMenuId,
-    setCommentMenuId,
-    highlightedCommentId,
-    setHighlightedCommentId,
-    showCommentEmojiPanel,
-    setShowCommentEmojiPanel,
-    commentImageFile,
-    setCommentImageFile,
-    commentImageName,
-    setCommentImageName,
-    commentImagePreviewError,
-    setCommentImagePreviewError,
-    commentImagePreviewUrl,
-    setCommentImagePreviewUrl,
     showCreatePost,
     setShowCreatePost,
     newPostText,

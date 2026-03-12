@@ -13,7 +13,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -46,6 +45,10 @@ fun AddStockScreen(
 ) {
     val coffees by viewModel.availableCoffees.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshCoffeesForStock()
+    }
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     
@@ -173,8 +176,8 @@ fun AddStockScreen(
                 title = stringResource(R.string.add_stock_select_title),
                 onBackClick = onBackClick,
                 actions = {
-                    IconButton(onClick = onAddCustomClick) {
-                        Icon(Icons.Default.Bolt, contentDescription = "Añadir rápido", tint = MaterialTheme.colorScheme.onSurface)
+                    TextButton(onClick = onAddCustomClick) {
+                        Text("Crea tu café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             )

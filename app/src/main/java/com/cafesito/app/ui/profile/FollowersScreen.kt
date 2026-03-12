@@ -41,7 +41,7 @@ fun FollowersScreen(
     onUserClick: (Int) -> Unit,
     viewModel: FollowViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.followersState(userId).collectAsState(initial = emptyList())
+    val uiState by viewModel.followersState(userId).collectAsState()
     val myFollowingIds by viewModel.myFollowingIds.collectAsState(initial = emptySet())
     val activeUser by viewModel.activeUser.collectAsState(initial = null)
     
@@ -166,7 +166,9 @@ fun FollowersScreen(
                             isFollowing = myFollowingIds.contains(info.user.id),
                             isMe = activeUser?.id == info.user.id,
                             onFollowClick = { viewModel.toggleFollow(info.user.id) },
-                            onClick = { onUserClick(info.user.id) }
+                            onClick = { onUserClick(info.user.id) },
+                            followersCount = info.followersCount,
+                            followingCount = info.followingCount
                         )
                     }
                 }
@@ -181,8 +183,15 @@ fun FollowItemModern(
     isFollowing: Boolean,
     isMe: Boolean,
     onFollowClick: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    followersCount: Int? = null,
+    followingCount: Int? = null
 ) {
+    val subtitleText = if (followersCount != null && followingCount != null) {
+        "$followersCount seguidores · $followingCount siguiendo"
+    } else {
+        user.fullName
+    }
     Surface(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier
@@ -208,7 +217,7 @@ fun FollowItemModern(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = user.fullName,
+                    text = subtitleText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

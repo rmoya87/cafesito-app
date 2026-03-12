@@ -35,7 +35,7 @@ fun SearchUsersScreen(
     onUserClick: (Int) -> Unit,
     viewModel: FollowViewModel = hiltViewModel()
 ) {
-    val allUsers by viewModel.allUsers.collectAsState(initial = emptyList())
+    val allUsersWithCounts by viewModel.allUsersWithCounts.collectAsState(initial = emptyList())
     val suggestedUsers by viewModel.suggestedUsers.collectAsState(initial = emptyList())
     val myFollowingIds by viewModel.myFollowingIds.collectAsState(initial = emptySet())
     val activeUser by viewModel.activeUser.collectAsState(initial = null)
@@ -48,20 +48,7 @@ fun SearchUsersScreen(
     val filteredUsers = if (searchQuery.isBlank()) {
         suggestedUsers
     } else {
-        allUsers.map { userEntity ->
-            SuggestedUserInfo(
-                user = User(
-                    id = userEntity.id,
-                    username = userEntity.username,
-                    fullName = userEntity.fullName,
-                    avatarUrl = userEntity.avatarUrl,
-                    email = userEntity.email,
-                    bio = userEntity.bio
-                ),
-                followersCount = 0,
-                followingCount = 0
-            )
-        }.filter {
+        allUsersWithCounts.filter {
             it.user.username.contains(searchQuery, ignoreCase = true) ||
                 it.user.fullName.contains(searchQuery, ignoreCase = true)
         }
@@ -177,7 +164,9 @@ fun SearchUsersScreen(
                             isFollowing = myFollowingIds.contains(info.user.id),
                             isMe = false,
                             onFollowClick = { viewModel.toggleFollow(info.user.id) },
-                            onClick = { onUserClick(info.user.id) }
+                            onClick = { onUserClick(info.user.id) },
+                            followersCount = info.followersCount,
+                            followingCount = info.followingCount
                         )
                     }
                 }

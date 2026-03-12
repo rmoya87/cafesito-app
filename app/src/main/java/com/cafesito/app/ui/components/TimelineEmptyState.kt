@@ -88,7 +88,9 @@ fun TimelineEmptyState(
                     isFollowing = false,
                     isMe = false,
                     onFollowClick = { onFollowClick(info.user.id) },
-                    onClick = { onUserClick(info.user.id) }
+                    onClick = { onUserClick(info.user.id) },
+                    followersCount = info.followersCount,
+                    followingCount = info.followingCount
                 )
             }
         }

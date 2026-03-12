@@ -111,6 +111,18 @@ const DEFAULT_TIME_PROFILE: BrewTimeProfile = {
 
 export function getBrewMethodProfile(method: string): BrewMethodProfile {
   const key = normalizeLookupText(method);
+  if (key.includes("agua")) {
+    return {
+      waterMinMl: 50,
+      waterMaxMl: 2000,
+      waterStepMl: 10,
+      defaultWaterMl: 250,
+      ratioMin: 14,
+      ratioMax: 18,
+      ratioStep: 0.5,
+      defaultRatio: 16
+    };
+  }
   if (key.includes("espresso")) {
     return {
       waterMinMl: 25,

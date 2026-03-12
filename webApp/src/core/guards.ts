@@ -13,7 +13,7 @@ export function canNavigateToTab(tab: TabId, isAuthenticated: boolean, searchMod
 }
 
 export function resolveGuardedTab(tab: TabId, isAuthenticated: boolean, searchMode?: "coffees" | "users"): TabId {
-  return canNavigateToTab(tab, isAuthenticated, searchMode) ? tab : "timeline";
+  return canNavigateToTab(tab, isAuthenticated, searchMode) ? tab : "home";
 }
 
 export function shouldPromptAuthForInteraction(isAuthenticated: boolean): boolean {

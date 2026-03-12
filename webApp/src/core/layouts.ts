@@ -1,6 +1,6 @@
 import type { TabId } from "../types";
 
-type DetailHostTab = "timeline" | "search" | "profile" | "diary" | null;
+type DetailHostTab = "home" | "search" | "profile" | "diary" | null;
 
 export function shouldUseRightRailDetail(params: {
   mode: "mobile" | "desktop";
@@ -12,7 +12,7 @@ export function shouldUseRightRailDetail(params: {
   const { mode, viewportWidth, hasDetailPanel, activeTab, detailHostTab } = params;
   if (mode !== "desktop" || viewportWidth < 1520 || !hasDetailPanel) return false;
   return (
-    (activeTab === "timeline" && detailHostTab === "timeline") ||
+    (activeTab === "home" && detailHostTab === "home") ||
     (activeTab === "search" && detailHostTab === "search") ||
     (activeTab === "profile" && detailHostTab === "profile")
   );
@@ -23,10 +23,10 @@ export function sidePanelForTab(params: {
   activeTab: TabId;
   detailHostTab: DetailHostTab;
   useRightRailDetail: boolean;
-}): "timeline" | "search" | "profile" | null {
+}): "home" | "search" | "profile" | null {
   const { mode, activeTab, detailHostTab, useRightRailDetail } = params;
   if (mode !== "desktop" || useRightRailDetail) return null;
-  if (activeTab === "timeline" && detailHostTab === "timeline") return "timeline";
+  if (activeTab === "home" && detailHostTab === "home") return "home";
   if (activeTab === "search" && detailHostTab === "search") return "search";
   if (activeTab === "profile" && detailHostTab === "profile") return "profile";
   return null;

@@ -397,7 +397,7 @@ fun CoffeeSelectionStepPremium(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(pantryItems, key = { it.pantryItem.coffeeId }) { item ->
+                    items(pantryItems, key = { it.pantryItem.id }) { item ->
                         PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
                     }
                 }
@@ -448,9 +448,7 @@ fun CoffeeSelectionStepPremium(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                     modifier = Modifier.height(32.dp)
                 ) {
-                    Icon(Icons.Default.AddCircle, contentDescription = "Crear café", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Crear mi café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                    Text("Crea tu café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                 }
             }
             Spacer(Modifier.height(16.dp))

@@ -4,7 +4,8 @@ import {
   toggleFavoriteCoffee,
   upsertCoffeeReview,
   upsertCoffeeSensoryProfile,
-  upsertPantryStock,
+  insertPantryItem,
+  updatePantryItem,
   uploadImageFile
 } from "../../data/supabaseApi";
 import type { CoffeeReviewRow, CoffeeSensoryProfileRow, FavoriteRow, PantryItemRow, UserRow } from "../../types";
@@ -12,6 +13,7 @@ import type { CoffeeReviewRow, CoffeeSensoryProfileRow, FavoriteRow, PantryItemR
 export function useCoffeeDetailActions({
   activeUser,
   detailCoffeeId,
+  detailPantryStock,
   detailIsFavorite,
   detailCurrentUserReviewImageUrl,
   detailReviewImageFile,
@@ -27,6 +29,7 @@ export function useCoffeeDetailActions({
 }: {
   activeUser: UserRow | null;
   detailCoffeeId: string | null;
+  detailPantryStock: PantryItemRow | null;
   detailIsFavorite: boolean;
   detailCurrentUserReviewImageUrl: string;
   detailReviewImageFile: File | null;
@@ -98,18 +101,20 @@ export function useCoffeeDetailActions({
     if (!activeUser || !detailCoffeeId) return;
     const total = Math.max(0, Number.isFinite(detailStockDraft.total) ? detailStockDraft.total : 0);
     const remaining = Math.min(total, Math.max(0, Number.isFinite(detailStockDraft.remaining) ? detailStockDraft.remaining : 0));
-    const row = await upsertPantryStock({
-      coffeeId: detailCoffeeId,
-      userId: activeUser.id,
-      totalGrams: total,
-      gramsRemaining: remaining
-    });
-    setPantryItems((prev) => [row, ...prev.filter((item) => !(item.coffee_id === row.coffee_id && item.user_id === row.user_id))]);
-    setDetailStockDraft({
-      total,
-      remaining
-    });
-  }, [activeUser, detailCoffeeId, detailStockDraft, setDetailStockDraft, setPantryItems]);
+    if (detailPantryStock?.id) {
+      const updated = await updatePantryItem(detailPantryStock.id, { totalGrams: total, gramsRemaining: remaining });
+      setPantryItems((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    } else {
+      const row = await insertPantryItem({
+        coffeeId: detailCoffeeId,
+        userId: activeUser.id,
+        totalGrams: total,
+        gramsRemaining: remaining
+      });
+      setPantryItems((prev) => [row, ...prev]);
+    }
+    setDetailStockDraft({ total, remaining });
+  }, [activeUser, detailCoffeeId, detailPantryStock, detailStockDraft, setDetailStockDraft, setPantryItems]);
 
   return {
     saveDetailFavorite,

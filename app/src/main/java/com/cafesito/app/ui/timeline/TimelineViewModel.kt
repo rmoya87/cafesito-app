@@ -8,7 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.CoffeeRepository
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.DiaryRepository
-import com.cafesito.app.data.CommentEntity
+import com.cafesito.app.data.DiaryEntryEntity
+import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.data.PostWithDetails
 import com.cafesito.app.data.ReviewWithAuthor
 import com.cafesito.app.data.SocialRepository
@@ -22,6 +23,8 @@ import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.data.UserRepository
 import com.cafesito.shared.domain.Review
 import com.cafesito.shared.domain.SuggestedUserInfo
+import com.cafesito.shared.domain.brew.BrewDiaryEntryForOrder
+import com.cafesito.shared.domain.brew.getOrderedBrewMethods
 import com.cafesito.shared.domain.User
 import com.cafesito.shared.domain.repository.ReviewRepository
 import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
@@ -68,6 +71,36 @@ class TimelineViewModel @Inject constructor(
     private var latestBaseData: TimelineBaseData? = null
     private var hasLoadedOnce = false
 
+    fun updateStock(pantryItemId: String, total: Int, remaining: Int) {
+        viewModelScope.launch {
+            diaryRepository.updatePantryStockById(pantryItemId, total, remaining)
+            refreshData()
+        }
+    }
+
+    fun removeFromPantry(pantryItemId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                diaryRepository.deletePantryItemById(pantryItemId)
+                refreshData()
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("TimelineVM", "Error removing from pantry", e)
+            }
+        }
+    }
+
+    fun markCoffeeAsFinished(pantryItemId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                diaryRepository.markCoffeeAsFinished(pantryItemId)
+                refreshData()
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("TimelineVM", "Error marking finished", e)
+            }
+        }
+    }
 
     fun startPublishingContent() {
         publishingAutoHideJob?.cancel()
@@ -92,9 +125,7 @@ class TimelineViewModel @Inject constructor(
         if (!_isPublishingContent.value) return
         val startedAt = publishingStartedAt ?: return
         val lowerBound = startedAt - 10_000
-        val hasOwnRecentContent = data.posts.any {
-            it.post.userId == data.activeUser.id && it.post.timestamp >= lowerBound
-        } || data.reviews.any {
+        val hasOwnRecentContent = data.reviews.any {
             it.review.userId == data.activeUser.id && it.review.timestamp >= lowerBound
         }
         val isTimedOut = System.currentTimeMillis() - startedAt > 45_000
@@ -115,10 +146,13 @@ class TimelineViewModel @Inject constructor(
             _isRefreshing.value = true
             Log.d("TimelineVM", "Triggering global refresh...")
             try {
-                userRepository.syncUsers()
-                userRepository.syncFollows()
-                socialRepository.syncSocialData()
-                coffeeRepository.syncCoffees()
+                withContext(Dispatchers.IO) {
+                    userRepository.restoreSessionFromSupabaseIfNeeded()
+                    userRepository.syncUsers()
+                    userRepository.syncFollows()
+                    socialRepository.syncSocialData()
+                    coffeeRepository.syncCoffees()
+                }
                 if (_isPublishingContent.value) {
                     stopPublishingContent()
                 }
@@ -133,11 +167,19 @@ class TimelineViewModel @Inject constructor(
     @OptIn(FlowPreview::class)
     private fun observeBaseData() {
         viewModelScope.launch {
+            val dynamicDataWithFallback = combine(
+                flowOf(emptyList<PostWithDetails>()),
+                socialRepository.getAllReviewsWithAuthor().onStart { emit(emptyList()) },
+                userRepository.followingMap.onStart { emit(emptyMap()) }
+            ) { posts, reviews, following ->
+                TimelineDynamicData(posts, reviews, following)
+            }
             combine(
                 staticData,
-                dynamicData,
-                diaryRepository.getPantryItems().onStart { emit(emptyList()) }
-            ) { static, dynamic, pantryItems ->
+                dynamicDataWithFallback,
+                diaryRepository.getPantryItems().onStart { emit(emptyList()) },
+                diaryRepository.getDiaryEntries().onStart { emit(emptyList()) }
+            ) { static, dynamic, pantryItems, diaryEntries ->
                 val activeUser = static?.activeUser ?: return@combine null
                 val pantryCoffeeIds = pantryItems.map { it.coffee.id }.toSet()
                 TimelineBaseData(
@@ -147,6 +189,8 @@ class TimelineViewModel @Inject constructor(
                     favorites = static.favorites,
                     userReviews = static.userReviews,
                     pantryCoffeeIds = pantryCoffeeIds,
+                    pantryItems = pantryItems,
+                    diaryEntries = diaryEntries,
                     posts = dynamic.posts,
                     reviews = dynamic.reviews,
                     following = dynamic.following
@@ -154,24 +198,18 @@ class TimelineViewModel @Inject constructor(
             }
                 .filterNotNull()
                 .map { data ->
-                    val interactionsCount = data.posts.sumOf { it.likes.size + it.comments.size }
-                    val postsDigest = data.posts.sumOf { it.post.hashCode() }
-                    val key = TimelineDataKey(
+                    val pantryStockSignature = data.pantryItems.sumOf { it.pantryItem.gramsRemaining.toLong() } + data.pantryItems.sumOf { it.pantryItem.coffeeId.hashCode().toLong() }
+                    TimelineDataKey(
                         userId = data.activeUser.id,
-                        postsCount = data.posts.size,
-                        reviewsCount = data.reviews.size,
-                        followingCount = data.following[data.activeUser.id]?.size ?: 0,
-                        usersCount = data.allUsers.size,
-                        coffeesCount = data.allCoffees.size,
-                        favoritesCount = data.favorites.size,
                         pantryCount = data.pantryCoffeeIds.size,
-                        interactionsCount = interactionsCount,
-                        postsDigest = postsDigest
-                    )
-                    key to data
+                        pantryStockSignature = pantryStockSignature,
+                        diaryCount = data.diaryEntries.size,
+                        coffeesCount = data.allCoffees.size,
+                        usersCount = data.allUsers.size
+                    ) to data
                 }
                 .distinctUntilChanged { old, new -> old.first == new.first }
-                .debounce(300)
+                .debounce(250)
                 .collectLatest { (_, data) ->
                     latestBaseData = data
                     loadInitialPage(data)
@@ -190,7 +228,7 @@ class TimelineViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val dynamicData = combine(
-        socialRepository.getAllPostsWithDetails().onEach { Log.d("TimelineVM", "Posts emitted: ${it.size}") },
+        flowOf(emptyList<PostWithDetails>()),
         socialRepository.getAllReviewsWithAuthor().onEach { Log.d("TimelineVM", "Reviews emitted: ${it.size}") },
         userRepository.followingMap.onEach { Log.d("TimelineVM", "FollowingMap emitted: ${it.size} entries") }
     ) { posts, reviews, following ->
@@ -210,84 +248,38 @@ class TimelineViewModel @Inject constructor(
         if (!hasLoadedOnce) {
             _uiState.value = TimelineUiState.Loading
         }
-        val mode = determineFeedMode(data)
-
-        val page = try {
-            socialRepository.getTimeline(
-                viewerId = data.activeUser.id,
-                cursor = null,
-                limit = pageSize,
-                mode = mode
+        val forOrder = data.diaryEntries.map { e ->
+            BrewDiaryEntryForOrder(
+                preparationType = e.preparationType,
+                type = e.type,
+                timestamp = e.timestamp
             )
-        } catch (e: Exception) {
-            _uiState.value = TimelineUiState.Error(e.message ?: "No se han podido cargar los datos.")
-            return
         }
-
-        val mappedItems = mapTimelineItems(page.items, data.allCoffees)
-        val suggestedUsers = buildSuggestedUsers(data)
+        val orderedBrewMethodNames = getOrderedBrewMethods(forOrder)
         val recommendations = buildCoffeeRecommendations(data)
-        val recommendedTopics = buildRecommendedTopics(data)
-
-        if (mappedItems.isEmpty()) {
-            logEmptyTimeline(data.activeUser.id, mode, page)
-        }
+        val suggestedUsers = buildSuggestedUsers(data)
 
         _uiState.value = TimelineUiState.Success(
-            items = mappedItems,
+            items = emptyList(),
             suggestedUsers = suggestedUsers,
             myFollowingIds = data.following[data.activeUser.id] ?: emptySet(),
             activeUser = data.activeUser,
             allUsers = data.allUsers,
             recommendations = recommendations,
-            recommendedTopics = recommendedTopics,
-            meta = page.meta,
-            nextCursor = page.nextCursor,
-            canLoadMore = page.nextCursor != null,
+            recommendedTopics = emptyList(),
+            pantryItems = data.pantryItems,
+            orderedBrewMethodNames = orderedBrewMethodNames,
+            meta = TimelineMeta(feedSource = TimelineFeedMode.GLOBAL),
+            nextCursor = null,
+            canLoadMore = false,
             isLoadingMore = false
         )
-        maybeFinishPublishing(data)
         hasLoadedOnce = true
-    }
-
-    fun loadMoreIfNeeded(index: Int) {
-        val current = _uiState.value as? TimelineUiState.Success ?: return
-        if (current.isLoadingMore || !current.canLoadMore) return
-        if (index < current.items.size - loadThreshold) return
-
-        val data = latestBaseData ?: return
-        viewModelScope.launch {
-            val nextCursor = current.nextCursor ?: return@launch
-            _uiState.value = current.copy(isLoadingMore = true)
-
-            val page = try {
-                socialRepository.getTimeline(
-                    viewerId = data.activeUser.id,
-                    cursor = nextCursor,
-                    limit = pageSize,
-                    mode = determineFeedMode(data)
-                )
-            } catch (e: Exception) {
-                _uiState.value = TimelineUiState.Error(e.message ?: "No se han podido cargar los datos.")
-                return@launch
-            }
-
-            val newItems = mapTimelineItems(page.items, data.allCoffees)
-            val combinedItems = (current.items + newItems).distinctBy { it.stableKey }
-
-            _uiState.value = current.copy(
-                items = combinedItems,
-                nextCursor = page.nextCursor,
-                canLoadMore = page.nextCursor != null && newItems.isNotEmpty(),
-                isLoadingMore = false
-            )
-        }
     }
 
     private fun determineFeedMode(data: TimelineBaseData): TimelineFeedMode {
         val followingIds = data.following[data.activeUser.id].orEmpty()
-        val hasOwnContent = data.posts.any { it.post.userId == data.activeUser.id } ||
-            data.reviews.any { it.review.userId == data.activeUser.id }
+        val hasOwnContent = data.reviews.any { it.review.userId == data.activeUser.id }
         return if (followingIds.isNotEmpty() || hasOwnContent) {
             TimelineFeedMode.FOLLOWING
         } else {
@@ -338,11 +330,6 @@ class TimelineViewModel @Inject constructor(
 
         val recentActivityCutoff = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
         val activityScores = mutableMapOf<Int, Int>()
-        val recentPosts = data.posts.filter { it.post.timestamp >= recentActivityCutoff }
-        for (post in recentPosts) {
-            val authorId = post.post.userId
-            activityScores[authorId] = (activityScores[authorId] ?: 0) + 1
-        }
         val recentReviews = data.reviews.filter { it.review.timestamp >= recentActivityCutoff }
         for (review in recentReviews) {
             val authorId = review.review.userId
@@ -555,17 +542,7 @@ class TimelineViewModel @Inject constructor(
     }
 
     fun savePostFromNotification(notification: TimelineNotification) {
-        val postId = when (notification) {
-            is TimelineNotification.Mention -> notification.postId
-            is TimelineNotification.Comment -> notification.postId
-            else -> null
-        } ?: return
-
-        viewModelScope.launch {
-            val me = userRepository.getActiveUser() ?: return@launch
-            socialRepository.savePost(postId, me.id)
-            markNotificationRead(notification)
-        }
+        viewModelScope.launch { markNotificationRead(notification) }
     }
 
     fun markNotificationsNotified(notificationIds: Set<String>) {
@@ -574,30 +551,11 @@ class TimelineViewModel @Inject constructor(
         notificationStore.addNotifiedIds(notificationIds)
     }
 
-    fun onAddComment(postId: String, text: String) {
-        viewModelScope.launch {
-            val user = userRepository.getActiveUser() ?: return@launch
-            socialRepository.addComment(CommentEntity(postId = postId, userId = user.id, text = text, timestamp = System.currentTimeMillis()))
-        }
-    }
+    fun onAddComment(postId: String, text: String) { /* posts/comments removed */ }
 
-    fun toggleLike(postId: String) {
-        viewModelScope.launch {
-            val user = userRepository.getActiveUser() ?: return@launch
-            socialRepository.toggleLike(postId, user.id)
-        }
-    }
-
-    fun deletePost(postId: String) {
-        viewModelScope.launch { socialRepository.deletePost(postId) }
-    }
-
-    fun updatePost(postId: String, newText: String, newImageUrl: String) {
-        viewModelScope.launch {
-            val imageToPersist = resolvePersistableImageUrl(newImageUrl, "posts") ?: newImageUrl
-            socialRepository.updatePost(postId, newText, imageToPersist)
-        }
-    }
+    fun toggleLike(postId: String) { /* posts removed */ }
+    fun deletePost(postId: String) { /* posts removed */ }
+    fun updatePost(postId: String, newText: String, newImageUrl: String) { /* posts removed */ }
 
     fun deleteReview(coffeeId: String) {
         viewModelScope.launch {
@@ -677,6 +635,8 @@ private data class TimelineBaseData(
     val favorites: List<com.cafesito.app.data.LocalFavorite>,
     val userReviews: List<com.cafesito.app.data.ReviewEntity>,
     val pantryCoffeeIds: Set<String>,
+    val pantryItems: List<PantryItemWithDetails>,
+    val diaryEntries: List<DiaryEntryEntity>,
     val posts: List<PostWithDetails>,
     val reviews: List<ReviewWithAuthor>,
     val following: Map<Int, Set<Int>>
@@ -684,15 +644,12 @@ private data class TimelineBaseData(
 
 private data class TimelineDataKey(
     val userId: Int,
-    val postsCount: Int,
-    val reviewsCount: Int,
-    val followingCount: Int,
-    val usersCount: Int,
-    val coffeesCount: Int,
-    val favoritesCount: Int,
     val pantryCount: Int,
-    val interactionsCount: Int,
-    val postsDigest: Int
+    /** Firma de stock (cambia al descontar gramos en elaboración) para refrescar Timeline. */
+    val pantryStockSignature: Long,
+    val diaryCount: Int,
+    val coffeesCount: Int,
+    val usersCount: Int
 )
 
 sealed class TimelineItem {
@@ -722,6 +679,8 @@ sealed interface TimelineUiState {
         val allUsers: List<UserEntity>,
         val recommendations: List<CoffeeWithDetails> = emptyList(),
         val recommendedTopics: List<String> = emptyList(),
+        val pantryItems: List<PantryItemWithDetails> = emptyList(),
+        val orderedBrewMethodNames: List<String> = emptyList(),
         val meta: TimelineMeta,
         val nextCursor: Long?,
         val canLoadMore: Boolean,

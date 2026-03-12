@@ -8,8 +8,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -22,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.ui.components.*
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,10 +44,10 @@ fun BrewLabScreen(
     val step by viewModel.currentStep.collectAsState()
     val selectedMethod by viewModel.selectedMethod.collectAsState()
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
-    
-    val water by viewModel.waterAmount.collectAsState()
+
     val ratio by viewModel.ratio.collectAsState()
     val coffeeGrams by viewModel.coffeeGrams.collectAsState()
+    val displayCoffeeGrams by viewModel.displayCoffeeGrams.collectAsState()
     val isEspressoMethod by viewModel.isEspressoMethod.collectAsState()
     val isRatioEditable by viewModel.isRatioEditable.collectAsState()
     val isWaterEditable by viewModel.isWaterEditable.collectAsState()
@@ -65,6 +71,19 @@ fun BrewLabScreen(
     val pantryItems by viewModel.pantryItems.collectAsState()
     val allCoffees by viewModel.availableCoffees.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+
+    val brewMethods by viewModel.brewMethods.collectAsState(initial = emptyList())
+    val brewTimerEnabled by viewModel.brewTimerEnabled.collectAsState()
+    val canGoNext by viewModel.canGoNextFromMainStep.collectAsState()
+    val drinkType by viewModel.drinkType.collectAsState()
+    val selectedSizeLabel by viewModel.selectedSizeLabel.collectAsState()
+
+    var showCoffeeSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.clearSelectedCoffeeOnEnter()
+        viewModel.refreshPantry()
+    }
 
     val toneGenerator = remember { ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100) }
 
@@ -100,22 +119,27 @@ fun BrewLabScreen(
                 onBackClick = if (step != BrewStep.CHOOSE_METHOD) { { viewModel.backStep() } } else null,
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    if (step == BrewStep.CONFIGURATION) {
-                        IconButton(onClick = { viewModel.startBrewing() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Empezar preparación")
+                    if (step == BrewStep.CHOOSE_METHOD) {
+                        IconButton(
+                            onClick = { viewModel.goNextFromMainStep(onNavigateToDiary) },
+                            enabled = canGoNext
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "Siguiente",
+                                tint = if (canGoNext) MaterialTheme.colorScheme.onSurface else androidx.compose.ui.graphics.Color.LightGray
+                            )
                         }
                     }
                     if (step == BrewStep.BREWING && timerEnded) {
-                        val canSave = selectedCoffee != null && selectedTaste != null
-                        Text(
-                            text = "Guardar",
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .clickable(enabled = canSave) { viewModel.saveToDiary { onNavigateToDiary() } },
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = if (canSave) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        )
+                        TextButton(onClick = { viewModel.saveToDiary { onNavigateToDiary() } }) {
+                            Text("Guardar", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    if (step == BrewStep.RESULT) {
+                        TextButton(onClick = { viewModel.saveToDiary { onNavigateToDiary() } }) {
+                            Text("Guardar", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             ) 
@@ -129,42 +153,84 @@ fun BrewLabScreen(
                 modifier = Modifier.fillMaxSize()
             ) { currentStep ->
                 when (currentStep) {
-                    BrewStep.CHOOSE_METHOD -> ChooseMethodStep(viewModel.brewMethods) { viewModel.selectMethod(it) }
-                    BrewStep.CHOOSE_COFFEE -> {
-                        LaunchedEffect(step) { viewModel.refreshPantry() }
-                        ChooseCoffeeStep(
-                            pantryItems = pantryItems,
-                            allCoffees = allCoffees,
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = viewModel::onSearchQueryChanged,
-                            onAddToPantryClick = onAddToPantryClick,
-                            onCreateCoffeeClick = onCreateCoffeeClick,
-                            onCoffeeSelected = { coffee, fromPantry ->
-                                if (fromPantry) {
-                                    val item = pantryItems.find { it.coffee.id == coffee.id }
-                                    if (item != null) viewModel.selectPantryItem(item)
-                                } else {
-                                    viewModel.selectCoffeeFromCatalog(coffee)
-                                }
+                    BrewStep.CHOOSE_METHOD -> {
+                        if (brewMethods.isEmpty()) {
+                            BrewLabLoadingContent()
+                        } else {
+                            BrewLabMainStepContent(
+                        brewMethods = brewMethods,
+                        selectedMethod = selectedMethod,
+                        onSelectMethod = viewModel::selectMethod,
+                        selectedCoffee = selectedCoffee,
+                        onSelectCoffeeClick = { showCoffeeSheet = true },
+                        pantryItems = pantryItems,
+                        allCoffees = allCoffees,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = viewModel::onSearchQueryChanged,
+                        onAddToPantryClick = onAddToPantryClick,
+                        onCreateCoffeeClick = onCreateCoffeeClick,
+                        onCoffeeSelected = { coffee, fromPantry ->
+                            if (fromPantry) {
+                                val item = pantryItems.find { it.coffee.id == coffee.id }
+                                if (item != null) viewModel.selectPantryItem(item)
+                            } else {
+                                viewModel.selectCoffeeFromCatalog(coffee)
                             }
-                        )
-                    }
-                    BrewStep.CONFIGURATION -> ConfigStep(
-                        methodName = selectedMethod?.name,
+                            showCoffeeSheet = false
+                        },
+                        drinkType = drinkType,
+                        onDrinkTypeChange = viewModel::setDrinkType,
+                        selectedSizeLabel = selectedSizeLabel,
+                        onSizeSelected = viewModel::setSelectedSize,
                         isEspressoMethod = isEspressoMethod,
                         isRatioEditable = isRatioEditable,
                         isWaterEditable = isWaterEditable,
                         brewTimeSeconds = brewTimeSeconds,
                         timeProfile = timeProfile,
                         methodProfile = methodProfile,
-                        water = water,
                         ratio = ratio,
-                        coffeeGrams = coffeeGrams,
+                        coffeeGrams = displayCoffeeGrams,
                         valuation = valuation,
                         baristaTips = baristaTips,
+                        brewTimerEnabled = brewTimerEnabled,
+                        onBrewTimerEnabledChange = viewModel::setBrewTimerEnabled,
+                        viewModel = viewModel
+                            )
+                        }
+                    }
+                    BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, brewingProcessAdvice, isTimerRunning, hasTimerStarted, selectedTaste, recommendation, viewModel)
+                    BrewStep.RESULT -> ResultStep(
+                        selectedTaste = selectedTaste,
+                        recommendation = recommendation,
+                        onSave = { viewModel.saveToDiary { onNavigateToDiary() } },
                         viewModel = viewModel
                     )
-                    BrewStep.BREWING -> PreparationStep(timerSeconds, remainingSeconds, phasesTimeline, currentPhaseIndex, brewingProcessAdvice, isTimerRunning, hasTimerStarted, selectedTaste, recommendation, viewModel)
+                }
+            }
+
+            if (showCoffeeSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showCoffeeSheet = false },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+                ) {
+                    LaunchedEffect(Unit) { viewModel.refreshPantry() }
+                    ChooseCoffeeStep(
+                        pantryItems = pantryItems,
+                        allCoffees = allCoffees,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = viewModel::onSearchQueryChanged,
+                        onAddToPantryClick = onAddToPantryClick,
+                        onCreateCoffeeClick = onCreateCoffeeClick,
+                        onCoffeeSelected = { coffee, fromPantry ->
+                            if (fromPantry) {
+                                val item = pantryItems.find { it.coffee.id == coffee.id }
+                                if (item != null) viewModel.selectPantryItem(item)
+                            } else {
+                                viewModel.selectCoffeeFromCatalog(coffee)
+                            }
+                            showCoffeeSheet = false
+                        }
+                    )
                 }
             }
         }

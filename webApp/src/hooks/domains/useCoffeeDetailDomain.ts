@@ -53,7 +53,7 @@ export function useCoffeeDetailDraftSync({
 
 export function useCoffeeDetailDomain() {
   const [detailCoffeeId, setDetailCoffeeId] = useState<string | null>(null);
-  const [detailHostTab, setDetailHostTab] = useState<"timeline" | "search" | "profile" | "diary" | null>(null);
+  const [detailHostTab, setDetailHostTab] = useState<"home" | "search" | "profile" | "diary" | null>(null);
   const [detailReviewText, setDetailReviewText] = useState("");
   const [detailReviewRating, setDetailReviewRating] = useState(0);
   const [detailReviewImageFile, setDetailReviewImageFile] = useState<File | null>(null);

@@ -184,6 +184,7 @@ class SupabaseDataSource @Inject constructor(
     suspend fun deleteFollow(followerId: Int, followedId: Int) { client.postgrest["follows"].delete { filter { eq("follower_id", followerId); eq("followed_id", followedId) } } }
 
     // --- CAFÉS ---
+    /** Obtiene todos los cafés desde Supabase (tabla coffees). Sin range PostgREST limita a 1000 filas. */
     suspend fun getAllCoffees(
         query: String? = null,
         origin: String? = null,
@@ -199,7 +200,8 @@ class SupabaseDataSource @Inject constructor(
             if (origin != null) eq("pais_origen", origin)
             if (roast != null) eq("tueste", roast)
         }
-        order("nombre", Order.ASCENDING) 
+        order("nombre", Order.ASCENDING)
+        range(0, 9999)
     }.decodeList<Coffee>()
     
     suspend fun getCoffeesPaginated(
@@ -393,6 +395,11 @@ class SupabaseDataSource @Inject constructor(
         filter { eq("coffee_id", coffeeId) }
     }.decodeList<CoffeeSensoryProfileEntity>()
 
+    /** Perfiles sensoriales del usuario (para ADN, igual que webapp). */
+    suspend fun getSensoryProfilesByUserId(userId: Int): List<CoffeeSensoryProfileEntity> = client.postgrest["coffee_sensory_profiles"].select {
+        filter { eq("user_id", userId) }
+    }.decodeList<CoffeeSensoryProfileEntity>()
+
     suspend fun upsertSensoryProfile(profile: CoffeeSensoryProfileEntity) {
         client.postgrest["coffee_sensory_profiles"].upsert(profile)
     }
@@ -435,14 +442,17 @@ class SupabaseDataSource @Inject constructor(
         client.postgrest["diary_entries"].upsert(entry)
     }
 
+    /** Borra solo la entrada del diario por id. No toca pantry_items (despensa). */
     suspend fun deleteDiaryEntry(entryId: Long) { client.postgrest["diary_entries"].delete { filter { eq("id", entryId) } } }
 
-    // --- DESPENSA ---
+    // --- DESPENSA (varios registros por café; cada ítem tiene id único) ---
     suspend fun getPantryItems(userId: Int): List<PantryItemEntity> = client.postgrest["pantry_items"].select { filter { eq("user_id", userId) } }.decodeList<PantryItemEntity>()
     suspend fun upsertPantryItem(item: PantryItemEntity) {
         client.postgrest["pantry_items"].upsert(item)
     }
-    suspend fun deletePantryItem(coffeeId: String, userId: Int) { client.postgrest["pantry_items"].delete { filter { eq("coffee_id", coffeeId); eq("user_id", userId) } } }
+    suspend fun deletePantryItemById(id: String) {
+        client.postgrest["pantry_items"].delete { filter { eq("id", id) } }
+    }
 
     // --- HISTORIAL (pantry_historical): fuente de verdad Supabase
     suspend fun getFinishedCoffees(userId: Int): List<FinishedCoffeeEntity> =
@@ -574,5 +584,94 @@ class SupabaseDataSource @Inject constructor(
                 Log.e("SupabaseDataSource", "Error deleting notification: ${e.message}")
             }
         }
+    }
+
+    // --- LISTAS PERSONALIZADAS (user_lists, user_list_items) ---
+    suspend fun getUserLists(userId: Int): List<UserListRow> = client.postgrest["user_lists"].select {
+        filter { eq("user_id", userId.toLong()) }
+    }.decodeList<UserListRow>()
+
+    suspend fun createUserList(userId: Int, name: String, isPublic: Boolean): UserListRow {
+        val insert = UserListInsert(userId = userId.toLong(), name = name, isPublic = isPublic)
+        return client.postgrest["user_lists"].insert(insert) { select() }.decodeSingle<UserListRow>()
+    }
+
+    suspend fun getUserListItems(listId: String): List<UserListItemRow> = client.postgrest["user_list_items"].select {
+        filter { eq("list_id", listId) }
+    }.decodeList<UserListItemRow>()
+
+    @kotlinx.serialization.Serializable
+    private data class UserListItemRaw(
+        @kotlinx.serialization.SerialName("list_id") val listId: String,
+        @kotlinx.serialization.SerialName("coffee_id") val coffeeId: String,
+        @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+    )
+
+    /** Ítems de listas del usuario con nombre y visibilidad (para feed de actividad; solo listas públicas en perfiles ajenos). */
+    suspend fun getListItemsWithMetaForUser(userId: Int): List<ListItemActivityRow> {
+        val lists = getUserLists(userId)
+        if (lists.isEmpty()) return emptyList()
+        val listIds = lists.map { it.id }
+        val listMap = lists.associate { it.id to Pair(it.name, it.isPublic) }
+        val rows = try {
+            client.postgrest["user_list_items"].select {
+                filter { isIn("list_id", listIds) }
+                order("created_at", Order.DESCENDING)
+            }.decodeList<UserListItemRaw>()
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "getListItemsWithMetaForUser: ${e.message}")
+            return emptyList()
+        }
+        return rows.mapNotNull { r ->
+            val (name, isPublic) = listMap[r.listId] ?: return@mapNotNull null
+            val ts = try {
+                r.createdAt?.let { java.time.Instant.parse(it.replace("Z", "").plus("Z")).toEpochMilli() }
+                    ?: System.currentTimeMillis()
+            } catch (_: Exception) { System.currentTimeMillis() }
+            ListItemActivityRow(listId = r.listId, listName = name, isPublic = isPublic, coffeeId = r.coffeeId, createdAt = ts)
+        }
+    }
+
+    suspend fun addUserListItem(listId: String, coffeeId: String) {
+        try {
+            client.postgrest["user_list_items"].upsert(
+                value = UserListItemInsert(listId = listId, coffeeId = coffeeId),
+                onConflict = "list_id,coffee_id"
+            )
+        } catch (e: Exception) {
+            // Duplicado o error de red: ignorar
+            Log.w("SupabaseDataSource", "addUserListItem: ${e.message}")
+        }
+    }
+
+    suspend fun removeUserListItem(listId: String, coffeeId: String) {
+        client.postgrest["user_list_items"].delete {
+            filter { eq("list_id", listId); eq("coffee_id", coffeeId) }
+        }
+    }
+
+    suspend fun updateUserList(listId: String, name: String, isPublic: Boolean) {
+        client.postgrest["user_lists"].update({
+            set("name", name)
+            set("is_public", isPublic)
+        }) {
+            filter { eq("id", listId) }
+        }
+    }
+
+    /** Elimina la lista y sus ítems. No modifica pantry_items: los cafés de la despensa no se borran. */
+    suspend fun deleteUserList(listId: String) {
+        client.postgrest["user_list_items"].delete { filter { eq("list_id", listId) } }
+        client.postgrest["user_lists"].delete { filter { eq("id", listId) } }
+    }
+
+    /** IDs de cafés que están en alguna lista custom del usuario (para icono activo en detalle). */
+    suspend fun getCoffeeIdsInUserLists(userId: Int): List<String> {
+        val lists = getUserLists(userId)
+        if (lists.isEmpty()) return emptyList()
+        val listIds = lists.map { it.id }
+        return client.postgrest["user_list_items"].select {
+            filter { isIn("list_id", listIds) }
+        }.decodeList<UserListItemRow>().map { it.coffeeId }.distinct()
     }
 }

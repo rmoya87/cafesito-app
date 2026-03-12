@@ -154,7 +154,7 @@ jobs:
             echo "queue_response=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          BODY='{"resource":"coffees","consume":true}'
+          BODY='{"resource":"coffees","consume":false}'
           if [[ -n "${SUPABASE_DEPLOY_QUEUE_TOKEN}" ]]; then
             RESPONSE=$(curl -fsS -X POST "${SUPABASE_DEPLOY_QUEUE_URL}" \
               -H "content-type: application/json" \
@@ -175,6 +175,7 @@ jobs:
           else
             echo "web=false" >> "$GITHUB_OUTPUT"
           fi
+
 
   # Subida a Google Play solo si hay cambios en Android
   release-android:
@@ -558,3 +559,25 @@ jobs:
           remote_path: /cafesito-web/
           sftp_only: true
           delete_remote_files: false
+
+      - name: Mark Supabase queue changes as consumed (nightly only, after successful deploy)
+        if: github.event_name == 'schedule' && needs.changes.outputs.queue_response != ''
+        env:
+          SUPABASE_DEPLOY_QUEUE_URL: ${{ secrets.SUPABASE_DEPLOY_QUEUE_URL }}
+          SUPABASE_DEPLOY_QUEUE_TOKEN: ${{ secrets.SUPABASE_DEPLOY_QUEUE_TOKEN }}
+        run: |
+          if [[ -z "${SUPABASE_DEPLOY_QUEUE_URL}" ]]; then
+            echo "SUPABASE_DEPLOY_QUEUE_URL is empty. Skipping consume step."
+            exit 0
+          fi
+          BODY='{"resource":"coffees","consume":true}'
+          if [[ -n "${SUPABASE_DEPLOY_QUEUE_TOKEN}" ]]; then
+            curl -fsS -X POST "${SUPABASE_DEPLOY_QUEUE_URL}" \
+              -H "content-type: application/json" \
+              -H "x-deploy-token: ${SUPABASE_DEPLOY_QUEUE_TOKEN}" \
+              -d "${BODY}" > /dev/null
+          else
+            curl -fsS -X POST "${SUPABASE_DEPLOY_QUEUE_URL}" \
+              -H "content-type: application/json" \
+              -d "${BODY}" > /dev/null
+          fi

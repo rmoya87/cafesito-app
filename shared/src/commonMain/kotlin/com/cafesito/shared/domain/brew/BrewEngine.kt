@@ -14,7 +14,11 @@ data class BrewCaffeineInput(
     val source: BrewSource,
     val methodOrPreparation: String,
     val coffeeGrams: Double,
-    val hasCaffeine: Boolean
+    val hasCaffeine: Boolean,
+    /** Para método Rápido: volumen en ml (tamaño) para estimar cafeína de forma aproximada. */
+    val amountMl: Int? = null,
+    /** Para método Rápido: tipo de bebida (ej. Espresso, Americano) para estimar cafeína de forma aproximada. */
+    val drinkType: String? = null
 )
 
 data class BrewTimelinePhase(
@@ -70,17 +74,62 @@ object BrewEngine {
     )
 
     fun estimateCaffeineMg(input: BrewCaffeineInput): Int {
+        val normMethod = normalize(input.methodOrPreparation)
+        val useRapidoApprox = (normMethod == "rapido" || normMethod == "otros") &&
+            input.amountMl != null && input.amountMl > 0 && !input.drinkType.isNullOrBlank()
+        if (useRapidoApprox) {
+            return approximateCaffeineForRapido(input.amountMl!!, input.drinkType!!, input.hasCaffeine)
+        }
         val grams = max(0.0, input.coffeeGrams)
         if (grams <= 0.0) return 0
-
         val mgPerGram = if (input.hasCaffeine) BASE_MG_PER_GRAM_REGULAR else BASE_MG_PER_GRAM_DECAF
-        val methodFactor = methodFactor(normalize(input.methodOrPreparation))
+        val methodFactor = methodFactor(normMethod)
         return max(0, (grams * mgPerGram * methodFactor).roundToInt())
+    }
+
+    /**
+     * Estimación aproximada de cafeína para método Rápido en función del tipo de bebida y tamaño (ml).
+     * Valores de referencia: espresso ~65 mg/30 ml; filtro por tamaño típico (pequeño ~95, mediano ~145, grande ~195, XL ~250).
+     */
+    private fun approximateCaffeineForRapido(amountMl: Int, drinkType: String, hasCaffeine: Boolean): Int {
+        val typeNorm = normalize(drinkType)
+        val regularMg = when {
+            typeNorm.contains("espresso") -> {
+                val shots = amountMl.toDouble() / 30.0
+                max(0, (shots * 65.0).roundToInt().coerceIn(0, 260))
+            }
+            else -> {
+                val sizeTable = listOf(30 to 65, 180 to 95, 275 to 145, 375 to 195, 475 to 250)
+                val (_, nearestMg) = sizeTable.minByOrNull { abs(it.first - amountMl) } ?: (275 to 145)
+                val prev = sizeTable.filter { it.first <= amountMl }.maxByOrNull { it.first }
+                val next = sizeTable.filter { it.first >= amountMl }.minByOrNull { it.first }
+                when {
+                    prev == null && next != null -> next.second
+                    prev != null && next == null -> prev.second
+                    prev != null && next != null && prev.first != next.first -> {
+                        val t = (amountMl - prev.first).toDouble() / (next.first - prev.first)
+                        max(0, (prev.second + t * (next.second - prev.second)).roundToInt())
+                    }
+                    else -> nearestMg
+                }
+            }
+        }
+        return if (hasCaffeine) regularMg else max(0, (regularMg * 0.05).roundToInt())
     }
 
     fun methodProfileFor(method: String): BrewMethodProfile {
         val key = normalize(method)
         return when {
+            key == "agua" -> BrewMethodProfile(
+                waterMinMl = 100,
+                waterMaxMl = 1000,
+                waterStepMl = 50,
+                defaultWaterMl = 250,
+                ratioMin = 0.0,
+                ratioMax = 0.0,
+                ratioStep = 0.0,
+                defaultRatio = 0.0
+            )
             key.contains("espresso") -> BrewMethodProfile(25, 60, 1, 36, 1.8, 2.8, 0.1, 2.0)
             key.contains("italiana") -> BrewMethodProfile(60, 320, 5, 150, 7.5, 12.0, 0.5, 10.0)
             key.contains("turco") -> BrewMethodProfile(60, 180, 5, 90, 8.0, 12.0, 0.5, 10.0)
@@ -98,6 +147,7 @@ object BrewEngine {
     fun timeProfileFor(method: String): BrewTimeProfile {
         val key = normalize(method)
         return when {
+            key == "agua" -> BrewTimeProfile(minSeconds = 0, maxSeconds = 0, defaultSeconds = 0)
             key.contains("espresso") -> BrewTimeProfile(20, 40, 27)
             key.contains("italiana") -> BrewTimeProfile(120, 360, 210)
             key.contains("turco") -> BrewTimeProfile(90, 240, 160)
@@ -503,13 +553,41 @@ object BrewEngine {
     fun cupSizeLabelForAmountMl(amountMl: Int): String {
         val options = listOf(
             30 to "Espresso",
-            180 to "Pequeno",
+            180 to "Pequeño",
             275 to "Mediano",
             375 to "Grande",
-            475 to "Tazon XL"
+            475 to "Tazón XL"
         )
         val safeAmount = max(0, amountMl)
         return options.minByOrNull { abs(it.first - safeAmount) }?.second ?: "Mediano"
+    }
+
+    /**
+     * Dosis aproximada de café (gramos) para método Rápido según tipo de bebida y tamaño (ml).
+     * Espresso: ~18 g por shot (30 ml); filtro/otros: por tamaño típico (~12–22 g).
+     */
+    fun approximateCoffeeGramsForRapido(amountMl: Int, drinkType: String): Int {
+        val typeNorm = normalize(drinkType)
+        return when {
+            typeNorm.contains("espresso") -> {
+                val shots = amountMl.toDouble() / 30.0
+                max(1, (shots * 18.0).roundToInt().coerceIn(1, 100))
+            }
+            else -> {
+                val sizeTable = listOf(30 to 18, 180 to 12, 275 to 16, 375 to 20, 475 to 24)
+                val prev = sizeTable.filter { it.first <= amountMl }.maxByOrNull { it.first }
+                val next = sizeTable.filter { it.first >= amountMl }.minByOrNull { it.first }
+                when {
+                    prev == null && next != null -> next.second
+                    prev != null && next == null -> prev.second
+                    prev != null && next != null && prev.first != next.first -> {
+                        val t = (amountMl - prev.first).toDouble() / (next.first - prev.first)
+                        max(1, (prev.second + t * (next.second - prev.second)).roundToInt())
+                    }
+                    else -> sizeTable.minByOrNull { abs(it.first - amountMl) }?.second ?: 16
+                }
+            }
+        }
     }
 
     fun hasCaffeineFromLabel(caffeineLabel: String?): Boolean {

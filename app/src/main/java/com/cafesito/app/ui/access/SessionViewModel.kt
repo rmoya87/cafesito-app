@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed interface SessionState {
@@ -21,26 +20,25 @@ class SessionViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    init {
-        viewModelScope.launch {
-            userRepository.restoreSessionFromSupabaseIfNeeded()
-        }
-    }
-
     /**
      * Observa el estado de la sesión de forma reactiva.
-     * Usamos WhileSubscribed(5000) para permitir que el estado sobreviva a cambios de configuración
-     * o bloqueos de pantalla, pero evitando ejecuciones costosas en el hilo principal durante el inicio frío.
+     * Primero restauramos la sesión desde Supabase (si existe token pero no hay fila en active_session)
+     * y solo después emitimos desde getActiveUserFlow(), para que la detección de usuario sea correcta
+     * en Timeline, Perfil y resto de pantallas.
      */
-    val sessionState: StateFlow<SessionState> = userRepository.getActiveUserFlow()
-        .map { user ->
-            if (user != null && user.username.isNotBlank()) {
-                SessionState.Authenticated(user.id)
-            } else {
-                SessionState.NotAuthenticated
+    val sessionState: StateFlow<SessionState> = flow {
+        emit(SessionState.Loading)
+        userRepository.restoreSessionFromSupabaseIfNeeded()
+        emitAll(
+            userRepository.getActiveUserFlow().map { user ->
+                if (user != null && user.username.isNotBlank()) {
+                    SessionState.Authenticated(user.id)
+                } else {
+                    SessionState.NotAuthenticated
+                }
             }
-        }
-        .onStart { emit(SessionState.Loading) }
+        )
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

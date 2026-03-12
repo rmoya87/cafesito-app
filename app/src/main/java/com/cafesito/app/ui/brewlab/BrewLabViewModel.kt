@@ -5,6 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
 import com.cafesito.shared.domain.brew.BrewCaffeineInput
+import com.cafesito.shared.domain.brew.BREW_METHOD_AGUA
+import com.cafesito.shared.domain.brew.BREW_METHOD_OTROS
+import com.cafesito.shared.domain.brew.getOrderedBrewMethods
+import com.cafesito.shared.domain.brew.BrewDiaryEntryForOrder
 import com.cafesito.shared.domain.brew.BrewEngine
 import com.cafesito.shared.domain.brew.BrewMethodProfile
 import com.cafesito.shared.domain.brew.BrewSource
@@ -17,10 +21,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class BrewStep(val title: String) {
+    /** Pantalla única: carrusel métodos + Selecciona café + tipo/tamaño + config + temporizador (paridad web). */
     CHOOSE_METHOD("Elaboración"),
-    CHOOSE_COFFEE("Elige tu café"),
-    CONFIGURATION("Configuración"),
-    BREWING("Proceso en curso")
+    BREWING("Proceso en curso"),
+    RESULT("Resultado")
 }
 
 data class BrewMethod(
@@ -28,7 +32,10 @@ data class BrewMethod(
     val grindSize: String,
     val tempRange: String,
     val iconResName: String = "maq_espresso"
-)
+) {
+    val isOtros: Boolean get() = name == BREW_METHOD_OTROS
+    val isAgua: Boolean get() = name == BREW_METHOD_AGUA
+}
 
 data class BaristaTip(
     val label: String,
@@ -60,18 +67,33 @@ class BrewLabViewModel @Inject constructor(
     }
 
     // --- 1. CHOOSE METHOD ---
-    val brewMethods = listOf(
-        BrewMethod("Aeropress", "Fina/Media", "80-85C", iconResName = "maq_aeropress"),
-        BrewMethod("Chemex", "Media-Gruesa", "92-94C", iconResName = "maq_chemex"),
-        BrewMethod("Espresso", "Fina", "90-94C", iconResName = "maq_espresso"),
-        BrewMethod("Goteo", "Media", "92-96C", iconResName = "maq_goteo"),
-        BrewMethod("Hario V60", "Media-Fina", "91-93C", iconResName = "maq_hario_v60"),
-        BrewMethod("Italiana", "Media-Fina", "95C", iconResName = "maq_italiana"),
-        BrewMethod("Manual", "Media", "92-96C", iconResName = "maq_manual"),
-        BrewMethod("Prensa francesa", "Gruesa (Sal)", "94-96C", iconResName = "maq_prensa_francesa"),
-        BrewMethod("Sifon", "Media", "91-94C", iconResName = "maq_sifon"),
-        BrewMethod("Turco", "Extrafina", "95C", iconResName = "maq_turco")
+    private val nameToBrewMethod: Map<String, BrewMethod> = mapOf(
+        "Aeropress" to BrewMethod("Aeropress", "Fina/Media", "80-85C", iconResName = "maq_aeropress"),
+        "Chemex" to BrewMethod("Chemex", "Media-Gruesa", "92-94C", iconResName = "maq_chemex"),
+        "Espresso" to BrewMethod("Espresso", "Fina", "90-94C", iconResName = "maq_espresso"),
+        "Goteo" to BrewMethod("Goteo", "Media", "92-96C", iconResName = "maq_goteo"),
+        "Hario V60" to BrewMethod("Hario V60", "Media-Fina", "91-93C", iconResName = "maq_hario_v60"),
+        "Italiana" to BrewMethod("Italiana", "Media-Fina", "95C", iconResName = "maq_italiana"),
+        "Manual" to BrewMethod("Manual", "Media", "92-96C", iconResName = "maq_manual"),
+        "Prensa francesa" to BrewMethod("Prensa francesa", "Gruesa (Sal)", "94-96C", iconResName = "maq_prensa_francesa"),
+        "Sifón" to BrewMethod("Sifón", "Media", "91-94C", iconResName = "maq_sifon"),
+        "Turco" to BrewMethod("Turco", "Extrafina", "95C", iconResName = "maq_turco"),
+        BREW_METHOD_OTROS to BrewMethod(BREW_METHOD_OTROS, "", "", iconResName = "relampago"),
+        BREW_METHOD_AGUA to BrewMethod(BREW_METHOD_AGUA, "", "", iconResName = "agua")
     )
+
+    val brewMethods: StateFlow<List<BrewMethod>> = diaryRepository.getDiaryEntries()
+        .map { entries ->
+            val forOrder = entries.map { e ->
+                BrewDiaryEntryForOrder(
+                    preparationType = e.preparationType,
+                    type = e.type,
+                    timestamp = e.timestamp
+                )
+            }
+            getOrderedBrewMethods(forOrder).mapNotNull { nameToBrewMethod[it] }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _selectedMethod = MutableStateFlow<BrewMethod?>(null)
     val selectedMethod = _selectedMethod.asStateFlow()
@@ -83,15 +105,45 @@ class BrewLabViewModel @Inject constructor(
         .map { method -> BrewEngine.timeProfileFor(method?.name.orEmpty()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BrewEngine.timeProfileFor(""))
 
+    private val sizeOptionsForDefault = listOf(
+        "Espresso" to 30, "Pequeño" to 180, "Mediano" to 275, "Grande" to 375, "Tazón XL" to 475
+    )
+
     fun selectMethod(method: BrewMethod) {
         _selectedMethod.value = method
         val profile = BrewEngine.methodProfileFor(method.name)
         val timeProfile = BrewEngine.timeProfileFor(method.name)
-        _waterAmount.value = profile.defaultWaterMl.toFloat()
+        val defaultWater = profile.defaultWaterMl.toFloat()
+        _waterAmount.value = defaultWater
         _ratio.value = profile.defaultRatio.toFloat()
-        _brewTimeSeconds.value = timeProfile.defaultSeconds
-        _currentStep.value = BrewStep.CHOOSE_COFFEE
+        _brewTimeSeconds.value = if (timeProfile.defaultSeconds > 0) timeProfile.defaultSeconds else 180
+        _selectedSizeLabel.value = if (method.isAgua) null
+            else sizeOptionsForDefault.minByOrNull { (_, ml) -> kotlin.math.abs(ml - defaultWater.toInt()) }?.first
+        // Sin cambio de paso: todo en la misma pantalla (paridad web).
     }
+
+    /** Limpiar café seleccionado al entrar en la pantalla Elaboración (paridad con web). */
+    fun clearSelectedCoffeeOnEnter() {
+        _selectedPantryItem.value = null
+        _selectedCoffee.value = null
+        _isCoffeeFromPantry.value = false
+    }
+
+    private val _drinkType = MutableStateFlow("Espresso")
+    val drinkType = _drinkType.asStateFlow()
+    fun setDrinkType(value: String) { _drinkType.value = value }
+
+    /** Tamaño seleccionado (label) para que la UI marque la opción correctamente. */
+    private val _selectedSizeLabel = MutableStateFlow<String?>(null)
+    val selectedSizeLabel = _selectedSizeLabel.asStateFlow()
+    /** Al cambiar tamaño solo se actualiza la etiqueta; café y agua los configura el usuario. */
+    fun setSelectedSize(label: String, defaultMl: Float) {
+        _selectedSizeLabel.value = label
+    }
+
+    private val _brewTimerEnabled = MutableStateFlow(false)
+    val brewTimerEnabled = _brewTimerEnabled.asStateFlow()
+    fun setBrewTimerEnabled(value: Boolean) { _brewTimerEnabled.value = value }
 
     // --- 2. CHOOSE COFFEE ---
     val pantryItems = diaryRepository.getPantryItems()
@@ -125,7 +177,6 @@ class BrewLabViewModel @Inject constructor(
         _isCoffeeFromPantry.value = true
         _waterAmount.value = selectedMethodProfile.value.defaultWaterMl.toFloat()
         _hasTimerStarted.value = false
-        _currentStep.value = BrewStep.CONFIGURATION
     }
 
     fun selectCoffeeFromCatalog(coffee: Coffee) {
@@ -134,14 +185,25 @@ class BrewLabViewModel @Inject constructor(
         _isCoffeeFromPantry.value = false
         _waterAmount.value = selectedMethodProfile.value.defaultWaterMl.toFloat()
         _hasTimerStarted.value = false
-        _currentStep.value = BrewStep.CONFIGURATION
     }
 
-    /** Llamado cuando el usuario cancela/cierra el flujo de añadir café sin guardar; vuelve a «Elige tu café». */
-    fun onCoffeeAddedFromPantryFlow() {
-        _currentStep.value = BrewStep.CHOOSE_COFFEE
-        _searchQuery.value = ""
-        refreshPantry()
+    /** Flecha siguiente en TopBar: habilitada cuando hay método seleccionado (café no obligatorio). */
+    val canGoNextFromMainStep: StateFlow<Boolean> = _selectedMethod
+        .map { it != null }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /** Desde la pantalla única: si Agua → guardar y navegar a Diario; si temporizador ON → Proceso; si no → Resultado. */
+    fun goNextFromMainStep(onNavigateToDiary: () -> Unit) {
+        val method = _selectedMethod.value ?: return
+        if (method.isAgua) {
+            saveWaterAndNavigateToDiary(onNavigateToDiary)
+            return
+        }
+        _currentStep.value = if (_brewTimerEnabled.value) BrewStep.BREWING else BrewStep.RESULT
+        if (_currentStep.value == BrewStep.BREWING) {
+            _timerSeconds.value = 0
+            _hasTimerStarted.value = false
+        }
     }
 
     // --- 3. CONFIGURATION ---
@@ -167,6 +229,13 @@ class BrewLabViewModel @Inject constructor(
 
     val coffeeGrams = combine(_waterAmount, _ratio) { water, rat ->
         if (rat <= 0f) 0f else water / rat
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 15.6f)
+
+    /** Para Rápido: dosis aproximada por tipo/tamaño; para el resto igual que coffeeGrams. Usar para mostrar en UI y al guardar. */
+    val displayCoffeeGrams = combine(_selectedMethod, _waterAmount, _drinkType, coffeeGrams) { method, water, drink, grams ->
+        if (method?.name == BREW_METHOD_OTROS && water > 0f) {
+            BrewEngine.approximateCoffeeGramsForRapido(water.toInt(), drink.trim().ifBlank { "Espresso" }).toFloat()
+        } else grams
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 15.6f)
 
     val baristaTips = combine(_selectedMethod, _ratio, _waterAmount, coffeeGrams, _brewTimeSeconds) { method, ratio, water, grams, brewTime ->
@@ -365,28 +434,68 @@ class BrewLabViewModel @Inject constructor(
 
 
     fun saveToDiary(onSuccess: () -> Unit) {
-        val coffee = _selectedCoffee.value ?: return
+        val taste = _selectedTaste.value
+        val methodName = _selectedMethod.value?.name ?: return
+        val coffee = _selectedCoffee.value
         val isFromPantry = _isCoffeeFromPantry.value
+        val drinkTypeValue = _drinkType.value.trim().ifBlank { "Espresso" }
+        val preparationTypeValue = if (taste != null) "Lab: $methodName ($taste)|$drinkTypeValue" else "Lab: $methodName|$drinkTypeValue"
+        val amountMl = _waterAmount.value.toInt()
+        val isRapido = methodName == BREW_METHOD_OTROS
+        val grams = if (isRapido) {
+            BrewEngine.approximateCoffeeGramsForRapido(amountMl, drinkTypeValue)
+        } else {
+            coffeeGrams.value.toInt().coerceAtLeast(0)
+        }
         viewModelScope.launch {
             try {
-                val grams = coffeeGrams.value.toInt()
-                diaryRepository.addDiaryEntry(
-                    coffeeId = coffee.id,
-                    coffeeName = coffee.nombre,
-                    coffeeBrand = coffee.marca,
-                    caffeineAmount = BrewEngine.estimateCaffeineMg(
+                val coffeeId: String?
+                val coffeeName: String
+                val coffeeBrand: String
+                val caffeineMg: Int
+                if (coffee != null) {
+                    coffeeId = coffee.id
+                    coffeeName = coffee.nombre
+                    coffeeBrand = coffee.marca
+                    caffeineMg = BrewEngine.estimateCaffeineMg(
                         BrewCaffeineInput(
                             source = BrewSource.BREWLAB,
-                            methodOrPreparation = _selectedMethod.value?.name.orEmpty(),
+                            methodOrPreparation = methodName,
                             coffeeGrams = grams.toDouble(),
-                            hasCaffeine = BrewEngine.hasCaffeineFromLabel(coffee.cafeina)
+                            hasCaffeine = BrewEngine.hasCaffeineFromLabel(coffee.cafeina),
+                            amountMl = if (isRapido) amountMl else null,
+                            drinkType = if (isRapido) drinkTypeValue else null
                         )
-                    ),
-                    amountMl = _waterAmount.value.toInt(),
+                    )
+                } else {
+                    coffeeId = null
+                    coffeeName = "Café"
+                    coffeeBrand = ""
+                    caffeineMg = if (isRapido) {
+                        BrewEngine.estimateCaffeineMg(
+                            BrewCaffeineInput(
+                                source = BrewSource.BREWLAB,
+                                methodOrPreparation = methodName,
+                                coffeeGrams = 0.0,
+                                hasCaffeine = true,
+                                amountMl = amountMl,
+                                drinkType = drinkTypeValue
+                            )
+                        )
+                    } else 0
+                }
+                diaryRepository.addDiaryEntry(
+                    coffeeId = coffeeId,
+                    coffeeName = coffeeName,
+                    coffeeBrand = coffeeBrand,
+                    caffeineAmount = caffeineMg,
+                    type = DiaryRepository.TYPE_CUP,
+                    amountMl = amountMl,
                     coffeeGrams = grams,
-                    preparationType = "Lab: ${_selectedMethod.value?.name} (${_selectedTaste.value})",
-                    sizeLabel = BrewEngine.cupSizeLabelForAmountMl(_waterAmount.value.toInt()),
-                    reduceFromPantry = isFromPantry
+                    preparationType = preparationTypeValue,
+                    sizeLabel = BrewEngine.cupSizeLabelForAmountMl(amountMl),
+                    reduceFromPantry = coffee != null && isFromPantry && !isRapido,
+                    reduceFromPantryItemId = _selectedPantryItem.value?.pantryItem?.id
                 )
                 onSuccess()
                 resetAll()
@@ -395,6 +504,31 @@ class BrewLabViewModel @Inject constructor(
             }
         }
     }
+
+    /** Guarda registro de agua y navega a Mi Diario (método Agua). */
+    fun saveWaterAndNavigateToDiary(onNavigateToDiary: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                diaryRepository.addDiaryEntry(
+                    coffeeId = null,
+                    coffeeName = "Agua",
+                    coffeeBrand = "",
+                    caffeineAmount = 0,
+                    type = DiaryRepository.TYPE_WATER,
+                    amountMl = _waterAmount.value.toInt(),
+                    coffeeGrams = 0,
+                    preparationType = BREW_METHOD_AGUA,
+                    sizeLabel = null,
+                    reduceFromPantry = false
+                )
+                resetAll()
+                onNavigateToDiary()
+            } catch (e: Exception) {
+                Log.e("BrewLab", "Error al guardar agua", e)
+            }
+        }
+    }
+
 
     private val _selectedTaste = MutableStateFlow<String?>(null)
     val selectedTaste = _selectedTaste.asStateFlow()
@@ -430,13 +564,9 @@ class BrewLabViewModel @Inject constructor(
 
     fun backStep() {
         val current = _currentStep.value
-        if (current == BrewStep.BREWING) {
-            resetTimer()
-        }
-        _currentStep.value = when(current) {
-            BrewStep.CHOOSE_COFFEE -> BrewStep.CHOOSE_METHOD
-            BrewStep.CONFIGURATION -> BrewStep.CHOOSE_COFFEE
-            BrewStep.BREWING -> BrewStep.CONFIGURATION
+        if (current == BrewStep.BREWING) resetTimer()
+        _currentStep.value = when (current) {
+            BrewStep.BREWING, BrewStep.RESULT -> BrewStep.CHOOSE_METHOD
             else -> BrewStep.CHOOSE_METHOD
         }
     }

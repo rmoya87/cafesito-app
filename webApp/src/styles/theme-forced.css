@@ -5,6 +5,19 @@
  * no heredan bien las variables de tokens.
  */
 
+/* Variables de cajas/tarjetas cuando se fuerza el tema */
+html.theme-dark {
+  --surface-card-border: 1px solid rgba(255, 255, 255, 0.12);
+  --surface-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  --surface-card-radius: 12px;
+}
+
+html.theme-light {
+  --surface-card-border: 1px solid rgba(0, 0, 0, 0.08);
+  --surface-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --surface-card-radius: 12px;
+}
+
 /* Perfil y sugerencias */
 html.theme-dark .profile-bio {
   color: var(--text-subtle);
@@ -191,7 +204,7 @@ html.theme-dark .coffee-detail-topbar-icon {
 }
 html.theme-dark .coffee-detail-topbar-icon.is-active,
 html.theme-dark .coffee-detail-topbar-icon.is-active .ui-icon {
-  color: var(--electric-red);
+  color: var(--electric-green);
 }
 
 html.theme-dark .coffee-detail-hero,
@@ -301,15 +314,119 @@ html.theme-dark .brew-suggestion-card {
 }
 
 html.theme-dark .brew-tech-card,
-html.theme-dark .brew-prep-card,
 html.theme-dark .brew-result-card {
   background: var(--surface);
   border-color: var(--border-light);
 }
 
+html.theme-dark .brew-prep-card {
+  background: #000 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html.theme-dark .brew-result-reco {
+  background: #000 !important;
+  border: none !important;
+}
+html.theme-dark .brew-result-reco-head strong {
+  color: var(--caramel-accent) !important;
+}
+html.theme-dark .brew-result-reco p {
+  color: #fff !important;
+}
+
 html.theme-dark .brew-barista-tip {
   background: var(--surface);
   border-color: var(--border-light);
+}
+
+/* Elaboración (brew): modo noche — fondos negros en círculos/cards inactivos; activos marrón sin borde */
+html.theme-dark .brew-select-step .timeline-elaboration-methods,
+html.theme-dark .timeline-elaboration-methods {
+  background: transparent !important;
+}
+/* Círculos método y tipo: por defecto negro; activo marrón sin borde */
+html.theme-dark .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
+  background: #000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+  background: var(--caramel-accent) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+html.theme-dark .timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+  fill: rgba(255, 255, 255, 0.85) !important;
+  stroke: rgba(255, 255, 255, 0.5) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+html.theme-dark .brew-select-step .timeline-elaboration-method-label,
+html.theme-dark .brew-select-step .brew-tipo-strip .timeline-elaboration-method-label,
+html.theme-dark .timeline-elaboration-method-label {
+  color: #ffffff !important;
+}
+html.theme-dark .brew-select-step .brew-select-section-title,
+html.theme-dark .brew-select-step .section-title.brew-select-section-title {
+  color: #ffffff !important;
+}
+html.theme-dark .brew-select-step .brew-timer-row,
+html.theme-dark .brew-select-step .brew-select-coffee-row,
+html.theme-dark .brew-select-step .brew-tamaño-card {
+  background: #000 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+html.theme-dark .brew-select-step .brew-tamaño-card.is-active {
+  background: var(--caramel-accent) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+html.theme-dark .brew-select-step .brew-tamaño-card-label {
+  color: #ffffff !important;
+}
+html.theme-dark .brew-select-step .brew-tamaño-card-range {
+  color: #bdb7b2 !important;
+}
+html.theme-dark .brew-select-step .brew-coffee-search,
+html.theme-dark .brew-select-step .search-wide {
+  background: #212121 !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+/* Home: módulo método (círculos) y recomendaciones del día — fondo negro en modo noche */
+html.theme-dark .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-circle-inner {
+  background: #000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+html.theme-dark .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-label {
+  color: #ffffff !important;
+}
+/* Recomendaciones del día (Home y elaboración): card negro en modo noche */
+html.theme-dark .timeline-recommendation-card {
+  background: #000 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+html.theme-dark .timeline-recommendation-card .timeline-recommendation-row {
+  color: #ffffff !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+html.theme-dark .timeline-recommendation-card .timeline-recommendation-row:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+html.theme-dark .timeline-recommendation-row-name {
+  color: #ffffff !important;
+}
+html.theme-dark .timeline-recommendation-row-brand {
+  color: #bdb7b2 !important;
+}
+/* Strip despensa/recomendaciones en elaboración: mismo fondo oscuro */
+html.theme-dark .brew-select-step .timeline-despensa {
+  background: transparent !important;
+}
+html.theme-dark .brew-select-step .timeline-despensa .brew-pantry-card {
+  background: #212121 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
 }
 
 /* FAB y botones primarios (ya en tokens, refuerzo por si el light los pinta) */
@@ -479,6 +596,22 @@ html.theme-dark .profile-adn-continue-button.action-button:focus-visible {
   color: var(--pure-black) !important;
 }
 
+html.theme-dark .profile-adn-card,
+html.theme-dark .profile-adn-radar-card,
+html.theme-dark .profile-adn-analysis-panel {
+  background: #000 !important;
+}
+html.theme-dark .profile-adn-radar-ring,
+html.theme-dark .profile-adn-radar-axis {
+  stroke: rgba(255, 255, 255, 0.35);
+}
+html.theme-dark .profile-adn-radar-label {
+  fill: rgba(255, 255, 255, 0.9);
+}
+html.theme-dark .profile-adn-recommend-card {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
 html.theme-dark .diary-stock-edit-cancel {
   border-color: rgba(255, 255, 255, 0.62);
   color: var(--text-main) !important;
@@ -589,9 +722,9 @@ html.theme-dark .create-post-gallery-item {
   border-color: var(--border-light) !important;
 }
 
-/* Personas que podrías seguir: título de sección */
+/* Títulos de sección (timeline, elaboración): mismo color que texto principal */
 html.theme-dark .suggestion-strip .section-title {
-  color: var(--text-subtle) !important;
+  color: var(--text-main) !important;
 }
 
 html.theme-dark .suggestion-strip .mini-user-card.suggestion-user-card {
@@ -669,10 +802,10 @@ html.theme-dark .coffee-detail .section-title {
   color: var(--text-main) !important;
 }
 
-/* Brew prep: pasos preinfusión, pausar, iniciar, timeline */
+/* Brew prep: card temporizador y recomendación con fondo negro */
 html.theme-dark .brew-prep-card {
-  background: var(--surface) !important;
-  border-color: var(--border-light) !important;
+  background: #000 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 html.theme-dark .brew-prep-phase,
@@ -700,9 +833,9 @@ html.theme-dark .brew-prep-bar i {
 
 html.theme-dark .brew-prep-advice-list li,
 html.theme-dark .brew-prep-advice-card {
-  background: var(--surface) !important;
-  border-color: var(--border-light) !important;
-  color: var(--text-main) !important;
+  background: #000 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #fff !important;
 }
 
 html.theme-dark .brew-prep-action-secondary {
@@ -776,16 +909,38 @@ html.theme-dark .diary-edit-entry-presets .period-chip.is-active {
   color: var(--pure-black) !important;
 }
 
-/* Topbar calendario / selecciona periodo */
-html.theme-dark .topbar-timeline,
-html.theme-dark .topbar-historial {
+/* Topbar Inicio (solo esta pestaña) marrón; diario/historial/elaboración/perfil como estándar */
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) {
+  background: var(--caramel-accent) !important;
+}
+
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button,
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button .ui-icon,
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button svg,
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .title,
+html.theme-dark .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-brand-title {
+  color: var(--pure-black) !important;
+  fill: currentColor;
+}
+
+html.theme-dark .topbar-historial,
+html.theme-dark .topbar-home.topbar-home-inicio,
+html.theme-dark .topbar-home.topbar-home-inicio,
+html.theme-dark .topbar-home.topbar-diary,
+html.theme-dark .topbar-home.topbar-brew,
+html.theme-dark .topbar-home.topbar-profile {
   background: var(--screen-dark-background) !important;
 }
 
-html.theme-dark .topbar-timeline .diary-period-chip,
-html.theme-dark .topbar-timeline .diary-period-chip-with-arrows,
-html.theme-dark .topbar-timeline .diary-chip-arrow,
-html.theme-dark .topbar-timeline .diary-chip-date {
+html.theme-dark .topbar-brew .topbar-brew-next-inactive,
+html.theme-dark .topbar-brew .topbar-brew-next-inactive .ui-icon {
+  color: rgba(255, 255, 255, 0.32) !important;
+}
+
+html.theme-dark .topbar-home .diary-period-chip,
+html.theme-dark .topbar-home .diary-period-chip-with-arrows,
+html.theme-dark .topbar-home .diary-chip-arrow,
+html.theme-dark .topbar-home .diary-chip-date {
   background: var(--surface) !important;
   border-color: var(--border-light) !important;
   color: var(--text-main) !important;
@@ -1171,7 +1326,7 @@ html.theme-light .coffee-detail-topbar-icon.is-active {
 }
 html.theme-light .coffee-detail-topbar-icon.is-active,
 html.theme-light .coffee-detail-topbar-icon.is-active .ui-icon {
-  color: var(--electric-red);
+  color: var(--electric-green);
 }
 
 html.theme-light .create-post-header,
@@ -1370,9 +1525,9 @@ html.theme-light .create-post-gallery-item {
   border-color: var(--border-light) !important;
 }
 
-/* Personas que podrías seguir: título sección */
+/* Títulos de sección (timeline, elaboración): mismo color que texto principal */
 html.theme-light .suggestion-strip .section-title {
-  color: var(--espresso-medium) !important;
+  color: var(--text-main) !important;
 }
 
 html.theme-light .suggestion-strip .mini-user-card.suggestion-user-card {
@@ -1613,21 +1768,44 @@ html.theme-light .profile-inline-change-photo {
   border: none !important;
 }
 
-/* Topbar calendario / selecciona periodo modo día */
-html.theme-light .topbar-timeline,
-html.theme-light .topbar-historial {
+/* Topbar Inicio: mismo estilo que diario (sin marrón) */
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) {
+  background: var(--caramel-accent) !important;
+}
+
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile).topbar-scrolled {
+  background: var(--caramel-accent) !important;
+}
+
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button,
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button .ui-icon,
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-icon-button svg,
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .title,
+html.theme-light .topbar-home:not(.topbar-home-inicio):not(.topbar-diary):not(.topbar-historial):not(.topbar-coffee):not(.topbar-brew):not(.topbar-profile) .topbar-brand-title {
+  color: var(--pure-black) !important;
+  fill: currentColor;
+}
+
+html.theme-light .topbar-historial,
+html.theme-light .topbar-home.topbar-home-inicio,
+html.theme-light .topbar-home.topbar-diary,
+html.theme-light .topbar-home.topbar-brew,
+html.theme-light .topbar-home.topbar-profile {
   background: rgba(247, 247, 247, 0.86) !important;
 }
 
-html.theme-light .topbar-timeline.topbar-scrolled,
-html.theme-light .topbar-historial.topbar-scrolled {
+html.theme-light .topbar-historial.topbar-scrolled,
+html.theme-light .topbar-home.topbar-home-inicio.topbar-scrolled,
+html.theme-light .topbar-home.topbar-diary.topbar-scrolled,
+html.theme-light .topbar-home.topbar-brew.topbar-scrolled,
+html.theme-light .topbar-home.topbar-profile.topbar-scrolled {
   background: rgba(247, 247, 247, 0.95) !important;
 }
 
-html.theme-light .topbar-timeline .diary-period-chip,
-html.theme-light .topbar-timeline .diary-period-chip-with-arrows,
-html.theme-light .topbar-timeline .diary-chip-arrow,
-html.theme-light .topbar-timeline .diary-chip-date {
+html.theme-light .topbar-home .diary-period-chip,
+html.theme-light .topbar-home .diary-period-chip-with-arrows,
+html.theme-light .topbar-home .diary-chip-arrow,
+html.theme-light .topbar-home .diary-chip-date {
   background: var(--pure-white) !important;
   border-color: var(--border-light) !important;
   color: var(--espresso-deep) !important;

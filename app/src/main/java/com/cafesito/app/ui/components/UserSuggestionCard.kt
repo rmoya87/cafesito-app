@@ -136,7 +136,7 @@ fun UserSuggestionCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "${info.followersCount} Seguidores",
+                    text = "${info.followersCount} seguidores · ${info.followingCount} siguiendo",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

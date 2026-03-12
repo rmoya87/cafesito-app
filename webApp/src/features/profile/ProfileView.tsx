@@ -1,10 +1,11 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { EMPTY } from "../../core/emptyErrorStrings";
-import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
-import type { CoffeeRow, CoffeeReviewRow, CoffeeSensoryProfileRow, TimelineCard, UserRow, ViewMode } from "../../types";
+import { CreateListSheet } from "../lists/CreateListSheet";
+import { toRelativeMinutes } from "../../core/time";
+import type { CoffeeRow, CoffeeReviewRow, CoffeeSensoryProfileRow, ProfileActivityItem, UserListRow, UserRow, ViewMode } from "../../types";
 
 const SWIPE_THRESHOLD_PX = 3;
 const VERTICAL_LOCK_PX = 2;
@@ -186,7 +187,8 @@ export function ProfileView({
   mode,
   tab,
   setTab,
-  posts,
+  followedActivity,
+  activityIsProfileUser = false,
   favoriteCoffees,
   allCoffees,
   coffeeReviews,
@@ -194,26 +196,33 @@ export function ProfileView({
   followers,
   following,
   onOpenCoffee,
+  onOpenUserList,
   onOpenUserProfile,
+  onOpenFollowers,
+  onOpenFollowing,
+  onOpenFavoritesList,
   canEditProfile,
   canFollowProfile,
   isFollowingProfile,
   onToggleFollowProfile,
   onSaveProfile,
   onRemoveFavorite,
-  onEditPost,
-  onDeletePost,
-  onToggleLike,
-  onOpenComments,
-  resolveMentionUser,
+  userLists = [],
+  onCreateList,
+  onOpenList,
   externalEditProfileSignal,
-  sidePanel
+  sidePanel,
+  profileDiaryCoffeeIds = [],
+  profileListCoffeeIds = []
 }: {
   user: UserRow;
   mode: ViewMode;
-  tab: "posts" | "adn" | "favoritos";
-  setTab: (value: "posts" | "adn" | "favoritos") => void;
-  posts: TimelineCard[];
+  tab: "actividad" | "adn" | "favoritos";
+  setTab: (value: "actividad" | "adn" | "favoritos") => void;
+  /** Actividad: de personas que sigues (propio perfil) o del usuario del perfil (perfil tercero) */
+  followedActivity: ProfileActivityItem[];
+  /** true cuando la actividad mostrada es la del usuario del perfil visitado (perfil tercero) */
+  activityIsProfileUser?: boolean;
   favoriteCoffees: CoffeeRow[];
   allCoffees: CoffeeRow[];
   coffeeReviews: CoffeeReviewRow[];
@@ -221,7 +230,12 @@ export function ProfileView({
   followers: number;
   following: number;
   onOpenCoffee: (coffeeId: string) => void;
+  /** Abrir la lista pública de otro usuario (perfil > listas > lista). */
+  onOpenUserList?: (userId: number, listId: string) => void;
   onOpenUserProfile: (userId: number) => void;
+  onOpenFollowers: () => void;
+  onOpenFollowing: () => void;
+  onOpenFavoritesList?: () => void;
   canEditProfile: boolean;
   canFollowProfile: boolean;
   isFollowingProfile: boolean;
@@ -234,14 +248,17 @@ export function ProfileView({
     removeAvatar?: boolean
   ) => Promise<void>;
   onRemoveFavorite: (coffeeId: string) => Promise<void>;
-  onEditPost: (postId: string, newText: string, newImageUrl: string, imageFile?: File | null) => Promise<void>;
-  onDeletePost: (postId: string) => Promise<void>;
-  onToggleLike: (postId: string) => void;
-  onOpenComments: (postId: string) => void;
-  resolveMentionUser?: (username: string) => { username: string; avatarUrl?: string | null } | null | undefined;
+  userLists?: UserListRow[];
+  onCreateList?: (name: string, isPublic: boolean) => Promise<void>;
+  onOpenList?: (listId: string) => void;
   externalEditProfileSignal: number;
   sidePanel?: ReactNode;
+  /** IDs de cafés consumidos (diario, excl. agua) del usuario del perfil, para ADN */
+  profileDiaryCoffeeIds?: string[];
+  /** IDs de cafés en listas del usuario del perfil, para ADN */
+  profileListCoffeeIds?: string[];
 }) {
+  const [showCreateListModal, setShowCreateListModal] = useState(false);
   const initials = user.full_name
     .split(" ")
     .map((part) => part[0])
@@ -283,6 +300,8 @@ export function ProfileView({
     coffeeSensoryProfiles
       .filter((profile) => profile.user_id === user.id)
       .forEach((profile) => addSample(profile));
+    profileDiaryCoffeeIds.forEach((id) => addSample(coffeesById.get(id)));
+    profileListCoffeeIds.forEach((id) => addSample(coffeesById.get(id)));
 
     if (!samples.length) return { aroma: 0, sabor: 0, cuerpo: 0, acidez: 0, dulzura: 0, count: 0 };
 
@@ -305,7 +324,7 @@ export function ProfileView({
       dulzura: Number((totals.dulzura / count).toFixed(1)),
       count: samples.length
     };
-  }, [coffeesById, coffeeReviews, coffeeSensoryProfiles, favoriteCoffees, user.id]);
+  }, [coffeesById, coffeeReviews, coffeeSensoryProfiles, favoriteCoffees, user.id, profileDiaryCoffeeIds, profileListCoffeeIds]);
   const adnRadar = useMemo(() => {
     const labels = ["Aroma", "Sabor", "Cuerpo", "Acidez", "Dulzura"];
     const values = [sensoryAverages.aroma, sensoryAverages.sabor, sensoryAverages.cuerpo, sensoryAverages.acidez, sensoryAverages.dulzura]
@@ -353,13 +372,6 @@ export function ProfileView({
     });
     return { rings, axes, dataPoints, labelPoints };
   }, [sensoryAverages.acidez, sensoryAverages.aroma, sensoryAverages.cuerpo, sensoryAverages.dulzura, sensoryAverages.sabor]);
-  const desktopPostColumns = useMemo(() => {
-    const cols: [TimelineCard[], TimelineCard[], TimelineCard[]] = [[], [], []];
-    posts.forEach((post, index) => {
-      cols[index % 3].push(post);
-    });
-    return cols;
-  }, [posts]);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editNameDraft, setEditNameDraft] = useState(user.full_name);
   const [editBioDraft, setEditBioDraft] = useState(user.bio ?? "");
@@ -367,22 +379,10 @@ export function ProfileView({
   const [editAvatarPreview, setEditAvatarPreview] = useState("");
   const [removeAvatarDraft, setRemoveAvatarDraft] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [postMenuId, setPostMenuId] = useState<string | null>(null);
-  const [deletePostConfirmId, setDeletePostConfirmId] = useState<string | null>(null);
-  const [deletingPost, setDeletingPost] = useState(false);
-  const [editPostId, setEditPostId] = useState<string | null>(null);
-  const [editPostText, setEditPostText] = useState("");
-  const [editPostImageUrl, setEditPostImageUrl] = useState("");
-  const [editPostImageFile, setEditPostImageFile] = useState<File | null>(null);
-  const [savingPostEdit, setSavingPostEdit] = useState(false);
   const [togglingFollow, setTogglingFollow] = useState(false);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
-  const [profilePostsAvatarFailed, setProfilePostsAvatarFailed] = useState(false);
-  const [likeBurstPostId, setLikeBurstPostId] = useState<string | null>(null);
   const [showAdnAnalysisSheet, setShowAdnAnalysisSheet] = useState(false);
-  const likeBurstTimerRef = useRef<number | null>(null);
   const editAvatarInputRef = useRef<HTMLInputElement | null>(null);
-  const editPostImageInputRef = useRef<HTMLInputElement | null>(null);
   const profileTabBarRef = useRef<HTMLDivElement>(null);
   const profilePanelsWrapRef = useRef<HTMLDivElement>(null);
   const [profileDragOffsetPx, setProfileDragOffsetPx] = useState<number | null>(null);
@@ -403,7 +403,7 @@ export function ProfileView({
       const wrap = profilePanelsWrapRef.current;
       if (!wrap) return;
       const w = wrap.clientWidth;
-      const startOffsetPx = tab === "posts" ? 0 : tab === "adn" ? -w : -2 * w;
+      const startOffsetPx = tab === "actividad" ? 0 : tab === "adn" ? -w : -2 * w;
       profileTabDragRefs.current.wrapWidth = w;
       profileTabDragRefs.current.startX = e.touches[0].clientX;
       profileTabDragRefs.current.startY = e.touches[0].clientY;
@@ -449,7 +449,7 @@ export function ProfileView({
     const current = r.lastOffsetPx;
     const w = r.wrapWidth;
     const targetTab =
-      current > -w / 2 ? "posts" : current > -1.5 * w ? "adn" : "favoritos";
+      current > -w / 2 ? "actividad" : current > -1.5 * w ? "adn" : "favoritos";
     setTab(targetTab);
     setProfileDragOffsetPx(null);
   }, [setTab]);
@@ -464,7 +464,7 @@ export function ProfileView({
     return () => el.removeEventListener("touchmove", onMove);
   }, []);
 
-  const profileTabOffset = tab === "posts" ? 0 : tab === "adn" ? 33.333 : 66.666;
+  const profileTabOffset = tab === "actividad" ? 0 : tab === "adn" ? 33.333 : 66.666;
 
   useEffect(() => {
     setEditNameDraft(user.full_name);
@@ -475,7 +475,6 @@ export function ProfileView({
   }, [user.bio, user.full_name]);
   useEffect(() => {
     setAvatarLoadFailed(false);
-    setProfilePostsAvatarFailed(false);
   }, [user.avatar_url]);
   useEffect(() => {
     if (!canEditProfile) return;
@@ -494,13 +493,6 @@ export function ProfileView({
       if (editAvatarPreview.startsWith("blob:")) URL.revokeObjectURL(editAvatarPreview);
     };
   }, [editAvatarPreview]);
-  const closeEditPostModal = useCallback(() => {
-    if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
-    setEditPostId(null);
-    setEditPostImageFile(null);
-    setEditPostImageUrl("");
-    setEditPostText("");
-  }, [editPostImageUrl]);
   const adnAnalysis = useMemo(() => {
     const traits = [
       { label: "Aroma", value: sensoryAverages.aroma },
@@ -528,7 +520,7 @@ export function ProfileView({
               : highest.label === "Sabor"
                 ? "Buscas la máxima intensidad y complejidad gustativa. Valoras la persistencia de las notas tras cada sorbo."
                 : "Disfrutas de una complejidad excepcional y un balance perfectamente equilibrado en tu ADN cafetero."
-      : "Marca cafés como favoritos y añade opiniones o reseñas para construir tu ADN sensorial.";
+      : "Consume cafés, añádelos a listas o favoritos y deja reseñas para construir tu ADN sensorial.";
     const recommendation = highest
       ? highest.label === "Acidez"
         ? { type: "Lavados de alta montaña", origin: "Etiopía o Colombia (Nariño)" }
@@ -544,16 +536,6 @@ export function ProfileView({
       : { type: "Blends equilibrados", origin: "Cualquier origen de especialidad" };
     return { lead, description, recommendation };
   }, [sensoryAverages.acidez, sensoryAverages.aroma, sensoryAverages.cuerpo, sensoryAverages.dulzura, sensoryAverages.sabor]);
-  useEffect(() => {
-    return () => {
-      if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
-    };
-  }, [editPostImageUrl]);
-  useEffect(() => {
-    return () => {
-      if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
-    };
-  }, []);
   const profileAvatarSrc = editAvatarPreview || (removeAvatarDraft ? "" : user.avatar_url);
   const content = (
     <>
@@ -683,9 +665,14 @@ export function ProfileView({
       </article>
 
       <section className="profile-stats-row" aria-label="Estadisticas de perfil">
-        <article className="profile-stat-item"><strong className="profile-stat-value">{posts.length}</strong><span className="profile-stat-label">POSTS</span></article>
-        <article className="profile-stat-item"><strong className="profile-stat-value">{followers}</strong><span className="profile-stat-label">SEGUIDORES</span></article>
-        <article className="profile-stat-item"><strong className="profile-stat-value">{following}</strong><span className="profile-stat-label">SIGUIENDO</span></article>
+        <button type="button" className="profile-stat-item profile-stat-clickable" onClick={onOpenFollowers} aria-label="Ver seguidores">
+          <strong className="profile-stat-value">{followers}</strong>
+          <span className="profile-stat-label">SEGUIDORES</span>
+        </button>
+        <button type="button" className="profile-stat-item profile-stat-clickable" onClick={onOpenFollowing} aria-label="Ver siguiendo">
+          <strong className="profile-stat-value">{following}</strong>
+          <span className="profile-stat-label">SIGUIENDO</span>
+        </button>
       </section>
 
       <div className="profile-tab-swipe">
@@ -703,7 +690,7 @@ export function ProfileView({
               ["--indicator-pos" as string]:
                 profileDragOffsetPx !== null && profileTabDragRefs.current.wrapWidth > 0
                   ? Math.min(2, Math.max(0, -profileDragOffsetPx / profileTabDragRefs.current.wrapWidth))
-                  : tab === "posts"
+                  : tab === "actividad"
                     ? 0
                     : tab === "adn"
                       ? 1
@@ -713,9 +700,9 @@ export function ProfileView({
             }}
             aria-hidden="true"
           />
-          <TabButton active={tab === "posts"} role="tab" aria-selected={tab === "posts"} onClick={() => setTab("posts")}>Posts</TabButton>
+          <TabButton active={tab === "actividad"} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>Actividad</TabButton>
           <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</TabButton>
-          <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Favoritos</TabButton>
+          <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Listas</TabButton>
         </Tabs>
         </div>
         <div ref={profilePanelsWrapRef} className="profile-tab-panels-wrap">
@@ -726,195 +713,61 @@ export function ProfileView({
               transition: profileDragOffsetPx !== null ? "none" : undefined
             }}
           >
-            <div className="profile-tab-panel" aria-hidden={tab !== "posts"}>
-        <>
-          <ul className="feed-list profile-post-list profile-post-list-mobile">
-            {posts.length ? posts.map((post, index) => (
-            <li key={post.id} className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
-              <article>
-                <header className="feed-head">
-                  <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
-                    {user.avatar_url && !profilePostsAvatarFailed ? (
-                      <img
-                        className="avatar avatar-photo"
-                        src={user.avatar_url}
-                        alt={user.username}
-                        loading="lazy"
-                        decoding="async"
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
-                        onError={() => setProfilePostsAvatarFailed(true)}
-                      />
-                    ) : (
-                      <div className="avatar" aria-hidden="true">{initials}</div>
-                    )}
-                    <div>
-                      <p className="feed-user">{user.full_name}</p>
-                      <p className="feed-meta">{post.minsAgoLabel.toUpperCase()}</p>
-                    </div>
-                  </Button>
-                  {canEditProfile ? (
-                    <IconButton tone="default" className="post-menu-trigger" aria-label="Opciones" onClick={() => setPostMenuId(post.id)}>
-                      <UiIcon name="more" className="ui-icon" />
-                    </IconButton>
-                  ) : null}
-                </header>
-                {post.text ? <p className="feed-text"><MentionText text={post.text} resolveMentionUser={resolveMentionUser} /></p> : null}
-                {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" decoding="async" /> : null}
-                {post.coffeeTagName ? (
-                  <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
-                    <div className="coffee-tag-card-media">
-                      {post.coffeeImageUrl ? (
-                        <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" decoding="async" />
-                      ) : (
-                        <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
-                          <UiIcon name="coffee" className="ui-icon" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="coffee-tag-copy">
-                      <p className="coffee-origin">CAFE ETIQUETADO</p>
-                      <p className="coffee-tag-name">{post.coffeeTagName}</p>
-                      {post.coffeeTagBrand ? <p className="coffee-tag-brand">{post.coffeeTagBrand.toUpperCase()}</p> : null}
-                    </div>
-                    <UiIcon name="chevron-right" className="ui-icon" />
-                  </Button>
-                ) : null}
-                <footer className="feed-stats">
-                  <Button variant="plain"
-                    type="button"
-                    className={`inline-action action-like ${post.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === post.id ? "is-bursting" : ""}`.trim()}
-                    onClick={() => {
-                      if (!post.likedByActiveUser) {
-                        setLikeBurstPostId(post.id);
-                        if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
-                        likeBurstTimerRef.current = window.setTimeout(() => {
-                          setLikeBurstPostId(null);
-                          likeBurstTimerRef.current = null;
-                        }, 520);
-                      }
-                      onToggleLike(post.id);
-                    }}
-                  >
-                    <span className="like-icon-wrap">
-                      <UiIcon name={post.likedByActiveUser ? "coffee-filled" : "coffee"} className="ui-icon" />
-                      <span className="like-burst" aria-hidden="true">
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                    </span>
-                    {post.likes > 0 ? <span>{post.likes}</span> : null}
-                  </Button>
-                  <Button variant="plain" type="button" className="inline-action" onClick={() => onOpenComments(post.id)}>
-                    <UiIcon name="chat" className="ui-icon" />
-                    {post.comments > 0 ? <span>{post.comments}</span> : null}
-                  </Button>
-                </footer>
-              </article>
-            </li>
-            )) : <li className="feed-card profile-empty-card">{EMPTY.PROFILE_NO_POSTS}</li>}
-          </ul>
-          {posts.length ? (
-            <div className="profile-post-masonry-desktop">
-              {desktopPostColumns.map((column, columnIndex) => (
-                <ul key={`profile-col-${columnIndex}`} className="feed-list profile-post-column">
-                  {column.map((post, index) => (
-                    <li key={post.id} className="feed-card feed-card-premium feed-entry" style={{ ["--feed-index" as string]: index }}>
-                      <article>
-                        <header className="feed-head">
-                          <Button variant="plain" type="button" className="feed-user-link" onClick={() => onOpenUserProfile(user.id)}>
-                            {user.avatar_url && !profilePostsAvatarFailed ? (
-                              <img
-                                className="avatar avatar-photo"
-                                src={user.avatar_url}
-                                alt={user.username}
-                                loading="lazy"
-                                decoding="async"
-                                referrerPolicy="no-referrer"
-                                crossOrigin="anonymous"
-                                onError={() => setProfilePostsAvatarFailed(true)}
-                              />
-                            ) : (
-                              <div className="avatar" aria-hidden="true">{initials}</div>
-                            )}
-                            <div>
-                              <p className="feed-user">{user.full_name}</p>
-                              <p className="feed-meta">{post.minsAgoLabel.toUpperCase()}</p>
-                            </div>
-                          </Button>
-                          {canEditProfile ? (
-                            <IconButton tone="default" className="post-menu-trigger" aria-label="Opciones" onClick={() => setPostMenuId(post.id)}>
-                              <UiIcon name="more" className="ui-icon" />
-                            </IconButton>
-                          ) : null}
-                        </header>
-                        {post.text ? <p className="feed-text"><MentionText text={post.text} resolveMentionUser={resolveMentionUser} /></p> : null}
-                        {post.imageUrl ? <img className={`feed-image ${post.text ? "" : "feed-image-no-text"}`.trim()} src={post.imageUrl} alt="Publicación" loading="lazy" decoding="async" /> : null}
-                        {post.coffeeTagName ? (
-                          <Button variant="plain" type="button" className="coffee-tag-card" onClick={() => post.coffeeId && onOpenCoffee(post.coffeeId)} disabled={!post.coffeeId}>
-                            <div className="coffee-tag-card-media">
-                              {post.coffeeImageUrl ? (
-                                <img className="coffee-tag-image" src={post.coffeeImageUrl} alt={post.coffeeTagName} loading="lazy" decoding="async" />
-                              ) : (
-                                <div className="coffee-tag-image coffee-tag-image-fallback" aria-hidden="true">
-                                  <UiIcon name="coffee" className="ui-icon" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="coffee-tag-copy">
-                              <p className="coffee-origin">CAFE ETIQUETADO</p>
-                              <p className="coffee-tag-name">{post.coffeeTagName}</p>
-                              {post.coffeeTagBrand ? <p className="coffee-tag-brand">{post.coffeeTagBrand.toUpperCase()}</p> : null}
-                            </div>
-                            <UiIcon name="chevron-right" className="ui-icon" />
-                          </Button>
-                        ) : null}
-                        <footer className="feed-stats">
-                          <Button variant="plain"
-                            type="button"
-                            className={`inline-action action-like ${post.likedByActiveUser ? "is-liked" : ""} ${likeBurstPostId === post.id ? "is-bursting" : ""}`.trim()}
-                            onClick={() => {
-                              if (!post.likedByActiveUser) {
-                                setLikeBurstPostId(post.id);
-                                if (likeBurstTimerRef.current != null) window.clearTimeout(likeBurstTimerRef.current);
-                                likeBurstTimerRef.current = window.setTimeout(() => {
-                                  setLikeBurstPostId(null);
-                                  likeBurstTimerRef.current = null;
-                                }, 520);
-                              }
-                              onToggleLike(post.id);
-                            }}
-                          >
-                            <span className="like-icon-wrap">
-                              <UiIcon name={post.likedByActiveUser ? "coffee-filled" : "coffee"} className="ui-icon" />
-                              <span className="like-burst" aria-hidden="true">
-                                <span />
-                                <span />
-                                <span />
-                                <span />
-                                <span />
-                                <span />
-                              </span>
-                            </span>
-                            {post.likes > 0 ? <span>{post.likes}</span> : null}
-                          </Button>
-                          <Button variant="plain" type="button" className="inline-action" onClick={() => onOpenComments(post.id)}>
-                            <UiIcon name="chat" className="ui-icon" />
-                            {post.comments > 0 ? <span>{post.comments}</span> : null}
-                          </Button>
-                        </footer>
-                      </article>
+            <div className="profile-tab-panel" aria-hidden={tab !== "actividad"}>
+              <ul className="profile-activity-list" aria-label={activityIsProfileUser ? "Actividad de este usuario" : "Tu actividad y la de personas que sigues"}>
+                {followedActivity.length
+                  ? followedActivity.map((item) => (
+                      <li key={item.id} className="profile-activity-item">
+                        <article className="profile-activity-card">
+                          {item.avatarUrl ? (
+                            <img className="avatar avatar-photo profile-activity-avatar" src={item.avatarUrl} alt={item.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                          ) : (
+                            <div className="avatar profile-activity-avatar" aria-hidden="true">{item.userName.slice(0, 2).toUpperCase()}</div>
+                          )}
+                          <div className="profile-activity-copy">
+                            <p className="profile-activity-text">
+                              <strong>{item.userName}</strong> {item.label}
+                              {item.coffeeName ? (
+                                item.coffeeId ? (
+                                  <Button variant="plain" type="button" className="profile-activity-coffee-link" onClick={() => { if (item.coffeeId != null) onOpenCoffee(item.coffeeId); }}>
+                                    {item.coffeeName}
+                                  </Button>
+                                ) : (
+                                  <span> · {item.coffeeName}</span>
+                                )
+                              ) : null}
+                              {item.type === "favorite" && item.listId != null && item.listName ? (
+                                <>
+                                  {" · "}
+                                  <Button
+                                    variant="plain"
+                                    type="button"
+                                    className="profile-activity-coffee-link"
+                                    onClick={() => { onOpenUserList?.(item.userId, item.listId!); }}
+                                  >
+                                    Ver lista: {item.listName}
+                                  </Button>
+                                </>
+                              ) : null}
+                            </p>
+                            {item.type === "review" && (item.rating != null || item.comment) ? (
+                              <p className="profile-activity-review-meta">
+                                {item.rating != null ? <span className="profile-activity-rating">{item.rating}/10</span> : null}
+                                {item.rating != null && item.comment ? " · " : null}
+                                {item.comment ? <span className="profile-activity-comment">{item.comment}</span> : null}
+                              </p>
+                            ) : null}
+                            <p className="feed-meta">{toRelativeMinutes(item.timestamp).toUpperCase()}</p>
+                          </div>
+                        </article>
+                      </li>
+                    ))
+                  : (
+                    <li className="profile-activity-empty">
+                      {activityIsProfileUser ? "Sin actividad reciente" : "Comienza a seguir a otras personas y descubre nuevos cafés"}
                     </li>
-                  ))}
-                </ul>
-              ))}
-            </div>
-          ) : null}
-        </>
+                  )}
+              </ul>
             </div>
             <div className="profile-tab-panel" aria-hidden={tab !== "adn"}>
         <div className={`profile-adn-layout ${mode === "desktop" ? "is-desktop" : ""}`.trim()}>
@@ -946,7 +799,7 @@ export function ProfileView({
                   ))}
                 </svg>
               </div>
-              <p className="profile-adn-caption">Tus gustos basados en favoritos, opiniones y reseñas.</p>
+              <p className="profile-adn-caption">Tus gustos basados en los cafés que consumes, tienes en listas o favoritos y has reseñado.</p>
             </article>
           ) : (
             <Button variant="plain"
@@ -981,7 +834,7 @@ export function ProfileView({
                   ))}
                 </svg>
               </div>
-              <p className="profile-adn-caption">Tus gustos basados en favoritos, opiniones y reseñas.</p>
+              <p className="profile-adn-caption">Tus gustos basados en los cafés que consumes, tienes en listas o favoritos y has reseñado.</p>
             </Button>
           )}
           {mode === "desktop" ? (
@@ -1004,11 +857,65 @@ export function ProfileView({
         </div>
             </div>
             <div className="profile-tab-panel" aria-hidden={tab !== "favoritos"}>
-          <ul className="coffee-list profile-favorite-list">
-            {favoriteCoffees.length ? favoriteCoffees.map((coffee) => (
-              <ProfileFavoriteItem key={coffee.id} coffee={coffee} onOpenCoffee={onOpenCoffee} onRemoveFavorite={onRemoveFavorite} />
-            )) : <li className="coffee-card profile-empty-card">{EMPTY.FAVORITES}</li>}
-          </ul>
+              <div className="profile-lists-panel">
+                {canEditProfile && (
+                  <>
+                    <button
+                      type="button"
+                      className="profile-list-row profile-list-row-create"
+                      onClick={() => setShowCreateListModal(true)}
+                      aria-label="Crear una lista nueva"
+                    >
+                      <UiIcon name="add" className="ui-icon profile-list-icon" />
+                      <span>Crea una lista nueva</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="profile-list-row profile-list-row-favorites"
+                      onClick={() => onOpenFavoritesList?.()}
+                      aria-label="Ver lista de favoritos"
+                    >
+                      <UiIcon name="favorite-filled" className="ui-icon profile-list-icon profile-list-icon-favorite" />
+                      <span>Favoritos</span>
+                      <UiIcon name="chevron-right" className="ui-icon" />
+                    </button>
+                    {userLists.map((list) => (
+                      <button
+                        key={list.id}
+                        type="button"
+                        className="profile-list-row"
+                        onClick={() => onOpenList?.(list.id)}
+                        aria-label={`Ver lista ${list.name}`}
+                      >
+                        <UiIcon name="list-alt" className="ui-icon profile-list-icon" />
+                        <span>{list.name}</span>
+                        <UiIcon name="chevron-right" className="ui-icon" />
+                      </button>
+                    ))}
+                  </>
+                )}
+                {!canEditProfile && (
+                  <button
+                    type="button"
+                    className="profile-list-row profile-list-row-favorites"
+                    onClick={() => onOpenFavoritesList?.()}
+                    aria-label="Ver lista de favoritos"
+                  >
+                    <UiIcon name="favorite-filled" className="ui-icon profile-list-icon profile-list-icon-favorite" />
+                    <span>Favoritos</span>
+                    <UiIcon name="chevron-right" className="ui-icon" />
+                  </button>
+                )}
+              </div>
+              {showCreateListModal && typeof document !== "undefined" && createPortal(
+                <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => setShowCreateListModal(false)} onClick={() => setShowCreateListModal(false)}>
+                  <CreateListSheet
+                    onDismiss={() => setShowCreateListModal(false)}
+                    onCreate={(name, isPublic) => onCreateList?.(name, isPublic) ?? Promise.resolve()}
+                  />
+                </SheetOverlay>,
+                document.body
+              )}
             </div>
           </div>
         </div>
@@ -1042,172 +949,6 @@ export function ProfileView({
                 </div>
               </SheetCard>
             </SheetOverlay>,
-            document.body
-          )
-        : null}
-      {postMenuId && canEditProfile && typeof document !== "undefined"
-        ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones publicación" onDismiss={() => setPostMenuId(null)} onClick={() => setPostMenuId(null)}>
-              <SheetCard className="diary-sheet diary-sheet-pantry-options profile-post-menu-sheet" onClick={(event) => event.stopPropagation()}>
-                <SheetHandle aria-hidden="true" />
-                <div className="diary-sheet-list">
-                  <Button variant="plain"
-                    className="diary-sheet-action diary-sheet-action-pantry"
-                    onClick={() => {
-                      if (!postMenuId) return;
-                      setDeletePostConfirmId(postMenuId);
-                      setPostMenuId(null);
-                    }}
-                  >
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
-                    <span>Borrar</span>
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                  </Button>
-                  <Button variant="plain"
-                    className="diary-sheet-action diary-sheet-action-pantry"
-                    onClick={() => {
-                      const post = posts.find((item) => item.id === postMenuId);
-                      if (!post) return;
-                      setEditPostId(post.id);
-                      setEditPostText(post.text || "");
-                      setEditPostImageUrl(post.imageUrl || "");
-                      setEditPostImageFile(null);
-                      setPostMenuId(null);
-                    }}
-                  >
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
-                    <span>Editar</span>
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                  </Button>
-                </div>
-              </SheetCard>
-            </SheetOverlay>,
-            document.body
-          )
-        : null}
-      {deletePostConfirmId && typeof document !== "undefined"
-        ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar publicación" onDismiss={() => setDeletePostConfirmId(null)} onClick={() => setDeletePostConfirmId(null)}>
-              <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
-                <SheetHandle aria-hidden="true" />
-                <div className="diary-delete-confirm-body">
-                  <h2 className="diary-delete-confirm-title">Eliminar publicación</h2>
-                  <p className="diary-delete-confirm-text">
-                    ¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer.
-                  </p>
-                  <div className="diary-delete-confirm-actions">
-                    <Button
-                      variant="plain"
-                      type="button"
-                      className="diary-delete-confirm-cancel"
-                      onClick={() => setDeletePostConfirmId(null)}
-                      disabled={deletingPost}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      variant="plain"
-                      type="button"
-                      className="diary-delete-confirm-submit"
-                      disabled={deletingPost}
-                      onClick={async () => {
-                        if (deletingPost) return;
-                        setDeletingPost(true);
-                        try {
-                          await onDeletePost(deletePostConfirmId);
-                          setDeletePostConfirmId(null);
-                        } finally {
-                          setDeletingPost(false);
-                        }
-                      }}
-                    >
-                      {deletingPost ? "Eliminando..." : "Eliminar"}
-                    </Button>
-                  </div>
-                </div>
-              </SheetCard>
-            </SheetOverlay>,
-            document.body
-          )
-        : null}
-      {editPostId && typeof document !== "undefined"
-        ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar publicación" onDismiss={closeEditPostModal} onClick={closeEditPostModal}>
-          <SheetCard className="profile-edit-sheet" onClick={(event) => event.stopPropagation()}>
-            <SheetHandle aria-hidden="true" />
-            <header className="sheet-header">
-              <strong className="sheet-title">Editar publicación</strong>
-            </header>
-            <div className="diary-sheet-form">
-              <Input
-                ref={editPostImageInputRef}
-                type="file"
-                accept="image/*"
-                className="file-input-hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null;
-                  if (!file) return;
-                  if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
-                  const preview = URL.createObjectURL(file);
-                  setEditPostImageFile(file);
-                  setEditPostImageUrl(preview);
-                  event.currentTarget.value = "";
-                }}
-              />
-              <label>
-                <span>Texto</span>
-                <Textarea
-                  className="search-wide profile-edit-bio"
-                  rows={4}
-                  maxLength={500}
-                  value={editPostText}
-                  onChange={(event) => setEditPostText(event.target.value)}
-                />
-              </label>
-              <div className="profile-edit-post-image-wrap">
-                {editPostImageUrl ? <img src={editPostImageUrl} alt="Previsualización" loading="lazy" decoding="async" /> : <p className="feed-meta">Sin imagen</p>}
-              </div>
-              <div className="profile-edit-post-actions">
-                <Button variant="ghost" className="action-button action-button-ghost" onClick={() => editPostImageInputRef.current?.click()}>
-                  Cambiar imagen
-                </Button>
-                {editPostImageUrl ? (
-                  <Button variant="ghost"
-                    className="action-button action-button-ghost"
-                    onClick={() => {
-                      if (editPostImageUrl.startsWith("blob:")) URL.revokeObjectURL(editPostImageUrl);
-                      setEditPostImageFile(null);
-                      setEditPostImageUrl("");
-                    }}
-                  >
-                    Quitar imagen
-                  </Button>
-                ) : null}
-              </div>
-              <div className="diary-sheet-form-actions">
-                <Button variant="ghost" className="action-button action-button-ghost" onClick={closeEditPostModal} disabled={savingPostEdit}>
-                  Cancelar
-                </Button>
-                <Button variant="primary"
-                  className="action-button"
-                  disabled={savingPostEdit}
-                  onClick={async () => {
-                    if (!editPostId || savingPostEdit) return;
-                    setSavingPostEdit(true);
-                    try {
-                      await onEditPost(editPostId, editPostText, editPostImageUrl, editPostImageFile);
-                      closeEditPostModal();
-                    } finally {
-                      setSavingPostEdit(false);
-                    }
-                  }}
-                >
-                  {savingPostEdit ? "Guardando..." : "Guardar"}
-                </Button>
-              </div>
-            </div>
-          </SheetCard>
-        </SheetOverlay>,
             document.body
           )
         : null}

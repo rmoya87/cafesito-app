@@ -20,11 +20,11 @@ export function useCoffeeDetailNavigation({
   profileUsername: string | null;
   activeTab: TabId;
   setDetailCoffeeId: (value: string | null) => void;
-  setDetailHostTab: (value: "timeline" | "search" | "profile" | null) => void;
+  setDetailHostTab: (value: "home" | "search" | "profile" | null) => void;
   setActiveTab: (value: TabId) => void;
 }) {
   const openCoffeeDetail = useCallback(
-    (coffeeId: string, sourceTab: "timeline" | "search" | "profile" | "diary") => {
+    (coffeeId: string, sourceTab: "home" | "search" | "profile" | "diary") => {
       const coffee = coffeesById.get(coffeeId);
       if (!coffee) return;
       const slug = coffeeSlugById.get(coffeeId) ?? toCoffeeSlug(coffee.nombre, coffee.marca);

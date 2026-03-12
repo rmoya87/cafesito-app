@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-05
+**Última actualización:** 2026-03-12
 
 ---
 
@@ -17,6 +17,7 @@
 8. [Release notes Android desde última publicación (git)](#8-release-notes-android-desde-última-publicación-git)
 9. [Resumen de cambios — historial, detalle café (04 mar 2026)](#9-resumen-de-cambios--historial-detalle-café-04-mar-2026)
 10. [Resumen de cambios — calendario, layout, merge (mar 2026)](#10-resumen-de-cambios--calendario-layout-merge-mar-2026)
+11. [Registro completo: paridad Web/Android y mejoras (mar 2026)](#11-registro-completo-paridad-webandroid-y-mejoras-mar-2026)
 
 ---
 
@@ -296,6 +297,29 @@ Cambios en webapp: scroll del calendario en desktop, layout móvil al 100 %, res
 ### 10.4 Remote de Git
 
 - **Cambio:** El repositorio se movió a `https://github.com/rmoya87/cafesito-app.git`. Se actualizó el remote con `git remote set-url origin https://github.com/rmoya87/cafesito-app.git` para que push/pull usen la nueva URL.
+
+---
+
+---
+
+## 11. Registro completo: paridad Web/Android y mejoras (mar 2026)
+
+**Documento de referencia:** [`REGISTRO_CAMBIOS_PARIDAD_Y_MEJORAS_2026-03.md`](REGISTRO_CAMBIOS_PARIDAD_Y_MEJORAS_2026-03.md).
+
+Resumen de lo documentado allí (para futuras modificaciones y mejoras):
+
+| Área | Cambios principales |
+|------|---------------------|
+| **Actividad de perfil** | Homogeneización Web/Android: resolución de nombres de café (`getCoffeeById`/`resolveCoffeeName`), inclusión de perfiles sensoriales en ADN, tiempo relativo (MIN/H/D), cards (opinión, primera vez, lista) con mismo texto y estilo, actividad de seguidos en mi perfil. Combine de 6 flujos en ViewModel con `ProfileCombineState`. |
+| **ADN / radar** | Perfiles sensoriales del usuario en el cálculo; filtrado de muestras con todos los valores en 0; puntos visibles en vértices; fórmulas y escala 0–10 alineadas con web; modo noche. |
+| **Despensa** | Múltiples registros por café (UUID `id` en `pantry_items`); independencia respecto a borrado de diario/listas; stub de café si falta en caché; modal "Crea tu café" sin icono rayo; Android y WebApp por `pantryItemId`. |
+| **Listas** | Iconos list_alt, list_alt_add, list_alt_check; color activo verde eléctrico (#00E676). |
+| **Mi Diario** | Gráfica más alta y margen inferior para no cortar curva; eje X con día actual en negro/blanco; "primera vez" solo con 1 entrada por café. |
+| **Elaboración WebApp** | Café no obligatorio para continuar; resultado opcional al guardar; modo noche; dosis no automática por tamaño. |
+| **Auth / rendimiento** | Manejo de sesión sin refresh token (sin forzar re-login); Timeline refresh en `Dispatchers.IO`. |
+| **Supabase** | `pantry_items.sql` (id UUID), documentos RLS y troubleshooting cafés, nota de independencia pantry. |
+
+En el documento enlazado se detallan archivos tocados, nombres de funciones y referencias a SQL/docs.
 
 ---
 

@@ -20,6 +20,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -49,9 +50,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -74,6 +79,7 @@ import androidx.compose.ui.platform.LocalDensity
 import coil.compose.AsyncImage
 import com.cafesito.app.R
 import java.util.Calendar
+import com.cafesito.app.data.Coffee
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.CommentWithAuthor
 import com.cafesito.app.data.DiaryEntryEntity
@@ -85,12 +91,19 @@ import com.cafesito.app.ui.brewlab.BrewLabViewModel
 import com.cafesito.app.ui.brewlab.BrewMethod
 import com.cafesito.app.ui.brewlab.BrewPhaseInfo
 import com.cafesito.app.ui.diary.DiaryAnalytics
+import com.cafesito.app.ui.diary.DiaryBaristaStats
+import com.cafesito.app.ui.diary.DiaryConsumptionStats
+import com.cafesito.app.ui.diary.DiaryHabitStats
 import com.cafesito.app.ui.diary.DiaryPeriod
+import com.cafesito.app.ui.diary.TriedCoffeeItem
 import com.cafesito.shared.domain.diary.DiaryAnalyticsTargets
 import com.cafesito.shared.domain.diary.DiaryPeriod as SharedDiaryPeriod
 import com.cafesito.app.ui.profile.ProfileUiState
 import com.cafesito.app.ui.profile.ProfileViewModel
 import com.cafesito.app.ui.theme.*
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.ceil
+import kotlin.math.roundToInt
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
 import kotlinx.coroutines.launch
@@ -111,8 +124,8 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
     PremiumCard(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("CAFEÍNA ESTIMADA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
@@ -141,15 +154,9 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(6.dp))
             ChartPremiumSection(analytics)
-            Spacer(Modifier.height(24.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MetricBoxPremium("Media", "${analytics.avgCaffeineLast30} mg", Icons.Default.Insights, Modifier.weight(1f))
-                MetricBoxPremium("Tazas", "${analytics.cupsCount}", Icons.Filled.Coffee, Modifier.weight(1f))
-                MetricBoxPremium("Progreso", "${analytics.hydrationProgressPct}%", Icons.Default.WaterDrop, Modifier.weight(1f))
-            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -195,6 +202,189 @@ fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: 
 }
 
 @Composable
+fun DiaryHabitCard(stats: DiaryHabitStats) {
+    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+            DiaryStatsRow("Tazas", stats.avgCups, showTopDivider = false)
+            DiaryStatsRow("Tamaño tazas", stats.mostSize)
+            DiaryStatsRow("Método", stats.mostMethod)
+            DiaryStatsRow("Día cafetero", stats.busiestDay)
+        }
+    }
+}
+
+@Composable
+fun DiaryConsumptionCard(stats: DiaryConsumptionStats) {
+    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+            DiaryStatsRow("Momento", "Mañana ${stats.momentPctMorning}% · Tarde ${stats.momentPctAfternoon}% · Noche ${stats.momentPctEvening}%", showTopDivider = false, valueBelowTitle = true)
+            DiaryStatsRow("Cafeína", "${stats.avgCaffeine} mg")
+            DiaryStatsRow("Dosis", "${stats.avgDose} g")
+            DiaryStatsRow("Formato", stats.mostFormat)
+            DiaryStatsRow("Previsión despensa", stats.pantryDaysLeft?.let { "~$it días" } ?: "—")
+        }
+    }
+}
+
+@Composable
+private fun DiaryStatsRow(label: String, value: String, showTopDivider: Boolean = true, valueBelowTitle: Boolean = false) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (showTopDivider) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.background,
+                thickness = 1.dp,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        if (valueBelowTitle) {
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.End
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DiaryBaristaCard(
+    stats: DiaryBaristaStats,
+    onCafesProbadosClick: () -> Unit
+) {
+    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onCafesProbadosClick)
+                    .padding(vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Cafés probados",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${stats.distinctCoffees}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                }
+            }
+            DiaryStatsRow("Tostadores probados", "${stats.distinctRoasters}")
+            DiaryStatsRow("Origen favorito", stats.favoriteOrigin)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BaristaCoffeesListSheet(
+    coffees: List<TriedCoffeeItem>,
+    onDismiss: () -> Unit
+) {
+    val dateFormat = remember { SimpleDateFormat("d MMM yyyy", Locale.forLanguageTag("es-ES")) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+    ) {
+        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+            Text(
+                text = "Cafés probados",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(coffees) { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (item.coffee.imageUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = item.coffee.imageUrl,
+                                contentDescription = item.coffee.nombre,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Coffee, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = item.coffee.nombre.toCoffeeNameFormat(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Primera vez: ${dateFormat.format(Date(item.firstTriedMs))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun PantryPremiumCard(
     item: PantryItemWithDetails,
     onClick: (String) -> Unit,
@@ -229,7 +419,7 @@ fun PantryPremiumCard(
                             .size(28.dp)
                             .clip(CircleShape)
                             .background(optionsBgColor, CircleShape)
-                            .clickable { onOptionsClick(item.coffee.id) },
+                            .clickable { onOptionsClick(item.pantryItem.id) },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = optionsIconTint, modifier = Modifier.size(18.dp))
@@ -351,7 +541,7 @@ fun AddEntryBottomSheet(
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold
             )
-            ModalMenuOption(title = "Agua", icon = Icons.Default.WaterDrop, color = quickActionIconColor, onClick = onAddWater)
+            ModalMenuOption(title = "Agua", iconPainter = painterResource(id = R.drawable.agua), color = quickActionIconColor, onClick = onAddWater)
             ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = quickActionIconColor, onClick = onAddCoffee)
             ModalMenuOption(
                 title = "Añadir a Despensa",
@@ -613,9 +803,20 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
     }
 }
 
+// Gráfico: ancho completo, curvas suaves (Catmull-Rom); alto ampliado y margen interno para no cortar líneas ni etiquetas
+private const val CHART_GRACE_PCT = 1.08f
+private val CHART_MIN_HEIGHT_DP = 320.dp   // altura total de la sección (gráfica + ejes)
+private val CHART_CANVAS_HEIGHT_DP = 280.dp // altura del área de dibujo (más alta, con márgenes arriba/abajo)
+private val CHART_PADDING_TOP_DP = 20.dp   // margen exterior superior
+private val CHART_PADDING_BOTTOM_DP = 18.dp // margen exterior inferior
+private val CHART_INTERNAL_TOP_DP = 28.dp  // espacio interno arriba para etiquetas (evita que se corten)
+private val CHART_INTERNAL_BOTTOM_DP = 28.dp // espacio interno abajo para que la curva Catmull-Rom no se corte en 0
+private val LABEL_OFFSET_ABOVE_PX = 42
+private val CAFFEINE_BROWN = Color(0xFF6F4E37)
+private val WATER_BLUE = Color(0xFF2196F3)
+
 @Composable
 fun ChartPremiumSection(analytics: DiaryAnalytics) {
-    val scrollState = rememberScrollState()
     val density = LocalDensity.current
     val sharedPeriod = remember(analytics.period) {
         when (analytics.period) {
@@ -637,13 +838,12 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
     }
     val chartMaxCaffeineRelative = remember(chartMaxCaffeine, caffeineTargetPerSlot) {
         val adjustedTarget = (caffeineTargetPerSlot * 0.6f).toInt().coerceAtLeast(1)
-        maxOf(chartMaxCaffeine, adjustedTarget)
+        ceil(maxOf(chartMaxCaffeine, adjustedTarget) * CHART_GRACE_PCT).toInt()
     }
     val chartMaxWater = remember(analytics.chartData) {
-        (analytics.chartData.maxOfOrNull { entry -> entry.water } ?: 0).coerceAtLeast(1)
+        val raw = (analytics.chartData.maxOfOrNull { entry -> entry.water } ?: 0).coerceAtLeast(1)
+        ceil(raw * CHART_GRACE_PCT).toInt()
     }
-    val caffeineBrown = LocalCaramelAccent.current
-    val waterElectricBlue = WaterBlue
 
     val currentSlotIndex = remember(analytics.period) {
         val cal = Calendar.getInstance()
@@ -654,104 +854,212 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val viewportPx = with(density) { maxWidth.roundToPx() }
-        val columnPx = with(density) { (56.dp + 12.dp).roundToPx() }
-        LaunchedEffect(analytics.chartData, viewportPx, scrollState.maxValue) {
-            if (scrollState.maxValue <= 0 || viewportPx <= 0 || analytics.chartData.isEmpty()) return@LaunchedEffect
-            val idx = currentSlotIndex.coerceIn(0, analytics.chartData.size - 1)
-            val targetScroll = (idx * columnPx) - (viewportPx / 2) + (columnPx / 2)
-            scrollState.animateScrollTo(targetScroll.coerceIn(0, scrollState.maxValue))
+    val isMonthPeriod = analytics.period == DiaryPeriod.MES
+    val monthChartWidthDp = (analytics.chartData.size.coerceAtLeast(1) * 40).dp
+    val monthScrollState = rememberScrollState()
+
+    val chartConstraintsModifier = if (isMonthPeriod) Modifier.width(monthChartWidthDp) else Modifier.fillMaxWidth()
+    val chartWrapperModifier = if (isMonthPeriod) Modifier.fillMaxWidth().horizontalScroll(monthScrollState) else Modifier.fillMaxWidth()
+
+    Box(modifier = chartWrapperModifier) {
+        BoxWithConstraints(modifier = chartConstraintsModifier) {
+        val viewportPx = with(density) { maxWidth.roundToPx() }.coerceAtLeast(1)
+        val chartColWidthPx = viewportPx / analytics.chartData.size.coerceAtLeast(1)
+        val chartHeightPx = with(density) { (CHART_CANVAS_HEIGHT_DP - CHART_PADDING_TOP_DP - CHART_PADDING_BOTTOM_DP).roundToPx() }.coerceAtLeast(1)
+        val chartTopPaddingPx = with(density) { CHART_INTERNAL_TOP_DP.roundToPx().toFloat() }
+        val chartInternalBottomPx = with(density) { CHART_INTERNAL_BOTTOM_DP.roundToPx().toFloat() }
+        val chartDrawHeight = (chartHeightPx - chartTopPaddingPx - chartInternalBottomPx).coerceAtLeast(1f)
+        val yBottomPx = chartTopPaddingPx + chartDrawHeight
+
+        fun smoothSeries(values: List<Int>): List<Int> {
+            if (values.isEmpty()) return values
+            if (values.size <= 2) return values
+            val out = mutableListOf(values[0])
+            val k = 3
+            for (i in 1 until values.size - 1) {
+                val start = (i - k).coerceAtLeast(0)
+                val end = (i + k).coerceAtMost(values.size - 1)
+                val sum = (start..end).sumOf { values[it] }
+                val count = end - start + 1
+                out.add(sum / count)
+            }
+            out.add(values[values.size - 1])
+            return out
         }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .horizontalScroll(scrollState),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            analytics.chartData.forEachIndexed { index, entry ->
-            val isCurrent = index == currentSlotIndex
-            val caffeineHeight = (entry.caffeine.toFloat() / chartMaxCaffeineRelative.toFloat()).coerceIn(0.05f, 1f)
-            val waterHeight = (entry.water.toFloat() / chartMaxWater.toFloat()).coerceIn(0.05f, 1f)
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .width(56.dp)
-                    .then(if (isCurrent) Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
-            ) {
-                Row(
-                    modifier = Modifier.height(100.dp),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(26.dp), verticalArrangement = Arrangement.Bottom) {
-                        if (entry.caffeine > 0) {
-                            Text(
-                                text = "${entry.caffeine}",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = caffeineBrown,
-                                maxLines = 1,
-                                modifier = Modifier.fillMaxWidth(1f),
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.height(2.dp))
-                        }
-                        Box(Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(caffeineHeight)
-                            .clip(CircleShape)
-                            .background(caffeineBrown.copy(alpha = if (entry.caffeine > 0) 1f else 0.35f)))
-                    }
-                    Spacer(Modifier.width(4.dp))
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(26.dp), verticalArrangement = Arrangement.Bottom) {
-                        if (entry.water > 0) {
-                            Text(
-                                text = "${entry.water}",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = waterElectricBlue,
-                                maxLines = 1,
-                                modifier = Modifier.fillMaxWidth(1f),
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.height(2.dp))
-                        }
-                        Box(Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(waterHeight)
-                            .clip(CircleShape)
-                            .background(waterElectricBlue.copy(alpha = if (entry.water > 0) 1f else 0.35f)))
-                    }
+        fun buildSmoothPathCatmullRom(values: List<Int>, maxVal: Int): Path {
+            val path = Path()
+            if (values.isEmpty() || maxVal <= 0) return path
+            val points = values.mapIndexed { i, v ->
+                val x = i * chartColWidthPx + chartColWidthPx / 2f
+                val y = if (v == 0) yBottomPx else {
+                    val norm = (v.toFloat() / maxVal).coerceIn(0f, 1f)
+                    chartTopPaddingPx + chartDrawHeight * (1f - norm)
                 }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = if (isCurrent) "${entry.label} · Hoy" else entry.label,
-                    fontSize = 9.sp,
-                    color = if (isCurrent) caffeineBrown else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold
-                )
+                Pair(x, y)
+            }
+            if (points.size < 2) return path
+            val tension = 0.25f
+            path.moveTo(points[0].first, points[0].second)
+            for (i in 0 until points.size - 1) {
+                val p0 = points[(i - 1).coerceAtLeast(0)]
+                val p1 = points[i]
+                val p2 = points[i + 1]
+                val p3 = points[(i + 2).coerceAtMost(points.size - 1)]
+                val c1x = p1.first + (p2.first - p0.first) * tension
+                val c1y = p1.second + (p2.second - p0.second) * tension
+                val c2x = p2.first - (p3.first - p1.first) * tension
+                val c2y = p2.second - (p3.second - p1.second) * tension
+                path.cubicTo(c1x, c1y, c2x, c2y, p2.first, p2.second)
+            }
+            return path
+        }
+        fun labelPoints(values: List<Int>, maxVal: Int): List<Pair<Float, Float>> {
+            if (values.isEmpty() || maxVal <= 0) return emptyList()
+            return values.mapIndexed { i, v ->
+                val x = i * chartColWidthPx + chartColWidthPx / 2f
+                val y = if (v == 0) yBottomPx else {
+                    val norm = (v.toFloat() / maxVal).coerceIn(0f, 1f)
+                    chartTopPaddingPx + chartDrawHeight * (1f - norm)
+                }
+                Pair(x, y)
             }
         }
+
+        val waterPath = remember(analytics.chartData, chartMaxWater, chartColWidthPx) {
+            buildSmoothPathCatmullRom(analytics.chartData.map { it.water }, chartMaxWater)
         }
+        val caffeinePath = remember(analytics.chartData, chartMaxCaffeineRelative, chartColWidthPx) {
+            buildSmoothPathCatmullRom(analytics.chartData.map { it.caffeine }, chartMaxCaffeineRelative)
+        }
+        val waterLabelPoints = remember(analytics.chartData, chartMaxWater, chartColWidthPx) {
+            labelPoints(analytics.chartData.map { it.water }, chartMaxWater)
+        }
+        val caffeineLabelPoints = remember(analytics.chartData, chartMaxCaffeineRelative, chartColWidthPx) {
+            labelPoints(analytics.chartData.map { it.caffeine }, chartMaxCaffeineRelative)
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(CHART_MIN_HEIGHT_DP)
+        ) {
+            val chartVisible = remember(analytics.chartData) { mutableStateOf(false) }
+            val isFirstAnimation = remember { mutableStateOf(true) }
+            LaunchedEffect(analytics.chartData) {
+                chartVisible.value = false
+                kotlinx.coroutines.delay(50)
+                chartVisible.value = true
+            }
+            val chartProgress by animateFloatAsState(
+                targetValue = if (chartVisible.value) 1f else 0f,
+                animationSpec = tween(
+                    durationMillis = if (isFirstAnimation.value) 1500 else 600,
+                    easing = EaseInOutCubic
+                ),
+                label = "chartAlpha"
+            )
+            LaunchedEffect(chartProgress) {
+                if (chartProgress >= 0.99f) isFirstAnimation.value = false
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CHART_CANVAS_HEIGHT_DP)
+                    .padding(top = CHART_PADDING_TOP_DP, bottom = CHART_PADDING_BOTTOM_DP)
+                    .drawWithContent {
+                        clipRect(left = 0f, top = 0f, right = size.width * chartProgress, bottom = size.height) {
+                            this@drawWithContent.drawContent()
+                        }
+                    }
+            ) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val strokeWidth = 2.5.dp.toPx()
+                    drawPath(
+                        path = waterPath,
+                        color = WATER_BLUE,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    )
+                    drawPath(
+                        path = caffeinePath,
+                        color = CAFFEINE_BROWN,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    )
+                }
+                Box(Modifier.fillMaxSize()) {
+                    analytics.chartData.forEachIndexed { index, entry ->
+                        if (entry.water > 0 && index < waterLabelPoints.size) {
+                            val (xPx, yPx) = waterLabelPoints[index]
+                            Text(
+                                text = entry.water.toString(),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = WATER_BLUE,
+                                modifier = Modifier
+                                    .offset { IntOffset(xPx.roundToInt() - 6, (yPx - LABEL_OFFSET_ABOVE_PX - 22).roundToInt()) }
+                                    .align(Alignment.TopStart)
+                            )
+                        }
+                        if (entry.caffeine > 0 && index < caffeineLabelPoints.size) {
+                            val (xPx, yPx) = caffeineLabelPoints[index]
+                            Text(
+                                text = entry.caffeine.toString(),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CAFFEINE_BROWN,
+                                modifier = Modifier
+                                    .offset { IntOffset(xPx.roundToInt() - 6, (yPx - LABEL_OFFSET_ABOVE_PX - 38).roundToInt()) }
+                                    .align(Alignment.TopStart)
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            val isDarkMode = isSystemInDarkTheme()
+            val axisLabelGray = if (isDarkMode) Color(0xFF6F6760) else Color(0xFFB0A8A0)
+            val currentDayColor = if (isDarkMode) Color.White else Color.Black
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                analytics.chartData.forEachIndexed { index, entry ->
+                    val isCurrent = index == currentSlotIndex
+                    val showHoy = isCurrent && (analytics.period != DiaryPeriod.SEMANA || analytics.isCurrentWeek)
+                    Text(
+                        text = if (showHoy) "${entry.label} - Hoy" else entry.label,
+                        fontSize = 10.sp,
+                        color = if (isCurrent) currentDayColor else axisLabelGray,
+                        fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PeriodBottomSheet(selectedPeriod: DiaryPeriod, onDismiss: () -> Unit, onPeriodSelected: (DiaryPeriod) -> Unit) {
+fun PeriodBottomSheet(
+    selectedPeriod: DiaryPeriod,
+    selectedDateMs: Long,
+    canGoNextMonth: Boolean,
+    onDismiss: () -> Unit,
+    onPeriodSelected: (DiaryPeriod) -> Unit,
+    onPrevMonth: () -> Unit,
+    onNextMonth: () -> Unit
+) {
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
+        onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
             Text(
-                text = "SELECCIONAR PERIODO", 
-                style = MaterialTheme.typography.labelLarge, 
+                text = "SELECCIONAR PERIODO",
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 textAlign = TextAlign.Center,
@@ -759,6 +1067,11 @@ fun PeriodBottomSheet(selectedPeriod: DiaryPeriod, onDismiss: () -> Unit, onPeri
             )
             DiaryPeriod.values().forEach { period ->
                 val isSelected = period == selectedPeriod
+                val label = when (period) {
+                    DiaryPeriod.HOY -> "HOY"
+                    DiaryPeriod.SEMANA -> "SEMANA"
+                    DiaryPeriod.MES -> "MES"
+                }
                 Surface(
                     onClick = { onPeriodSelected(period); onDismiss() },
                     modifier = Modifier
@@ -769,11 +1082,39 @@ fun PeriodBottomSheet(selectedPeriod: DiaryPeriod, onDismiss: () -> Unit, onPeri
                     border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
-                        period.name,
+                        label,
                         modifier = Modifier.padding(16.dp),
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
+                }
+            }
+            if (selectedPeriod == DiaryPeriod.MES && selectedDateMs != 0L) {
+                val monthLabel = com.cafesito.app.ui.diary.formatMonthYear(selectedDateMs)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    IconButton(onClick = onPrevMonth) {
+                        Icon(Icons.Default.ChevronLeft, contentDescription = "Mes anterior")
+                    }
+                    Text(
+                        text = monthLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    if (canGoNextMonth) {
+                        IconButton(onClick = onNextMonth) {
+                            Icon(Icons.Default.ChevronRight, contentDescription = "Mes siguiente")
+                        }
+                    } else {
+                        Spacer(Modifier.size(48.dp))
+                    }
                 }
             }
         }

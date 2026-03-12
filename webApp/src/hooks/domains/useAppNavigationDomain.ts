@@ -11,6 +11,8 @@ export function useAppNavigationDomain({
   profileUsername,
   setProfileUsername,
   setProfileSubPanel,
+  setProfileListId,
+  profileListId,
   users,
   setActiveTab,
   activeUserUsername,
@@ -27,13 +29,15 @@ export function useAppNavigationDomain({
   setSearchMode: (value: "coffees" | "users") => void;
   profileUsername: string | null;
   setProfileUsername: (value: string | null) => void;
-  setProfileSubPanel: (value: "historial" | null) => void;
+  setProfileSubPanel: (value: ProfileSection) => void;
+  setProfileListId: (value: string | null) => void;
+  profileListId: string | null;
   users: UserRow[];
   setActiveTab: (value: TabId) => void;
   activeUserUsername: string | null;
   coffees: CoffeeRow[];
   setDetailCoffeeId: (value: string | null) => void;
-  setDetailHostTab: (value: "timeline" | "search" | "profile" | "diary" | null) => void;
+  setDetailHostTab: (value: "home" | "search" | "profile" | "diary" | null) => void;
   setShowCreateCoffeeComposer: (value: boolean) => void;
   setSearchSelectedCoffeeId: (value: string | null) => void;
   setSearchFocusCoffeeProfile: (value: boolean) => void;
@@ -48,6 +52,7 @@ export function useAppNavigationDomain({
         profileUserId?: number | null;
         profileUsername?: string | null;
         profileSection?: ProfileSection;
+        profileListId?: string | null;
         coffeeSlug?: string | null;
         replace?: boolean;
       }
@@ -63,29 +68,32 @@ export function useAppNavigationDomain({
 
       setActiveTab(tab);
       if (tab === "search") setSearchMode(nextSearchMode);
+      const nextProfileListId = options?.profileListId ?? (tab === "profile" ? profileListId : null);
       if (tab === "profile") {
         setProfileUsername(nextProfileUsername ?? null);
         setProfileSubPanel(nextProfileSection ?? null);
+        setProfileListId(nextProfileListId ?? null);
       }
 
-      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null, nextProfileSection ?? null);
+      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null, nextProfileSection ?? null, nextProfileListId);
       const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
       const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
       if (window.location.pathname === fullPath) return;
       const method = options?.replace ? "replaceState" : "pushState";
       window.history[method]({}, "", `${fullPath}${window.location.search}${window.location.hash}`);
     },
-    [isAuthenticated, onRequireAuth, profileUsername, searchMode, setActiveTab, setProfileUsername, setProfileSubPanel, setSearchMode, users]
+    [isAuthenticated, onRequireAuth, profileListId, profileUsername, searchMode, setActiveTab, setProfileListId, setProfileUsername, setProfileSubPanel, setSearchMode, users]
   );
 
   useEffect(() => {
     const onPopState = () => {
       const route = parseRoute(window.location.pathname);
-      const guardedTab = canNavigateToTab(route.tab, isAuthenticated, route.tab === "search" ? route.searchMode : undefined) ? route.tab : "timeline";
+      const guardedTab = canNavigateToTab(route.tab, isAuthenticated, route.tab === "search" ? route.searchMode : undefined) ? route.tab : "home";
       setActiveTab(guardedTab);
       setSearchMode(route.searchMode);
       setProfileUsername(route.profileUsername);
       setProfileSubPanel(route.profileSection ?? null);
+      setProfileListId((route as { profileListId?: string }).profileListId ?? null);
       if (guardedTab === "coffee") {
         setDetailHostTab(null);
         if (!route.coffeeSlug) {
@@ -123,7 +131,7 @@ export function useAppNavigationDomain({
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [coffees, isAuthenticated, setActiveTab, setDetailCoffeeId, setDetailHostTab, setProfileSubPanel, setProfileUsername, setSearchMode]);
+  }, [coffees, isAuthenticated, setActiveTab, setDetailCoffeeId, setDetailHostTab, setProfileListId, setProfileSubPanel, setProfileUsername, setSearchMode]);
 
   const handleNavClick = useCallback(
     (tabId: TabId) => {

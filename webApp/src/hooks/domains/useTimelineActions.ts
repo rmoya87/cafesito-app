@@ -1,13 +1,10 @@
 import { useCallback } from "react";
 import {
   addPostCoffeeTag,
-  createComment,
   createPost,
-  deleteComment,
   deletePost,
   toggleFollow,
   toggleLike,
-  updateComment,
   updatePost,
   uploadImageFile
 } from "../../data/supabaseApi";
@@ -23,9 +20,6 @@ export function useTimelineActions({
   newPostText,
   newPostImageFile,
   newPostCoffeeId,
-  commentDraft,
-  editingCommentId,
-  commentImageFile,
   setComments,
   setLikes,
   setFollows,
@@ -35,13 +29,6 @@ export function useTimelineActions({
   setTimelineActionBanner,
   setGlobalStatus,
   resetCreatePostComposer,
-  setEditingCommentId,
-  setCommentDraft,
-  setCommentImageFile,
-  setCommentImageName,
-  setCommentImagePreviewError,
-  setCommentImagePreviewUrl,
-  setCommentMenuId,
   reloadInitialData,
   navigateToTab,
   setSearchQuery
@@ -54,9 +41,6 @@ export function useTimelineActions({
   newPostText: string;
   newPostImageFile: File | null;
   newPostCoffeeId: string;
-  commentDraft: string;
-  editingCommentId: number | null;
-  commentImageFile: File | null;
   setComments: React.Dispatch<React.SetStateAction<CommentRow[]>>;
   setLikes: React.Dispatch<React.SetStateAction<LikeRow[]>>;
   setFollows: React.Dispatch<React.SetStateAction<FollowRow[]>>;
@@ -66,13 +50,6 @@ export function useTimelineActions({
   setTimelineActionBanner: (value: string | null) => void;
   setGlobalStatus: (value: string) => void;
   resetCreatePostComposer: () => void;
-  setEditingCommentId: (value: number | null) => void;
-  setCommentDraft: (value: string) => void;
-  setCommentImageFile: (value: File | null) => void;
-  setCommentImageName: (value: string) => void;
-  setCommentImagePreviewError: (value: boolean) => void;
-  setCommentImagePreviewUrl: (value: string) => void;
-  setCommentMenuId: (value: number | null) => void;
   reloadInitialData: () => Promise<void>;
   navigateToTab: (tab: TabId, options?: { searchMode?: "coffees" | "users"; profileUsername?: string | null }) => void;
   setSearchQuery: (value: string) => void;
@@ -98,99 +75,6 @@ export function useTimelineActions({
       }
     },
     [activeUser, likes, setGlobalStatus, setLikes, setTimelineActionBanner, setTimelineBusyMessage]
-  );
-
-  const handleAddComment = useCallback(
-    async (postId: string) => {
-      if (!activeUser) return;
-      const text = commentDraft.trim();
-      if (!text) return;
-      setTimelineBusyMessage("Enviando comentario...");
-      try {
-        const row = await createComment(postId, activeUser.id, text);
-        setComments((prev) => [row, ...prev]);
-        setCommentDraft("");
-        setCommentImageFile(null);
-        setCommentImageName("");
-        setCommentImagePreviewError(false);
-        setCommentImagePreviewUrl("");
-        setTimelineActionBanner("Comentario enviado");
-      } catch (error) {
-        setGlobalStatus(`Error comentario: ${(error as Error).message}`);
-      } finally {
-        setTimelineBusyMessage(null);
-      }
-    },
-    [
-      activeUser,
-      commentDraft,
-      commentImageFile,
-      setCommentDraft,
-      setCommentImageFile,
-      setCommentImageName,
-      setCommentImagePreviewError,
-      setCommentImagePreviewUrl,
-      setComments,
-      setGlobalStatus,
-      setTimelineActionBanner,
-      setTimelineBusyMessage
-    ]
-  );
-
-  const handleUpdateComment = useCallback(async () => {
-    if (!editingCommentId) return;
-    const text = commentDraft.trim();
-    if (!text) return;
-    setTimelineBusyMessage("Actualizando comentario...");
-    try {
-      await updateComment(editingCommentId, text);
-      setComments((prev) => prev.map((entry) => (entry.id === editingCommentId ? { ...entry, text } : entry)));
-      setEditingCommentId(null);
-      setCommentDraft("");
-      setCommentImageFile(null);
-      setCommentImageName("");
-      setCommentImagePreviewError(false);
-      setCommentImagePreviewUrl("");
-      setTimelineActionBanner("Comentario actualizado");
-    } catch (error) {
-      setGlobalStatus(`Error comentario: ${(error as Error).message}`);
-    } finally {
-      setTimelineBusyMessage(null);
-    }
-  }, [
-    commentDraft,
-    editingCommentId,
-    setCommentDraft,
-    setCommentImageFile,
-    setCommentImageName,
-    setCommentImagePreviewError,
-    setCommentImagePreviewUrl,
-    setComments,
-    setEditingCommentId,
-    setGlobalStatus,
-    setTimelineActionBanner,
-    setTimelineBusyMessage
-  ]);
-
-  const handleDeleteComment = useCallback(
-    async (commentId: number) => {
-      setTimelineBusyMessage("Eliminando comentario...");
-      try {
-        await deleteComment(commentId);
-        setComments((prev) => prev.filter((entry) => entry.id !== commentId));
-        setCommentMenuId(null);
-        if (editingCommentId === commentId) {
-          setEditingCommentId(null);
-          setCommentDraft("");
-        }
-        setTimelineActionBanner("Comentario eliminado");
-      } catch (error) {
-        setGlobalStatus(`Error comentario: ${(error as Error).message}`);
-      } finally {
-        setTimelineBusyMessage(null);
-      }
-    },
-    [editingCommentId, setCommentDraft, setCommentMenuId, setComments, setEditingCommentId, setGlobalStatus, setTimelineActionBanner, setTimelineBusyMessage]
   );
 
   const handleToggleFollow = useCallback(
@@ -315,9 +199,6 @@ export function useTimelineActions({
 
   return {
     handleToggleLike,
-    handleAddComment,
-    handleUpdateComment,
-    handleDeleteComment,
     handleToggleFollow,
     handleEditPost,
     handleDeletePost,

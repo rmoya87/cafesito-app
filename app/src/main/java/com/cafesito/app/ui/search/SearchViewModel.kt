@@ -46,15 +46,23 @@ class SearchViewModel @Inject constructor(
 
     init { refreshData() }
 
+    /**
+     * Sincroniza la lista de cafés desde Supabase y actualiza la caché local.
+     * Se ejecuta al abrir la pestaña Explorar y al hacer pull-to-refresh.
+     * Si un café recién añadido en Supabase no aparece, desliza hacia abajo para refrescar.
+     */
     fun refreshData() {
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
                 repository.syncCoffees()
                 repository.syncFavoritesFromRemote()
+            } catch (e: Exception) {
+                Log.e("SEARCH_VM", "Error al sincronizar desde Supabase: ${e.message}", e)
+            } finally {
                 repository.triggerRefresh()
-            } catch (e: Exception) { Log.e("SEARCH_VM", "Refresh error", e) }
-            finally { _isRefreshing.value = false }
+                _isRefreshing.value = false
+            }
         }
     }
 
@@ -64,7 +72,9 @@ class SearchViewModel @Inject constructor(
     private fun String?.toAtomizedList(): List<String> = 
         this?.split(",")?.map { it.trim().toTitleCase() }?.filter { it.isNotBlank() } ?: emptyList()
 
-    private val publicCoffees = repository.allCoffees.map { list -> list.filter { !it.coffee.isCustom } }
+    private val publicCoffees = repository.allCoffees
+        .onStart { emit(emptyList()) }
+        .map { list -> list.filter { !it.coffee.isCustom } }
 
     // ✅ OPTIMIZACIÓN: Añadir debounce de 300ms a la búsqueda
     @OptIn(kotlinx.coroutines.FlowPreview::class)
@@ -153,7 +163,7 @@ class SearchViewModel @Inject constructor(
         }
 
         val isSearching = q.isNotBlank() || origins.isNotEmpty() || roasts.isNotEmpty() || specialties.isNotEmpty() || formats.isNotEmpty() || rating > 0f
-        SearchUiState.Success(if (isSearching) filtered else filtered.take(limit), !isSearching) as SearchUiState
+        SearchUiState.Success(filtered, !isSearching) as SearchUiState
     }.catch { emit(SearchUiState.Error(it.message ?: "No se han podido cargar los datos.")) }
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SearchUiState.Loading)
 

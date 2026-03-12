@@ -19,7 +19,7 @@ export function useRouteCanonicalSync(isAuthenticated?: boolean) {
       return;
     }
     const route = parseRoute(pathname);
-    const routePath = buildRoute(route.tab, route.searchMode, route.profileUsername, route.coffeeSlug, route.profileSection);
+    const routePath = buildRoute(route.tab, route.searchMode, route.profileUsername, route.coffeeSlug, route.profileSection, (route as { profileListId?: string }).profileListId);
     const normalized = base === "/" ? routePath : `${base}${routePath}`;
     if (pathname !== normalized) {
       window.history.replaceState({}, "", `${normalized}${window.location.search}${window.location.hash}`);
@@ -30,7 +30,7 @@ export function useRouteCanonicalSync(isAuthenticated?: boolean) {
 export function useRouteGuardSync({
   isAuthenticated,
   onBlocked,
-  fallbackPath = "/timeline"
+  fallbackPath = "/home"
 }: {
   isAuthenticated: boolean;
   onBlocked: () => void;
@@ -54,7 +54,7 @@ export function useCoffeeRouteSync({
 }: {
   coffeeSlugToId: Map<string, string>;
   setDetailCoffeeId: (value: string | null) => void;
-  setDetailHostTab: (value: "timeline" | "search" | "profile" | null) => void;
+  setDetailHostTab: (value: "home" | "search" | "profile" | null) => void;
 }) {
   useEffect(() => {
     // Esperar a que haya catálogo cargado para resolver slug->id.

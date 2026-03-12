@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,12 +18,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.navigation.NavBackStackEntry
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.cafesito.app.data.PostWithDetails
+import com.cafesito.app.data.ProfileActivityItem
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.security.runWithBiometricReauth
 import com.cafesito.app.ui.components.*
@@ -39,23 +45,35 @@ fun ProfileScreen(
     onFollowersClick: (Int) -> Unit,
     onFollowingClick: (Int) -> Unit,
     onHistorialClick: () -> Unit,
+    onFavoritosListClick: (() -> Unit)? = null,
+    onOpenListClick: ((String, String) -> Unit)? = null,
+    onOpenUserListClick: ((Int, String) -> Unit)? = null,
+    onSearchUsersClick: (() -> Unit)? = null,
+    profileBackStackEntry: NavBackStackEntry? = null,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
-    val tabs = listOf("POSTS", "ADN", "FAVORITOS")
+    val profileActivityItems by viewModel.profileActivityItems.collectAsState()
+    val tabs = listOf("ACTIVIDAD", "ADN", "LISTAS")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        val tab = profileBackStackEntry?.savedStateHandle?.get<Int>("profile_return_tab")
+        if (tab != null) {
+            selectedTabIndex = tab
+            profileBackStackEntry.savedStateHandle.remove<Int>("profile_return_tab")
+        }
+    }
     val coroutineScope = rememberCoroutineScope()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
-    var showCommentSheetId by remember { mutableStateOf<String?>(null) }
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
     var showDeleteAccountConfirm by rememberSaveable { mutableStateOf(false) }
     var deletingAccount by rememberSaveable { mutableStateOf(false) }
     var showSensoryDetail by remember { mutableStateOf(false) }
+    var showCreateListSheet by rememberSaveable { mutableStateOf(false) }
 
-    var postToEdit by remember { mutableStateOf<PostWithDetails?>(null) }
     var itemToDelete by remember { mutableStateOf<Any?>(null) }
 
     var isRefreshing by remember { mutableStateOf(false) }
@@ -69,6 +87,13 @@ fun ProfileScreen(
             GlassyTopBar(
                 title = "PERFIL",
                 onBackClick = if ((uiState as? ProfileUiState.Success)?.isCurrentUser == false) onBackClick else null,
+                navigationContent = if ((uiState as? ProfileUiState.Success)?.isCurrentUser == true && onSearchUsersClick != null) {
+                    {
+                        IconButton(onClick = { onSearchUsersClick?.invoke() }) {
+                            Icon(Icons.Default.Search, contentDescription = "Buscar usuarios", tint = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                } else null,
                 scrollBehavior = scrollBehavior,
                 actions = {
                     val state = uiState as? ProfileUiState.Success
@@ -97,7 +122,7 @@ fun ProfileScreen(
             is ProfileUiState.Loading -> {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     item { ProfileHeaderShimmer() }
-                    items(3) { PostCardShimmer() }
+                    items(3) { ProfileActivityCardShimmer() }
                 }
             }
             is ProfileUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -157,7 +182,9 @@ fun ProfileScreen(
                             Spacer(Modifier.height(24.dp))
 
                             ProfileStatsRow(
-                                posts = state.posts.size, followers = state.followers, following = state.following,
+                                activityCount = profileActivityItems.size,
+                                followers = state.followers,
+                                following = state.following,
                                 onFollowersClick = { onFollowersClick(state.user.id) },
                                 onFollowingClick = { onFollowingClick(state.user.id) }
                             )
@@ -176,23 +203,45 @@ fun ProfileScreen(
 
                     when (selectedTabIndex) {
                         0 -> {
-                            val usersByUsername = state.allUsers.associateBy { it.username.lowercase() }
-                            if (state.posts.isEmpty()) {
-                                item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("Aún no hay publicaciones", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-                            } else {
-                                items(state.posts, key = { it.post.id }) { post ->
-                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                        PostCard(
-                                            details = post,
-                                            isLiked = post.likes.any { it.userId == (state.activeUser?.id ?: -1) },
-                                            onLikeClick = { viewModel.onToggleLike(post.post.id) },
-                                            onCommentClick = { showCommentSheetId = post.post.id },
-                                            onUserClick = { onUserClick(post.post.userId) },
-                                            onEditClick = { postToEdit = post },
-                                            onDeleteClick = { itemToDelete = post },
-                                            isOwnPost = state.isCurrentUser,
-                                            resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] }
+                            if (profileActivityItems.isEmpty()) {
+                                item {
+                                    Box(
+                                        Modifier.fillMaxWidth().padding(40.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = if (state.isCurrentUser) "Comienza a seguir a otras personas y descubre nuevos cafés" else "Sin actividad reciente",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
                                         )
+                                    }
+                                }
+                            } else {
+                                items(profileActivityItems, key = { item ->
+                                    when (item) {
+                                        is ProfileActivityItem.Review -> "review-${item.reviewInfo.review.id}"
+                                        is ProfileActivityItem.FirstTimeCoffee -> "first-${item.userId}-${item.coffeeId}"
+                                        is ProfileActivityItem.AddedToList -> "list-${item.userId}-${item.listId}-${item.coffeeId}"
+                                    }
+                                }) { item ->
+                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                                        when (val act = item) {
+                                            is ProfileActivityItem.Review -> ProfileActivityReviewCard(
+                                                reviewInfo = act.reviewInfo,
+                                                onCoffeeClick = { onCoffeeClick(act.reviewInfo.coffeeDetails.coffee.id) },
+                                                onDeleteClick = if (state.isCurrentUser) { { itemToDelete = act.reviewInfo } } else null,
+                                                isCurrentUser = state.isCurrentUser
+                                            )
+                                            is ProfileActivityItem.FirstTimeCoffee -> ProfileActivityFirstTimeCard(
+                                                item = act,
+                                                onCoffeeClick = { onCoffeeClick(act.coffeeId) }
+                                            )
+                                            is ProfileActivityItem.AddedToList -> ProfileActivityListCard(
+                                                item = act,
+                                                onCoffeeClick = { onCoffeeClick(act.coffeeId) },
+                                                onListClick = { onOpenUserListClick?.invoke(act.userId, act.listId) }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -201,11 +250,13 @@ fun ProfileScreen(
                             item {
                                 Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp)) {
                                     Box(Modifier.clickable { showSensoryDetail = true }) {
-                                        PremiumCard {
+                                        PremiumCard(
+                                            containerColor = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.surface
+                                        ) {
                                             Column(Modifier.padding(24.dp)) {
                                                 SensoryRadarChart(data = state.sensoryProfile, modifier = Modifier.fillMaxWidth().height(220.dp))
                                                 Spacer(Modifier.height(16.dp))
-                                                Text("Tus gustos basados en tus cafés favoritos y reseñas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                                                Text("Tus gustos basados en los cafés que consumes, tienes en listas o favoritos y has reseñado.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                                             }
                                         }
                                     }
@@ -213,16 +264,21 @@ fun ProfileScreen(
                             }
                         }
                         2 -> {
-                            if (state.favoriteCoffees.isEmpty()) {
-                                item { Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) { Text("No hay cafés favoritos", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-                            } else {
-                                items(state.favoriteCoffees, key = { it.coffee.id }) { coffee ->
-                                    Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                        SwipeableFavoriteItem(
-                                            coffeeDetails = coffee,
-                                            onRemoveFromFavorites = { viewModel.onToggleFavorite(coffee.coffee.id, false) },
-                                            onClick = { onCoffeeClick(coffee.coffee.id) }
-                                        )
+                            item {
+                                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    if (state.isCurrentUser) {
+                                        ListRowCreateList(onClick = { showCreateListSheet = true })
+                                        Spacer(Modifier.height(8.dp))
+                                    }
+                                    ListRowFavoritos(onClick = { onFavoritosListClick?.invoke() ?: Unit })
+                                    if (state.isCurrentUser) {
+                                        state.userLists.forEach { list ->
+                                            Spacer(Modifier.height(8.dp))
+                                            ListRowCustomList(
+                                                name = list.name,
+                                                onClick = { onOpenListClick?.invoke(list.id, list.name) ?: Unit }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -233,6 +289,16 @@ fun ProfileScreen(
                 // Modals
                 if (showSensoryDetail) {
                     SensoryDetailBottomSheet(profile = state.sensoryProfile, onDismiss = { showSensoryDetail = false })
+                }
+
+                if (showCreateListSheet) {
+                    CreateListBottomSheet(
+                        onDismiss = { showCreateListSheet = false },
+                        onCreate = { name, isPublic ->
+                            viewModel.createList(name, isPublic)
+                            showCreateListSheet = false
+                        }
+                    )
                 }
 
                 if (showSettingsSheet) {
@@ -271,52 +337,28 @@ fun ProfileScreen(
                 }
 
                 itemToDelete?.let { item ->
-                    val isPostDelete = item is PostWithDetails
-                    DeleteConfirmationDialog(
-                        onDismissRequest = { itemToDelete = null },
-                        title = if (isPostDelete) "Eliminar publicación" else "Borrar",
-                        text = if (isPostDelete) {
-                            "¿Estás seguro de eliminar esta publicación? Esta acción no se puede deshacer."
-                        } else {
-                            "Una vez borrado no se puede recuperar. ¿Estás seguro?"
-                        },
-                        onConfirm = {
-                            runWithBiometricReauth(
-                                context = context,
-                                title = "Acción sensible",
-                                subtitle = "Confirma para eliminar contenido",
-                                onAuthenticated = {
-                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                                    else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
-                                    itemToDelete = null
-                                },
-                                onFallback = {
-                                    if (item is PostWithDetails) viewModel.deletePost(item.post.id)
-                                    else if (item is UserReviewInfo) viewModel.deleteReview(item.coffeeDetails.coffee.id)
-                                    itemToDelete = null
-                                }
-                            )
-                        }
-                    )
-                }
-
-                postToEdit?.let { details ->
-                    EditPostBottomSheet(
-                        initialText = details.post.comment, initialImage = details.post.imageUrl,
-                        onDismiss = { postToEdit = null },
-                        onConfirm = { newText, newImageUrl ->
-                            viewModel.updatePost(details.post.id, newText, newImageUrl)
-                            postToEdit = null
-                        }
-                    )
-                }
-
-                showCommentSheetId?.let { id ->
-                    CommentsSheet(
-                        postId = id, onDismiss = { showCommentSheetId = null },
-                        onAddComment = { text -> viewModel.onAddComment(id, text) },
-                        onNavigateToProfile = { userId -> showCommentSheetId = null; onUserClick(userId) }
-                    )
+                    if (item is UserReviewInfo) {
+                        DeleteConfirmationDialog(
+                            onDismissRequest = { itemToDelete = null },
+                            title = "Eliminar reseña",
+                            text = "¿Estás seguro de eliminar esta reseña?",
+                            onConfirm = {
+                                runWithBiometricReauth(
+                                    context = context,
+                                    title = "Acción sensible",
+                                    subtitle = "Confirma para eliminar",
+                                    onAuthenticated = {
+                                        viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                                        itemToDelete = null
+                                    },
+                                    onFallback = {
+                                        viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                                        itemToDelete = null
+                                    }
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }

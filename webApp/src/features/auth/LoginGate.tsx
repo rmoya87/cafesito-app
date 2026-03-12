@@ -131,7 +131,7 @@ export function LoginGate({
               </article>
               <article className="login-feature-row">
                 <span className="login-feature-icon" aria-hidden="true">
-                  <UiIcon name="nav-science-filled" className="ui-icon" />
+                  <UiIcon name="nav-add-circle-filled" className="ui-icon" />
                 </span>
                 <div className="login-feature-copy">
                   <p className="login-feature-title">Elabora</p>

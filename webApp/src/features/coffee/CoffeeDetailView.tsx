@@ -2,9 +2,10 @@ import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { EMPTY } from "../../core/emptyErrorStrings";
 import { toRelativeMinutes } from "../../core/time";
-import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserRow } from "../../types";
+import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserListRow, UserRow } from "../../types";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
+import { CreateListSheet } from "../lists/CreateListSheet";
 export function CoffeeDetailView({
   coffee,
   reviews,
@@ -12,6 +13,7 @@ export function CoffeeDetailView({
   currentUserReview,
   avgRating,
   isFavorite,
+  isListActive,
   pantry,
   sensory,
   sensoryDraft,
@@ -35,7 +37,10 @@ export function CoffeeDetailView({
   isGuest,
   onRequireAuth,
   fullPage,
-  externalOpenStockSignal
+  externalOpenStockSignal,
+  userLists = [],
+  onCreateList,
+  onAddCoffeeToList
 }: {
   coffee: CoffeeRow;
   reviews: Array<CoffeeReviewRow & { user: UserRow | null }>;
@@ -43,6 +48,8 @@ export function CoffeeDetailView({
   currentUserReview: (CoffeeReviewRow & { user: UserRow | null }) | null;
   avgRating: number;
   isFavorite: boolean;
+  /** true si está en favoritos o en alguna lista creada (icono lista activo). */
+  isListActive?: boolean;
   pantry: PantryItemRow | null;
   sensory: { aroma: number; sabor: number; cuerpo: number; acidez: number; dulzura: number };
   sensoryDraft: { aroma: number; sabor: number; cuerpo: number; acidez: number; dulzura: number };
@@ -67,6 +74,9 @@ export function CoffeeDetailView({
   onRequireAuth: () => void;
   fullPage: boolean;
   externalOpenStockSignal: number;
+  userLists?: UserListRow[];
+  onCreateList?: (name: string, isPublic: boolean) => Promise<void>;
+  onAddCoffeeToList?: (listId: string) => Promise<void>;
 }) {
   const [showSensorySheet, setShowSensorySheet] = useState(false);
   const [showStockSheet, setShowStockSheet] = useState(false);
@@ -80,6 +90,8 @@ export function CoffeeDetailView({
   const [deletingReview, setDeletingReview] = useState(false);
   const [currentUserAvatarFailed, setCurrentUserAvatarFailed] = useState(false);
   const [failedReviewAvatarUrls, setFailedReviewAvatarUrls] = useState<Set<string>>(new Set());
+  const [showAddToListModal, setShowAddToListModal] = useState(false);
+  const [showCreateListInModal, setShowCreateListInModal] = useState(false);
 
   useEffect(() => {
     setCurrentUserAvatarFailed(false);
@@ -151,11 +163,17 @@ export function CoffeeDetailView({
           <div className="coffee-detail-topbar-actions">
             <IconButton
               tone="topbar"
-              className={`coffee-detail-topbar-icon ${isFavorite ? "is-active" : ""}`.trim()}
-              aria-label={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
-              onClick={onToggleFavorite}
+              className={`coffee-detail-topbar-icon coffee-topbar-favorite ${(isListActive ?? isFavorite) ? "is-active" : ""}`.trim()}
+              aria-label={(isListActive ?? isFavorite) ? "Quitar de listas" : "Añadir a listas"}
+              onClick={() => {
+                if (isGuest) {
+                  onRequireAuth();
+                  return;
+                }
+                setShowAddToListModal(true);
+              }}
             >
-              <UiIcon name={isFavorite ? "favorite-filled" : "favorite"} className="ui-icon" />
+              <UiIcon name={(isListActive ?? isFavorite) ? "list-alt-check" : "list-alt-add"} className="ui-icon" />
             </IconButton>
             <IconButton
               tone="topbar"
@@ -809,6 +827,80 @@ export function CoffeeDetailView({
               </div>
             ) : null}
               </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {showAddToListModal && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay
+              className="profile-topbar-options-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Añadir a lista"
+              onDismiss={() => setShowAddToListModal(false)}
+              onClick={() => setShowAddToListModal(false)}
+            >
+              <SheetCard
+                className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-sheet-list">
+                  <Button
+                    variant="plain"
+                    className="diary-sheet-action diary-sheet-action-pantry"
+                    onClick={() => setShowCreateListInModal(true)}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">add</span>
+                    <span>Crear una lista</span>
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                  </Button>
+                  {userLists.map((list) => (
+                    <Button
+                      key={list.id}
+                      variant="plain"
+                      className="diary-sheet-action diary-sheet-action-pantry"
+                      onClick={() => {
+                        void (onAddCoffeeToList?.(list.id) ?? Promise.resolve()).then(() => setShowAddToListModal(false));
+                      }}
+                    >
+                      <UiIcon name="list-alt" className="ui-icon" />
+                      <span>{list.name}</span>
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                    </Button>
+                  ))}
+                  <Button
+                    variant="plain"
+                    className={`diary-sheet-action diary-sheet-action-pantry ${isFavorite ? "is-active" : ""}`.trim()}
+                    onClick={() => {
+                      onToggleFavorite();
+                      setShowAddToListModal(false);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">favorite</span>
+                    <span>Favoritos</span>
+                    {isFavorite ? (
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">check</span>
+                    ) : (
+                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                    )}
+                  </Button>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
+      {showCreateListInModal && showAddToListModal && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => setShowCreateListInModal(false)} onClick={() => setShowCreateListInModal(false)}>
+              <CreateListSheet
+                onDismiss={() => setShowCreateListInModal(false)}
+                onCreate={(name, isPublic) =>
+                  (onCreateList?.(name, isPublic) ?? Promise.resolve()).then(() => setShowCreateListInModal(false))
+                }
+              />
             </SheetOverlay>,
             document.body
           )

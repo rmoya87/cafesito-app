@@ -64,6 +64,7 @@ class UserRepository @Inject constructor(
             )
         }
         .distinctUntilChanged()
+        .onStart { emit(emptyMap()) }
         .flowOn(Dispatchers.IO)
 
     suspend fun signInWithSupabase(token: String): String? = withContext(Dispatchers.IO) {
@@ -180,7 +181,9 @@ class UserRepository @Inject constructor(
                 scope = externalScope,
                 connectivityObserver = connectivityObserver
             )
-        }.flowOn(Dispatchers.IO)
+        }
+        .onStart { emit(emptyList()) }
+        .flowOn(Dispatchers.IO)
 
     fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>> {
         val realtimeFlow = supabaseDataSource.subscribeToNotifications(userId)
@@ -323,7 +326,11 @@ class UserRepository @Inject constructor(
                 clearPendingFcmToken(pendingToken)
                 Log.d("UserRepository", "FCM token synced after auth refresh for userId=${currentUser.id}")
             } catch (retryError: Exception) {
-                Log.e("UserRepository", "updateFcmToken failed after auth refresh", retryError)
+                if (retryError is IllegalStateException && retryError.message?.contains("refresh token") == true) {
+                    Log.w("UserRepository", "updateFcmToken skipped: session has no refresh token (FCM sync will retry after next sign-in)")
+                } else {
+                    Log.e("UserRepository", "updateFcmToken failed after auth refresh", retryError)
+                }
             }
         } catch (e: Exception) {
             Log.e("UserRepository", "updateFcmToken failed", e)
@@ -399,6 +406,12 @@ class UserRepository @Inject constructor(
         triggerRefresh()
     }
 
+    /** IDs de usuarios que sigue el usuario dado; lee del DAO (estado actual tras sync). */
+    suspend fun getFollowingIdsForUser(userId: Int): Set<Int> {
+        val follows = userDao.getAllFollows().first()
+        return follows.filter { it.followerId == userId }.map { it.followedId }.toSet()
+    }
+
     private suspend fun getAllFollowsWithAuthRetry(): List<FollowEntity> {
         return try {
             supabaseDataSource.getAllFollows()
@@ -412,8 +425,12 @@ class UserRepository @Inject constructor(
     private suspend fun refreshAuthSession() {
         try {
             supabaseClient.auth.refreshCurrentSession()
+        } catch (e: IllegalStateException) {
+            // Sesión sin refresh token (p. ej. login con Google ID token); no se puede refrescar.
+            Log.w("UserRepository", "Auth refresh not possible: ${e.message}. Session may need re-login for some operations.", e)
+            throw e
         } catch (e: Exception) {
-            Log.e("UserRepository", "Auth refresh failed, forcing re-login", e)
+            Log.e("UserRepository", "Auth refresh failed", e)
             throw e
         }
     }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +41,11 @@ import com.cafesito.app.ui.theme.PureBlack
 import com.cafesito.app.ui.theme.PureWhite
 
 @Composable
-fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
+fun PantryPremiumMiniCard(
+    item: PantryItemWithDetails,
+    onClick: () -> Unit,
+    onOptionsClick: ((String) -> Unit)? = null
+) {
     val totalGrams = item.pantryItem.totalGrams.coerceAtLeast(0)
     val remainingGrams = item.pantryItem.gramsRemaining.coerceIn(0, totalGrams)
     val progress = if (totalGrams > 0) remainingGrams.toFloat() / totalGrams.toFloat() else 0f
@@ -50,14 +57,33 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
         shape = RoundedCornerShape(24.dp)
     ) {
         Column {
-            AsyncImage(
-                model = item.coffee.imageUrl,
-                contentDescription = item.coffee.nombre,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-            )
+            Box {
+                AsyncImage(
+                    model = item.coffee.imageUrl,
+                    contentDescription = item.coffee.nombre,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                )
+                if (onOptionsClick != null) {
+                    val isDark = isSystemInDarkTheme()
+                    val optionsIconTint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    val optionsBgColor = if (isDark) Color.Black else Color.White.copy(alpha = 0.82f)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(optionsBgColor, CircleShape)
+                            .clickable { onOptionsClick(item.pantryItem.id) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = optionsIconTint, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
             Column(Modifier.padding(12.dp)) {
                 Text(
                     text = item.coffee.nombre.toCoffeeNameFormat(),
