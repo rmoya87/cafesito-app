@@ -8,6 +8,7 @@ html {
   text-size-adjust: 100%;
   color-scheme: light dark;
   background: var(--screen-dark-background);
+  overflow-x: hidden;
 }
 
 html,
@@ -16,6 +17,11 @@ body,
   min-height: 100%;
   min-height: 100dvh;
   min-height: -webkit-fill-available;
+  max-width: 100%;
+}
+
+#root {
+  overflow-x: hidden;
 }
 
 body {
@@ -31,6 +37,7 @@ body {
   touch-action: manipulation;
   overscroll-behavior-x: none;
   overscroll-behavior-y: contain;
+  overflow-x: hidden;
 }
 
 /* PWA standalone: viewport estable y sin rebote de navegador */
