@@ -587,3 +587,20 @@ jobs:
               -H "content-type: application/json" \
               -d "${BODY}" > /dev/null
           fi
+
+      # Opcional: purgar caché CDN/proxy tras desplegar para que los usuarios vean la nueva versión de inmediato.
+      # Configura el secret CACHE_PURGE_URL con la URL de tu API de purge (ej. Cloudflare, KeyCDN, etc.).
+      - name: Purge cache after deploy (optional)
+        env:
+          CACHE_PURGE_URL: ${{ secrets.CACHE_PURGE_URL }}
+        run: |
+          if [[ -z "${CACHE_PURGE_URL}" ]]; then
+            echo "CACHE_PURGE_URL not set. Skipping cache purge."
+            exit 0
+          fi
+          echo "Purging cache..."
+          if curl -fsS -X POST "${CACHE_PURGE_URL}"; then
+            echo "Cache purge requested successfully."
+          else
+            echo "::warning::Cache purge request failed or URL returned non-2xx. Check CACHE_PURGE_URL and CDN docs."
+          fi

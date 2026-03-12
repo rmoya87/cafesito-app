@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const createQueryBuilder = () => {
   const builder: any = {
@@ -31,33 +31,40 @@ vi.mock("./supabase", () => ({
 import { App } from "./App";
 
 describe("App", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
   it("renderiza cabecera", async () => {
-    render(<App />);
+    const { unmount } = render(<App />);
     expect((await screen.findAllByText("CAFESITO")).length).toBeGreaterThan(0);
+    unmount();
   });
 
   it("renderiza navegacion principal", async () => {
-    render(<App />);
+    const { unmount } = render(<App />);
     expect((await screen.findAllByRole("button", { name: "Inicio" })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("button", { name: "Explorar" })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("button", { name: "Elabora" })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("button", { name: "Diario" })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("button", { name: "Perfil" })).length).toBeGreaterThan(0);
+    unmount();
   });
 
   it("muestra vista de diario al navegar a Diario (humo)", async () => {
-    render(<App />);
+    const { unmount } = render(<App />);
     const diarioButtons = await screen.findAllByRole("button", { name: "Diario" });
     expect(diarioButtons.length).toBeGreaterThan(0);
     fireEvent.click(diarioButtons[0]);
     await expect(screen.findByText(/mi diario|sin café o agua registrada/i)).resolves.toBeInTheDocument();
+    unmount();
   });
 
   it("muestra vista de explorar al navegar a Explorar (humo)", async () => {
-    render(<App />);
+    const { unmount } = render(<App />);
     const explorarButtons = await screen.findAllByRole("button", { name: "Explorar" });
     expect(explorarButtons.length).toBeGreaterThan(0);
     fireEvent.click(explorarButtons[0]);
     await expect(screen.findByRole("textbox", { name: "Busqueda" })).resolves.toBeInTheDocument();
+    unmount();
   });
 });
