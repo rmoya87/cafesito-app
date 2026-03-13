@@ -140,7 +140,7 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Bool
         context.resources.getIdentifier(method.iconResName, "drawable", context.packageName)
     }
     val cardColor = if (selected) LocalCaramelAccent.current else if (isDark) Color.Black else Color.White
-    val contentColor = if (selected) Color.White else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+    val contentColor = if (selected) if (isDark) Color.Black else Color.White else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
 
     Surface(
         modifier = modifier
@@ -303,6 +303,8 @@ fun BrewLabMainStepContent(
         val isDarkTipo = isSystemInDarkTheme()
         val unselectedChipBg = if (isDarkTipo) Color.Black else Color.White
         val unselectedChipContent = if (isDarkTipo) Color.White else MaterialTheme.colorScheme.onSurface
+        val selectedTextColorTipo = if (isDarkTipo) Color.Black else Color.White
+        val tipoChipWidth = 112.dp
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 24.dp),
@@ -310,12 +312,12 @@ fun BrewLabMainStepContent(
         ) {
             items(BREWLAB_TIPO_OPTIONS, key = { it.label }) { option ->
                     val isSelected = drinkType.equals(option.label, ignoreCase = true)
-                    val selectedTextColor = Color.White
                     Surface(
                         onClick = { onDrinkTypeChange(option.label) },
                         shape = RoundedCornerShape(16.dp),
                         color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
-                        border = if (isSelected) BorderStroke(0.dp, Color.Transparent) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        border = if (isSelected) BorderStroke(0.dp, Color.Transparent) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                        modifier = Modifier.width(tipoChipWidth)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -323,7 +325,7 @@ fun BrewLabMainStepContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
-                            val iconTint = if (isSelected) selectedTextColor else unselectedChipContent
+                            val iconTint = if (isSelected) selectedTextColorTipo else unselectedChipContent
                             if (resId != 0) {
                                 Image(
                                     painter = painterResource(id = resId),
@@ -337,8 +339,11 @@ fun BrewLabMainStepContent(
                             Text(
                                 text = option.label,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (isSelected) selectedTextColor else unselectedChipContent,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                color = if (isSelected) selectedTextColorTipo else unselectedChipContent,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                         }
                     }
@@ -359,6 +364,7 @@ fun BrewLabMainStepContent(
             val isDarkSize = isSystemInDarkTheme()
             val unselectedChipBgSize = if (isDarkSize) Color.Black else Color.White
             val unselectedChipContentSize = if (isDarkSize) Color.White else MaterialTheme.colorScheme.onSurface
+            val selectedTextColorSize = if (isDarkSize) Color.Black else Color.White
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 24.dp),
@@ -367,7 +373,7 @@ fun BrewLabMainStepContent(
                 items(BREWLAB_SIZE_OPTIONS, key = { it.label }) { option ->
                     val isSelected = selectedSizeLabel == option.label
                     val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBgSize
-                    val chipContent = if (isSelected) Color.White else unselectedChipContentSize
+                    val chipContent = if (isSelected) selectedTextColorSize else unselectedChipContentSize
                     Surface(
                         onClick = { onSizeSelected(option.label, option.defaultMl.toFloat()) },
                         shape = RoundedCornerShape(14.dp),

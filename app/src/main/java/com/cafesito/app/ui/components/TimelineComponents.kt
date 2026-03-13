@@ -1230,6 +1230,7 @@ fun DiaryEntryEditBottomSheet(
                 val brewMethodNames = remember { BREW_METHOD_NAMES + listOf(BREW_METHOD_OTROS, BREW_METHOD_AGUA) }
                 val unselectedChipBg = if (isDark) Color.Black else Color.White
                 val unselectedChipContent = if (isDark) Color.White else Color.Black
+                val selectedChipContent = if (isDark) Color.Black else Color.White
                 val chipIconSize = 30.dp
                 val chipMinWidth = editModalChipMinWidth
                 val chipMinHeight = 56.dp
@@ -1237,7 +1238,7 @@ fun DiaryEntryEditBottomSheet(
                     items(brewMethodNames, key = { it }) { methodName ->
                         val isSelected = selectedBrewMethod == methodName
                         val methodDrawable = diaryElaborationDrawableName(methodName)
-                        val iconTint = if (isSelected) Color.White else unselectedChipContent
+                        val iconTint = if (isSelected) selectedChipContent else unselectedChipContent
                         Surface(
                             onClick = { selectedBrewMethod = if (selectedBrewMethod == methodName) null else methodName },
                             shape = RoundedCornerShape(16.dp),
@@ -1278,7 +1279,7 @@ fun DiaryEntryEditBottomSheet(
                                 Text(
                                     text = methodName,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = if (isSelected) Color.White else unselectedChipContent,
+                                    color = if (isSelected) selectedChipContent else unselectedChipContent,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
@@ -1300,8 +1301,7 @@ fun DiaryEntryEditBottomSheet(
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 8.dp) {
                     items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
-                        val selectedTextColor = Color.White
-                        val iconTint = if (isSelected) selectedTextColor else unselectedChipContent
+                        val iconTint = if (isSelected) selectedChipContent else unselectedChipContent
                         Surface(
                             onClick = { selectedPreparation = option.label },
                             shape = RoundedCornerShape(16.dp),
@@ -1326,7 +1326,7 @@ fun DiaryEntryEditBottomSheet(
                                 Text(
                                     text = option.label,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = if (isSelected) selectedTextColor else unselectedChipContent,
+                                    color = if (isSelected) selectedChipContent else unselectedChipContent,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
@@ -1395,7 +1395,7 @@ fun DiaryEntryEditBottomSheet(
                     items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
                         val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBg
-                        val chipContent = if (isSelected) Color.White else unselectedChipContent
+                        val chipContent = if (isSelected) selectedChipContent else unselectedChipContent
                         Surface(
                             onClick = { selectedSize = option.label },
                             shape = RoundedCornerShape(14.dp),
@@ -1498,6 +1498,7 @@ fun DiaryEntryEditBottomSheet(
                 )
                 val unselectedChipBgResult = if (isDark) Color.Black else Color.White
                 val unselectedChipContentResult = if (isDark) Color.White else Color.Black
+                val selectedChipContentResult = if (isDark) Color.Black else Color.White
                 FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 8.dp) {
                     items(tasteOptionsWithIcons, key = { it.first }) { (taste, iconVector) ->
                         val isSelected = selectedBrewTaste == taste
@@ -1519,13 +1520,13 @@ fun DiaryEntryEditBottomSheet(
                                     imageVector = iconVector,
                                     contentDescription = taste,
                                     modifier = Modifier.size(20.dp),
-                                    tint = if (isSelected) Color.White else unselectedChipContentResult
+                                    tint = if (isSelected) selectedChipContentResult else unselectedChipContentResult
                                 )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = taste,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = if (isSelected) Color.White else unselectedChipContentResult,
+                                    color = if (isSelected) selectedChipContentResult else unselectedChipContentResult,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
                             }

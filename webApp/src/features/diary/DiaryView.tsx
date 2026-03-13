@@ -1372,22 +1372,31 @@ export function DiaryView({
                     <h4 className="diary-edit-entry-block-title">{DIARY_STR.TIPO}</h4>
                     <div
                       ref={editPrepScrollRef}
-                      className={`diary-edit-entry-presets is-coffee ${editChipsDragging ? "is-dragging" : ""} ${prepLeftFade ? "has-left-fade" : ""} ${prepRightFade ? "has-right-fade" : ""}`.trim()}
+                      className={`diary-edit-entry-presets diary-edit-entry-tipo-presets is-coffee ${editChipsDragging ? "is-dragging" : ""} ${prepLeftFade ? "has-left-fade" : ""} ${prepRightFade ? "has-right-fade" : ""}`.trim()}
                       onPointerDown={(event) => handleEditScrollPointerDown(event, "prep")}
                       onPointerMove={handleEditScrollPointerMove}
                       onPointerUp={handleEditScrollPointerEnd}
                       onPointerCancel={handleEditScrollPointerEnd}
                     >
-                      {editMethodOptions.map((method) => (
-                        <Button variant="chip"
-                          key={method.label}
-                          className={`chip-button period-chip diary-edit-entry-method-chip ${normalizeLookupText(editPreparationType) === normalizeLookupText(method.label) ? "is-active" : ""}`.trim()}
-                          onClick={() => setEditPreparationType(method.label)}
-                        >
-                          <img src={`/android-drawable/${method.drawable}`} alt="" aria-hidden="true" />
-                          <span>{method.label}</span>
-                        </Button>
-                      ))}
+                      {editMethodOptions.map((method) => {
+                        const isActive = normalizeLookupText(editPreparationType) === normalizeLookupText(method.label);
+                        return (
+                          <Button
+                            variant="plain"
+                            key={method.label}
+                            type="button"
+                            className={`brew-tipo-card diary-edit-entry-tipo-chip ${isActive ? "is-active" : ""}`.trim()}
+                            onClick={() => setEditPreparationType(method.label)}
+                          >
+                            <span className="brew-tipo-card-icon">
+                              <img src={`/android-drawable/${method.drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+                            </span>
+                            <span className="brew-tipo-card-copy">
+                              <span className="brew-tipo-card-label">{method.label}</span>
+                            </span>
+                          </Button>
+                        );
+                      })}
                     </div>
                   </section>
 
