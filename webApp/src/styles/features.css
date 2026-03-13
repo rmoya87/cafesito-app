@@ -1455,6 +1455,20 @@ html.theme-dark .timeline-elaboration-methods {
   background: var(--screen-dark-background);
 }
 
+/* Modo día: chips activos tipo y tamaño (elaboración + editar Mi diario) — texto blanco */
+@media (prefers-color-scheme: light) {
+  .brew-tipo-strip .brew-tipo-card.is-active .brew-tipo-card-label {
+    color: #ffffff !important;
+  }
+  .brew-tamaño-strip .brew-tamaño-card.is-active .brew-tamaño-card-label,
+  .brew-tamaño-strip .brew-tamaño-card.is-active .brew-tamaño-card-range {
+    color: #ffffff !important;
+  }
+  .diary-edit-entry-tipo-presets .brew-tipo-card.is-active .brew-tipo-card-label {
+    color: #ffffff !important;
+  }
+}
+
 /* Modo noche por sistema (prefers-color-scheme: dark): mismo estilo que html.theme-dark — fondos negros, activos marrón sin borde */
 @media (prefers-color-scheme: dark) {
   .timeline-elaboration-methods,
@@ -1466,38 +1480,48 @@ html.theme-dark .timeline-elaboration-methods {
     background: #000 !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
-  .brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
-    background: var(--caramel-accent) !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
   .timeline-elaboration-method-label,
-  .brew-select-step .timeline-elaboration-method-label,
-  .brew-tipo-strip .timeline-elaboration-method-label {
+  .brew-select-step .timeline-elaboration-method-label {
     color: #ffffff !important;
   }
   .brew-select-step .brew-select-section-title,
   .brew-select-step .section-title.brew-select-section-title {
     color: #ffffff !important;
   }
-  /* Selecciona café, temporizador, tamaño: fondo negro; tamaño activo marrón sin borde */
+  /* Selecciona café, temporizador, tipo y tamaño: fondo negro; activo marrón sin borde */
   .brew-select-step .brew-timer-row,
   .brew-select-step .brew-select-coffee-row,
+  .brew-select-step .brew-tipo-card,
   .brew-select-step .brew-tamaño-card {
     background: #000 !important;
     border-color: rgba(255, 255, 255, 0.15) !important;
     color: #ffffff !important;
   }
-  .brew-select-step .brew-tamaño-card.is-active {
-    background: var(--caramel-accent) !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
+  .brew-select-step .brew-tipo-card-label,
   .brew-select-step .brew-tamaño-card-label {
     color: #ffffff !important;
   }
   .brew-select-step .brew-tamaño-card-range {
     color: #bdb7b2 !important;
+  }
+  /* Elaboración: chips activos tipo y tamaño — texto negro en modo noche */
+  .brew-select-step .brew-tipo-card.is-active .brew-tipo-card-label,
+  .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-label,
+  .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-range {
+    color: #000 !important;
+  }
+  /* Tipo en editar (Mi diario): chip activo texto negro en modo noche */
+  .diary-edit-entry-tipo-presets .brew-tipo-card.is-active .brew-tipo-card-label {
+    color: #000 !important;
+  }
+  /* Tipo en editar (Mi diario): no activos en modo oscuro */
+  .diary-edit-entry-tipo-presets .brew-tipo-card {
+    background: #000 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+  }
+  .diary-edit-entry-tipo-presets .brew-tipo-card-label {
+    color: #ffffff !important;
   }
   .brew-select-step .brew-coffee-search,
   .brew-select-step .search-wide {
@@ -4907,7 +4931,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 }
 
 .diary-stats-section .diary-section-title {
-  margin: 0 0 8px;
+  margin: 20px 0 8px;
 }
 
 .diary-stats-card {
@@ -6235,6 +6259,18 @@ html.theme-dark .diary-day-header.is-today {
   min-height: 46px;
   border-radius: 16px;
   scroll-snap-align: start;
+}
+
+/* Tipo en editar: mismos estilos que elaboración (brew-tipo-card), ancho fijo y texto en dos líneas */
+.diary-edit-entry-tipo-presets .brew-tipo-card {
+  scroll-snap-align: start;
+}
+
+/* Activo: mismo estilo día y noche que método (fondo caramel, texto negro) */
+.diary-edit-entry-tipo-presets .brew-tipo-card.is-active {
+  background: var(--caramel-accent, #b8860b) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .diary-edit-entry-presets.is-coffee.is-dragging {
@@ -7910,7 +7946,7 @@ html.theme-dark .diary-day-header.is-today {
 
 .profile-head-copy {
   min-width: 0;
-  width: min(560px, calc(100% - 24px));
+  width: 100%;
   max-width: 100%;
   text-align: center;
   overflow-wrap: break-word;
@@ -7999,6 +8035,10 @@ html.theme-dark .diary-day-header.is-today {
   font-weight: 600;
   letter-spacing: 0.003em;
   line-height: 1.08;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .profile-bio {
@@ -9347,7 +9387,7 @@ html.theme-dark .content.content-profile {
 }
 
 .diary-section-title {
-  margin: 0 0 8px;
+  margin: 30px 0 8px;
   font-size: 0.86rem;
   line-height: 1.2;
   letter-spacing: 0.08em;
@@ -10218,8 +10258,11 @@ html.theme-dark .content.content-profile {
   box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.25);
 }
 
+/* Activo: mismo estilo día y noche (fondo caramel, texto negro) */
 .brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
-  box-shadow: 0 0 0 1px var(--caramel-accent, #b8860b);
+  background: var(--caramel-accent, #b8860b) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Parámetros editables (misma lógica que configuración) y consejos del barista debajo de Tu despensa.
@@ -10324,6 +10367,21 @@ html.theme-dark .content.content-profile {
   margin-bottom: var(--space-2);
 }
 
+/* Mismo layout que Método: ancho completo, gutter izq., derecha al borde */
+.brew-select-step .brew-tipo-strip-wrap,
+.brew-select-step .brew-tamaño-strip-wrap {
+  width: calc(100% + 2 * var(--app-shell-gutter));
+  max-width: none;
+  margin-left: calc(-1 * var(--app-shell-gutter));
+  margin-right: 0;
+  overflow: visible;
+}
+
+.brew-select-step .brew-tipo-strip-wrap .brew-select-section-title,
+.brew-select-step .brew-tamaño-strip-wrap .brew-select-section-title {
+  padding-left: var(--app-shell-gutter);
+}
+
 .brew-tipo-strip {
   display: flex;
   flex-direction: row;
@@ -10348,30 +10406,94 @@ html.theme-dark .content.content-profile {
   scrollbar-width: none;
 }
 
+.brew-select-step .brew-tipo-strip {
+  padding-left: var(--app-shell-gutter);
+  padding-right: 0;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.brew-select-step .brew-tamaño-strip {
+  padding-left: var(--app-shell-gutter);
+  padding-right: 0;
+  padding-bottom: 4px;
+}
+
 .brew-tipo-strip::-webkit-scrollbar,
 .brew-tamaño-strip::-webkit-scrollbar {
   display: none;
 }
 
-.brew-tipo-strip .timeline-elaboration-method-circle,
+.brew-tipo-strip .brew-tipo-card,
 .brew-tamaño-strip .brew-tamaño-card {
   flex-shrink: 0;
   scroll-snap-align: start;
 }
 
-/* En Tipo: etiqueta hasta dos líneas de texto */
-.brew-tipo-strip .timeline-elaboration-method-label {
+/* Tipo: mismo estilo que Tamaño (rectángulo, imagen izquierda, texto derecha); ancho fijo para todos los chips */
+.brew-tipo-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  width: 145px;
+  min-width: 145px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  background: var(--surface-1, #fff);
+  box-shadow: var(--surface-card-shadow);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.brew-tipo-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Activo: mismo estilo día y noche que método (fondo caramel, texto negro) */
+.brew-tipo-strip .brew-tipo-card.is-active {
+  background: var(--caramel-accent, #b8860b) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.brew-tipo-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brew-tipo-card-icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.brew-tipo-card-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brew-tipo-card-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-main);
+  text-align: left;
   white-space: normal;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-}
-
-/* Marcado seleccionado Tipo: mismo grosor (1px) que Tamaño y que no destaque más que el borde del círculo */
-.brew-tipo-strip .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
-  box-shadow: 0 0 0 1px var(--caramel-accent, #b8860b);
+  word-break: break-word;
+  min-width: 0;
 }
 
 /* Tamaño: mismo borde y sombra que «Selecciona café»; marcado seleccionado igual que Tipo (1px) */
@@ -10396,10 +10518,11 @@ html.theme-dark .content.content-profile {
   border-color: var(--border-strong);
 }
 
-/* Seleccionado: mismo grosor que el resto (1px borde + 1px anillo), especificidad para que no lo pise otro estilo */
+/* Activo: mismo estilo día y noche que método (fondo caramel, texto negro) */
 .brew-tamaño-strip .brew-tamaño-card.is-active {
-  border-color: var(--caramel-accent, #b8860b) !important;
-  box-shadow: var(--surface-card-shadow), 0 0 0 1px var(--caramel-accent, #b8860b) !important;
+  background: var(--caramel-accent, #b8860b) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .brew-tamaño-card-icon {

@@ -2,8 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { Button } from "./ui/components";
-import { getAppAssetBase } from "./core/appAssets";
 import { initGa4 } from "./core/ga4";
+import { registerSW } from "virtual:pwa-register";
 import { applyThemeToDocument, getThemeMode } from "./core/theme";
 import "@fontsource-variable/material-symbols-outlined/fill.css";
 import "./styles.css";
@@ -87,14 +87,19 @@ class RootErrorBoundary extends React.Component<
 }
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    const assetBase = getAppAssetBase();
-    const swPath = `${assetBase.replace(/\/$/, "")}/sw.js`;
-    const swUrl = swPath.startsWith("/") ? `${window.location.origin}${swPath}` : swPath;
-    navigator.serviceWorker.register(swUrl).catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error("[PWA] service worker registration failed", error);
-    });
+  registerSW({
+    immediate: true,
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return;
+      const checkUpdate = () => {
+        if (registration.installing || !navigator.onLine) return;
+        void registration.update();
+      };
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") checkUpdate();
+      });
+      setInterval(checkUpdate, 5 * 60 * 1000);
+    }
   });
 }
 

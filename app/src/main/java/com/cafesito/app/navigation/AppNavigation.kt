@@ -128,12 +128,19 @@ fun AppNavigation(
         onNotificationConsumed()
     }
 
-    LaunchedEffect(shortcutAction) {
-        when (shortcutAction) {
-            "SEARCH" -> navController.navigate("search")
-            "BREWLAB" -> navController.navigate("brewlab")
-            "DIARY" -> navController.navigate("diary")
-            else -> return@LaunchedEffect
+    // Shortcut: solo navegar al destino si el usuario está logado; si no, se queda en login
+    LaunchedEffect(shortcutAction, sessionState) {
+        val action = shortcutAction ?: return@LaunchedEffect
+        when (sessionState) {
+            is SessionState.Authenticated -> {
+                when (action) {
+                    "SEARCH" -> navController.navigate("search")
+                    "BREWLAB" -> navController.navigate("brewlab")
+                    "DIARY" -> navController.navigate("diary")
+                    else -> {}
+                }
+            }
+            else -> { /* no logado: no navegar, se muestra login por startRoute */ }
         }
         onShortcutConsumed()
     }

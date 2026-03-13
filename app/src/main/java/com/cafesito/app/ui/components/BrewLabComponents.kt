@@ -135,11 +135,12 @@ fun ChooseMethodStep(methods: List<BrewMethod>, onSelect: (BrewMethod) -> Unit) 
 @Composable
 fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Boolean = false, onClick: () -> Unit) {
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
     val resId = remember(method.iconResName) {
         context.resources.getIdentifier(method.iconResName, "drawable", context.packageName)
     }
-    val cardColor = if (selected) LocalCaramelAccent.current else Color.Black
-    val contentColor = if (selected) Color.White else Color.White
+    val cardColor = if (selected) LocalCaramelAccent.current else if (isDark) Color.Black else Color.White
+    val contentColor = if (selected) if (isDark) Color.Black else Color.White else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
 
     Surface(
         modifier = modifier
@@ -265,13 +266,14 @@ fun BrewLabMainStepContent(
         }
 
         Spacer(Modifier.height(20.dp))
+        val isDarkBrew = isSystemInDarkTheme()
         PremiumCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .clickable(onClick = onSelectCoffeeClick),
             shape = RoundedCornerShape(20.dp),
-            containerColor = Color.Black
+            containerColor = if (isDarkBrew) Color.Black else Color.White
         ) {
             Row(
                 Modifier.padding(20.dp),
@@ -281,7 +283,7 @@ fun BrewLabMainStepContent(
                     text = selectedCoffee?.nombre?.take(40) ?: "Selecciona café",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White,
+                    color = if (isDarkBrew) Color.White else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.primary)
@@ -298,8 +300,11 @@ fun BrewLabMainStepContent(
         )
         Spacer(Modifier.height(8.dp))
         val context = LocalContext.current
-        val unselectedChipBg = Color.Black
-        val unselectedChipContent = Color.White
+        val isDarkTipo = isSystemInDarkTheme()
+        val unselectedChipBg = if (isDarkTipo) Color.Black else Color.White
+        val unselectedChipContent = if (isDarkTipo) Color.White else MaterialTheme.colorScheme.onSurface
+        val selectedTextColorTipo = if (isDarkTipo) Color.Black else Color.White
+        val tipoChipWidth = 112.dp
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 24.dp),
@@ -307,12 +312,12 @@ fun BrewLabMainStepContent(
         ) {
             items(BREWLAB_TIPO_OPTIONS, key = { it.label }) { option ->
                     val isSelected = drinkType.equals(option.label, ignoreCase = true)
-                    val selectedTextColor = Color.White
                     Surface(
                         onClick = { onDrinkTypeChange(option.label) },
                         shape = RoundedCornerShape(16.dp),
                         color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
-                        border = if (isSelected) BorderStroke(0.dp, Color.Transparent) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        border = if (isSelected) BorderStroke(0.dp, Color.Transparent) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                        modifier = Modifier.width(tipoChipWidth)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -320,7 +325,7 @@ fun BrewLabMainStepContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
-                            val iconTint = if (isSelected) selectedTextColor else unselectedChipContent
+                            val iconTint = if (isSelected) selectedTextColorTipo else unselectedChipContent
                             if (resId != 0) {
                                 Image(
                                     painter = painterResource(id = resId),
@@ -334,8 +339,11 @@ fun BrewLabMainStepContent(
                             Text(
                                 text = option.label,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (isSelected) selectedTextColor else unselectedChipContent,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                color = if (isSelected) selectedTextColorTipo else unselectedChipContent,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                         }
                     }
@@ -353,8 +361,10 @@ fun BrewLabMainStepContent(
             )
             Spacer(Modifier.height(8.dp))
             val contextSize = LocalContext.current
-            val unselectedChipBgSize = Color.Black
-            val unselectedChipContentSize = Color.White
+            val isDarkSize = isSystemInDarkTheme()
+            val unselectedChipBgSize = if (isDarkSize) Color.Black else Color.White
+            val unselectedChipContentSize = if (isDarkSize) Color.White else MaterialTheme.colorScheme.onSurface
+            val selectedTextColorSize = if (isDarkSize) Color.Black else Color.White
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 24.dp),
@@ -363,7 +373,7 @@ fun BrewLabMainStepContent(
                 items(BREWLAB_SIZE_OPTIONS, key = { it.label }) { option ->
                     val isSelected = selectedSizeLabel == option.label
                     val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBgSize
-                    val chipContent = if (isSelected) Color.White else unselectedChipContentSize
+                    val chipContent = if (isSelected) selectedTextColorSize else unselectedChipContentSize
                     Surface(
                         onClick = { onSizeSelected(option.label, option.defaultMl.toFloat()) },
                         shape = RoundedCornerShape(14.dp),
@@ -418,12 +428,17 @@ fun BrewLabMainStepContent(
 
         if (selectedMethod != null && !selectedMethod.isOtros && !selectedMethod.isAgua) {
             Spacer(Modifier.height(16.dp))
+            val isDarkTimerCard = isSystemInDarkTheme()
+            val timerCardBg = if (isDarkTimerCard) Color.Black else Color.White
+            val timerCardText = if (isDarkTimerCard) Color.White else MaterialTheme.colorScheme.onSurface
+            val switchUncheckedTrack = if (isDarkTimerCard) Color(0xFF424242) else Color(0xFF9E9E9E)
+            val switchUncheckedThumb = if (isDarkTimerCard) Color(0xFFBDBDBD) else Color.White
             PremiumCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
                 shape = RoundedCornerShape(20.dp),
-                containerColor = Color.Black
+                containerColor = timerCardBg
             ) {
                 Row(
                     Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
@@ -433,10 +448,20 @@ fun BrewLabMainStepContent(
                         "Temporizador",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
-                        color = Color.White,
+                        color = timerCardText,
                         modifier = Modifier.weight(1f)
                     )
-                    Switch(checked = brewTimerEnabled, onCheckedChange = onBrewTimerEnabledChange)
+                    Switch(
+                        checked = brewTimerEnabled,
+                        onCheckedChange = onBrewTimerEnabledChange,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            uncheckedThumbColor = switchUncheckedThumb,
+                            uncheckedTrackColor = switchUncheckedTrack,
+                            uncheckedBorderColor = Color.Transparent
+                        )
+                    )
                 }
             }
         }
@@ -943,10 +968,13 @@ fun PreparationStep(
             verticalArrangement = Arrangement.Top
         ) {
             Column(modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+            val isDarkPrep = isSystemInDarkTheme()
+            val timerCardBg = if (isDarkPrep) Color.Black else Color.White
+            val timerCardText = if (isDarkPrep) Color.White else MaterialTheme.colorScheme.onSurface
             PremiumCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(32.dp),
-                containerColor = Color.Black
+                containerColor = timerCardBg
             ) {
                 Box {
                     WaterWaveAnimation(
@@ -994,7 +1022,7 @@ fun PreparationStep(
                             Text(
                                 text = "Siguiente: $nextLabel",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White
+                                color = timerCardText
                             )
 
                             Spacer(Modifier.height(24.dp))
@@ -1012,15 +1040,14 @@ fun PreparationStep(
                                     text = String.format("TOTAL %02d:%02d", totalSeconds / 60, totalSeconds % 60),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = timerCardText
                                 )
-                                val timeDisplayColor = Color.White
                                 @Suppress("DEPRECATION")
                                 Text(
                                     text = String.format("%02d:%02d", timerSeconds / 60, timerSeconds % 60),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = timeDisplayColor
+                                    color = timerCardText
                                 )
                             }
                         }

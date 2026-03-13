@@ -521,13 +521,15 @@ export function BrewLabView({
                       type="button"
                       role="option"
                       aria-selected={isSelected}
-                      className={`timeline-elaboration-method-circle brew-tipo-circle ${isSelected ? "is-active" : ""}`.trim()}
+                      className={`brew-tipo-card ${isSelected ? "is-active" : ""}`.trim()}
                       onClick={() => setBrewDrinkType?.(label)}
                     >
-                      <span className="timeline-elaboration-method-circle-inner">
+                      <span className="brew-tipo-card-icon">
                         <img src={`/android-drawable/${drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
                       </span>
-                      <span className="timeline-elaboration-method-label">{label}</span>
+                      <span className="brew-tipo-card-copy">
+                        <span className="brew-tipo-card-label">{label}</span>
+                      </span>
                     </Button>
                   );
                 })}

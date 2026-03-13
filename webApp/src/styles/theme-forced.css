@@ -350,18 +350,12 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle .timeline-
   background: #000 !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
-html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
-  background: var(--caramel-accent) !important;
-  border: none !important;
-  box-shadow: none !important;
-}
 html.theme-dark .timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
   fill: rgba(255, 255, 255, 0.85) !important;
   stroke: rgba(255, 255, 255, 0.5) !important;
   color: rgba(255, 255, 255, 0.85) !important;
 }
 html.theme-dark .brew-select-step .timeline-elaboration-method-label,
-html.theme-dark .brew-select-step .brew-tipo-strip .timeline-elaboration-method-label,
 html.theme-dark .timeline-elaboration-method-label {
   color: #ffffff !important;
 }
@@ -371,21 +365,36 @@ html.theme-dark .brew-select-step .section-title.brew-select-section-title {
 }
 html.theme-dark .brew-select-step .brew-timer-row,
 html.theme-dark .brew-select-step .brew-select-coffee-row,
+html.theme-dark .brew-select-step .brew-tipo-card,
 html.theme-dark .brew-select-step .brew-tamaño-card {
   background: #000 !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
   color: #ffffff !important;
 }
-html.theme-dark .brew-select-step .brew-tamaño-card.is-active {
-  background: var(--caramel-accent) !important;
-  border: none !important;
-  box-shadow: none !important;
-}
+html.theme-dark .brew-select-step .brew-tipo-card-label,
 html.theme-dark .brew-select-step .brew-tamaño-card-label {
   color: #ffffff !important;
 }
 html.theme-dark .brew-select-step .brew-tamaño-card-range {
   color: #bdb7b2 !important;
+}
+/* Elaboración: chips activos tipo y tamaño — texto negro en modo noche */
+html.theme-dark .brew-select-step .brew-tipo-card.is-active .brew-tipo-card-label,
+html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-label,
+html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-range {
+  color: #000 !important;
+}
+/* Modal edición Mi diario: chip activo tipo — texto negro en modo noche */
+html.theme-dark .diary-edit-entry-tipo-presets .brew-tipo-card.is-active .brew-tipo-card-label {
+  color: #000 !important;
+}
+html.theme-dark .diary-edit-entry-tipo-presets .brew-tipo-card {
+  background: #000 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+html.theme-dark .diary-edit-entry-tipo-presets .brew-tipo-card-label {
+  color: #ffffff !important;
 }
 html.theme-dark .brew-select-step .brew-coffee-search,
 html.theme-dark .brew-select-step .search-wide {

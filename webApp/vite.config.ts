@@ -68,6 +68,19 @@ export default defineConfig(({ mode }) => {
 
   const supabaseConfig = { url: supabaseUrl ?? "", anonKey: supabaseAnonKey ?? "" };
 
+  // Versión en formato YYYYMMDD-VV (año, mes, día, versión del día). En CI se define APP_VERSION; en local se genera la fecha con -01.
+  let appVersion =
+    process.env.APP_VERSION ||
+    process.env.VITE_APP_VERSION ||
+    (() => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}${m}${day}-01`;
+    })();
+  appVersion = String(appVersion).trim() || "0.0.0";
+
   const injectSupabaseConfig = {
     name: "inject-supabase-config",
     enforce: "pre" as const,
@@ -77,6 +90,11 @@ export default defineConfig(({ mode }) => {
           tag: "script",
           injectTo: "head-prepend",
           children: `window.__SUPABASE_CONFIG__=${JSON.stringify(supabaseConfig)};`
+        },
+        {
+          tag: "meta",
+          injectTo: "head-prepend",
+          attrs: { name: "app-version", content: appVersion }
         }
       ];
     }
@@ -99,7 +117,8 @@ export default defineConfig(({ mode }) => {
   },
   define: {
     __SUPABASE_URL__: JSON.stringify(supabaseConfig.url),
-    __SUPABASE_ANON_KEY__: JSON.stringify(supabaseConfig.anonKey)
+    __SUPABASE_ANON_KEY__: JSON.stringify(supabaseConfig.anonKey),
+    __APP_VERSION__: JSON.stringify(appVersion)
   },
   resolve: {
     extensions: [".tsx", ".ts", ".jsx", ".js", ".json"]
@@ -110,7 +129,7 @@ export default defineConfig(({ mode }) => {
     mkcert(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "script-defer",
+      injectRegister: null,
       includeAssets: ["favicon.svg", "logo.png", "splash.png", "splash-1170x2532.png", "splash-750x1294.png"],
       manifest: {
         name: "Cafesito",
