@@ -18,6 +18,13 @@ export const EMPTY = {
   BREW_NO_SUGGESTIONS: "No hay sugerencias disponibles.",
   OPINIONS: "No hay opiniones aún. ¡Sé el primero!",
   NOTIFICATIONS: "No tienes notificaciones",
+  /** Tab Actividad perfil: cuando es el perfil de otro usuario y no tiene actividad */
+  ACTIVITY_PROFILE_EMPTY_TITLE: "Sin actividad reciente",
+  ACTIVITY_PROFILE_EMPTY_SUB: "Este usuario aún no ha publicado reseñas ni añadido cafés.",
+  /** Tab Actividad perfil: cuando es tu perfil y no sigues a nadie / no hay actividad */
+  ACTIVITY_MINE_EMPTY_TITLE: "Tu actividad está vacía",
+  ACTIVITY_MINE_EMPTY_SUB: "Sigue a otras personas para ver aquí sus reseñas, favoritos y cafés probados.",
+  ACTIVITY_CTA_EXPLORE: "Explorar cafés",
 } as const;
 
 export const ERROR = {

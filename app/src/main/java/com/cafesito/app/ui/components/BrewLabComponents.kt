@@ -191,8 +191,17 @@ private val BREWLAB_TIPO_OPTIONS = listOf(
     BrewLabPrepOption("Latte", "latte"),
     BrewLabPrepOption("Macchiato", "macchiato"),
     BrewLabPrepOption("Moca", "moca"),
-    BrewLabPrepOption("Goteo", null),
-    BrewLabPrepOption("Otro", null)
+    BrewLabPrepOption("Vienés", "vienes"),
+    BrewLabPrepOption("Irlandés", "irlandes"),
+    BrewLabPrepOption("Frappuccino", "frappuccino"),
+    BrewLabPrepOption("Caramelo macchiato", "caramel_macchiato"),
+    BrewLabPrepOption("Corretto", "corretto"),
+    BrewLabPrepOption("Freddo", "freddo"),
+    BrewLabPrepOption("Latte macchiato", "latte_macchiato"),
+    BrewLabPrepOption("Leche con chocolate", "leche_con_chocolate"),
+    BrewLabPrepOption("Marroquí", "marroqui"),
+    BrewLabPrepOption("Romano", "romano"),
+    BrewLabPrepOption("Descafeinado", "descafeinado")
 )
 private val BREWLAB_SIZE_OPTIONS = listOf(
     BrewLabSizeOption("Espresso", "25–30 ml", 30, "taza_espresso"),
@@ -304,7 +313,8 @@ fun BrewLabMainStepContent(
         val unselectedChipBg = if (isDarkTipo) Color.Black else Color.White
         val unselectedChipContent = if (isDarkTipo) Color.White else MaterialTheme.colorScheme.onSurface
         val selectedTextColorTipo = if (isDarkTipo) Color.Black else Color.White
-        val tipoChipWidth = 112.dp
+        val tipoChipWidth = 140.dp
+        val tipoChipHeight = 56.dp
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 24.dp),
@@ -317,7 +327,7 @@ fun BrewLabMainStepContent(
                         shape = RoundedCornerShape(16.dp),
                         color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
                         border = if (isSelected) BorderStroke(0.dp, Color.Transparent) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                        modifier = Modifier.width(tipoChipWidth)
+                        modifier = Modifier.width(tipoChipWidth).height(tipoChipHeight)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -343,6 +353,7 @@ fun BrewLabMainStepContent(
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Start,
                                 modifier = Modifier.weight(1f, fill = false)
                             )
                         }

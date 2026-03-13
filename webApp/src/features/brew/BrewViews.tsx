@@ -598,19 +598,7 @@ export function BrewLabView({
             </p>
             <div className="brew-select-params-layout">
               <div className="brew-select-params-col">
-                <article className="brew-tech-card brew-select-params-card brew-select-params-card-with-info" aria-label={isAguaMethod ? "Cantidad de agua" : "Parámetros del método"}>
-                {!isAguaMethod && baristaTips.length > 0 ? (
-                  <Button
-                    variant="plain"
-                    type="button"
-                    className="brew-select-params-info-btn"
-                    aria-label="Ver consejos del barista"
-                    aria-expanded={showBaristaPopover}
-                    onClick={() => setShowBaristaPopover(true)}
-                  >
-                    <span className="brew-select-params-info-icon" aria-hidden="true">i</span>
-                  </Button>
-                ) : null}
+                <article className="brew-tech-card brew-select-params-card" aria-label={isAguaMethod ? "Cantidad de agua" : "Parámetros del método"}>
                 <div className="brew-tech-rows">
                   {(isWaterEditable || isAguaMethod) ? (
                     <div className="brew-tech-row">
@@ -782,6 +770,18 @@ export function BrewLabView({
                     </div>
                   ) : null}
                 </div>
+                {!isAguaMethod && baristaTips.length > 0 ? (
+                  <Button
+                    variant="plain"
+                    type="button"
+                    className="brew-select-barista-cta"
+                    onClick={() => setShowBaristaPopover(true)}
+                    aria-label="Ver consejos del barista"
+                  >
+                    <span className="brew-select-barista-cta-text">Consejos del barista</span>
+                    <UiIcon name="chevron-right" className="ui-icon brew-select-barista-cta-arrow" aria-hidden="true" />
+                  </Button>
+                ) : null}
               </article>
               {!isAguaMethod ? (
               <div className="brew-timer-row" role="group" aria-label="Temporizador">

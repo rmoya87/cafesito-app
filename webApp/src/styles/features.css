@@ -1992,7 +1992,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .profile-activity-list {
   list-style: none;
   margin: 0;
-  padding: 0 var(--app-shell-gutter) 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -2012,7 +2012,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 /* Mismo color, borde y sombra que historial (profile-favorite-row / coffee-card) */
 .profile-activity-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
   width: 100%;
   max-width: 100%;
@@ -2072,11 +2072,305 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   color: var(--text-subtle);
 }
 
-.profile-activity-empty {
-  padding: var(--space-6) var(--space-4);
-  text-align: center;
-  font-size: var(--font-size-base);
+/* Solo avatar: enlace al perfil del usuario */
+.profile-activity-avatar-link {
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: block;
+  line-height: 0;
+}
+
+.profile-activity-avatar-link .profile-activity-avatar {
+  flex-shrink: 0;
+}
+
+/* Nombre de usuario dentro del texto: mismo estilo que enlace al café (parte de la frase) */
+.profile-activity-user-name-link {
+  font-weight: 600;
+  vertical-align: baseline;
+}
+
+.profile-activity-meta {
+  margin: 0;
+  margin-top: 4px;
+  font-size: var(--font-size-sm);
   color: var(--text-subtle);
+}
+
+/* Card del café debajo del tiempo: si es lista, arriba icono+nombre → lista; línea de separación; abajo imagen, nombre+marca, flecha → detalle (fondo = página) */
+.profile-activity-coffee-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  color: var(--text-main);
+  background: var(--screen-dark-background);
+  border: none;
+  border-radius: var(--radius-md, 12px);
+  box-sizing: border-box;
+}
+
+/* Lista en card de café: resto de listas = texto/icono negro día, blanco noche; Favoritos = corazón rojo */
+.profile-activity-coffee-card-list {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 0 0 var(--space-2);
+  margin: 0;
+  border: none;
+  background: none;
+  color: var(--profile-activity-list-color, var(--pure-black));
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: left;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-activity-coffee-card-list {
+    color: var(--profile-activity-list-color, var(--pure-white));
+  }
+}
+
+.profile-activity-coffee-card-list:hover {
+  opacity: 0.85;
+}
+
+/* Favoritos: icono corazón rojo; texto negro (día) / blanco (noche) */
+.profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-icon {
+  color: var(--electric-red);
+}
+
+.profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-name {
+  color: var(--pure-black);
+}
+
+.profile-activity-coffee-card-list.is-favorites:hover {
+  opacity: 0.9;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-name {
+    color: var(--pure-white);
+  }
+}
+
+html.theme-light .profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-name {
+  color: var(--pure-black);
+}
+
+html.theme-dark .profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-name {
+  color: var(--pure-white);
+}
+
+.profile-activity-coffee-card-list-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.profile-activity-coffee-card-list-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tema forzado: resto de listas negro (día) / blanco (noche) */
+html.theme-light .profile-activity-coffee-card-list:not(.is-favorites) {
+  color: var(--pure-black);
+}
+
+html.theme-dark .profile-activity-coffee-card-list:not(.is-favorites) {
+  color: var(--pure-white);
+}
+
+.profile-activity-coffee-card-sep {
+  width: 100%;
+  height: 0;
+  border: none;
+  border-top: 1px solid var(--border-default, rgba(224, 224, 224, 0.4));
+  margin: 0 0 var(--space-2);
+}
+
+.profile-activity-coffee-card-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.profile-activity-coffee-card-media {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm, 10px);
+  overflow: hidden;
+  background: var(--caramel-soft);
+}
+
+.profile-activity-coffee-card-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-activity-coffee-card-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--caramel-accent);
+}
+
+.profile-activity-coffee-card-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-activity-coffee-card-name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.profile-activity-coffee-card-brand {
+  font-size: var(--font-size-sm);
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  font-style: normal;
+}
+
+/* Opinión (nota + comentario): día = blanco, noche = negro */
+.profile-activity-coffee-card .profile-activity-coffee-card-review-block {
+  padding: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  color: #1a1a1a !important;
+}
+
+.profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+  color: #1a1a1a !important;
+}
+
+.profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip {
+  margin-right: 0.25em;
+}
+
+.profile-activity-coffee-card-review-comment {
+  opacity: 0.9;
+}
+
+/* Modo día: texto negro */
+@media (prefers-color-scheme: light) {
+  .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
+  .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+    color: #1a1a1a !important;
+  }
+}
+
+/* Modo noche: texto blanco */
+@media (prefers-color-scheme: dark) {
+  .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
+  .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+    color: #f5f5f5 !important;
+  }
+}
+
+/* theme-light = día → negro; theme-dark = noche → blanco */
+html.theme-light .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
+html.theme-light .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+  color: #1a1a1a !important;
+}
+
+html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
+html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+  color: #f5f5f5 !important;
+}
+
+.profile-activity-coffee-card-arrow {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--text-subtle);
+}
+
+/* Contenedor del estado vacío (mantiene el ítem de lista) */
+.profile-activity-empty-wrap {
+  list-style: none;
+  min-width: 0;
+}
+
+/* Estado vacío: card centrada con icono, título, subtítulo y CTA (ver UX_EMPTY_AND_ERROR_STATES.md) */
+.profile-activity-empty {
+  border-radius: var(--radius-lg, 18px);
+  border: var(--surface-card-border);
+  background: var(--surface);
+  box-shadow: var(--surface-card-shadow);
+  padding: var(--space-6) var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  text-align: center;
+  justify-items: center;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.profile-activity-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--caramel-soft);
+  color: var(--caramel-accent);
+}
+
+.profile-activity-empty-icon .ui-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.profile-activity-empty-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.profile-activity-empty-sub {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-subtle);
+  line-height: 1.4;
+}
+
+.profile-activity-empty-cta {
+  margin-top: var(--space-2);
 }
 
 .profile-coffee-link {
@@ -3026,6 +3320,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .coffee-detail-review-textarea {
   min-height: 120px;
   padding: 12px 12px 6px;
+  caret-color: #ffffff;
 }
 
 .coffee-detail-review-textarea.search-wide:focus,
@@ -3136,9 +3431,29 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 }
 
 .coffee-detail-review-submit:not(:disabled) {
-  background: var(--surface) !important;
-  color: var(--text-main) !important;
-  border-color: var(--surface) !important;
+  background: var(--caramel-soft) !important;
+  border-color: var(--caramel-soft) !important;
+}
+
+/* Publicar activo: texto blanco modo día, negro modo noche */
+html.theme-light .coffee-detail-review-submit:not(:disabled) {
+  color: #ffffff !important;
+}
+
+html.theme-dark .coffee-detail-review-submit:not(:disabled) {
+  color: #000000 !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .coffee-detail-review-submit:not(:disabled) {
+    color: #ffffff !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .coffee-detail-review-submit:not(:disabled) {
+    color: #000000 !important;
+  }
 }
 
 .coffee-detail-review-submit:disabled {
@@ -3209,6 +3524,11 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   color: var(--text-subtle);
 }
 
+.coffee-detail-opinion-editar {
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
 .coffee-detail-opinion-label {
   margin: 0;
   font-size: var(--font-size-xs);
@@ -3219,9 +3539,38 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 
 .coffee-detail-opinion-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: var(--space-2);
+}
+
+.coffee-detail-opinion-avatar-wrap {
+  flex: 0 0 auto;
+}
+
+.coffee-detail-opinion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.coffee-detail-opinion-body .coffee-detail-opinion-rating-chip {
+  align-self: flex-start;
+}
+
+.coffee-detail-opinion-body .feed-text {
+  margin: 0;
+}
+
+.coffee-detail-opinion-body .coffee-detail-review-image {
+  margin-top: 2px;
+}
+
+.coffee-detail-opinion-copy-link {
+  display: block;
+  text-align: left;
+  width: 100%;
 }
 
 .coffee-detail-opinion-user {
@@ -3282,6 +3631,26 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .coffee-detail-opinion-rating .ui-icon {
   width: 12px;
   height: 12px;
+}
+
+/* Chip de nota: amarillo como estrellas del modal, texto negro */
+.coffee-detail-opinion-rating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e3a640;
+  color: #000000;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.coffee-detail-opinion-rating-chip .ui-icon {
+  width: 12px;
+  height: 12px;
+  color: #000000;
 }
 
 .coffee-detail .coffee-card .feed-user {
@@ -4976,6 +5345,30 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   font-weight: 600;
   text-align: right;
   max-width: 70%;
+}
+
+/* Consumo > Momento: label en primera línea, valor (Mañana/Tarde/Noche) en segunda línea para que no se parta */
+.diary-stats-card-row-momento {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.diary-stats-card-row-momento .diary-stats-card-value-momento {
+  flex-basis: 100%;
+  max-width: none;
+  margin-top: 2px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Desktop: Momento en la misma línea que la etiqueta */
+.layout.desktop .diary-stats-card-row-momento {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.layout.desktop .diary-stats-card-row-momento .diary-stats-card-value-momento {
+  flex-basis: auto;
+  max-width: 70%;
+  margin-top: 0;
 }
 
 .diary-stats-card-row-clickable {
@@ -8352,6 +8745,7 @@ html.theme-dark .diary-day-header.is-today {
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
+  margin-top: var(--space-6, 24px);
 }
 
 .profile-tab-panels-wrap {
@@ -8841,7 +9235,7 @@ html.theme-dark .content.content-profile {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px var(--app-shell-gutter);
+  padding: 0;
 }
 .profile-list-row {
   display: flex;
@@ -10621,6 +11015,41 @@ html.theme-dark .content.content-profile {
   font-family: Georgia, serif;
 }
 
+/* CTA debajo del último slider: abre modal consejos del barista (mismo fondo que página, sin borde) */
+.brew-select-barista-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: var(--space-3, 12px);
+  padding: 12px 14px;
+  border: none;
+  border-radius: var(--surface-card-radius);
+  background: var(--screen-dark-background);
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.brew-select-barista-cta:hover {
+  opacity: 0.9;
+}
+
+.brew-select-barista-cta-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.brew-select-barista-cta-arrow {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  color: var(--text-subtle);
+}
+
 /* Modal Consejos del barista (estilo tipo editar actividad) */
 .brew-barista-sheet {
   display: flex;
@@ -11035,6 +11464,17 @@ html.theme-dark .brew-barista-sheet-close:hover {
 
 .app-range--caramel {
   --slider-color: var(--caramel-soft);
+}
+
+/* Modo noche: slider tiempo blanco (no marrón); debe ir después de .app-range para ganar especificidad */
+@media (prefers-color-scheme: dark) {
+  .app-range.app-range--time {
+    --slider-color: #ffffff;
+  }
+}
+
+html.theme-dark .app-range.app-range--time {
+  --slider-color: #ffffff;
 }
 
 .brew-tech-slider input {
@@ -14510,9 +14950,9 @@ html.theme-dark .brew-barista-sheet-close:hover {
   }
 
   .coffee-detail-review-submit:not(:disabled) {
-    background: var(--caramel-accent) !important;
+    background: var(--caramel-soft) !important;
     color: #ffffff !important;
-    border-color: var(--caramel-accent) !important;
+    border-color: var(--caramel-soft) !important;
   }
 
   .coffee-detail-review-submit:disabled {

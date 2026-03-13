@@ -25,7 +25,7 @@ export function parseRoute(pathname: string) {
     const third = routeSegments[2] ?? "";
     const isListSection = second === "list" && third.length > 0;
     const profileSectionFromSecond = second === "historial" || second === "followers" || second === "following" || second === "favorites" ? second : isListSection ? "list" : null;
-    const profileSectionFromThird = third === "followers" || third === "following" ? third : null;
+    const profileSectionFromThird = third === "followers" || third === "following" || third === "favorites" || third === "historial" ? third : null;
     const profileSection = profileSectionFromThird ?? (isListSection ? "list" : profileSectionFromSecond);
     const profileUsername = profileSectionFromSecond && !isListSection
       ? null
@@ -84,7 +84,7 @@ export function isKnownRoute(pathname: string): boolean {
     if (routeSegments.length === 2) return true;
     if (routeSegments.length === 3) {
       const third = routeSegments[2] ?? "";
-      return third === "followers" || third === "following" || (second === "list" && third.length > 0);
+      return third === "followers" || third === "following" || third === "favorites" || third === "historial" || (second === "list" && third.length > 0);
     }
     return false;
   }
@@ -126,8 +126,8 @@ export function buildRoute(
   if (tab === "brewlab") return "/brewlab";
   if (tab === "diary") return "/diary";
   if (tab === "profile") {
-    if (profileSection === "historial") return "/profile/historial";
-    if (profileSection === "favorites") return "/profile/favorites";
+    if (profileSection === "historial") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/historial` : "/profile/historial";
+    if (profileSection === "favorites") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/favorites` : "/profile/favorites";
     if (profileSection === "list" && profileListId) return `/profile/list/${encodeURIComponent(profileListId)}`;
     if (profileSection === "followers") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/followers` : "/profile/followers";
     if (profileSection === "following") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/following` : "/profile/following";

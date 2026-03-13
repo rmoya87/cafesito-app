@@ -11,7 +11,8 @@ import {
   requestAccountDeletion,
   syncAccountLifecycleAfterLogin,
   toggleFavoriteCoffee,
-  updateUserList
+  updateUserList,
+  type UserListItemActivityRow
 } from "../data/supabaseApi";
 import { BREW_METHODS } from "../config/brew";
 import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/routing";
@@ -143,8 +144,8 @@ export function AppContainer() {
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [profileUserDiaryEntries, setProfileUserDiaryEntries] = useState<DiaryEntryRow[]>([]);
   const [profileUserFavorites, setProfileUserFavorites] = useState<FavoriteRow[]>([]);
-  const [profileUserListItems, setProfileUserListItems] = useState<{ list_id: string; coffee_id: string; created_at: number }[]>([]);
-  const [allListItemsForActivity, setAllListItemsForActivity] = useState<{ list_id: string; coffee_id: string; created_at: number }[]>([]);
+  const [profileUserListItems, setProfileUserListItems] = useState<UserListItemActivityRow[]>([]);
+  const [allListItemsForActivity, setAllListItemsForActivity] = useState<UserListItemActivityRow[]>([]);
   const [followedUsersActivityData, setFollowedUsersActivityData] = useState<Array<{
     userId: number;
     diaryEntries: DiaryEntryRow[];
@@ -1792,7 +1793,13 @@ export function AppContainer() {
         followers={followersCount}
         following={followingCount}
         onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "profile")}
-        onOpenUserList={(userId, listId) => navigateToTab("profile", { profileUserId: userId, profileSection: "list", profileListId: listId })}
+        onOpenUserList={(userId, listId) => {
+          if (listId === "favorites") {
+            navigateToTab("profile", { profileUserId: userId, profileSection: "favorites" });
+          } else {
+            navigateToTab("profile", { profileUserId: userId, profileSection: "list", profileListId: listId });
+          }
+        }}
         onOpenUserProfile={(userId) => navigateToTab("profile", { profileUserId: userId })}
         onOpenFollowers={() => navigateToTab("profile", { profileSection: "followers" })}
         onOpenFollowing={() => navigateToTab("profile", { profileSection: "following" })}
@@ -1834,6 +1841,8 @@ export function AppContainer() {
         profileListCoffeeIds={
           profileUser.id === activeUser?.id ? coffeeIdsInUserLists : profileUserListItems.map((i) => i.coffee_id)
         }
+        onExploreCafes={() => navigateToTab("search", { searchMode: "coffees" })}
+        activeUserId={activeUser?.id ?? null}
       />
       )
     ) : null;

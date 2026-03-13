@@ -20,6 +20,7 @@ import type {
   TimelineCard,
   UserRow
 } from "../../types";
+import type { UserListItemActivityRow } from "../../data/supabaseApi";
 import type { TimelineNotificationItem } from "../../features/timeline/NotificationRow";
 
 export function useAppDerivedData({
@@ -78,14 +79,14 @@ export function useAppDerivedData({
   profileUserDiaryEntries?: DiaryEntryRow[];
   /** Favoritos/listas del usuario del perfil cuando se visita un perfil ajeno (para pestaña Actividad). */
   profileUserFavorites?: FavoriteRow[];
-  allListItemsForActivity?: { list_id: string; coffee_id: string; created_at: number }[];
-  profileUserListItems?: { list_id: string; coffee_id: string; created_at: number }[];
+  allListItemsForActivity?: UserListItemActivityRow[];
+  profileUserListItems?: UserListItemActivityRow[];
   /** Actividad (diario primera vez, favoritos, listas) de usuarios que sigues, para fusionar en mi perfil. */
   followedUsersActivityData?: Array<{
     userId: number;
     diaryEntries: DiaryEntryRow[];
     favorites: FavoriteRow[];
-    listItems: { list_id: string; coffee_id: string; created_at: number }[];
+    listItems: UserListItemActivityRow[];
   }>;
   searchQuery: string;
   searchSelectedOrigins: Set<string>;
@@ -638,9 +639,11 @@ export function useAppDerivedData({
         username: u?.username ?? activeUser.username,
         avatarUrl: u?.avatar_url ?? activeUser.avatar_url ?? "",
         timestamp: fav.saved_at,
-        label: "añadió un café a la lista",
+        label: "añadió a su lista",
         coffeeId: fav.coffee_id,
-        coffeeName: coffee?.nombre ?? null
+        coffeeName: coffee?.nombre ?? null,
+        listId: "favorites",
+        listName: "Favoritos"
       });
     });
     firstTimeCoffeeFromDiary(diaryEntries).forEach((entry) => {
@@ -668,11 +671,11 @@ export function useAppDerivedData({
         username: u?.username ?? activeUser.username,
         avatarUrl: u?.avatar_url ?? activeUser.avatar_url ?? "",
         timestamp: item.created_at,
-        label: "añadió un café a la lista",
+        label: "añadió a su lista",
         coffeeId: item.coffee_id,
         coffeeName: coffee?.nombre ?? null,
         listId: item.list_id,
-        listName: (item as { list_name?: string }).list_name ?? null
+        listName: item.list_name ?? null
       });
     });
     return list.sort((a, b) => b.timestamp - a.timestamp);
@@ -726,9 +729,11 @@ export function useAppDerivedData({
         username: u?.username ?? profileUser.username,
         avatarUrl: u?.avatar_url ?? profileUser.avatar_url ?? "",
         timestamp: fav.saved_at,
-        label: "añadió un café a la lista",
+        label: "añadió a su lista",
         coffeeId: fav.coffee_id,
-        coffeeName: coffee?.nombre ?? null
+        coffeeName: coffee?.nombre ?? null,
+        listId: "favorites",
+        listName: "Favoritos"
       });
     });
     profileUserListItems.forEach((item) => {
@@ -742,11 +747,11 @@ export function useAppDerivedData({
         username: u?.username ?? profileUser.username,
         avatarUrl: u?.avatar_url ?? profileUser.avatar_url ?? "",
         timestamp: item.created_at,
-        label: "añadió un café a la lista",
+        label: "añadió a su lista",
         coffeeId: item.coffee_id,
         coffeeName: coffee?.nombre ?? null,
         listId: item.list_id,
-        listName: (item as { list_name?: string }).list_name ?? null
+        listName: item.list_name ?? null
       });
     });
     return list.sort((a, b) => b.timestamp - a.timestamp);
@@ -783,14 +788,15 @@ export function useAppDerivedData({
           username: u.username ?? "",
           avatarUrl: u.avatar_url ?? "",
           timestamp: f.saved_at,
-          label: "añadió un café a la lista",
+          label: "añadió a su lista",
           coffeeId: f.coffee_id,
-          coffeeName: coffee?.nombre ?? null
+          coffeeName: coffee?.nombre ?? null,
+          listId: "favorites",
+          listName: "Favoritos"
         });
       });
       li.forEach((item) => {
-        const it = item as { list_id: string; coffee_id: string; created_at: number; list_name?: string; is_public?: boolean };
-        if (!it.is_public) return;
+        if (!item.is_public) return;
         const coffee = coffeesById.get(item.coffee_id);
         list.push({
           id: `followed-list-${userId}-${item.list_id}-${item.coffee_id}-${item.created_at}`,
@@ -800,11 +806,11 @@ export function useAppDerivedData({
           username: u.username ?? "",
           avatarUrl: u.avatar_url ?? "",
           timestamp: item.created_at,
-          label: "añadió un café a la lista",
+          label: "añadió a su lista",
           coffeeId: item.coffee_id,
           coffeeName: coffee?.nombre ?? null,
           listId: item.list_id,
-          listName: it.list_name ?? null
+          listName: item.list_name ?? null
         });
       });
     }

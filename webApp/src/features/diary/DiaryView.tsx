@@ -929,9 +929,9 @@ export function DiaryView({
         <h3 className="diary-section-title">Consumo</h3>
         <article className="diary-stats-card diary-consumption-card">
         <ul className="diary-stats-card-list">
-          <li className="diary-stats-card-row">
+          <li className="diary-stats-card-row diary-stats-card-row-momento">
             <span className="diary-stats-card-label">Momento</span>
-            <span className="diary-stats-card-value">
+            <span className="diary-stats-card-value diary-stats-card-value-momento">
               Mañana {consumptionStats.momentPct.morning}% · Tarde {consumptionStats.momentPct.afternoon}% · Noche {consumptionStats.momentPct.evening}%
             </span>
           </li>
