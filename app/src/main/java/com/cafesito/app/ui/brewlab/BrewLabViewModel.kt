@@ -482,7 +482,18 @@ class BrewLabViewModel @Inject constructor(
                                 drinkType = drinkTypeValue
                             )
                         )
-                    } else 0
+                    } else {
+                        BrewEngine.estimateCaffeineMg(
+                            BrewCaffeineInput(
+                                source = BrewSource.BREWLAB,
+                                methodOrPreparation = methodName,
+                                coffeeGrams = grams.toDouble(),
+                                hasCaffeine = true,
+                                amountMl = null,
+                                drinkType = null
+                            )
+                        )
+                    }
                 }
                 diaryRepository.addDiaryEntry(
                     coffeeId = coffeeId,

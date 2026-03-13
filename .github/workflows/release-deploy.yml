@@ -440,9 +440,18 @@ jobs:
             echo "VITE_GOOGLE_CLIENT_ID configurado."
           fi
 
+      - name: Set app version (YYYYMMDD-VV)
+        id: app-version
+        run: |
+          DATE_PART=$(date -u +%Y%m%d)
+          VV=$(printf '%02d' $(( ${{ github.run_number }} % 100 )))
+          echo "APP_VERSION=${DATE_PART}-${VV}" >> $GITHUB_ENV
+          echo "App version: ${DATE_PART}-${VV}"
+
       - name: Build
         run: npm run build
         env:
+          APP_VERSION: ${{ env.APP_VERSION }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}

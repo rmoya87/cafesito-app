@@ -408,7 +408,7 @@ export function useAppDerivedData({
     return brewCoffeeCatalog.find((coffee) => coffee.id === brewCoffeeId) ?? null;
   }, [brewCoffeeCatalog, brewCoffeeId]);
 
-  /** Todos los ítems de despensa (registros distintos; el mismo café puede aparecer varias veces). */
+  /** Ítems de despensa para home (TU DESPENSA): ordenados por último uso (last_updated desc) para mostrar a la izquierda el más recientemente utilizado. */
   const brewPantryItems = useMemo(() => {
     const coffeeById = new Map<string, CoffeeRow>();
     brewCoffeeCatalog.forEach((coffee) => {

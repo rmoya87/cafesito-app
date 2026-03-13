@@ -1,5 +1,6 @@
 package com.cafesito.app.ui.profile
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
@@ -18,7 +19,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-
 
 private data class ProfileInternalState(
     val isEditing: Boolean,
@@ -77,6 +77,7 @@ sealed interface ProfileUiState {
     data object LoggedOut : ProfileUiState
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

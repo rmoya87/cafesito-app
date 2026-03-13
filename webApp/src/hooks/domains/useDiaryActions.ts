@@ -53,7 +53,12 @@ export function useDiaryActions({
               amountMl: waterMl,
               drinkType: drinkTypeVal
             })
-          : 0;
+          : estimateCaffeineMg({
+              source: "brewlab",
+              methodOrPreparation: brewMethod || "Metodo",
+              coffeeGrams: gramsToSave,
+              hasCaffeine: true
+            });
       const methodPart = `Lab: ${brewMethod || "Metodo"} (${taste})`;
       const preparationType = drinkType?.trim() ? `${methodPart}|${drinkType.trim()}` : methodPart;
       const sizeLabel = cupSizeLabelForAmountMl(waterMl);

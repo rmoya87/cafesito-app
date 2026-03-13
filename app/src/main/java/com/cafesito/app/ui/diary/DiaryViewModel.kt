@@ -43,12 +43,12 @@ fun formatWeekRange(mondayMs: Long): String {
 
 /** Formato "marzo 2025" para el mes (primer día del mes en ms). */
 fun formatMonthYear(monthStartMs: Long): String {
-    return java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale("es", "ES")).format(java.util.Date(monthStartMs))
+    return java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.forLanguageTag("es-ES")).format(java.util.Date(monthStartMs))
 }
 
 /** Solo nombre del mes (para selector en topbar cuando periodo es MES). */
 fun formatMonthOnly(monthStartMs: Long): String {
-    return java.text.SimpleDateFormat("MMMM", java.util.Locale("es", "ES")).format(java.util.Date(monthStartMs))
+    return java.text.SimpleDateFormat("MMMM", java.util.Locale.forLanguageTag("es-ES")).format(java.util.Date(monthStartMs))
 }
 
 enum class DiaryPeriod { HOY, SEMANA, MES }
@@ -282,11 +282,13 @@ class DiaryViewModel @Inject constructor(
                 )
             }
             DiaryPeriod.MES -> {
-                calendar.timeInMillis = now
+                calendar.timeInMillis = selectedDateMs
                 calendar.set(Calendar.DAY_OF_MONTH, 1); calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
-                val startOfMonth = calendar.timeInMillis
+                val startOfSelectedMonth = calendar.timeInMillis
+                calendar.add(Calendar.MONTH, 1)
+                val endOfSelectedMonth = calendar.timeInMillis
                 val monthlySums = entries.groupBy { val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }; "${c.get(Calendar.YEAR)}-${c.get(Calendar.MONTH)}" }.values.map { it.filter { e -> isCupEntry(e) }.sumOf { e -> e.caffeineAmount } }
-                Triple(entries.filter { it.timestamp >= startOfMonth }, emptyList<DiaryEntryEntity>(), if(monthlySums.isEmpty()) 0 else monthlySums.average().toInt())
+                Triple(entries.filter { it.timestamp >= startOfSelectedMonth && it.timestamp < endOfSelectedMonth }, emptyList<DiaryEntryEntity>(), if(monthlySums.isEmpty()) 0 else monthlySums.average().toInt())
             }
         }
 
@@ -346,12 +348,13 @@ class DiaryViewModel @Inject constructor(
                 }
             }
             DiaryPeriod.MES -> {
-                val currentCalendar = Calendar.getInstance()
-                val maxDays = currentCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-                val monthlyData = currentEntries.groupBy { 
+                calendar.timeInMillis = selectedDateMs
+                calendar.set(Calendar.DAY_OF_MONTH, 1); calendar.set(Calendar.HOUR_OF_DAY, 0); calendar.set(Calendar.MINUTE, 0); calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
+                val maxDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val monthlyData = currentEntries.groupBy {
                     Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_MONTH)
                 }
-                (1..maxDays).map { day -> 
+                (1..maxDays).map { day ->
                     val caffeineVal = monthlyData[day]?.filter { isCupEntry(it) }?.sumOf { it.caffeineAmount } ?: 0
                     val waterVal = monthlyData[day]?.filter { isWaterEntry(it) }?.sumOf { it.amountMl } ?: 0
                     ChartEntry(day.toString(), caffeineVal, waterVal)
@@ -409,6 +412,7 @@ class DiaryViewModel @Inject constructor(
         DiaryHabitStats(avgCups = avgCups, mostSize = mostSize, mostMethod = mostMethod, busiestDay = busiestDay)
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DiaryHabitStats("0", "—", sinMetodo, "—"))
 
+    @Suppress("UNCHECKED_CAST")
     val consumptionStats: StateFlow<DiaryConsumptionStats> = combine(
         diaryEntries,
         allDiaryEntries,
