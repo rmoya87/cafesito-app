@@ -15,6 +15,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "@ericblade/quagga2": "^1.12.1",
     "@fontsource-variable/material-symbols-outlined": "^5.2.36",
     "@supabase/supabase-js": "^2.49.1",
@@ -26,6 +27,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.8",
     "@playwright/test": "^1.53.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",

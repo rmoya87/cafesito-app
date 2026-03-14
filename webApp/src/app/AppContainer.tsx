@@ -70,6 +70,7 @@ import { NotificationsSheet } from "../features/timeline/NotificationsSheet";
 import { MobileBarcodeScannerSheet } from "../features/search/MobileBarcodeScannerSheet";
 import { LoginGate } from "../features/auth/LoginGate";
 import { AuthPromptOverlay } from "../features/auth/AuthPromptOverlay";
+import { CafesProbadosView } from "../features/diary/CafesProbadosView";
 import { DiarySheets } from "../features/diary/DiarySheets";
 import { BottomNav, DesktopNavRail } from "../features/navigation/NavControls";
 import { AppContentRouter } from "./AppContentRouter";
@@ -104,6 +105,7 @@ export function AppContainer() {
   const isNotFoundRoute = !isKnownRoute(window.location.pathname);
   const { mode, viewportWidth } = useResponsiveMode();
   const [activeTab, setActiveTab] = useState<TabId>(initialRoute.tab);
+  const [diarySubView, setDiarySubView] = useState<"cafes-probados" | null>((initialRoute as { diarySubView?: "cafes-probados" }).diarySubView ?? null);
 
   /* Sincronizar clase theme-light/theme-dark en html con la preferencia guardada (por si se perdió) */
   useEffect(() => {
@@ -515,6 +517,7 @@ export function AppContainer() {
     profileListId,
     users,
     setActiveTab,
+    setDiarySubView,
     activeUserUsername: activeUser?.username ?? null,
     coffees,
     setDetailCoffeeId,
@@ -815,6 +818,27 @@ export function AppContainer() {
     profileUserListItems,
     followedUsersActivityData
   });
+
+  const diaryCoffeesWithFirstTried = useMemo(() => {
+    const coffeeEntries = diaryEntries.filter((e) => (e.type ?? "").toUpperCase() !== "WATER");
+    const coffeeById = new Map<string, CoffeeRow>();
+    brewCoffeeCatalog.forEach((c) => coffeeById.set(String(c.id), c));
+    const byCoffeeId = new Map<string, number>();
+    coffeeEntries.forEach((entry) => {
+      if (entry.coffee_id) {
+        const ts = Number(entry.timestamp);
+        const prev = byCoffeeId.get(entry.coffee_id);
+        if (prev == null || ts < prev) byCoffeeId.set(entry.coffee_id, ts);
+      }
+    });
+    const list: Array<{ coffee: CoffeeRow; firstTriedTs: number }> = [];
+    byCoffeeId.forEach((firstTriedTs, coffeeId) => {
+      const coffee = coffeeById.get(coffeeId);
+      if (coffee) list.push({ coffee, firstTriedTs });
+    });
+    list.sort((a, b) => a.firstTriedTs - b.firstTriedTs);
+    return list;
+  }, [diaryEntries, brewCoffeeCatalog]);
 
   const isListActive = useMemo(
     () =>
@@ -1129,7 +1153,8 @@ export function AppContainer() {
     activeTab,
     setDetailCoffeeId,
     setDetailHostTab,
-    setActiveTab
+    setActiveTab,
+    setDiarySubView
   });
 
   // Tras escanear código de barras en buscador: 1 resultado → detalle; varios → lista en búsqueda
@@ -1695,22 +1720,31 @@ export function AppContainer() {
     ) : null;
   const diaryContent =
     guardedActiveTab === "diary" ? (
-      <LazyDiaryView
-        mode={mode}
-        period={diaryPeriod}
-        selectedDiaryDate={selectedDiaryDate}
-        selectedDiaryMonth={selectedDiaryMonth}
-        entries={diaryEntriesActivity}
-        coffeeCatalog={brewCoffeeCatalog}
-        pantryRows={pantryCoffeeRows}
-        orderedBrewMethods={orderedBrewMethods}
-        onDeleteEntry={handleDeleteDiaryEntry}
-        onEditEntry={handleUpdateDiaryEntry}
-        onUpdatePantryStock={handleUpdatePantryStock}
-        onRemovePantryItem={handleRemovePantryItem}
-        onMarkPantryCoffeeFinished={handleMarkPantryCoffeeFinished}
-        onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "diary")}
-      />
+      diarySubView === "cafes-probados" ? (
+        <CafesProbadosView
+          coffeesWithFirstTried={diaryCoffeesWithFirstTried}
+          onBack={() => navigateToTab("diary")}
+          onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "diary", { diarySubView: "cafes-probados" })}
+        />
+      ) : (
+        <LazyDiaryView
+          mode={mode}
+          period={diaryPeriod}
+          selectedDiaryDate={selectedDiaryDate}
+          selectedDiaryMonth={selectedDiaryMonth}
+          entries={diaryEntriesActivity}
+          coffeeCatalog={brewCoffeeCatalog}
+          pantryRows={pantryCoffeeRows}
+          orderedBrewMethods={orderedBrewMethods}
+          onDeleteEntry={handleDeleteDiaryEntry}
+          onEditEntry={handleUpdateDiaryEntry}
+          onUpdatePantryStock={handleUpdatePantryStock}
+          onRemovePantryItem={handleRemovePantryItem}
+          onMarkPantryCoffeeFinished={handleMarkPantryCoffeeFinished}
+          onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "diary")}
+          onOpenCafesProbados={() => navigateToTab("diary", { diarySubView: "cafes-probados" })}
+        />
+      )
     ) : null;
 
   const profileContent =
@@ -2039,6 +2073,7 @@ export function AppContainer() {
         {guardedActiveTab !== "coffee" ? (
         <TopBar
           activeTab={guardedActiveTab}
+          diarySubView={diarySubView}
           searchQuery={searchQuery}
           searchMode={searchMode}
           onSearchQueryChange={onSearchQueryChange}
@@ -2167,7 +2202,7 @@ export function AppContainer() {
         ) : null}
         <div
           ref={mainScrollRef}
-          className={`main-shell-scroll ${activeTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""} ${guardedActiveTab === "search" && searchMode === "users" ? "is-search-users" : ""} ${guardedActiveTab === "home" ? "is-home" : ""} ${guardedActiveTab === "profile" ? "is-profile" : ""}`.trim()}
+          className={`main-shell-scroll ${activeTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""} ${guardedActiveTab === "search" && searchMode === "users" ? "is-search-users" : ""} ${guardedActiveTab === "home" ? "is-home" : ""} ${guardedActiveTab === "profile" ? "is-profile" : ""} ${guardedActiveTab === "diary" && diarySubView === "cafes-probados" ? "is-cafes-probados" : ""}`.trim()}
         >
           <Suspense fallback={<div className="app-content-loading" aria-hidden="true" />}>
             <AppContentRouter

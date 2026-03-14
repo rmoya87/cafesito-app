@@ -391,7 +391,9 @@ sealed class ProfileActivityItem {
         override val avatarUrl: String?,
         override val timestamp: Long,
         val coffeeId: String,
-        val coffeeName: String
+        val coffeeName: String,
+        val coffeeImageUrl: String = "",
+        val coffeeBrand: String = ""
     ) : ProfileActivityItem()
 
     data class AddedToList(
@@ -402,7 +404,9 @@ sealed class ProfileActivityItem {
         val coffeeId: String,
         val coffeeName: String,
         val listId: String,
-        val listName: String
+        val listName: String,
+        val coffeeImageUrl: String = "",
+        val coffeeBrand: String = ""
     ) : ProfileActivityItem()
 }
 

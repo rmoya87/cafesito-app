@@ -27,6 +27,8 @@ val passkeyRequestJson = providers.gradleProperty("PASSKEY_REQUEST_JSON")
     .orElse("")
     .get()
 
+val mapTilerApiKey = providers.gradleProperty("MAPTILER_API_KEY").orElse("").get()
+
 // Cargar propiedades de firma
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -56,6 +58,7 @@ android {
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"$supabasePublishableKey\"")
         buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
         buildConfigField("String", "PASSKEY_REQUEST_JSON", "\"$passkeyRequestJson\"")
+        buildConfigField("String", "MAPTILER_API_KEY", "\"$mapTilerApiKey\"")
 
         manifestPlaceholders["usesCleartextTraffic"] = "true"
     }
@@ -111,6 +114,13 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
             "-opt-in=kotlin.RequiresOptIn",
             "-Xcontext-receivers" 
         )
+    }
+}
+
+// Hilt usa kotlin-metadata-jvm; forzar 2.3.0 para compatibilidad con Kotlin 2.3
+configurations.all {
+    resolutionStrategy {
+        force("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.0")
     }
 }
 
@@ -196,6 +206,9 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
+
+    // OpenStreetMap (Cafés probados por país)
+    implementation(libs.osmdroid.android)
 
     // Tests
     testImplementation(libs.junit)

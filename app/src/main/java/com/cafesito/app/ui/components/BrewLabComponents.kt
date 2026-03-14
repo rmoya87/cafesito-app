@@ -665,7 +665,7 @@ fun ConfigStep(
             else -> "LIGERO"
         }
     }
-    val sliderInactiveTrackColor = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFE0E0E0)
+    val sliderInactiveTrackColor = if (isSystemInDarkTheme()) SliderTrackInactiveDark else SliderTrackInactiveLight
     val coffeeColor = LocalCaramelAccent.current
     val isOtrosMethod = methodName == BREW_METHOD_OTROS // "Rápido"
     var showBaristaModal by remember { mutableStateOf(false) }
@@ -1072,9 +1072,9 @@ fun PreparationStep(
                 PreparationTasteCard(selectedTaste, recommendation, viewModel)
             } else if (adviceCards.isNotEmpty()) {
                 val isDark = isSystemInDarkTheme()
-                val adviceCardBg = if (isDark) Color(0xFF303030) else Color(0xFFEFEFEF)
-                val adviceCardText = if (isDark) Color(0xFFF0F0F0) else Color(0xFF2F2F2F)
-                val adviceBorder = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
+                val adviceCardBg = if (isDark) AdviceCardBgDark else AdviceCardBgLight
+                val adviceCardText = if (isDark) AdviceCardTextDark else AdviceCardTextLight
+                val adviceBorder = if (isDark) PureWhite.copy(alpha = 0.10f) else PureBlack.copy(alpha = 0.08f)
                 Spacer(Modifier.height(12.dp))
                 LazyRow(
                     state = rememberLazyListState(),

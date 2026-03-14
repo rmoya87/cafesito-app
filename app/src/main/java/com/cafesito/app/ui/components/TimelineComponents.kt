@@ -1178,7 +1178,7 @@ fun DiaryEntryEditBottomSheet(
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(
             modifier = Modifier
@@ -1787,7 +1787,7 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(Modifier
             .fillMaxWidth()
@@ -1831,7 +1831,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(
             Modifier
@@ -1999,7 +1999,7 @@ fun PostOptionsBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
             ModalMenuOption(
@@ -2031,7 +2031,7 @@ fun SettingsBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp)) {
             Text(

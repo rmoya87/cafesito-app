@@ -57,6 +57,7 @@ import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.cafesito.app.ui.theme.LocalCaramelAccent
+import com.cafesito.app.ui.theme.ScrimDefault
 import com.cafesito.app.platform.HapticSignal
 import com.cafesito.app.platform.rememberNativeHaptics
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -184,7 +185,7 @@ fun LoginScreen(
     if (showLoginModal) {
         ModalBottomSheet(
             onDismissRequest = { showLoginModal = false },
-            scrimColor = Color.Black.copy(alpha = 0.5f)
+            scrimColor = ScrimDefault
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(32.dp),

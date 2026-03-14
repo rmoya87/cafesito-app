@@ -68,6 +68,7 @@ fun DiaryScreen(
     onAddStockClick: () -> Unit,
     onEditStockClick: (String, Boolean) -> Unit,
     onEditCoffeeClick: (String) -> Unit,
+    onCafesProbadosClick: () -> Unit = {},
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -88,7 +89,6 @@ fun DiaryScreen(
     var showPeriodMenu by remember { mutableStateOf(false) }
     var showCalendar by remember { mutableStateOf(false) }
     var selectedEntry by remember { mutableStateOf<DiaryEntryEntity?>(null) }
-    var showBaristaCoffeesSheet by remember { mutableStateOf(false) }
     
     val todayStartMs = remember {
         val c = Calendar.getInstance()
@@ -185,7 +185,7 @@ fun DiaryScreen(
                 onDismissRequest = { showPantryOptionsId = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                scrimColor = Color.Black.copy(alpha = 0.5f)
+                scrimColor = ScrimDefault
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                     Text(
@@ -408,7 +408,7 @@ fun DiaryScreen(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
-                DiaryBaristaCard(baristaStats, onCafesProbadosClick = { showBaristaCoffeesSheet = true })
+                DiaryBaristaCard(baristaStats, onCafesProbadosClick = onCafesProbadosClick)
             }
 
             item {
@@ -527,11 +527,5 @@ fun DiaryScreen(
             )
         }
 
-        if (showBaristaCoffeesSheet) {
-            BaristaCoffeesListSheet(
-                coffees = baristaStats.coffeesWithFirstTried,
-                onDismiss = { showBaristaCoffeesSheet = false }
-            )
-        }
     }
 }

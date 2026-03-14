@@ -20,7 +20,10 @@ export function parseRoute(pathname: string) {
     };
   }
   if (first === "brewlab") return { tab: "brewlab" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined };
-  if (first === "diary") return { tab: "diary" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined };
+  if (first === "diary") {
+    const diarySubView = second === "cafes-probados" ? ("cafes-probados" as const) : undefined;
+    return { tab: "diary" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined, diarySubView };
+  }
   if (first === "profile") {
     const third = routeSegments[2] ?? "";
     const isListSection = second === "list" && third.length > 0;
@@ -77,7 +80,8 @@ export function isKnownRoute(pathname: string): boolean {
   const first = routeSegments[0] ?? "";
   const second = routeSegments[1] ?? "";
 
-  if (first === "home" || first === "brewlab" || first === "diary") return routeSegments.length === 1;
+  if (first === "home" || first === "brewlab") return routeSegments.length === 1;
+  if (first === "diary") return routeSegments.length === 1 || (routeSegments.length === 2 && second === "cafes-probados");
   if (first === "search") return routeSegments.length <= 2 && (second === "" || second === "users");
   if (first === "profile") {
     if (routeSegments.length === 1) return true;
@@ -114,17 +118,20 @@ export function toCoffeeSlug(name: string, brand?: string | null, forceBrand = f
 
 export type ProfileSection = "historial" | "followers" | "following" | "favorites" | "list" | null;
 
+export type DiarySubView = "cafes-probados" | undefined;
+
 export function buildRoute(
   tab: TabId,
   searchMode: "coffees" | "users",
   profileUsername: string | null,
   coffeeSlug?: string | null,
   profileSection?: ProfileSection,
-  profileListId?: string | null
+  profileListId?: string | null,
+  diarySubView?: DiarySubView
 ): string {
   if (tab === "search") return searchMode === "users" ? "/search/users" : "/search";
   if (tab === "brewlab") return "/brewlab";
-  if (tab === "diary") return "/diary";
+  if (tab === "diary") return diarySubView === "cafes-probados" ? "/diary/cafes-probados" : "/diary";
   if (tab === "profile") {
     if (profileSection === "historial") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/historial` : "/profile/historial";
     if (profileSection === "favorites") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/favorites` : "/profile/favorites";

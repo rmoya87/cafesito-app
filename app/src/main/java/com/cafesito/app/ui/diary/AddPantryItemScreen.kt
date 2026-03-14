@@ -419,7 +419,7 @@ fun AddPantryItemScreen(
             ModalBottomSheet(
                 onDismissRequest = { showImagePickerSheet = false },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                scrimColor = Color.Black.copy(alpha = 0.5f)
+                scrimColor = ScrimDefault
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
                     Text(

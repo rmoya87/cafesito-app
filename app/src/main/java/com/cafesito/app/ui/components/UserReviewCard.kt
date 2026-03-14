@@ -129,7 +129,7 @@ fun UserReviewCard(
                             Icon(Icons.Default.Star, contentDescription = "Valoración", tint = OrangeYellow, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                text = String.format(Locale.getDefault(), "%.1f", info.review.rating),
+                                text = "${info.review.rating.toInt()}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.onSurface

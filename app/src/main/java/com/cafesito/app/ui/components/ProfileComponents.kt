@@ -104,6 +104,14 @@ private fun formatRelativeTime(timestampMillis: Long): String {
     }
 }
 
+/** Textos de actividad en segunda persona (usuario logueado) vs tercera (otros). Igual que webapp ACTIVITY_LABEL_SECOND. */
+private fun activityLabel(isOwn: Boolean, type: String): String = when (type) {
+    "review" -> if (isOwn) "opinaste sobre un café" else "opinó sobre un café"
+    "diary" -> if (isOwn) "probaste por primera vez" else "probó por primera vez"
+    "favorite" -> if (isOwn) "añadiste a tu lista" else "añadió a su lista"
+    else -> if (isOwn) "añadiste a tu lista" else "añadió a su lista"
+}
+
 // --- PROFILE COMPONENTS ---
 
 @Composable
@@ -178,7 +186,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
         onDismissRequest = onDismiss, 
         containerColor = MaterialTheme.colorScheme.surfaceContainer, 
         sheetState = sheetState,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(
             Modifier
@@ -267,103 +275,88 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
     }
 }
 
+/** Tarjeta de actividad unificada: mismo diseño, textos y disposición que webapp (Perfil > Actividad). */
 @Composable
-fun ProfileActivityReviewCard(
-    reviewInfo: UserReviewInfo,
+fun ProfileActivityCard(
+    item: ProfileActivityItem,
+    activeUserId: Int?,
+    onUserClick: (Int) -> Unit,
     onCoffeeClick: (String) -> Unit,
-    onDeleteClick: (() -> Unit)? = null,
-    isCurrentUser: Boolean = false
+    onListClick: ((Int, String) -> Unit)?,
+    isCurrentUser: Boolean
 ) {
-    val coffee = reviewInfo.coffeeDetails.coffee
-    val review = reviewInfo.review
-    val labelLine = if (isCurrentUser) "Opinaste sobre un café" else "${reviewInfo.authorName?.takeIf { it.isNotBlank() } ?: "Usuario"} opinó sobre un café"
-    PremiumCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onCoffeeClick(coffee.id) }
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!reviewInfo.authorAvatarUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = reviewInfo.authorAvatarUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Text(
-                        text = (reviewInfo.authorName ?: "?").take(2).uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = labelLine,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = coffee.nombre.ifBlank { "Un café" },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    SemicircleRatingBar(rating = review.rating, onRatingChanged = {}, modifier = Modifier.height(14.dp))
-                    Spacer(Modifier.width(8.dp))
-                    if (review.comment.isNotBlank()) {
-                        Text(
-                            text = review.comment,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = formatRelativeTime(review.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (onDeleteClick != null) {
-                IconButton(onClick = onDeleteClick) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar reseña", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+    val displayName = if (activeUserId != null && item.userId == activeUserId) "Tú" else item.userName
+    val type = when (item) {
+        is ProfileActivityItem.Review -> "review"
+        is ProfileActivityItem.FirstTimeCoffee -> "diary"
+        is ProfileActivityItem.AddedToList -> "favorite"
+    }
+    val isOwn = activeUserId != null && item.userId == activeUserId
+    val displayLabel = activityLabel(isOwn, type)
+
+    val coffeeId: String
+    val coffeeName: String
+    val coffeeImageUrl: String
+    val coffeeBrand: String
+    val listId: String?
+    val listName: String?
+    val rating: Float?
+    val comment: String?
+    val showListBadge: Boolean
+    when (item) {
+        is ProfileActivityItem.Review -> {
+            coffeeId = item.reviewInfo.coffeeDetails.coffee.id
+            coffeeName = item.reviewInfo.coffeeDetails.coffee.nombre.ifBlank { "Un café" }
+            coffeeImageUrl = item.reviewInfo.coffeeDetails.coffee.imageUrl
+            coffeeBrand = item.reviewInfo.coffeeDetails.coffee.marca.ifBlank { "Marca" }
+            listId = null
+            listName = null
+            rating = item.reviewInfo.review.rating
+            comment = item.reviewInfo.review.comment.takeIf { it.isNotBlank() }
+            showListBadge = false
+        }
+        is ProfileActivityItem.FirstTimeCoffee -> {
+            coffeeId = item.coffeeId
+            coffeeName = item.coffeeName.ifBlank { "Un café" }
+            coffeeImageUrl = item.coffeeImageUrl
+            coffeeBrand = item.coffeeBrand.ifBlank { "Marca" }
+            listId = null
+            listName = null
+            rating = null
+            comment = null
+            showListBadge = false
+        }
+        is ProfileActivityItem.AddedToList -> {
+            coffeeId = item.coffeeId
+            coffeeName = item.coffeeName.ifBlank { "Un café" }
+            coffeeImageUrl = item.coffeeImageUrl
+            coffeeBrand = item.coffeeBrand.ifBlank { "Marca" }
+            listId = item.listId
+            listName = item.listName
+            rating = null
+            comment = null
+            showListBadge = true
         }
     }
-}
 
-@Composable
-fun ProfileActivityFirstTimeCard(
-    item: ProfileActivityItem.FirstTimeCoffee,
-    onCoffeeClick: () -> Unit
-) {
-    PremiumCard(modifier = Modifier.fillMaxWidth()) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) Color.Black else MaterialTheme.colorScheme.surface
+    val coffeeCardBg = if (isDark) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+
+    PremiumCard(modifier = Modifier.fillMaxWidth(), containerColor = cardBg) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onCoffeeClick)
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Top
         ) {
+            // Avatar (clickable → perfil usuario)
             Box(
-                Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { onUserClick(item.userId) },
                 contentAlignment = Alignment.Center
             ) {
                 if (!item.avatarUrl.isNullOrBlank()) {
@@ -375,7 +368,7 @@ fun ProfileActivityFirstTimeCard(
                     )
                 } else {
                     Text(
-                        text = item.userName.take(2).uppercase(),
+                        text = displayName.take(2).uppercase(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -383,87 +376,160 @@ fun ProfileActivityFirstTimeCard(
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
+                // Línea de texto: "Tú" / nombre + label (segunda/tercera persona)
                 Text(
-                    text = "${item.userName} probó por primera vez",
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)) {
+                            append(displayName)
+                        }
+                        append(" $displayLabel")
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = item.coffeeName.ifBlank { "Un café" },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(4.dp))
+                // Meta: tiempo relativo en mayúsculas (como webapp)
                 Text(
                     text = formatRelativeTime(item.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfileActivityListCard(
-    item: ProfileActivityItem.AddedToList,
-    onCoffeeClick: () -> Unit,
-    onListClick: (() -> Unit)?
-) {
-    PremiumCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
+                // Bloque café (mismo ancho que el resto): por tipo → lista (icono+nombre) / reseña (★ X/5 + comentario) / fila principal (imagen, nombre, marca, flecha)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .then(
+                            if (type == "review") Modifier.clickable { onCoffeeClick(coffeeId) }
+                            else Modifier
+                        ),
+                    color = coffeeCardBg
                 ) {
-                    if (!item.avatarUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = item.avatarUrl,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = item.userName.take(2).uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        // Tipo lista (favorite): icono lista + nombre lista; tap lleva a esa lista. Debajo separador y fila café.
+                        if (showListBadge && listId != null && onListClick != null) {
+                            val isFavoritesList = listId == "favorites" || (listName?.equals("Favoritos", ignoreCase = true) == true)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onListClick(item.userId, listId) },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (isFavoritesList) Icons.Default.Favorite else Icons.AutoMirrored.Filled.FormatListBulleted,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = if (isFavoritesList) Color(0xFFE53935) else MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = listName?.ifBlank { "Lista" } ?: "Lista",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
+                        // Tipo opinión (review): chip ★ X/5 (amarillo-naranja) + texto nota negro (noche) / blanco (día); comentario mismo criterio
+                        if (rating != null || !comment.isNullOrBlank()) {
+                            val noteTextColor = if (isDark) Color.Black else Color.White
+                            val reviewCommentColor = if (isDark) Color(0xFFf5f5f5) else Color(0xFF1a1a1a)
+                            val noteChipOrange = Color(0xFFFFB74D)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (rating != null) {
+                                    Surface(
+                                        shape = RoundedCornerShape(999.dp),
+                                        color = noteChipOrange
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Star, contentDescription = "Nota", modifier = Modifier.size(12.dp), tint = noteTextColor)
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                text = "${rating.toInt()}/5",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = noteTextColor,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                    if (!comment.isNullOrBlank()) Spacer(Modifier.width(8.dp))
+                                }
+                                if (!comment.isNullOrBlank()) {
+                                    Text(
+                                        text = comment!!,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = reviewCommentColor,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
+                        // Fila principal (todos los tipos): imagen 48dp, nombre, marca en mayúsculas, flecha → detalle café (en review el tap lo maneja la Surface)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(
+                                    if (type != "review") Modifier.clickable { onCoffeeClick(coffeeId) }
+                                    else Modifier
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(LocalCaramelAccent.current.copy(alpha = 0.25f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (coffeeImageUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = coffeeImageUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        text = coffeeName.take(1).uppercase(),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = LocalCaramelAccent.current
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = coffeeName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = coffeeBrand.uppercase(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = "Ver café", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                        }
                     }
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "${item.userName} añadió un café a la lista",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = item.coffeeName.ifBlank { "Café" },
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable(onClick = onCoffeeClick)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = formatRelativeTime(item.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            if (onListClick != null && item.listName.isNotBlank()) {
-                Spacer(Modifier.height(8.dp))
-                TextButton(onClick = onListClick) {
-                    Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Ver lista: ${item.listName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -600,7 +666,7 @@ fun CreateListBottomSheet(
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
             Box(Modifier.fillMaxWidth()) {
@@ -725,7 +791,7 @@ fun AddToListBottomSheet(
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
             Text(
@@ -791,7 +857,7 @@ fun ListOptionsBottomSheet(
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
             AddToListOptionRow(
@@ -828,7 +894,7 @@ fun ListDeleteConfirmBottomSheet(
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 40.dp),

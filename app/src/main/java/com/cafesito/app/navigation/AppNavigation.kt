@@ -397,7 +397,15 @@ fun AppNavigation(
                             if (isCustom) navController.navigate("editCustomCoffee/$id")
                             else navController.navigate("editNormalStock/$id")
                         },
-                        onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
+                        onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") },
+                        onCafesProbadosClick = { navController.navigate("cafesProbados") }
+                    )
+                }
+
+                composable(route = "cafesProbados") {
+                    CafesProbadosScreen(
+                        onBack = { navController.popBackStack() },
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") }
                     )
                 }
 
@@ -534,9 +542,12 @@ fun AppNavigation(
                             navController.navigate("profile/$userId/list/$listId?listName=${encoded ?: ""}")
                         },
                         onOpenUserListClick = { targetUserId, listId ->
+                            // Asegurar que profile/targetUserId esté en el back stack para que ListDetailScreen pueda resolver el parent
+                            navController.navigate("profile/$targetUserId") { launchSingleTop = true }
                             navController.navigate("profile/$targetUserId/list/$listId")
                         },
                         onSearchUsersClick = { navController.navigate("searchUsers") },
+                        onExploreCafes = { navController.navigate("search") },
                         profileBackStackEntry = profileEntry
                     )
                 }
@@ -567,16 +578,18 @@ fun AppNavigation(
                     )
                 ) { listBackStackEntry ->
                     val userId = listBackStackEntry.arguments?.getInt("userId") ?: 0
-                    val profileEntry = remember(userId) { navController.getBackStackEntry("profile/$userId") }
-                    val profileViewModel: ProfileViewModel = hiltViewModel(profileEntry)
+                    val profileEntry = remember(userId) {
+                        runCatching { navController.getBackStackEntry("profile/$userId") }.getOrNull()
+                    }
+                    val profileViewModel: ProfileViewModel? = profileEntry?.let { hiltViewModel(it) }
                     ListDetailScreen(
                         onBackClick = {
-                            profileEntry.savedStateHandle.set("profile_return_tab", 2)
+                            profileEntry?.savedStateHandle?.set("profile_return_tab", 2)
                             navController.popBackStack()
                         },
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
                         onListDeleted = {
-                            profileViewModel.refreshData()
+                            profileViewModel?.refreshData()
                             navController.popBackStack()
                         },
                         viewModel = hiltViewModel(listBackStackEntry)

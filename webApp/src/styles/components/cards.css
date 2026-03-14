@@ -9,5 +9,5 @@
 .card,
 .coffee-card,
 .config-card {
-  padding: 12px;
+  padding: var(--space-3);
 }

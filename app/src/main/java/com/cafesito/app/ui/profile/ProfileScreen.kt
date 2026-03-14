@@ -49,12 +49,14 @@ fun ProfileScreen(
     onOpenListClick: ((String, String) -> Unit)? = null,
     onOpenUserListClick: ((Int, String) -> Unit)? = null,
     onSearchUsersClick: (() -> Unit)? = null,
+    onExploreCafes: (() -> Unit)? = null,
     profileBackStackEntry: NavBackStackEntry? = null,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
     val profileActivityItems by viewModel.profileActivityItems.collectAsState()
+    val profileActivityLoading by viewModel.profileActivityLoading.collectAsState()
     val tabs = listOf("ACTIVIDAD", "ADN", "LISTAS")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
@@ -203,17 +205,64 @@ fun ProfileScreen(
 
                     when (selectedTabIndex) {
                         0 -> {
-                            if (profileActivityItems.isEmpty()) {
+                            if (profileActivityLoading) {
                                 item {
                                     Box(
-                                        Modifier.fillMaxWidth().padding(40.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(40.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(32.dp),
+                                                color = MaterialTheme.colorScheme.primary,
+                                                strokeWidth = 2.dp
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                            Text(
+                                                text = "Recargando…",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            } else if (profileActivityItems.isEmpty()) {
+                                item {
+                                    Column(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(40.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Coffee,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(48.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                        )
+                                        Spacer(Modifier.height(16.dp))
                                         Text(
-                                            text = if (state.isCurrentUser) "Comienza a seguir a otras personas y descubre nuevos cafés" else "Sin actividad reciente",
+                                            text = if (state.isCurrentUser) "Tu actividad está vacía" else "Sin actividad reciente",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            text = if (state.isCurrentUser) "Sigue a otras personas para ver aquí sus reseñas, favoritos y cafés probados." else "Este usuario aún no ha publicado reseñas ni añadido cafés.",
+                                            style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center
                                         )
+                                        if (state.isCurrentUser && onExploreCafes != null) {
+                                            Spacer(Modifier.height(20.dp))
+                                            Button(onClick = { onExploreCafes() }) {
+                                                Text("Explorar cafés")
+                                            }
+                                        }
                                     }
                                 }
                             } else {
@@ -225,23 +274,14 @@ fun ProfileScreen(
                                     }
                                 }) { item ->
                                     Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                                        when (val act = item) {
-                                            is ProfileActivityItem.Review -> ProfileActivityReviewCard(
-                                                reviewInfo = act.reviewInfo,
-                                                onCoffeeClick = { onCoffeeClick(act.reviewInfo.coffeeDetails.coffee.id) },
-                                                onDeleteClick = if (state.isCurrentUser) { { itemToDelete = act.reviewInfo } } else null,
-                                                isCurrentUser = state.isCurrentUser
-                                            )
-                                            is ProfileActivityItem.FirstTimeCoffee -> ProfileActivityFirstTimeCard(
-                                                item = act,
-                                                onCoffeeClick = { onCoffeeClick(act.coffeeId) }
-                                            )
-                                            is ProfileActivityItem.AddedToList -> ProfileActivityListCard(
-                                                item = act,
-                                                onCoffeeClick = { onCoffeeClick(act.coffeeId) },
-                                                onListClick = { onOpenUserListClick?.invoke(act.userId, act.listId) }
-                                            )
-                                        }
+                                        ProfileActivityCard(
+                                            item = item,
+                                            activeUserId = state.activeUser?.id,
+                                            onUserClick = onUserClick,
+                                            onCoffeeClick = onCoffeeClick,
+                                            onListClick = onOpenUserListClick,
+                                            isCurrentUser = state.isCurrentUser
+                                        )
                                     }
                                 }
                             }

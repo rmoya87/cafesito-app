@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.cafesito.app.ui.theme.LocalCaramelAccent
+import com.cafesito.app.ui.theme.RadarGridDark
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -36,7 +37,7 @@ fun SensoryRadarChart(
     lineColor: Color = LocalCaramelAccent.current,
     fillColor: Color = LocalCaramelAccent.current.copy(alpha = 0.3f),
     labelColor: Color = MaterialTheme.colorScheme.onSurface,
-    gridColor: Color = if (isSystemInDarkTheme()) Color(0xFF757575) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+    gridColor: Color = if (isSystemInDarkTheme()) RadarGridDark else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
 ) {
     val labels = RADAR_LABELS
     val values = RADAR_LABELS.map { key -> (data[key] ?: 0f).coerceIn(0f, maxValue) }

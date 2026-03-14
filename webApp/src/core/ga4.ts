@@ -40,9 +40,10 @@ declare global {
   }
 }
 
-/** Inicializa gtag.js con el measurement ID (por defecto G-BMZEQNRKR4). Llamar al arranque de la app. */
+/** Inicializa gtag.js con el measurement ID (por defecto G-BMZEQNRKR4). Llamar al arranque de la app. No carga el script si no hay red para evitar ERR_NAME_NOT_RESOLVED. */
 export function initGa4(): void {
   if (typeof window === "undefined") return;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return;
   const id = GA4_MEASUREMENT_ID;
   if (!id) return;
   if (!window.gtag) {

@@ -320,7 +320,7 @@ export function CoffeeDetailView({
           <p className="coffee-detail-opinions-empty">{EMPTY.OPINIONS}</p>
         ) : null}
         {currentUserReview ? (
-          <article className="coffee-card coffee-detail-opinion-preview">
+          <article className="coffee-card coffee-detail-opinion-preview coffee-detail-opinion-card">
             <div className="coffee-detail-opinion-head">
               <div className="coffee-detail-opinion-avatar-wrap">
                 {currentUser?.id ? (
@@ -379,9 +379,9 @@ export function CoffeeDetailView({
                   </div>
                 )}
                 <span className="coffee-detail-opinion-rating-chip" aria-label="Nota">
-                  <UiIcon name="star" className="ui-icon" />{currentUserReview.rating.toFixed(1)} / 5
+                  <UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(currentUserReview.rating)} / 5
                 </span>
-                {currentUserReview.comment ? <p className="feed-text">{currentUserReview.comment}</p> : null}
+                {currentUserReview.comment ? <p className="feed-text coffee-detail-opinion-comment">{currentUserReview.comment}</p> : null}
                 {currentUserReview.image_url ? <img className="coffee-detail-review-image" src={currentUserReview.image_url} alt="Tu reseña" loading="lazy" decoding="async" /> : null}
               </div>
               <Button variant="plain"
@@ -395,14 +395,14 @@ export function CoffeeDetailView({
                   setShowReviewSheet(true);
                 }}
               >
-                EDITAR
+                Editar
               </Button>
             </div>
           </article>
         ) : null}
         <ul className="coffee-list">
           {otherReviews.map((review) => (
-            <li key={`${review.user_id}-${review.id ?? review.timestamp ?? 0}`} className="coffee-card coffee-detail-opinion-item">
+            <li key={`${review.user_id}-${review.id ?? review.timestamp ?? 0}`} className="coffee-card coffee-detail-opinion-item coffee-detail-opinion-card">
               <div className="coffee-detail-opinion-head">
                 <div className="coffee-detail-opinion-avatar-wrap">
                   {review.user?.id ? (
@@ -460,8 +460,10 @@ export function CoffeeDetailView({
                       <p className="feed-meta">{toRelativeMinutes(review.timestamp ?? 0)}</p>
                     </div>
                   )}
-                  <span className="coffee-detail-opinion-rating-chip" aria-label="Nota"><UiIcon name="star" className="ui-icon" />{review.rating.toFixed(1)} / 5</span>
-                  {review.comment ? <p className="feed-text">{review.comment}</p> : null}
+                  <span className="coffee-detail-opinion-rating-chip" aria-label="Nota">
+                    <UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(review.rating)} / 5
+                  </span>
+                  {review.comment ? <p className="feed-text coffee-detail-opinion-comment">{review.comment}</p> : null}
                   {review.image_url ? <img className="coffee-detail-review-image" src={review.image_url} alt="Imagen reseña" loading="lazy" decoding="async" /> : null}
                 </div>
               </div>
