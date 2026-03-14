@@ -299,6 +299,15 @@ html.theme-dark .diary-analytics-card {
   border: none;
 }
 
+/* Mi diario: tarjetas Hábito, Consumo, Barista — cuadrado bg negro en modo noche */
+html.theme-dark .card.diary-stats-card {
+  background: var(--pure-black);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+html.theme-dark .card.diary-stats-card .diary-stats-card-row {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
 /* Brew */
 html.theme-dark .brew-method-card-native {
   background: var(--surface);
@@ -1362,7 +1371,8 @@ html.theme-light .diary-sheet,
 html.theme-light .diary-sheet-action,
 html.theme-light .diary-pantry-card,
 html.theme-light .diary-pantry-foot,
-html.theme-light .diary-analytics-card {
+html.theme-light .diary-analytics-card,
+html.theme-light .card.diary-stats-card {
   background: var(--pure-white);
   border-color: var(--border-light);
   color: var(--espresso-deep);

@@ -35,8 +35,8 @@ const CAFFEINE_COLOR = "#6f4e37";
 
 export type DiaryChartPoint = { label: string; caffeine: number; water: number };
 
-/** Altura mínima; el contenedor usa el alto completo de la card vía CSS. */
-const CHART_MIN_HEIGHT = 140;
+/** Altura mínima del gráfico; usa variable CSS --chart-min-height (tokens.css). */
+const CHART_MIN_HEIGHT = 'var(--chart-min-height)';
 
 type DiaryLineChartProps = {
   chartData: DiaryChartPoint[];

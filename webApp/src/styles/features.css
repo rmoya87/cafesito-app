@@ -5401,6 +5401,30 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   padding: var(--space-4) var(--space-5);
 }
 
+/* Mi diario: tarjetas Hábito, Consumo, Barista — estándar .card (bg blanco día, negro noche) */
+@media (prefers-color-scheme: light) {
+  .card.diary-stats-card {
+    background: var(--pure-white);
+    border-color: var(--border-light);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .card.diary-stats-card {
+    background: var(--pure-black);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .card.diary-stats-card .diary-stats-card-row {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+  .card.diary-stats-card .diary-stats-card-label {
+    color: var(--text-subtle);
+  }
+  .card.diary-stats-card .diary-stats-card-value {
+    color: var(--text-main);
+  }
+}
+
 .diary-stats-card-list {
   list-style: none;
   margin: 0;

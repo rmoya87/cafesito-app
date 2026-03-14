@@ -104,7 +104,8 @@ select {
   line-height: var(--line-height-normal);
 }
 
-/* Barras de scroll: finas, fondo transparente, gris oscuro visible */
+/* Barras de scroll: finas, fondo transparente, gris oscuro visible.
+   Valores 6px/3px: decisión de diseño (scrollbar delgada); no en escala --space-*. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
@@ -142,6 +143,7 @@ img {
   content-visibility: auto;
 }
 
+/* Focus visible: 2px outline + offset y ring; valor fijo por accesibilidad (WCAG). */
 :where(
   button,
   [role="button"],

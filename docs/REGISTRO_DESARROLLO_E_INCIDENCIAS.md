@@ -5,6 +5,21 @@
 
 ---
 
+## Cuándo actualizar este registro
+
+```mermaid
+flowchart LR
+  A[Resuelves incidencia] --> B[Añadir sección con causa y solución]
+  C[Cambio de flujo/rama/CI] --> B
+  D[Decisión que afecta a otros docs] --> B
+  E[Pasada de estandarización o guía] --> B
+  B --> F[Actualizar Índice rápido + Última actualización]
+```
+
+Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya documentados aquí.
+
+---
+
 ## Índice rápido
 
 1. [Elaboración (Brew), UI, colores, Italiana](#1-elaboración-brew-ui-colores-italiana)
@@ -20,6 +35,8 @@
 11. [Registro completo: paridad Web/Android y mejoras (mar 2026)](#11-registro-completo-paridad-webandroid-y-mejoras-mar-2026)
 12. [Resumen de cambios — Cafés probados, perfil, detalle café, WebApp (12–13 mar 2026)](#12-resumen-de-cambios--cafés-probados-perfil-detalle-café-webapp-1213-mar-2026)
 13. [Estandarización completa según GUIA (13 mar 2026)](#13-estandarización-completa-según-guia-13-mar-2026)
+14. [Segunda pasada GUIA — Colores Android y documentación (13 mar 2026)](#14-segunda-pasada-guia--colores-android-y-documentación-13-mar-2026)
+15. [Tercera pasada GUIA — Dimensiones, Spacing, Dimens, WebApp chart (13 mar 2026)](#15-tercera-pasada-guia--dimensiones-spacing-dimens-webapp-chart-13-mar-2026)
 
 ---
 
@@ -158,7 +175,7 @@ Además: `docs-before-code.mdc` (siempre) — consultar docs antes de actuar.
 | Estados vacío y error (patrón unificado) | `docs/UX_EMPTY_AND_ERROR_STATES.md` |
 | Lógica de negocio compartida (diario, brew, recomendaciones) | `docs/SHARED_BUSINESS_LOGIC.md` |
 | Tests de humo (flujo crítico) | `docs/SMOKE_TESTS.md` |
-| Accesibilidad mínima (aria, 44px, WCAG) | `docs/ACCESSIBILITY_MINIMA.md` |
+| Accesibilidad (aria, 44px/48dp, WCAG) | `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` |
 | Workflow release y deploy (triggers, ramas, jobs) | `docs/RELEASE_DEPLOY_WORKFLOW.md` |
 | Changelog detallado Brew/UI/colores/Italiana (04–05 mar) | `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md` |
 | Compliance Play Console, orientación, edge-to-edge | `docs/ANDROID_PLAY_CONSOLE_COMPLIANCE.md` |
@@ -203,7 +220,7 @@ Se sustituyeron **todos** los `contentDescription = null` e `Icon(..., null)` po
 | **`docs/UX_EMPTY_AND_ERROR_STATES.md`** | Patrón unificado para listas vacías (mensaje, icono, CTA) y errores de red (mensaje + "Reintentar"). |
 | **`docs/SHARED_BUSINESS_LOGIC.md`** | Qué lógica es compartida (Kotlin shared), replicada (Web TS) o por plataforma; diario, brew, recomendaciones, fechas. |
 | **`docs/SMOKE_TESTS.md`** | Flujo crítico (login → diario → detalle/añadir) y dónde implementar tests de humo en Web (Vitest/RTL) y Android (instrumented/Compose). |
-| **`docs/ACCESSIBILITY_MINIMA.md`** | Criterios mínimos: aria-label / contentDescription, área de tap ≥ 44px / 48 dp, contraste WCAG. |
+| **`docs/ACCESIBILIDAD_WEBAPP_ANDROID.md`** | Fuente única a11y: criterios mínimos, revisión WebApp/Android, checklist al cambiar UI. |
 | **`docs/README.md`** | Enlaces a los cinco documentos anteriores en la sección "Arquitectura y gobernanza". |
 | **`docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md`** | Sección 5 (diario webapp), sección 6 (referencias), esta sección 7 (resumen). |
 
@@ -417,10 +434,69 @@ Se ejecutaron todas las tareas factibles del listado en **`docs/GUIA_UNIFICACION
 
 ### Pendiente (sin cerrar en esta pasada)
 
-- B.3.2: Sustituir más `RoundedCornerShape` por `Shapes.*` en resto de pantallas.
-- B.3.3: Forma estándar botón pill.
-- B.5: Colores/dimensiones restantes en BrewLabComponents, DiaryComponents, etc. (parcialmente hecho en pasadas anteriores).
-- base.css: scrollbar/outline documentar; más espaciados en features.css.
+- B.5.2: Spacing en más pantallas (SearchScreen 10/6 dp → Spacing opcional); DetailScreen typography; Dimens.kt opcional.
+- DiaryLineChart.tsx: variable CSS para CHART_MIN_HEIGHT si se reutiliza (opcional).
+
+---
+
+## 14. Segunda pasada GUIA — Colores Android y documentación (13 mar 2026)
+
+Se completaron los ítems pendientes de **`docs/GUIA_UNIFICACION_COMPONENTES_UI.md`** (colores B.5.1, base.css, B.3.3, cross-platform).
+
+### WebApp
+
+- **base.css:** Comentarios que documentan scrollbar (6px/3px) y outline 2px como decisión de diseño; min-height 120px ya documentado.
+- **Sliders:** Confirmado uso de tokens en WebApp y Android (SliderTrackInactiveDark/Light, etc.).
+
+### Android — Colores (B.5.1)
+
+- **Color.kt:** Añadidos `DateMetaAxisDark`, `DateMetaAxisLight`, `SwitchTrackOffDark`, `SwitchThumbOffDark` para gráficos y switch del temporizador.
+- **BrewLabComponents.kt:** `Color.Black`/`Color.White` y hex (424242, 9E9E9E, BDBDBD) sustituidos por `PureBlack`/`PureWhite`, `SwitchTrackOffDark`, `SwitchThumbOffDark`, `DisabledGray`; idem en MethodCard, chips, timer card, PreparationStep, TasteChip, PreparationTasteCard.
+- **DiaryComponents.kt:** Opciones icon/bg → `PureWhite`/`PureBlack`; eje gráfico → `DateMetaAxisDark`/`DateMetaAxisLight`; quickAction → `PureWhite`/`PureBlack`.
+- **TimelineComponents.kt:** Slider inactivo → `SliderTrackInactiveDark`/`SliderTrackInactiveLight`; campos, chips, gradientes → `PureBlack`/`PureWhite`.
+- **ProfileComponents.kt:** Favoritos → `ElectricRed`; contenedores, campos, bordes → `PureBlack`/`PureWhite`.
+- **LoginScreen, AddStockScreen, EditNormalStockScreen, DetailScreen, NotificationsScreen, ProfileScreen, AddDiaryEntryScreen, BrewLabCards:** Fondos, texto sobre imagen y contenedores → `PureBlack`/`PureWhite`/`ScrimDefault`/`CameraBgDark`/`CameraBgLight`; imports de tema añadidos donde faltaban.
+- **DiaryScreen:** Chips de fecha → `PureWhite`/`PureBlack`.
+
+### Botones (B.3.3)
+
+- Formas estándar ya en uso: `Shapes.pill`, `Shapes.shapeXl` para botones de acción; documentado en guía.
+
+### Documentación
+
+- **GUIA_UNIFICACION_COMPONENTES_UI.md:** Marcados [x] base.css, sliders, B.3.3, B.5.1 (todos los archivos), cross-platform; resumen de estandarización actualizado.
+- **REGISTRO:** Esta sección 14 y actualización de pendientes en §13.
+
+### Verificación
+
+- `./gradlew compileDebugKotlin` ejecutado con éxito tras los cambios.
+
+---
+
+## 15. Tercera pasada GUIA — Dimensiones, Spacing, Dimens, WebApp chart (13 mar 2026)
+
+Se aplicó todo lo que quedaba en **`docs/GUIA_UNIFICACION_COMPONENTES_UI.md`**: B.5.2 dimensiones Android, Dimens.kt, Spacing en pantallas, DetailScreen typography, radios (AppNavigation), WebApp DiaryLineChart.
+
+### Android — Dimensiones (B.5.2)
+
+- **Dimens.kt:** Nuevo archivo en `ui/theme/` con `iconSizeEmpty` (64.dp), `cardImageHeight` (86.dp), `contentPaddingBottom` (100.dp), `navBarHeight` (64.dp). Usado en SearchScreen y AppNavigation.
+- **SearchScreen.kt:** Padding 10/6.dp → Spacing.space3/space2; 64.dp y 100.dp → Dimens; 16.dp, 8.dp, 12.dp, 24.dp, 32.dp, 4.dp → Spacing.space4/space2/space3/space6/space8/space1 en filtros, listas, EmptySearchResults y opciones.
+- **Spacing en componentes:** DiaryComponents, TimelineComponents, ProfileComponents, BrewLabComponents: 8.dp, 12.dp, 16.dp, 24.dp, 32.dp y 4.dp sustituidos por Spacing.space2 … space8 y space1. Se mantienen literales para valores compuestos (14.dp, 18.dp, 28.dp, 48.dp, 35.dp, 54.dp) para no alterar tamaños de iconos y gráficos.
+- **DetailScreen.kt:** Eliminados overrides `fontSize = 12.sp` y `lineHeight = 38.sp` en título/marca del hero; se usa solo `MaterialTheme.typography.labelLarge` y `headlineLarge`.
+- **AppNavigation.kt:** Barra inferior usa `Shapes.shapePremium` (32.dp) en lugar de `RoundedCornerShape(32.dp)`; altura 64.dp → `Dimens.navBarHeight`. Imports de `Shapes` y `Dimens` añadidos.
+
+### WebApp
+
+- **DiaryLineChart.tsx:** `CHART_MIN_HEIGHT` pasa a usar la variable CSS `var(--chart-min-height)`; en `tokens.css` se añadió `--chart-min-height: 140px`.
+
+### Documentación
+
+- **GUIA_UNIFICACION_COMPONENTES_UI.md:** Marcados [x] todos los ítems de B.5.2 y DiaryLineChart; resumen "Tercera pasada" en el listado de tareas.
+- **REGISTRO:** Esta sección 15.
+
+### Verificación
+
+- `./gradlew compileDebugKotlin` ejecutado con éxito.
 
 ---
 

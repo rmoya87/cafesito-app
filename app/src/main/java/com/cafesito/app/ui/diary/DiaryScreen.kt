@@ -184,7 +184,7 @@ fun DiaryScreen(
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                shape = Shapes.sheetLarge,
                 scrimColor = ScrimDefault
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
@@ -283,16 +283,16 @@ fun DiaryScreen(
                         modifier = Modifier.padding(start = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        val chipBackground = if (isDarkMode) MaterialTheme.colorScheme.surface else Color.White
+                        val chipBackground = if (isDarkMode) MaterialTheme.colorScheme.surface else PureWhite
                         val chipBorderColor = MaterialTheme.colorScheme.outline
-                        val chipContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else Color.Black
+                        val chipContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else PureBlack
                         Row(
                             modifier = Modifier
                                 .wrapContentWidth()
                                 .height(40.dp)
-                                .clip(RoundedCornerShape(24.dp))
+                                .clip(Shapes.pill)
                                 .background(chipBackground)
-                                .border(1.dp, chipBorderColor, RoundedCornerShape(24.dp))
+                                .border(1.dp, chipBorderColor, Shapes.pill)
                                 .padding(horizontal = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {

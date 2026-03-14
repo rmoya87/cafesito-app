@@ -20,6 +20,16 @@ object Shapes {
     val sheetTop = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     /** 24dp — chips pill, avatar. */
     val pill = RoundedCornerShape(24.dp)
-    /** 32dp — bottom sheet grande, premium card. */
+    /** 28dp — cards destacadas, modales (--radius-xl). */
+    val shapeXl = RoundedCornerShape(28.dp)
+    /** 20dp — cards/sheets con todas las esquinas (no solo superior). */
+    val shapeCardMedium = RoundedCornerShape(20.dp)
+    /** 999dp — botón pill / cápsula. */
+    val pillFull = RoundedCornerShape(999.dp)
+    /** 24dp — solo esquinas superiores (bottom sheet). */
+    val sheetTopPill = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    /** 32dp — bottom sheet grande (solo esquinas superiores). */
     val sheetLarge = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+    /** 32dp — premium card, todas las esquinas. */
+    val shapePremium = RoundedCornerShape(32.dp)
 }

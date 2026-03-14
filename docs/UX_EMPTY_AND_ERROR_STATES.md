@@ -7,6 +7,26 @@
 
 ---
 
+## Esquema: qué mostrar según estado de la pantalla
+
+```mermaid
+flowchart TD
+  A[Pantalla con lista o datos remotos] --> B{Estado}
+  B -->|Cargando| C[Spinner / skeleton / "Cargando..."]
+  B -->|Vacío| D[Estado vacío]
+  B -->|Error de red| E[Estado error]
+  B -->|Datos OK| F[Contenido (lista, detalle)]
+  D --> D1[Mensaje principal]
+  D --> D2[Subtítulo opcional]
+  D --> D3[CTA opcional: Añadir, Publicar...]
+  E --> E1[Mensaje de fallo]
+  E --> E2[Botón "Reintentar"]
+```
+
+**Regla:** No mostrar lista vacía cuando hay error; distinguir en el estado entre "vacío" y "error" y mostrar el patrón correspondiente (ver secciones 1 y 2).
+
+---
+
 ## 1. Lista vacía
 
 ### 1.1 Estructura
@@ -75,5 +95,17 @@ Evitar mostrar lista vacía cuando en realidad hay un error; distinguir en el es
 |--------|-----------|----------|
 | **Vacío** | Mensaje (+ icono opcional) + CTA opcional | Explicar y guiar la siguiente acción. |
 | **Error** | Mensaje + botón "Reintentar" | Explicar el fallo y ofrecer recuperación. |
+
+**Workflow al añadir una pantalla con lista o datos remotos:**
+
+```mermaid
+flowchart LR
+  A[Nueva pantalla con datos] --> B[Definir estado vacío: mensaje + CTA?]
+  B --> C[Definir estado error: mensaje + Reintentar]
+  C --> D[Web: EmptyState/ErrorState o clases .timeline-empty/.error-state]
+  C --> E[Android: EmptyStateMessage/ErrorStateMessage]
+  D --> F[Alinear textos con tabla §1.3 y DESIGN_TOKENS]
+  E --> F
+```
 
 Al diseñar una nueva pantalla con lista o datos remotos, definir qué se muestra en vacío y en error y alinear textos y jerarquía con este documento y con `DESIGN_TOKENS.md`.

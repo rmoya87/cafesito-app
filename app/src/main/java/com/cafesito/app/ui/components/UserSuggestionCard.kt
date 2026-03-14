@@ -108,7 +108,7 @@ fun UserSuggestionCard(
         modifier = Modifier
             .width(150.dp)
             .height(200.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = Shapes.cardSmall,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -152,7 +152,7 @@ fun UserSuggestionCard(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = Shapes.cardSmall
                 ) {
                     Text("Siguiendo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
@@ -166,7 +166,7 @@ fun UserSuggestionCard(
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.primary
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = Shapes.cardSmall
                 ) {
                     Text("Seguir", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }

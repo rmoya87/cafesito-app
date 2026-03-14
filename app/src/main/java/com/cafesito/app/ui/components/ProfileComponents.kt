@@ -120,22 +120,22 @@ fun ProfileAdn(
     listState: LazyListState = rememberLazyListState(),
     onShowSensoryDetail: () -> Unit
 ) {
-    LazyColumn(state = listState, contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
+    LazyColumn(state = listState, contentPadding = PaddingValues(top = Spacing.space4, bottom = 120.dp)) {
         item {
             PremiumCard(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = Spacing.space4, vertical = Spacing.space2)
                     .clickable(onClick = onShowSensoryDetail),
-                containerColor = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.surface
+                containerColor = if (isSystemInDarkTheme()) PureBlack else MaterialTheme.colorScheme.surface
             ) {
-                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(modifier = Modifier.padding(Spacing.space6), horizontalAlignment = Alignment.CenterHorizontally) {
                     SensoryRadarChart(
                         data = state.sensoryProfile,
                         lineColor = MaterialTheme.colorScheme.primary,
                         fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Spacing.space2))
                     Text(
                         "Pulsa para descubrir tus preferencias",
                         style = MaterialTheme.typography.labelSmall,
@@ -152,7 +152,7 @@ fun ProfileAdn(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 8.dp)
+                    .padding(horizontal = Spacing.space8, vertical = Spacing.space2)
             )
         }
     }
@@ -165,9 +165,9 @@ fun ProfileFavorites(
     onCoffeeClick: (String) -> Unit,
     listState: LazyListState = rememberLazyListState()
 ) {
-    LazyColumn(state = listState, contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
+    LazyColumn(state = listState, contentPadding = PaddingValues(top = Spacing.space4, bottom = 120.dp)) {
         items(favoriteCoffees) { item ->
-            Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+            Box(Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space1)) {
                 CoffeeFavoritePremiumItem(
                     coffeeDetails = item,
                     onFavoriteClick = { viewModel.onToggleFavorite(item.coffee.id, false) },
@@ -191,7 +191,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
         Column(
             Modifier
                 .navigationBarsPadding()
-                .padding(24.dp)
+                .padding(Spacing.space6)
         ) {
             Text(
                 text = "ANÁLISIS DE PREFERENCIAS",
@@ -201,7 +201,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
 
             val sorted = profile.toList().sortedByDescending { it.second }
             val highest = sorted.getOrNull(0)
@@ -221,7 +221,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(Spacing.space3))
 
                 val description = when (highest.first) {
                     "Acidez" -> "Buscas brillo en cada taza. Te apasionan los perfiles cítricos y vibrantes de cafés de altura (1500m+)."
@@ -242,34 +242,34 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                     else -> "Blends equilibrados" to "Cualquier origen de especialidad"
                 }
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(Spacing.space6))
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = Shapes.card,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(Spacing.space2))
                             Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         }
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(Spacing.space3))
                         Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Text(text = "Orígenes sugeridos: $idealOrigin", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(Spacing.space8))
             Button(
                 onClick = onDismiss,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(28.dp)
+                shape = Shapes.shapeXl
             ) { Text("CONTINUAR EXPLORANDO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary) }
         }
     }
@@ -340,14 +340,14 @@ fun ProfileActivityCard(
     }
 
     val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) Color.Black else MaterialTheme.colorScheme.surface
+    val cardBg = if (isDark) PureBlack else MaterialTheme.colorScheme.surface
     val coffeeCardBg = if (isDark) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
 
     PremiumCard(modifier = Modifier.fillMaxWidth(), containerColor = cardBg) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = Spacing.space4, vertical = Spacing.space3),
             verticalAlignment = Alignment.Top
         ) {
             // Avatar (clickable → perfil usuario)
@@ -362,7 +362,7 @@ fun ProfileActivityCard(
                 if (!item.avatarUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = item.avatarUrl,
-                        contentDescription = null,
+                        contentDescription = "Avatar de $displayName",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -374,7 +374,7 @@ fun ProfileActivityCard(
                     )
                 }
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(Spacing.space3))
             Column(Modifier.weight(1f)) {
                 // Línea de texto: "Tú" / nombre + label (segunda/tercera persona)
                 Text(
@@ -392,21 +392,21 @@ fun ProfileActivityCard(
                     text = formatRelativeTime(item.timestamp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = Spacing.space1)
                 )
                 // Bloque café (mismo ancho que el resto): por tipo → lista (icono+nombre) / reseña (★ X/5 + comentario) / fila principal (imagen, nombre, marca, flecha)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .padding(top = Spacing.space3)
+                        .clip(Shapes.cardSmall)
                         .then(
                             if (type == "review") Modifier.clickable { onCoffeeClick(coffeeId) }
                             else Modifier
                         ),
                     color = coffeeCardBg
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(Spacing.space3)) {
                         // Tipo lista (favorite): icono lista + nombre lista; tap lleva a esa lista. Debajo separador y fila café.
                         if (showListBadge && listId != null && onListClick != null) {
                             val isFavoritesList = listId == "favorites" || (listName?.equals("Favoritos", ignoreCase = true) == true)
@@ -418,11 +418,11 @@ fun ProfileActivityCard(
                             ) {
                                 Icon(
                                     imageVector = if (isFavoritesList) Icons.Default.Favorite else Icons.AutoMirrored.Filled.FormatListBulleted,
-                                    contentDescription = null,
+                                    contentDescription = if (isFavoritesList) "Favoritos" else "Lista",
                                     modifier = Modifier.size(18.dp),
-                                    tint = if (isFavoritesList) Color(0xFFE53935) else MaterialTheme.colorScheme.onSurface
+                                    tint = if (isFavoritesList) ElectricRed else MaterialTheme.colorScheme.onSurface
                                 )
-                                Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(Spacing.space2))
                                 Text(
                                     text = listName?.ifBlank { "Lista" } ?: "Lista",
                                     style = MaterialTheme.typography.bodySmall,
@@ -432,11 +432,11 @@ fun ProfileActivityCard(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            HorizontalDivider(Modifier.padding(vertical = Spacing.space2), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         }
                         // Tipo opinión (review): chip ★ X/5 (amarillo-naranja) + texto nota negro (noche) / blanco (día); comentario mismo criterio
                         if (rating != null || !comment.isNullOrBlank()) {
-                            val noteTextColor = if (isDark) Color.Black else Color.White
+                            val noteTextColor = if (isDark) PureBlack else PureWhite
                             val reviewCommentColor = if (isDark) Color(0xFFf5f5f5) else Color(0xFF1a1a1a)
                             val noteChipOrange = Color(0xFFFFB74D)
                             Row(
@@ -445,15 +445,15 @@ fun ProfileActivityCard(
                             ) {
                                 if (rating != null) {
                                     Surface(
-                                        shape = RoundedCornerShape(999.dp),
+                                        shape = Shapes.pillFull,
                                         color = noteChipOrange
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = Spacing.space1),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(Icons.Default.Star, contentDescription = "Nota", modifier = Modifier.size(12.dp), tint = noteTextColor)
-                                            Spacer(Modifier.width(4.dp))
+                                            Icon(Icons.Default.Star, contentDescription = "Nota", modifier = Modifier.size(Spacing.space3), tint = noteTextColor)
+                                            Spacer(Modifier.width(Spacing.space1))
                                             Text(
                                                 text = "${rating.toInt()}/5",
                                                 style = MaterialTheme.typography.labelSmall,
@@ -462,7 +462,7 @@ fun ProfileActivityCard(
                                             )
                                         }
                                     }
-                                    if (!comment.isNullOrBlank()) Spacer(Modifier.width(8.dp))
+                                    if (!comment.isNullOrBlank()) Spacer(Modifier.width(Spacing.space2))
                                 }
                                 if (!comment.isNullOrBlank()) {
                                     Text(
@@ -474,7 +474,7 @@ fun ProfileActivityCard(
                                     )
                                 }
                             }
-                            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            HorizontalDivider(Modifier.padding(vertical = Spacing.space2), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         }
                         // Fila principal (todos los tipos): imagen 48dp, nombre, marca en mayúsculas, flecha → detalle café (en review el tap lo maneja la Surface)
                         Row(
@@ -489,14 +489,14 @@ fun ProfileActivityCard(
                             Box(
                                 Modifier
                                     .size(48.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(Shapes.small)
                                     .background(LocalCaramelAccent.current.copy(alpha = 0.25f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (coffeeImageUrl.isNotBlank()) {
                                     AsyncImage(
                                         model = coffeeImageUrl,
-                                        contentDescription = null,
+                                        contentDescription = coffeeName,
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop
                                     )
@@ -509,7 +509,7 @@ fun ProfileActivityCard(
                                     )
                                 }
                             }
-                            Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(Spacing.space3))
                             Column(Modifier.weight(1f)) {
                                 Text(
                                     text = coffeeName,
@@ -548,7 +548,7 @@ fun ProfileStatsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = Spacing.space4),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         StatItem("Seguidores", followers.toString(), onFollowersClick)
@@ -561,11 +561,11 @@ fun StatItem(label: String, value: String, onClick: (() -> Unit)? = null) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(Shapes.cardSmall)
             .let {
                 if (onClick != null) it.clickable(onClick = onClick) else it
             }
-            .padding(8.dp)
+            .padding(Spacing.space2)
     ) {
         Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(
@@ -581,13 +581,13 @@ fun StatItem(label: String, value: String, onClick: (() -> Unit)? = null) {
 /** Fila "Crea una lista nueva" en la pestaña Listas (mismo ancho completo que Favoritos). Bordes más cuadrados. */
 @Composable
 fun ListRowCreateList(onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = Shapes.card) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(Spacing.space4).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(16.dp))
+            Icon(Icons.Default.Add, contentDescription = "Crear lista nueva", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(Spacing.space6))
+            Spacer(Modifier.width(Spacing.space4))
             Text("Crea una lista nueva", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
@@ -596,15 +596,15 @@ fun ListRowCreateList(onClick: () -> Unit) {
 /** Fila "Favoritos" en la pestaña Listas: corazón + nombre + flecha. Bordes más cuadrados. */
 @Composable
 fun ListRowFavoritos(onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = Shapes.card) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(Spacing.space4).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Favorite, contentDescription = null, tint = ElectricRed, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(16.dp))
+            Icon(Icons.Default.Favorite, contentDescription = "Favoritos", tint = ElectricRed, modifier = Modifier.size(Spacing.space6))
+            Spacer(Modifier.width(Spacing.space4))
             Text("Favoritos", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir Favoritos", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -612,20 +612,20 @@ fun ListRowFavoritos(onClick: () -> Unit) {
 /** Fila de lista personalizada: icono lista + nombre + flecha. Bordes más cuadrados. */
 @Composable
 fun ListRowCustomList(name: String, onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = Shapes.card) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(Spacing.space4).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 painter = rememberListAltSvgPainter(),
-                contentDescription = null,
+                contentDescription = "Lista",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(Spacing.space6)
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(Spacing.space4))
             Text(name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir lista", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -646,8 +646,8 @@ fun CreateListBottomSheet(
     var privacyExpanded by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isDark = isSystemInDarkTheme()
-    val fieldBackground = if (isDark) Color.Black else Color.White
-    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val fieldBackground = if (isDark) PureBlack else PureWhite
+    val fieldTextColor = if (isDark) PureWhite else PureBlack
     val editFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = fieldBackground,
         unfocusedContainerColor = fieldBackground,
@@ -664,11 +664,11 @@ fun CreateListBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
+        Column(Modifier.padding(horizontal = Spacing.space6, vertical = Spacing.space2).navigationBarsPadding()) {
             Box(Modifier.fillMaxWidth()) {
                 Text(
                     if (isEditMode) "Editar lista" else "Nueva lista",
@@ -690,7 +690,7 @@ fun CreateListBottomSheet(
                     Text(if (isEditMode) "Guardar" else "Crear lista", fontWeight = FontWeight.SemiBold)
                 }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -699,9 +699,9 @@ fun CreateListBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = editFieldTextStyle,
                 colors = editFieldColors,
-                shape = RoundedCornerShape(16.dp)
+                shape = Shapes.card
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(Spacing.space4))
             ExposedDropdownMenuBox(
                 expanded = privacyExpanded,
                 onExpandedChange = { privacyExpanded = it },
@@ -716,7 +716,7 @@ fun CreateListBottomSheet(
                     modifier = Modifier
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                         .fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = Shapes.card,
                     textStyle = editFieldTextStyle,
                     colors = editFieldColors
                 )
@@ -734,13 +734,13 @@ fun CreateListBottomSheet(
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.space2))
             Text(
                 text = if (isPublic) "Si es público se mostrará en la actividad de los perfiles de las personas que te sigan." else "Si es privado no se mostrará en tu actividad.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
         }
     }
 }
@@ -755,22 +755,22 @@ private fun AddToListOptionRow(
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = Spacing.space4, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { icon() }
-            Spacer(Modifier.width(12.dp))
+            Box(Modifier.size(Spacing.space6), contentAlignment = Alignment.Center) { icon() }
+            Spacer(Modifier.width(Spacing.space3))
             Text(
                 label,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir lista", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -789,11 +789,11 @@ fun AddToListBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
+        Column(Modifier.padding(horizontal = Spacing.space6, vertical = Spacing.space2).navigationBarsPadding()) {
             Text(
                 "Añadir a lista",
                 style = MaterialTheme.typography.titleLarge,
@@ -807,8 +807,8 @@ fun AddToListBottomSheet(
                 icon = {
                     Icon(
                         painter = rememberListAltAddSvgPainter(),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
+                        contentDescription = "Crear lista nueva",
+                        modifier = Modifier.size(Spacing.space6),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
@@ -816,13 +816,13 @@ fun AddToListBottomSheet(
                 onClick = onCreateListRequest
             )
             userLists.forEach { list ->
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(Spacing.space2))
                 AddToListOptionRow(
                     icon = {
                         Icon(
                             painter = rememberListAltSvgPainter(),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
+                            contentDescription = "Lista",
+                            modifier = Modifier.size(Spacing.space6),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     },
@@ -830,15 +830,15 @@ fun AddToListBottomSheet(
                     onClick = { onAddToList(list.id); onDismiss() }
                 )
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.space2))
             AddToListOptionRow(
                 icon = {
-                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(24.dp), tint = ElectricRed)
+                    Icon(Icons.Default.Favorite, contentDescription = "Favoritos", modifier = Modifier.size(Spacing.space6), tint = ElectricRed)
                 },
                 label = "Favoritos",
                 onClick = { onFavoriteToggle(); onDismiss() }
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
         }
     }
 }
@@ -855,23 +855,23 @@ fun ListOptionsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
+        Column(Modifier.padding(horizontal = Spacing.space6, vertical = Spacing.space2).navigationBarsPadding()) {
             AddToListOptionRow(
-                icon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface) },
+                icon = { Icon(Icons.Default.Edit, contentDescription = "Editar lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
                 label = "Editar lista",
                 onClick = { onDismiss(); onEditList() }
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.space2))
             AddToListOptionRow(
-                icon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface) },
+                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
                 label = "Eliminar lista",
                 onClick = { onDismiss(); onDeleteList() }
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
         }
     }
 }
@@ -885,19 +885,19 @@ fun ListDeleteConfirmBottomSheet(
     onConfirm: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
-    val cancelColor = if (isDark) Color.White else Color.Black
+    val cancelColor = if (isDark) PureWhite else PureBlack
     val deleteContainer = ElectricRed
-    val deleteContent = if (isDark) Color.Black else Color.White
+    val deleteContent = if (isDark) PureBlack else PureWhite
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = ScrimDefault
     ) {
         Column(
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 40.dp),
+            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = Spacing.space6, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -908,7 +908,7 @@ fun ListDeleteConfirmBottomSheet(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.space2))
             Text(
                 "¿Eliminar la lista \"$listName\"? Se quitarán todos los cafés de la lista.",
                 textAlign = TextAlign.Center,
@@ -916,15 +916,15 @@ fun ListDeleteConfirmBottomSheet(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(999.dp),
+                    shape = Shapes.pillFull,
                     border = BorderStroke(1.dp, cancelColor),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
                 ) {
@@ -934,7 +934,7 @@ fun ListDeleteConfirmBottomSheet(
                     onClick = { onConfirm(); onDismiss() },
                     modifier = Modifier.weight(1f).height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = deleteContainer, contentColor = deleteContent),
-                    shape = RoundedCornerShape(999.dp)
+                    shape = Shapes.pillFull
                 ) {
                     Text("ELIMINAR", fontWeight = FontWeight.Bold)
                 }
@@ -950,17 +950,17 @@ fun CoffeeFavoritePremiumItem(
     onClick: () -> Unit
 ) {
     PremiumCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.padding(Spacing.space3), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffeeDetails.coffee.imageUrl,
                 contentDescription = coffeeDetails.coffee.nombre,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(70.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(Shapes.shapeCardMedium)
             )
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Spacer(Modifier.width(Spacing.space4))
+            Column(modifier = Modifier.weight(1f).padding(end = Spacing.space2)) {
                 Text(
                     text = coffeeDetails.coffee.nombre,
                     style = MaterialTheme.typography.titleMedium,
@@ -991,14 +991,14 @@ fun CoffeeFavoriteListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(Spacing.space3)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1008,12 +1008,12 @@ fun CoffeeFavoriteListItem(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(60.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(Shapes.cardSmall)
             )
 
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(Spacing.space4))
 
-            Column(modifier = Modifier.weight(1f).padding(end = if (showListIcon) 40.dp else 8.dp)) {
+            Column(modifier = Modifier.weight(1f).padding(end = if (showListIcon) 40.dp else Spacing.space2)) {
                 Text(
                     text = coffeeDetails.coffee.nombre,
                     style = MaterialTheme.typography.titleMedium,
@@ -1034,7 +1034,7 @@ fun CoffeeFavoriteListItem(
                     onClick = onFavoriteClick,
                     modifier = Modifier
                         .minimumInteractiveComponentSize()
-                        .size(28.dp)
+                        .size(24.dp)
                 ) {
                     Icon(
                         painter = rememberListAltCheckSvgPainter(),
@@ -1058,14 +1058,14 @@ fun CoffeeListRowWithChevron(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(Spacing.space3)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1075,9 +1075,9 @@ fun CoffeeListRowWithChevron(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(60.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(Shapes.cardSmall)
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(Spacing.space4))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = coffee.nombre,
@@ -1097,7 +1097,7 @@ fun CoffeeListRowWithChevron(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Abrir",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(Spacing.space6)
             )
         }
     }
@@ -1125,15 +1125,15 @@ fun SwipeableFavoriteItem(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(Shapes.card)
                     .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Quitar de favoritos",
-                    tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
-                    modifier = Modifier.padding(end = 16.dp)
+                    tint = if (isSystemInDarkTheme()) PureBlack else PureWhite,
+                    modifier = Modifier.padding(end = Spacing.space4)
                 )
             }
         }
@@ -1152,8 +1152,8 @@ fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
     val isDark = isSystemInDarkTheme()
     val followBg = if (isDark) CaramelSoft else CaramelAccent
     val followingBg = Color.Transparent
-    val followingBorder = if (isDark) BorderStroke(1.dp, Color.White) else BorderStroke(1.dp, Color.Black)
-    val followingColor = if (isDark) Color.White else Color.Black
+    val followingBorder = if (isDark) BorderStroke(1.dp, PureWhite) else BorderStroke(1.dp, PureBlack)
+    val followingColor = if (isDark) PureWhite else PureBlack
     Button(
         onClick = onClick,
         modifier = Modifier
@@ -1161,9 +1161,9 @@ fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
             .height(48.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isFollowing) followingBg else followBg,
-            contentColor = if (isFollowing) followingColor else if (isDark) Color.Black else Color.White
+            contentColor = if (isFollowing) followingColor else if (isDark) PureBlack else PureWhite
         ),
-        shape = RoundedCornerShape(24.dp),
+        shape = Shapes.pill,
         border = if (isFollowing) followingBorder else null
     ) {
         Text(if (isFollowing) "SIGUIENDO" else "SEGUIR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -1182,15 +1182,15 @@ fun EditProfileFields(
     usernameError: String?
 ) {
     val isDark = isSystemInDarkTheme()
-    val fieldBackground = if (isDark) Color.Black else Color.White
-    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val fieldBackground = if (isDark) PureBlack else PureWhite
+    val fieldTextColor = if (isDark) PureWhite else PureBlack
     val saveBackground = LocalCaramelAccent.current
-    val saveTextColor = if (isDark) Color.Black else Color.White
+    val saveTextColor = if (isDark) PureBlack else PureWhite
     val editFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = fieldBackground,
         unfocusedContainerColor = fieldBackground,
-        focusedBorderColor = Color.White,
-        unfocusedBorderColor = Color.White,
+        focusedBorderColor = PureWhite,
+        unfocusedBorderColor = PureWhite,
         focusedTextColor = fieldTextColor,
         unfocusedTextColor = fieldTextColor,
         focusedLabelColor = fieldTextColor.copy(alpha = 0.78f),
@@ -1203,42 +1203,42 @@ fun EditProfileFields(
 
     Column(modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 8.dp)) {
+        .padding(horizontal = Spacing.space2)) {
         OutlinedTextField(
             value = username,
             onValueChange = { onUsernameChange(it.take(40)) },
             label = { Text("Usuario") },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = Shapes.small,
             isError = usernameError != null, supportingText = { if (usernameError != null) Text(usernameError) },
             singleLine = true,
             textStyle = editFieldTextStyle,
             colors = editFieldColors
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(Spacing.space3))
         OutlinedTextField(
             value = fullName,
             onValueChange = { onFullNameChange(it.take(120)) },
             label = { Text("Nombre") },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = Shapes.small,
             singleLine = true,
             textStyle = editFieldTextStyle,
             colors = editFieldColors
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(Spacing.space3))
         OutlinedTextField(
             value = bio,
             onValueChange = { onBioChange(it.take(500)) },
             label = { Text("Bio") },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = Shapes.small,
             minLines = 3,
             maxLines = 6,
             textStyle = editFieldTextStyle,
             colors = editFieldColors
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(Spacing.space6))
         Button(
             onClick = onSave, modifier = Modifier
                 .fillMaxWidth(0.74f)
@@ -1248,7 +1248,7 @@ fun EditProfileFields(
                 containerColor = saveBackground,
                 contentColor = saveTextColor
             ),
-            shape = RoundedCornerShape(28.dp)
+            shape = Shapes.shapeXl
         ) { Text("GUARDAR", fontWeight = FontWeight.Bold, color = saveTextColor) }
     }
 }

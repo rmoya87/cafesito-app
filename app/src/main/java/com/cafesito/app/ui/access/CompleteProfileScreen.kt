@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.ui.theme.CoffeeBrown
+import com.cafesito.app.ui.theme.Shapes
 
 @Composable
 fun CompleteProfileScreen(
@@ -98,7 +99,7 @@ fun CompleteProfileScreen(
                 label = { Text("Email de Google") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = false,
-                shape = RoundedCornerShape(12.dp),
+                shape = Shapes.cardSmall,
                 colors = OutlinedTextFieldDefaults.colors(
                     disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     disabledBorderColor = MaterialTheme.colorScheme.outline,
@@ -117,7 +118,7 @@ fun CompleteProfileScreen(
                 },
                 label = { Text("Nombre de usuario") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = Shapes.cardSmall,
                 singleLine = true,
                 isError = usernameError != null,
                 supportingText = {
@@ -136,7 +137,7 @@ fun CompleteProfileScreen(
                 onValueChange = { bio = it },
                 label = { Text("Cuéntanos sobre ti") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = Shapes.cardSmall,
                 minLines = 3
             )
 
@@ -155,7 +156,7 @@ fun CompleteProfileScreen(
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(16.dp),
+                shape = Shapes.card,
                 enabled = username.isNotBlank() && usernameError == null
             ) {
                 Text("Finalizar Perfil", fontSize = 16.sp, fontWeight = FontWeight.Bold)

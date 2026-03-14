@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.shared.domain.SuggestedUserInfo
 import com.cafesito.shared.domain.User
 
@@ -103,7 +104,7 @@ fun SearchUsersScreen(
                                             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                             focusedBorderColor = MaterialTheme.colorScheme.primary
                                         ),
-                                        shape = RoundedCornerShape(999.dp),
+                                        shape = Shapes.pillFull,
                                     )
                                 }
                             )

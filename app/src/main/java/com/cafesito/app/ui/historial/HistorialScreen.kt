@@ -54,7 +54,7 @@ fun HistorialScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.Default.History,
-                        contentDescription = null,
+                        contentDescription = "Sin cafés terminados",
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.outline
                     )

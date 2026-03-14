@@ -22,12 +22,15 @@ import androidx.compose.ui.graphics.Color
 import com.cafesito.app.ui.theme.CaramelAccent
 import com.cafesito.app.ui.theme.CaramelSoft
 import com.cafesito.app.ui.theme.ElectricRed
+import com.cafesito.app.ui.theme.PureBlack
+import com.cafesito.app.ui.theme.PureWhite
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.cafesito.app.ui.components.GlassyTopBar
 import com.cafesito.app.ui.theme.ElectricRed
+import com.cafesito.app.ui.theme.Shapes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,7 +88,7 @@ fun NotificationsScreen(
                                 text = section.title,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black,
+                                color = PureBlack,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = if (index == 0) 2.dp else 10.dp, bottom = 2.dp)
@@ -117,14 +120,14 @@ fun NotificationsScreen(
                                     Box(
                                         Modifier
                                             .fillMaxSize()
-                                            .clip(RoundedCornerShape(20.dp))
+                                            .clip(Shapes.shapeCardMedium)
                                             .background(color),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
                                             contentDescription = "Eliminar",
-                                            tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
+                                            tint = if (isSystemInDarkTheme()) PureBlack else PureWhite,
                                             modifier = Modifier.padding(end = 24.dp)
                                         )
                                     }
@@ -225,7 +228,7 @@ private fun NotificationItemRow(
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = Shapes.shapeCardMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()
@@ -264,7 +267,7 @@ private fun NotificationItemRow(
                         OutlinedButton(
                             onClick = { onFollowToggle(notification.user.id) },
                             modifier = Modifier.height(32.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = Shapes.cardSmall,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = MaterialTheme.colorScheme.primary,
@@ -278,7 +281,7 @@ private fun NotificationItemRow(
                         Button(
                             onClick = { onFollowToggle(notification.user.id) },
                             modifier = Modifier.height(32.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = Shapes.cardSmall,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -294,11 +297,11 @@ private fun NotificationItemRow(
                 is TimelineNotification.Mention -> {
                     val isDark = isSystemInDarkTheme()
                     val replyBg = if (isDark) CaramelSoft else CaramelAccent
-                    val replyText = if (isDark) Color.Black else Color.White
+                    val replyText = if (isDark) PureBlack else PureWhite
                     Button(
                         onClick = { onReplyToNotification(notification) },
                         modifier = Modifier.height(32.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = Shapes.cardSmall,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = replyBg,
                             contentColor = replyText

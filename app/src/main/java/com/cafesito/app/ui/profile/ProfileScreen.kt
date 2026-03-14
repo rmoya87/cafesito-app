@@ -238,7 +238,7 @@ fun ProfileScreen(
                                     ) {
                                         Icon(
                                             Icons.Default.Coffee,
-                                            contentDescription = null,
+                                            contentDescription = "Actividad vacía",
                                             modifier = Modifier.size(48.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                         )
@@ -291,7 +291,7 @@ fun ProfileScreen(
                                 Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp)) {
                                     Box(Modifier.clickable { showSensoryDetail = true }) {
                                         PremiumCard(
-                                            containerColor = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.surface
+                                            containerColor = if (isSystemInDarkTheme()) PureBlack else MaterialTheme.colorScheme.surface
                                         ) {
                                             Column(Modifier.padding(24.dp)) {
                                                 SensoryRadarChart(data = state.sensoryProfile, modifier = Modifier.fillMaxWidth().height(220.dp))

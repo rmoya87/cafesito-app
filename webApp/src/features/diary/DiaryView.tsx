@@ -927,7 +927,7 @@ export function DiaryView({
 
       <section className="diary-stats-section" aria-label="Consumo">
         <h3 className="diary-section-title">Consumo</h3>
-        <article className="diary-stats-card diary-consumption-card">
+        <article className="card diary-stats-card diary-consumption-card">
         <ul className="diary-stats-card-list">
           <li className="diary-stats-card-row diary-stats-card-row-momento">
             <span className="diary-stats-card-label">Momento</span>
@@ -959,7 +959,7 @@ export function DiaryView({
 
       <section className="diary-stats-section" aria-label="Barista">
         <h3 className="diary-section-title">Barista</h3>
-        <article className="diary-stats-card diary-barista-card">
+        <article className="card diary-stats-card diary-barista-card">
         <ul className="diary-stats-card-list">
           <li className="diary-stats-card-row diary-stats-card-row-clickable">
             <span className="diary-stats-card-label">Cafés probados</span>

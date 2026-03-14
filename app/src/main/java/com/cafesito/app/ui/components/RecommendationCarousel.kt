@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -76,7 +75,7 @@ fun RecommendationCarousel(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .height(72.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = Shapes.card,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -112,7 +111,7 @@ private fun RecommendationCard3x3(
         modifier = Modifier
             .width(220.dp)
             .heightIn(min = 180.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = Shapes.cardSmall,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
@@ -138,18 +137,18 @@ private fun RecommendationCard3x3(
                             contentDescription = item.coffee.nombre ?: "Café",
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp)),
+                                .clip(Shapes.small),
                             contentScale = ContentScale.Crop
                         )
                     } else {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(Shapes.small)
                                 .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = androidx.compose.ui.Alignment.Center
                         ) {
-                            Icon(Icons.Default.Coffee, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.Coffee, contentDescription = "Café", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     Spacer(Modifier.width(12.dp))

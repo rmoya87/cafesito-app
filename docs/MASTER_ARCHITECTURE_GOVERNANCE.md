@@ -149,6 +149,30 @@ Métrica de control:
 - `Shared logic drift`: número de reglas de dominio detectadas fuera de `/shared`.
 - Objetivo permanente: `0`.
 
+**Esquema SSOT y flujo de verdad:**
+
+```mermaid
+flowchart LR
+  subgraph SSOT["Fuentes de verdad"]
+    DOM[Dominio: /shared]
+    PERS[Persistencia: Supabase]
+    DS[Design System]
+    OPS[Operación: runbooks /docs]
+  end
+  subgraph Consumidores["Consumidores"]
+    AND[Android]
+    WEB[WebApp]
+    IOS[iOS]
+  end
+  DOM --> AND
+  DOM --> WEB
+  DOM --> IOS
+  PERS --> AND
+  PERS --> WEB
+  DS --> AND
+  DS --> WEB
+```
+
 ---
 
 ## 1.4 Modularidad y límites de responsabilidad
@@ -161,6 +185,57 @@ Definición de módulos (alto nivel):
 Regla de dependencia:
 - `Presentación -> Datos -> Dominio`
 - `Dominio` no depende de UI ni de infraestructura concreta.
+
+**Esquema de dependencias entre capas:**
+
+```mermaid
+flowchart TB
+  subgraph Presentación["Presentación (UI)"]
+    VM[ViewModels / Estado pantalla]
+    UI[Componentes UI]
+  end
+  subgraph Datos["Datos"]
+    REPO[Repositorios]
+    MAP[Mapeos / DTOs]
+    REMOTE[Supabase / API]
+  end
+  subgraph Dominio["Dominio (/shared)"]
+    ENT[Entidades]
+    UC[Casos de uso]
+    REGLAS[Reglas de negocio]
+  end
+  VM --> REPO
+  UI --> VM
+  REPO --> MAP
+  REPO --> REMOTE
+  REPO --> UC
+  MAP --> ENT
+  UC --> ENT
+  UC --> REGLAS
+```
+
+**Esquema alto nivel por plataforma:**
+
+```mermaid
+flowchart TB
+  subgraph Backend["Backend"]
+    SUPABASE[Supabase: Auth, DB, RLS, Edge Functions]
+  end
+  subgraph Shared["Lógica compartida"]
+    KMP["/shared (KMP)\nDominio, casos de uso"]
+  end
+  subgraph Plataformas["Plataformas cliente"]
+    ANDROID[Android\napp/ - Adaptadores, UI]
+    WEB[WebApp\nwebApp/ - Adaptadores, UI]
+    IOS[iOS - futuro]
+  end
+  ANDROID --> KMP
+  WEB --> KMP
+  IOS --> KMP
+  ANDROID --> SUPABASE
+  WEB --> SUPABASE
+  IOS --> SUPABASE
+```
 
 Criterios de módulo correcto:
 - API pública mínima.

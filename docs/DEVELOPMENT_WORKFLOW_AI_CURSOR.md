@@ -29,16 +29,30 @@ Objetivo: que el agente (IA) consulte siempre la documentación antes de codific
 
 ### 3.1 Flujo: antes de escribir o modificar código
 
-```
-1. El agente recibe una petición que implica escribir o modificar código.
-2. OBLIGATORIO: Revisar documentación relevante en:
-   - docs/ (raíz del proyecto)
-   - webApp/docs/ (si el cambio afecta a la web app)
-3. Usar esa documentación como fuente de verdad (arquitectura, convenciones, APIs, flujos).
-4. Solo entonces proceder a implementar o proponer cambios de código.
+```mermaid
+flowchart LR
+  A[Petición: escribir o modificar código] --> B[Revisar docs/ y webApp/docs/]
+  B --> C[Usar documentación como fuente de verdad]
+  C --> D[Implementar o proponer cambios]
+  D --> E{¿Implementación requiere cambiar docs?}
+  E -->|Sí| F[Avisar al usuario: qué archivos y por qué]
+  E -->|No| G[Fin]
+  F --> H[Esperar confirmación]
+  H --> I{¿Confirmado?}
+  I -->|Sí| J[Actualizar docs]
+  I -->|No| G
+  J --> G
 ```
 
-**Qué consultar según el ámbito:** Ver índice completo en `docs/README.md`.
+**Pasos (obligatorios):**
+
+1. El agente recibe una petición que implica escribir o modificar código.
+2. **OBLIGATORIO:** Revisar documentación relevante en `docs/` y, si aplica, `webApp/docs/`.
+3. Usar esa documentación como fuente de verdad (arquitectura, convenciones, APIs, flujos).
+4. Solo entonces proceder a implementar o proponer cambios de código.
+5. Si la implementación requiere cambiar documentación: no modificar sin avisar; indicar qué archivos y por qué; esperar confirmación.
+
+**Qué consultar según el ámbito:** Ver índice completo en `docs/README.md` (sección 5.3 y tabla por ámbito).
 
 | Ámbito        | Documentación prioritaria |
 |---------------|---------------------------|
@@ -52,16 +66,25 @@ Objetivo: que el agente (IA) consulte siempre la documentación antes de codific
 
 ### 3.2 Flujo: cuando la implementación requiere cambiar documentación
 
+```mermaid
+flowchart TD
+  A[Implementación requiere cambiar/ampliar docs] --> B[NO modificar sin avisar]
+  B --> C[Indicar al usuario: qué archivos + por qué]
+  C --> D[Esperar confirmación]
+  D --> E{¿Usuario confirma?}
+  E -->|Sí| F[Aplicar cambios en los docs]
+  E -->|No| G[No tocar documentación]
+  F --> H[Actualizar cabecera si aplica: Última actualización]
+  G --> H
 ```
-1. El agente detecta que su implementación requiere cambiar o ampliar documentación existente
-   (p. ej. MASTER_ARCHITECTURE_GOVERNANCE.md, guías en docs/, webApp/docs/).
-2. NO modificar los archivos de documentación sin avisar.
-3. OBLIGATORIO: Indicar al usuario, ANTES de tocar los docs:
-   - Qué archivos de documentación habría que actualizar.
-   - Por qué (resumen breve).
+
+**Pasos (obligatorios):**
+
+1. El agente detecta que su implementación requiere cambiar o ampliar documentación existente (p. ej. MASTER, guías en docs/, webApp/docs/).
+2. **NO** modificar los archivos de documentación sin avisar.
+3. **OBLIGATORIO:** Indicar al usuario, **ANTES** de tocar los docs: qué archivos actualizar y por qué (resumen breve).
 4. Esperar confirmación o indicación del usuario.
 5. Solo si el usuario confirma (o pide explícitamente el cambio), aplicar los cambios en los docs.
-```
 
 **Ejemplo de aviso al usuario:**
 

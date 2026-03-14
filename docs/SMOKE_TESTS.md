@@ -7,6 +7,23 @@
 
 ---
 
+## Esquema: flujo crítico de humo
+
+```mermaid
+flowchart LR
+  A[Arranque app] --> B{¿Sesión?}
+  B -->|No| C[Pantalla login]
+  B -->|Sí| D[Pantalla principal]
+  D --> E[Navegar a Diario]
+  E --> F[Vista diario: analíticas / lista / vacío]
+  F --> G[Detalle café o Añadir entrada]
+  G --> H[Comprobar que pantalla se muestra]
+```
+
+Este flujo es el **mínimo** que debe validarse para no romper lo básico al tocar estilos, máscaras o navegación.
+
+---
+
 ## 1. Flujo crítico a cubrir
 
 1. **Login (o sesión existente):** La app muestra sesión iniciada o pantalla de login.
@@ -40,7 +57,7 @@ Añadir estos casos en el mismo archivo o en `webApp/src/features/diary/DiaryVie
   - Con usuario ya logueado (o mock): navegar a la pestaña Diario (por contenido descrito "Diario" o testTag) y comprobar que aparece la pantalla del diario (por texto "Mi diario", "Sin café o agua registrada", o analíticas).
   - (Opcional) Abrir un detalle de café desde búsqueda o lista y comprobar que la pantalla de detalle se muestra.
 
-Requisitos: `ContentDescription` o `testTag` en los elementos clave (tabs, botones de navegación) para que los tests sean estables. Ver `docs/ACCESSIBILITY_MINIMA.md`.
+Requisitos: `ContentDescription` o `testTag` en los elementos clave (tabs, botones de navegación) para que los tests sean estables. Ver `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md`.
 
 ---
 

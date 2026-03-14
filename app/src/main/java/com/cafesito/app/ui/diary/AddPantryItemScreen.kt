@@ -223,7 +223,7 @@ fun AddPantryItemScreen(
                         Box(
                             modifier = Modifier
                                 .size(130.dp)
-                                .clip(RoundedCornerShape(24.dp))
+                                .clip(Shapes.pill)
                                 .background(Color.White)
                                 .clickable { showImagePickerSheet = true },
                             contentAlignment = Alignment.Center
@@ -244,7 +244,7 @@ fun AddPantryItemScreen(
                             onValueChange = { name = it.toCoffeeNameFormat() },
                             label = { Text("Nombre del café") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = Shapes.cardSmall,
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                         )
@@ -254,7 +254,7 @@ fun AddPantryItemScreen(
                             onValueChange = { brand = it.toCoffeeBrandFormat() },
                             label = { Text("Marca") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = Shapes.cardSmall,
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                         )
@@ -315,7 +315,7 @@ fun AddPantryItemScreen(
                                 modifier = Modifier
                                     .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                                     .fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = Shapes.cardSmall,
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                             )
                             ExposedDropdownMenu(
@@ -464,7 +464,7 @@ fun FormSectionCard(title: String? = null, content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(24.dp),
+        shape = Shapes.pill,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(Modifier.padding(20.dp)) {
@@ -487,7 +487,7 @@ fun VisualOptionTile(
     Surface(
         onClick = onClick,
         modifier = modifier.height(75.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
     ) {

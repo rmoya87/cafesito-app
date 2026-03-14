@@ -264,8 +264,8 @@ private fun DetailContent(
             )))
             
             Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 60.dp, end = 100.dp)) {
-                Text(text = coffee.marca.uppercase(), color = PureWhite.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text(text = coffee.nombre, color = PureWhite, style = MaterialTheme.typography.headlineLarge, lineHeight = 38.sp)
+                Text(text = coffee.marca.uppercase(), color = PureWhite.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(text = coffee.nombre, color = PureWhite, style = MaterialTheme.typography.headlineLarge)
             }
 
             if (!isCustom && reviews.isNotEmpty()) {
@@ -289,7 +289,7 @@ private fun DetailContent(
             item {
                 Surface(
                     modifier = Modifier.fillMaxWidth(), 
-                    shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp), 
+                    shape = Shapes.sheetLarge, 
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
@@ -371,7 +371,7 @@ private fun DetailContent(
                                     Button(
                                         onClick = { showAddReviewDialog = true },
                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                        shape = RoundedCornerShape(20.dp)
+                                        shape = Shapes.shapeCardMedium
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = "Añadir reseña", Modifier.size(16.dp))
                                         Spacer(Modifier.width(8.dp))
@@ -407,7 +407,7 @@ private fun DetailContent(
                                                 Box(
                                                     Modifier
                                                         .fillMaxSize()
-                                                        .clip(RoundedCornerShape(24.dp))
+                                                        .clip(Shapes.pill)
                                                         .background(color),
                                                     contentAlignment = Alignment.CenterEnd
                                                 ) {
@@ -415,7 +415,7 @@ private fun DetailContent(
                                                         Icon(
                                                             imageVector = Icons.Default.Delete,
                                                             contentDescription = "Borrar",
-                                                            tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
+                                                            tint = if (isSystemInDarkTheme()) PureBlack else PureWhite,
                                                             modifier = Modifier
                                                                 .padding(end = 24.dp)
                                                                 .graphicsLayer {
@@ -623,14 +623,14 @@ fun DetailReviewPremiumItem(
                     Text(text = formatRelativeTime(info.review.timestamp).uppercase(), style = MaterialTheme.typography.labelSmall, color = LocalDateMetaColor.current)
                     Spacer(Modifier.height(6.dp))
                     Surface(
-                        shape = RoundedCornerShape(999.dp),
+                        shape = Shapes.pillFull,
                         color = OrangeYellow
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Outlined.Star, contentDescription = null, modifier = Modifier.size(14.dp), tint = starTint)
+                            Icon(Icons.Outlined.Star, contentDescription = "Nota", modifier = Modifier.size(14.dp), tint = starTint)
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "${info.review.rating.toInt()}/5",
@@ -647,7 +647,7 @@ fun DetailReviewPremiumItem(
                     Button(
                         onClick = onEditClick,
                         modifier = Modifier.height(40.dp),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = Shapes.shapeCardMedium,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = editButtonBg, contentColor = editButtonTextColor),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
@@ -672,7 +672,7 @@ fun DetailReviewPremiumItem(
                     model = info.review.imageUrl,
                     contentDescription = "Imagen de la reseña",
                     contentScale = ContentScale.FillWidth,
-                    modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(Shapes.cardSmall)
                 )
             }
         }
@@ -776,7 +776,7 @@ private fun SensoryProfileBottomSheet(
             Button(
                 onClick = { onConfirm(values.toList()) },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = Shapes.cardSmall,
                 colors = ButtonDefaults.buttonColors(containerColor = caramelColor)
             ) {
                 Text("Listo")
@@ -867,7 +867,7 @@ fun ReviewBottomSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Start
                         ) {
-                            val cameraBg = if (isSystemInDarkTheme()) Color(0xFF2D2D2D) else Color(0xFFE0E0E0)
+                            val cameraBg = if (isSystemInDarkTheme()) CameraBgDark else CameraBgLight
                             Surface(
                                 modifier = Modifier.size(36.dp).clickable { showPickerSheet = true },
                                 shape = CircleShape,
@@ -928,7 +928,7 @@ fun ReviewBottomSheet(
                             onDismissRequest()
                         },
                         modifier = Modifier.weight(1f).height(54.dp),
-                        shape = RoundedCornerShape(28.dp),
+                        shape = Shapes.shapeXl,
                         enabled = !isSaving,
                         colors = ButtonDefaults.buttonColors(containerColor = ElectricRed, contentColor = deleteTextColor)
                     ) {
@@ -947,7 +947,7 @@ fun ReviewBottomSheet(
                     enabled = publishEnabled,
                     modifier = Modifier.weight(1f).height(54.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = publishBg, contentColor = if (publishEnabled) PureWhite else MaterialTheme.colorScheme.onSurfaceVariant),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = Shapes.shapeXl
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
@@ -989,7 +989,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
     ModalBottomSheet(
         onDismissRequest = onDismiss, 
         containerColor = MaterialTheme.colorScheme.surfaceContainer, 
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         scrimColor = ScrimDefault
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1030,7 +1030,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f).height(54.dp),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = Shapes.shapeXl,
                     border = BorderStroke(1.dp, cancelBorderAndText),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
                 ) {
@@ -1044,7 +1044,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                         containerColor = saveBackground,
                         contentColor = saveTextColor
                     ),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = Shapes.shapeXl
                 ) {
                     Text(text = if (isInPantry) "ACTUALIZAR" else "AÑADIR", fontWeight = FontWeight.Bold)
                 }

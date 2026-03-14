@@ -13,6 +13,7 @@ Antes de escribir o modificar código, o de tomar decisiones que afecten al proy
 2. **Documentos que suelen impactar decisiones:**
    - `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` — cambios recientes, incidencias resueltas (p. ej. deploy-web, TypeScript), política de ramas (main, beta, alpha, Interna), flujo main → beta.
    - `docs/RELEASE_DEPLOY_WORKFLOW.md` — cuándo se ejecuta el workflow, ramas, jobs, secretos.
+   - `docs/ANALITICAS_WEB_Y_ANDROID.md` — qué se recoge en WebApp (GA4) y Android (Firebase); checklist al eliminar, modificar o añadir pantallas, rutas o eventos.
    - `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md` — elaboración (Brew), UI, colores, modo Italiana, sliders, tiempos (si tocas Brew Lab o temas Android/WebApp).
    - `docs/` (raíz) y `webApp/docs/` — según el ámbito del cambio.
 3. **Usa** esa documentación como fuente de verdad para arquitectura, convenciones, APIs y flujos ya descritos; tenla en cuenta en las decisiones que tomes.

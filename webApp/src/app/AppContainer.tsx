@@ -923,6 +923,7 @@ export function AppContainer() {
     coffeeGrams,
     brewMethod,
     waterMl,
+    pantryItems,
     setDiaryEntries,
     setPantryItems,
     setBrewRunning,

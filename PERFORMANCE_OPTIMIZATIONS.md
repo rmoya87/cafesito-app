@@ -136,15 +136,13 @@ LaunchedEffect(recommendations) {
 
 ## 8. ✅ Optimización de Imágenes con Transformación
 **Impacto:** 🔥 Medio  
-**Archivo:** `CoffeeCard.kt` (líneas 38-44)
+**Archivo:** `CoffeeListItem.kt` (y antes en `CoffeeCard.kt`, componente eliminado por no uso)
 
 ### Cambio:
 - **Antes:** Descarga imágenes originales (5MB)
-- **Después:** Solicita thumbnails (50KB)
+- **Después:** Solicita thumbnails vía query Supabase (width/height/resize)
 
-```kotlin
-val optimizedImageUrl = "${coffee.imageUrl}?width=400&height=300&resize=contain"
-```
+En `CoffeeListItem` se usa `ImageRequest` con URL optimizada cuando la imagen viene de storage Supabase. Mismo patrón que se aplicaba en el antiguo CoffeeCard.
 
 ### Resultado:
 - Ahorro del 99% en datos de imágenes

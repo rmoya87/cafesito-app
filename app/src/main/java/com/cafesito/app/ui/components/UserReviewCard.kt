@@ -93,7 +93,7 @@ fun UserReviewCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = Shapes.pill,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Row(
@@ -105,7 +105,7 @@ fun UserReviewCard(
                             contentDescription = info.coffeeDetails.coffee.nombre,
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp)),
+                                .clip(Shapes.cardSmall),
                             contentScale = ContentScale.Crop
                         )
                         Spacer(Modifier.width(12.dp))

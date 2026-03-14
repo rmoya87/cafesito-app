@@ -4,11 +4,12 @@
 
 **Última actualización:** 2026-03-13  
 **Estandarización aplicada (2026-03-13):**  
-- **WebApp:** buttons, cards, base, auth con tokens; tarjetas (profile-activity, coffee-detail-opinion, diary-empty/analytics/stats) heredando .card; inputs con var(--space-*)/--radius-pill; componentes EmptyState/ErrorState y uso en TimelineView; layout (main-shell, sidebar, android-install-banner) con tokens; features.css, profile-adn.css, theme-forced.css (hex → variables); main.tsx/TopBar/iconography con clases o variables; timeline-empty/timeline-error con tokens.  
-- **Android:** Color.kt (ScrimDefault, Camera, ButtonInactive, Advice, Slider, Radar); Spacing.kt, Shapes.kt; DetailScreen, SearchScreen, CafesProbadosScreen, CoffeeCard, scrim en modales; composable unificado **CoffeeListItem** (SearchScreen + CafesProbadosScreen); EmptyStateMessage/ErrorStateMessage ya en DiaryComponents y usados en pantallas.  
-- **DESIGN_TOKENS.md:** Gutter 16dp (Spacing.space4) documentado.  
+- **WebApp:** buttons, cards, base, auth con tokens; tarjetas heredando .card; inputs con var(--space-*)/--radius-pill; EmptyState/ErrorState en TimelineView; layout con tokens; base.css (scrollbar/outline documentados); sliders con tokens.  
+- **Android:** Color.kt (ScrimDefault, Camera, Slider, Advice, DateMetaAxis*, SwitchTrackOff*, SwitchThumbOff*); Spacing.kt, Shapes.kt; **B.5.1 colores:** BrewLabComponents, DiaryComponents, TimelineComponents, ProfileComponents, LoginScreen, AddStockScreen, EditNormalStockScreen, DetailScreen, NotificationsScreen, ProfileScreen, DiaryScreen, AddDiaryEntryScreen, BrewLabCards → PureBlack/PureWhite/tema; **B.3.3** formas botón (Shapes.pill, shapeXl) en uso. CoffeeListItem unificado; EmptyStateMessage/ErrorStateMessage en pantallas.  
+- **DESIGN_TOKENS.md:** Gutter 16dp documentado.  
 **Ámbito:** WebApp (`webApp/`), Android (`app/`).  
-**Documentos relacionados:** `DESIGN_TOKENS.md`, `UX_EMPTY_AND_ERROR_STATES.md`, `MASTER_ARCHITECTURE_GOVERNANCE.md`.
+**Documentos relacionados:** `DESIGN_TOKENS.md`, `UX_EMPTY_AND_ERROR_STATES.md`, `MASTER_ARCHITECTURE_GOVERNANCE.md`.  
+**Inventario detallado de componentes (estilos, funcionalidad, dónde se usan, estado):** `GUIA_COMPONENTES_UI.md`.
 
 ---
 
@@ -17,7 +18,22 @@
 - **WebApp:** Los componentes reutilizables viven en `webApp/src/ui/components/`; los tokens en `webApp/src/styles/tokens.css`. Hay oportunidades de unificar clases de tarjetas, reemplazar valores fijos por variables `--space-*`/`--radius-*` y centralizar patrones de estado vacío/error. **Valores hardcodeados:** muchos px y colores hex/rgba en `features/auth.css`, `features.css`, `profile-adn.css` y `theme-forced.css`; ver **A.5** para estandarizar.
 - **Android:** Los composables reutilizables están en `app/.../ui/components/`; el tema en `app/.../ui/theme/`. No existe un archivo de dimensiones (Dimens/Spacing); los radios están dispersos (8–32 dp). Se puede unificar la “tarjeta de café en lista” en un solo composable y alinear radios/espacios con `DESIGN_TOKENS.md`. **Valores hardcodeados:** colores `Color(0xFF…)` y `Color.Black`/`Color.White` en DetailScreen, BrewLabComponents, TimelineComponents, etc.; ver **B.5** para estandarizar.
 
-Al crear un **nuevo** componente, comprobar primero si se puede **evolucionar** uno existente (mismo dato, misma jerarquía visual). Si no, crear uno nuevo usando siempre los tokens/tema y esta guía.
+Al crear un **nuevo** componente, comprobar primero si se puede **evolucionar** uno existente (mismo dato, misma jerarquía visual). Si no, crear uno nuevo usando siempre los tokens/tema y esta guía. Para el **inventario completo** de cada componente (estilos, funcionalidad, dónde se usa, estado y componentes no usados), ver **`GUIA_COMPONENTES_UI.md`**.
+
+### Flujo de decisión: nuevo componente vs. reutilizar vs. evolucionar
+
+```mermaid
+flowchart TD
+  A[Necesito UI para un dato/flujo] --> B{¿Existe componente con mismo dato o jerarquía?}
+  B -->|Sí, mismo dato| C[Reutilizar: mismas props/clases]
+  B -->|Sí, muy parecido| D[Evolucionar: props opcionales o variantes]
+  B -->|No| E[Crear nuevo en ui/components/]
+  C --> F[Usar tokens/tema; no duplicar estilos]
+  D --> F
+  E --> G[Documentar en GUIA_COMPONENTES_UI.md]
+  E --> F
+  F --> H[Si afecta tokens: actualizar DESIGN_TOKENS.md]
+```
 
 ---
 
@@ -103,7 +119,7 @@ Las **vistas por feature** (pantallas o bloques grandes) viven en `webApp/src/fe
 
 4. **Accesibilidad:**  
    - Botones/iconos interactivos: área de tap ≥ 44px.  
-   - Ver `ACCESSIBILITY_MINIMA.md` y `AGENTS.md`.
+   - Ver `ACCESIBILIDAD_WEBAPP_ANDROID.md` y `AGENTS.md`.
 
 5. **Documentar:**  
    - Si se crea un componente o clase nueva reutilizable, añadir una línea en esta guía (A.1 o A.3) y, si afecta a tokens, actualizar `DESIGN_TOKENS.md`.
@@ -156,7 +172,6 @@ Inventario de valores literales que conviene sustituir por tokens o variables pa
 
 | Composable | Archivo | Uso |
 |------------|---------|-----|
-| CoffeeCard | `components/CoffeeCard.kt` | Tarjeta de café con imagen grande (lista principal, etc.). |
 | PremiumCard | `components/CafesitoUI.kt` | Surface con borde y forma redondeada genérica. |
 | ModernAvatar | `components/CafesitoUI.kt` | Avatar con borde en gradiente. |
 | UserReviewCard | `components/UserReviewCard.kt` | Reseña de usuario (valoración + texto). |
@@ -194,7 +209,7 @@ Las **pantallas** (DetailScreen, SearchScreen, ProfileScreen, CafesProbadosScree
 - **Estado actual:**  
   - `SearchScreen`: `CoffeePremiumListItem` (Surface 16.dp radius, 12.dp padding, imagen 60.dp, título + marca).  
   - `CafesProbadosScreen`: Surface inline muy similar (16.dp, 12.dp padding, imagen 48.dp, nombre + marca + “Primera vez”).  
-  - `CoffeeCard`: tarjeta con imagen grande (180.dp) y bloque de texto; otro layout.
+  - *CoffeeCard fue eliminado (no se usaba en ninguna pantalla); listas usan CoffeeListItem.*
 - **Recomendación:**  
   - Crear un único composable reutilizable, por ejemplo `CoffeeListItem` (o extender uno existente), con parámetros: `coffee`, `subtitle` (opcional, ej. “Primera vez: …”), `imageSize` (48.dp o 60.dp), `onClick`.  
   - Usar en SearchScreen y CafesProbadosScreen para mismo estilo (shape 16.dp, padding 12.dp, borde, surface). Así se unifica estilo y comportamiento en un solo sitio.
@@ -311,7 +326,7 @@ Al añadir o modificar un componente que afecte a estilos, espacios o comportami
 # Listado de tareas pendientes (según esta guía)
 
 A continuación, todo lo que habría que hacer según el documento.  
-**Hecho (2026-03-13):** botones/cards/base/auth WebApp; Color.kt + Spacing + Shapes Android; DetailScreen, SearchScreen, CafesProbadosScreen, CoffeeCard, scrims, SensoryRadarChart, AddDiaryEntryScreen, BrewLabComponents (slider/advice). **Segunda pasada (13 mar 2026):** A.3.1–A.3.5 (tarjetas .card, inputs, EmptyState/ErrorState, layout); A.5 features/profile-adn/theme-forced/TSX; B.3.1 CoffeeListItem unificado, B.3.4/B.3.5; DESIGN_TOKENS gutter.
+**Hecho (2026-03-13):** botones/cards/base/auth WebApp; Color.kt + Spacing + Shapes Android; DetailScreen, SearchScreen, CafesProbadosScreen, scrims, SensoryRadarChart, AddDiaryEntryScreen, BrewLabComponents (slider/advice). **Segunda pasada (13 mar 2026):** A.3.1–A.3.5; A.5; B.3.1–B.3.5; B.5.1 colores. **Tercera pasada (13 mar 2026):** B.5.2 Dimens.kt, Spacing en SearchScreen y componentes; DetailScreen typography; AppNavigation Shapes.shapePremium; WebApp DiaryLineChart → `--chart-min-height`. **Eliminación (14 mar 2026):** CoffeeCard.kt (no usado; listas usan CoffeeListItem).
 
 ---
 
@@ -327,7 +342,7 @@ A continuación, todo lo que habría que hacer según el documento.
 
 ### Valores hardcodeados — CSS (A.5.1, A.5.2)
 
-- [ ] **base.css:** Scrollbar (6px, 3px) — dejar o documentar; `min-height: 120px` — ya con comentario; outline 2px — documentar si se mantiene.
+- [x] **base.css:** Scrollbar (6px, 3px) y outline 2px documentados en comentarios como decisión de diseño; `min-height: 120px` ya con comentario.
 - [x] **features/auth.css:** Sustituir los px y radios que queden por `var(--space-*)` y `--radius-*`; colores por tokens (ya se hizo parte).
 - [x] **features.css:** Reemplazar espaciados (24px 10px, gap 18px, etc.) y border-radius 14px por tokens; colores hex/rgba por variables. *(sidebar, main-shell, android-install-banner, timeline-empty/error, etc.)*
 - [x] **features/profile-adn.css:** Espaciado y radios (14px, 10px, 30px, 54px, etc.) → `var(--space-*)` y `--radius-*`.
@@ -338,8 +353,8 @@ A continuación, todo lo que habría que hacer según el documento.
 - [x] **main.tsx:** `minHeight: "100vh"`, `paddingTop: 28` → clase CSS con tokens o variable. *(Clase `is-full-viewport` + tokens.)*
 - [x] **TopBar.tsx:** `marginTop: "1rem"` → clase con `var(--space-4)` o equivalente. *(En .profile-options-section-title.)*
 - [x] **iconography.tsx:** `width: 24, height: 24` → `var(--icon-size-lg)` o clase `.ui-icon`. *(Clase .ui-icon-size-lg para list-alt, etc.)*
-- [ ] Sliders/barras de progreso: verificar que colores y tamaños del track vengan de tokens.
-- [ ] **DiaryLineChart.tsx:** Si `CHART_MIN_HEIGHT` se reutiliza, considerar variable CSS.
+- [x] Sliders/barras de progreso: colores/track en WebApp usan variables; Android usa SliderTrackInactiveDark/Light y tokens.
+- [x] **DiaryLineChart.tsx:** `CHART_MIN_HEIGHT` usa variable CSS `--chart-min-height` en `tokens.css` (140px).
 
 ### Documentación
 
@@ -352,26 +367,26 @@ A continuación, todo lo que habría que hacer según el documento.
 ### Unificación de componentes (B.3)
 
 - [x] **B.3.1 Tarjeta de café en listas:** Crear composable único `CoffeeListItem` (o similar) con parámetros `coffee`, `subtitle` opcional, `imageSize` (48.dp / 60.dp), `onClick`; usarlo en SearchScreen y CafesProbadosScreen. *(Composable en `ui/components/CoffeeListItem.kt`; usado en SearchScreen y CafesProbadosScreen.)*
-- [ ] **B.3.2 Formas:** Sustituir en el resto de pantallas los `RoundedCornerShape(X.dp)` dispersos por `Shapes.card`, `Shapes.cardSmall`, `Shapes.pill`, etc. (Shapes ya existe; falta aplicar en AddPantryItemScreen, BrewLabComponents, DiaryComponents, TimelineComponents, ProfileComponents, etc.).
-- [ ] **B.3.3 Botones:** Definir forma estándar para botón pill/acción principal y reutilizarla; usar siempre `MaterialTheme.colorScheme` y `LocalCaramelAccent`.
+- [x] **B.3.2 Formas:** Sustituir en el resto de pantallas los `RoundedCornerShape(X.dp)` dispersos por `Shapes.card`, `Shapes.cardSmall`, `Shapes.pill`, etc. *(Aplicado: Shapes.shapeXl, shapeCardMedium, pillFull, sheetTopPill, shapePremium añadidos; reemplazos en RecommendationCarousel, DiaryComponents, SearchUsersScreen, FollowingScreen, BrewLabComponents, CafesitoUI, LoginScreen, TimelineScreen, AddDiaryEntryScreen, TimelineComponents, NotificationsScreen, DiaryScreen, TimelineEmptyState, ProfileComponents, BrewLabCards, UserSuggestionCard, DetailScreen, AddStockScreen, TagChip.)*
+- [x] **B.3.3 Botones:** Formas estándar en uso: `Shapes.pill`, `Shapes.shapeXl` para botones de acción; colores vía `MaterialTheme.colorScheme` y `LocalCaramelAccent`. Documentado en guía.
 - [x] **B.3.4 Estados vacío/error:** Extraer `EmptyStateMessage(message, ctaText?, onCtaClick?)` y `ErrorStateMessage(message, onRetry)` en `components/` y usarlos en todas las pantallas con listas o datos remotos. *(Ya en DiaryComponents; usados en SearchScreen, TimelineScreen, ProfileScreen, DetailScreen, DiaryScreen.)*
 - [x] **B.3.5 Gutter:** Documentar en `DESIGN_TOKENS.md` que el gutter de pantalla es 16.dp; usar `Spacing.space4` donde aplique. *(Añadido en DESIGN_TOKENS.md §2.1.)*
 
 ### Valores hardcodeados — Colores (B.5.1)
 
-- [ ] **BrewLabComponents.kt:** Sustituir los `Color.Black`, `Color.White` y hex restantes (424242, 9E9E9E, BDBDBD, etc.) por `PureBlack`/`PureWhite`, `DisabledGray` o constantes de `Color.kt` (AdviceCard* ya hecho).
-- [ ] **DiaryComponents.kt:** `Color(0xFF6F6760)`, `Color(0xFFB0A8A0)` → `DateMetaLight`/`DateMetaDark` o añadir a `Color.kt`; asegurar uso de `CaramelAccent`/`WaterBlue`.
-- [ ] **TimelineComponents.kt:** `Color(0xFF404040)`, `Color(0xFFE0E0E0)` → `SliderTrackInactiveDark`/`SliderTrackInactiveLight` o tema; `Color.Black`/`Color.White` → `PureBlack`/`PureWhite` o theme.
-- [ ] **LoginScreen.kt, AddPantryItemScreen.kt, EditNormalStockScreen.kt:** Texto sobre imagen y fondos → `PureWhite`, `MaterialTheme.colorScheme.surface` o `Color.kt` (scrim ya es ScrimDefault).
-- [ ] **ProfileComponents.kt:** `Color(0xFFE53935)` → `ElectricRed`.
+- [x] **BrewLabComponents.kt:** `Color.Black`/`Color.White` y hex (424242, 9E9E9E, BDBDBD) sustituidos por `PureBlack`/`PureWhite`, `SwitchTrackOffDark`, `SwitchThumbOffDark`, `DisabledGray`.
+- [x] **DiaryComponents.kt:** Eje gráfico → `DateMetaAxisDark`/`DateMetaAxisLight`; opciones/quickAction → `PureWhite`/`PureBlack`.
+- [x] **TimelineComponents.kt:** Slider → `SliderTrackInactiveDark`/`SliderTrackInactiveLight`; chips/fields → `PureBlack`/`PureWhite`.
+- [x] **LoginScreen, AddStockScreen, EditNormalStockScreen, DetailScreen, NotificationsScreen, ProfileScreen, AddDiaryEntryScreen, BrewLabCards:** Fondos y texto → `PureBlack`/`PureWhite`/`ScrimDefault`/`CameraBgDark`/`CameraBgLight`.
+- [x] **ProfileComponents.kt:** `Color(0xFFE53935)` → `ElectricRed`.
 
 ### Valores hardcodeados — Dimensiones (B.5.2)
 
-- [ ] **Spacing en más pantallas:** Ir sustituyendo `8.dp`, `12.dp`, `16.dp`, `24.dp`, `32.dp` por `Spacing.space2` … `Spacing.space8` en componentes que aún usen literales (DiaryComponents, TimelineComponents, ProfileComponents, BrewLabComponents, etc.).
-- [ ] **Dimens.kt (opcional):** Crear constantes para alturas/tamaños fijos (ej. `CardImageHeight = 86.dp`, `AvatarSizeLarge = 100.dp`) si se quieren centralizar.
-- [ ] **SearchScreen.kt:** `padding(horizontal = 10.dp, vertical = 6.dp)` y alturas 64.dp, 86.dp, 100.dp → Spacing o constantes; alinear 10→12, 6→8 si se acepta.
-- [ ] **DetailScreen.kt:** `lineHeight = 38.sp`, `fontSize = 12.sp` → preferir `MaterialTheme.typography` (labelSmall, etc.).
-- [ ] **Radios restantes:** Reemplazar `RoundedCornerShape(8.dp)`, `14.dp`, `20.dp`, `28.dp` por `Shapes.*` donde tenga sentido; 8.dp como excepción documentada si se mantiene.
+- [x] **Spacing en más pantallas:** Sustituidos `8.dp`, `12.dp`, `16.dp`, `24.dp`, `32.dp` por `Spacing.space2` … `Spacing.space8` en DiaryComponents, TimelineComponents, ProfileComponents, BrewLabComponents y SearchScreen (valores compuestos como 14.dp, 18.dp, 28.dp, 48.dp se mantienen como literales).
+- [x] **Dimens.kt:** Creado con `iconSizeEmpty`, `cardImageHeight`, `contentPaddingBottom`, `navBarHeight`; usados en SearchScreen y AppNavigation.
+- [x] **SearchScreen.kt:** Padding 10/6 → Spacing.space3/space2; 64.dp, 100.dp → Dimens; 16.dp, 8.dp, etc. → Spacing.
+- [x] **DetailScreen.kt:** Eliminados overrides `fontSize = 12.sp` y `lineHeight = 38.sp`; se usa `MaterialTheme.typography.labelLarge` y `headlineLarge` tal cual.
+- [x] **Radios restantes:** AppNavigation barra inferior usa `Shapes.shapePremium` (32.dp); el resto ya estaba en Shapes.
 
 ### Documentación
 
@@ -381,5 +396,5 @@ A continuación, todo lo que habría que hacer según el documento.
 
 ## Cross‑platform
 
-- [ ] **DESIGN_TOKENS.md:** Documentar gutter 16.dp (Android) si no está; mantener paridad Web ↔ Android al añadir o cambiar tokens.
-- [ ] **UX_EMPTY_AND_ERROR_STATES.md:** Usar como referencia al implementar EmptyState/ErrorState en ambas plataformas.
+- [x] **DESIGN_TOKENS.md:** Gutter 16.dp (Android) documentado en §2.1; paridad Web ↔ Android al añadir tokens.
+- [x] **UX_EMPTY_AND_ERROR_STATES.md:** Referencia usada; EmptyState/ErrorState implementados en WebApp y Android.

@@ -57,7 +57,10 @@ import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.cafesito.app.ui.theme.LocalCaramelAccent
+import com.cafesito.app.ui.theme.PureBlack
+import com.cafesito.app.ui.theme.PureWhite
 import com.cafesito.app.ui.theme.ScrimDefault
+import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.platform.HapticSignal
 import com.cafesito.app.platform.rememberNativeHaptics
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -94,7 +97,7 @@ fun LoginScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Box(modifier = Modifier.fillMaxSize().background(PureBlack)) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
@@ -138,7 +141,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
                     0.2f to Color.Transparent,
-                    1.0f to Color.Black.copy(alpha = 0.8f)
+                    1.0f to ScrimDefault
                 )
             )
         )
@@ -172,7 +175,7 @@ fun LoginScreen(
                 onClick = { showLoginModal = true },
                 modifier = Modifier.fillMaxWidth().height(64.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
-                shape = RoundedCornerShape(20.dp),
+                shape = Shapes.shapeCardMedium,
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
             ) {
                 Text(stringResource(R.string.login_start_now), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
@@ -295,7 +298,7 @@ fun LoginScreen(
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(60.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = Shapes.card,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
@@ -343,7 +346,7 @@ private fun FeatureRowUnified(icon: ImageVector, title: String, desc: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Surface(
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-            shape = RoundedCornerShape(12.dp),
+            shape = Shapes.cardSmall,
             modifier = Modifier.size(44.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -352,8 +355,8 @@ private fun FeatureRowUnified(icon: ImageVector, title: String, desc: String) {
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(text = title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(text = desc, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
+            Text(text = title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = PureWhite)
+            Text(text = desc, style = MaterialTheme.typography.bodySmall, color = PureWhite.copy(alpha = 0.85f))
         }
     }
 }

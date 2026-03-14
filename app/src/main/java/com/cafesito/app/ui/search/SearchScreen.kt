@@ -175,7 +175,7 @@ private fun SearchTopBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(horizontal = Spacing.space4, vertical = Spacing.space3),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (isLoading) {
@@ -198,14 +198,14 @@ private fun SearchTopBar(
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
                                 leadingIcon = { 
-                                    Box(modifier = Modifier.padding(start = 4.dp)) {
+                                    Box(modifier = Modifier.padding(start = Spacing.space1)) {
                                         Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) 
                                     }
                                 },
                                 trailingIcon = {
                                     IconButton(
                                         onClick = onBarcodeClick,
-                                        modifier = Modifier.padding(end = 12.dp),
+                                        modifier = Modifier.padding(end = Spacing.space3),
                                         colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent)
                                     ) {
                                         BarcodeActionIcon(
@@ -238,7 +238,7 @@ private fun SearchTopBar(
                                             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                             focusedBorderColor = MaterialTheme.colorScheme.primary
                                         ),
-                                        shape = RoundedCornerShape(999.dp),
+                                        shape = Shapes.pillFull,
                                     )
                                 }
                             )
@@ -253,7 +253,7 @@ private fun SearchTopBar(
                 ) {
                     TextButton(
                         onClick = onCancel,
-                        contentPadding = PaddingValues(start = 12.dp, end = 0.dp)
+                        contentPadding = PaddingValues(start = Spacing.space3, end = 0.dp)
                     ) {
                         Text("Cancelar", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
@@ -304,28 +304,28 @@ private fun FilterChipsRow(
 ) {
     val optionBackground = if (isSystemInDarkTheme()) PureBlack else PureWhite
     LazyRow(
-        contentPadding = PaddingValues(start = 16.dp, end = 0.dp, top = 4.dp, bottom = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+        contentPadding = PaddingValues(start = Spacing.space4, end = 0.dp, top = Spacing.space1, bottom = Spacing.space1),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.space2),
+        modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space2)
     ) {
         if (isLoading) {
-            items(4) { ShimmerItem(Modifier.size(width = 80.dp, height = 32.dp).clip(RoundedCornerShape(12.dp))) }
+            items(4) { ShimmerItem(Modifier.size(width = 80.dp, height = 32.dp).clip(Shapes.cardSmall)) }
         } else {
             items(availableFilters) { filter ->
                 val count = filterCounts[filter] ?: 0
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = Shapes.cardSmall,
                     color = optionBackground,
                     border = BorderStroke(1.dp, if (count > 0) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline),
                     modifier = Modifier.clickable { onFilterClick(filter) }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.space3, vertical = Spacing.space2),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(text = filter, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
                         if (count > 0) {
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(Spacing.space2))
                             Box(
                                 modifier = Modifier
                                     .size(18.dp)
@@ -498,16 +498,16 @@ fun SearchScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                EmptySearchResults(Modifier.padding(top = 64.dp))
+                                EmptySearchResults(Modifier.padding(top = Dimens.iconSizeEmpty))
                             }
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 100.dp)
+                                contentPadding = PaddingValues(start = Spacing.space4, end = Spacing.space4, top = Spacing.space3, bottom = Dimens.contentPaddingBottom)
                             ) {
                                 itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
                                     LaunchedEffect(index) { viewModel.onItemDisplayed(index) }
-                                    Box(modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Box(modifier = Modifier.padding(vertical = Spacing.space1)) {
                                         CoffeeListItem(
                                             coffee = coffeeDetails.coffee,
                                             subtitle = coffeeDetails.coffee.marca.toCoffeeBrandFormat(),
@@ -592,7 +592,7 @@ private fun RatingFilterContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(24.dp),
+            .padding(Spacing.space6),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -603,11 +603,11 @@ private fun RatingFilterContent(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface)
             if (displayRating > 0) {
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(Spacing.space1))
                 Icon(Icons.Default.Star, contentDescription = "Valoración", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(Spacing.space4))
         Slider(
             value = currentRating,
             onValueChange = onRatingChange,
@@ -628,7 +628,7 @@ private fun RatingFilterContent(
             Text("5 Estrellas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Todas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(Spacing.space4))
     }
 }
 
@@ -642,7 +642,7 @@ private fun FilterSelectionContent(
     val optionBackground = if (isSystemInDarkTheme()) PureBlack else PureWhite
     Column {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space5),
             horizontalArrangement = Arrangement.End
         ) {
             TextButton(onClick = onClearAll) {
@@ -651,21 +651,21 @@ private fun FilterSelectionContent(
         }
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+            contentPadding = PaddingValues(horizontal = Spacing.space5, vertical = Spacing.space2)
         ) {
             items(options) { option ->
                 val isSelected = selectedValues.contains(option)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
+                        .padding(vertical = Spacing.space1)
                         .clickable { onOptionToggle(option) },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = Shapes.cardSmall,
                     color = optionBackground,
                     border = BorderStroke(1.dp, if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.space2, vertical = Spacing.space2),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
@@ -676,19 +676,19 @@ private fun FilterSelectionContent(
                                 uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 checkmarkColor = PureWhite
                             ),
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(Spacing.space8)
                         )
                         Text(
                             text = option,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(start = 4.dp)
+                            modifier = Modifier.padding(start = Spacing.space1)
                         )
                     }
                 }
             }
             item { 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(Spacing.space8))
             }
         }
     }
@@ -700,47 +700,50 @@ private fun RecentSearches(
     onRecentSearchClick: (String) -> Unit,
     onClearRecent: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.space2)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = Spacing.space4)
         ) {
             Icon(Icons.Default.History, contentDescription = "Recientes", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(Spacing.space2))
             Text("Búsquedas recientes", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onClearRecent, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            IconButton(
+                onClick = onClearRecent,
+                modifier = Modifier.minimumInteractiveComponentSize()
+            ) {
+                Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
             }
         }
         LazyRow(
-            contentPadding = PaddingValues(start = 16.dp, end = 0.dp, top = 8.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(start = Spacing.space4, end = 0.dp, top = Spacing.space2, bottom = Spacing.space2),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.space2),
             modifier = Modifier.fillMaxWidth()
         ) {
             items(recentSearches) { term ->
                 Surface(
                     modifier = Modifier.clickable { onRecentSearchClick(term) },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = Shapes.card,
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Text(text = term, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text(text = term, modifier = Modifier.padding(horizontal = Spacing.space3, vertical = Spacing.space2), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = Spacing.space2))
     }
 }
 
 @Composable
 private fun EmptySearchResults(modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Default.Coffee, contentDescription = "Sin resultados", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
-        Spacer(Modifier.height(16.dp))
+        Icon(Icons.Default.Coffee, contentDescription = "Sin resultados", modifier = Modifier.size(Dimens.iconSizeEmpty), tint = MaterialTheme.colorScheme.outline)
+        Spacer(Modifier.height(Spacing.space4))
         Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
         Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(Spacing.space2))
         Text("Desliza hacia abajo para actualizar la lista desde el servidor.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
     }
 }

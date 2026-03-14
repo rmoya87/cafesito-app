@@ -1,0 +1,29 @@
+---
+description: Accesibilidad WebApp y Android; checklist al eliminar, modificar o añadir pantallas y componentes interactivos
+alwaysApply: true
+---
+
+# Accesibilidad en cambios de UI
+
+## Cuándo aplicar
+
+Siempre que vayas a **eliminar**, **modificar** o **añadir**:
+- Pantallas o flujos de usuario
+- Botones, iconos, enlaces o controles interactivos
+- Imágenes, listas, cards o modales/sheets
+
+## Documento de referencia
+
+- **Fuente de verdad:** `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md`
+- Incluye: revisión de lo cubierto en WebApp y Android, huecos detectados (p. ej. `contentDescription = null` en Android) y **checklist obligatorio**.
+
+## Reglas rápidas
+
+1. **Lectores de pantalla:** Todo control interactivo debe tener etiqueta: Web → `aria-label` o texto visible; Android → `contentDescription` (nunca `null` en iconos/IconButton accionables).
+2. **Área de tap:** Web ≥ 44px; Android ≥ 48 dp (IconButton o `minimumInteractiveComponentSize()`).
+3. **Contraste:** Usar tokens; WCAG AA (4.5:1 texto normal). Comprobar día y noche.
+4. **Imágenes:** Informativas → alt/contentDescription descriptivo; decorativas → `alt=""` / null solo si el contexto ya lo da.
+5. **Web modales:** `role="dialog"`, `aria-modal="true"`, `aria-label`; focus trap y Escape para cerrar.
+6. **Paridad:** Si la funcionalidad existe en Web y Android, misma información para lectores de pantalla y tamaños de objetivo comparables.
+
+Antes de tocar UI, consulta criterios y checklist en `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` (secciones 1 y 5).

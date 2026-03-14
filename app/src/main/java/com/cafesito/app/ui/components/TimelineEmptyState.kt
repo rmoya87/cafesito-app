@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.cafesito.app.ui.theme.Shapes
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -62,7 +62,7 @@ fun TimelineEmptyState(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onAddPostClick,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = Shapes.card,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -108,7 +108,7 @@ fun TimelineEmptyState(
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = Shapes.card
                 ) {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),

@@ -73,3 +73,13 @@ val SliderTrackInactiveLight = Color(0xFFE0E0E0)
 
 /** Grid/outline en gráfico radar (modo noche). */
 val RadarGridDark = Color(0xFF757575)
+
+/** Eje/etiquetas en gráficos (modo noche). */
+val DateMetaAxisDark = Color(0xFF6F6760)
+/** Eje/etiquetas en gráficos (modo día). */
+val DateMetaAxisLight = Color(0xFFB0A8A0)
+
+/** Switch track sin marcar (modo noche). */
+val SwitchTrackOffDark = Color(0xFF424242)
+/** Switch thumb sin marcar (modo noche). */
+val SwitchThumbOffDark = Color(0xFFBDBDBD)

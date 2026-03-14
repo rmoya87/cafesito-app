@@ -116,7 +116,7 @@ fun TimelineScreen(
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                shape = Shapes.sheetLarge,
                 scrimColor = ScrimDefault
             ) {
                 Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
@@ -330,9 +330,9 @@ private fun HomeBrewMethodsCarousel(
                     modifier = Modifier
                         .width(100.dp)
                         .height(100.dp)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(Shapes.shapeCardMedium)
                         .clickable(onClick = onMethodClick),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = Shapes.shapeCardMedium,
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                     tonalElevation = 2.dp
                 ) {

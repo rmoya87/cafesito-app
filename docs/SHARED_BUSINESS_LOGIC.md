@@ -7,6 +7,35 @@
 
 ---
 
+## Esquema: dónde vive la lógica por área
+
+```mermaid
+flowchart TB
+  subgraph Shared["/shared (KMP) - Fuente de verdad"]
+    DIARY_SH[Diario: DiaryAnalyticsTargets]
+    BREW_SH[Brew: BrewEngine, métodos, tiempos]
+    REVIEW_SH[Reseñas: Review, ValidateReviewInputUseCase]
+  end
+  subgraph Android["Android - app/"]
+    AND_USE[Usa shared directamente]
+  end
+  subgraph WebApp["WebApp - webApp/src/core/"]
+    DIARY_TS[diaryAnalytics.ts - réplica manual]
+    BREW_TS[brew.ts - paridad manual]
+    REVIEW_TS[Validación en capa API]
+  end
+  DIARY_SH --> AND_USE
+  BREW_SH --> AND_USE
+  REVIEW_SH --> AND_USE
+  DIARY_SH -.->|paridad a mano| DIARY_TS
+  BREW_SH -.->|paridad a mano| BREW_TS
+  REVIEW_SH -.->|criterios alineados| REVIEW_TS
+```
+
+**Regla:** Si existe en `/shared`, no duplicar en Web; si se replica en Web (diario, brew), mantener paridad de reglas de forma explícita.
+
+---
+
 ## 1. Diario — objetivos y tendencias
 
 ### 1.1 Fuente de verdad (Android / iOS)

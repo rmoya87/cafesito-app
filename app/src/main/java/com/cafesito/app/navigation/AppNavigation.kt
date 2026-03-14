@@ -63,6 +63,8 @@ import com.cafesito.app.ui.diary.*
 import com.cafesito.app.ui.historial.HistorialScreen
 import com.cafesito.app.ui.profile.*
 import com.cafesito.app.ui.search.SearchScreen
+import com.cafesito.app.ui.theme.Dimens
+import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.ui.timeline.*
 import com.cafesito.app.analytics.AnalyticsHelper
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -661,7 +663,7 @@ fun AppNavigation(
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(32.dp),
+                    shape = Shapes.shapePremium,
                     shadowElevation = 12.dp,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                     modifier = Modifier.fillMaxWidth()
@@ -670,7 +672,7 @@ fun AppNavigation(
                         containerColor = Color.Transparent,
                         tonalElevation = 0.dp,
                         windowInsets = WindowInsets(0, 0, 0, 0),
-                        modifier = Modifier.height(64.dp)
+                        modifier = Modifier.height(Dimens.navBarHeight)
                     ) {
                         navItems.forEach { (route, label, icon) ->
                             val isSelected = currentRoute.startsWith(route)

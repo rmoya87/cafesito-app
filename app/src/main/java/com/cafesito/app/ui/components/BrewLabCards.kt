@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
+import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.ui.theme.PureBlack
@@ -54,7 +55,7 @@ fun PantryPremiumMiniCard(
         modifier = Modifier
             .width(160.dp)
             .clickable { onClick() },
-        shape = RoundedCornerShape(24.dp)
+        shape = Shapes.pill
     ) {
         Column {
             Box {
@@ -68,8 +69,8 @@ fun PantryPremiumMiniCard(
                 )
                 if (onOptionsClick != null) {
                     val isDark = isSystemInDarkTheme()
-                    val optionsIconTint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
-                    val optionsBgColor = if (isDark) Color.Black else Color.White.copy(alpha = 0.82f)
+                    val optionsIconTint = if (isDark) PureWhite else MaterialTheme.colorScheme.onSurface
+                    val optionsBgColor = if (isDark) PureBlack else PureWhite.copy(alpha = 0.82f)
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -121,7 +122,7 @@ fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp)
+        shape = Shapes.shapeCardMedium
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -132,7 +133,7 @@ fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
                 contentDescription = coffee.coffee.nombre,
                 modifier = Modifier
                     .size(50.dp)
-                    .clip(RoundedCornerShape(12.dp)),
+                    .clip(Shapes.cardSmall),
                 contentScale = ContentScale.Crop
             )
             Spacer(Modifier.width(16.dp))
@@ -167,7 +168,7 @@ fun PantryAddActionCard(onClick: () -> Unit) {
         modifier = Modifier
             .width(160.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
+        shape = Shapes.pill,
         color = cardBackground,
         border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
     ) {

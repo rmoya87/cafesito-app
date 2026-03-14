@@ -97,7 +97,7 @@ import kotlin.math.sin
 @Composable
 fun PremiumCard(
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(32.dp),
+    shape: RoundedCornerShape = Shapes.shapePremium,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -112,7 +112,7 @@ fun PremiumCard(
 }
 
 @Composable
-fun Modifier.premiumBorder(shape: RoundedCornerShape = RoundedCornerShape(32.dp)) = 
+fun Modifier.premiumBorder(shape: RoundedCornerShape = Shapes.shapePremium) = 
     this.border(1.dp, MaterialTheme.colorScheme.outline, shape)
 
 @Composable
@@ -175,7 +175,7 @@ fun AnimatedTabIndicator(
                 .width(tabWidth)
                 .fillMaxHeight()
                 .padding(4.dp)
-                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.primary, Shapes.pill)
         )
     }
 }
@@ -237,7 +237,7 @@ fun ShimmerItem(modifier: Modifier = Modifier) {
     val animAlpha = baseAlpha + alpha
     Box(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = animAlpha.coerceIn(0.05f, 0.3f)), RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = animAlpha.coerceIn(0.05f, 0.3f)), Shapes.card)
     )
 }
 
@@ -284,7 +284,7 @@ fun ProfileHeaderShimmer() {
 fun ProfileActivityCardShimmer() {
     PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            ShimmerItem(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)))
+            ShimmerItem(modifier = Modifier.size(56.dp).clip(Shapes.cardSmall))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 ShimmerItem(modifier = Modifier.height(18.dp).fillMaxWidth(0.6f))
@@ -352,7 +352,7 @@ fun DiaryItemShimmer() {
     Surface(
         modifier = Modifier.fillMaxWidth(), 
         color = MaterialTheme.colorScheme.surface, 
-        shape = RoundedCornerShape(16.dp), 
+        shape = Shapes.card, 
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -375,7 +375,7 @@ fun DiaryItemShimmer() {
 
 @Composable
 fun PantryItemShimmer() {
-    PremiumCard(shape = RoundedCornerShape(28.dp)) {
+    PremiumCard(shape = Shapes.shapeXl) {
         Column {
             Box(modifier = Modifier
                 .fillMaxWidth()
@@ -415,7 +415,7 @@ fun TimelineLoadingContent() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(5) {
-                        ShimmerItem(Modifier.size(100.dp).clip(RoundedCornerShape(20.dp)))
+                        ShimmerItem(Modifier.size(100.dp).clip(Shapes.shapeCardMedium))
                     }
                 }
             }
@@ -430,7 +430,7 @@ fun TimelineLoadingContent() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(4) {
-                        ShimmerItem(Modifier.width(160.dp).height(220.dp).clip(RoundedCornerShape(24.dp)))
+                        ShimmerItem(Modifier.width(160.dp).height(220.dp).clip(Shapes.pill))
                     }
                 }
             }
@@ -445,7 +445,7 @@ fun TimelineLoadingContent() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(3) {
-                        ShimmerItem(Modifier.width(220.dp).height(180.dp).clip(RoundedCornerShape(12.dp)))
+                        ShimmerItem(Modifier.width(220.dp).height(180.dp).clip(Shapes.cardSmall))
                     }
                 }
             }
@@ -463,7 +463,7 @@ private fun SearchListItemShimmer() {
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ShimmerItem(Modifier.size(60.dp).clip(RoundedCornerShape(12.dp)))
+        ShimmerItem(Modifier.size(60.dp).clip(Shapes.cardSmall))
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             ShimmerItem(Modifier.height(18.dp).fillMaxWidth(0.85f))
@@ -483,7 +483,7 @@ fun SearchLoadingContent() {
     ) {
         items(10) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = Shapes.card,
                 color = Color.Transparent,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {
@@ -507,7 +507,7 @@ fun BrewLabLoadingContent() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(5) {
-                    ShimmerItem(Modifier.size(140.dp).clip(RoundedCornerShape(24.dp)))
+                    ShimmerItem(Modifier.size(140.dp).clip(Shapes.pill))
                 }
             }
         }
@@ -518,7 +518,7 @@ fun BrewLabLoadingContent() {
                     Modifier.padding(24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ShimmerItem(Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)))
+                    ShimmerItem(Modifier.size(56.dp).clip(Shapes.cardSmall))
                     Spacer(Modifier.width(16.dp))
                     Column(Modifier.weight(1f)) {
                         ShimmerItem(Modifier.height(18.dp).fillMaxWidth(0.7f))
@@ -534,7 +534,7 @@ fun BrewLabLoadingContent() {
                 ShimmerItem(Modifier.height(16.dp).width(80.dp))
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    repeat(4) { ShimmerItem(Modifier.height(36.dp).width(90.dp).clip(RoundedCornerShape(12.dp))) }
+                    repeat(4) { ShimmerItem(Modifier.height(36.dp).width(90.dp).clip(Shapes.cardSmall)) }
                 }
             }
         }
@@ -544,7 +544,7 @@ fun BrewLabLoadingContent() {
                 ShimmerItem(Modifier.height(16.dp).width(100.dp))
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    repeat(4) { ShimmerItem(Modifier.height(36.dp).width(80.dp).clip(RoundedCornerShape(12.dp))) }
+                    repeat(4) { ShimmerItem(Modifier.height(36.dp).width(80.dp).clip(Shapes.cardSmall)) }
                 }
             }
         }
@@ -554,7 +554,7 @@ fun BrewLabLoadingContent() {
                 Column(Modifier.padding(24.dp)) {
                     ShimmerItem(Modifier.height(18.dp).width(180.dp))
                     Spacer(Modifier.height(16.dp))
-                    ShimmerItem(Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(12.dp)))
+                    ShimmerItem(Modifier.fillMaxWidth().height(80.dp).clip(Shapes.cardSmall))
                 }
             }
         }

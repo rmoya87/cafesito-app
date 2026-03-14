@@ -1,5 +1,5 @@
 import { type Dispatch, type SetStateAction, useCallback } from "react";
-import { createDiaryEntry, insertPantryItem } from "../../data/supabaseApi";
+import { createDiaryEntry, insertPantryItem, updatePantryItem } from "../../data/supabaseApi";
 import { estimateCaffeineMg, hasCaffeineFromLabel } from "../../core/brewEngine";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow, UserRow } from "../../types";
 
@@ -194,6 +194,23 @@ export function useDiarySheetActions({
         type: "CUP"
       });
       setDiaryEntries((prev) => [created, ...prev]);
+
+      // Restar de la despensa si el café está en despensa (puede haber varios ítems del mismo café)
+      if (coffeeId && coffeeGrams > 0 && pantryItems.length > 0) {
+        const toReduce = pantryItems.find((p) => p.coffee_id === coffeeId && p.grams_remaining >= coffeeGrams)
+          ?? pantryItems.find((p) => p.coffee_id === coffeeId);
+        if (toReduce) {
+          const newRemaining = Math.max(0, toReduce.grams_remaining - coffeeGrams);
+          const updated = await updatePantryItem(toReduce.id, {
+            totalGrams: toReduce.total_grams,
+            gramsRemaining: newRemaining
+          });
+          setPantryItems((prev) =>
+            prev.map((p) => (p.id === toReduce.id ? updated : p))
+          );
+        }
+      }
+
       setLastCreatedCoffeeNameForSheet?.(null);
       setShowDiaryCoffeeSheet(false);
     },
@@ -203,8 +220,10 @@ export function useDiarySheetActions({
       diaryCoffeeGramsDraft,
       diaryCoffeeMlDraft,
       diaryCoffeePreparationDraft,
+      pantryItems,
       selectedDiaryCoffee,
       setDiaryEntries,
+      setPantryItems,
       setLastCreatedCoffeeNameForSheet,
       setShowDiaryCoffeeSheet
     ]

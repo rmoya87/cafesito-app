@@ -147,7 +147,7 @@ fun CoffeeListItem(
                 if (showChevron) {
                     Icon(
                         Icons.Default.ChevronRight,
-                        contentDescription = null,
+                        contentDescription = "Ver café",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

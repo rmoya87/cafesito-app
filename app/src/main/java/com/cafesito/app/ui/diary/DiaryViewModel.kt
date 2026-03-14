@@ -564,9 +564,15 @@ class DiaryViewModel @Inject constructor(
         amountMl: Int, 
         coffeeGrams: Int,
         preparationType: String,
-        sizeLabel: String? = null
+        sizeLabel: String? = null,
+        pantryItemId: String? = null
     ) {
-        diaryRepository.addDiaryEntry(coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams, preparationType, sizeLabel)
+        diaryRepository.addDiaryEntry(
+            coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams,
+            preparationType, sizeLabel,
+            reduceFromPantry = true,
+            reduceFromPantryItemId = pantryItemId
+        )
         refreshDiaryWidget()
     }
     
