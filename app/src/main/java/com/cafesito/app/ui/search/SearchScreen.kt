@@ -118,6 +118,7 @@ import com.cafesito.app.R
 import coil.compose.AsyncImage
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.camera.NativeBarcodeScannerActivity
+import com.cafesito.app.ui.components.CoffeeListItem
 import com.cafesito.app.ui.components.ErrorStateMessage
 import com.cafesito.app.ui.components.PremiumCard
 import com.cafesito.app.ui.components.SearchLoadingContent
@@ -507,9 +508,12 @@ fun SearchScreen(
                                 itemsIndexed(state.coffees, key = { _, item -> item.coffee.id }) { index, coffeeDetails ->
                                     LaunchedEffect(index) { viewModel.onItemDisplayed(index) }
                                     Box(modifier = Modifier.padding(vertical = 4.dp)) {
-                                        CoffeePremiumListItem(
-                                            coffeeDetails = coffeeDetails,
-                                            onCoffeeClick = onCoffeeClick
+                                        CoffeeListItem(
+                                            coffee = coffeeDetails.coffee,
+                                            subtitle = coffeeDetails.coffee.marca.toCoffeeBrandFormat(),
+                                            imageSize = 60.dp,
+                                            showChevron = false,
+                                            onClick = onCoffeeClick
                                         )
                                     }
                                 }
@@ -528,7 +532,7 @@ fun SearchScreen(
                 onDismissRequest = { showFilterSheet = false },
                 sheetState = sheetState,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                scrimColor = Color.Black.copy(alpha = 0.5f)
+                scrimColor = ScrimDefault
             ) {
                 Box(
                     modifier = Modifier
@@ -726,58 +730,6 @@ private fun RecentSearches(
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
-    }
-}
-
-@Composable
-private fun CoffeePremiumListItem(
-    coffeeDetails: CoffeeWithDetails,
-    onCoffeeClick: (String) -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCoffeeClick(coffeeDetails.coffee.id) },
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        shadowElevation = 0.dp
-    ) {
-        Box(modifier = Modifier.height(86.dp)) {
-            Row(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AsyncImage(
-                    model = coffeeDetails.coffee.imageUrl,
-                    contentDescription = coffeeDetails.coffee.nombre,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                )
-                
-                Spacer(Modifier.width(16.dp))
-                
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = coffeeDetails.coffee.nombre.toCoffeeNameFormat(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = coffeeDetails.coffee.marca.toCoffeeBrandFormat(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
     }
 }
 

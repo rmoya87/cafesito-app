@@ -75,7 +75,7 @@ class RootErrorBoundary extends React.Component<
   render() {
     if (!this.state.hasError) return this.props.children;
     return (
-      <div className="coffee-detail-empty coffee-detail-empty-full" style={{ minHeight: "100vh", paddingTop: 28 }}>
+      <div className="coffee-detail-empty coffee-detail-empty-full is-full-viewport">
         <h1 className="title">Se produjo un error</h1>
         <p className="coffee-sub">{this.state.message || "No se pudo renderizar la aplicación."}</p>
         <Button variant="primary" onClick={() => window.location.reload()}>

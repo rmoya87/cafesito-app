@@ -98,7 +98,7 @@ html.theme-dark .notifications-header {
   background: var(--screen-dark-background);
   --notifications-item-bg: var(--pure-black);
   --notifications-item-bg-unread: rgba(255, 255, 255, 0.06);
-  --notifications-item-border: #000000;
+  --notifications-item-border: var(--pure-black);
   --notifications-item-border-unread: rgba(212, 163, 115, 0.35);
 }
 
@@ -250,7 +250,7 @@ html.theme-dark .feed-image {
 }
 
 html.theme-dark .coffee-tag-card {
-  background: #212121;
+  background: var(--surface-elevated);
   border-color: var(--border-light);
 }
 
@@ -320,12 +320,12 @@ html.theme-dark .brew-result-card {
 }
 
 html.theme-dark .brew-prep-card {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 html.theme-dark .brew-result-reco {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border: none !important;
 }
 html.theme-dark .brew-result-reco-head strong {
@@ -347,7 +347,7 @@ html.theme-dark .timeline-elaboration-methods {
 }
 /* Círculos método y tipo: por defecto negro; activo marrón sin borde */
 html.theme-dark .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 html.theme-dark .timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
@@ -357,23 +357,23 @@ html.theme-dark .timeline-elaboration-method-circle-inner .timeline-elaboration-
 }
 html.theme-dark .brew-select-step .timeline-elaboration-method-label,
 html.theme-dark .timeline-elaboration-method-label {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 html.theme-dark .brew-select-step .brew-select-section-title,
 html.theme-dark .brew-select-step .section-title.brew-select-section-title {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 html.theme-dark .brew-select-step .brew-timer-row,
 html.theme-dark .brew-select-step .brew-select-coffee-row,
 html.theme-dark .brew-select-step .brew-tipo-card,
 html.theme-dark .brew-select-step .brew-tamaño-card {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 html.theme-dark .brew-select-step .brew-tipo-card-label,
 html.theme-dark .brew-select-step .brew-tamaño-card-label {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 html.theme-dark .brew-select-step .brew-tamaño-card-range {
   color: #bdb7b2 !important;
@@ -382,48 +382,48 @@ html.theme-dark .brew-select-step .brew-tamaño-card-range {
 html.theme-dark .brew-select-step .brew-tipo-card.is-active .brew-tipo-card-label,
 html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-label,
 html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-range {
-  color: #000 !important;
+  color: var(--pure-black) !important;
 }
 /* Modal edición Mi diario: chip activo tipo — texto negro en modo noche */
 html.theme-dark .diary-edit-entry-tipo-presets .brew-tipo-card.is-active .brew-tipo-card-label {
-  color: #000 !important;
+  color: var(--pure-black) !important;
 }
 html.theme-dark .diary-edit-entry-tipo-presets .brew-tipo-card {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 html.theme-dark .diary-edit-entry-tipo-presets .brew-tipo-card-label {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 html.theme-dark .brew-select-step .brew-coffee-search,
 html.theme-dark .brew-select-step .search-wide {
-  background: #212121 !important;
+  background: var(--surface-elevated) !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 /* Home: módulo método (círculos) y recomendaciones del día — fondo negro en modo noche */
 html.theme-dark .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-circle-inner {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 html.theme-dark .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-label {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 /* Recomendaciones del día (Home y elaboración): card negro en modo noche */
 html.theme-dark .timeline-recommendation-card {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 html.theme-dark .timeline-recommendation-card .timeline-recommendation-row {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
   border-bottom-color: rgba(255, 255, 255, 0.08) !important;
 }
 html.theme-dark .timeline-recommendation-card .timeline-recommendation-row:hover {
   background: rgba(255, 255, 255, 0.06) !important;
 }
 html.theme-dark .timeline-recommendation-row-name {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 html.theme-dark .timeline-recommendation-row-brand {
   color: #bdb7b2 !important;
@@ -433,9 +433,9 @@ html.theme-dark .brew-select-step .timeline-despensa {
   background: transparent !important;
 }
 html.theme-dark .brew-select-step .timeline-despensa .brew-pantry-card {
-  background: #212121 !important;
+  background: var(--surface-elevated) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 
 /* FAB y botones primarios (ya en tokens, refuerzo por si el light los pinta) */
@@ -452,6 +452,17 @@ html.theme-dark .coffee-detail .coffee-card .feed-meta,
 html.theme-dark .profile-post-user .feed-meta,
 html.theme-dark .diary-entry-time-pill {
   color: #b8b8b8 !important;
+}
+
+/* Píldora nota (valor opinión): en modo noche texto y estrella en negro (detalle café y actividad) */
+html.theme-dark .coffee-detail-opinion-rating-chip,
+html.theme-dark .coffee-detail-opinion-rating-chip .ui-icon,
+html.theme-dark .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+html.theme-dark .coffee-detail-opinion-rating-chip svg,
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon {
+  color: var(--pure-black) !important;
+  fill: var(--pure-black) !important;
 }
 
 /* ========== Timeline: modo oscuro ========== */
@@ -608,7 +619,7 @@ html.theme-dark .profile-adn-continue-button.action-button:focus-visible {
 html.theme-dark .profile-adn-card,
 html.theme-dark .profile-adn-radar-card,
 html.theme-dark .profile-adn-analysis-panel {
-  background: #000 !important;
+  background: var(--pure-black) !important;
 }
 html.theme-dark .profile-adn-radar-ring,
 html.theme-dark .profile-adn-radar-axis {
@@ -643,7 +654,7 @@ html.theme-dark .diary-edit-entry-presets .period-chip {
 }
 
 html.theme-dark .diary-edit-entry-presets .period-chip {
-  background: #000000 !important;
+  background: var(--pure-black) !important;
   color: rgba(255, 255, 255, 0.9) !important;
   border-color: var(--border-light) !important;
 }
@@ -656,7 +667,7 @@ html.theme-dark .diary-edit-entry-presets .period-chip.is-active {
 }
 
 html.theme-dark .diary-edit-entry-size-presets .diary-coffee-size-chip {
-  background: #000000 !important;
+  background: var(--pure-black) !important;
   color: rgba(255, 255, 255, 0.9) !important;
 }
 
@@ -695,7 +706,7 @@ html.theme-dark button.coffee-tag-card,
 html.theme-dark .ui-button-md.coffee-tag-card,
 html.theme-dark .coffee-tag-card,
 html.theme-dark .coffee-tag-card .coffee-tag-copy {
-  background: #212121 !important;
+  background: var(--surface-elevated) !important;
   border-color: var(--border-light) !important;
 }
 html.theme-dark .coffee-tag-card .coffee-origin,
@@ -764,7 +775,7 @@ html.theme-dark .composer-input-textarea::placeholder {
 
 html.theme-dark .send-button:disabled {
   background: #424242 !important;
-  color: #000000 !important;
+  color: var(--pure-black) !important;
 }
 
 /* Detalle café: título sobre hero — no debe cambiar (siempre blanco sobre imagen) */
@@ -813,7 +824,7 @@ html.theme-dark .coffee-detail .section-title {
 
 /* Brew prep: card temporizador y recomendación con fondo negro */
 html.theme-dark .brew-prep-card {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
@@ -842,7 +853,7 @@ html.theme-dark .brew-prep-bar i {
 
 html.theme-dark .brew-prep-advice-list li,
 html.theme-dark .brew-prep-advice-card {
-  background: #000 !important;
+  background: var(--pure-black) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
   color: #fff !important;
 }
@@ -853,7 +864,7 @@ html.theme-dark .brew-prep-action-secondary {
 }
 
 html.theme-dark .action-button.brew-prep-action-primary.is-running {
-  background: #d63a3a !important;
+  background: var(--electric-red) !important;
   color: var(--pure-white) !important;
 }
 
@@ -910,7 +921,7 @@ html.theme-dark .diary-edit-entry-save {
 }
 
 html.theme-dark .diary-edit-entry-presets .period-chip {
-  background: #000000 !important;
+  background: var(--pure-black) !important;
   color: rgba(255, 255, 255, 0.9) !important;
 }
 html.theme-dark .diary-edit-entry-presets .period-chip.is-active {
@@ -977,18 +988,18 @@ html.theme-dark .notifications-swipe-bg {
 }
 
 html.theme-dark .profile-inline-metrics .diary-edit-entry-metric-field {
-  background: #000000 !important;
+  background: var(--pure-black) !important;
   border: none !important;
 }
 
 html.theme-dark .profile-inline-metrics .diary-edit-entry-metric-field > span {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 
 html.theme-dark .profile-inline-metrics .profile-inline-name-input,
 html.theme-dark .profile-inline-metrics .profile-inline-bio-input {
-  background: #000000 !important;
-  color: #ffffff !important;
+  background: var(--pure-black) !important;
+  color: var(--pure-white) !important;
   border: none !important;
 }
 
@@ -1111,7 +1122,7 @@ html.theme-dark .diary-sheet-action {
 html.theme-dark .diary-sheet-action.is-water .ui-icon:first-child,
 html.theme-dark .diary-sheet-action.is-coffee .ui-icon:first-child,
 html.theme-dark .diary-sheet-action.is-pantry .ui-icon:first-child {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 
 html.theme-dark .diary-sheet-action.is-active {
@@ -1267,7 +1278,7 @@ html.theme-light .diary-sheet-action {
 html.theme-light .diary-sheet-action.is-water .ui-icon:first-child,
 html.theme-light .diary-sheet-action.is-coffee .ui-icon:first-child,
 html.theme-light .diary-sheet-action.is-pantry .ui-icon:first-child {
-  color: #000000 !important;
+  color: var(--pure-black) !important;
 }
 
 html.theme-light .diary-sheet-action.is-active {
@@ -1567,7 +1578,7 @@ html.theme-light .composer-input-textarea::placeholder {
 
 html.theme-light .send-button:disabled {
   background: #bdbdbd !important;
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 
 /* Detalle café: título sobre hero — no debe cambiar (siempre blanco) */
@@ -1655,7 +1666,7 @@ html.theme-light .brew-prep-action-secondary {
 }
 
 html.theme-light .action-button.brew-prep-action-primary.is-running {
-  background: #d63a3a !important;
+  background: var(--electric-red) !important;
   color: var(--text-main) !important;
 }
 
@@ -1712,7 +1723,7 @@ html.theme-light .diary-edit-entry-save {
 }
 
 html.theme-light .diary-edit-entry-presets .period-chip {
-  background: #ffffff !important;
+  background: var(--pure-white) !important;
   border-color: var(--border-light) !important;
   color: var(--espresso-deep) !important;
 }
@@ -1724,7 +1735,7 @@ html.theme-light .diary-edit-entry-presets .period-chip.is-active {
 }
 
 html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip {
-  background: #ffffff !important;
+  background: var(--pure-white) !important;
   color: var(--espresso-deep) !important;
 }
 
@@ -1740,27 +1751,27 @@ html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-activ
 
 html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active span,
 html.theme-light .diary-edit-entry-size-presets .diary-coffee-size-chip.is-active small {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 html.theme-light .diary-edit-entry-method-chip.is-active,
 html.theme-light .diary-edit-entry-method-chip.is-active span {
-  color: #ffffff !important;
+  color: var(--pure-white) !important;
 }
 
 /* Editar perfil (nombre y bio): modo día = fondo blanco, texto negro */
 html.theme-light .profile-inline-metrics .diary-edit-entry-metric-field {
-  background: #ffffff !important;
+  background: var(--pure-white) !important;
   border-color: rgba(0, 0, 0, 0.15) !important;
 }
 
 html.theme-light .profile-inline-metrics .diary-edit-entry-metric-field > span {
-  color: #000000 !important;
+  color: var(--pure-black) !important;
 }
 
 html.theme-light .profile-inline-metrics .profile-inline-name-input,
 html.theme-light .profile-inline-metrics .profile-inline-bio-input {
-  background: #ffffff !important;
-  color: #000000 !important;
+  background: var(--pure-white) !important;
+  color: var(--pure-black) !important;
   border: none !important;
 }
 

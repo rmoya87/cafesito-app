@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-05  
+**Última actualización:** 2026-03-13  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -45,6 +45,7 @@
 |-----------|-------------|
 | `MASTER_ARCHITECTURE_GOVERNANCE.md` | Fuente de verdad: principios, estructura del monorepo, capas, diseño, seguridad, testing, documentación. |
 | `DESIGN_TOKENS.md` | **Tokens de diseño:** colores (marrón día/noche, rojo eliminar, azul agua, fondos), espaciados/gaps, radios. Referencia única para WebApp y Android. |
+| `GUIA_UNIFICACION_COMPONENTES_UI.md` | **Guía de componentes UI:** unificación de estilos, espacios y funcionalidades por plataforma (WebApp y Android); cuándo crear un componente nuevo o evolucionar uno existente; inventario de componentes reutilizables. |
 | `UX_EMPTY_AND_ERROR_STATES.md` | Patrón unificado para estados vacío (mensaje + CTA) y error de red (mensaje + Reintentar) en Web y Android. |
 | `SHARED_BUSINESS_LOGIC.md` | Qué lógica de negocio es compartida (diario, brew, reseñas, recomendaciones) y dónde vive (shared/, webApp/core/). |
 | `SMOKE_TESTS.md` | Flujo de humo crítico (login → diario → detalle/añadir) y dónde añadir tests en Web y Android. |

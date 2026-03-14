@@ -736,7 +736,7 @@ export function ProfileView({
                       const displayLabel = isOwnActivity ? (ACTIVITY_LABEL_SECOND[item.label] ?? item.label) : item.label;
                       return (
                       <li key={item.id} className="profile-activity-item">
-                        <article className="profile-activity-card" data-activity-type={item.type}>
+                        <article className="card profile-activity-card" data-activity-type={item.type}>
                           <Button
                             variant="plain"
                             type="button"
@@ -783,7 +783,7 @@ export function ProfileView({
                                 {item.type === "review" && (item.rating != null || item.comment) ? (
                                   <>
                                     <div className="profile-activity-coffee-card-review-block" aria-label="Valoración y opinión">
-                                      {item.rating != null ? <span className="coffee-detail-opinion-rating-chip" aria-label="Nota"><UiIcon name="star" className="ui-icon" />{item.rating}/5</span> : null}
+                                      {item.rating != null ? <span className="coffee-detail-opinion-rating-chip" aria-label="Nota"><UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(item.rating)}/5</span> : null}
                                       {item.rating != null && item.comment ? " " : null}
                                       {item.comment ? <span className="profile-activity-coffee-card-review-comment">{item.comment}</span> : null}
                                     </div>

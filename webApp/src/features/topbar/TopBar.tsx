@@ -66,8 +66,11 @@ export function TopBar({
   coffeeTopbarStockActive,
   onCoffeeTopbarToggleFavorite,
   onCoffeeTopbarOpenStock,
+  diarySubView = null,
 }: {
   activeTab: TabId;
+  /** Cuando es "cafes-probados" no se muestra la barra de Mi diario (mapa a pantalla completa). */
+  diarySubView?: "cafes-probados" | null;
   searchQuery: string;
   searchMode: "coffees" | "users";
   onSearchQueryChange: (value: string) => void;
@@ -321,6 +324,7 @@ export function TopBar({
   }
 
   if (activeTab === "diary") {
+    if (diarySubView === "cafes-probados") return null;
     const canNext = canDiaryGoNext === true;
     const arrowLabelPrev = diaryPeriod === "30d" ? "Mes anterior" : "Anterior";
     const arrowLabelNext = diaryPeriod === "30d" ? "Mes siguiente" : "Siguiente";
@@ -410,7 +414,7 @@ export function TopBar({
                         <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                       </Button>
                     ) : null}
-                    <p className="profile-options-section-title" style={{ marginTop: "1rem" }}>Cuenta</p>
+                    <p className="profile-options-section-title">Cuenta</p>
                     <Button
                       variant="plain"
                       className="diary-sheet-action diary-sheet-action-pantry"

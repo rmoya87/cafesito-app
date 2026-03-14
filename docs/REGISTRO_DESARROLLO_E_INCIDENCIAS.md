@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-12
+**Última actualización:** 2026-03-13
 
 ---
 
@@ -18,6 +18,8 @@
 9. [Resumen de cambios — historial, detalle café (04 mar 2026)](#9-resumen-de-cambios--historial-detalle-café-04-mar-2026)
 10. [Resumen de cambios — calendario, layout, merge (mar 2026)](#10-resumen-de-cambios--calendario-layout-merge-mar-2026)
 11. [Registro completo: paridad Web/Android y mejoras (mar 2026)](#11-registro-completo-paridad-webandroid-y-mejoras-mar-2026)
+12. [Resumen de cambios — Cafés probados, perfil, detalle café, WebApp (12–13 mar 2026)](#12-resumen-de-cambios--cafés-probados-perfil-detalle-café-webapp-1213-mar-2026)
+13. [Estandarización completa según GUIA (13 mar 2026)](#13-estandarización-completa-según-guia-13-mar-2026)
 
 ---
 
@@ -320,6 +322,105 @@ Resumen de lo documentado allí (para futuras modificaciones y mejoras):
 | **Supabase** | `pantry_items.sql` (id UUID), documentos RLS y troubleshooting cafés, nota de independencia pantry. |
 
 En el documento enlazado se detallan archivos tocados, nombres de funciones y referencias a SQL/docs.
+
+---
+
+## 12. Resumen de cambios — Cafés probados, perfil, detalle café, WebApp (12–13 mar 2026)
+
+Recopilación de cambios en la pantalla **Cafés probados** (Android y WebApp), **detalle de café** (opiniones y botón Editar), **perfil > Actividad** (estado de carga) y estilos WebApp (rating chip modo noche, controles del mapa).
+
+### 12.1 Android — Cafés probados (Mi diario)
+
+| Ámbito | Archivo(s) | Cambio |
+|--------|------------|--------|
+| **Página completa** | `app/.../diary/CafesProbadosScreen.kt` | Pantalla dedicada (no sheet): mapa arriba, listado debajo. Navegación desde "Mi diario" → "Cafés probados". |
+| **Mapa** | Id. | OpenStreetMap vía OSMDroid; MapTiler OMT (si hay API key). Altura fija 1/3 de pantalla. Sin controles de zoom (+/-). Marcadores con emoji de bandera del país (TextView → Bitmap). |
+| **Zoom** | Id. | Zoom inicial: ajuste a todos los pins (`zoomToBoundingBox` o `setCenter`+zoom 4 si uno solo). Margen en píxeles (`zoomToBoundingBox(box, false, borderPx)`) para que los pins no queden en el borde. Al pulsar un pin: centrar y zoom 6; al pulsar X (Limpiar): volver al zoom que muestra todos los pins. |
+| **Layout** | Id. | Un solo `LazyColumn`: primer ítem = mapa (altura fija), resto = cabeceras por país y tarjetas de café. Mapa a ancho total (sin `contentPadding` horizontal en el ítem del mapa). Lista con `padding(horizontal = 16.dp)` en cabeceras y tarjetas. |
+| **Botones** | Id. | Volver y Limpiar (X) con márgenes laterales 16.dp (igual que otras pantallas): `padding(top = 16.dp, start = 16.dp, end = 16.dp)`. |
+| **Listado** | Id. | Cafés agrupados por país; tarjetas con estilo tipo buscador (surface, bordes redondeados 16.dp, borde outline). Coordenadas por país en `CountryCoords.kt`; banderas en `CountryFlags.kt`. |
+| **Datos** | `CafesProbadosViewModel.kt` | Incluir todos los cafés probados (eliminado filtro que solo mostraba cafés con una única entrada). `SharingStarted.Eagerly` para retener estado al volver de detalle. |
+
+### 12.2 Android — Detalle de café (opiniones y edición)
+
+| Ámbito | Archivo(s) | Cambio |
+|--------|------------|--------|
+| **Card de opinión** | `app/.../detail/DetailScreen.kt` | Fondo surface, bordes redondeados 16.dp; nota en píldora (fondo amarillo-anaranjado, estrella y texto "X/5" sin decimales). Botón **Editar**: rectangular con bordes 100 % (pill, `RoundedCornerShape(20.dp)`), texto "Editar"; color de fondo según tema: **modo noche** = marrón claro (`LocalCaramelAccent` → CaramelSoft), **modo día** = marrón (CaramelAccent). Texto del botón negro (noche) / blanco (día). |
+| **ReviewBottomSheet** | Id. | Campo de texto con fondo surface; icono cámara en círculo (fondo gris oscuro/claro según tema); botón "Eliminar" (rojo eléctrico) en lugar de Cancelar cuando hay reseña; "Publicar" inactivo = gris, activo = marrón (CaramelAccent). |
+
+### 12.3 Android — Perfil > Actividad
+
+| Ámbito | Archivo(s) | Cambio |
+|--------|------------|--------|
+| **Estado de carga** | `ProfileViewModel.kt` | Nuevo `profileActivityLoading: StateFlow<Boolean>`. Al iniciar `refreshProfileActivity` se pone a `true`; al terminar (en `finally`) a `false`. |
+| **UI** | `ProfileScreen.kt` | En pestaña Actividad: si `profileActivityLoading` es true se muestra indicador centrado (**CircularProgressIndicator** + texto "Recargando…") en lugar del mensaje "Tu actividad está vacía". Cuando termina la carga, si la lista está vacía se muestra el mensaje de vacío; si no, el listado. |
+
+### 12.4 WebApp — Cafés probados y mapa
+
+| Ámbito | Archivo(s) | Cambio |
+|--------|------------|--------|
+| **Mapa** | `webApp/.../diary/CafesProbadosView.tsx`, `features.css` | OpenStreetMap (Leaflet); MapTiler OMT. Marcadores con banderas vía Twemoji (`getCountryFlagImageUrl` en `countryFlags.ts`). Mapa 1/3 de alto; al hacer scroll en la lista pasa a 1/4. Controles de zoom abajo a la izquierda. |
+| **Controles zoom modo oscuro** | `webApp/src/styles/features.css` | `.leaflet-bar a`: `background-color: #212121`; `border-bottom: none`. En `html.theme-dark` el contenedor de zoom con fondo blanco y símbolos en negro (`filter: invert(1)` donde aplique). |
+| **Navegación** | `useCoffeeDetailNavigation.ts`, `AppContainer` | Al abrir detalle desde Cafés probados, al volver se navega a `/diary/cafes-probados` (no a home). `returnDiarySubViewRef` para recordar subvista. |
+| **Scroll** | `CafesProbadosView.tsx` | `handleListScroll` con `useCallback` para detectar scroll y colapsar altura del mapa; referencia correcta para evitar `ReferenceError`. TopBar oculta en subvista Cafés probados; contenido sin padding superior. |
+
+### 12.5 WebApp — Detalle de café y perfil (rating chip modo noche)
+
+| Ámbito | Archivo(s) | Cambio |
+|--------|------------|--------|
+| **Píldora de nota (opinión)** | `webApp/src/styles/features.css`, `theme-forced.css` | En **modo noche** el texto y la estrella de la píldora de nota (detalle café y actividad de perfil) deben ser **negros**. Reglas con `html.theme-dark` y `@media (prefers-color-scheme: dark)` para `.coffee-detail-opinion-rating-chip`, `.profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip`, incl. `.ui-icon`, `svg`, `path` (`color` y `fill: #000000 !important`). |
+| **Modo claro (perfil actividad)** | `webApp/src/styles/features.css` | `:root:not(.theme-dark) .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip { color: black !important; }` para que en modo día la píldora de nota en actividad sea negra. |
+| **Detalle café / perfil** | `CoffeeDetailView.tsx`, `ProfileView.tsx` | Nota sin decimales (`Math.round(...)`); icono estrella rellena (`star-filled`) en la píldora de valoración. |
+
+### 12.6 Incidencias resueltas (WebApp)
+
+| Síntoma | Causa | Solución / archivo |
+|---------|--------|---------------------|
+| `setDiarySubView is not defined` | Parámetro no declarado en el hook. | Añadir `setDiarySubView` a la destructuración y al tipo en `useAppNavigationDomain.ts`. |
+| Orden de Hooks cambiado / "Rendered more hooks" en `AppContainer` | `useMemo` de `diaryCoffeesWithFirstTried` estaba después de `return` condicionales. | Mover el `useMemo` a una posición incondicional (antes de los early return). `AppContainer.tsx`. |
+| `handleListScroll is not defined` en CafesProbadosView | Callback referenciado en JSX pero no definido. | Definir `handleListScroll` con `useCallback` en `CafesProbadosView.tsx`. |
+| Listado no mostraba cafés de distintos países | Filtro que solo dejaba cafés con una única entrada en diario. | Quitar condición `countByCoffeeId === 1` en `AppContainer.tsx` (diaryCoffeesWithFirstTried), `DiaryView.tsx` (baristaStats) y en Android `CafesProbadosViewModel.kt`. |
+| Errores de red (Google Fonts, GSI, GA4) con red caída | Scripts externos se cargaban sin comprobar conectividad. | Quitar `<link>` de Material Symbols en `index.html`; en `ga4.ts` y `AuthPromptOverlay.tsx` comprobar `navigator.onLine` antes de cargar script / One Tap. |
+
+### 12.7 Resumen por tipo
+
+- **UX:** Cafés probados con mapa estable, zoom coherente (inicial / pin / limpiar), márgenes unificados; perfil Actividad con estado "Recargando…" mientras cargan datos; botón Editar con colores por tema.
+- **Estilos:** Rating chip negro en modo noche (WebApp); píldora nota en actividad en negro también en modo claro; controles Leaflet (`.leaflet-bar a`) con fondo y sin borde inferior.
+- **Correcciones:** Hooks, navegación desde detalle a Cafés probados, listado con todos los cafés probados (varios países), scripts externos solo con red.
+
+---
+
+## 13. Estandarización completa según GUIA (13 mar 2026)
+
+Se ejecutaron todas las tareas factibles del listado en **`docs/GUIA_UNIFICACION_COMPONENTES_UI.md`** sin romper funcionalidades ni estilos.
+
+### WebApp
+
+- **Tarjetas (A.3.1):** `.profile-activity-card`, `.coffee-detail-opinion-card`, `.diary-empty-card`, `.diary-analytics-card`, `.diary-stats-card` heredan base `.card` o `.coffee-card`; clases añadidas en JSX donde correspondía.
+- **Inputs (A.3.3):** `components/inputs.css` — padding y border-radius con `var(--space-*)` y `var(--radius-pill)`.
+- **Estados vacío/error (A.3.4):** Componentes `EmptyState` y `ErrorState` en `ui/components/`; uso en `TimelineView` (vacío y error).
+- **Layout (A.3.5):** `features.css` — main-shell, sidebar, android-install-banner, session-logout, topbar padding, timeline-empty con tokens.
+- **Hardcodeados CSS (A.5):** `features.css` (sidebar, layout, timeline), `profile-adn.css` (espaciados, radios, icon-size), `theme-forced.css` (#000, #212121, #ffffff, #bdb7b2, #d63a3a → variables).
+- **TSX (A.5.3):** `main.tsx` — clase `is-full-viewport` para min-height/padding; `TopBar` — margin-top en `.profile-options-section-title`; `iconography.tsx` — clase `.ui-icon-size-lg` para iconos 24px; `tokens.css` — `--radius-xl: 28px` y `.ui-icon-size-lg`.
+
+### Android
+
+- **CoffeeListItem (B.3.1):** Composable unificado en `ui/components/CoffeeListItem.kt` (coffee, subtitle, secondLine, imageSize, showChevron, onClick); usado en `SearchScreen` y `CafesProbadosScreen`. Eliminado `CoffeePremiumListItem` de SearchScreen.
+- **CafesProbadosScreen:** Uso de `CoffeeListItem`; padding con `Spacing.space4`/`space3`/`space1`; eliminados `RoundedCornerShape` locales.
+- **Empty/Error (B.3.4):** Ya existían `EmptyStateMessage` y `ErrorStateMessage` en `DiaryComponents.kt` y se usan en SearchScreen, TimelineScreen, ProfileScreen, DetailScreen, DiaryScreen.
+- **DESIGN_TOKENS (B.3.5):** Gutter 16dp documentado en §2.1; referencia a `Spacing.space4` y `Spacing.kt`.
+
+### Documentación
+
+- **DESIGN_TOKENS.md:** Gutter de pantalla Android 16dp y uso de `Spacing.spaceN`.
+- **GUIA_UNIFICACION_COMPONENTES_UI.md:** Actualizado “Estandarización aplicada” y listado de tareas (marcadas [x] las completadas).
+
+### Pendiente (sin cerrar en esta pasada)
+
+- B.3.2: Sustituir más `RoundedCornerShape` por `Shapes.*` en resto de pantallas.
+- B.3.3: Forma estándar botón pill.
+- B.5: Colores/dimensiones restantes en BrewLabComponents, DiaryComponents, etc. (parcialmente hecho en pasadas anteriores).
+- base.css: scrollbar/outline documentar; más espaciados en features.css.
 
 ---
 

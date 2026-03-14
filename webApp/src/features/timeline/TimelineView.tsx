@@ -5,7 +5,7 @@ import { EMPTY, ERROR } from "../../core/emptyErrorStrings";
 import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
-import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
+import { Button, EmptyState, ErrorState, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
 
 export type TimelineHeroUser = { fullName: string; username: string; avatarUrl: string | null };
 
@@ -247,13 +247,10 @@ export function TimelineView({
 
   if (errorMessage) {
     return (
-      <article className="timeline-empty timeline-error" role="alert">
-        <h3>{ERROR.LOAD_DATA}</h3>
-        <p>{errorMessage}</p>
-        <Button variant="ghost" className="action-button" onClick={() => void onRefresh()} aria-label={`${ERROR.RETRY} carga`}>
-          {ERROR.RETRY}
-        </Button>
-      </article>
+      <ErrorState
+        detail={errorMessage}
+        onRetry={() => void onRefresh()}
+      />
     );
   }
 
@@ -561,10 +558,10 @@ export function TimelineView({
             {pantryBlock}
             {recommendationSection}
             {!visibleCards.length ? (
-              <article className="timeline-empty">
-                <h3>{EMPTY.TIMELINE_NO_POSTS}</h3>
-                <p>{EMPTY.TIMELINE_NO_POSTS_SUB}</p>
-              </article>
+              <EmptyState
+                title={EMPTY.TIMELINE_NO_POSTS}
+                subtitle={EMPTY.TIMELINE_NO_POSTS_SUB}
+              />
             ) : null}
             {userSuggestionsSection}
           </div>

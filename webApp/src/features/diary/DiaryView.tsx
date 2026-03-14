@@ -72,6 +72,7 @@ export function DiaryView({
   onRemovePantryItem,
   onMarkPantryCoffeeFinished,
   onOpenCoffee,
+  onOpenCafesProbados,
   orderedBrewMethods = []
 }: {
   mode: "mobile" | "desktop";
@@ -99,6 +100,8 @@ export function DiaryView({
   onRemovePantryItem: (pantryItemId: string) => Promise<void>;
   onMarkPantryCoffeeFinished?: (pantryItemId: string) => Promise<void>;
   onOpenCoffee: (coffeeId: string) => void;
+  /** Al pulsar "Cafés probados": abrir página completa (mapa + listado). Si no se pasa, se abre el sheet actual. */
+  onOpenCafesProbados?: () => void;
 }) {
   const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
   const [editEntryId, setEditEntryId] = useState<number | null>(null);
@@ -330,12 +333,10 @@ export function DiaryView({
 
   const baristaStats = useMemo(() => {
     const byCoffeeId = new Map<string, number>();
-    const countByCoffeeId = new Map<string, number>();
     const roasterSet = new Set<string>();
     const originCount = new Map<string, number>();
     coffeeEntries.forEach((entry) => {
       if (entry.coffee_id) {
-        countByCoffeeId.set(entry.coffee_id, (countByCoffeeId.get(entry.coffee_id) ?? 0) + 1);
         const ts = Number(entry.timestamp);
         const prev = byCoffeeId.get(entry.coffee_id);
         if (prev == null || ts < prev) byCoffeeId.set(entry.coffee_id, ts);
@@ -355,7 +356,6 @@ export function DiaryView({
     });
     const coffeesWithFirstTried: Array<{ coffee: CoffeeRow; firstTriedTs: number }> = [];
     byCoffeeId.forEach((firstTriedTs, coffeeId) => {
-      if (countByCoffeeId.get(coffeeId) !== 1) return;
       const coffee = coffeeById.get(coffeeId);
       if (coffee) coffeesWithFirstTried.push({ coffee, firstTriedTs });
     });
@@ -797,13 +797,13 @@ export function DiaryView({
             }}
           />
         );
-      }) : <li className="diary-empty-card">{EMPTY.DIARY_NO_ENTRIES}</li>}
+      }) : <li className="card diary-empty-card">{EMPTY.DIARY_NO_ENTRIES}</li>}
     </ul>
   );
 
   return (
     <>
-      <article className="diary-analytics-card">
+      <article className="card diary-analytics-card">
         <div className="diary-analytics-top">
           <div className="diary-analytics-head-block">
             <p className="metric-label diary-analytics-label">
@@ -903,7 +903,7 @@ export function DiaryView({
 
       <section className="diary-stats-section" aria-label="Hábito">
         <h3 className="diary-section-title">Hábito</h3>
-        <article className="diary-stats-card diary-habit-card">
+        <article className="card diary-stats-card diary-habit-card">
         <ul className="diary-stats-card-list">
           <li className="diary-stats-card-row">
             <span className="diary-stats-card-label">Tazas</span>
@@ -971,7 +971,7 @@ export function DiaryView({
               type="button"
               className="diary-stats-card-row-tap"
               aria-label="Ver listado de cafés probados"
-              onClick={() => setShowBaristaCoffeeList(true)}
+              onClick={() => (onOpenCafesProbados ? onOpenCafesProbados() : setShowBaristaCoffeeList(true))}
             />
           </li>
           <li className="diary-stats-card-row">

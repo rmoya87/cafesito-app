@@ -42,3 +42,34 @@ val ElectricGreen = Color(0xFF00E676)
 val ElectricRed = Color(0xFFFF3B30)
 val ErrorRed = ElectricRed
 val OrangeYellow = Color(0xFFFFB300)
+
+// --- Overlays y superficies secundarias (estandarizados) ---
+/** Scrim para modales, bottom sheets y overlays. */
+val ScrimDefault = PureBlack.copy(alpha = 0.5f)
+
+/** Fondo del botón de cámara (modo noche). */
+val CameraBgDark = Color(0xFF2D2D2D)
+/** Fondo del botón de cámara (modo día). */
+val CameraBgLight = Color(0xFFE0E0E0)
+
+/** Botón primario inactivo (ej. Publicar deshabilitado) en modo noche. */
+val ButtonInactiveDark = Color(0xFF3D3D3D)
+/** Botón primario inactivo en modo día. */
+val ButtonInactiveLight = Color(0xFFE8E8E8)
+
+/** Fondo de tarjeta de consejo/advice (modo noche). */
+val AdviceCardBgDark = Color(0xFF303030)
+/** Fondo de tarjeta de consejo (modo día). */
+val AdviceCardBgLight = Color(0xFFEFEFEF)
+/** Texto en tarjeta de consejo (modo noche). */
+val AdviceCardTextDark = Color(0xFFF0F0F0)
+/** Texto en tarjeta de consejo (modo día). */
+val AdviceCardTextLight = Color(0xFF2F2F2F)
+
+/** Track inactivo de slider (modo noche). */
+val SliderTrackInactiveDark = Color(0xFF404040)
+/** Track inactivo de slider (modo día). */
+val SliderTrackInactiveLight = Color(0xFFE0E0E0)
+
+/** Grid/outline en gráfico radar (modo noche). */
+val RadarGridDark = Color(0xFF757575)

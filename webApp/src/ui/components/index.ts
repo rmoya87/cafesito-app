@@ -9,4 +9,6 @@ export { Switch } from "./Switch";
 export { Tabs, TabButton } from "./Tabs";
 export { Textarea } from "./Textarea";
 export { Topbar } from "./Topbar";
+export { EmptyState } from "./EmptyState";
+export { ErrorState } from "./ErrorState";
 export { cn } from "./cn";

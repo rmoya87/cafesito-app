@@ -85,7 +85,9 @@ Usar esta escala para consistencia. Android puede mapear a `dp` (1:1 con px para
 | `--space-6` | 24px | Separación grande |
 | `--space-8` | 32px | Padding de pantalla, márgenes amplios |
 
-**Android:** Usar `4.dp`, `8.dp`, `12.dp`, `16.dp`, `20.dp`, `24.dp`, `32.dp` de forma coherente con esta escala.
+**Android:** Usar `Spacing.space1` … `Spacing.space8` (ver `app/.../ui/theme/Spacing.kt`) para alinear con esta escala.
+
+**Gutter de pantalla (Android):** 16dp — márgenes laterales de contenido (equivalente a `--space-4`). Usar `Spacing.space4` donde aplique.
 
 ### 2.2 Casos de uso documentados
 

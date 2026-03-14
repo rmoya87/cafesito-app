@@ -71,14 +71,14 @@ input {
   border-right: 1px solid var(--surface-elevated);
   background: var(--sheet-overlay-bg);
   backdrop-filter: blur(12px);
-  padding: 24px 10px;
+  padding: var(--space-6) var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4);
 }
 
 .brand-rail {
-  padding: 10px 10px 4px;
+  padding: var(--space-2) var(--space-2) var(--space-1);
 }
 
 .wordmark {
@@ -100,25 +100,25 @@ input {
 .sidebar-meta {
   margin-top: auto;
   border: none;
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   background: rgba(0, 0, 0, 0.36);
 }
 
 .meta-label {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-1);
   color: var(--muted-cream);
   font-size: 0.75rem;
 }
 
 .session-logout {
-  margin-top: 8px;
+  margin-top: var(--space-2);
   width: 100%;
   text-align: left;
 }
 
 .main-shell {
-  --app-shell-gutter: 12px;
+  --app-shell-gutter: var(--space-3);
   --topbar-translate-y: 0px;
   display: flex;
   flex-direction: column;
@@ -145,7 +145,7 @@ input {
   overflow: auto;
   overflow-x: hidden;
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
-  padding: 10px var(--app-shell-gutter) 120px;
+  padding: var(--space-2) var(--app-shell-gutter) 120px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: none;
   overscroll-behavior-y: contain;
@@ -156,10 +156,34 @@ input {
   padding-top: 0;
 }
 
+/* Cafés probados: sin topbar, mapa desde arriba; altura fija y scroll solo en el listado */
+.main-shell-scroll.is-cafes-probados {
+  margin-top: 0;
+  padding-top: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.main-shell-scroll.is-cafes-probados .content.content-diary {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  padding-top: 0;
+}
+.main-shell-scroll.is-cafes-probados .content.content-diary > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Buscador cafés: header completo (campo + chips = 106px) para que la barra de scroll no quede bajo el topbar */
 .main-shell-scroll.is-search-coffees {
   margin-top: calc(106px + env(safe-area-inset-top, 0px));
-  padding-top: 10px;
+  padding-top: var(--space-2);
 }
 
 /* Buscador usuarios: asegurar que el área de contenido sea visible y tenga espacio */
@@ -277,8 +301,8 @@ input {
   z-index: 90;
   margin: 0;
   border-radius: 0;
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  padding-bottom: 10px;
+  padding-top: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--space-2);
   padding-left: var(--app-shell-gutter);
   padding-right: var(--app-shell-gutter);
   box-sizing: border-box;
@@ -287,12 +311,12 @@ input {
 .android-install-banner {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  margin: 0 0 8px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-2);
   background: rgba(26, 18, 11, 0.92);
-  color: #ffffff;
-  border-radius: 12px;
+  color: var(--text-main);
+  border-radius: var(--radius-md);
   flex-shrink: 0;
   margin-left: var(--app-shell-gutter);
   margin-right: var(--app-shell-gutter);
@@ -301,7 +325,7 @@ input {
 .android-install-banner-link {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
   color: inherit;
@@ -320,8 +344,8 @@ input {
 }
 
 .android-install-banner-icon .ui-icon {
-  width: 24px;
-  height: 24px;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
 }
 
 .android-install-banner-text {
@@ -339,23 +363,24 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-main);
+  opacity: 0.85;
   border-radius: 50%;
 }
 
 .android-install-banner-dismiss:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--surface-muted);
   color: var(--text-main);
 }
 
 .android-install-banner-dismiss .ui-icon {
-  width: 20px;
-  height: 20px;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
 }
 
 @media (max-width: 899px) {
   .main-shell {
-    --app-shell-gutter: 12px;
+    --app-shell-gutter: var(--space-3);
   }
 
   .main-shell-scroll {
@@ -2009,8 +2034,8 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   min-width: 0;
 }
 
-/* Mismo color, borde y sombra que historial (profile-favorite-row / coffee-card) */
-.profile-activity-card {
+/* Hereda base de .card (surface, borde, radio, sombra); solo layout y padding específico */
+.card.profile-activity-card {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
@@ -2019,10 +2044,6 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   padding: var(--space-3) var(--space-4);
   text-align: left;
   color: var(--text-main);
-  background: var(--surface);
-  border: var(--surface-card-border);
-  border-radius: var(--surface-card-radius);
-  box-shadow: var(--surface-card-shadow);
   box-sizing: border-box;
   min-width: 0;
 }
@@ -2280,6 +2301,24 @@ html.theme-dark .profile-activity-coffee-card-list:not(.is-favorites) {
   margin-right: 0.25em;
 }
 
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon,
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star {
+  color: #000000 !important;
+  fill: #000000 !important;
+}
+
+html.theme-light .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+:root:not(.theme-dark) .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+html.theme-light .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon,
+:root:not(.theme-dark) .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon {
+  color: #ffffff !important;
+}
+
+:root:not(.theme-dark) .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip {
+  color: black !important;
+}
+
 .profile-activity-coffee-card-review-comment {
   opacity: 0.9;
 }
@@ -2292,11 +2331,33 @@ html.theme-dark .profile-activity-coffee-card-list:not(.is-favorites) {
   }
 }
 
-/* Modo noche: texto blanco */
+/* Modo noche: texto blanco (excepto píldora de nota: ver bloque siguiente) */
 @media (prefers-color-scheme: dark) {
   .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
   .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
     color: #f5f5f5 !important;
+  }
+  /* Píldora nota en actividad perfil: texto y estrella en negro (sobre fondo amarillo) */
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon,
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip svg {
+    color: #000000 !important;
+    fill: #000000 !important;
+  }
+  /* Píldora nota en detalle de café: texto y estrella en negro (sobre fondo amarillo) */
+  .coffee-detail-opinion-rating-chip,
+  .coffee-detail-opinion-card .coffee-detail-opinion-rating-chip,
+  .coffee-detail-opinion-body .coffee-detail-opinion-rating-chip,
+  .coffee-detail-opinion-rating-chip .ui-icon,
+  .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+  .coffee-detail-opinion-rating-chip svg,
+  .coffee-detail-opinion-rating-chip path {
+    color: #000000 !important;
+    fill: #000000 !important;
+  }
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip path {
+    fill: #000000 !important;
   }
 }
 
@@ -3493,6 +3554,12 @@ html.theme-dark .coffee-detail-review-submit:not(:disabled) {
   gap: var(--space-2);
 }
 
+/* Hereda base de .coffee-card; solo padding y margen específicos */
+.coffee-card.coffee-detail-opinion-card {
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
 .coffee-detail-opinion-preview {
   display: grid;
   gap: 9px;
@@ -3633,24 +3700,54 @@ html.theme-dark .coffee-detail-review-submit:not(:disabled) {
   height: 12px;
 }
 
-/* Chip de nota: amarillo como estrellas del modal, texto negro */
+/* Píldora nota: amarillo-anaranjado; estrella outline negro (noche) / blanco (día) */
 .coffee-detail-opinion-rating-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #e3a640;
-  color: #000000;
+  background: #ffb300;
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-sm);
   white-space: nowrap;
 }
 
+/* Modo noche: texto y estrella de la nota en negro (detalle café y actividad) */
+html.theme-dark .coffee-detail-opinion-rating-chip,
+html.theme-dark .coffee-detail-opinion-card .coffee-detail-opinion-rating-chip,
+html.theme-dark .coffee-detail-opinion-body .coffee-detail-opinion-rating-chip,
+html.theme-dark .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+html.theme-dark .coffee-detail-opinion-rating-chip .ui-icon {
+  color: #000000 !important;
+  fill: #000000 !important;
+}
+
+html.theme-dark .coffee-detail-opinion-rating-chip svg,
+html.theme-dark .coffee-detail-opinion-rating-chip .ui-icon svg,
+html.theme-dark .coffee-detail-opinion-rating-chip path,
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip path {
+  fill: #000000 !important;
+  color: #000000 !important;
+}
+
+html.theme-light .coffee-detail-opinion-rating-chip,
+:root:not(.theme-dark) .coffee-detail-opinion-rating-chip {
+  color: #ffffff;
+}
+
+html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+:root:not(.theme-dark) .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star {
+  color: #ffffff;
+}
+
 .coffee-detail-opinion-rating-chip .ui-icon {
   width: 12px;
   height: 12px;
-  color: #000000;
+}
+
+.coffee-detail-opinion-comment {
+  margin-top: 8px;
 }
 
 .coffee-detail .coffee-card .feed-user {
@@ -3680,6 +3777,11 @@ html.theme-dark .coffee-detail-review-submit:not(:disabled) {
   border-right: none;
   min-height: calc(100vh - 140px);
   align-content: start;
+}
+
+.coffee-detail-empty-full.is-full-viewport {
+  min-height: 100vh;
+  padding-top: var(--space-6);
 }
 
 .pull-indicator {
@@ -4860,23 +4962,15 @@ html.theme-dark .coffee-detail-review-submit:not(:disabled) {
   gap: 10px;
 }
 
-.diary-empty-card {
-  padding: 22px 14px;
-  border-radius: var(--surface-card-radius);
-  border: var(--surface-card-border);
-  box-shadow: var(--surface-card-shadow);
-  background: var(--surface);
+.card.diary-empty-card {
+  padding: var(--space-6) var(--space-3);
   text-align: center;
   color: var(--text-muted);
   font-size: 0.92rem;
 }
 
-.diary-analytics-card {
-  border-radius: var(--surface-card-radius);
-  border: var(--surface-card-border);
-  box-shadow: var(--surface-card-shadow);
-  background: var(--surface);
-  padding: 24px 20px 18px;
+.card.diary-analytics-card {
+  padding: var(--space-6) var(--space-5) var(--space-4);
   min-width: 0;
   min-height: 430px;
   overflow: hidden;
@@ -5303,12 +5397,8 @@ html.theme-dark .coffee-detail-review-submit:not(:disabled) {
   margin: 20px 0 8px;
 }
 
-.diary-stats-card {
-  border-radius: var(--surface-card-radius);
-  border: var(--surface-card-border);
-  box-shadow: var(--surface-card-shadow);
-  background: var(--surface);
-  padding: 16px 20px;
+.card.diary-stats-card {
+  padding: var(--space-4) var(--space-5);
 }
 
 .diary-stats-card-list {
@@ -5450,6 +5540,220 @@ html.theme-dark .coffee-detail-review-submit:not(:disabled) {
   color: var(--text-subtle);
 }
 
+/* Página completa Cafés probados (mapa + listado por país) */
+.cafes-probados-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--screen-dark-background);
+}
+.cafes-probados-map-wrap {
+  position: relative;
+  flex: 0 0 33.33vh;
+  min-height: 160px;
+  max-height: 33.33vh;
+  background: var(--surface-muted);
+  transition: flex-basis 0.25s ease-out;
+  flex-shrink: 0;
+}
+.cafes-probados-map-wrap--collapsed {
+  flex: 0 0 25vh;
+  min-height: 120px;
+  max-height: 25vh;
+}
+.cafes-probados-map-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 16px;
+  z-index: 1000;
+}
+.cafes-probados-map-overlay .cafes-probados-back-fab,
+.cafes-probados-map-overlay .cafes-probados-clear-fab {
+  pointer-events: auto;
+}
+.cafes-probados-back-fab,
+.cafes-probados-clear-fab {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+}
+.cafes-probados-back-fab .ui-icon,
+.cafes-probados-clear-fab .ui-icon {
+  width: 24px;
+  height: 24px;
+}
+.cafes-probados-map {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+}
+.cafes-probados-map .leaflet-tile-pane {
+  z-index: 0;
+}
+.cafes-probados-map .leaflet-marker-pane {
+  z-index: 600;
+}
+.cafes-probados-map .leaflet-marker-icon.cafes-probados-marker {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cafes-probados-map .leaflet-marker-icon.cafes-probados-marker span,
+.cafes-probados-map .leaflet-marker-icon.cafes-probados-marker .cafes-probados-marker-emoji {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 1 !important;
+  pointer-events: none;
+}
+.cafes-probados-map .leaflet-marker-icon.cafes-probados-marker .cafes-probados-marker-emoji img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+}
+.cafes-probados-map .leaflet-top,
+.cafes-probados-map .leaflet-bottom {
+  z-index: 700;
+}
+
+/* Zoom + / -: barra de botones */
+.cafes-probados-map .leaflet-bar a {
+  background-color: #212121;
+  border-bottom: none;
+}
+/* Zoom + / - visibles en modo noche: fondo claro y símbolos en negro */
+html.theme-dark .cafes-probados-map .leaflet-control-zoom {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: #ffffff !important;
+}
+
+html.theme-dark .cafes-probados-map .leaflet-control-zoom a,
+html.theme-dark .cafes-probados-map .leaflet-control-zoom a.leaflet-disabled {
+  color: #000000 !important;
+  background-color: transparent !important;
+  filter: invert(1);
+}
+
+html.theme-dark .cafes-probados-map .leaflet-control-zoom a:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: #000000 !important;
+}
+.cafes-probados-map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  height: 100%;
+  min-height: 200px;
+  color: var(--text-subtle);
+  font-size: var(--font-size-sm);
+}
+.cafes-probados-map-placeholder-hint {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+.cafes-probados-map-countries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+.cafes-probados-country-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-card-border);
+  background: var(--surface);
+  color: var(--text-main);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.cafes-probados-country-chip:hover {
+  background: var(--surface-muted);
+}
+.cafes-probados-list-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+}
+.cafes-probados-list-filter {
+  margin: 0 0 12px;
+  font-size: var(--font-size-sm);
+  color: var(--text-subtle);
+}
+.cafes-probados-list-filter strong {
+  color: var(--text-main);
+}
+.cafes-probados-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cafes-probados-country-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cafes-probados-country-subtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  padding: 0 4px;
+}
+.cafes-probados-coffee-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cafes-probados-coffee-list .coffee-card {
+  border: 1px solid var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+}
+.cafes-probados-coffee-list .coffee-card:hover {
+  background: var(--surface);
+}
+.cafes-probados-first-date {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-subtle);
+}
 
 .diary-entry-media {
   width: 44px;
@@ -9126,7 +9430,8 @@ html.theme-dark .diary-day-header.is-today {
 
 .profile-options-section-title {
   margin: 0;
-  padding: 2px 4px 6px;
+  margin-top: var(--space-4);
+  padding: var(--space-1) var(--space-1) var(--space-2);
   font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -9581,12 +9886,12 @@ html.theme-dark .content.content-profile {
 }
 
 .timeline-empty {
-  border-radius: 28px;
+  border-radius: var(--radius-xl);
   border: none;
   background: var(--surface);
-  padding: 22px;
+  padding: var(--space-4) var(--space-6);
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
   text-align: center;
   justify-items: center;
 }
@@ -9601,7 +9906,7 @@ html.theme-dark .content.content-profile {
 }
 
 .timeline-error {
-  border-color: #6a3326;
+  border-color: var(--caramel-accent);
   background: var(--surface);
 }
 

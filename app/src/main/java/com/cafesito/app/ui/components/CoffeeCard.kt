@@ -28,6 +28,8 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.cafesito.app.data.CoffeeWithDetails
+import com.cafesito.app.ui.theme.Shapes
+import com.cafesito.app.ui.theme.Spacing
 import kotlin.math.roundToInt
 
 @Composable
@@ -48,7 +50,7 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick(coffee.id) },
-        shape = RoundedCornerShape(12.dp),
+        shape = Shapes.cardSmall,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -69,7 +71,7 @@ fun CoffeeCard(coffeeDetails: CoffeeWithDetails, onClick: (String) -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(Spacing.space3),
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
