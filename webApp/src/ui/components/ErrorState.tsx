@@ -21,7 +21,7 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <article
-      className={`timeline-empty timeline-error ui-error-state ${className}`.trim()}
+      className={`home-empty home-error ui-error-state ${className}`.trim()}
       role="alert"
     >
       <h3>{message}</h3>

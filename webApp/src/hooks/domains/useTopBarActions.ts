@@ -58,11 +58,11 @@ export function useTopBarActions({
         }
         resetSearchUi();
       },
-      onTimelineSearchUsers: () => {
+      onHomeSearchUsers: () => {
         resetSearchUi();
         navigateToTab("search", { searchMode: "users" });
       },
-      onTimelineNotifications: () => {
+      onHomeNotifications: () => {
         setShowNotificationsPanel(true);
         const now = Date.now();
         setNotificationsLastSeenAt(() => {

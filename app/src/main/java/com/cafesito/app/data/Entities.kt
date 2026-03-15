@@ -206,7 +206,13 @@ data class UserListRow(
     @SerialName("user_id") val userId: Long,
     val name: String,
     @SerialName("is_public") val isPublic: Boolean,
-    @SerialName("created_at") val createdAt: String? = null
+    @SerialName("created_at") val createdAt: String? = null,
+    /** public | invitation | private. Requiere columna en DB (user_lists_privacy_column.sql). */
+    val privacy: String? = null,
+    /** Si los miembros pueden editar ítems. Requiere columna en DB (user_lists_members_can_edit.sql). */
+    @SerialName("members_can_edit") val membersCanEdit: Boolean? = null,
+    /** Si los miembros pueden invitar (solo listas por invitación). Requiere user_lists_members_can_invite.sql. */
+    @SerialName("members_can_invite") val membersCanInvite: Boolean? = null
 )
 
 /** Ítem de lista (coffee_id en user_list_items). */
@@ -228,7 +234,10 @@ data class ListItemActivityRow(
 data class UserListInsert(
     @SerialName("user_id") val userId: Long,
     val name: String,
-    @SerialName("is_public") val isPublic: Boolean
+    @SerialName("is_public") val isPublic: Boolean,
+    val privacy: String = "private",
+    @SerialName("members_can_edit") val membersCanEdit: Boolean = false,
+    @SerialName("members_can_invite") val membersCanInvite: Boolean = false
 )
 
 @Serializable
@@ -241,6 +250,27 @@ data class UserListItemInsert(
 @Serializable
 data class UserListMemberRow(
     @SerialName("list_id") val listId: String
+)
+
+/** Miembro de una lista (para opciones de lista: listado completo). */
+@Serializable
+data class ListMemberRow(
+    @SerialName("list_id") val listId: String,
+    @SerialName("user_id") val userId: Long,
+    val role: String = "viewer",
+    @SerialName("invited_by") val invitedBy: Long? = null,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+/** Invitación a lista (user_list_invitations). */
+@Serializable
+data class ListInvitationRow(
+    val id: String,
+    @SerialName("list_id") val listId: String,
+    @SerialName("inviter_id") val inviterId: Long,
+    @SerialName("invitee_id") val inviteeId: Long,
+    val status: String = "pending",
+    @SerialName("created_at") val createdAt: String? = null
 )
 
 @Serializable

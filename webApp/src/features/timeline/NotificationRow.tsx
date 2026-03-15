@@ -222,7 +222,7 @@ export function NotificationRow({
           {item.type === "list_invite" && item.invitationId ? (
             <span className="notifications-action notifications-list-invite-actions" role="group" aria-label="Invitación a lista">
               <Button
-                variant="secondary"
+                variant="plain"
                 className="notifications-action"
                 onClick={(event) => {
                   event.stopPropagation();

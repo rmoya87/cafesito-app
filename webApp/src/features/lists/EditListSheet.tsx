@@ -73,18 +73,14 @@ export function EditListSheet({
             />
           </div>
         </label>
-        <label className="diary-edit-entry-metric-field is-caffeine create-list-field create-list-privacy-label">
-          <span>Privacidad</span>
-        </label>
-        <div className="create-list-privacy-options">
-          {LIST_PRIVACY_OPTIONS.map((opt) => (
-            <div
-              key={opt.value}
-              className={cn("create-list-privacy-option", privacy === opt.value && "is-selected")}
-            >
+        <h3 className="create-list-privacy-subtitle">Privacidad</h3>
+        <div className="create-list-privacy-card">
+          <div className="create-list-privacy-options">
+            {LIST_PRIVACY_OPTIONS.map((opt) => (
               <button
+                key={opt.value}
                 type="button"
-                className="create-list-privacy-option-btn"
+                className={cn("create-list-privacy-option-btn", privacy === opt.value && "is-selected")}
                 onClick={() => setPrivacy(opt.value)}
                 aria-pressed={privacy === opt.value}
               >
@@ -100,24 +96,24 @@ export function EditListSheet({
                   <span className="create-list-privacy-option-desc">{opt.description}</span>
                 </div>
               </button>
-              {(opt.value === "public" || opt.value === "invitation") && (
-                <div
-                  className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <span className="share-list-privacy-option-switch-label">Permitir editar lista</span>
-                  <Switch
-                    checked={membersCanEdit}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMembersCanEdit((prev) => !prev);
-                    }}
-                    aria-label="Permitir que los miembros añadan o quiten cafés de la lista"
-                  />
-                </div>
-              )}
+            ))}
+          </div>
+          {(privacy === "public" || privacy === "invitation") && (
+            <div
+              className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="share-list-privacy-option-switch-label">Permitir editar lista</span>
+              <Switch
+                checked={membersCanEdit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMembersCanEdit((prev) => !prev);
+                }}
+                aria-label="Permitir que los miembros añadan o quiten cafés de la lista"
+              />
             </div>
-          ))}
+          )}
         </div>
         {error && <p className="create-list-error" role="alert">{error}</p>}
       </div>

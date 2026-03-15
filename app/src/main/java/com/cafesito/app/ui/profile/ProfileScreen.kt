@@ -317,8 +317,8 @@ fun ProfileScreen(
                 if (showCreateListSheet) {
                     CreateListBottomSheet(
                         onDismiss = { showCreateListSheet = false },
-                        onCreate = { name, isPublic ->
-                            viewModel.createList(name, isPublic)
+                        onCreate = { name, privacy, membersCanEdit ->
+                            viewModel.createList(name, privacy, membersCanEdit)
                             showCreateListSheet = false
                         }
                     )

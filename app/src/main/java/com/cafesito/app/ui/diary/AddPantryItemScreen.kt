@@ -421,7 +421,7 @@ fun AddPantryItemScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 scrimColor = ScrimDefault
             ) {
-                Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Column(Modifier.padding(top = 20.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
                         text = "AÑADIR FOTO",
                         style = MaterialTheme.typography.labelLarge,

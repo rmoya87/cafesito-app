@@ -74,6 +74,7 @@ class DiaryRepository @Inject constructor(
         }
         .flowOn(Dispatchers.IO)
 
+    /** Despensa ordenada por último uso (actividad del usuario): el café más recientemente usado en el diario aparece a la izquierda. */
     fun getPantryItems(): Flow<List<PantryItemWithDetails>> = combine(
         _refreshTrigger.onStart { emit(Unit) },
         userRepository.getActiveUserFlow()
@@ -82,17 +83,30 @@ class DiaryRepository @Inject constructor(
             if (user == null) return@flatMapLatest flowOf(emptyList())
             combine(
                 diaryDao.getPantryItems(user.id),
-                coffeeDao.getAllCoffeesWithDetails()
-            ) { items, coffeesWithDetails ->
+                coffeeDao.getAllCoffeesWithDetails(),
+                diaryDao.getDiaryEntries(user.id)
+            ) { items, coffeesWithDetails, diaryEntries ->
+                val lastUsedByPantryId = mutableMapOf<String, Long>()
+                val lastUsedByCoffeeId = mutableMapOf<String, Long>()
+                diaryEntries.forEach { entry ->
+                    val ts = entry.timestamp
+                    entry.pantryItemId?.let { id -> lastUsedByPantryId[id] = maxOf(lastUsedByPantryId.getOrDefault(id, 0L), ts) }
+                    entry.coffeeId?.let { id -> lastUsedByCoffeeId[id] = maxOf(lastUsedByCoffeeId.getOrDefault(id, 0L), ts) }
+                }
+                fun lastUsed(item: PantryItemEntity): Long =
+                    maxOf(
+                        lastUsedByPantryId.getOrDefault(item.id, 0L),
+                        lastUsedByCoffeeId.getOrDefault(item.coffeeId, 0L),
+                        item.lastUpdated
+                    )
                 items.map { item ->
                     val details = coffeesWithDetails.find { it.coffee.id == item.coffeeId }
                     if (details != null) {
                         PantryItemWithDetails(item, details.coffee, details.coffee.isCustom)
                     } else {
-                        // Café aún no en la lista (p. ej. recién sincronizado): mostrar ítem con stub para que la despensa no lo oculte
                         PantryItemWithDetails(item, stubCoffeeForId(item.coffeeId), false)
                     }
-                }
+                }.sortedByDescending { lastUsed(it.pantryItem) }
             }.onStart {
                 if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
                     externalScope.launch { syncPantryItems() }

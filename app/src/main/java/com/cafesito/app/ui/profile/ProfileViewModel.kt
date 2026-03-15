@@ -87,6 +87,7 @@ class ProfileViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
     private val reviewRepository: ReviewRepository,
     private val supabaseDataSource: SupabaseDataSource,
+    private val syncManager: SyncManager,
     private val connectivityObserver: ConnectivityObserver
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
@@ -427,16 +428,16 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 userRepository.restoreSessionFromSupabaseIfNeeded()
-                coffeeRepository.syncCoffees()
-                coffeeRepository.syncFavoritesFromRemote()
+                syncManager.syncCoffeesIfNeeded(force = true)
+                syncManager.syncFavoritesIfNeeded(force = true)
                 coffeeRepository.triggerRefresh()
-                userRepository.syncUsers()
+                syncManager.syncUsersIfNeeded(force = true)
                 userRepository.syncFollows()
                 userRepository.triggerRefresh()
                 socialRepository.triggerRefresh()
                 userRepository.getActiveUser()?.let { user ->
-                    val owned = supabaseDataSource.getUserLists(user.id)
-                    val shared = supabaseDataSource.getSharedWithMeLists(user.id)
+                    val owned = supabaseDataSource.getCachedUserLists(user.id)
+                    val shared = supabaseDataSource.getCachedSharedWithMeLists(user.id)
                     _userLists.value = (owned + shared).distinctBy { it.id }
                     _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInUserLists(user.id).toSet()
                 } ?: run {
@@ -461,14 +462,15 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun createList(name: String, isPublic: Boolean) {
+    fun createList(name: String, privacy: String, membersCanEdit: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val user = userRepository.getActiveUser() ?: run {
                     withContext(Dispatchers.Main) { _error.value = "No hay sesión activa" }
                     return@launch
                 }
-                val newList = supabaseDataSource.createUserList(user.id, name, isPublic)
+                val newList = supabaseDataSource.createUserListWithPrivacy(user.id, name, privacy, membersCanEdit)
+                supabaseDataSource.invalidateUserListsCache(user.id)
                 _userLists.update { it + newList }
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error creating list", e)

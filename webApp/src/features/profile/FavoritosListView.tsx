@@ -122,7 +122,7 @@ function FavoritosListRow({
           const finalOffset = offsetRef.current;
           const el = contentRef.current;
           if (el) el.style.transform = "";
-          if (finalOffset <= SWIPE_THRESHOLD && !isRemoving) {
+          if (finalOffset <= SWIPE_THRESHOLD && !isRemoving && onRemoveFavorite) {
             setOffsetX(0);
             setIsRemoving(true);
             try {

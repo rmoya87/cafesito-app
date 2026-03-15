@@ -325,11 +325,11 @@ fun BaristaCoffeesListSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = Spacing.space6, end = Spacing.space6)) {
+        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
                 text = "Cafés probados",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space4)
             )
@@ -532,14 +532,13 @@ fun AddEntryBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = Spacing.space6, end = Spacing.space6)) {
+        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
-                text = "NUEVO REGISTRO", 
-                style = MaterialTheme.typography.labelLarge, 
-                color = MaterialTheme.colorScheme.primary, 
+text = "NUEVO REGISTRO",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space4),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
+                textAlign = TextAlign.Center
             )
             ModalMenuOption(title = "Agua", iconPainter = painterResource(id = R.drawable.agua), color = quickActionIconColor, onClick = onAddWater)
             ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = quickActionIconColor, onClick = onAddCoffee)
@@ -612,7 +611,7 @@ fun DiaryDatePickerSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
+        Column(Modifier.fillMaxWidth().padding(top = 20.dp).navigationBarsPadding()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1056,14 +1055,13 @@ fun PeriodBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = Spacing.space6, end = Spacing.space6)) {
+        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
                 text = "SELECCIONAR PERIODO",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space4),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
+                textAlign = TextAlign.Center
             )
             DiaryPeriod.values().forEach { period ->
                 val isSelected = period == selectedPeriod

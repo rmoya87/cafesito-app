@@ -56,7 +56,7 @@ fun UserSuggestionCarousel(
             Text(
                 text = "Personas que podrías seguir",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -130,7 +130,7 @@ fun UserSuggestionCard(
                 Text(
                     text = user.username,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
@@ -154,7 +154,7 @@ fun UserSuggestionCard(
                     ),
                     shape = Shapes.cardSmall
                 ) {
-                    Text("Siguiendo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text("Siguiendo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
                 }
             } else {
                 OutlinedButton(
@@ -168,7 +168,7 @@ fun UserSuggestionCard(
                     ),
                     shape = Shapes.cardSmall
                 ) {
-                    Text("Seguir", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text("Seguir", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
                 }
             }
         }

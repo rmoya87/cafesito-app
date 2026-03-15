@@ -3,11 +3,7 @@ import { fetchInitialData } from "../../data/supabaseApi";
 import type {
   CoffeeReviewRow,
   CoffeeRow,
-  CommentRow,
   FollowRow,
-  LikeRow,
-  PostCoffeeTagRow,
-  PostRow,
   UserRow
 } from "../../types";
 
@@ -26,10 +22,6 @@ type Params = {
     dulzura: number;
     updated_at: number;
   }>) => void;
-  setPosts: (value: PostRow[]) => void;
-  setLikes: (value: LikeRow[]) => void;
-  setComments: (value: CommentRow[]) => void;
-  setPostCoffeeTags: (value: PostCoffeeTagRow[]) => void;
   setFollows: (value: FollowRow[]) => void;
   setBrewCoffeeId: (updater: (prev: string) => string) => void;
   setGlobalStatus: (value: string) => void;
@@ -42,10 +34,6 @@ export function useInitialDataLoader(params: Params): () => Promise<void> {
     setCoffees,
     setCoffeeReviews,
     setCoffeeSensoryProfiles,
-    setPosts,
-    setLikes,
-    setComments,
-    setPostCoffeeTags,
     setFollows,
     setBrewCoffeeId,
     setGlobalStatus
@@ -58,10 +46,6 @@ export function useInitialDataLoader(params: Params): () => Promise<void> {
       setCoffees(data.coffees);
       setCoffeeReviews(data.reviews);
       setCoffeeSensoryProfiles(data.sensoryProfiles);
-      setPosts(data.posts);
-      setLikes(data.likes);
-      setComments(data.comments);
-      setPostCoffeeTags(data.postCoffeeTags);
       setFollows(data.follows);
       setGlobalStatus("Listo");
     } catch (error) {
@@ -72,10 +56,6 @@ export function useInitialDataLoader(params: Params): () => Promise<void> {
     setCoffees,
     setCoffeeReviews,
     setCoffeeSensoryProfiles,
-    setPosts,
-    setLikes,
-    setComments,
-    setPostCoffeeTags,
     setFollows,
     setBrewCoffeeId,
     setGlobalStatus

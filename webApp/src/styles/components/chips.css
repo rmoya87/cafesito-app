@@ -23,7 +23,7 @@
   background: var(--caramel-soft);
   color: var(--espresso-deep);
   font-size: 0.66rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filter-chip.is-active {

@@ -131,7 +131,8 @@ fun DetailScreen(
                         allUsers = allUsers,
                         userLists = state.userLists,
                         isListActive = state.isListActive,
-                        onCreateList = { name, isPublic -> viewModel.createList(name, isPublic) },
+                        isFavorite = state.isFavorite,
+                        onCreateList = { name, privacy, membersCanEdit -> viewModel.createList(name, privacy, membersCanEdit) },
                         onAddCoffeeToList = { viewModel.addCoffeeToList(it) }
                     )
                 }
@@ -160,7 +161,8 @@ private fun DetailContent(
     allUsers: List<UserEntity>,
     userLists: List<com.cafesito.app.data.UserListRow> = emptyList(),
     isListActive: Boolean = false,
-    onCreateList: (name: String, isPublic: Boolean) -> Unit = { _, _ -> },
+    isFavorite: Boolean = false,
+    onCreateList: (name: String, privacy: String, membersCanEdit: Boolean) -> Unit = { _, _, _ -> },
     onAddCoffeeToList: (listId: String) -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
@@ -224,8 +226,8 @@ private fun DetailContent(
     if (showCreateListSheet) {
         com.cafesito.app.ui.components.CreateListBottomSheet(
             onDismiss = { showCreateListSheet = false },
-            onCreate = { name, isPublic ->
-                onCreateList(name, isPublic)
+            onCreate = { name, privacy, membersCanEdit ->
+                onCreateList(name, privacy, membersCanEdit)
                 showCreateListSheet = false
                 showAddToListModal = true
             }
@@ -236,17 +238,16 @@ private fun DetailContent(
         com.cafesito.app.ui.components.AddToListBottomSheet(
             onDismiss = { showAddToListModal = false },
             userLists = userLists,
+            isFavorite = isFavorite,
             onCreateListRequest = {
                 showAddToListModal = false
                 showCreateListSheet = true
             },
             onAddToList = { listId ->
                 onAddCoffeeToList(listId)
-                showAddToListModal = false
             },
             onFavoriteToggle = {
                 onFavoriteToggle(true)
-                showAddToListModal = false
             }
         )
     }
@@ -271,13 +272,13 @@ private fun DetailContent(
             if (!isCustom && reviews.isNotEmpty()) {
                 Surface(
                     modifier = Modifier.padding(end = 24.dp, bottom = 60.dp).align(Alignment.BottomEnd),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    color = PureWhite,
                     shape = Shapes.card
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "NOTA", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = "NOTA", style = MaterialTheme.typography.labelSmall, color = PureBlack)
                         val ratingStr = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating)
-                        Text(text = ratingStr, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = ratingStr, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = PureBlack)
                     }
                 }
             }
@@ -965,7 +966,7 @@ fun ReviewBottomSheet(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             scrimColor = ScrimDefault
         ) {
-            Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+            Column(Modifier.padding(top = 20.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                 Text(text = "AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
                 ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
                     galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
@@ -992,7 +993,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
         shape = Shapes.sheetLarge,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxWidth().padding(top = 20.dp, start = 24.dp, end = 24.dp, bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = "Añadir a mi despensa", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
             if (isCustom) {

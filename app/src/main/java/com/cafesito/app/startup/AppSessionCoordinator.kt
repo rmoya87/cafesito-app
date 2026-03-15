@@ -8,6 +8,8 @@ import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,7 +27,15 @@ class AppSessionCoordinator @Inject constructor(
             try {
                 val lifecycleResult = userRepository.syncAccountLifecycleOnLogin(userId)
                 if (lifecycleResult == UserRepository.AccountLifecycleSyncResult.Deleted) return@launch
-                syncManager.syncAll()
+                withContext(Dispatchers.IO) {
+                    syncManager.syncEssentialForLaunch()
+                }
+                scope.launch {
+                    delay(5_000)
+                    withContext(Dispatchers.IO) {
+                        syncManager.syncDeferred()
+                    }
+                }
             } catch (e: Exception) {
                 Log.e("Sync", "Error during initial sync", e)
             }

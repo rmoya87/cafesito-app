@@ -186,9 +186,22 @@ class UserRepository @Inject constructor(
         .flowOn(Dispatchers.IO)
 
     fun getNotificationsForUser(userId: Int): Flow<List<NotificationEntity>> {
+        // Realtime con reintento y backoff: hasta 3 reintentos con delay 1s, 2s, 4s si el canal falla; polling 3s como respaldo
+        var retryAttempts = 0
         val realtimeFlow = supabaseDataSource.subscribeToNotifications(userId)
             .map { Unit }
-            .catch { emit(Unit) }
+            .catch { e ->
+                Log.w("UserRepository", "Realtime notificaciones: ${e.message}")
+                emit(Unit)
+            }
+            .retry { e ->
+                if (retryAttempts >= 3) return@retry false
+                retryAttempts++
+                val delayMs = 1000L * (1 shl (retryAttempts - 1).coerceAtMost(2))
+                Log.d("UserRepository", "Realtime reintento en ${delayMs}ms (intento $retryAttempts)")
+                delay(delayMs)
+                true
+            }
         val pollingFlow = flow {
             while (true) {
                 emit(Unit)
@@ -198,11 +211,13 @@ class UserRepository @Inject constructor(
         return merge(_refreshTrigger, realtimeFlow, pollingFlow)
             .flatMapLatest {
                 flow {
-                    val notifications = try {
-                        supabaseDataSource.getNotificationsForUser(userId)
-                    } catch (e: Exception) {
-                        emptyList()
-                    }
+                    val notifications = if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
+                        try {
+                            supabaseDataSource.getNotificationsForUser(userId)
+                        } catch (e: Exception) {
+                            emptyList()
+                        }
+                    } else emptyList()
                     emit(notifications)
                 }
             }.flowOn(Dispatchers.IO)

@@ -1,10 +1,18 @@
 package com.cafesito.app.ui.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Button
@@ -18,16 +26,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.theme.Spacing
-import com.cafesito.app.ui.components.CreateListBottomSheet
 import com.cafesito.app.ui.components.GlassyTopBar
-import com.cafesito.app.ui.components.ListDeleteConfirmBottomSheet
-import com.cafesito.app.ui.components.ListOptionsBottomSheet
 import com.cafesito.app.ui.components.SwipeableFavoriteItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,63 +47,23 @@ fun ListDetailScreen(
     onBackClick: () -> Unit,
     onCoffeeClick: (String) -> Unit,
     onListDeleted: () -> Unit,
+    onLeftList: () -> Unit,
+    onOpenListOptions: () -> Unit,
     viewModel: ListDetailViewModel
 ) {
     val listCoffees by viewModel.listCoffees.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val listName by viewModel.listName.collectAsState()
-    val listIsPublic by viewModel.listIsPublic.collectAsState()
+    val listPrivacy by viewModel.listPrivacy.collectAsState()
     val isOwnList by viewModel.isOwnList.collectAsState()
-    val usersForInvite by viewModel.usersForInvite.collectAsState()
+    val isMember by viewModel.isMember.collectAsState()
+    val listMemberCount by viewModel.listMemberCount.collectAsState()
+    val listMemberPreviews by viewModel.listMemberPreviews.collectAsState()
+    val canEditList by viewModel.canEditList.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    var showOptionsMenu by remember { mutableStateOf(false) }
-    var showEditSheet by remember { mutableStateOf(false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var showShareSheet by remember { mutableStateOf(false) }
-
-    if (showOptionsMenu) {
-        ListOptionsBottomSheet(
-            onDismiss = { showOptionsMenu = false },
-            onEditList = { showEditSheet = true },
-            onDeleteList = { showDeleteConfirm = true },
-            onShareList = if (isOwnList) { { showShareSheet = true } } else null
-        )
-    }
-    if (showShareSheet) {
-        com.cafesito.app.ui.components.ShareListBottomSheet(
-            users = usersForInvite,
-            onDismiss = { showShareSheet = false },
-            onInvite = { inviteeId ->
-                viewModel.inviteUser(inviteeId)
-                showShareSheet = false
-            },
-            onLoadUsers = { viewModel.loadUsersForInvite() }
-        )
-    }
-    if (showEditSheet) {
-        CreateListBottomSheet(
-            onDismiss = { showEditSheet = false },
-            onCreate = { _, _ -> },
-            listIdForEdit = viewModel.listId,
-            initialName = listName,
-            initialIsPublic = listIsPublic,
-            onUpdate = { name, isPublic ->
-                viewModel.updateList(name, isPublic)
-                showEditSheet = false
-            }
-        )
-    }
-    if (showDeleteConfirm) {
-        ListDeleteConfirmBottomSheet(
-            listName = listName,
-            onDismiss = { showDeleteConfirm = false },
-            onConfirm = {
-                viewModel.deleteList()
-                showDeleteConfirm = false
-                onListDeleted()
-            }
-        )
-    }
+    val isPublicOrInvitation = listPrivacy == "public" || listPrivacy == "invitation"
+    val showMemberAvatars = isPublicOrInvitation && listMemberCount > 0
+    val showJoinButton = !isOwnList && isPublicOrInvitation && !isMember
 
     Scaffold(
         topBar = {
@@ -101,16 +72,37 @@ fun ListDetailScreen(
                 onBackClick = onBackClick,
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    if (isOwnList) {
-                        IconButton(onClick = { showOptionsMenu = true }) {
+                    if (showMemberAvatars) {
+                        IconButton(onClick = onOpenListOptions) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(end = 4.dp)
+                            ) {
+                                Text(
+                                    text = listMemberCount.toString(),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                ListMemberAvatarsStack(
+                                    members = listMemberPreviews.take(3),
+                                    avatarSize = 28.dp,
+                                    overlap = 10.dp
+                                )
+                            }
+                        }
+                    }
+                    if (!showMemberAvatars) {
+                        IconButton(onClick = onOpenListOptions) {
                             androidx.compose.material3.Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones de lista")
                         }
-                    } else if (listIsPublic) {
+                    }
+                    if (showJoinButton) {
                         Button(
                             onClick = { viewModel.joinPublicList() },
                             modifier = Modifier.padding(end = Spacing.space2)
                         ) {
-                            Text("Añadirme")
+                            Text("Unirse")
                         }
                     }
                 }
@@ -152,9 +144,55 @@ fun ListDetailScreen(
                         SwipeableFavoriteItem(
                             coffeeDetails = coffee,
                             onRemoveFromFavorites = { viewModel.removeFromList(coffee.coffee.id) },
-                            onClick = { onCoffeeClick(coffee.coffee.id) }
+                            onClick = { onCoffeeClick(coffee.coffee.id) },
+                            enableSwipeToRemove = canEditList
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListMemberAvatarsStack(
+    members: List<UserEntity>,
+    avatarSize: Dp,
+    overlap: Dp
+) {
+    val density = LocalDensity.current
+    val overlapPx = with(density) { overlap.roundToPx() }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        members.forEachIndexed { index, user ->
+            Box(
+                modifier = Modifier
+                    .then(
+                        if (index == 0) Modifier
+                        else Modifier.offset { IntOffset(-overlapPx * index, 0) }
+                    )
+                    .size(avatarSize)
+                    .aspectRatio(1f)
+                    .zIndex(index.toFloat())
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!user.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = user.avatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    val initial = user.fullName.takeIf { it.isNotBlank() }?.firstOrNull()?.uppercaseChar()
+                        ?: user.username.firstOrNull()?.uppercaseChar()
+                        ?: '?'
+                    Text(
+                        text = initial.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

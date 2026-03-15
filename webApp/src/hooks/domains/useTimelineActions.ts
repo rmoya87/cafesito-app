@@ -136,11 +136,11 @@ export function useTimelineActions({
     [setComments, setGlobalStatus, setLikes, setPostCoffeeTags, setPosts, setTimelineActionBanner, setTimelineBusyMessage]
   );
 
-  const handleRefreshTimeline = useCallback(async () => {
-    setTimelineBusyMessage("Actualizando timeline...");
+  const handleRefreshHome = useCallback(async () => {
+    setTimelineBusyMessage("Actualizando inicio...");
     await reloadInitialData();
     setTimelineBusyMessage(null);
-    setTimelineActionBanner("Timeline actualizado");
+    setTimelineActionBanner("Inicio actualizado");
   }, [reloadInitialData, setTimelineActionBanner, setTimelineBusyMessage]);
 
   const handleCreatePost = useCallback(async () => {
@@ -202,7 +202,7 @@ export function useTimelineActions({
     handleToggleFollow,
     handleEditPost,
     handleDeletePost,
-    handleRefreshTimeline,
+    handleRefreshHome,
     handleCreatePost,
     handleMentionNavigation
   };

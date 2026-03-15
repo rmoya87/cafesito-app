@@ -88,7 +88,8 @@ export function useAppNavigationDomain({
         setListOptionsView(false);
       }
 
-      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null, nextProfileSection ?? null, nextProfileListId, tab === "diary" ? (options?.diarySubView ?? null) : undefined, tab === "profile" ? nextListOptionsView : undefined);
+      const diarySub = tab === "diary" ? (options?.diarySubView ?? undefined) : undefined;
+      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null, nextProfileSection ?? null, nextProfileListId, diarySub, tab === "profile" ? nextListOptionsView : undefined);
       const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
       const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
       if (window.location.pathname === fullPath) return;
@@ -146,7 +147,7 @@ export function useAppNavigationDomain({
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [coffees, isAuthenticated, setActiveTab, setDetailCoffeeId, setDetailHostTab, setProfileListId, setProfileSubPanel, setProfileUsername, setSearchMode]);
+  }, [coffees, isAuthenticated, setActiveTab, setDetailCoffeeId, setDetailHostTab, setProfileListId, setProfileSubPanel, setProfileUsername, setListOptionsView, setSearchMode]);
 
   const handleNavClick = useCallback(
     (tabId: TabId) => {

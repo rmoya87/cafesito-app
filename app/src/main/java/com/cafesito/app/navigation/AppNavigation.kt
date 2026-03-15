@@ -97,7 +97,7 @@ fun AppNavigation(
         when (sessionState) {
             is SessionState.Authenticated -> {
                 wasAuthenticatedInCurrentInstance = true
-                if (startRoute == null) startRoute = "timeline"
+                if (startRoute == null) startRoute = "home"
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     val permission = Manifest.permission.POST_NOTIFICATIONS
                     if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
@@ -129,7 +129,7 @@ fun AppNavigation(
         when (nav.type) {
             "NOTIFICATIONS" -> navController.navigate("notifications")
             "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
-            "MENTION", "COMMENT" -> navController.navigate("timeline")
+            "MENTION", "COMMENT" -> navController.navigate("home")
         }
         onNotificationConsumed()
     }
@@ -155,7 +155,7 @@ fun AppNavigation(
     LaunchedEffect(deepLinkListId, sessionState) {
         val listId = deepLinkListId ?: return@LaunchedEffect
         if (sessionState !is SessionState.Authenticated) return@LaunchedEffect
-        delay(400) // Dejar que LoginScreen navegue a timeline antes de ir a la lista
+        delay(400) // Dejar que LoginScreen navegue a home antes de ir a la lista
         val ownerId = deepLinkViewModel.getListOwnerId(listId) ?: run {
             onDeepLinkListConsumed()
             return@LaunchedEffect
@@ -175,7 +175,7 @@ fun AppNavigation(
     
     val navItems = remember {
         listOf(
-            Triple("timeline", "Inicio", Icons.Filled.Home),
+            Triple("home", "Inicio", Icons.Filled.Home),
             Triple("search", "Explorar", Icons.Filled.Search),
             Triple("brewlab", "Elabora", Icons.Filled.AddCircle),
             Triple("diary", "Diario", Icons.Filled.Book),
@@ -184,7 +184,7 @@ fun AppNavigation(
     }
 
     val shouldShowBottomBar = remember(currentRoute) {
-        val mainScreens = listOf("timeline", "search", "brewlab", "diary", "profile")
+        val mainScreens = listOf("home", "search", "brewlab", "diary", "profile")
         val userIdArg = navBackStackEntry?.arguments?.getInt("userId") ?: 0
         val isOther = currentRoute.startsWith("profile/") && userIdArg != 0
         val isFollow = currentRoute.contains("/followers") || currentRoute.contains("/following") || currentRoute == "searchUsers"
@@ -257,7 +257,7 @@ fun AppNavigation(
                     LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
                         analyticsHelper.trackEvent("login_success", bundleOf("is_new_user" to isNewUser))
                         if (!isNewUser) {
-                            navController.navigate("timeline") { popUpTo("login") { inclusive = true } }
+                            navController.navigate("home") { popUpTo("login") { inclusive = true } }
                         } else {
                             val encodedEmail = Uri.encode(email)
                             val encodedName = Uri.encode(name)
@@ -285,13 +285,13 @@ fun AppNavigation(
                         initialPhoto = backStackEntry.arguments?.getString("photoUrl") ?: "",
                         onSuccess = {
                             analyticsHelper.trackEvent("profile_completed")
-                            navController.navigate("timeline") { popUpTo("completeProfile") { inclusive = true } }
+                            navController.navigate("home") { popUpTo("completeProfile") { inclusive = true } }
                         }
                     )
                 }
 
-                composable("timeline") {
-                    TimelineScreen(
+                composable("home") {
+                    HomeScreen(
                         onUserClick = { id ->
                             if (id == 0) {
                                 navController.navigate("profile/0") {
@@ -309,18 +309,18 @@ fun AppNavigation(
                                 restoreState = true
                             }
                         },
-                        onAddToPantryClick = { navController.navigate("addStock?origin=timeline") },
+                        onAddToPantryClick = { navController.navigate("addStock?origin=home") },
                         onNotificationsClick = { navController.navigate("notifications") },
                         onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
                     )
                 }
 
                 composable("notifications") {
-                    val viewModel: TimelineViewModel = hiltViewModel()
+                    val viewModel: HomeViewModel = hiltViewModel()
                     val notifications by viewModel.notifications.collectAsState()
                     val unreadIds by viewModel.unreadNotificationIds.collectAsState()
                     val uiState by viewModel.uiState.collectAsState()
-                    val followingIds = (uiState as? TimelineUiState.Success)?.myFollowingIds ?: emptySet()
+                    val followingIds = (uiState as? HomeUiState.Success)?.myFollowingIds ?: emptySet()
                     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
                     NotificationsScreen(
@@ -333,7 +333,7 @@ fun AppNavigation(
                         onDeleteNotification = { notification -> viewModel.deleteNotification(notification) },
                         onReplyToNotification = { notification ->
                             when (notification) {
-                                is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("timeline")
+                                is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("home")
                                 else -> Unit
                             }
                         },
@@ -344,7 +344,7 @@ fun AppNavigation(
                             viewModel.markNotificationRead(notification)
                             when (notification) {
                                 is TimelineNotification.Follow -> navController.navigate("profile/${notification.user.id}")
-                                is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("timeline")
+                                is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("home")
                                 is TimelineNotification.ListInvite -> { /* quedamos en notificaciones; botones Añadir/Rechazar en la fila */ }
                             }
                         },
@@ -385,14 +385,39 @@ fun AppNavigation(
 
                 composable("brewlab") { backStackEntry ->
                     val createdCoffeeId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_created_coffee_id", null).collectAsState()
+                    val appliedSelectionId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_selected_coffee_id", null).collectAsState()
+                    val appliedSelectionFromPantry by backStackEntry.savedStateHandle.getStateFlow("brewlab_selected_from_pantry", false).collectAsState()
                     BrewLabScreen(
                         onNavigateToDiary = {
                             navController.navigate("diary") { popUpTo("brewlab") { inclusive = true } }
                         },
                         onAddToPantryClick = { navController.navigate("addStock?origin=brewlab") },
                         onCreateCoffeeClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab") },
+                        onSelectCoffeeClick = { navController.navigate("brewlab_select_coffee") },
                         createdCoffeeId = createdCoffeeId,
-                        onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null }
+                        onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null },
+                        appliedSelectionId = appliedSelectionId,
+                        appliedSelectionFromPantry = appliedSelectionFromPantry,
+                        onConsumeSelection = {
+                            backStackEntry.savedStateHandle["brewlab_selected_coffee_id"] = null
+                            backStackEntry.savedStateHandle["brewlab_selected_from_pantry"] = false
+                        }
+                    )
+                }
+
+                composable("brewlab_select_coffee") {
+                    val parentEntry = remember { navController.getBackStackEntry("brewlab") }
+                    val viewModel: BrewLabViewModel = hiltViewModel(parentEntry)
+                    BrewLabSelectCoffeeScreen(
+                        onBack = { navController.popBackStack() },
+                        onCoffeeSelected = { coffeeId, fromPantry ->
+                            parentEntry.savedStateHandle["brewlab_selected_coffee_id"] = coffeeId
+                            parentEntry.savedStateHandle["brewlab_selected_from_pantry"] = fromPantry
+                            navController.popBackStack()
+                        },
+                        onAddToPantryClick = { navController.navigate("addStock?origin=brewlab") },
+                        onCreateCoffeeClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab") },
+                        viewModel = viewModel
                     )
                 }
 
@@ -446,7 +471,7 @@ fun AppNavigation(
                         onSuccess = {
                             when (origin) {
                                 "brewlab" -> { /* pop ya hecho en onSuccessWithCoffeeId */ }
-                                "timeline" -> navController.popBackStack()
+                                "home" -> navController.popBackStack()
                                 else -> navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }
                             }
                         },
@@ -601,6 +626,7 @@ fun AppNavigation(
                     )
                 ) { listBackStackEntry ->
                     val userId = listBackStackEntry.arguments?.getInt("userId") ?: 0
+                    val listId = listBackStackEntry.arguments?.getString("listId") ?: ""
                     val profileEntry = remember(userId) {
                         runCatching { navController.getBackStackEntry("profile/$userId") }.getOrNull()
                     }
@@ -615,7 +641,43 @@ fun AppNavigation(
                             profileViewModel?.refreshData()
                             navController.popBackStack()
                         },
+                        onLeftList = {
+                            profileViewModel?.refreshData()
+                            navController.popBackStack()
+                        },
+                        onOpenListOptions = { navController.navigate("profile/$userId/list/$listId/options") },
                         viewModel = hiltViewModel(listBackStackEntry)
+                    )
+                }
+
+                composable(
+                    route = "profile/{userId}/list/{listId}/options",
+                    arguments = listOf(
+                        navArgument("userId") { type = NavType.IntType },
+                        navArgument("listId") { type = NavType.StringType }
+                    )
+                ) { optionsBackStackEntry ->
+                    val userId = optionsBackStackEntry.arguments?.getInt("userId") ?: 0
+                    val profileEntry = remember(userId) {
+                        runCatching { navController.getBackStackEntry("profile/$userId") }.getOrNull()
+                    }
+                    val profileViewModel: ProfileViewModel? = profileEntry?.let { hiltViewModel(it) }
+                    ListOptionsScreen(
+                        onBackClick = {
+                            profileEntry?.savedStateHandle?.set("profile_return_tab", 2)
+                            navController.popBackStack()
+                        },
+                        onListDeleted = {
+                            profileViewModel?.refreshData()
+                            navController.popBackStack()
+                            navController.popBackStack()
+                        },
+                        onLeftList = {
+                            profileViewModel?.refreshData()
+                            navController.popBackStack()
+                            navController.popBackStack()
+                        },
+                        viewModel = hiltViewModel(optionsBackStackEntry)
                     )
                 }
 

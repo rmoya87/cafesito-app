@@ -3,6 +3,7 @@ import { Button, cn, Input } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
 import type { UserRow } from "../../types";
 import type { ListInvitationRow, ListMemberRow } from "../../data/supabaseApi";
+import { resolveAvatarUrl } from "../../core/avatarUrl";
 import { normalizeLookupText } from "../../core/text";
 
 function getDisplayName(users: UserRow[], userId: number, isCurrentUser: boolean): string {
@@ -31,7 +32,10 @@ export function ListOptionsMembersBlock({
   copyChipVisible,
   copyChipExiting = false,
   invitations = [],
-  variant = "sheet"
+  variant = "sheet",
+  hideMemberList = false,
+  canRemoveMember = true,
+  visibleMemberIds
 }: {
   listOwnerId: number;
   members: ListMemberRow[];
@@ -46,11 +50,19 @@ export function ListOptionsMembersBlock({
   onRemoveMember: (userId: number) => Promise<void>;
   copyChipVisible: boolean;
   copyChipExiting?: boolean;
-  /** "page" usa el mismo estilo que seguidores/siguiendo (search-users-row). */
   variant?: "sheet" | "page";
+  hideMemberList?: boolean;
+  /** Si false, no se muestra el botón Eliminar en la lista de miembros (para terceros). */
+  canRemoveMember?: boolean;
+  /** Si se define, solo se muestran en la lista los miembros cuyo user_id está en este Set (p. ej. mutual follow en listas públicas). */
+  visibleMemberIds?: Set<number>;
 }) {
   const [search, setSearch] = useState("");
   const [swipedUserId, setSwipedUserId] = useState<number | null>(null);
+  /** IDs de miembros cuyo avatar falló al cargar; se muestra inicial en su lugar. */
+  const [failedMemberAvatarIds, setFailedMemberAvatarIds] = useState<Set<number>>(new Set());
+  /** IDs de usuarios en sugerencias cuyo avatar falló al cargar. */
+  const [failedSuggestionAvatarIds, setFailedSuggestionAvatarIds] = useState<Set<number>>(new Set());
   const touchStartX = useRef<number | null>(null);
 
   const allUsersForDisplay = useMemo(() => {
@@ -67,22 +79,21 @@ export function ListOptionsMembersBlock({
   );
   const displayOrder = useMemo(() => {
     const ids = members.map((m) => m.user_id);
-    if (!ids.includes(listOwnerId)) return [listOwnerId, ...ids];
-    return [listOwnerId, ...ids.filter((id) => id !== listOwnerId)];
-  }, [members, listOwnerId]);
+    const withOwner = !ids.includes(listOwnerId) ? [listOwnerId, ...ids] : [listOwnerId, ...ids.filter((id) => id !== listOwnerId)];
+    if (!visibleMemberIds) return withOwner;
+    return withOwner.filter((id) => visibleMemberIds.has(id) || id === currentUserId);
+  }, [members, listOwnerId, visibleMemberIds, currentUserId]);
 
-  const canInviteUsers = useMemo(
+  const searchResultUsers = useMemo(
     () =>
       users.filter(
         (u) =>
           u.id !== currentUserId &&
-          !memberIds.has(u.id) &&
-          !pendingInviteeIds.has(u.id) &&
           (!searchNorm ||
             normalizeLookupText(u.username).includes(searchNorm) ||
             (u.full_name && normalizeLookupText(u.full_name).includes(searchNorm)))
       ),
-    [users, currentUserId, memberIds, pendingInviteeIds, searchNorm]
+    [users, currentUserId, searchNorm]
   );
 
   const resolveUser = (userId: number): UserRow | undefined =>
@@ -116,7 +127,7 @@ export function ListOptionsMembersBlock({
             variant="search"
             type="search"
             className="list-options-members-search-input"
-            placeholder="Añadir miembro"
+            placeholder="Buscar usuarios..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Buscar usuarios para añadir"
@@ -124,16 +135,33 @@ export function ListOptionsMembersBlock({
         </div>
         {search.trim() && (
           <div className="list-options-members-suggestions">
-            {canInviteUsers.length === 0 ? (
+            {searchResultUsers.length === 0 ? (
               <p className="list-options-members-suggestions-empty">No hay usuarios que coincidan.</p>
             ) : (
-              canInviteUsers.slice(0, 5).map((user) => (
+              searchResultUsers.slice(0, 5).map((user) => {
+                const alreadyMember = memberIds.has(user.id);
+                const pendingInvite = pendingInviteeIds.has(user.id);
+                const suggestionAvatarUrl = resolveAvatarUrl(user.avatar_url);
+                const showSuggestionAvatar =
+                  suggestionAvatarUrl && !failedSuggestionAvatarIds.has(user.id);
+                return (
                 <div key={user.id} className="list-options-members-suggestion-row">
                   <div className="list-options-members-suggestion-user">
-                    {user.avatar_url ? (
-                      <img src={user.avatar_url} alt="" className="list-options-members-avatar" />
+                    {showSuggestionAvatar ? (
+                      <img
+                        src={suggestionAvatarUrl}
+                        alt=""
+                        className="list-options-members-avatar"
+                        width={36}
+                        height={36}
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        onError={() => setFailedSuggestionAvatarIds((prev) => new Set(prev).add(user.id))}
+                      />
                     ) : (
-                      <span className="list-options-members-avatar-placeholder">
+                      <span className="list-options-members-avatar-placeholder" aria-hidden="true">
                         {user.username.slice(0, 1).toUpperCase()}
                       </span>
                     )}
@@ -141,18 +169,25 @@ export function ListOptionsMembersBlock({
                       {user.full_name?.trim() || `@${user.username}`}
                     </span>
                   </div>
-                  <Button
-                    variant="plain"
-                    type="button"
-                    className="list-options-members-invite-btn"
-                    disabled={invitingId !== null}
-                    onClick={() => void onInvite(user.id)}
-                    aria-label={`Invitar a ${user.username}`}
-                  >
-                    {invitingId === user.id ? "Enviando…" : "Invitar"}
-                  </Button>
+                  {alreadyMember ? (
+                    <span className="list-options-members-already-in-list" aria-live="polite">Ya está en la lista</span>
+                  ) : pendingInvite ? (
+                    <span className="list-options-members-pending-label" aria-live="polite">Invitación enviada</span>
+                  ) : (
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="list-options-members-invite-btn"
+                      disabled={invitingId !== null}
+                      onClick={() => void onInvite(user.id)}
+                      aria-label={`Invitar a ${user.username}`}
+                    >
+                      {invitingId === user.id ? "Enviando…" : "Invitar"}
+                    </Button>
+                  )}
                 </div>
-              ))
+              );
+              })
             )}
           </div>
         )}
@@ -167,25 +202,32 @@ export function ListOptionsMembersBlock({
           <UiIcon name="link" className="list-options-members-copy-icon" aria-hidden="true" />
           <span>Copiar enlace</span>
         </button>
-        {isPage ? (
+        {!hideMemberList && isPage ? (
           <div className="search-users-container">
             <ul className="search-users-list">
               {displayOrder.map((userId) => {
                 const isCurrentUser = userId === currentUserId;
                 const isOwner = userId === listOwnerId;
                 const user = resolveUser(userId);
-                const avatar = getAvatar(allUsersForDisplay, userId) ?? user?.avatar_url ?? null;
+                const rawAvatar = getAvatar(allUsersForDisplay, userId) ?? user?.avatar_url ?? null;
+                const avatarUrl = resolveAvatarUrl(rawAvatar);
+                const showAvatar = avatarUrl && !failedMemberAvatarIds.has(userId);
                 const displayName = getDisplayName(allUsersForDisplay, userId, isCurrentUser);
                 return (
                   <li key={userId} className="search-users-row">
                     <div className="search-users-link" style={{ cursor: "default", flex: 1 }}>
-                      {avatar ? (
+                      {showAvatar ? (
                         <img
-                          src={avatar}
+                          src={avatarUrl}
                           alt=""
                           className="avatar avatar-photo search-users-avatar"
+                          width={36}
+                          height={36}
                           loading="lazy"
                           decoding="async"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                          onError={() => setFailedMemberAvatarIds((prev) => new Set(prev).add(userId))}
                         />
                       ) : (
                         <div className="avatar search-users-avatar-fallback" aria-hidden="true">
@@ -199,7 +241,7 @@ export function ListOptionsMembersBlock({
                         </p>
                       </div>
                     </div>
-                    {!isOwner && (
+                    {!isOwner && canRemoveMember && (
                       <Button
                         variant="plain"
                         type="button"
@@ -215,13 +257,15 @@ export function ListOptionsMembersBlock({
               })}
             </ul>
           </div>
-        ) : (
+        ) : !hideMemberList ? (
           <ul className="list-options-members-list">
             {displayOrder.map((userId) => {
               const isCurrentUser = userId === currentUserId;
               const isOwner = userId === listOwnerId;
               const user = resolveUser(userId);
-              const avatar = getAvatar(allUsersForDisplay, userId) ?? user?.avatar_url ?? null;
+              const rawAvatar = getAvatar(allUsersForDisplay, userId) ?? user?.avatar_url ?? null;
+              const avatarUrl = resolveAvatarUrl(rawAvatar);
+              const showImage = avatarUrl && !failedMemberAvatarIds.has(userId);
               const displayName = getDisplayName(allUsersForDisplay, userId, isCurrentUser);
               return (
                 <li
@@ -236,10 +280,21 @@ export function ListOptionsMembersBlock({
                   onTouchCancel={handleSwipeEnd}
                 >
                   <div className="list-options-members-row-content">
-                    {avatar ? (
-                      <img src={avatar} alt="" className="list-options-members-avatar" />
+                    {showImage ? (
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        className="list-options-members-avatar"
+                        width={36}
+                        height={36}
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        onError={() => setFailedMemberAvatarIds((prev) => new Set(prev).add(userId))}
+                      />
                     ) : (
-                      <span className="list-options-members-avatar-placeholder">
+                      <span className="list-options-members-avatar-placeholder" aria-hidden="true">
                         {displayName === "Tú" ? "T" : (user?.username ?? "?").slice(0, 1).toUpperCase()}
                       </span>
                     )}
@@ -253,7 +308,7 @@ export function ListOptionsMembersBlock({
                       <UiIcon name="chevron-right" className="list-options-members-row-chevron" aria-hidden="true" />
                     )}
                   </div>
-                  {!isOwner && (
+                  {!isOwner && canRemoveMember && (
                     <button
                       type="button"
                       className="list-options-members-row-delete"
@@ -271,7 +326,7 @@ export function ListOptionsMembersBlock({
               );
             })}
           </ul>
-        )}
+        ) : null}
       </div>
       {copyChipVisible && (
         <div

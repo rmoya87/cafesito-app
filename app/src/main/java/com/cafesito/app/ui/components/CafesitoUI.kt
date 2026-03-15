@@ -402,7 +402,7 @@ fun PantryItemShimmer() {
 
 /** Skeleton de carga para Home (Timeline): carrusel métodos 100x100, Tu despensa (160dp cards), Cafés recomendados (220x180). */
 @Composable
-fun TimelineLoadingContent() {
+fun HomeLoadingContent() {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 88.dp)

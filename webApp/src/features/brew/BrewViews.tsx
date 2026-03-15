@@ -3,7 +3,7 @@ import { getOrderedBrewMethods } from "../../config/brew";
 import type { BrewMethodItem } from "../../config/brew";
 import { COFFEE_SIZE_OPTIONS, COFFEE_TIPO_OPTIONS } from "../../data/diaryBrewOptions";
 import { EMPTY } from "../../core/emptyErrorStrings";
-import { formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
+import { BREW_COFFEE_ABS_MAX_G, BREW_COFFEE_ABS_MIN_G, BREW_SLIDER_MAX_COFFEE_G, BREW_SLIDER_MAX_TIME_S, BREW_SLIDER_MAX_WATER_ML, BREW_WATER_ABS_MAX_ML, BREW_WATER_ABS_MIN_ML, formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
 import { Button, Input, Select, SheetCard, SheetHandle, SheetOverlay, Switch } from "../../ui/components";
@@ -25,7 +25,8 @@ export function BrewLabView({
   waterMl,
   setWaterMl,
   ratio,
-  setRatio,
+  coffeeGrams: coffeeGramsProp,
+  setCoffeeGrams,
   espressoTimeSeconds,
   setEspressoTimeSeconds,
   timerSeconds,
@@ -63,7 +64,8 @@ export function BrewLabView({
   waterMl: number;
   setWaterMl: (value: number) => void;
   ratio: number;
-  setRatio: (value: number) => void;
+  coffeeGrams: number;
+  setCoffeeGrams?: (value: number) => void;
   espressoTimeSeconds: number;
   setEspressoTimeSeconds: (value: number) => void;
   timerSeconds: number;
@@ -71,7 +73,6 @@ export function BrewLabView({
   brewRunning: boolean;
   setBrewRunning: (value: boolean) => void;
   selectedCoffee?: CoffeeRow;
-  coffeeGrams: number;
   onSaveResultToDiary: (taste: string, drinkType?: string) => Promise<void>;
   onBrewResultSaveState?: (state: { save: () => Promise<void>; canSave: boolean; saving: boolean; showGuardar: boolean }) => void;
   /** Al guardar desde elaboración con método Agua, registra entrada de agua en actividad. */
@@ -90,7 +91,76 @@ export function BrewLabView({
   const prepAdviceCarouselRef = useRef<HTMLDivElement | null>(null);
   const brewMethodScrollRef = useRef<HTMLDivElement | null>(null);
   const brewTipoScrollRef = useRef<HTMLDivElement | null>(null);
+  const brewTamañoScrollRef = useRef<HTMLDivElement | null>(null);
   const [brewCarouselHasScroll, setBrewCarouselHasScroll] = useState({ method: false, tipo: false });
+  /* Drag-to-scroll: umbral para no robar el click a los chips; rAF para movimiento fluido */
+  const CAROUSEL_DRAG_THRESHOLD = 8;
+  const brewCarouselDragElRef = useRef<HTMLDivElement | null>(null);
+  const brewCarouselDragStartXRef = useRef(0);
+  const brewCarouselDragStartScrollRef = useRef(0);
+  const brewCarouselDragPointerIdRef = useRef<number | null>(null);
+  const brewCarouselDragActiveRef = useRef(false);
+  const brewCarouselPendingScrollRef = useRef<number | null>(null);
+  const brewCarouselRafRef = useRef<number | null>(null);
+  const [brewCarouselDragging, setBrewCarouselDragging] = useState(false);
+  const handleBrewCarouselPointerDown = useCallback((e: React.PointerEvent, el: HTMLDivElement | null) => {
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    if (brewCarouselRafRef.current != null) {
+      cancelAnimationFrame(brewCarouselRafRef.current);
+      brewCarouselRafRef.current = null;
+    }
+    brewCarouselDragElRef.current = el;
+    brewCarouselDragStartXRef.current = e.clientX;
+    brewCarouselDragStartScrollRef.current = el.scrollLeft;
+    brewCarouselDragPointerIdRef.current = e.pointerId;
+    brewCarouselDragActiveRef.current = false;
+    brewCarouselPendingScrollRef.current = null;
+    setBrewCarouselDragging(false);
+  }, []);
+  const handleBrewCarouselPointerMove = useCallback((e: React.PointerEvent) => {
+    const el = brewCarouselDragElRef.current;
+    if (!el || brewCarouselDragPointerIdRef.current !== e.pointerId) return;
+    if (!brewCarouselDragActiveRef.current) {
+      if (Math.abs(e.clientX - brewCarouselDragStartXRef.current) < CAROUSEL_DRAG_THRESHOLD) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      brewCarouselDragActiveRef.current = true;
+      setBrewCarouselDragging(true);
+    }
+    e.preventDefault();
+    const delta = e.clientX - brewCarouselDragStartXRef.current;
+    const newLeft = brewCarouselDragStartScrollRef.current - delta;
+    const clamped = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, newLeft));
+    brewCarouselPendingScrollRef.current = clamped;
+    if (brewCarouselRafRef.current == null) {
+      brewCarouselRafRef.current = requestAnimationFrame(() => {
+        brewCarouselRafRef.current = null;
+        const target = brewCarouselDragElRef.current;
+        const pending = brewCarouselPendingScrollRef.current;
+        if (target != null && pending != null) {
+          target.scrollLeft = pending;
+        }
+      });
+    }
+  }, []);
+  const handleBrewCarouselPointerUp = useCallback((e: React.PointerEvent) => {
+    if (brewCarouselDragPointerIdRef.current !== e.pointerId) return;
+    const el = brewCarouselDragElRef.current;
+    if (brewCarouselRafRef.current != null) {
+      cancelAnimationFrame(brewCarouselRafRef.current);
+      brewCarouselRafRef.current = null;
+    }
+    const pending = brewCarouselPendingScrollRef.current;
+    if (el != null && pending != null) {
+      el.scrollLeft = pending;
+    }
+    brewCarouselDragPointerIdRef.current = null;
+    brewCarouselDragElRef.current = null;
+    brewCarouselDragActiveRef.current = false;
+    brewCarouselPendingScrollRef.current = null;
+    setBrewCarouselDragging(false);
+    if (el?.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+  }, []);
   const [showBaristaPopover, setShowBaristaPopover] = useState(false);
   /** Tamaño elegido por clic en la strip; hace que el borde marrón se mantenga hasta cambiar de método o elegir otro tamaño */
   const [selectedSizeMl, setSelectedSizeMl] = useState<number | null>(null);
@@ -189,32 +259,29 @@ export function BrewLabView({
   const isWaterEditable = useMemo(() => !isEspressoMethod, [isEspressoMethod]);
   const isCoffeeSliderShown = useMemo(() => isWaterEditable && !isRatioEditable, [isWaterEditable, isRatioEditable]);
   const coffeeGramsPrecise = useMemo(
-    () => Number((isEspressoMethod ? waterMl / 2 : waterMl / Math.max(0.1, ratio)).toFixed(1)),
-    [isEspressoMethod, ratio, waterMl]
+    () => (isEspressoMethod ? Number((waterMl / 2).toFixed(1)) : Number(coffeeGramsProp.toFixed(1))),
+    [isEspressoMethod, waterMl, coffeeGramsProp]
   );
   const coffeeGramsLabel = useMemo(() => coffeeGramsPrecise.toFixed(1).replace(".", ","), [coffeeGramsPrecise]);
   const [waterDraft, setWaterDraft] = useState(String(waterMl));
   const [coffeeDraft, setCoffeeDraft] = useState(coffeeGramsPrecise.toFixed(1));
   const waterProgress = useMemo(() => {
-    const min = methodProfile.waterMinMl;
-    const max = methodProfile.waterMaxMl;
+    const min = BREW_WATER_ABS_MIN_ML;
+    const max = BREW_SLIDER_MAX_WATER_ML;
     return Math.max(0, Math.min(100, ((waterMl - min) / Math.max(1, max - min)) * 100));
-  }, [methodProfile.waterMaxMl, methodProfile.waterMinMl, waterMl]);
+  }, [waterMl]);
   const ratioProgress = useMemo(() => {
     const min = methodProfile.ratioMin;
     const max = methodProfile.ratioMax;
     return Math.max(0, Math.min(100, ((ratio - min) / Math.max(0.1, max - min)) * 100));
   }, [methodProfile.ratioMax, methodProfile.ratioMin, ratio]);
-  const coffeeSliderRange = useMemo(() => {
-    if (!isCoffeeSliderShown) return { min: 1, max: 250 };
-    const min = Math.max(1, methodProfile.waterMinMl / methodProfile.ratioMax);
-    const max = Math.min(250, methodProfile.waterMaxMl / methodProfile.ratioMin);
-    return { min: Math.ceil(min), max: Math.floor(max) };
-  }, [isCoffeeSliderShown, methodProfile.waterMinMl, methodProfile.waterMaxMl, methodProfile.ratioMin, methodProfile.ratioMax]);
+  const coffeeSliderRange = useMemo(() => ({ min: BREW_COFFEE_ABS_MIN_G, max: BREW_SLIDER_MAX_COFFEE_G }), []);
   const coffeeProgress = useMemo(() => {
     const { min, max } = coffeeSliderRange;
     return Math.max(0, Math.min(100, ((coffeeGramsPrecise - min) / Math.max(0.1, max - min)) * 100));
   }, [coffeeSliderRange, coffeeGramsPrecise]);
+  const timeSliderMax = Math.min(BREW_SLIDER_MAX_TIME_S, timeProfile.maxSeconds);
+  const timeSliderMin = Math.min(timeProfile.minSeconds, timeSliderMax);
   const effectiveRatio = useMemo(() => {
     if (coffeeGramsPrecise <= 0) return ratio;
     return waterMl / coffeeGramsPrecise;
@@ -226,13 +293,6 @@ export function BrewLabView({
     if (normalized <= 0.7) return "EQUILIBRADO";
     return "LIGERO";
   }, [effectiveRatio, methodProfile.ratioMax, methodProfile.ratioMin]);
-  const technicalSummary = useMemo(() => {
-    if (isEspressoMethod) {
-      return "Configuración aplicada para espresso; afina con los consejos del barista.";
-    }
-    return "Configuración aplicada; afina molienda, vertido y cuerpo con los consejos del barista.";
-  }, [isEspressoMethod]);
-  /* Consejos del barista por método (V60, Chemex, Espresso, etc.) y contexto actual. */
   const baristaTips = useMemo(
     () =>
       getBrewBaristaTipsForMethod(brewMethod, {
@@ -326,14 +386,6 @@ export function BrewLabView({
     () => [currentPhase.instruction, ...brewingAdviceLines.map((line) => `${line}.`)],
     [brewingAdviceLines, currentPhase.instruction]
   );
-  const configAdviceLines = useMemo(
-    () =>
-      technicalSummary
-        .split(".")
-        .map((line) => line.trim())
-        .filter(Boolean),
-    [technicalSummary]
-  );
   const resultRecommendation = useMemo(() => getBrewDialRecommendation(resultTaste), [resultTaste]);
   const tasteOptions = useMemo(
     () => [
@@ -415,17 +467,10 @@ export function BrewLabView({
     };
   }, [processAdviceCards.length, brewStep]);
   useEffect(() => {
-    if (!brewMethod) return;
-    const clampedWater = Math.max(methodProfile.waterMinMl, Math.min(methodProfile.waterMaxMl, Math.round(waterMl)));
-    if (clampedWater !== waterMl) setWaterMl(clampedWater);
-    const clampedRatio = Math.max(methodProfile.ratioMin, Math.min(methodProfile.ratioMax, ratio));
-    if (isRatioEditable && Math.abs(clampedRatio - ratio) > 0.0001) setRatio(clampedRatio);
-    if (!isRatioEditable && Math.abs(ratio - methodProfile.defaultRatio) > 0.0001) setRatio(methodProfile.defaultRatio);
-    if (isEspressoMethod) {
-      const clampedTime = Math.max(timeProfile.minSeconds, Math.min(timeProfile.maxSeconds, Math.round(espressoTimeSeconds)));
-      if (clampedTime !== espressoTimeSeconds) setEspressoTimeSeconds(clampedTime);
-    }
-  }, [brewMethod, espressoTimeSeconds, isRatioEditable, methodProfile.defaultRatio, methodProfile.ratioMax, methodProfile.ratioMin, methodProfile.waterMaxMl, methodProfile.waterMinMl, ratio, setEspressoTimeSeconds, setRatio, setWaterMl, timeProfile.maxSeconds, timeProfile.minSeconds, waterMl]);
+    if (!brewMethod || !isEspressoMethod) return;
+    const clampedTime = Math.max(timeProfile.minSeconds, Math.min(timeProfile.maxSeconds, Math.round(espressoTimeSeconds)));
+    if (clampedTime !== espressoTimeSeconds) setEspressoTimeSeconds(clampedTime);
+  }, [brewMethod, espressoTimeSeconds, isEspressoMethod, setEspressoTimeSeconds, timeProfile.maxSeconds, timeProfile.minSeconds]);
   useEffect(() => {
     setSelectedSizeMl(null);
   }, [brewMethod]);
@@ -445,160 +490,70 @@ export function BrewLabView({
     <>
       {brewStep === "method" ? (
         <div className="brew-select-step">
-          <section className="timeline-elaboration-methods brew-elaboration-methods" aria-label="Formas de elaboración">
-            <div className="timeline-carousel-with-nav">
-              <div ref={brewMethodScrollRef} className="timeline-elaboration-methods-scroll">
-                {methodsToShow.map((method) => (
-                  <Button
-                    key={method.name}
-                    variant="plain"
-                    type="button"
-                    className={`timeline-elaboration-method-circle ${brewMethod === method.name ? "is-active" : ""}`}
-                    onClick={() => {
-                      const profile = getBrewMethodProfile(method.name);
-                      const methodTime = getBrewTimeProfile(method.name);
-                      setBrewMethod(method.name);
-                      setWaterMl(profile.defaultWaterMl);
-                      setRatio(profile.defaultRatio);
-                      setEspressoTimeSeconds(methodTime.defaultSeconds);
-                    }}
-                    aria-label={`Elaborar con ${method.name}`}
-                  >
-                    <span className="timeline-elaboration-method-circle-inner">
-                      {method.icon === "bolt" ? (
-                        <UiIcon name="bolt" className="ui-icon timeline-elaboration-method-icon-bolt" aria-hidden="true" />
-                      ) : method.icon === "water" ? (
-                        <UiIcon name="water" className="ui-icon timeline-elaboration-method-icon-water" aria-hidden="true" />
-                      ) : (
-                        <img src={method.icon} alt="" loading="lazy" decoding="async" />
-                      )}
-                    </span>
-                    <span className="timeline-elaboration-method-label">{method.name}</span>
-                  </Button>
-                ))}
-              </div>
-              {brewCarouselHasScroll.method ? (
-                <div className="timeline-carousel-nav">
-                  <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollBrewCarousel(brewMethodScrollRef, "prev")}>
-                    <UiIcon name="arrow-left" className="ui-icon" />
-                  </button>
-                  <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollBrewCarousel(brewMethodScrollRef, "next")}>
-                    <UiIcon name="arrow-right" className="ui-icon" />
-                  </button>
+          <p className="section-title brew-select-section-title">Forma de elaboración</p>
+          <div className="brew-forma-card brew-tech-card">
+            <section className="home-elaboration-methods brew-elaboration-methods brew-forma-methods" aria-label="Método">
+              <div className="home-carousel-with-nav brew-method-carousel-wrap">
+                <div
+                  ref={brewMethodScrollRef}
+                  className={`home-elaboration-methods-scroll brew-method-scroll${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
+                  role="listbox"
+                  aria-label="Método de elaboración"
+                  onPointerDown={(e) => handleBrewCarouselPointerDown(e, brewMethodScrollRef.current)}
+                  onPointerMove={handleBrewCarouselPointerMove}
+                  onPointerUp={handleBrewCarouselPointerUp}
+                  onPointerLeave={handleBrewCarouselPointerUp}
+                  onPointerCancel={handleBrewCarouselPointerUp}
+                >
+                  {methodsToShow.map((method) => {
+                    const isActive = brewMethod === method.name;
+                    const words = method.name.split(/\s+/);
+                    return (
+                      <Button
+                        key={method.name}
+                        variant="plain"
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        className={`brew-method-card ${isActive ? "is-active" : ""}`}
+                        onClick={() => {
+                          const profile = getBrewMethodProfile(method.name);
+                          const methodTime = getBrewTimeProfile(method.name);
+                          setBrewMethod(method.name);
+                          setWaterMl(profile.defaultWaterMl);
+                          setCoffeeGrams?.(Math.max(1, Math.round(profile.defaultWaterMl / Math.max(0.1, profile.defaultRatio))));
+                          setEspressoTimeSeconds(methodTime.defaultSeconds);
+                        }}
+                        aria-label={`Elaborar con ${method.name}`}
+                      >
+                        <span className="brew-method-card-icon">
+                          {method.icon === "bolt" ? (
+                            <UiIcon name="bolt" className="ui-icon home-elaboration-method-icon-bolt" aria-hidden="true" />
+                          ) : method.icon === "water" ? (
+                            <UiIcon name="water" className="ui-icon home-elaboration-method-icon-water" aria-hidden="true" />
+                          ) : (
+                            <img src={method.icon} alt="" loading="lazy" decoding="async" />
+                          )}
+                        </span>
+                        <span className="brew-method-card-copy">
+                          <span className="brew-method-card-label">
+                            {words.map((word, i) => (
+                              <span key={i} className="brew-method-card-word">{word}</span>
+                            ))}
+                          </span>
+                        </span>
+                      </Button>
+                    );
+                  })}
                 </div>
-              ) : null}
-            </div>
-          </section>
-
-          {!isAguaMethod ? (
-          <button
-            type="button"
-            className="brew-select-coffee-row"
-            onClick={onAddToPantry ?? onAddNotFoundCoffee}
-            aria-label={selectedCoffee ? `Selecciona café: ${selectedCoffee.nombre}` : "Selecciona café"}
-          >
-            <span className="brew-select-coffee-row-label">Selecciona café</span>
-            <span className="brew-select-coffee-row-right">
-              {selectedCoffee ? (
-                <span className="brew-select-coffee-row-selected-name">{selectedCoffee.nombre}</span>
-              ) : null}
-              <UiIcon name="arrow-right" className="ui-icon brew-select-coffee-row-arrow" aria-hidden="true" />
-            </span>
-          </button>
-          ) : null}
-
-          {!isAguaMethod ? (
-          <section className="brew-tipo-strip-wrap" aria-label="Tipo de café">
-            <p className="section-title brew-select-section-title">Tipo</p>
-            <div className="timeline-carousel-with-nav">
-              <div ref={brewTipoScrollRef} className="brew-tipo-strip" role="listbox" aria-label="Tipo de café">
-                {COFFEE_TIPO_OPTIONS.map(({ label, drawable }) => {
-                  const isSelected = brewDrinkType === label;
-                  return (
-                    <Button
-                      variant="plain"
-                      key={label}
-                      type="button"
-                      role="option"
-                      aria-selected={isSelected}
-                      className={`brew-tipo-card ${isSelected ? "is-active" : ""}`.trim()}
-                      onClick={() => setBrewDrinkType?.(label)}
-                    >
-                      <span className="brew-tipo-card-icon">
-                        <img src={`/android-drawable/${drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
-                      </span>
-                      <span className="brew-tipo-card-copy">
-                        <span className="brew-tipo-card-label">{label}</span>
-                      </span>
-                    </Button>
-                  );
-                })}
               </div>
-              {brewCarouselHasScroll.tipo ? (
-                <div className="timeline-carousel-nav">
-                  <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior tipo" onClick={() => scrollBrewCarousel(brewTipoScrollRef, "prev")}>
-                    <UiIcon name="arrow-left" className="ui-icon" />
-                  </button>
-                  <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente tipo" onClick={() => scrollBrewCarousel(brewTipoScrollRef, "next")}>
-                    <UiIcon name="arrow-right" className="ui-icon" />
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </section>
-          ) : null}
-
-          {!isAguaMethod ? (
-          <section className="brew-tamaño-strip-wrap" aria-label="Tamaño">
-            <p className="section-title brew-select-section-title">Tamaño</p>
-            <div className="brew-tamaño-strip" role="listbox" aria-label="Tamaño de la taza">
-              {COFFEE_SIZE_OPTIONS.map((size) => {
-                const isSelected =
-                  selectedSizeMl !== null ? selectedSizeMl === size.ml : Math.abs(waterMl - size.ml) <= 15;
-                return (
-                  <Button
-                    variant="plain"
-                    key={size.label}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    className={`brew-tamaño-card ${isSelected ? "is-active" : ""}`.trim()}
-                    onClick={() => {
-                      setSelectedSizeMl(size.ml);
-                      setWaterMl(size.ml);
-                      // Mantener la cantidad de café: ajustar ratio para que water/ratio = coffee no cambie
-                      const coffee = Math.max(0.1, coffeeGramsPrecise);
-                      const newRatio = size.ml / coffee;
-                      setRatio(
-                        Math.max(
-                          methodProfile.ratioMin,
-                          Math.min(methodProfile.ratioMax, newRatio)
-                        )
-                      );
-                    }}
-                  >
-                    <span className="brew-tamaño-card-icon">
-                      <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
-                    </span>
-                    <span className="brew-tamaño-card-copy">
-                      <span className="brew-tamaño-card-label">{size.label}</span>
-                      <span className="brew-tamaño-card-range">{size.rangeLabel}</span>
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
-          </section>
-          ) : null}
-
-          {!isOtrosMethod ? (
-          <div className="brew-select-metrics-and-barista">
-            <p className="section-title brew-select-section-title">
-              Configura tu {isAguaMethod ? "Agua" : (brewMethod || "elaboración")}
-            </p>
-            <div className="brew-select-params-layout">
-              <div className="brew-select-params-col">
-                <article className="brew-tech-card brew-select-params-card" aria-label={isAguaMethod ? "Cantidad de agua" : "Parámetros del método"}>
+            </section>
+            {!isOtrosMethod ? (
+            <>
+              <div className="brew-config-option-divider" aria-hidden="true" />
+              <div className="brew-select-params-layout brew-forma-params">
+                <div className="brew-select-params-col">
+                  <div className="brew-tech-rows-wrap" aria-label={isAguaMethod ? "Cantidad de agua" : "Parámetros del método"}>
                 <div className="brew-tech-rows">
                   {(isWaterEditable || isAguaMethod) ? (
                     <div className="brew-tech-row">
@@ -609,20 +564,15 @@ export function BrewLabView({
                             className="search-wide brew-tech-value-input is-water"
                             type="number"
                             inputMode="numeric"
-                            min={methodProfile.waterMinMl}
-                            max={methodProfile.waterMaxMl}
+                            min={BREW_WATER_ABS_MIN_ML}
+                            max={BREW_WATER_ABS_MAX_ML}
                             step={methodProfile.waterStepMl}
                             value={waterDraft}
                             onChange={(event) => setWaterDraft(event.target.value)}
                             onBlur={() => {
                               const parsed = Number(waterDraft);
                               if (Number.isFinite(parsed) && parsed > 0) {
-                                setWaterMl(
-                                  Math.max(
-                                    methodProfile.waterMinMl,
-                                    Math.min(methodProfile.waterMaxMl, Math.round(parsed))
-                                  )
-                                );
+                                setWaterMl(Math.max(BREW_WATER_ABS_MIN_ML, Math.min(BREW_WATER_ABS_MAX_ML, Math.round(parsed))));
                               } else {
                                 setWaterDraft(String(waterMl));
                               }
@@ -636,10 +586,10 @@ export function BrewLabView({
                           className="app-range app-range--water"
                           style={{ "--range-progress": `${waterProgress}%` } as CSSProperties}
                           type="range"
-                          min={methodProfile.waterMinMl}
-                          max={methodProfile.waterMaxMl}
+                          min={BREW_WATER_ABS_MIN_ML}
+                          max={BREW_SLIDER_MAX_WATER_ML}
                           step={methodProfile.waterStepMl}
-                          value={waterMl}
+                          value={Math.min(waterMl, BREW_SLIDER_MAX_WATER_ML)}
                           onChange={(event) => setWaterMl(Number(event.target.value))}
                         />
                       </label>
@@ -655,8 +605,8 @@ export function BrewLabView({
                           className="search-wide brew-tech-value-input is-coffee"
                           type="number"
                           inputMode="decimal"
-                          min={1}
-                          max={250}
+                          min={BREW_COFFEE_ABS_MIN_G}
+                          max={BREW_COFFEE_ABS_MAX_G}
                           step={0.1}
                           value={coffeeDraft}
                           onChange={(event) => setCoffeeDraft(event.target.value)}
@@ -664,26 +614,10 @@ export function BrewLabView({
                             const parsed = Number(coffeeDraft.replace(",", "."));
                             if (Number.isFinite(parsed) && parsed > 0) {
                               if (isEspressoMethod) {
-                                setWaterMl(
-                                  Math.max(
-                                    methodProfile.waterMinMl,
-                                    Math.min(methodProfile.waterMaxMl, Math.round(parsed * 2))
-                                  )
-                                );
-                              } else if (!isRatioEditable) {
-                                const nextWater = Math.round(parsed * methodProfile.defaultRatio);
-                                setWaterMl(
-                                  Math.max(
-                                    methodProfile.waterMinMl,
-                                    Math.min(methodProfile.waterMaxMl, nextWater)
-                                  )
-                                );
-                              } else {
-                                const nextRatio = waterMl / parsed;
-                                const normalized = methodProfile.ratioStep < 1
-                                  ? Math.round(nextRatio / methodProfile.ratioStep) * methodProfile.ratioStep
-                                  : Math.round(nextRatio);
-                                setRatio(Math.max(methodProfile.ratioMin, Math.min(methodProfile.ratioMax, normalized)));
+                                setCoffeeGrams?.(Math.max(BREW_COFFEE_ABS_MIN_G, Math.min(BREW_COFFEE_ABS_MAX_G, parsed)));
+                                setWaterMl(Math.max(BREW_WATER_ABS_MIN_ML, Math.min(BREW_WATER_ABS_MAX_ML, Math.round(parsed * 2))));
+                              } else if (setCoffeeGrams) {
+                                setCoffeeGrams(Math.max(BREW_COFFEE_ABS_MIN_G, Math.min(BREW_COFFEE_ABS_MAX_G, parsed)));
                               }
                             } else {
                               setCoffeeDraft(coffeeGramsPrecise.toFixed(1));
@@ -703,31 +637,34 @@ export function BrewLabView({
                           min={coffeeSliderRange.min}
                           max={coffeeSliderRange.max}
                           step={0.5}
-                          value={coffeeGramsPrecise}
+                          value={Math.min(coffeeGramsPrecise, BREW_SLIDER_MAX_COFFEE_G)}
                           onChange={(event) => {
                             const v = Number(event.target.value);
                             if (!Number.isFinite(v)) return;
                             if (isEspressoMethod) {
-                              setWaterMl(Math.max(methodProfile.waterMinMl, Math.min(methodProfile.waterMaxMl, Math.round(v * 2))));
-                            } else {
-                              const nextWater = Math.round(v * methodProfile.defaultRatio);
-                              setWaterMl(Math.max(methodProfile.waterMinMl, Math.min(methodProfile.waterMaxMl, nextWater)));
+                              setCoffeeGrams?.(v);
+                              setWaterMl(Math.max(BREW_WATER_ABS_MIN_ML, Math.min(BREW_WATER_ABS_MAX_ML, Math.round(v * 2))));
+                            } else if (setCoffeeGrams) {
+                              setCoffeeGrams(v);
                             }
                           }}
                         />
                       </label>
-                    ) : isRatioEditable ? (
+                    ) : isRatioEditable && setCoffeeGrams ? (
                       <label className="brew-tech-slider">
                         <span className="brew-tech-slider-label">{ratioLabel}</span>
                         <Input
-                          className="app-range"
-                          style={{ "--range-progress": `${ratioProgress}%` } as CSSProperties}
+                          className="app-range app-range--coffee"
+                          style={{ "--range-progress": `${coffeeProgress}%` } as CSSProperties}
                           type="range"
-                          min={methodProfile.ratioMin}
-                          max={methodProfile.ratioMax}
-                          step={methodProfile.ratioStep}
-                          value={ratio}
-                          onChange={(event) => setRatio(Number(event.target.value))}
+                          min={coffeeSliderRange.min}
+                          max={coffeeSliderRange.max}
+                          step={0.5}
+                          value={Math.min(coffeeGramsPrecise, BREW_SLIDER_MAX_COFFEE_G)}
+                          onChange={(event) => {
+                            const v = Number(event.target.value);
+                            if (setCoffeeGrams && Number.isFinite(v)) setCoffeeGrams(Math.max(BREW_COFFEE_ABS_MIN_G, Math.min(BREW_COFFEE_ABS_MAX_G, v)));
+                          }}
                         />
                       </label>
                     ) : null}
@@ -758,12 +695,12 @@ export function BrewLabView({
                       <label className="brew-tech-slider">
                         <Input
                           className="app-range app-range--time"
-                          style={{ "--range-progress": `${Math.max(0, Math.min(100, ((espressoTimeSeconds - timeProfile.minSeconds) / Math.max(1, timeProfile.maxSeconds - timeProfile.minSeconds)) * 100))}%` } as CSSProperties}
+                          style={{ "--range-progress": `${Math.max(0, Math.min(100, ((espressoTimeSeconds - timeSliderMin) / Math.max(1, timeSliderMax - timeSliderMin)) * 100))}%` } as CSSProperties}
                           type="range"
-                          min={timeProfile.minSeconds}
-                          max={timeProfile.maxSeconds}
+                          min={timeSliderMin}
+                          max={timeSliderMax}
                           step={1}
-                          value={espressoTimeSeconds}
+                          value={Math.min(espressoTimeSeconds, timeSliderMax)}
                           onChange={(event) => setEspressoTimeSeconds(Number(event.target.value))}
                         />
                       </label>
@@ -782,22 +719,131 @@ export function BrewLabView({
                     <UiIcon name="chevron-right" className="ui-icon brew-select-barista-cta-arrow" aria-hidden="true" />
                   </Button>
                 ) : null}
-              </article>
-              {!isAguaMethod ? (
-              <div className="brew-timer-row" role="group" aria-label="Temporizador">
-                <span className="brew-timer-row-label">Temporizador</span>
-                {setBrewTimerEnabled ? (
-                  <Switch
-                    checked={brewTimerEnabled}
-                    onClick={() => setBrewTimerEnabled(!brewTimerEnabled)}
-                    aria-label="Activar temporizador para proceso en curso"
-                  />
+                {!isAguaMethod && (baristaTips.length > 0 || setBrewTimerEnabled) ? (
+                  <div className="brew-config-option-divider" aria-hidden="true" />
                 ) : null}
+                {!isAguaMethod ? (
+                  <div className="brew-config-option-row brew-config-timer-row" role="group" aria-label="Temporizador">
+                    <span className="brew-config-option-label">Temporizador</span>
+                    {setBrewTimerEnabled ? (
+                      <Switch
+                        checked={brewTimerEnabled}
+                        onClick={() => setBrewTimerEnabled(!brewTimerEnabled)}
+                        aria-label="Activar temporizador para proceso en curso"
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
+                  </div>
+                </div>
               </div>
-              ) : null}
-              </div>
-            </div>
+            </>
+            ) : null}
           </div>
+
+          {!isAguaMethod ? (
+          <>
+            <p className="section-title brew-select-section-title brew-config-cafe-title">Configura tu café</p>
+            <div className="brew-config-cafe-card brew-tech-card">
+              <button
+                type="button"
+                className="brew-select-coffee-row"
+                onClick={onAddToPantry ?? onAddNotFoundCoffee}
+                aria-label={selectedCoffee ? `Selecciona café: ${selectedCoffee.nombre}` : "Selecciona café"}
+              >
+                {selectedCoffee ? (
+                  <span className="brew-select-coffee-selected">
+                    {selectedCoffee.image_url ? (
+                      <img src={selectedCoffee.image_url} alt="" className="brew-select-coffee-img" loading="lazy" decoding="async" />
+                    ) : null}
+                    <span className="brew-select-coffee-name">{selectedCoffee.nombre}</span>
+                  </span>
+                ) : (
+                  <span className="brew-select-coffee-row-label">Selecciona café</span>
+                )}
+                <UiIcon name="arrow-right" className="ui-icon brew-select-coffee-row-arrow" aria-hidden="true" />
+              </button>
+              <div className="brew-config-option-divider" aria-hidden="true" />
+              <section className="brew-tipo-strip-wrap brew-config-cafe-section" aria-label="Tipo de café">
+                <div className="brew-config-cafe-carousel-wrap">
+              <div
+                ref={brewTipoScrollRef}
+                className={`brew-tipo-strip${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
+                role="listbox"
+                aria-label="Tipo de café"
+                onPointerDown={(e) => handleBrewCarouselPointerDown(e, brewTipoScrollRef.current)}
+                onPointerMove={handleBrewCarouselPointerMove}
+                onPointerUp={handleBrewCarouselPointerUp}
+                onPointerLeave={handleBrewCarouselPointerUp}
+                onPointerCancel={handleBrewCarouselPointerUp}
+              >
+                {COFFEE_TIPO_OPTIONS.map(({ label, drawable }) => {
+                  const isSelected = brewDrinkType === label;
+                  return (
+                    <Button
+                      variant="plain"
+                      key={label}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={`brew-tipo-card ${isSelected ? "is-active" : ""}`.trim()}
+                      onClick={() => setBrewDrinkType?.(label)}
+                    >
+                      <span className="brew-tipo-card-icon">
+                        <img src={`/android-drawable/${drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+                      </span>
+                      <span className="brew-tipo-card-copy">
+                        <span className="brew-tipo-card-label">{label}</span>
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+                </div>
+              </section>
+              <div className="brew-config-option-divider" aria-hidden="true" />
+              <section className="brew-tamaño-strip-wrap brew-config-cafe-section" aria-label="Tamaño">
+                <div className="brew-config-cafe-carousel-wrap">
+                <div
+                ref={brewTamañoScrollRef}
+                className={`brew-tamaño-strip${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
+                role="listbox"
+                aria-label="Tamaño de la taza"
+                onPointerDown={(e) => handleBrewCarouselPointerDown(e, brewTamañoScrollRef.current)}
+                onPointerMove={handleBrewCarouselPointerMove}
+                onPointerUp={handleBrewCarouselPointerUp}
+                onPointerLeave={handleBrewCarouselPointerUp}
+                onPointerCancel={handleBrewCarouselPointerUp}
+              >
+              {COFFEE_SIZE_OPTIONS.map((size) => {
+                const isSelected = selectedSizeMl === size.ml;
+                return (
+                  <Button
+                    variant="plain"
+                    key={size.label}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`brew-tamaño-card ${isSelected ? "is-active" : ""}`.trim()}
+                    onClick={() => {
+                      setSelectedSizeMl(size.ml);
+                    }}
+                  >
+                    <span className="brew-tamaño-card-icon">
+                      <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+                    </span>
+                    <span className="brew-tamaño-card-copy">
+                      <span className="brew-tamaño-card-label">{size.label}</span>
+                      <span className="brew-tamaño-card-range">{size.rangeLabel}</span>
+                    </span>
+                    </Button>
+                );
+              })}
+                </div>
+                </div>
+              </section>
+            </div>
+          </>
           ) : null}
         </div>
       ) : null}

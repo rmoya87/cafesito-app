@@ -24,7 +24,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <article
-      className={`timeline-empty ui-empty-state ${className}`.trim()}
+      className={`home-empty ui-empty-state ${className}`.trim()}
       aria-live={ariaLive}
     >
       <h3>{title}</h3>

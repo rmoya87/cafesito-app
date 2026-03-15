@@ -78,6 +78,7 @@ export function CoffeeDetailView({
   onCreateList?: (name: string, privacy: ListPrivacy) => Promise<void>;
   onAddCoffeeToList?: (listId: string) => Promise<void>;
 }) {
+  const ADD_TO_LIST_FAVORITES_ID = "__favorites";
   const [showSensorySheet, setShowSensorySheet] = useState(false);
   const [showStockSheet, setShowStockSheet] = useState(false);
   const [showReviewSheet, setShowReviewSheet] = useState(false);
@@ -92,6 +93,11 @@ export function CoffeeDetailView({
   const [failedReviewAvatarUrls, setFailedReviewAvatarUrls] = useState<Set<string>>(new Set());
   const [showAddToListModal, setShowAddToListModal] = useState(false);
   const [showCreateListInModal, setShowCreateListInModal] = useState(false);
+  const [addToListSelectedIds, setAddToListSelectedIds] = useState<Set<string>>(new Set());
+  const [addToListSaving, setAddToListSaving] = useState(false);
+  useEffect(() => {
+    if (showAddToListModal) setAddToListSelectedIds(new Set());
+  }, [showAddToListModal]);
 
   useEffect(() => {
     setCurrentUserAvatarFailed(false);
@@ -214,11 +220,11 @@ export function CoffeeDetailView({
           <p className="coffee-origin">{(coffee.marca ?? "Marca").toUpperCase()}</p>
           <h1 className="coffee-detail-title">{coffee.nombre}</h1>
         </div>
-        {avgRating > 0 ? (
-          <span className="coffee-detail-rating-badge">
-            <UiIcon name="star" className="ui-icon" />
-            <strong>{avgRating.toFixed(1)}</strong>
-          </span>
+        {avgRating > 0 && reviews.length > 0 ? (
+          <div className="coffee-detail-nota-block" aria-label="Nota del café">
+            <p className="coffee-detail-nota-title">NOTA</p>
+            <p className="coffee-detail-nota-value">{avgRating.toFixed(1)}</p>
+          </div>
         ) : null}
       </header>
 
@@ -890,10 +896,36 @@ export function CoffeeDetailView({
               onClick={() => setShowAddToListModal(false)}
             >
               <SheetCard
-                className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet"
+                className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet add-to-list-sheet"
                 onClick={(e) => e.stopPropagation()}
               >
                 <SheetHandle aria-hidden="true" />
+                <header className="sheet-header sheet-header-with-action">
+                  <strong className="sheet-title">Añadir a lista</strong>
+                  <Button
+                    variant="plain"
+                    className="modal-action-btn"
+                    disabled={addToListSelectedIds.size === 0 || addToListSaving}
+                    onClick={async () => {
+                      if (addToListSelectedIds.size === 0) return;
+                      setAddToListSaving(true);
+                      try {
+                        for (const id of addToListSelectedIds) {
+                          if (id === ADD_TO_LIST_FAVORITES_ID) {
+                            if (!isFavorite) onToggleFavorite();
+                          } else {
+                            await (onAddCoffeeToList?.(id) ?? Promise.resolve());
+                          }
+                        }
+                        setShowAddToListModal(false);
+                      } finally {
+                        setAddToListSaving(false);
+                      }
+                    }}
+                  >
+                    {addToListSaving ? "Añadiendo…" : "Añadir"}
+                  </Button>
+                </header>
                 <div className="diary-sheet-list">
                   <Button
                     variant="plain"
@@ -904,35 +936,55 @@ export function CoffeeDetailView({
                     <span>Crear una lista</span>
                     <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                   </Button>
-                  {userLists.map((list) => (
-                    <Button
-                      key={list.id}
-                      variant="plain"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      onClick={() => {
-                        void (onAddCoffeeToList?.(list.id) ?? Promise.resolve()).then(() => setShowAddToListModal(false));
-                      }}
-                    >
-                      <UiIcon name="list-alt" className="ui-icon" />
-                      <span>{list.name}</span>
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                    </Button>
-                  ))}
+                  {userLists.map((list) => {
+                    const checked = addToListSelectedIds.has(list.id);
+                    return (
+                      <Button
+                        key={list.id}
+                        variant="plain"
+                        className={`diary-sheet-action diary-sheet-action-pantry add-to-list-row ${checked ? "is-checked" : ""}`.trim()}
+                        onClick={() => {
+                          setAddToListSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(list.id)) next.delete(list.id);
+                            else next.add(list.id);
+                            return next;
+                          });
+                        }}
+                      >
+                        <span className="add-to-list-checkbox" aria-hidden="true">
+                          {checked ? (
+                            <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">check_box</span>
+                          ) : (
+                            <span className="ui-icon material-symbol-icon" aria-hidden="true">check_box_outline_blank</span>
+                          )}
+                        </span>
+                        <UiIcon name="list-alt" className="ui-icon" />
+                        <span>{list.name}</span>
+                      </Button>
+                    );
+                  })}
                   <Button
                     variant="plain"
-                    className={`diary-sheet-action diary-sheet-action-pantry ${isFavorite ? "is-active" : ""}`.trim()}
+                    className={`diary-sheet-action diary-sheet-action-pantry add-to-list-row ${isFavorite ? "is-active" : ""} ${addToListSelectedIds.has(ADD_TO_LIST_FAVORITES_ID) ? "is-checked" : ""}`.trim()}
                     onClick={() => {
-                      onToggleFavorite();
-                      setShowAddToListModal(false);
+                      setAddToListSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(ADD_TO_LIST_FAVORITES_ID)) next.delete(ADD_TO_LIST_FAVORITES_ID);
+                        else next.add(ADD_TO_LIST_FAVORITES_ID);
+                        return next;
+                      });
                     }}
                   >
+                    <span className="add-to-list-checkbox" aria-hidden="true">
+                      {addToListSelectedIds.has(ADD_TO_LIST_FAVORITES_ID) ? (
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">check_box</span>
+                      ) : (
+                        <span className="ui-icon material-symbol-icon" aria-hidden="true">check_box_outline_blank</span>
+                      )}
+                    </span>
                     <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">favorite</span>
                     <span>Favoritos</span>
-                    {isFavorite ? (
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">check</span>
-                    ) : (
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                    )}
                   </Button>
                 </div>
               </SheetCard>

@@ -247,7 +247,7 @@ export default defineConfig(({ mode }) => {
         const parsed = new URL(url, "http://localhost");
         const userId = parsed.searchParams.get("userId") ?? "1924119502";
         const host = req.headers.host ?? "localhost:4173";
-        const redirectTo = `https://${host}/timeline`;
+        const redirectTo = `https://${host}/home`;
         const { createClient } = await import("@supabase/supabase-js");
         const admin = createClient(supabaseUrl, serviceRoleKey, {
           auth: { autoRefreshToken: false, persistSession: false }

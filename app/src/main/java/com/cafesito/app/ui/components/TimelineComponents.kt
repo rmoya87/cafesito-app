@@ -146,7 +146,7 @@ fun PremiumTabRow(
                             .clickable { onTabSelected(index) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = title, style = MaterialTheme.typography.labelLarge, color = contentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(text = title, style = MaterialTheme.typography.labelLarge, color = contentColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -171,7 +171,7 @@ fun NotificationsBottomSheet(
     ) {
         Column(Modifier
             .fillMaxWidth()
-            .padding(bottom = Spacing.space8)) {
+            .padding(top = 20.dp, bottom = Spacing.space8)) {
             Text(
                 text = "NOTIFICACIONES",
                 style = MaterialTheme.typography.labelLarge,
@@ -233,7 +233,7 @@ fun NotificationsBottomSheet(
                                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                                                     colors = buttonColors
                                                 ) {
-                                                    Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                    Text("SIGUIENDO", fontWeight = FontWeight.Medium, fontSize = 11.sp)
                                                 }
                                             } else {
                                                 Button(
@@ -242,7 +242,7 @@ fun NotificationsBottomSheet(
                                                     shape = Shapes.cardSmall,
                                                     colors = buttonColors
                                                 ) {
-                                                    Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
+                                                    Text("SEGUIR", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
                                                 }
                                             }
                                         },
@@ -329,7 +329,7 @@ private fun NotificationRow(
             }
             Spacer(Modifier.width(Spacing.space3))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (trailingContent != null) {
@@ -677,7 +677,7 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
                 .size(20.dp)
                 .clip(CircleShape))
             Spacer(Modifier.width(Spacing.space2))
-            Text("@${user.username}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LocalCaramelAccent.current)
+            Text("@${user.username}", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = LocalCaramelAccent.current)
         }
     }
 }
@@ -742,7 +742,7 @@ fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier
             Spacer(Modifier.width(Spacing.space3))
             Column {
                 Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
-                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -1194,7 +1194,7 @@ fun DiaryEntryEditBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.space6, vertical = Spacing.space2)
+                .padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2)
                 .padding(bottom = 28.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(0.dp)
@@ -1817,7 +1817,7 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
     ) {
         Column(Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.space6, vertical = Spacing.space8)) {
+            .padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space8)) {
             Text(
                 text = "Recomendaciones OMS",
                 style = MaterialTheme.typography.titleLarge,
@@ -1840,7 +1840,7 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
 fun InfoRow(label: String, value: String, desc: String) {
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             Text(value, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)
         }
         Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1862,7 +1862,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(Spacing.space6)
+                .padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space6)
                 .padding(bottom = Spacing.space8)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -1907,7 +1907,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                     border = BorderStroke(1.dp, cancelBorderAndText),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text("CANCELAR", fontWeight = FontWeight.Medium)
                 }
 
                 Button(
@@ -1921,7 +1921,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                     ),
                     shape = Shapes.card
                 ) {
-                    Text("GUARDAR", fontWeight = FontWeight.Bold)
+                    Text("GUARDAR", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -2014,6 +2014,27 @@ fun ModalMenuOption(
     }
 }
 
+/** Fila de opción dentro de una card (opciones despensa: Organiza / General). */
+@Composable
+fun PantryOptionRow(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Spacing.space4, 14.dp)
+            .clickable { onClick() },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.width(Spacing.space3))
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostOptionsBottomSheet(
@@ -2027,7 +2048,7 @@ fun PostOptionsBottomSheet(
         shape = Shapes.sheetLarge,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = Spacing.space6, end = Spacing.space6)) {
+        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             ModalMenuOption(
                 title = "Editar",
                 icon = Icons.Default.Edit,
@@ -2059,44 +2080,86 @@ fun SettingsBottomSheet(
         shape = Shapes.sheetLarge,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(bottom = 48.dp, start = Spacing.space6, end = Spacing.space6)) {
+        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 48.dp)) {
             Text(
-                "GENERAL",
-                style = MaterialTheme.typography.labelMedium,
+                "General",
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.space2, start = Spacing.space2)
             )
-            ModalMenuOption(
-                title = "Historial",
-                icon = Icons.Default.History,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = { onDismiss(); onHistorialClick() }
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.space4, 14.dp)
+                            .clickable { onDismiss(); onHistorialClick() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(Spacing.space3))
+                        Text("Cafés consumidos", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
             Spacer(Modifier.height(Spacing.space4))
             Text(
-                "CUENTA",
-                style = MaterialTheme.typography.labelMedium,
+                "Cuenta",
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.space2, start = Spacing.space2)
+                modifier = Modifier.padding(bottom = Spacing.space2, start = Spacing.space2, top = Spacing.space2)
             )
-            ModalMenuOption(
-                title = "Editar Perfil",
-                icon = Icons.Default.Edit,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = { onDismiss(); onEditClick() }
-            )
-            ModalMenuOption(
-                title = "Eliminar mi cuenta y mis datos",
-                icon = Icons.Default.PersonRemove,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = { onDismiss(); onDeleteAccountClick() }
-            )
-            ModalMenuOption(
-                title = "Cerrar Sesión",
-                icon = Icons.AutoMirrored.Filled.Logout,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = { onDismiss(); onLogoutClick() }
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.space4, 14.dp)
+                            .clickable { onDismiss(); onEditClick() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(Spacing.space3))
+                        Text("Editar perfil", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.space4, 14.dp)
+                            .clickable { onDismiss(); onDeleteAccountClick() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.PersonRemove, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(Spacing.space3))
+                        Text("Eliminar mi cuenta y mis datos", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.space4, 14.dp)
+                            .clickable { onDismiss(); onLogoutClick() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(Spacing.space3))
+                        Text("Cerrar sesión", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
         }
     }
 }
@@ -2119,7 +2182,7 @@ fun DeleteConfirmationDialog(
         shape = Shapes.sheetLarge
     ) {
         Column(
-            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = Spacing.space6, bottom = 40.dp),
+            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 20.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -2152,7 +2215,7 @@ fun DeleteConfirmationDialog(
                     border = BorderStroke(1.dp, cancelColor),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text("CANCELAR", fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick = {
@@ -2168,7 +2231,7 @@ fun DeleteConfirmationDialog(
                     ),
                     shape = Shapes.pillFull
                 ) {
-                    Text("ELIMINAR", fontWeight = FontWeight.Bold)
+                    Text("ELIMINAR", fontWeight = FontWeight.SemiBold)
                 }
             }
         }

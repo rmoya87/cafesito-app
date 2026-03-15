@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-13
+**Última actualización:** 2026-03-14
 
 ---
 
@@ -37,6 +37,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 13. [Estandarización completa según GUIA (13 mar 2026)](#13-estandarización-completa-según-guia-13-mar-2026)
 14. [Segunda pasada GUIA — Colores Android y documentación (13 mar 2026)](#14-segunda-pasada-guia--colores-android-y-documentación-13-mar-2026)
 15. [Tercera pasada GUIA — Dimensiones, Spacing, Dimens, WebApp chart (13 mar 2026)](#15-tercera-pasada-guia--dimensiones-spacing-dimens-webapp-chart-13-mar-2026)
+16. [Elaboración Android y WebApp — chips, carruseles, márgenes, Selecciona café como página (13–14 mar 2026)](#16-elaboración-android-y-webapp--chips-carruseles-márgenes-selecciona-café-como-página-1314-mar-2026)
 
 ---
 
@@ -497,6 +498,25 @@ Se aplicó todo lo que quedaba en **`docs/GUIA_UNIFICACION_COMPONENTES_UI.md`**:
 ### Verificación
 
 - `./gradlew compileDebugKotlin` ejecutado con éxito.
+
+---
+
+## 16. Elaboración Android y WebApp — chips, carruseles, márgenes, Selecciona café como página (13–14 mar 2026)
+
+Ajustes de UI en elaboración (BrewLab) en Android y conversión de "Selecciona café" de modal a página en ambas plataformas. Detalle en **`docs/commit-notes/commit-20260313-elaboracion-android-webapp-ajustes.md`**.
+
+### Android
+
+- **Chips no activos:** Modo día = fondo gris claro (`AdviceCardBgLight`); modo noche = fondo de página. Método, tipo y tamaño unificados; método con `Shapes.card` (igual que tipo).
+- **Carruseles:** Derecha al borde de la card; izquierda con padding inicial 16 dp; scroll permite llegar al borde izquierdo.
+- **Márgenes:** Config, barista y temporizador con mismo margen horizontal que "Selecciona café" (`Spacing.space4`). Más margen bajo "Tipo" (divisor con padding vertical); menos bajo temporizador.
+- **Consejo del barista:** Card con fondo gris día/noche y esquinas redondeadas.
+- **Selecciona café (fila):** Flecha a la derecha; imagen del café cuadrada con bordes redondeados.
+- **Selecciona café (flujo):** Modal sustituido por pantalla completa (`brewlab_select_coffee`); TopBar "Selecciona café" y atrás; despensa ordenada por último uso.
+
+### WebApp
+
+- **Selecciona café:** Modal sustituido por página completa (`BrewSelectCoffeePage`); TopBar "Selecciona café" y flecha atrás; misma lógica y UI que "Tu despensa" de Home; sugerencias sin cafés ya en despensa; despensa por último uso.
 
 ---
 

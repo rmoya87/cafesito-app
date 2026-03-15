@@ -212,11 +212,6 @@ html.theme-dark .coffee-detail-image {
   background: var(--surface);
 }
 
-html.theme-dark .coffee-detail-rating-badge {
-  background: var(--surface);
-  color: var(--text-main);
-}
-
 html.theme-dark .coffee-detail-acquire-row {
   background: var(--surface);
   border-color: var(--border-light);
@@ -350,22 +345,22 @@ html.theme-dark .brew-barista-tip {
 }
 
 /* Elaboración (brew): modo noche — fondos negros en círculos/cards inactivos; activos marrón sin borde */
-html.theme-dark .brew-select-step .timeline-elaboration-methods,
-html.theme-dark .timeline-elaboration-methods {
+html.theme-dark .brew-select-step .home-elaboration-methods,
+html.theme-dark .home-elaboration-methods {
   background: transparent !important;
 }
 /* Círculos método y tipo: por defecto negro; activo marrón sin borde */
-html.theme-dark .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
+html.theme-dark .brew-select-step .home-elaboration-method-circle .home-elaboration-method-circle-inner {
   background: var(--pure-black) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
-html.theme-dark .timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+html.theme-dark .home-elaboration-method-circle-inner .home-elaboration-method-icon-water {
   fill: rgba(255, 255, 255, 0.85) !important;
   stroke: rgba(255, 255, 255, 0.5) !important;
   color: rgba(255, 255, 255, 0.85) !important;
 }
-html.theme-dark .brew-select-step .timeline-elaboration-method-label,
-html.theme-dark .timeline-elaboration-method-label {
+html.theme-dark .brew-select-step .home-elaboration-method-label,
+html.theme-dark .home-elaboration-method-label {
   color: var(--pure-white) !important;
 }
 html.theme-dark .brew-select-step .brew-select-section-title,
@@ -374,12 +369,23 @@ html.theme-dark .brew-select-step .section-title.brew-select-section-title {
 }
 html.theme-dark .brew-select-step .brew-timer-row,
 html.theme-dark .brew-select-step .brew-select-coffee-row,
+html.theme-dark .brew-select-step .brew-method-card,
 html.theme-dark .brew-select-step .brew-tipo-card,
 html.theme-dark .brew-select-step .brew-tamaño-card {
   background: var(--pure-black) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
   color: var(--pure-white) !important;
 }
+/* Chips inactivos Método, Tipo y Tamaño en elaboración: #212121 en modo noche (debe ganar a la regla anterior) */
+html.theme-dark .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
+html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+  background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Modo noche: chips inactivos — texto blanco; chips activos — texto negro */
+html.theme-dark .brew-select-step .brew-method-card-label,
 html.theme-dark .brew-select-step .brew-tipo-card-label,
 html.theme-dark .brew-select-step .brew-tamaño-card-label {
   color: var(--pure-white) !important;
@@ -387,7 +393,7 @@ html.theme-dark .brew-select-step .brew-tamaño-card-label {
 html.theme-dark .brew-select-step .brew-tamaño-card-range {
   color: #bdb7b2 !important;
 }
-/* Elaboración: chips activos tipo y tamaño — texto negro en modo noche */
+html.theme-dark .brew-method-card.is-active .brew-method-card-label,
 html.theme-dark .brew-select-step .brew-tipo-card.is-active .brew-tipo-card-label,
 html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-label,
 html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-range {
@@ -412,36 +418,36 @@ html.theme-dark .brew-select-step .search-wide {
   color: var(--pure-white) !important;
 }
 /* Home: módulo método (círculos) y recomendaciones del día — fondo negro en modo noche */
-html.theme-dark .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-circle-inner {
+html.theme-dark .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-circle-inner {
   background: var(--pure-black) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
-html.theme-dark .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-label {
+html.theme-dark .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-label {
   color: var(--pure-white) !important;
 }
 /* Recomendaciones del día (Home y elaboración): card negro en modo noche */
-html.theme-dark .timeline-recommendation-card {
+html.theme-dark .home-recommendation-card {
   background: var(--pure-black) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
-html.theme-dark .timeline-recommendation-card .timeline-recommendation-row {
+html.theme-dark .home-recommendation-card .home-recommendation-row {
   color: var(--pure-white) !important;
   border-bottom-color: rgba(255, 255, 255, 0.08) !important;
 }
-html.theme-dark .timeline-recommendation-card .timeline-recommendation-row:hover {
+html.theme-dark .home-recommendation-card .home-recommendation-row:hover {
   background: rgba(255, 255, 255, 0.06) !important;
 }
-html.theme-dark .timeline-recommendation-row-name {
+html.theme-dark .home-recommendation-row-name {
   color: var(--pure-white) !important;
 }
-html.theme-dark .timeline-recommendation-row-brand {
+html.theme-dark .home-recommendation-row-brand {
   color: #bdb7b2 !important;
 }
 /* Strip despensa/recomendaciones en elaboración: mismo fondo oscuro */
-html.theme-dark .brew-select-step .timeline-despensa {
+html.theme-dark .brew-select-step .home-despensa {
   background: transparent !important;
 }
-html.theme-dark .brew-select-step .timeline-despensa .brew-pantry-card {
+html.theme-dark .brew-select-step .home-despensa .brew-pantry-card {
   background: var(--surface-elevated) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
   color: var(--pure-white) !important;
@@ -479,31 +485,31 @@ html.theme-dark .content.content-timeline {
   background: var(--screen-dark-background);
 }
 
-html.theme-dark .timeline-empty,
-html.theme-dark .timeline-error {
+html.theme-dark .home-empty,
+html.theme-dark .home-error {
   background: var(--surface);
   border-color: var(--border-light);
 }
 
-html.theme-dark .timeline-empty p {
+html.theme-dark .home-empty p {
   color: var(--text-subtle);
 }
 
-html.theme-dark .timeline-banner {
+html.theme-dark .home-banner {
   background: rgba(15, 9, 5, 0.94);
   color: var(--caramel-soft);
 }
 
-html.theme-dark .timeline-overlay-card {
+html.theme-dark .home-overlay-card {
   background: rgba(15, 9, 5, 0.94);
   color: var(--caramel-soft);
 }
 
-html.theme-dark .timeline-overlay-row {
+html.theme-dark .home-overlay-row {
   color: var(--caramel-soft);
 }
 
-html.theme-dark .timeline-spinner {
+html.theme-dark .home-spinner {
   border-color: rgba(212, 163, 115, 0.3);
   border-top-color: var(--caramel-soft);
 }
@@ -558,29 +564,29 @@ html.theme-dark .feed-follow-chip.is-following {
 }
 
 /* Timeline columna lateral: sugerencias y mini cards */
-html.theme-dark .timeline-side-column .mini-card,
-html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-card {
+html.theme-dark .home-side-column .mini-card,
+html.theme-dark .home-shell-desktop .home-side-column .mini-card {
   background: var(--surface);
   border-color: var(--border-light);
   color: var(--text-main);
 }
 
-html.theme-dark .timeline-side-column .mini-coffee-card .feed-user,
-html.theme-dark .timeline-side-column .mini-coffee-card .coffee-sub,
-html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-coffee-card .feed-user,
-html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-coffee-card .coffee-sub {
+html.theme-dark .home-side-column .mini-coffee-card .feed-user,
+html.theme-dark .home-side-column .mini-coffee-card .coffee-sub,
+html.theme-dark .home-shell-desktop .home-side-column .mini-coffee-card .feed-user,
+html.theme-dark .home-shell-desktop .home-side-column .mini-coffee-card .coffee-sub {
   color: var(--text-main);
 }
 
-html.theme-dark .timeline-side-column .mini-user-card .feed-user,
-html.theme-dark .timeline-side-column .mini-user-card .feed-meta,
-html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-user,
-html.theme-dark .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-meta {
+html.theme-dark .home-side-column .mini-user-card .feed-user,
+html.theme-dark .home-side-column .mini-user-card .feed-meta,
+html.theme-dark .home-shell-desktop .home-side-column .mini-user-card .feed-user,
+html.theme-dark .home-shell-desktop .home-side-column .mini-user-card .feed-meta {
   color: var(--text-main);
 }
 
-html.theme-dark .timeline-side-column .suggestion-strip .suggestion-subtitle,
-html.theme-dark .timeline-shell-desktop .timeline-side-column .suggestion-strip .suggestion-subtitle {
+html.theme-dark .home-side-column .suggestion-strip .suggestion-subtitle,
+html.theme-dark .home-shell-desktop .home-side-column .suggestion-strip .suggestion-subtitle {
   color: var(--text-subtle);
 }
 
@@ -1410,31 +1416,31 @@ html.theme-light .content.content-timeline {
   background: var(--screen-light-background);
 }
 
-html.theme-light .timeline-empty,
-html.theme-light .timeline-error {
+html.theme-light .home-empty,
+html.theme-light .home-error {
   background: var(--pure-white);
   border-color: var(--border-light);
 }
 
-html.theme-light .timeline-empty p {
+html.theme-light .home-empty p {
   color: var(--espresso-medium);
 }
 
-html.theme-light .timeline-banner {
+html.theme-light .home-banner {
   background: rgba(26, 18, 11, 0.9);
   color: var(--caramel-accent);
 }
 
-html.theme-light .timeline-overlay-card {
+html.theme-light .home-overlay-card {
   background: rgba(26, 18, 11, 0.94);
   color: var(--caramel-accent);
 }
 
-html.theme-light .timeline-overlay-row {
+html.theme-light .home-overlay-row {
   color: var(--caramel-accent);
 }
 
-html.theme-light .timeline-spinner {
+html.theme-light .home-spinner {
   border-color: rgba(111, 78, 55, 0.3);
   border-top-color: var(--caramel-accent);
 }
@@ -1489,29 +1495,29 @@ html.theme-light .feed-follow-chip.is-following {
 }
 
 /* Timeline columna lateral: sugerencias y mini cards modo día */
-html.theme-light .timeline-side-column .mini-card,
-html.theme-light .timeline-shell-desktop .timeline-side-column .mini-card {
+html.theme-light .home-side-column .mini-card,
+html.theme-light .home-shell-desktop .home-side-column .mini-card {
   background: var(--pure-white);
   border-color: var(--border-light);
   color: var(--espresso-deep);
 }
 
-html.theme-light .timeline-side-column .mini-coffee-card .feed-user,
-html.theme-light .timeline-side-column .mini-coffee-card .coffee-sub,
-html.theme-light .timeline-shell-desktop .timeline-side-column .mini-coffee-card .feed-user,
-html.theme-light .timeline-shell-desktop .timeline-side-column .mini-coffee-card .coffee-sub {
+html.theme-light .home-side-column .mini-coffee-card .feed-user,
+html.theme-light .home-side-column .mini-coffee-card .coffee-sub,
+html.theme-light .home-shell-desktop .home-side-column .mini-coffee-card .feed-user,
+html.theme-light .home-shell-desktop .home-side-column .mini-coffee-card .coffee-sub {
   color: var(--espresso-deep);
 }
 
-html.theme-light .timeline-side-column .mini-user-card .feed-user,
-html.theme-light .timeline-side-column .mini-user-card .feed-meta,
-html.theme-light .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-user,
-html.theme-light .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-meta {
+html.theme-light .home-side-column .mini-user-card .feed-user,
+html.theme-light .home-side-column .mini-user-card .feed-meta,
+html.theme-light .home-shell-desktop .home-side-column .mini-user-card .feed-user,
+html.theme-light .home-shell-desktop .home-side-column .mini-user-card .feed-meta {
   color: var(--espresso-deep);
 }
 
-html.theme-light .timeline-side-column .suggestion-strip .suggestion-subtitle,
-html.theme-light .timeline-shell-desktop .timeline-side-column .suggestion-strip .suggestion-subtitle {
+html.theme-light .home-side-column .suggestion-strip .suggestion-subtitle,
+html.theme-light .home-shell-desktop .home-side-column .suggestion-strip .suggestion-subtitle {
   color: var(--espresso-medium);
 }
 

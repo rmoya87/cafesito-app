@@ -38,7 +38,7 @@ class DetailViewModel @Inject constructor(
     init {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             userRepository.getActiveUser()?.let { user ->
-                _userLists.value = supabaseDataSource.getUserLists(user.id)
+                _userLists.value = supabaseDataSource.getCachedUserListsMerged(user.id)
                 _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInUserLists(user.id)
             }
         }
@@ -112,7 +112,8 @@ class DetailViewModel @Inject constructor(
             sensoryEditorsCount = sensoryEditorsCount,
             activeUser = activeUser,
             userLists = userLists,
-            isListActive = isListActive
+            isListActive = isListActive,
+            isFavorite = isFavoriteLocally
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
     }
@@ -143,10 +144,10 @@ class DetailViewModel @Inject constructor(
         }
     }
 
-    fun createList(name: String, isPublic: Boolean) {
+    fun createList(name: String, privacy: String, membersCanEdit: Boolean) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             userRepository.getActiveUser()?.let { user ->
-                val newList = supabaseDataSource.createUserList(user.id, name, isPublic)
+                val newList = supabaseDataSource.createUserListWithPrivacy(user.id, name, privacy, membersCanEdit)
                 _userLists.update { it + newList }
             }
         }
@@ -272,7 +273,8 @@ sealed interface DetailUiState {
         val sensoryEditorsCount: Int,
         val activeUser: UserEntity? = null,
         val userLists: List<UserListRow> = emptyList(),
-        val isListActive: Boolean = false
+        val isListActive: Boolean = false,
+        val isFavorite: Boolean = false
     ) : DetailUiState
     data class Error(val message: String) : DetailUiState
 }

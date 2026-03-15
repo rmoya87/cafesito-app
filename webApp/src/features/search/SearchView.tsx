@@ -396,7 +396,7 @@ export function SearchView({
     return (
       <div className="split-with-side profile-split-with-side">
         <div className="profile-content-wrap">{content}</div>
-        <aside className="timeline-side-column">{sidePanel}</aside>
+        <aside className="home-side-column">{sidePanel}</aside>
       </div>
     );
   }

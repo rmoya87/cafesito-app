@@ -46,7 +46,8 @@ object SupabaseModule {
                 isLenient = true
             })
 
-            // Configuración global de HTTP usando el plugin de Ktor
+            // Configuración global de HTTP (request, connect, socket). Para subidas de imagen en redes lentas
+            // valorar timeout mayor (p. ej. 60s) si se observan fallos; ver docs ANDROID_Y_WEBAPP_SERVICIOS_CONECTADOS_LLAMADAS_Y_OPTIMIZACION.md.
             httpConfig {
                 install(HttpTimeout) {
                     requestTimeoutMillis = 30.seconds.inWholeMilliseconds

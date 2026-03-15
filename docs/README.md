@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-14  
+**Última actualización:** 2026-03-14 (registro §16 elaboración Android/WebApp)  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -67,6 +67,7 @@ flowchart TB
   end
   subgraph WebAppDocs["webApp/docs/"]
     WEB_A11Y[ACCESSIBILITY_AUDIT.md]
+    WEB_PWA[PWA_FUNCIONAMIENTO_Y_ESTANDAR.md]
   end
   README --> MASTER
   README --> RELEASE
@@ -122,7 +123,13 @@ flowchart TB
 | `STEP7_IOS_SETUP.md` | Paso 7 — Proyecto iOS + Shared vía SPM. |
 | `STEP8_QUALITY.md` | Paso 8 — Batería de calidad (tests, criterios, riesgos). |
 
-### 4.5 Supabase (SQL, Edge Functions, webhooks)
+### 4.5 Android y WebApp: servicios, llamadas y optimización
+
+| Documento | Descripción |
+|-----------|-------------|
+| `ANDROID_Y_WEBAPP_SERVICIOS_CONECTADOS_LLAMADAS_Y_OPTIMIZACION.md` | **Servicios Android y WebApp:** a qué está conectada cada app (Supabase, Firebase/GA4, FCM solo Android), detalle de llamadas por tabla/RPC, SyncManager (Android) y carga inicial/usuario (WebApp), Realtime, y propuestas de optimización para ambas plataformas. |
+
+### 4.6 Supabase (SQL, Edge Functions, webhooks)
 
 | Documento / carpeta | Descripción |
 |---------------------|-------------|
@@ -132,19 +139,21 @@ flowchart TB
 | `supabase/edge-functions/` | Edge Functions (trigger-coffees-build, process-pending-account-deletions, send-notification). |
 | `supabase/webhook-coffees-trigger-build.md` | Deploy web: prerender, SEO, SPA fallback, webhook cafés → build (ver también 4.2). |
 
-### 4.6 Trazabilidad de despliegues
+### 4.7 Trazabilidad de despliegues
 
 | Ubicación | Descripción |
 |-----------|-------------|
 | `commit-notes/commit-*.md` | Notas por despliegue; enlazadas desde la tabla en `RELEASE_DEPLOY_WORKFLOW.md`. |
 
-### 4.7 WebApp y port Android
+### 4.8 WebApp y port Android
 
 | Documento | Descripción |
 |-----------|-------------|
 | `ACCESIBILIDAD_WEBAPP_ANDROID.md` | Accesibilidad unificada Web/Android (ver 4.1). |
 | `webApp/docs/ACCESSIBILITY_AUDIT.md` | Auditoría de accesibilidad (scope, validaciones, riesgos, regresión). |
+| `webApp/docs/PWA_FUNCIONAMIENTO_Y_ESTANDAR.md` | **PWA:** cómo debe funcionar la WebApp instalable (manifest, SW, offline, standalone), archivos implicados y checklist de cumplimiento/pendientes. |
 | `CHANGELOG_WEB_UI_AND_ANDROID_PORT.md` | Changelog de cambios en la WebApp y guía de traslado nativo a Android (paridad funcional). |
+| `OPCIONES_DE_LISTA_WEB_Y_ANDROID.md` | **Opciones de lista:** backend (Supabase), flujo WebApp (página opciones) y paridad Android (pantalla Opciones de lista, privacidad, miembros, invitaciones, copiar enlace, editar/eliminar/abandonar). |
 
 ---
 

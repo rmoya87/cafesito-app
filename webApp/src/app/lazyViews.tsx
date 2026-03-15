@@ -1,8 +1,8 @@
 import React from "react";
 
 /** Vistas con lazy loading para reducir el bundle inicial y mejorar LCP. */
-export const LazyTimelineView = React.lazy(() =>
-  import("../features/timeline/TimelineView").then((m) => ({ default: m.TimelineView }))
+export const LazyHomeView = React.lazy(() =>
+  import("../features/timeline/TimelineView").then((m) => ({ default: m.HomeView }))
 );
 export const LazySearchView = React.lazy(() =>
   import("../features/search/SearchView").then((m) => ({ default: m.SearchView }))

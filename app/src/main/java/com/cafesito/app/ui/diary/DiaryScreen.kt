@@ -187,55 +187,82 @@ fun DiaryScreen(
                 shape = Shapes.sheetLarge,
                 scrimColor = ScrimDefault
             ) {
-                Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Column(Modifier.padding(top = 20.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
                         text = "Opciones",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium
                     )
-                    ModalMenuOption(
-                        title = "Editar stock",
-                        icon = Icons.Default.Edit,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            itemToEdit = selectedItem
-                            showStockSheet = true
-                            showPantryOptionsId = null
+                    Text(
+                        text = "Organiza",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column {
+                            PantryOptionRow(
+                                icon = Icons.Default.Edit,
+                                label = "Editar stock",
+                                onClick = {
+                                    itemToEdit = selectedItem
+                                    showStockSheet = true
+                                    showPantryOptionsId = null
+                                }
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                            PantryOptionRow(
+                                icon = Icons.Default.Done,
+                                label = "Café terminado",
+                                onClick = {
+                                    showFinishedConfirmId = showPantryOptionsId
+                                    showPantryOptionsId = null
+                                }
+                            )
                         }
-                    )
-                    ModalMenuOption(
-                        title = "Café terminado",
-                        icon = Icons.Default.Done,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            showFinishedConfirmId = showPantryOptionsId
-                            showPantryOptionsId = null
-                        }
-                    )
-                    if (selectedItem.isCustom) {
-                        ModalMenuOption(
-                            title = "Editar café",
-                            icon = Icons.Default.LocalCafe,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            onClick = {
-                                val coffeeId = selectedItem.coffee.id
-                                showPantryOptionsId = null
-                                onEditCoffeeClick(coffeeId)
-                            }
-                        )
                     }
-                    ModalMenuOption(
-                        title = "Eliminar de la despensa",
-                        icon = Icons.Default.Delete,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = { 
-                            itemToDeleteId = showPantryOptionsId
-                            showPantryOptionsId = null 
-                        }
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = "General",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column {
+                            if (selectedItem.isCustom) {
+                                PantryOptionRow(
+                                    icon = Icons.Default.LocalCafe,
+                                    label = "Editar café",
+                                    onClick = {
+                                        val coffeeId = selectedItem.coffee.id
+                                        showPantryOptionsId = null
+                                        onEditCoffeeClick(coffeeId)
+                                    }
+                                )
+                                HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                            }
+                            PantryOptionRow(
+                                icon = Icons.Default.Delete,
+                                label = "Eliminar de la despensa",
+                                onClick = {
+                                    itemToDeleteId = showPantryOptionsId
+                                    showPantryOptionsId = null
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

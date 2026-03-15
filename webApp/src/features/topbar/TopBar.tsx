@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { type DiaryPeriod } from "../../core/diaryAnalytics";
+import { resolveAvatarUrl } from "../../core/avatarUrl";
 import type { BrewStep, TabId } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Chip, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -22,8 +23,8 @@ export function TopBar({
   onOpenSearchFilter,
   onSearchBack,
   showNotificationsBadge,
-  onTimelineSearchUsers,
-  onTimelineNotifications,
+  onHomeSearchUsers,
+  onHomeNotifications,
   diaryPeriod,
   diaryDateLabel,
   diarySelectedDate,
@@ -47,6 +48,8 @@ export function TopBar({
   brewResultCanSave,
   brewResultSaving,
   brewResultShowGuardar,
+  brewSelectCoffeePageOpen = false,
+  onBrewSelectCoffeeBack,
   brewCreateCoffeeOpen,
   onBrewCreateCoffeeBack,
   onBrewCreateCoffeeSave,
@@ -91,8 +94,8 @@ export function TopBar({
   onOpenSearchFilter: (filter: "origen" | "tueste" | "especialidad" | "formato" | "nota") => void;
   onSearchBack: () => void;
   showNotificationsBadge: boolean;
-  onTimelineSearchUsers: () => void;
-  onTimelineNotifications: () => void;
+  onHomeSearchUsers: () => void;
+  onHomeNotifications: () => void;
   diaryPeriod: DiaryPeriod;
   diaryDateLabel: string;
   diarySelectedDate: string;
@@ -117,6 +120,8 @@ export function TopBar({
   brewResultCanSave: boolean;
   brewResultSaving: boolean;
   brewResultShowGuardar: boolean;
+  brewSelectCoffeePageOpen?: boolean;
+  onBrewSelectCoffeeBack?: () => void;
   brewCreateCoffeeOpen: boolean;
   onBrewCreateCoffeeBack: () => void;
   onBrewCreateCoffeeSave: () => void;
@@ -137,9 +142,9 @@ export function TopBar({
   listMemberCount?: number;
   /** Hasta 3 avatares para mostrar apilados (mismo orden que listMemberCount). */
   listMemberPreviews?: Array<{ avatar_url: string | null }>;
-  /** Mostrar botón "Añadirme" cuando la lista es pública y de otro usuario. */
+  /** Mostrar botón "Unirse" cuando la lista es pública o por invitación y no eres miembro. */
   showJoinPublicListButton?: boolean;
-  /** Al pulsar "Añadirme" en una lista pública ajena. */
+  /** Al pulsar "Unirse" en una lista pública/invitación ajena. */
   onJoinPublicList?: () => void | Promise<void>;
   onHistorialBack?: () => void;
   onCoffeeBack: () => void;
@@ -154,6 +159,8 @@ export function TopBar({
   const [showProfileOptions, setShowProfileOptions] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  /** Índices de avatares en listMemberPreviews que fallaron al cargar (se muestra placeholder). */
+  const [failedTopbarAvatarIndices, setFailedTopbarAvatarIndices] = useState<Set<number>>(new Set());
   const showSearchCancel = Boolean(searchQuery || searchFocus);
 
   useEffect(() => {
@@ -276,6 +283,19 @@ export function TopBar({
   }
 
   if (activeTab === "brewlab") {
+    if (brewSelectCoffeePageOpen && onBrewSelectCoffeeBack) {
+      return (
+        <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
+          <div className="topbar-slot">
+            <IconButton tone="topbar" onClick={onBrewSelectCoffeeBack} aria-label="Volver">
+              <UiIcon name="arrow-left" className="ui-icon" />
+            </IconButton>
+          </div>
+          <h1 className="title title-upper topbar-title-center">Selecciona café</h1>
+          <div className="topbar-slot topbar-slot-end" />
+        </header>
+      );
+    }
     if (brewCreateCoffeeOpen) {
       return (
         <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
@@ -385,49 +405,62 @@ export function TopBar({
                 variant="primary"
                 className="action-button topbar-join-list-btn"
                 onClick={() => void onJoinPublicList()}
-                aria-label="Suscribirse a esta lista"
+                aria-label="Unirse a esta lista"
               >
-                Suscribirse
+                Unirse
               </Button>
             ) : profileSubPanel === "list" ? (
               <>
-                {showShareListButton && onOpenShareListSheet ? (
-                  typeof listMemberCount === "number" && Array.isArray(listMemberPreviews) ? (
-                    <button
-                      type="button"
-                      className="topbar-list-members-btn"
-                      onClick={onOpenShareListSheet}
-                      aria-label="Abrir compartir lista"
-                    >
-                      <span className="topbar-list-members-count" aria-hidden="true">
-                        {listMemberCount}
-                      </span>
-                      <span className="topbar-list-members-avatars">
-                        {listMemberPreviews.slice(0, 3).map((p, i) => (
+                {onOpenListOptionsSheet && typeof listMemberCount === "number" && Array.isArray(listMemberPreviews) && listMemberPreviews.length > 0 ? (
+                  <button
+                    type="button"
+                    className="topbar-list-members-btn"
+                    onClick={onOpenListOptionsSheet}
+                    aria-label="Opciones de lista"
+                  >
+                    <span className="topbar-list-members-count" aria-hidden="true">
+                      {listMemberCount}
+                    </span>
+                    <span className="topbar-list-members-avatars">
+                      {listMemberPreviews.slice(0, 3).map((p, i) => {
+                        const avatarUrl = resolveAvatarUrl(p.avatar_url);
+                        const showImg = avatarUrl && !failedTopbarAvatarIndices.has(i);
+                        return (
                           <span key={i} className="topbar-list-members-avatar-wrap">
-                            {p.avatar_url ? (
-                              <img src={p.avatar_url} alt="" className="topbar-list-members-avatar" />
+                            {showImg ? (
+                              <img
+                                src={avatarUrl}
+                                alt=""
+                                className="topbar-list-members-avatar"
+                                width={28}
+                                height={28}
+                                loading="lazy"
+                                decoding="async"
+                                referrerPolicy="no-referrer"
+                                crossOrigin="anonymous"
+                                onError={() => setFailedTopbarAvatarIndices((prev) => new Set(prev).add(i))}
+                              />
                             ) : (
                               <span className="topbar-list-members-avatar topbar-list-members-avatar-placeholder" aria-hidden="true">
                                 ?
                               </span>
                             )}
                           </span>
-                        ))}
-                      </span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="topbar-share-list-btn"
-                      onClick={onOpenListOptionsSheet}
-                      aria-label="Opciones de lista"
-                    >
-                      <UiIcon name="person_add" className="topbar-share-list-icon" />
-                    </button>
-                  )
+                        );
+                      })}
+                    </span>
+                  </button>
+                ) : showShareListButton && onOpenListOptionsSheet ? (
+                  <button
+                    type="button"
+                    className="topbar-share-list-btn"
+                    onClick={onOpenListOptionsSheet}
+                    aria-label="Opciones de lista"
+                  >
+                    <UiIcon name="person_add" className="topbar-share-list-icon" />
+                  </button>
                 ) : null}
-                {onOpenListOptionsSheet ? (
+                {onOpenListOptionsSheet && !(typeof listMemberCount === "number" && Array.isArray(listMemberPreviews) && listMemberPreviews.length > 0) ? (
                   <IconButton tone="topbar" className="topbar-list-options-btn" aria-label="Opciones de lista" onClick={onOpenListOptionsSheet}>
                     <UiIcon name="more" className="ui-icon" />
                   </IconButton>
@@ -443,7 +476,7 @@ export function TopBar({
         <header className={`topbar topbar-centered topbar-home topbar-profile ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
           <div className="topbar-slot">
             {profileMenuEnabled ? (
-              <IconButton tone="topbar" aria-label="Buscar usuarios" onClick={onTimelineSearchUsers}>
+              <IconButton tone="topbar" aria-label="Buscar usuarios" onClick={onHomeSearchUsers}>
                 <UiIcon name="search" className="ui-icon" />
               </IconButton>
             ) : null}
@@ -462,59 +495,65 @@ export function TopBar({
               <SheetOverlay className="profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onDismiss={() => setShowProfileOptions(false)} onClick={() => setShowProfileOptions(false)}>
                 <SheetCard className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet" onClick={(event) => event.stopPropagation()}>
                   <SheetHandle aria-hidden="true" />
-                  <div className="diary-sheet-list">
-                    <p className="profile-options-section-title">General</p>
-                    {onHistorialClick ? (
+                  <div className="diary-sheet-list list-options-general-wrap">
+                    <h3 className="create-list-privacy-subtitle">General</h3>
+                    <div className="list-options-general-card">
+                      {onHistorialClick ? (
+                        <Button
+                          variant="plain"
+                          className="list-options-page-action"
+                          onClick={() => {
+                            setShowProfileOptions(false);
+                            onHistorialClick();
+                          }}
+                        >
+                          <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">history</span>
+                          <span>Cafés consumidos</span>
+                          <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                        </Button>
+                      ) : null}
+                    </div>
+                    <div className="list-options-page-section list-options-section-spaced">
+                      <h3 className="create-list-privacy-subtitle">Cuenta</h3>
+                      <div className="list-options-general-card">
                       <Button
                         variant="plain"
-                        className="diary-sheet-action diary-sheet-action-pantry"
+                        className="list-options-page-action"
                         onClick={() => {
                           setShowProfileOptions(false);
-                          onHistorialClick();
+                          onProfileOpenEdit();
                         }}
                       >
-                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">history</span>
-                        <span>Historial</span>
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
+                        <span>Editar perfil</span>
                         <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                       </Button>
-                    ) : null}
-                    <p className="profile-options-section-title">Cuenta</p>
-                    <Button
-                      variant="plain"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      onClick={() => {
-                        setShowProfileOptions(false);
-                        onProfileOpenEdit();
-                      }}
-                    >
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
-                      <span>Editar perfil</span>
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                    </Button>
-                    <Button
-                      variant="plain"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      onClick={() => {
-                        setShowProfileOptions(false);
-                        setShowDeleteAccountConfirm(true);
-                      }}
-                    >
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">person_remove</span>
-                      <span>Eliminar mi cuenta y mis datos</span>
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                    </Button>
-                    <Button
-                      variant="plain"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      onClick={() => {
-                        setShowProfileOptions(false);
-                        onProfileSignOut();
-                      }}
-                    >
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">logout</span>
-                      <span>Cerrar sesión</span>
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                    </Button>
+                      <Button
+                        variant="plain"
+                        className="list-options-page-action"
+                        onClick={() => {
+                          setShowProfileOptions(false);
+                          setShowDeleteAccountConfirm(true);
+                        }}
+                      >
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">person_remove</span>
+                        <span>Eliminar mi cuenta y mis datos</span>
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                      </Button>
+                      <Button
+                        variant="plain"
+                        className="list-options-page-action"
+                        onClick={() => {
+                          setShowProfileOptions(false);
+                          onProfileSignOut();
+                        }}
+                      >
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">logout</span>
+                        <span>Cerrar sesión</span>
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                      </Button>
+                      </div>
+                    </div>
                   </div>
                 </SheetCard>
               </SheetOverlay>,
@@ -596,7 +635,7 @@ export function TopBar({
       <div className="topbar-slot" />
       <h1 className="title title-upper topbar-title-center topbar-brand-title">CAFESITO</h1>
       <div className="topbar-slot topbar-slot-end">
-        <IconButton tone="topbar" className={notificationPop ? "notification-pop" : ""} aria-label="Notificaciones" onClick={onTimelineNotifications}>
+        <IconButton tone="topbar" className={notificationPop ? "notification-pop" : ""} aria-label="Notificaciones" onClick={onHomeNotifications}>
           <UiIcon name="notifications" className="ui-icon" />
           {showNotificationsBadge ? <span className="badge-dot" aria-hidden="true" /> : null}
         </IconButton>

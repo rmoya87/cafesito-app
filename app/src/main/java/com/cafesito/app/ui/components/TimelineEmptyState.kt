@@ -30,7 +30,7 @@ import com.cafesito.shared.domain.SuggestedUserInfo
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TimelineEmptyState(
+fun HomeEmptyState(
     suggestedUsers: List<SuggestedUserInfo>,
     topics: List<String>,
     onFollowClick: (Int) -> Unit,
@@ -47,7 +47,7 @@ fun TimelineEmptyState(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Tu timeline está vacío",
+                    text = "Tu inicio está vacío",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

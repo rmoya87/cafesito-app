@@ -471,10 +471,29 @@ export function DiaryView({
     const targetScroll = Math.max(0, Math.min(maxScroll, currentSlotIndex * colWidth - viewportWidth / 2 + colWidth / 2));
     node.scrollLeft = targetScroll;
   }, [period, chartData.length, currentSlotIndex]);
-  const sortedPantryRows = useMemo(
-    () => [...pantryRows].sort((a, b) => Number(b.item.last_updated || 0) - Number(a.item.last_updated || 0)),
-    [pantryRows]
-  );
+  /** Ordenar despensa por último uso (actividad del usuario): el café más recientemente usado en el diario a la izquierda. */
+  const sortedPantryRows = useMemo(() => {
+    const lastUsed = new Map<string, number>();
+    entries.forEach((entry) => {
+      const ts = Number(entry.timestamp ?? 0);
+      if (entry.pantry_item_id) {
+        const cur = lastUsed.get(entry.pantry_item_id) ?? 0;
+        if (ts > cur) lastUsed.set(entry.pantry_item_id, ts);
+      }
+      if (entry.coffee_id) {
+        const key = `coffee:${entry.coffee_id}`;
+        const cur = lastUsed.get(key) ?? 0;
+        if (ts > cur) lastUsed.set(key, ts);
+      }
+    });
+    const lastUsedFor = (item: PantryItemRow) =>
+      Math.max(
+        lastUsed.get(item.id) ?? 0,
+        lastUsed.get(`coffee:${item.coffee_id}`) ?? 0,
+        Number(item.last_updated ?? 0)
+      );
+    return [...pantryRows].sort((a, b) => lastUsedFor(b.item) - lastUsedFor(a.item));
+  }, [pantryRows, entries]);
   const entryImageByCoffeeId = useMemo(() => {
     const map = new Map<string, string>();
     coffeeCatalog.forEach((coffee) => {
@@ -1041,64 +1060,62 @@ export function DiaryView({
 
       {pantryOptionsPantryItemId ? (
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => setPantryOptionsPantryItemId(null)} onClick={() => setPantryOptionsPantryItemId(null)}>
-          <SheetCard className="diary-sheet diary-sheet-pantry-options" onClick={(event) => event.stopPropagation()}>
+          <SheetCard className="diary-sheet diary-sheet-pantry-options list-options-general-wrap" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
-            <div className="diary-sheet-list">
-              <Button variant="plain"
-                type="button"
-                className="diary-sheet-action diary-sheet-action-pantry"
-                onClick={() => {
-                  const row = sortedPantryRows.find((item) => item.item.id === pantryOptionsPantryItemId);
-                  if (!row) return;
-                  setStockEditPantryItemId(row.item.id);
-                  setStockEditTotal(String(Math.max(1, row.item.total_grams)));
-                  setStockEditRemaining(String(Math.max(0, row.item.grams_remaining)));
-                  setPantryOptionsPantryItemId(null);
-                }}
-              >
-                <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                  edit
-                </span>
-                <span>Editar stock</span>
-                <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                  chevron_right
-                </span>
-              </Button>
-              {onMarkPantryCoffeeFinished ? (
-                <Button variant="plain"
-                  type="button"
-                  className="diary-sheet-action diary-sheet-action-pantry"
-                  onClick={() => {
-                    setPantryFinishedConfirmPantryId(pantryOptionsPantryItemId);
-                    setPantryOptionsPantryItemId(null);
-                  }}
-                >
-                  <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                    check_circle
-                  </span>
-                  <span>Café terminado</span>
-                  <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                    chevron_right
-                  </span>
-                </Button>
-              ) : null}
-              <Button variant="plain"
-                type="button"
-                className="diary-sheet-action diary-sheet-action-pantry"
-                disabled={removingStock}
-                onClick={() => {
-                  setPantryDeleteConfirmPantryId(pantryOptionsPantryItemId);
-                  setPantryOptionsPantryItemId(null);
-                }}
-              >
-                <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                  delete
-                </span>
-                <span>Eliminar de la despensa</span>
-                <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                  chevron_right
-                </span>
-              </Button>
+            <div className="diary-sheet-list list-options-general-wrap">
+              <div className="list-options-page-section">
+                <h3 className="create-list-privacy-subtitle">Organiza</h3>
+                <div className="list-options-general-card">
+                  <Button variant="plain"
+                    type="button"
+                    className="list-options-page-action diary-sheet-action-pantry"
+                    onClick={() => {
+                      const row = sortedPantryRows.find((item) => item.item.id === pantryOptionsPantryItemId);
+                      if (!row) return;
+                      setStockEditPantryItemId(row.item.id);
+                      setStockEditTotal(String(Math.max(1, row.item.total_grams)));
+                      setStockEditRemaining(String(Math.max(0, row.item.grams_remaining)));
+                      setPantryOptionsPantryItemId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">edit</span>
+                    <span>Editar stock</span>
+                    <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                  </Button>
+                  {onMarkPantryCoffeeFinished ? (
+                    <Button variant="plain"
+                      type="button"
+                      className="list-options-page-action diary-sheet-action-pantry"
+                      onClick={() => {
+                        setPantryFinishedConfirmPantryId(pantryOptionsPantryItemId);
+                        setPantryOptionsPantryItemId(null);
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">check_circle</span>
+                      <span>Café terminado</span>
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+              <div className="list-options-page-section list-options-section-spaced">
+                <h3 className="create-list-privacy-subtitle">General</h3>
+                <div className="list-options-general-card">
+                  <Button variant="plain"
+                    type="button"
+                    className="list-options-page-action diary-sheet-action-pantry"
+                    disabled={removingStock}
+                    onClick={() => {
+                      setPantryDeleteConfirmPantryId(pantryOptionsPantryItemId);
+                      setPantryOptionsPantryItemId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">delete</span>
+                    <span>Eliminar de la despensa</span>
+                    <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                  </Button>
+                </div>
+              </div>
             </div>
           </SheetCard>
         </SheetOverlay>
@@ -1356,9 +1373,9 @@ export function DiaryView({
                             onClick={() => setEditBrewMethod(method.name)}
                           >
                             {method.icon === "bolt" ? (
-                              <UiIcon name="bolt" className="ui-icon timeline-elaboration-method-icon-bolt" aria-hidden />
+                              <UiIcon name="bolt" className="ui-icon home-elaboration-method-icon-bolt" aria-hidden />
                             ) : method.icon === "water" ? (
-                              <UiIcon name="water" className="ui-icon timeline-elaboration-method-icon-water" aria-hidden />
+                              <UiIcon name="water" className="ui-icon home-elaboration-method-icon-water" aria-hidden />
                             ) : (
                               <img src={method.icon} alt="" aria-hidden="true" />
                             )}

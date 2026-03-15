@@ -17,7 +17,7 @@ import type {
   PostCoffeeTagRow,
   PostRow,
   ProfileActivityItem,
-  TimelineCard,
+  HomeCard,
   UserRow
 } from "../../types";
 import type { UserListItemActivityRow } from "../../data/supabaseApi";
@@ -198,8 +198,8 @@ export function useAppDerivedData({
     return { bySlug, byId };
   }, [coffees]);
 
-  const timelineCards: TimelineCard[] = useMemo(() => {
-    const postCards: TimelineCard[] = posts.map((post) => {
+  const homeCards: HomeCard[] = useMemo(() => {
+    const postCards: HomeCard[] = posts.map((post) => {
       const user = usersById.get(post.user_id);
       const postLikes = likesByPostId.get(post.id) ?? 0;
       const postComments = commentsByPostId.get(post.id)?.length ?? 0;
@@ -265,7 +265,7 @@ export function useAppDerivedData({
         coffeeTagBrand: coffee.marca,
         coffeeImageUrl: coffee.image_url,
         likedByActiveUser: false,
-        rating: review.rating // We might need to add this to TimelineCard type
+        rating: review.rating
       });
     });
 
@@ -409,7 +409,30 @@ export function useAppDerivedData({
     return brewCoffeeCatalog.find((coffee) => coffee.id === brewCoffeeId) ?? null;
   }, [brewCoffeeCatalog, brewCoffeeId]);
 
-  /** Ítems de despensa para home (TU DESPENSA): ordenados por último uso (last_updated desc) para mostrar a la izquierda el más recientemente utilizado. */
+  /** Último uso por ítem de despensa: max timestamp de actividad (diario) donde se usó ese pantry_item_id o coffee_id. */
+  const lastUsedByPantry = useMemo(() => {
+    const byId = new Map<string, number>();
+    const byCoffeeId = new Map<string, number>();
+    diaryEntries.forEach((entry) => {
+      const ts = Number(entry.timestamp ?? 0);
+      if (entry.pantry_item_id) {
+        const cur = byId.get(entry.pantry_item_id) ?? 0;
+        if (ts > cur) byId.set(entry.pantry_item_id, ts);
+      }
+      if (entry.coffee_id) {
+        const cur = byCoffeeId.get(entry.coffee_id) ?? 0;
+        if (ts > cur) byCoffeeId.set(entry.coffee_id, ts);
+      }
+    });
+    return (item: PantryItemRow) =>
+      Math.max(
+        byId.get(item.id) ?? 0,
+        byCoffeeId.get(item.coffee_id) ?? 0,
+        Number(item.last_updated ?? 0)
+      );
+  }, [diaryEntries]);
+
+  /** Ítems de despensa para home (TU DESPENSA): ordenados por último uso (actividad del usuario) para mostrar a la izquierda el más recientemente utilizado. */
   const brewPantryItems = useMemo(() => {
     const coffeeById = new Map<string, CoffeeRow>();
     brewCoffeeCatalog.forEach((coffee) => {
@@ -427,14 +450,18 @@ export function useAppDerivedData({
         return { item, coffee, total, remaining, progress };
       })
       .filter((row): row is { item: PantryItemRow; coffee: CoffeeRow; total: number; remaining: number; progress: number } => Boolean(row))
-      .sort((a, b) => Number(b.item.last_updated ?? 0) - Number(a.item.last_updated ?? 0));
-  }, [brewCoffeeCatalog, pantryItems]);
+      .sort((a, b) => lastUsedByPantry(b.item) - lastUsedByPantry(a.item));
+  }, [brewCoffeeCatalog, pantryItems, lastUsedByPantry]);
 
   const diaryEntriesActivity = diaryEntries.slice(0, 80);
   const orderedBrewMethods = useMemo(() => getOrderedBrewMethods(diaryEntries), [diaryEntries]);
-  const pantryCoffeeRows = pantryItems
-    .map((item) => ({ item, coffee: brewCoffeeCatalog.find((coffee) => coffee.id === item.coffee_id) }))
-    .filter((row): row is { item: PantryItemRow; coffee: CoffeeRow } => row.coffee != null);
+  /** Despensa para diario y otros usos: último café usado primero (actividad del usuario, a la izquierda). */
+  const pantryCoffeeRows = useMemo(() => {
+    return pantryItems
+      .map((item) => ({ item, coffee: brewCoffeeCatalog.find((coffee) => coffee.id === item.coffee_id) }))
+      .filter((row): row is { item: PantryItemRow; coffee: CoffeeRow } => row.coffee != null)
+      .sort((a, b) => lastUsedByPantry(b.item) - lastUsedByPantry(a.item));
+  }, [pantryItems, brewCoffeeCatalog, lastUsedByPantry]);
 
   const diaryCoffeeOptions = useMemo(() => {
     const map = new Map<string, CoffeeRow>();
@@ -471,8 +498,8 @@ export function useAppDerivedData({
   }, [profileUser, follows, usersById]);
 
   const profilePosts = useMemo(
-    () => timelineCards.filter((card) => card.userId === (profileUser?.id ?? -1)),
-    [profileUser?.id, timelineCards]
+    () => homeCards.filter((card) => card.userId === (profileUser?.id ?? -1)),
+    [profileUser?.id, homeCards]
   );
 
   const favoriteCoffees = useMemo(
@@ -849,7 +876,7 @@ export function useAppDerivedData({
       .slice(0, 120);
   }, [activeUser?.id, followingIds, searchQuery, users]);
 
-  const timelineRecommendations = useMemo(() => {
+  const homeRecommendations = useMemo(() => {
     if (!coffees.length) return [] as CoffeeRow[];
     if (!activeUser) return coffees.slice(0, 9);
 
@@ -907,7 +934,7 @@ export function useAppDerivedData({
     return result;
   }, [activeUser, coffees, detailCoffeeId, favorites, pantryItems, recommendationDateKey]);
 
-  const timelineSuggestions = useMemo(
+  const homeSuggestions = useMemo(
     () =>
       users
         .filter((user) => user.id !== activeUser?.id && !followingIds.has(user.id))
@@ -915,16 +942,16 @@ export function useAppDerivedData({
     [activeUser?.id, followingIds, users]
   );
 
-  const timelineSuggestionIndices = useMemo(() => {
-    if (timelineCards.length < 3) return [] as number[];
-    const seed = Math.max(timelineCards.length, 1) + (activeUser?.id ?? 0);
-    const first = Math.max(1, seed % timelineCards.length);
-    let second = Math.max(1, (seed * 7) % timelineCards.length);
-    if (second === first) second = Math.min(timelineCards.length - 1, second + 1);
+  const homeSuggestionIndices = useMemo(() => {
+    if (homeCards.length < 3) return [] as number[];
+    const seed = Math.max(homeCards.length, 1) + (activeUser?.id ?? 0);
+    const first = Math.max(1, seed % homeCards.length);
+    let second = Math.max(1, (seed * 7) % homeCards.length);
+    if (second === first) second = Math.min(homeCards.length - 1, second + 1);
     return [first, second];
-  }, [activeUser?.id, timelineCards.length]);
+  }, [activeUser?.id, homeCards.length]);
 
-  const timelineNotifications = useMemo<TimelineNotificationItem[]>(() => {
+  const homeNotifications = useMemo<TimelineNotificationItem[]>(() => {
     if (!activeUser) return [];
 
     const normalizeNotificationText = (text: string) => {
@@ -987,14 +1014,14 @@ export function useAppDerivedData({
     });
   }, [activeUser, notifications, usersById, usersByUsername]);
 
-  const visibleTimelineNotifications = useMemo(
-    () => timelineNotifications.filter((item) => !dismissedNotificationIds.has(String(item.id))),
-    [dismissedNotificationIds, timelineNotifications]
+  const visibleHomeNotifications = useMemo(
+    () => homeNotifications.filter((item) => !dismissedNotificationIds.has(String(item.id))),
+    [dismissedNotificationIds, homeNotifications]
   );
 
   const showNotificationsBadge = useMemo(
-    () => visibleTimelineNotifications.some((item) => item.is_read === false),
-    [visibleTimelineNotifications]
+    () => visibleHomeNotifications.some((item) => item.is_read === false),
+    [visibleHomeNotifications]
   );
 
   return {
@@ -1002,7 +1029,7 @@ export function useAppDerivedData({
     usersById,
     coffeesById,
     coffeeSlugIndex,
-    timelineCards,
+    homeCards,
     filteredCoffees,
     searchOriginOptions,
     createCoffeeCountryOptions,
@@ -1042,10 +1069,10 @@ export function useAppDerivedData({
     followerCounts,
     followingCounts,
     filteredSearchUsers,
-    timelineRecommendations,
-    timelineSuggestions,
-    timelineSuggestionIndices,
-    visibleTimelineNotifications,
+    homeRecommendations,
+    homeSuggestions,
+    homeSuggestionIndices,
+    visibleHomeNotifications,
     showNotificationsBadge
   };
 }

@@ -105,12 +105,13 @@
   cursor: grabbing;
 }
 
+/* Mismo espacio superior que .diary-sheet-list sin título (list-options-general-wrap) */
 .sheet-header {
   position: sticky;
   top: 0;
   display: grid;
   place-items: center;
-  padding: 10px 14px 12px;
+  padding: 20px 14px 12px;
   border-bottom: none;
   background: var(--modal-header-bg);
   backdrop-filter: blur(8px);
@@ -120,6 +121,58 @@
 .sheet-card header,
 .sheet-card [class*="-header"] {
   border-bottom: none !important;
+}
+
+/* Estándar: título de modal siempre centrado */
+.sheet-card .sheet-header .sheet-title {
+  text-align: center;
+  margin: 0;
+}
+/* Header con título + botón de acción: título centrado en todo el ancho, botón a la derecha */
+.sheet-header-with-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  padding: 0px 14px 12px;
+  place-items: unset;
+}
+.sheet-header-with-action .sheet-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+.sheet-header-with-action .modal-action-btn {
+  position: relative;
+  pointer-events: auto;
+}
+
+/* Estándar: botón de acción en modales (ej. Añadir, Listo). Sin fondo; texto negro en modo día, blanco en modo noche */
+.modal-action-btn {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--pure-black);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 12px;
+  min-height: 44px;
+}
+.modal-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+html.theme-dark .modal-action-btn {
+  color: var(--pure-white);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .modal-action-btn {
+    color: var(--pure-white);
+  }
 }
 
 .sheet-body {

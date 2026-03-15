@@ -114,6 +114,7 @@ data class DiaryBaristaStats(
 class DiaryViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
     private val coffeeRepository: CoffeeRepository,
+    private val syncManager: SyncManager,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -550,11 +551,11 @@ class DiaryViewModel @Inject constructor(
         }
     }
 
-    /** Refresca la lista de cafés (tabla coffees) para pantallas que la usan (p. ej. AddStockScreen). */
+    /** Refresca la lista de cafés (tabla coffees) desde Supabase para pantallas que la usan (p. ej. AddStockScreen). Centralizado en SyncManager con reintento. */
     fun refreshCoffeesForStock() {
         viewModelScope.launch {
             try {
-                coffeeRepository.syncCoffees()
+                syncManager.syncCoffeesIfNeeded(force = true)
             } catch (e: Exception) { /* best-effort */ }
         }
     }

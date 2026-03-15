@@ -122,16 +122,7 @@ export function DiaryLineChart({
       interaction: { intersect: false, mode: "index" },
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const v = ctx.parsed.y;
-              const label = ctx.dataset.label ?? "";
-              if (label.startsWith("Agua")) return `${label}: ${v} ml`;
-              return `${label}: ${v} mg`;
-            }
-          }
-        },
+        tooltip: { enabled: false },
       },
       scales: {
         x: {

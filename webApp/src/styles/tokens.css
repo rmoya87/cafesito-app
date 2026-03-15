@@ -98,9 +98,9 @@
   --sheet-overlay-bg: rgba(0, 0, 0, 0.55);
   --sheet-shadow: rgba(0, 0, 0, 0.44);
   --ui-switch-track-bg: rgba(255, 255, 255, 0.08);
-  /* Switch inactivo: visible en fondos claros (tarjetas, superficie clara) */
-  --ui-switch-track-off: rgba(0, 0, 0, 0.12);
-  --ui-switch-border-off: rgba(0, 0, 0, 0.2);
+  /* Switch desactivado: gris oscuro en modo día */
+  --ui-switch-track-off: #757575;
+  --ui-switch-border-off: rgba(0, 0, 0, 0.25);
   /* Cajas/tarjetas de superficie: borde, sombra y redondeo unificados (como temporizador) */
   --surface-card-border: 1px solid rgba(0, 0, 0, 0.08);
   --surface-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -138,9 +138,9 @@
     --border-strong: #000000;
     --modal-field-border: #000000;
     --slider-track-inactive: rgba(255, 255, 255, 0.22);
-    /* Switch inactivo: visible en fondos oscuros */
-    --ui-switch-track-off: rgba(255, 255, 255, 0.15);
-    --ui-switch-border-off: rgba(255, 255, 255, 0.25);
+    /* Switch desactivado: gris claro en modo noche */
+    --ui-switch-track-off: #b0b0b0;
+    --ui-switch-border-off: rgba(255, 255, 255, 0.35);
     /* Cajas/tarjetas de superficie en modo oscuro */
     --surface-card-border: 1px solid rgba(255, 255, 255, 0.12);
     --surface-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
@@ -291,7 +291,7 @@
   .config-card,
   .coffee-profile-card,
   .feed-card-premium,
-  .timeline-empty,
+  .home-empty,
   .notifications-reply,
   .brew-tech-card,
   .brew-timer-card,
@@ -668,7 +668,7 @@ html.theme-dark .coffee-card,
 html.theme-dark .config-card,
 html.theme-dark .coffee-profile-card,
 html.theme-dark .feed-card-premium,
-html.theme-dark .timeline-empty,
+html.theme-dark .home-empty,
 html.theme-dark .notifications-reply,
 html.theme-dark .brew-tech-card,
 html.theme-dark .brew-timer-card,

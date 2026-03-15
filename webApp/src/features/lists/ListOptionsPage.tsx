@@ -1,8 +1,7 @@
 import { Button, cn } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
-import type { UserRow } from "../../types";
-import type { ListMemberRow, UserListRow } from "../../data/supabaseApi";
-import type { ListPrivacy } from "../../types";
+import type { UserRow, UserListRow, ListPrivacy } from "../../types";
+import type { ListMemberRow, ListInvitationRow } from "../../data/supabaseApi";
 import { LIST_PRIVACY_OPTIONS } from "./listPrivacyOptions";
 import { ListOptionsMembersBlock } from "./ListOptionsMembersBlock";
 import { Switch } from "../../ui/components";
@@ -16,6 +15,7 @@ export function ListOptionsPage({
   isOwner,
   listPrivacy,
   listMembersCanEdit,
+  listMembersCanInvite = false,
   onPrivacyChange,
   listOptionsMembers,
   listOptionsMemberUsers,
@@ -30,13 +30,17 @@ export function ListOptionsPage({
   copyChipExiting,
   onEditList,
   onDeleteList,
-  onLeaveList
+  onLeaveList,
+  mutualFollowIds,
+  invitations = []
 }: {
   list: UserListRow | null;
   isOwner: boolean;
   listPrivacy: ListPrivacy;
   listMembersCanEdit: boolean;
-  onPrivacyChange: (privacy: ListPrivacy, membersCanEdit: boolean) => Promise<void>;
+  /** Solo aplica cuando privacy es invitation. Por defecto false. */
+  listMembersCanInvite?: boolean;
+  onPrivacyChange: (privacy: ListPrivacy, membersCanEdit: boolean, membersCanInvite?: boolean) => Promise<void>;
   listOptionsMembers: ListMemberRow[];
   listOptionsMemberUsers: UserRow[];
   users: UserRow[];
@@ -51,23 +55,25 @@ export function ListOptionsPage({
   onEditList: () => void;
   onDeleteList: () => void;
   onLeaveList: () => void;
+  /** IDs de usuarios con follow mutuo (para listas públicas: terceros solo ven en Miembros a estos). */
+  mutualFollowIds?: Set<number>;
+  /** Invitaciones pendientes (para mostrar "Invitación enviada" y filtrar sugerencias). */
+  invitations?: ListInvitationRow[];
 }) {
   return (
     <section className="list-options-page profile-users-list-view" aria-label="Opciones de lista">
       <div className="list-options-page-content">
         {isOwner && (
-          <div className="list-options-page-section list-options-privacy create-list-sheet">
+          <div className="list-options-page-section list-options-privacy">
             <h3 className="create-list-privacy-subtitle">Privacidad</h3>
-            <div className="create-list-privacy-options">
-              {LIST_PRIVACY_OPTIONS.map((opt) => (
-                <div
-                  key={opt.value}
-                  className={cn("create-list-privacy-option", listPrivacy === opt.value && "is-selected")}
-                >
+            <div className="create-list-privacy-card">
+              <div className="create-list-privacy-options">
+                {LIST_PRIVACY_OPTIONS.map((opt) => (
                   <button
+                    key={opt.value}
                     type="button"
-                    className="create-list-privacy-option-btn"
-                    onClick={() => void onPrivacyChange(opt.value, listMembersCanEdit)}
+                    className={cn("create-list-privacy-option-btn", listPrivacy === opt.value && "is-selected")}
+                    onClick={() => void onPrivacyChange(opt.value, listMembersCanEdit, listMembersCanInvite)}
                     aria-pressed={listPrivacy === opt.value}
                   >
                     <span className="create-list-privacy-option-check">
@@ -82,24 +88,40 @@ export function ListOptionsPage({
                       <span className="create-list-privacy-option-desc">{opt.description}</span>
                     </div>
                   </button>
-                  {(opt.value === "public" || opt.value === "invitation") && (
-                    <div
-                      className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span className="share-list-privacy-option-switch-label">Permitir editar lista</span>
-                      <Switch
-                        checked={listMembersCanEdit}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void onPrivacyChange(listPrivacy, !listMembersCanEdit);
-                        }}
-                        aria-label="Permitir que los miembros añadan o quiten cafés de la lista"
-                      />
-                    </div>
-                  )}
+                ))}
+              </div>
+              {listPrivacy === "invitation" && (
+                <div
+                  className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="share-list-privacy-option-switch-label">Permitir que los miembros inviten</span>
+                  <Switch
+                    checked={listMembersCanInvite}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void onPrivacyChange(listPrivacy, listMembersCanEdit, !listMembersCanInvite);
+                    }}
+                    aria-label="Permitir que los miembros inviten a otras personas al grupo"
+                  />
                 </div>
-              ))}
+              )}
+              {(listPrivacy === "public" || listPrivacy === "invitation") && (
+                <div
+                  className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="share-list-privacy-option-switch-label">Permitir editar lista</span>
+                  <Switch
+                    checked={listMembersCanEdit}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void onPrivacyChange(listPrivacy, !listMembersCanEdit, listMembersCanInvite);
+                    }}
+                    aria-label="Permitir que los miembros añadan o quiten cafés de la lista"
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -120,13 +142,60 @@ export function ListOptionsPage({
               onRemoveMember={onRemoveMember}
               copyChipVisible={showCopyChip}
               copyChipExiting={copyChipExiting}
+              invitations={invitations}
+              canRemoveMember
+            />
+          </div>
+        )}
+
+        {!isOwner && list && listPrivacy === "public" && (
+          <div className="list-options-page-section">
+            <ListOptionsMembersBlock
+              variant="page"
+              listOwnerId={list.user_id}
+              members={listOptionsMembers}
+              memberUsers={listOptionsMemberUsers}
+              users={users}
+              currentUserId={currentUserId}
+              shareUrl={shareUrl}
+              invitingId={invitingId}
+              onInvite={onInvite}
+              onCopyLink={onCopyLink}
+              onRemoveMember={async () => {}}
+              copyChipVisible={showCopyChip}
+              copyChipExiting={copyChipExiting}
+              invitations={invitations}
+              canRemoveMember={false}
+              visibleMemberIds={mutualFollowIds}
+            />
+          </div>
+        )}
+
+        {!isOwner && list && listPrivacy === "invitation" && (list.members_can_invite === true) && (
+          <div className="list-options-page-section">
+            <ListOptionsMembersBlock
+              variant="page"
+              listOwnerId={list.user_id}
+              members={listOptionsMembers}
+              memberUsers={listOptionsMemberUsers}
+              users={users}
+              currentUserId={currentUserId}
+              shareUrl={shareUrl}
+              invitingId={invitingId}
+              onInvite={onInvite}
+              onCopyLink={onCopyLink}
+              onRemoveMember={async () => {}}
+              copyChipVisible={showCopyChip}
+              copyChipExiting={copyChipExiting}
+              invitations={invitations}
+              canRemoveMember={false}
             />
           </div>
         )}
 
         <div className="list-options-page-section list-options-general">
           <h3 className="create-list-privacy-subtitle">General</h3>
-          <div className="list-options-page-actions">
+          <div className="list-options-general-card">
             {isOwner ? (
               <>
                 <Button
@@ -151,12 +220,11 @@ export function ListOptionsPage({
             ) : (
               <Button
                 variant="plain"
-                className="list-options-page-action list-options-page-action-leave"
+                className="list-options-page-action list-options-page-action-leave list-options-page-action-leave-row"
                 onClick={onLeaveList}
               >
                 <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">logout</span>
-                <span>Abandonar lista</span>
-                <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                <span>Salir de la lista</span>
               </Button>
             )}
           </div>

@@ -706,7 +706,7 @@ input {
 .search-cancel-button {
   color: var(--text-main);
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -875,12 +875,12 @@ html.theme-light .topbar-share-list-btn .topbar-share-list-icon {
   color: #000;
 }
 
-/* Lista: número de miembros + hasta 3 avatares apilados (sustituye person_add si lista pública/invitación) */
+/* Lista: total de miembros a la izquierda + hasta 3 avatares apilados (pisándose), cuando hay gente en la lista */
 .topbar-list-members-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px 4px 10px;
+  gap: 0;
+  padding: 4px 8px 4px 12px;
   border: none;
   border-radius: 999px;
   background: var(--surface-variant);
@@ -898,25 +898,34 @@ html.theme-light .topbar-share-list-btn .topbar-share-list-icon {
 }
 .topbar-list-members-count {
   line-height: 1;
+  margin-right: 8px;
 }
 .topbar-list-members-avatars {
   display: flex;
   align-items: center;
-  margin-left: 2px;
+  margin-left: 0;
 }
 .topbar-list-members-avatar-wrap {
-  margin-left: -8px;
-  width: 24px;
-  height: 24px;
+  margin-left: -10px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid var(--surface-variant);
   background: var(--surface);
   flex-shrink: 0;
+  position: relative;
+  z-index: 0;
 }
 .topbar-list-members-avatar-wrap:first-child {
   margin-left: 0;
 }
+.topbar-list-members-avatar-wrap:nth-child(1) { z-index: 1; }
+.topbar-list-members-avatar-wrap:nth-child(2) { z-index: 2; }
+.topbar-list-members-avatar-wrap:nth-child(3) { z-index: 3; }
 .topbar-list-members-avatar {
   width: 100%;
   height: 100%;
@@ -982,16 +991,21 @@ html.theme-light .topbar-share-list-btn .topbar-share-list-icon {
 .list-options-page-section:last-child {
   margin-bottom: 0;
 }
-.list-options-page .list-options-privacy .create-list-privacy-option-switch-row {
+/* "Permitir editar lista": separación clara por encima (página Opciones de lista) */
+.list-options-page .list-options-privacy .create-list-privacy-option-switch-row,
+.list-options-page .create-list-sheet .create-list-privacy-option .create-list-privacy-option-switch-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 24px;
   margin-bottom: 10px;
+  padding-top: 4px;
   padding-right: 12px;
+  box-sizing: border-box;
 }
-.list-options-page .list-options-privacy .create-list-privacy-option-switch-row .ui-switch {
+.list-options-page .list-options-privacy .create-list-privacy-option-switch-row .ui-switch,
+.list-options-page .create-list-sheet .create-list-privacy-option-switch-row .ui-switch {
   flex-shrink: 0;
 }
 .list-options-page-actions {
@@ -1031,33 +1045,152 @@ html.theme-light .topbar-share-list-btn .topbar-share-list-icon {
   max-width: 100%;
   box-sizing: border-box;
 }
+/* Card Miembros: bg blanco (día) / negro (noche); el subtítulo "Miembros" queda fuera */
 .list-options-members-box {
-  background: var(--surface);
   border-radius: var(--radius-md);
-  padding: 12px 16px;
+  padding: 0 16px;
   margin-top: 6px;
+  overflow: hidden;
+}
+html.theme-light .list-options-members-box {
+  background: #fff;
 }
 html.theme-dark .list-options-members-box,
 html:not(.theme-light) .list-options-members-box {
-  background: #1a1a1a;
+  background: #000;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-box {
+    background: #fff;
+  }
 }
 @media (prefers-color-scheme: dark) {
   html:not(.theme-light) .list-options-members-box {
-    background: #1a1a1a;
+    background: #000;
   }
 }
+/* Mismo padding vertical en todos los elementos; líneas de separación a ancho completo (sin padding lateral) */
 .list-options-members-add {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  background: var(--input-bg, transparent);
+  gap: 10px;
+  margin-bottom: 0;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 14px 16px;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-default);
+}
+/* Modo día: separación entre elementos gris clara */
+html.theme-light .list-options-members-box .list-options-members-add,
+html.theme-light .list-options-members-box .list-options-members-copy-link,
+html.theme-light .list-options-members-box .list-options-members-row .list-options-members-row-content,
+html.theme-light .list-options-members--page .search-users-container .search-users-row {
+  border-bottom-color: #d7d3cf;
+}
+html.theme-light .list-options-members-box .list-options-members-add {
+  border-bottom-color: #f7f7f7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-box .list-options-members-add,
+  html:not(.theme-dark) .list-options-members-box .list-options-members-copy-link,
+  html:not(.theme-dark) .list-options-members-box .list-options-members-row .list-options-members-row-content,
+  html:not(.theme-dark) .list-options-members--page .search-users-container .search-users-row {
+    border-bottom-color: #d7d3cf;
+  }
+  html:not(.theme-dark) .list-options-members-box .list-options-members-add {
+    border-bottom-color: #f7f7f7;
+  }
+}
+/* Modo noche: separación entre elementos gris clara (visible sobre fondo oscuro) */
+html.theme-dark .list-options-members-add,
+html:not(.theme-light) .list-options-members-add {
+  border-bottom-color: rgb(33, 33, 33);
+}
+html.theme-dark .list-options-members-copy-link,
+html:not(.theme-light) .list-options-members-copy-link {
+  border-bottom-color: rgb(33, 33, 33);
+}
+html.theme-dark .list-options-members-box .list-options-members-row .list-options-members-row-content,
+html:not(.theme-light) .list-options-members-box .list-options-members-row .list-options-members-row-content {
+  border-bottom-color: rgba(255, 255, 255, 0.4);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-add {
+    border-bottom-color: rgb(33, 33, 33);
+  }
+  html:not(.theme-light) .list-options-members-copy-link {
+    border-bottom-color: rgb(33, 33, 33);
+  }
+  html:not(.theme-light) .list-options-members-box .list-options-members-row .list-options-members-row-content {
+    border-bottom-color: rgba(255, 255, 255, 0.4);
+  }
+}
+/* Input sin borde propio: lupa y texto dentro del mismo campo pill */
+.list-options-members-add .list-options-members-search-input.search-wide {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+.list-options-members-add .list-options-members-search-input.search-wide:focus,
+.list-options-members-add .list-options-members-search-input.search-wide:focus-visible {
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Campo búsqueda: sin borde; colores según tema (card ya tiene bg) */
+html.theme-light .list-options-members-box .list-options-members-add {
+  background: transparent;
+  color: #1a1a1a;
+}
+html.theme-light .list-options-members-add .list-options-members-search-icon {
+  color: #1a1a1a;
+}
+html.theme-light .list-options-members-search-input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+html.theme-dark .list-options-members-box .list-options-members-add,
+html:not(.theme-light) .list-options-members-box .list-options-members-add {
+  background: transparent;
+  color: #fff;
+}
+html.theme-dark .list-options-members-add .list-options-members-search-icon,
+html:not(.theme-light) .list-options-members-add .list-options-members-search-icon {
+  color: #fff;
+}
+html.theme-dark .list-options-members-search-input::placeholder,
+html:not(.theme-light) .list-options-members-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-box .list-options-members-add {
+    background: transparent;
+    color: #1a1a1a;
+  }
+  html:not(.theme-dark) .list-options-members-add .list-options-members-search-icon {
+    color: #1a1a1a;
+  }
+  html:not(.theme-dark) .list-options-members-search-input::placeholder {
+    color: rgba(0, 0, 0, 0.5);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-box .list-options-members-add {
+    background: transparent;
+    color: #fff;
+  }
+  html:not(.theme-light) .list-options-members-add .list-options-members-search-icon {
+    color: #fff;
+  }
+  html:not(.theme-light) .list-options-members-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
 }
 .list-options-members-search-icon {
-  color: var(--text-subtle);
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
 .list-options-members-search-input {
@@ -1066,6 +1199,10 @@ html:not(.theme-light) .list-options-members-box {
   border: none;
   background: none;
   font: inherit;
+  color: inherit;
+}
+.list-options-members-search-input:focus {
+  outline: none;
 }
 .list-options-members-suggestions {
   margin-bottom: 12px;
@@ -1098,9 +1235,12 @@ html:not(.theme-light) .list-options-members-box {
 .list-options-members-avatar-placeholder {
   width: 36px;
   height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  display: block;
 }
 .list-options-members-avatar-placeholder {
   display: flex;
@@ -1120,23 +1260,82 @@ html:not(.theme-light) .list-options-members-box {
 }
 .list-options-members-invite-btn {
   flex-shrink: 0;
-  padding: 6px 12px;
-  font-size: 0.85rem;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+}
+/* Botón Invitar: modo día marrón + blanco, modo noche marrón claro + negro (como en modal Invitaciones) */
+html.theme-light .list-options-members-invite-btn {
+  background: #6f4e37;
+  color: #ffffff;
+}
+html.theme-dark .list-options-members-invite-btn,
+html:not(.theme-light) .list-options-members-invite-btn {
+  background: #d4a373;
+  color: #000000;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-invite-btn {
+    background: #6f4e37;
+    color: #ffffff;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-invite-btn {
+    background: #d4a373;
+    color: #000000;
+  }
+}
+.list-options-members-invite-btn:disabled {
+  opacity: 0.7;
+}
+.list-options-members-already-in-list,
+.list-options-members-pending-label {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
 }
 .list-options-members-copy-link {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  width: calc(100% + 32px);
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 14px 16px;
+  margin-bottom: 0;
   border: none;
-  border-radius: var(--radius-sm);
-  background: var(--surface-variant);
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-default);
+  background: transparent;
   color: var(--link);
   font: inherit;
   cursor: pointer;
   text-align: left;
+  box-sizing: border-box;
+}
+/* Copiar enlace: texto/icono blanco en modo noche (card negro), negro en modo día (card blanco) */
+html.theme-dark .list-options-members-copy-link,
+html.theme-dark .list-options-members-copy-link .list-options-members-copy-icon {
+  color: #fff;
+}
+html.theme-light .list-options-members-copy-link,
+html.theme-light .list-options-members-copy-link .list-options-members-copy-icon {
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-copy-link,
+  html:not(.theme-light) .list-options-members-copy-link .list-options-members-copy-icon {
+    color: #fff;
+  }
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-copy-link,
+  html:not(.theme-dark) .list-options-members-copy-link .list-options-members-copy-icon {
+    color: #1a1a1a;
+  }
 }
 .list-options-members-copy-link:hover {
   filter: brightness(1.05);
@@ -1167,6 +1366,10 @@ html:not(.theme-light) .list-options-members-box {
   position: relative;
   z-index: 1;
   transition: transform 0.2s ease;
+  border-bottom: 1px solid var(--border-default);
+}
+.list-options-members-row:last-child .list-options-members-row-content {
+  border-bottom: none;
 }
 .list-options-members-row.is-swiped .list-options-members-row-content {
   transform: translateX(-72px);
@@ -1202,7 +1405,28 @@ html:not(.theme-light) .list-options-members-box {
   margin-bottom: 0;
 }
 .list-options-members--page .search-users-container {
-  margin-top: 12px;
+  margin-top: 0;
+}
+/* Filas de usuario: poca altura (poco padding arriba/abajo, avatar más pequeño) */
+.list-options-members--page .search-users-container .search-users-row {
+  border: none;
+  border-radius: 0;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 12px 16px;
+  min-height: 0;
+  width: calc(100% + 32px);
+  box-sizing: border-box;
+  background: transparent;
+  margin-bottom: 0;
+}
+.list-options-members--page .search-users-container .search-users-row .search-users-avatar,
+.list-options-members--page .search-users-container .search-users-row .search-users-avatar-fallback {
+  width: 40px;
+  height: 40px;
+}
+.list-options-members--page .search-users-container .search-users-row:last-child {
+  border-bottom: none;
 }
 .list-options-members-row-info {
   flex: 1;
@@ -1544,7 +1768,7 @@ html:not(.theme-light) .list-options-members-box {
 
 .diary-calendar-month-title {
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-main);
   margin-bottom: 8px;
   text-align: center;
@@ -1782,7 +2006,7 @@ html:not(.theme-light) .list-options-members-box {
   padding-right: 16px;
 }
 
-.timeline-shell {
+.home-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
@@ -1792,7 +2016,7 @@ html:not(.theme-light) .list-options-members-box {
 }
 
 /* Marrón solo en la zona del hero: el bloque se extiende con márgenes negativos (arriba y laterales) */
-.timeline-hero {
+.home-hero {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -1804,13 +2028,13 @@ html:not(.theme-light) .list-options-members-box {
   background: var(--caramel-accent);
 }
 
-.timeline-hero-greeting {
+.home-hero-greeting {
   display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.timeline-hero-avatar {
+.home-hero-avatar {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-pill);
@@ -1819,7 +2043,7 @@ html:not(.theme-light) .list-options-members-box {
   border: 2px solid rgba(255, 255, 255, 0.4);
 }
 
-.timeline-hero-avatar-fallback {
+.home-hero-avatar-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1829,19 +2053,19 @@ html:not(.theme-light) .list-options-members-box {
   font-weight: var(--font-weight-semibold);
 }
 
-.timeline-hero-greeting-text {
+.home-hero-greeting-text {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--pure-white);
   margin: 0;
 }
 
-.timeline-hero-strip {
+.home-hero-strip {
   padding: var(--space-4) var(--space-4);
   border-radius: var(--radius-md);
 }
 
-.timeline-hero-strip .timeline-hero-title {
+.home-hero-strip .home-hero-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
@@ -1849,21 +2073,21 @@ html:not(.theme-light) .list-options-members-box {
   margin: 0;
 }
 
-.timeline-hero .timeline-search-row .search-coffee-input {
+.home-hero .home-search-row .search-coffee-input {
   background: rgba(255, 255, 255, 0.95) !important;
   border-color: rgba(255, 255, 255, 0.6) !important;
   color: var(--espresso-deep);
 }
 
-.timeline-hero .timeline-search-row .search-coffee-placeholder {
+.home-hero .home-search-row .search-coffee-placeholder {
   color: var(--espresso-medium);
 }
 
-.timeline-hero .timeline-search-row .search-coffee-leading-icon {
+.home-hero .home-search-row .search-coffee-leading-icon {
   color: var(--espresso-medium);
 }
 
-.timeline-search-row {
+.home-search-row {
   display: flex;
   align-items: center;
   width: 100%;
@@ -1871,18 +2095,18 @@ html:not(.theme-light) .list-options-members-box {
   cursor: pointer;
 }
 
-.timeline-search-row .search-coffee-field {
+.home-search-row .search-coffee-field {
   width: 100%;
 }
 
 /* Solo el buscador falso (sin .topbar-search) tiene input no interactivo */
-.timeline-search-row:not(.topbar-search) .timeline-search-input {
+.home-search-row:not(.topbar-search) .home-search-input {
   pointer-events: none;
   cursor: pointer;
 }
 
 /* Hero: mismo layout que topbar-search (campo + cancel) sin chips */
-.timeline-hero .timeline-hero-search-row.topbar-search {
+.home-hero .home-hero-search-row.topbar-search {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 0;
   gap: 6px var(--space-2);
@@ -1893,31 +2117,30 @@ html:not(.theme-light) .list-options-members-box {
   background: transparent;
   transition: grid-template-columns var(--duration-normal) var(--ease-standard);
 }
-.timeline-hero .timeline-hero-search-row.topbar-search.has-cancel {
+.home-hero .home-hero-search-row.topbar-search.has-cancel {
   grid-template-columns: minmax(0, 1fr) 84px;
 }
 
-.timeline-search-row .search-coffee-placeholder span {
+.home-search-row .search-coffee-placeholder span {
   animation: none;
 }
 
 /* Formas de elaboración: ancho completo hasta ambos bordes (izq. con margen inicial, der. pegada) */
-.timeline-elaboration-methods {
+.home-elaboration-methods {
   flex-shrink: 0;
   min-width: 0;
   width: calc(100% + 2 * var(--app-shell-gutter));
   max-width: none;
-  margin-top: var(--space-6);
+  margin-top: 0;
   margin-left: calc(-1 * var(--app-shell-gutter));
   margin-right: 0;
   margin-bottom: var(--space-6);
-  padding: var(--space-4) 0;
-  background: var(--screen-light-background);
+  padding: 0;
   box-sizing: border-box;
   overflow: hidden;
 }
 
-html.theme-dark .timeline-elaboration-methods {
+html.theme-dark .home-elaboration-methods {
   background: var(--screen-dark-background);
 }
 
@@ -1935,45 +2158,40 @@ html.theme-dark .timeline-elaboration-methods {
   }
 }
 
-/* Modo noche por sistema (prefers-color-scheme: dark): mismo estilo que html.theme-dark — fondos negros, activos marrón sin borde */
+/* Modo noche por sistema (prefers-color-scheme: dark). Elaboración solo usa modo día/noche por tema (html.theme-dark); aquí no se aplican estilos a .brew-select-step */
 @media (prefers-color-scheme: dark) {
-  .timeline-elaboration-methods,
-  .brew-select-step .timeline-elaboration-methods {
+  .home-elaboration-methods,
+  .brew-select-step .home-elaboration-methods {
     background: transparent !important;
   }
-  /* Círculos método y tipo: negro por defecto; activo marrón sin borde */
-  .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
+  /* Círculos método (Home): negro por defecto; no aplica a elaboración */
+  .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-circle .home-elaboration-method-circle-inner {
     background: #000 !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
-  .timeline-elaboration-method-label,
-  .brew-select-step .timeline-elaboration-method-label {
+  .home-elaboration-method-label,
+  .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-label {
     color: #ffffff !important;
   }
-  .brew-select-step .brew-select-section-title,
-  .brew-select-step .section-title.brew-select-section-title {
+  /* Elaboración: chips inactivos método, tipo y tamaño = #212121 en modo noche (sistema) */
+  .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
+  .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+    background: #212121 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Elaboración modo noche (sistema): inactivos texto blanco, activos texto negro */
+  .brew-select-step .brew-forma-card .brew-method-card:not(.is-active) .brew-method-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active) .brew-tipo-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-range {
     color: #ffffff !important;
   }
-  /* Selecciona café, temporizador, tipo y tamaño: fondo negro; activo marrón sin borde */
-  .brew-select-step .brew-timer-row,
-  .brew-select-step .brew-select-coffee-row,
-  .brew-select-step .brew-tipo-card,
-  .brew-select-step .brew-tamaño-card {
-    background: #000 !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-    color: #ffffff !important;
-  }
-  .brew-select-step .brew-tipo-card-label,
-  .brew-select-step .brew-tamaño-card-label {
-    color: #ffffff !important;
-  }
-  .brew-select-step .brew-tamaño-card-range {
-    color: #bdb7b2 !important;
-  }
-  /* Elaboración: chips activos tipo y tamaño — texto negro en modo noche */
-  .brew-select-step .brew-tipo-card.is-active .brew-tipo-card-label,
-  .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-label,
-  .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-range {
+  .brew-select-step .brew-forma-card .brew-method-card.is-active .brew-method-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tipo-card.is-active .brew-tipo-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range {
     color: #000 !important;
   }
   /* Tipo en editar (Mi diario): chip activo texto negro en modo noche */
@@ -1987,12 +2205,6 @@ html.theme-dark .timeline-elaboration-methods {
     color: #ffffff !important;
   }
   .diary-edit-entry-tipo-presets .brew-tipo-card-label {
-    color: #ffffff !important;
-  }
-  .brew-select-step .brew-coffee-search,
-  .brew-select-step .search-wide {
-    background: #212121 !important;
-    border-color: rgba(255, 255, 255, 0.18) !important;
     color: #ffffff !important;
   }
   /* Card recomendación (resultado y durante proceso) */
@@ -2017,44 +2229,44 @@ html.theme-dark .timeline-elaboration-methods {
     color: #fff !important;
   }
   /* Home: módulo método (círculos) — fondo negro */
-  .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-circle-inner {
+  .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-circle-inner {
     background: #000 !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
-  .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-label {
+  .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-label {
     color: #ffffff !important;
   }
   /* Recomendaciones del día (Home): card negro */
-  .timeline-recommendation-card {
+  .home-recommendation-card {
     background: #000 !important;
     border-color: rgba(255, 255, 255, 0.15) !important;
   }
-  .timeline-recommendation-card .timeline-recommendation-row {
+  .home-recommendation-card .home-recommendation-row {
     color: #ffffff !important;
     border-bottom-color: rgba(255, 255, 255, 0.08) !important;
   }
-  .timeline-recommendation-card .timeline-recommendation-row:hover {
+  .home-recommendation-card .home-recommendation-row:hover {
     background: rgba(255, 255, 255, 0.06) !important;
   }
-  .timeline-recommendation-row-name {
+  .home-recommendation-row-name {
     color: #ffffff !important;
   }
-  .timeline-recommendation-row-brand {
+  .home-recommendation-row-brand {
     color: #bdb7b2 !important;
   }
-  .brew-select-step .timeline-despensa .brew-pantry-card {
+  .brew-select-step .home-despensa .brew-pantry-card {
     background: #212121 !important;
     border-color: rgba(255, 255, 255, 0.12) !important;
     color: #ffffff !important;
   }
-  .timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+  .home-elaboration-method-circle-inner .home-elaboration-method-icon-water {
     fill: rgba(255, 255, 255, 0.85) !important;
     stroke: rgba(255, 255, 255, 0.5) !important;
     color: rgba(255, 255, 255, 0.85) !important;
   }
 }
 
-.timeline-elaboration-methods-scroll {
+.home-elaboration-methods-scroll {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
@@ -2070,11 +2282,11 @@ html.theme-dark .timeline-elaboration-methods {
   box-sizing: border-box;
 }
 
-.timeline-elaboration-methods-scroll::-webkit-scrollbar {
+.home-elaboration-methods-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.timeline-elaboration-method-circle {
+.home-elaboration-method-circle {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2089,7 +2301,7 @@ html.theme-dark .timeline-elaboration-methods {
   scroll-snap-align: start;
 }
 
-.timeline-elaboration-method-circle-inner {
+.home-elaboration-method-circle-inner {
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -2103,34 +2315,34 @@ html.theme-dark .timeline-elaboration-methods {
 }
 
 /* En .brew-select-step los círculos se estilizan en theme-forced (negro/marrón). Fuera de elaboración se mantiene surface. */
-html.theme-dark .timeline-elaboration-method-circle-inner {
+html.theme-dark .home-elaboration-method-circle-inner {
   background: var(--surface);
   border-color: var(--border-light);
 }
-html.theme-dark .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
+html.theme-dark .brew-select-step .home-elaboration-method-circle .home-elaboration-method-circle-inner {
   background: #000 !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
-html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+html.theme-dark .brew-select-step .home-elaboration-method-circle.is-active .home-elaboration-method-circle-inner {
   background: var(--caramel-accent) !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-.timeline-elaboration-method-circle-inner img {
+.home-elaboration-method-circle-inner img {
   width: 40px;
   height: 40px;
   object-fit: contain;
 }
 
-.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-bolt,
-.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+.home-elaboration-method-circle-inner .home-elaboration-method-icon-bolt,
+.home-elaboration-method-circle-inner .home-elaboration-method-icon-water {
   width: 32px;
   height: 32px;
   object-fit: contain;
 }
 
-.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-bolt {
+.home-elaboration-method-circle-inner .home-elaboration-method-icon-bolt {
   display: block;
   flex-shrink: 0;
   color: var(--text-main);
@@ -2138,7 +2350,7 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active 
   stroke: currentColor;
 }
 
-.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+.home-elaboration-method-circle-inner .home-elaboration-method-icon-water {
   display: block;
   flex-shrink: 0;
   fill: #dadcde;
@@ -2148,12 +2360,12 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active 
   margin: 0 auto;
 }
 
-.timeline-elaboration-method-icon-bolt {
+.home-elaboration-method-icon-bolt {
   display: block;
   color: var(--text-main);
 }
 
-.timeline-elaboration-method-label {
+.home-elaboration-method-label {
   font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--text-subtle);
@@ -2165,17 +2377,17 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active 
 }
 
 /* Contenedor carrusel con botones de navegación (solo desktop); en móvil se desliza con el dedo */
-.timeline-carousel-with-nav {
+.home-carousel-with-nav {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.timeline-carousel-nav {
+.home-carousel-nav {
   display: none;
 }
 
-.timeline-carousel-nav-btn {
+.home-carousel-nav-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -2191,33 +2403,33 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active 
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.timeline-carousel-nav-btn:hover {
+.home-carousel-nav-btn:hover {
   background: #d0d0d0;
   color: #424242;
 }
 
-.timeline-carousel-nav-btn .ui-icon {
+.home-carousel-nav-btn .ui-icon {
   width: 20px;
   height: 20px;
 }
 
-.timeline-carousel-nav-btn svg {
+.home-carousel-nav-btn svg {
   width: 20px;
   height: 20px;
 }
 
-html.theme-dark .timeline-carousel-nav-btn {
+html.theme-dark .home-carousel-nav-btn {
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.85);
 }
 
-html.theme-dark .timeline-carousel-nav-btn:hover {
+html.theme-dark .home-carousel-nav-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   color: var(--pure-white);
 }
 
 @media (min-width: 900px) {
-  .timeline-carousel-nav {
+  .home-carousel-nav {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -2231,25 +2443,25 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   }
 
   /* Ocultar barra de desplazamiento en desktop en carruseles del timeline y elaboración (Tipo) */
-  .timeline-carousel-with-nav .timeline-elaboration-methods-scroll,
-  .timeline-carousel-with-nav .timeline-despensa-scroll,
-  .timeline-carousel-with-nav .horizontal-cards.timeline-carousel-scroll,
-  .timeline-carousel-with-nav .timeline-recommendations-list,
-  .timeline-carousel-with-nav .brew-tipo-strip {
+  .home-carousel-with-nav .home-elaboration-methods-scroll,
+  .home-carousel-with-nav .home-despensa-scroll,
+  .home-carousel-with-nav .horizontal-cards.home-carousel-scroll,
+  .home-carousel-with-nav .home-recommendations-list,
+  .home-carousel-with-nav .brew-tipo-strip {
     scrollbar-width: none;
   }
 
-  .timeline-carousel-with-nav .timeline-elaboration-methods-scroll::-webkit-scrollbar,
-  .timeline-carousel-with-nav .timeline-despensa-scroll::-webkit-scrollbar,
-  .timeline-carousel-with-nav .horizontal-cards.timeline-carousel-scroll::-webkit-scrollbar,
-  .timeline-carousel-with-nav .timeline-recommendations-list::-webkit-scrollbar,
-  .timeline-carousel-with-nav .brew-tipo-strip::-webkit-scrollbar {
+  .home-carousel-with-nav .home-elaboration-methods-scroll::-webkit-scrollbar,
+  .home-carousel-with-nav .home-despensa-scroll::-webkit-scrollbar,
+  .home-carousel-with-nav .horizontal-cards.home-carousel-scroll::-webkit-scrollbar,
+  .home-carousel-with-nav .home-recommendations-list::-webkit-scrollbar,
+  .home-carousel-with-nav .brew-tipo-strip::-webkit-scrollbar {
     display: none;
   }
 }
 
 /* Recomendaciones del día: listado con imagen a la izquierda, nombre + marca a la derecha, scroll horizontal */
-.suggestion-strip.timeline-recommendations-day {
+.suggestion-strip.home-recommendations-day {
   width: calc(100% + 2 * var(--app-shell-gutter));
   max-width: none;
   margin-left: calc(-1 * var(--app-shell-gutter));
@@ -2262,7 +2474,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   overflow: hidden;
 }
 
-.timeline-recommendations-list {
+.home-recommendations-list {
   display: flex;
   flex-direction: row;
   gap: var(--space-4);
@@ -2273,12 +2485,12 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   scrollbar-width: none;
   padding-right: var(--app-shell-gutter);
 }
-.timeline-recommendations-list::-webkit-scrollbar {
+.home-recommendations-list::-webkit-scrollbar {
   display: none;
 }
 
 /* Una card = 3 cafés en columna; scroll horizontal entre cards */
-.timeline-recommendation-card {
+.home-recommendation-card {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -2293,7 +2505,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   box-sizing: border-box;
 }
 
-.timeline-recommendation-card .timeline-recommendation-row {
+.home-recommendation-card .home-recommendation-row {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -2312,14 +2524,14 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   cursor: pointer;
   box-sizing: border-box;
 }
-.timeline-recommendation-card .timeline-recommendation-row:last-child {
+.home-recommendation-card .home-recommendation-row:last-child {
   border-bottom: none;
 }
-.timeline-recommendation-card .timeline-recommendation-row:hover {
+.home-recommendation-card .home-recommendation-row:hover {
   background: var(--surface-elevated, rgba(0, 0, 0, 0.03));
 }
 
-.timeline-recommendation-row-image {
+.home-recommendation-row-image {
   flex-shrink: 0;
   width: 56px;
   height: 56px;
@@ -2327,20 +2539,20 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   overflow: hidden;
   background: var(--surface-elevated, #eee);
 }
-.timeline-recommendation-row-image img {
+.home-recommendation-row-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.timeline-recommendation-row-placeholder {
+.home-recommendation-row-placeholder {
   display: block;
   width: 100%;
   height: 100%;
   background: var(--surface-elevated, #eee);
 }
 
-.timeline-recommendation-row-copy {
+.home-recommendation-row-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -2348,7 +2560,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   flex: 1;
 }
 
-.timeline-recommendation-row-name {
+.home-recommendation-row-name {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-main);
@@ -2360,7 +2572,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   word-break: break-word;
 }
 
-.timeline-recommendation-row-brand {
+.home-recommendation-row-brand {
   font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--text-subtle);
@@ -2369,7 +2581,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   text-overflow: ellipsis;
 }
 
-.timeline-despensa {
+.home-despensa {
   flex-shrink: 0;
   min-width: 0;
   width: calc(100% + 2 * var(--app-shell-gutter));
@@ -2385,7 +2597,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   overflow: hidden;
 }
 
-.timeline-despensa-scroll {
+.home-despensa-scroll {
   min-width: 0;
   width: 100%;
   overflow-x: auto;
@@ -2396,11 +2608,11 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   box-sizing: border-box;
 }
 
-.timeline-despensa-scroll::-webkit-scrollbar {
+.home-despensa-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.timeline-despensa .brew-pantry-row {
+.home-despensa .brew-pantry-row {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(158px, 176px);
@@ -2409,19 +2621,19 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   scroll-snap-align: start;
 }
 
-.timeline-desktop-columns {
+.home-desktop-columns {
   display: block;
   min-width: 0;
   max-width: 100%;
 }
 
-.timeline-main-column,
-.timeline-side-column {
+.home-main-column,
+.home-side-column {
   min-width: 0;
   max-width: 100%;
 }
 
-.timeline-side-column {
+.home-side-column {
   display: grid;
   gap: 10px;
 }
@@ -2440,7 +2652,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   align-items: start;
 }
 
-.profile-split-with-side>.timeline-side-column {
+.profile-split-with-side>.home-side-column {
   width: 240px;
   min-width: 240px;
   align-self: start;
@@ -3065,33 +3277,50 @@ html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-revi
   color: rgba(255, 255, 255, 0.82);
 }
 
-.coffee-detail-rating-badge {
+/* Nota del café: abajo a la derecha del hero (igual que Android). Título y valor siempre en negro. */
+.coffee-detail-nota-block {
   position: absolute;
-  right: 12px;
-  top: 12px;
-  z-index: 2;
-  min-width: 52px;
-  height: 34px;
-  padding: 0 11px;
-  border-radius: 14px;
+  right: 24px;
+  bottom: 60px;
+  z-index: 4;
+  padding: 10px 16px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.95);
-  color: var(--espresso-deep);
-  display: inline-flex;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-weight: 700;
-  font-size: 0.9rem;
+  gap: 0;
 }
 
-.coffee-detail-rating-badge .ui-icon {
-  width: 13px;
-  height: 13px;
+html.theme-dark .coffee-detail-nota-block {
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.coffee-detail-rating-badge strong {
-  font-size: 0.86rem;
-  line-height: 1;
+.coffee-detail-nota-title {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pure-black);
+}
+
+.coffee-detail-nota-value {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--pure-black);
+}
+
+.coffee-detail.is-side-panel .coffee-detail-nota-block {
+  right: 16px;
+  bottom: 24px;
+  padding: 8px 12px;
+}
+
+.coffee-detail.is-side-panel .coffee-detail-nota-value {
+  font-size: 1.1rem;
 }
 
 .coffee-detail-close {
@@ -3113,7 +3342,7 @@ html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-revi
 .coffee-detail .section-title {
   margin: 0 0 10px;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
+  font-weight: 600;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--text-main);
@@ -4269,7 +4498,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   background: rgba(212, 163, 115, 0.18);
 }
 
-.timeline-refresh-bar {
+.home-refresh-bar {
   height: 3px;
   width: 100%;
   border-radius: 99px;
@@ -4278,7 +4507,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
       rgba(212, 163, 115, 0.8) 50%,
       rgba(212, 163, 115, 0.2) 100%);
   background-size: 200% 100%;
-  animation: timeline-progress 1.1s linear infinite;
+  animation: home-progress 1.1s linear infinite;
 }
 
 .status-chip {
@@ -4296,7 +4525,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   text-transform: uppercase;
 }
 
-.timeline-banner {
+.home-banner {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -4309,14 +4538,14 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   font-weight: 600;
 }
 
-.timeline-banner-dot {
+.home-banner-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--caramel-soft);
 }
 
-.timeline-overlay {
+.home-overlay {
   position: sticky;
   top: 86px;
   z-index: 15;
@@ -4324,7 +4553,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   justify-content: center;
 }
 
-.timeline-overlay-card {
+.home-overlay-card {
   width: min(520px, 100%);
   border: none;
   border-radius: 16px;
@@ -4333,7 +4562,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-.timeline-overlay-row {
+.home-overlay-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -4341,7 +4570,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   font-size: 0.86rem;
 }
 
-.timeline-spinner {
+.home-spinner {
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -4350,7 +4579,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   animation: spin 700ms linear infinite;
 }
 
-.timeline-overlay-progress {
+.home-overlay-progress {
   margin-top: 9px;
   height: 3px;
   border-radius: 99px;
@@ -4359,7 +4588,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
       rgba(212, 163, 115, 0.8) 50%,
       rgba(212, 163, 115, 0.2) 100%);
   background-size: 200% 100%;
-  animation: timeline-progress 1.1s linear infinite;
+  animation: home-progress 1.1s linear infinite;
 }
 
 .composer-card,
@@ -4590,7 +4819,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
 .search-recent-title {
   margin: 0;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted-cream);
@@ -4696,7 +4925,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
 .search-rating-label {
   margin: 0;
   font-size: 0.92rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .search-rating-scale {
@@ -4821,7 +5050,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
 }
 
 .search-users-container {
-  padding: 12px 0 24px;
+  padding: 0 0 12px;
   min-width: 0;
 }
 
@@ -4831,7 +5060,6 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   padding: 0;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
 }
 
 .search-users-row {
@@ -4891,7 +5119,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
 
 .search-users-username {
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-main);
   line-height: 1.2;
 }
@@ -4982,7 +5210,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
 
 .feed-user {
   margin: 0;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .feed-head .feed-user {
@@ -5208,7 +5436,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
 
 .section-title {
   margin: 0 0 8px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 0.8rem;
@@ -5216,12 +5444,12 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
 }
 
 /* Espacio homogéneo entre secciones del timeline: misma separación antes de cada bloque */
-.timeline-main-column > .suggestion-strip:not(.timeline-recommendations-day):not(.timeline-despensa) {
+.home-main-column > .suggestion-strip:not(.home-recommendations-day):not(.home-despensa) {
   margin-top: var(--space-6);
 }
 
 /* Titulares de sección del timeline: más grandes y con margen inferior homogéneo */
-.timeline-main-column .section-title {
+.home-main-column .section-title {
   margin: 0 0 var(--space-3);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
@@ -6615,10 +6843,16 @@ html.theme-dark .diary-day-header.is-today {
   }
 }
 
+/* Mismo espacio superior que .sheet-header para modales sin título */
 .diary-sheet-list {
-  padding: 4px 18px 24px;
+  padding: 20px 18px 24px;
   display: grid;
   gap: var(--space-2);
+}
+/* Cuando la lista va justo después del header, menos padding superior para no duplicar espacio */
+.sheet-header + .diary-sheet-list,
+[class*="-sheet-header"] + .diary-sheet-list {
+  padding-top: 12px;
 }
 
 .diary-sheet-action {
@@ -6635,7 +6869,7 @@ html.theme-dark .diary-day-header.is-today {
   align-items: center;
   gap: 10px;
   text-align: left;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .diary-sheet-action .ui-icon:first-child {
@@ -6696,7 +6930,7 @@ html.theme-dark .diary-day-header.is-today {
 }
 
 .diary-sheet-month-label {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 1rem;
   color: var(--text-main);
   min-width: 8rem;
@@ -6715,7 +6949,7 @@ html.theme-dark .diary-day-header.is-today {
 
 .diary-sheet-pantry-options .sheet-title {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-main);
 }
 
@@ -6960,7 +7194,7 @@ html.theme-dark .diary-day-header.is-today {
 }
 
 .diary-edit-entry-sheet .sheet-header {
-  padding: 8px 14px 10px;
+  padding: 20px 14px 10px;
 }
 
 .diary-edit-entry-header {
@@ -7391,7 +7625,7 @@ html.theme-dark .diary-day-header.is-today {
 .diary-edit-entry-block-title {
   margin: 0;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-main);
 }
 
@@ -9439,7 +9673,7 @@ html.theme-dark .diary-day-header.is-today {
 .profile-stat-label {
   margin-top: 3px;
   font-size: 0.67rem;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.12em;
   line-height: 1;
   color: var(--text-subtle);
@@ -9884,6 +10118,33 @@ html.theme-dark .diary-day-header.is-today {
   border-radius: 28px 28px 0 0;
 }
 
+/* Modal Añadir a lista: usa estándar .sheet-header-with-action y .modal-action-btn (sheet.css) */
+.add-to-list-sheet .sheet-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.add-to-list-sheet .modal-action-btn {
+  flex-shrink: 0;
+}
+.add-to-list-sheet .add-to-list-row {
+  grid-template-columns: auto 18px 1fr;
+  gap: 10px;
+}
+.add-to-list-sheet .add-to-list-row .add-to-list-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-to-list-sheet .add-to-list-row .add-to-list-checkbox .ui-icon {
+  width: 22px;
+  height: 22px;
+  font-size: 22px;
+  color: var(--caramel-accent);
+}
+.add-to-list-sheet .add-to-list-row.is-checked .add-to-list-checkbox .ui-icon {
+  color: var(--caramel-accent);
+}
+
 .profile-options-section-title {
   margin: 0;
   margin-top: var(--space-4);
@@ -10113,7 +10374,7 @@ html.theme-dark .content.content-profile {
   padding-right: 8px;
 }
 .favoritos-list-card .profile-favorite-name {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 1rem;
   color: var(--text-main);
   overflow: hidden;
@@ -10146,7 +10407,7 @@ html.theme-dark .content.content-profile {
 }
 
 .create-list-sheet .sheet-header {
-  padding: 8px 14px 10px;
+  padding: 20px 14px 10px;
 }
 .create-list-sheet .sheet-body {
   padding: 16px 18px 24px;
@@ -10159,6 +10420,7 @@ html.theme-dark .content.content-profile {
 .create-list-sheet-body .create-list-name-input {
   width: 100%;
   min-width: 0;
+  font-weight: 500;
 }
 /* Modo noche: nombre de la lista con fondo negro total, texto claro */
 html.theme-dark .create-list-sheet .create-list-name-input {
@@ -10201,12 +10463,140 @@ html.theme-dark .create-list-sheet .create-list-name-input::placeholder {
   border: none;
   grid-column: 1 / -1;
 }
+
+/* Una sola card para las 3 opciones + switch (como Android): list-options-page y create-list-sheet */
+.create-list-privacy-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+html.theme-light .create-list-privacy-card,
+html.theme-light .create-list-sheet .create-list-privacy-card {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+html.theme-dark .create-list-privacy-card,
+html.theme-dark .create-list-sheet .create-list-privacy-card,
+.create-list-sheet .create-list-privacy-card {
+  background: #000;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-privacy-card { background: #fff; border-color: rgba(0, 0, 0, 0.12); }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-privacy-card { background: #000; border-color: rgba(255, 255, 255, 0.15); }
+}
+.create-list-privacy-card .create-list-privacy-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.create-list-privacy-card .create-list-privacy-option-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.create-list-privacy-card .create-list-privacy-option-btn.is-selected {
+  background: #6f4e37;
+  color: #fffbf7;
+}
+.create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+.create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc { color: #fffbf7; }
+.create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-check { color: #fff; }
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-btn.is-selected,
+.create-list-sheet .create-list-privacy-card .create-list-privacy-option-btn.is-selected {
+  background: #d4a373;
+  color: #1a1a1a;
+}
+/* Opciones de lista: en modo noche la opción seleccionada siempre marrón claro (no el marrón del modo día) */
+html.theme-dark .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected {
+  background: #d4a373;
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected {
+    background: #d4a373;
+    color: #1a1a1a;
+  }
+  html:not(.theme-light) .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+  html:not(.theme-light) .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc { color: #1a1a1a; }
+  html:not(.theme-light) .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-check { color: #000; }
+}
+html.theme-dark .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+html.theme-dark .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc { color: #1a1a1a; }
+html.theme-dark .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-check { color: #000; }
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc,
+.create-list-sheet .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+.create-list-sheet .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc { color: #1a1a1a; }
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-check { color: #000; }
+.create-list-privacy-card .create-list-privacy-option-switch-row {
+  border-top: 1px solid var(--border-default);
+  padding: 12px 12px 12px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+html.theme-light .create-list-privacy-card .create-list-privacy-option-switch-row { border-top-color: rgba(0, 0, 0, 0.12); }
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-switch-row { border-top-color: rgba(255, 255, 255, 0.2); }
+
+/* General: Editar y Eliminar en una sola card */
+.list-options-general-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  overflow: hidden;
+  margin-top: 8px;
+}
+.list-options-general-card .list-options-page-action {
+  margin-bottom: 0;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-default);
+  box-shadow: none;
+}
+.list-options-general-card .list-options-page-action:last-child {
+  border-bottom: none;
+}
+.list-options-section-spaced {
+  margin-top: 16px;
+}
+
+/* Modal opciones despensa: menos espacio entre Organiza y General (igual que opciones de lista / Android) */
+.diary-sheet-pantry-options .list-options-page-section {
+  margin-bottom: 8px;
+}
+.diary-sheet-pantry-options .list-options-section-spaced {
+  margin-top: 0;
+}
+.diary-sheet-pantry-options .diary-sheet-list.list-options-general-wrap {
+  gap: 8px;
+}
+
 .create-list-privacy-options {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-/* Opciones de privacidad: base (contenedor; el botón y el switch van dentro) */
+/* Opciones de privacidad: base (contenedor; el botón y el switch van dentro) - legacy por si se usa .create-list-privacy-option */
 .create-list-privacy-option {
   display: flex;
   flex-direction: column;
@@ -10234,6 +10624,24 @@ html.theme-dark .create-list-sheet .create-list-name-input::placeholder {
   border-top: 1px solid var(--border-default);
   /* Alinear "Permitir editar lista" con el texto de la opción (check 24px + gap 12px + padding btn 12px) */
   padding-left: 48px;
+}
+/* Modo día: línea divisoria gris muy clara (tema forzado o sistema claro) */
+html.theme-light .create-list-sheet .create-list-privacy-option-switch-row {
+  border-top-color: rgb(247 247 247);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option-switch-row {
+    border-top-color: rgb(247 247 247);
+  }
+}
+/* Modo noche: línea divisoria gris oscura (solo con tema oscuro o sistema oscuro; no usar :not(.theme-light) fuera de media para no pisar modo día) */
+html.theme-dark .create-list-sheet .create-list-privacy-option-switch-row {
+  border-top-color: rgb(33, 33, 33);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option-switch-row {
+    border-top-color: rgb(33, 33, 33);
+  }
 }
 /* Modo noche: recuadro negro (tema forzado o auto + sistema oscuro) */
 html.theme-dark .create-list-sheet .create-list-privacy-option {
@@ -11123,7 +11531,7 @@ html.theme-dark .share-list-invite-link-btn:hover {
   }
 }
 
-.timeline-empty {
+.home-empty {
   border-radius: var(--radius-xl);
   border: none;
   background: var(--surface);
@@ -11134,16 +11542,16 @@ html.theme-dark .share-list-invite-link-btn:hover {
   justify-items: center;
 }
 
-.timeline-empty h3 {
+.home-empty h3 {
   margin: 0;
 }
 
-.timeline-empty p {
+.home-empty p {
   margin: 0;
   color: var(--muted-cream);
 }
 
-.timeline-error {
+.home-error {
   border-color: var(--caramel-accent);
   background: var(--surface);
 }
@@ -12150,7 +12558,7 @@ html.theme-dark .share-list-invite-link-btn:hover {
 }
 
 /* Igual que timeline: carrusel a ancho completo, derecha al borde (padding 0), izquierda con gutter inicial al hacer scroll */
-.brew-select-step .timeline-elaboration-methods {
+.brew-select-step .home-elaboration-methods {
   width: calc(100% + 2 * var(--app-shell-gutter));
   max-width: none;
   margin-left: calc(-1 * var(--app-shell-gutter));
@@ -12159,7 +12567,7 @@ html.theme-dark .share-list-invite-link-btn:hover {
   overflow: visible;
 }
 
-.brew-select-step .timeline-elaboration-methods-scroll {
+.brew-select-step .home-elaboration-methods-scroll {
   padding-left: var(--app-shell-gutter);
   padding-right: 0;
   padding-top: 4px;
@@ -12167,8 +12575,8 @@ html.theme-dark .share-list-invite-link-btn:hover {
   overflow-y: visible;
 }
 
-.brew-select-step .timeline-despensa.suggestion-strip,
-.brew-select-step .timeline-despensa {
+.brew-select-step .home-despensa.suggestion-strip,
+.brew-select-step .home-despensa {
   width: calc(100% + 2 * var(--app-shell-gutter));
   max-width: none;
   margin-left: calc(-1 * var(--app-shell-gutter));
@@ -12179,14 +12587,14 @@ html.theme-dark .share-list-invite-link-btn:hover {
   overflow: visible;
 }
 
-.brew-select-step .timeline-despensa-scroll {
+.brew-select-step .home-despensa-scroll {
   padding-right: 0;
   padding-top: 4px;
   padding-bottom: 4px;
   overflow-y: visible;
 }
 
-.brew-select-step .timeline-despensa .brew-pantry-row {
+.brew-select-step .home-despensa .brew-pantry-row {
   padding-right: 0;
 }
 
@@ -12196,7 +12604,7 @@ html.theme-dark .share-list-invite-link-btn:hover {
 }
 
 /* Activo: mismo estilo día y noche (fondo caramel, texto negro) */
-.brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+.brew-select-step .home-elaboration-method-circle.is-active .home-elaboration-method-circle-inner {
   background: var(--caramel-accent, #b8860b) !important;
   border: none !important;
   box-shadow: none !important;
@@ -12217,6 +12625,14 @@ html.theme-dark .share-list-invite-link-btn:hover {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-main);
+}
+
+/* Texto debajo del título "Configura tu XXX" (consejos del barista) */
+.brew-config-applied-hint {
+  margin: 0 0 var(--space-3);
+  font-size: 0.875rem;
+  color: var(--text-subtle);
+  line-height: 1.35;
 }
 
 /* Fila ancho completo: Temporizador + switch (debajo de Configura tu XXX) */
@@ -12293,10 +12709,377 @@ html.theme-dark .share-list-invite-link-btn:hover {
   color: var(--text-main);
 }
 
+.brew-select-coffee-selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.brew-select-coffee-img {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--surface-card-radius);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.brew-select-coffee-name {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Forma de elaboración: card con método + línea + parámetros */
+.brew-forma-card {
+  padding: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.brew-forma-card .brew-forma-methods,
+.brew-forma-card .home-elaboration-methods {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 0;
+  min-width: 0; /* permite que el grid item se encoja y el carrusel haga scroll */
+}
+
+/* Método: carrusel hasta el borde derecho de la card; contenedor con ancho limitado para scroll */
+.brew-forma-card .brew-method-carousel-wrap {
+  padding-top: 0;
+  padding-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  margin-right: calc(-1 * var(--space-4));
+  width: calc(100% + var(--space-4));
+}
+
+.brew-forma-card .brew-method-scroll {
+  padding: 8px 0;
+  padding-left: 0;
+  padding-right: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.brew-forma-card .home-carousel-nav,
+.brew-config-cafe-card .home-carousel-nav {
+  display: none !important;
+}
+
+/* Método: rectángulo imagen izquierda + texto derecha; carrusel con scroll horizontal */
+.brew-method-scroll {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  padding: 2px 0;
+  min-width: 0;
+  box-sizing: border-box;
+  cursor: grab;
+  user-select: none;
+}
+.brew-method-scroll.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+.brew-method-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Método: mismo estilo base que tipo/tamaño (fondo, borde, sombra, padding) para modo día */
+.brew-method-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  width: 130px;
+  min-width: 130px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  background: var(--surface-1, #fff);
+  box-shadow: var(--surface-card-shadow);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  scroll-snap-align: start;
+  box-sizing: border-box;
+}
+
+.brew-method-card:hover {
+  border-color: var(--border-strong);
+}
+
+.brew-method-card.is-active {
+  background: var(--caramel-accent, #b8860b) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.brew-method-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--surface-card-radius);
+  overflow: hidden;
+}
+
+.brew-method-card-icon img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.brew-method-card-icon .home-elaboration-method-icon-bolt,
+.brew-method-card-icon .home-elaboration-method-icon-water {
+  width: 24px;
+  height: 24px;
+}
+
+.brew-method-card-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  flex: 1;
+}
+
+.brew-method-card-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  line-height: 1.25;
+}
+
+/* Chip activo método, tipo y tamaño: texto blanco en modo día sobre fondo marrón */
+.brew-method-card.is-active .brew-method-card-label,
+.brew-config-cafe-card .brew-tipo-card.is-active .brew-tipo-card-label,
+.brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-label,
+.brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range {
+  color: #ffffff !important;
+}
+
+/* Modo día: chips inactivos — texto oscuro para diferenciar del activo */
+html:not(.theme-dark) .brew-forma-card .brew-method-card:not(.is-active) .brew-method-card-label,
+html:not(.theme-dark) .brew-config-cafe-card .brew-tipo-card:not(.is-active) .brew-tipo-card-label,
+html:not(.theme-dark) .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-label,
+html:not(.theme-dark) .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-range {
+  color: var(--text-main) !important;
+}
+
+.brew-method-card-word {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.brew-forma-card .brew-config-option-divider {
+  margin: var(--space-3) 0;
+}
+
+.brew-forma-params {
+  margin-top: 0;
+}
+
+/* Configura tu café: título separado de la card de arriba y unido a la card de abajo */
+.brew-select-step .brew-config-cafe-title {
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-2);
+}
+/* Configura tu café: contenido dentro del card */
+.brew-config-cafe-card {
+  padding: var(--space-4);
+  margin-top: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Selecciona café: mismo estilo que opciones de lista (fila con borde abajo, flecha derecha) */
+.brew-config-cafe-card .brew-select-coffee-row {
+  margin-top: 0;
+  margin-left: calc(-1 * var(--space-4));
+  margin-right: calc(-1 * var(--space-4));
+  width: calc(100% + 2 * var(--space-4));
+  padding: 0 14px 0px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.brew-config-cafe-card .brew-select-coffee-row .ui-icon.brew-select-coffee-row-arrow {
+  margin-left: auto;
+  color: var(--text-subtle);
+}
+
+.brew-config-cafe-card .brew-config-option-divider {
+  margin: var(--space-3) 0;
+}
+
+.brew-config-cafe-section {
+  margin-top: var(--space-3);
+}
+
+.brew-config-cafe-section:first-of-type {
+  margin-top: 0;
+}
+
+/* Wrapper Tipo y Tamaño: hasta el borde derecho de la card; permite scroll horizontal */
+.brew-config-cafe-card .brew-config-cafe-carousel-wrap {
+  min-width: 0;
+  overflow: hidden;
+  margin-right: calc(-1 * var(--space-4));
+  width: calc(100% + var(--space-4));
+}
+
+/* Tipo y Tamaño: sección con min-width 0 para que el carrusel haga scroll */
+.brew-config-cafe-card .brew-tipo-strip-wrap,
+.brew-config-cafe-card .brew-tamaño-strip-wrap {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  padding-left: 0;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Strips Tipo y Tamaño: scroll horizontal; llegan al borde derecho de la card; drag para desplazar */
+.brew-config-cafe-card .brew-tipo-strip,
+.brew-config-cafe-card .brew-tamaño-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  padding: 8px var(--space-4) 8px 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: grab;
+  user-select: none;
+}
+.brew-config-cafe-card .brew-tipo-strip.is-dragging,
+.brew-config-cafe-card .brew-tamaño-strip.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+
+.brew-config-cafe-card .brew-tipo-strip::-webkit-scrollbar,
+.brew-config-cafe-card .brew-tamaño-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* Página Selecciona café (desde elaboración): misma lógica y UI que Tu despensa de home */
+.brew-select-coffee-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--screen-light-background);
+}
+html.theme-dark .brew-select-coffee-page {
+  background: var(--screen-dark-background);
+}
+.brew-select-coffee-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: 12px 14px 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-default);
+}
+.brew-select-coffee-page-header .brew-select-coffee-page-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+.brew-select-coffee-page-back {
+  position: relative;
+  z-index: 1;
+}
+.brew-select-coffee-page-right {
+  width: 40px;
+  flex-shrink: 0;
+}
+.brew-select-coffee-page-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-4) var(--space-6);
+}
+.brew-select-coffee-page-content .brew-select-coffee-despensa {
+  margin-top: 0;
+}
+.brew-select-coffee-page-content .brew-select-coffee-search-row {
+  margin-top: var(--space-4);
+}
+.brew-select-coffee-page-content .brew-select-coffee-suggestions {
+  margin-top: var(--space-4);
+}
+
+/* Chips inactivos Método, Tipo y Tamaño (modo día): color de fondo = página, sin bordes — mismo estilo que tipo */
+.brew-method-card:not(.is-active),
+.brew-forma-card .brew-method-card:not(.is-active),
+.brew-config-cafe-card .brew-tipo-card:not(.is-active),
+.brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+  background: var(--screen-light-background) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Chips inactivos Método, Tipo y Tamaño: color de fondo = página (modo noche), sin bordes */
+html.theme-dark .brew-method-card:not(.is-active),
+html.theme-dark .brew-forma-card .brew-method-card:not(.is-active),
+html.theme-dark .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
+html.theme-dark .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+html.theme-dark .brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+  background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 /* Sliders Tipo y Tamaño en elaboración (mismas opciones que Mi diario) */
 .brew-tipo-strip-wrap,
 .brew-tamaño-strip-wrap {
-  margin-top: var(--space-4);
+  margin-top: 0px;
 }
 
 .brew-tipo-strip-wrap .brew-select-section-title,
@@ -12598,6 +13381,43 @@ html.theme-dark .share-list-invite-link-btn:hover {
   color: var(--text-subtle);
 }
 
+/* Opciones debajo de Consejos del barista: línea de separación + fila estilo opciones de lista */
+.brew-config-option-divider {
+  height: 1px;
+  margin: 10px 0;
+  background: var(--border-light, rgba(0, 0, 0, 0.12));
+  width: 100%;
+}
+/* Modo día: líneas de separación visibles */
+html:not(.theme-dark) .brew-config-cafe-card .brew-config-option-divider,
+html:not(.theme-dark) .brew-forma-card .brew-config-option-divider {
+  background: #f7f7f7;
+}
+/* Modo noche: líneas de separación solo en elaboración/config con #212121 (misma especificidad que modo día) */
+html.theme-dark .brew-config-cafe-card .brew-config-option-divider,
+html.theme-dark .brew-forma-card .brew-config-option-divider,
+html:not(.theme-light) .brew-config-cafe-card .brew-config-option-divider,
+html:not(.theme-light) .brew-forma-card .brew-config-option-divider {
+  background: #212121 !important;
+}
+.brew-config-option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0px 0 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.brew-config-option-label {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-main);
+}
+.brew-config-option-row .ui-switch {
+  flex-shrink: 0;
+}
+
 /* Modal Consejos del barista (estilo tipo editar actividad) */
 .brew-barista-sheet {
   display: flex;
@@ -12762,7 +13582,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
   box-shadow: var(--surface-card-shadow);
   padding: 19px;
   display: grid;
-  gap: 16px;
+  gap: 0;
 }
 
 .brew-tech-top {
@@ -12791,11 +13611,13 @@ html.theme-dark .brew-barista-sheet-close:hover {
   gap: 18px;
 }
 
+/* Siempre: número a la izquierda, slider a la derecha */
 .brew-tech-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 5fr);
   gap: 14px;
   align-items: start;
+  direction: ltr;
 }
 
 /* Slider de agua: alineado por abajo con el campo de la izquierda */
@@ -12840,19 +13662,20 @@ html.theme-dark .brew-barista-sheet-close:hover {
 }
 
 @media (max-width: 480px) {
+  /* Mantener número izquierda, slider derecha; columnas más estrechas */
   .brew-tech-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 96px) minmax(0, 1fr);
     gap: 10px;
   }
 
   .brew-tech-row .brew-tech-field {
-    order: 1;
     grid-column: 1;
+    min-width: 0;
   }
 
   .brew-tech-row .brew-tech-slider {
-    order: 2;
-    grid-column: 1;
+    grid-column: 2;
+    min-width: 0;
     width: 100%;
   }
 }
@@ -15882,27 +16705,27 @@ html.theme-dark .app-range.app-range--time {
 }
 
 @media (min-width: 900px) {
-.timeline-shell-desktop .timeline-desktop-columns.timeline-desktop-columns-has-side {
+.home-shell-desktop .home-desktop-columns.home-desktop-columns-has-side {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 12px;
   align-items: start;
   }
 
-  .timeline-shell-desktop .timeline-side-column {
+  .home-shell-desktop .home-side-column {
     align-self: start;
     padding-top: 0;
   }
 
-  .timeline-shell-desktop .timeline-side-column > .suggestion-strip:first-child {
+  .home-shell-desktop .home-side-column > .suggestion-strip:first-child {
     margin-top: 0;
   }
 
-  .timeline-shell-desktop .timeline-side-column .suggestion-strip+.suggestion-strip {
+  .home-shell-desktop .home-side-column .suggestion-strip+.suggestion-strip {
     margin-top: 24px;
   }
 
-  .timeline-shell-desktop .timeline-side-column .horizontal-cards {
+  .home-shell-desktop .home-side-column .horizontal-cards {
     display: grid;
     grid-auto-flow: row;
     grid-auto-columns: initial;
@@ -15912,14 +16735,14 @@ html.theme-dark .app-range.app-range--time {
     gap: var(--space-2);
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-card {
+  .home-shell-desktop .home-side-column .mini-card {
     border-radius: 14px;
     padding: 8px 10px;
     gap: 2px 8px;
     min-height: 56px;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card {
+  .home-shell-desktop .home-side-column .mini-coffee-card {
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr);
     grid-template-areas:
@@ -15928,7 +16751,7 @@ html.theme-dark .app-range.app-range--time {
     align-items: center;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card .mini-cover {
+  .home-shell-desktop .home-side-column .mini-coffee-card .mini-cover {
     grid-area: image;
     width: 44px;
     height: 44px;
@@ -15937,11 +16760,11 @@ html.theme-dark .app-range.app-range--time {
     object-fit: cover;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card .coffee-origin {
+  .home-shell-desktop .home-side-column .mini-coffee-card .coffee-origin {
     display: none;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card .feed-user {
+  .home-shell-desktop .home-side-column .mini-coffee-card .feed-user {
     grid-area: name;
     margin: 0;
     font-size: 0.9rem;
@@ -15951,7 +16774,7 @@ html.theme-dark .app-range.app-range--time {
     text-overflow: ellipsis;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card .coffee-sub {
+  .home-shell-desktop .home-side-column .mini-coffee-card .coffee-sub {
     grid-area: brand;
     margin: 0;
     font-size: 0.74rem;
@@ -15960,7 +16783,7 @@ html.theme-dark .app-range.app-range--time {
     text-overflow: ellipsis;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card {
+  .home-shell-desktop .home-side-column .mini-user-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "content action";
@@ -15969,7 +16792,7 @@ html.theme-dark .app-range.app-range--time {
     justify-items: stretch;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-link {
+  .home-shell-desktop .home-side-column .mini-user-link {
     grid-area: content;
     min-width: 0;
     display: grid;
@@ -15983,18 +16806,18 @@ html.theme-dark .app-range.app-range--time {
     gap: 2px 8px;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-copy {
+  .home-shell-desktop .home-side-column .mini-user-copy {
     display: contents;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .mini-avatar,
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .mini-avatar-fallback {
+  .home-shell-desktop .home-side-column .mini-user-card .mini-avatar,
+  .home-shell-desktop .home-side-column .mini-user-card .mini-avatar-fallback {
     grid-area: avatar;
     width: 44px;
     height: 44px;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-user {
+  .home-shell-desktop .home-side-column .mini-user-card .feed-user {
     grid-area: name;
     margin: 0;
     font-size: 0.9rem;
@@ -16007,7 +16830,7 @@ html.theme-dark .app-range.app-range--time {
     text-overflow: ellipsis;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-meta {
+  .home-shell-desktop .home-side-column .mini-user-card .feed-meta {
     grid-area: username;
     margin: 0;
     font-size: 0.74rem;
@@ -16019,11 +16842,11 @@ html.theme-dark .app-range.app-range--time {
     text-overflow: ellipsis;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .coffee-sub {
+  .home-shell-desktop .home-side-column .mini-user-card .coffee-sub {
     display: none;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .action-button {
+  .home-shell-desktop .home-side-column .mini-user-card .action-button {
     grid-area: action;
     min-height: 28px;
     padding: 0 10px;
@@ -16354,11 +17177,6 @@ html.theme-dark .app-range.app-range--time {
 
   .coffee-detail-sensory-fill {
     background: var(--caramel-accent);
-  }
-
-  .coffee-detail-rating-badge {
-    background: rgba(255, 255, 255, 0.98);
-    color: var(--espresso-deep);
   }
 
   .coffee-detail-grid p {
@@ -17699,7 +18517,7 @@ html.theme-dark .app-range.app-range--time {
   }
 }
 
-@keyframes timeline-progress {
+@keyframes home-progress {
   0% {
     background-position: 200% 0;
   }
@@ -17822,7 +18640,7 @@ html.theme-dark .app-range.app-range--time {
 }
 
 /* Typography and component standardization pass (cross-section) */
-:where(.timeline-shell,
+:where(.home-shell,
   .search-coffee-view,
   .coffee-detail,
   .brew-config-native,
@@ -17982,7 +18800,7 @@ html.theme-dark .app-range.app-range--time {
   }
 
   .sheet-header {
-    padding: 9px 12px 10px;
+    padding: 20px 12px 10px;
   }
 
   .profile-hero {

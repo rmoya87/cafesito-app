@@ -133,6 +133,8 @@ export type UserListRow = {
   privacy?: ListPrivacy;
   /** Si los miembros pueden añadir/quitar cafés (solo aplica cuando privacy es public o invitation). Por defecto false. */
   members_can_edit?: boolean;
+  /** Si los miembros pueden invitar a otras personas (solo aplica cuando privacy es invitation). Por defecto false. */
+  members_can_invite?: boolean;
   created_at?: string;
 };
 
@@ -173,7 +175,7 @@ export type ProfileActivityItem = {
   listName?: string | null;
 };
 
-export type TimelineCard = {
+export type HomeCard = {
   id: string;
   userId: number;
   userName: string;
@@ -198,10 +200,6 @@ export type InitialDataBundle = {
   coffees: CoffeeRow[];
   reviews: CoffeeReviewRow[];
   sensoryProfiles: CoffeeSensoryProfileRow[];
-  posts: PostRow[];
-  likes: LikeRow[];
-  comments: CommentRow[];
-  postCoffeeTags: PostCoffeeTagRow[];
   follows: FollowRow[];
 };
 
