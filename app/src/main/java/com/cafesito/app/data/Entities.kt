@@ -237,6 +237,12 @@ data class UserListItemInsert(
     @SerialName("coffee_id") val coffeeId: String
 )
 
+/** Fila de user_list_members (solo para leer list_id). */
+@Serializable
+data class UserListMemberRow(
+    @SerialName("list_id") val listId: String
+)
+
 @Serializable
 @Entity(
     tableName = "diary_entries",
@@ -258,7 +264,9 @@ data class DiaryEntryEntity(
     @SerialName("size_label") val sizeLabel: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
     val type: String = "CUP",
-    @SerialName("external_id") val externalId: String? = null
+    @SerialName("external_id") val externalId: String? = null,
+    /** ID del ítem de despensa del que se restó stock al crear esta actividad; para restaurar al eliminar. */
+    @SerialName("pantry_item_id") val pantryItemId: String? = null
 )
 
 @Entity(tableName = "pending_diary_sync")
@@ -336,7 +344,8 @@ data class DiaryEntryInsert(
     @SerialName("preparation_type") val preparationType: String,
     @SerialName("size_label") val sizeLabel: String? = null,
     @SerialName("timestamp") val timestamp: Long,
-    @SerialName("type") val type: String
+    @SerialName("type") val type: String,
+    @SerialName("pantry_item_id") val pantryItemId: String? = null
 )
 
 @Serializable

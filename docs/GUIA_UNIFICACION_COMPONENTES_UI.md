@@ -235,7 +235,13 @@ Las **pantallas** (DetailScreen, SearchScreen, ProfileScreen, CafesProbadosScree
   - Seguir `UX_EMPTY_AND_ERROR_STATES.md`: mismo patrón (mensaje + CTA opcional para vacío; mensaje + “Reintentar” para error).  
   - Reutilizar `TimelineEmptyState` donde encaje (mensaje + CTA) o extraer un `EmptyStateMessage(message, ctaText, onCtaClick)` y un `ErrorStateMessage(message, onRetry)` en `components/` y usarlos en todas las pantallas con listas o datos remotos.
 
-### B.3.5 Espaciado horizontal de pantalla
+### B.3.5 Estado de carga (loading) — estándar Android
+
+- **Regla:** Los estados de carga en Android deben mostrarse con **shimmer** (cuadrados/placas grises en movimiento), como en las pantallas de carga completas, **no** con texto "Cargando" ni solo un `CircularProgressIndicator`.
+- **Implementación:** Usar composables de shimmer existentes por contexto (`ProfileActivityCardShimmer`, `DiaryItemShimmer`, `CaffeinePremiumCardShimmer`, etc.). Si no existe uno para la lista, crear un shimmer que imite la forma de las filas/cards.
+- **Dónde aplicar:** Cualquier lista o bloque que dependa de datos remotos (perfil actividad, diario, timeline, listas).
+
+### B.3.6 Espaciado horizontal de pantalla
 
 - **Estado actual:** Padding horizontal 16.dp en la mayoría de pantallas; algunas usan 0 en bordes (ej. mapa Cafés probados a ancho completo) y 16.dp solo en el contenido.
 - **Recomendación:** Mantener 16.dp como estándar para contenido en lista/detalle; documentar aquí y en `DESIGN_TOKENS.md` que el gutter de pantalla es 16.dp. Si se introduce `Spacing`, usar `Spacing.space4` (16.dp) para ese gutter.

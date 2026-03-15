@@ -73,7 +73,9 @@ export type IconName =
   | "water"
   | "bottle"
   | "clock"
-  | "share";
+  | "share"
+  | "person_add"
+  | "link";
 
 type TimelineNotificationItem = {
   id: string;
@@ -194,7 +196,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
   }
   if (name === "search") {
     return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="6.5" />
         <path d="M16 16l4 4" />
       </svg>
@@ -255,7 +257,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
   }
   if (name === "close") {
     return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M6 6l12 12M18 6L6 18" />
       </svg>
     );
@@ -528,6 +530,21 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
       <span className={`${className ?? ""} material-symbol-icon`.trim()} aria-hidden="true">
         share
       </span>
+    );
+  }
+  if (name === "person_add") {
+    return (
+      <span className={`${className ?? ""} material-symbol-icon`.trim()} aria-hidden="true">
+        person_add
+      </span>
+    );
+  }
+  if (name === "link") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
     );
   }
   return (

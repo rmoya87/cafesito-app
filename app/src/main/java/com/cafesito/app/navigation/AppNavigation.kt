@@ -68,6 +68,8 @@ import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.ui.timeline.*
 import com.cafesito.app.analytics.AnalyticsHelper
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,10 +80,13 @@ fun AppNavigation(
     onNotificationConsumed: () -> Unit,
     shortcutAction: String?,
     onShortcutConsumed: () -> Unit,
+    deepLinkListId: String?,
+    onDeepLinkListConsumed: () -> Unit,
     analyticsHelper: AnalyticsHelper
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
+    val deepLinkViewModel: DeepLinkViewModel = hiltViewModel()
     var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
     var wasAuthenticatedInCurrentInstance by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -101,9 +106,8 @@ fun AppNavigation(
                 }
             }
             is SessionState.NotAuthenticated -> {
-                if (startRoute == null) {
-                    startRoute = "login"
-                } else if (wasAuthenticatedInCurrentInstance) {
+                if (startRoute == null) startRoute = "login"
+                else if (wasAuthenticatedInCurrentInstance) {
                     wasAuthenticatedInCurrentInstance = false
                     navController.navigate("login") { popUpTo(0) { inclusive = true } }
                 }
@@ -146,7 +150,21 @@ fun AppNavigation(
         }
         onShortcutConsumed()
     }
-    
+
+    // Deep link lista compartida: tras login, abrir profile/ownerId/list/listId (mismo flujo que web)
+    LaunchedEffect(deepLinkListId, sessionState) {
+        val listId = deepLinkListId ?: return@LaunchedEffect
+        if (sessionState !is SessionState.Authenticated) return@LaunchedEffect
+        delay(400) // Dejar que LoginScreen navegue a timeline antes de ir a la lista
+        val ownerId = deepLinkViewModel.getListOwnerId(listId) ?: run {
+            onDeepLinkListConsumed()
+            return@LaunchedEffect
+        }
+        navController.navigate("profile/$ownerId") { launchSingleTop = true }
+        navController.navigate("profile/$ownerId/list/$listId")
+        onDeepLinkListConsumed()
+    }
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
     val activeUser by userRepository.getActiveUserFlow().collectAsState(initial = null)
@@ -320,11 +338,14 @@ fun AppNavigation(
                             }
                         },
                         onSavePostFromNotification = { notification -> viewModel.savePostFromNotification(notification) },
+                        onAcceptListInvite = { invitationId -> viewModel.acceptListInvitation(invitationId) },
+                        onDeclineListInvite = { invitationId -> viewModel.declineListInvitation(invitationId) },
                         onNotificationClick = { notification ->
                             viewModel.markNotificationRead(notification)
                             when (notification) {
                                 is TimelineNotification.Follow -> navController.navigate("profile/${notification.user.id}")
                                 is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("timeline")
+                                is TimelineNotification.ListInvite -> { /* quedamos en notificaciones; botones Añadir/Rechazar en la fila */ }
                             }
                         },
                         isRefreshing = isRefreshing,
@@ -641,7 +662,15 @@ fun AppNavigation(
                 composable(
                     route = "detail/{coffeeId}",
                     arguments = listOf(navArgument("coffeeId") { type = NavType.StringType })
-                ) { DetailScreen(onBackClick = { navController.popBackStack() }) }
+                ) { backStackEntry ->
+                    val coffeeIdFromArgs = backStackEntry.arguments?.getString("coffeeId").orEmpty()
+                    backStackEntry.savedStateHandle["coffeeId"] = coffeeIdFromArgs
+                    DetailScreen(
+                        onBackClick = { navController.popBackStack() },
+                        viewModel = hiltViewModel(backStackEntry),
+                        commentsViewModel = hiltViewModel(backStackEntry)
+                    )
+                }
 
                 composable("historial") {
                     HistorialScreen(

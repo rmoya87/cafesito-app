@@ -35,7 +35,7 @@ if (!fcmProjectId || !fcmClientEmail || !fcmPrivateKey) {
 }
 
 const supabase = createClient(supabaseUrl ?? "", supabaseServiceKey ?? "");
-const HIGH_PRIORITY_TYPES = new Set(["FOLLOW", "MENTION", "COMMENT"]);
+const HIGH_PRIORITY_TYPES = new Set(["FOLLOW", "MENTION", "COMMENT", "LIST_INVITE"]);
 const GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token";
 const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
 
@@ -232,17 +232,37 @@ Deno.serve(async (req) => {
     const rawType = String(record.type ?? "");
     const notificationType = rawType.toUpperCase();
     const isMention = notificationType === "MENTION";
+    const isListInvite = notificationType === "LIST_INVITE";
 
-    const title =
-      notificationType === "FOLLOW"
-        ? `${fromUsername} te siguio`
-        : isMention
-        ? fromUsername || "Cafesito"
-        : "Cafesito";
-    const body = isMention ? "te ha mencionado" : String(record.message || "Nueva notificacion");
+    let title: string;
+    let body: string;
+    if (notificationType === "FOLLOW") {
+      title = `${fromUsername} te siguio`;
+      body = String(record.message || "Nueva notificacion");
+    } else if (isMention) {
+      title = fromUsername || "Cafesito";
+      body = "te ha mencionado";
+    } else if (isListInvite) {
+      title = "Invitación a lista";
+      body = String(record.message || `${fromUsername} te ha invitado a una lista`);
+    } else {
+      title = "Cafesito";
+      body = String(record.message || "Nueva notificacion");
+    }
 
     const fcmPriority = HIGH_PRIORITY_TYPES.has(notificationType) ? "HIGH" : "NORMAL";
     const target = parseRelatedTarget(record.related_id);
+
+    // Para LIST_INVITE: related_id es el invitation_id (uuid). Opcionalmente obtener list_id.
+    let listId = "";
+    if (isListInvite && record.related_id) {
+      const { data: inv } = await supabase
+        .from("user_list_invitations")
+        .select("list_id")
+        .eq("id", record.related_id)
+        .maybeSingle();
+      listId = inv?.list_id ?? "";
+    }
     const accessToken = await getGoogleAccessToken();
 
     const sendResults = await Promise.all(
@@ -268,6 +288,8 @@ Deno.serve(async (req) => {
               post_id: target.postId,
               comment_id: target.commentId,
               target_user_id: target.targetUserId,
+              invitation_id: isListInvite ? String(record.related_id ?? "") : "",
+              list_id: isListInvite ? listId : "",
               action_label: isMention ? "Ver" : "",
               avatar_url: String(fromUser?.avatar_url ?? ""),
             },

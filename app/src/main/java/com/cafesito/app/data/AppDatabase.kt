@@ -23,7 +23,7 @@ import androidx.room.RoomDatabase
         UserTokenEntity::class,
         ActiveSessionEntity::class
     ],
-    version = 36,
+    version = 37,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

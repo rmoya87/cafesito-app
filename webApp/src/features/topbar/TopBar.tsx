@@ -60,6 +60,11 @@ export function TopBar({
   profileSubPanel,
   profileListName,
   onOpenListOptionsSheet,
+  showShareListButton = false,
+  listMemberCount,
+  listMemberPreviews,
+  showJoinPublicListButton = false,
+  onJoinPublicList,
   onHistorialBack,
   onCoffeeBack,
   coffeeTopbarFavoriteActive,
@@ -126,6 +131,16 @@ export function TopBar({
   profileListName?: string;
   /** Al pulsar el menú de 3 puntos en la vista de detalle de una lista (solo cuando profileSubPanel === "list"). */
   onOpenListOptionsSheet?: () => void;
+  /** Mostrar botón invitar (person_add) o avatares + número cuando la lista es propia; al pulsar abre opciones de lista. */
+  showShareListButton?: boolean;
+  /** Si lista es pública o por invitación: número de miembros (sustituye el botón por avatares + número). */
+  listMemberCount?: number;
+  /** Hasta 3 avatares para mostrar apilados (mismo orden que listMemberCount). */
+  listMemberPreviews?: Array<{ avatar_url: string | null }>;
+  /** Mostrar botón "Añadirme" cuando la lista es pública y de otro usuario. */
+  showJoinPublicListButton?: boolean;
+  /** Al pulsar "Añadirme" en una lista pública ajena. */
+  onJoinPublicList?: () => void | Promise<void>;
   onHistorialBack?: () => void;
   onCoffeeBack: () => void;
   coffeeTopbarFavoriteActive: boolean;
@@ -263,7 +278,7 @@ export function TopBar({
   if (activeTab === "brewlab") {
     if (brewCreateCoffeeOpen) {
       return (
-        <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
+        <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
           <div className="topbar-slot">
             <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Atrás">
               <UiIcon name="arrow-left" className="ui-icon" />
@@ -286,7 +301,7 @@ export function TopBar({
       );
     }
     return (
-      <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""}`}>
+      <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
         <div className="topbar-slot">
           {brewStep !== "method" ? (
             <IconButton tone="topbar" onClick={onBrewBack} aria-label="Atrás">
@@ -365,10 +380,59 @@ export function TopBar({
           </div>
           <h1 className="title title-upper topbar-title-center">{sectionTitle}</h1>
           <div className="topbar-slot topbar-slot-end">
-            {profileSubPanel === "list" && onOpenListOptionsSheet ? (
-              <IconButton tone="topbar" className="topbar-list-options-btn" aria-label="Opciones de lista" onClick={onOpenListOptionsSheet}>
-                <UiIcon name="more" className="ui-icon" />
-              </IconButton>
+            {profileSubPanel === "list" && showJoinPublicListButton && onJoinPublicList ? (
+              <Button
+                variant="primary"
+                className="action-button topbar-join-list-btn"
+                onClick={() => void onJoinPublicList()}
+                aria-label="Suscribirse a esta lista"
+              >
+                Suscribirse
+              </Button>
+            ) : profileSubPanel === "list" ? (
+              <>
+                {showShareListButton && onOpenShareListSheet ? (
+                  typeof listMemberCount === "number" && Array.isArray(listMemberPreviews) ? (
+                    <button
+                      type="button"
+                      className="topbar-list-members-btn"
+                      onClick={onOpenShareListSheet}
+                      aria-label="Abrir compartir lista"
+                    >
+                      <span className="topbar-list-members-count" aria-hidden="true">
+                        {listMemberCount}
+                      </span>
+                      <span className="topbar-list-members-avatars">
+                        {listMemberPreviews.slice(0, 3).map((p, i) => (
+                          <span key={i} className="topbar-list-members-avatar-wrap">
+                            {p.avatar_url ? (
+                              <img src={p.avatar_url} alt="" className="topbar-list-members-avatar" />
+                            ) : (
+                              <span className="topbar-list-members-avatar topbar-list-members-avatar-placeholder" aria-hidden="true">
+                                ?
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="topbar-share-list-btn"
+                      onClick={onOpenListOptionsSheet}
+                      aria-label="Opciones de lista"
+                    >
+                      <UiIcon name="person_add" className="topbar-share-list-icon" />
+                    </button>
+                  )
+                ) : null}
+                {onOpenListOptionsSheet ? (
+                  <IconButton tone="topbar" className="topbar-list-options-btn" aria-label="Opciones de lista" onClick={onOpenListOptionsSheet}>
+                    <UiIcon name="more" className="ui-icon" />
+                  </IconButton>
+                ) : null}
+              </>
             ) : null}
           </div>
         </header>

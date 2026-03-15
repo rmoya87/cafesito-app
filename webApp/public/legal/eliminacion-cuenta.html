@@ -2,22 +2,27 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Eliminación de Cuenta - Cafesito</title>
+  <meta name="description" content="Procedimiento para solicitar la eliminación de tu cuenta y datos personales en Cafesito." />
   <link rel="icon" type="image/png" href="../logo.png" />
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; background: #fff; margin: 0; padding: 20px 16px 40px; max-width: 720px; margin-left: auto; margin-right: auto; }
+    .skip-link { position: absolute; left: -9999px; z-index: 999; padding: 8px 12px; background: #1a1a1a; color: #fff; text-decoration: none; }
+    .skip-link:focus { left: 0; top: 0; }
     h1 { font-size: 1.5rem; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 12px; }
     h2 { font-size: 1.15rem; margin-top: 24px; margin-bottom: 8px; }
     p { margin: 0 0 12px; }
     ul { margin: 0 0 12px; padding-left: 24px; }
     a { color: #1f6f4a; }
-    a.back { display: inline-block; margin-bottom: 20px; font-size: 0.9rem; }
+    a.back { display: inline-block; margin-bottom: 20px; font-size: 0.9rem; min-height: 44px; line-height: 44px; }
   </style>
 </head>
 <body>
-  <a class="back" href="../" onclick="if (window.history.length > 1) { history.back(); return false; }">← Volver</a>
+  <a href="#main-content" class="skip-link">Ir al contenido</a>
+  <a class="back" href="/" aria-label="Volver al inicio" onclick="if (window.history.length > 1) { history.back(); return false; }">← Volver</a>
+  <main id="main-content">
   <h1>Eliminación de cuenta y datos personales</h1>
   <p>En Cafesito respetamos tu privacidad y tu derecho a controlar tus datos personales. Por ello, ponemos a tu disposición un procedimiento sencillo para solicitar la eliminación de tu cuenta y de los datos asociados.</p>
 
@@ -57,5 +62,8 @@
 
   <h2>Contacto</h2>
   <p>Si tienes cualquier duda sobre privacidad o protección de datos: 📧 <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a></p>
+  </main>
+  <script>window.__GA4_PAGE__ = { path: '/legal/eliminacion-cuenta.html', title: 'Eliminación de Cuenta - Cafesito' };</script>
+  <script src="/ga4-static.js"></script>
 </body>
 </html>

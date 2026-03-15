@@ -261,7 +261,7 @@ fun BrewLabMainStepContent(
         Spacer(Modifier.height(Spacing.space4))
         LazyRow(
             state = methodsListState,
-            contentPadding = PaddingValues(horizontal = Spacing.space6),
+            contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp),
             horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
         ) {
             items(brewMethods, key = { it.name }) { method ->
@@ -317,7 +317,7 @@ fun BrewLabMainStepContent(
         val tipoChipHeight = 56.dp
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = Spacing.space6),
+            contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(BREWLAB_TIPO_OPTIONS, key = { it.label }) { option ->
@@ -378,7 +378,7 @@ fun BrewLabMainStepContent(
             val selectedTextColorSize = if (isDarkSize) PureBlack else PureWhite
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = Spacing.space6),
+                contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(BREWLAB_SIZE_OPTIONS, key = { it.label }) { option ->
@@ -420,11 +420,11 @@ fun BrewLabMainStepContent(
         if (selectedMethod != null && !selectedMethod.isOtros) {
             Spacer(Modifier.height(Spacing.space4))
             ConfigStep(
-                    methodName = selectedMethod?.name,
+                    methodName = selectedMethod.name,
                     isEspressoMethod = isEspressoMethod,
                     isRatioEditable = isRatioEditable,
                     isWaterEditable = isWaterEditable,
-                    isAguaMethod = selectedMethod?.isAgua == true,
+                    isAguaMethod = selectedMethod.isAgua == true,
                     brewTimeSeconds = brewTimeSeconds,
                     timeProfile = timeProfile,
                     methodProfile = methodProfile,

@@ -2,16 +2,28 @@ import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useR
 import { createPortal } from "react-dom";
 import {
   addUserListItem,
+  createListInvitation,
   createUserList,
   deleteUserList,
+  fetchListInvitationsByListId,
+  fetchListMembersByListId,
   fetchProfileUserActivityData,
+  fetchUserById,
+  fetchUsersByIds,
+  fetchUserListById,
   fetchUserListItems,
+  fetchSharedWithMeLists,
+  fetchUserLists,
   insertFinishedCoffee,
+  leaveList,
   removeUserListItem,
   requestAccountDeletion,
   syncAccountLifecycleAfterLogin,
   toggleFavoriteCoffee,
   updateUserList,
+  updateUserListWithPrivacy,
+  type ListInvitationRow,
+  type ListMemberRow,
   type UserListItemActivityRow
 } from "../data/supabaseApi";
 import { BREW_METHODS } from "../config/brew";
@@ -49,7 +61,13 @@ import { useTopBarActions } from "../hooks/domains/useTopBarActions";
 import { useAppDerivedData } from "../hooks/domains/useAppDerivedData";
 import { useAppUiEffects } from "../hooks/domains/useAppUiEffects";
 import { useCoffeeSeoMeta } from "../hooks/domains/useCoffeeSeoMeta";
-import { useCoffeeRouteSync, useRouteCanonicalSync, useRouteGuardSync } from "../hooks/domains/useRouteSync";
+import {
+  clearReturnAfterLoginPath,
+  getReturnAfterLoginPath,
+  useCoffeeRouteSync,
+  useRouteCanonicalSync,
+  useRouteGuardSync
+} from "../hooks/domains/useRouteSync";
 import { getSupabaseClient, supabaseConfigError } from "../supabase";
 import { applyThemeToDocument, getThemeMode } from "../core/theme";
 import { TopBar } from "../features/topbar/TopBar";
@@ -79,7 +97,9 @@ import { OfflineBanner } from "./OfflineBanner";
 import { EditListSheet } from "../features/lists/EditListSheet";
 
 import { UiIcon } from "../ui/iconography";
-import { Button, IconButton, SheetCard, SheetHandle, SheetOverlay } from "../ui/components";
+import { ListOptionsMembersBlock } from "../features/lists/ListOptionsMembersBlock";
+import { LIST_PRIVACY_OPTIONS } from "../features/lists/listPrivacyOptions";
+import { Button, cn, IconButton, SheetCard, SheetHandle, SheetOverlay, Switch } from "../ui/components";
 import type {
   BrewStep,
   CoffeeRow,
@@ -91,6 +111,7 @@ import type {
   FinishedCoffeeRow,
   FollowRow,
   LikeRow,
+  ListPrivacy,
   NotificationRow,
   PantryItemRow,
   PostCoffeeTagRow,
@@ -139,9 +160,18 @@ export function AppContainer() {
   const [profileListId, setProfileListId] = useState<string | null>(
     () => (initialRoute.tab === "profile" && "profileListId" in initialRoute && initialRoute.profileListId) || null
   );
-  const [showListOptionsSheet, setShowListOptionsSheet] = useState(false);
+  const [listOptionsView, setListOptionsView] = useState(false);
   const [showEditListSheet, setShowEditListSheet] = useState(false);
   const [showDeleteListConfirmSheet, setShowDeleteListConfirmSheet] = useState(false);
+  const [showLeaveListConfirmSheet, setShowLeaveListConfirmSheet] = useState(false);
+  const [listViewMembers, setListViewMembers] = useState<ListMemberRow[]>([]);
+  const [listViewMemberUsers, setListViewMemberUsers] = useState<UserRow[]>([]);
+  const [listOptionsMembers, setListOptionsMembers] = useState<ListMemberRow[]>([]);
+  const [listOptionsInvitations, setListOptionsInvitations] = useState<ListInvitationRow[]>([]);
+  const [listOptionsMemberUsers, setListOptionsMemberUsers] = useState<UserRow[]>([]);
+  const [listOptionsInvitingId, setListOptionsInvitingId] = useState<number | null>(null);
+  const [showCopyChip, setShowCopyChip] = useState(false);
+  const [copyChipExiting, setCopyChipExiting] = useState(false);
   const [follows, setFollows] = useState<FollowRow[]>([]);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [profileUserDiaryEntries, setProfileUserDiaryEntries] = useState<DiaryEntryRow[]>([]);
@@ -450,9 +480,12 @@ export function AppContainer() {
   }, [activeUser]);
 
   const [listDetailItemIds, setListDetailItemIds] = useState<string[]>([]);
+  const [profileListMeta, setProfileListMeta] = useState<UserListRow | null>(null);
+
   useEffect(() => {
     if (profileSubPanel !== "list" || !profileListId) {
       setListDetailItemIds([]);
+      setProfileListMeta(null);
       return;
     }
     let cancelled = false;
@@ -514,6 +547,7 @@ export function AppContainer() {
     setProfileUsername,
     setProfileSubPanel,
     setProfileListId,
+    setListOptionsView,
     profileListId,
     users,
     setActiveTab,
@@ -544,10 +578,10 @@ export function AppContainer() {
   );
 
   const handleCreateList = useCallback(
-    async (name: string, isPublic: boolean) => {
+    async (name: string, privacy: ListPrivacy, membersCanEdit?: boolean) => {
       if (!activeUser) return;
       try {
-        const list = await createUserList(activeUser.id, name, isPublic);
+        const list = await createUserList(activeUser.id, name, privacy, membersCanEdit);
         setUserLists((prev) => [...prev, list]);
       } catch (err) {
         console.error("Error creando lista:", err);
@@ -556,14 +590,29 @@ export function AppContainer() {
     [activeUser]
   );
 
-  const handleOpenListOptionsSheet = useCallback(() => setShowListOptionsSheet(true), []);
+  const handleOpenListOptionsPage = useCallback(() => {
+    if (profileListId) navigateToTab("profile", { profileSection: "list", profileListId, listOptionsView: true });
+  }, [navigateToTab, profileListId]);
   const handleEditListSave = useCallback(
-    async (listId: string, name: string, isPublic: boolean) => {
-      const updated = await updateUserList(listId, name, isPublic);
-      setUserLists((prev) => prev.map((l) => (l.id === listId ? { ...l, name: updated.name, is_public: updated.is_public } : l)));
+    async (listId: string, name: string, privacy: ListPrivacy, membersCanEdit?: boolean) => {
+      const updated = await updateUserListWithPrivacy(listId, name, privacy, membersCanEdit);
+      setUserLists((prev) =>
+        prev.map((l) =>
+          l.id === listId
+            ? { ...l, name: updated.name, is_public: updated.is_public, privacy: updated.privacy, members_can_edit: updated.members_can_edit }
+            : l
+        )
+      );
+      if (profileListMeta?.id === listId) {
+        setProfileListMeta((m) =>
+          m?.id === listId
+            ? { ...m, name: updated.name, is_public: updated.is_public, privacy: updated.privacy, members_can_edit: updated.members_can_edit }
+            : m
+        );
+      }
       setShowEditListSheet(false);
     },
-    []
+    [profileListMeta?.id]
   );
   const handleDeleteListConfirm = useCallback(async () => {
     if (!profileListId) return;
@@ -574,13 +623,47 @@ export function AppContainer() {
     setShowDeleteListConfirmSheet(false);
   }, [profileListId, navigateToTab]);
 
+  const handleLeaveListConfirm = useCallback(async () => {
+    if (!profileListId || !activeUser) return;
+    try {
+      await leaveList(profileListId, activeUser.id);
+      setUserLists((prev) => prev.filter((l) => l.id !== profileListId));
+      setProfileListMeta(null);
+      setShowLeaveListConfirmSheet(false);
+      navigateToTab("profile", { profileSection: null, profileListId: null, replace: true });
+    } catch (err) {
+      console.error("Error al abandonar la lista:", err);
+    }
+  }, [profileListId, activeUser, navigateToTab]);
+
   useRouteCanonicalSync(Boolean(sessionEmail));
   const loginRootPath = useMemo(() => getAppRootPath(window.location.pathname) || "/", []);
   useRouteGuardSync({
+    authReady,
     isAuthenticated: Boolean(sessionEmail),
     onBlocked: requestLogin,
     fallbackPath: loginRootPath
   });
+
+  // Tras login: restaurar ruta de lista compartida si se guardó
+  useEffect(() => {
+    if (!sessionEmail) return;
+    const returnPath = getReturnAfterLoginPath();
+    if (!returnPath) return;
+    const route = parseRoute(returnPath);
+    if (route.tab !== "profile" || route.profileSection !== "list" || !(route as { profileListId?: string }).profileListId) {
+      clearReturnAfterLoginPath();
+      return;
+    }
+    const listId = (route as { profileListId?: string }).profileListId;
+    clearReturnAfterLoginPath();
+    setActiveTab("profile");
+    setProfileSubPanel("list");
+    setProfileListId(listId);
+    const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "/";
+    const newPath = base === "/" ? buildRoute("profile", "coffees", null, null, "list", listId) : `${base}${buildRoute("profile", "coffees", null, null, "list", listId)}`;
+    window.history.replaceState({}, "", `${newPath}${window.location.search}${window.location.hash}`);
+  }, [sessionEmail]);
 
   // Al cargar o cambiar de página: guardar como último acceso (tab, path y fecha)
   useEffect(() => {
@@ -818,6 +901,138 @@ export function AppContainer() {
     profileUserListItems,
     followedUsersActivityData
   });
+
+  useEffect(() => {
+    if (profileSubPanel !== "list" || !profileListId) {
+      setProfileListMeta(null);
+      return;
+    }
+    const inUserLists = userLists.some((l) => l.id === profileListId);
+    if (profileUser && inUserLists) {
+      setProfileListMeta(userLists.find((l) => l.id === profileListId) ?? null);
+      return;
+    }
+    let cancelled = false;
+    fetchUserListById(profileListId)
+      .then((list) => {
+        if (cancelled) return;
+        if (list) {
+          setProfileListMeta(list);
+          if (!profileUsername && list.user_id) {
+            fetchUserById(list.user_id).then((owner) => {
+              if (!cancelled && owner) {
+                setUsers((prev) => (prev.some((u) => u.id === owner.id) ? prev : [...prev, owner]));
+                setProfileUsername(owner.username);
+              }
+            });
+          }
+        } else {
+          setProfileListMeta(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setProfileListMeta(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profileSubPanel, profileListId, profileUser, profileUsername, userLists, setProfileUsername, setUsers]);
+
+  useEffect(() => {
+    if (profileSubPanel !== "list" || !profileListId || !activeUser) {
+      setListViewMembers([]);
+      return;
+    }
+    const list = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
+    const isOwner = list?.user_id === activeUser.id;
+    const isPublicOrInvitation = list?.privacy === "public" || list?.privacy === "invitation";
+    if (!isOwner || !isPublicOrInvitation) {
+      setListViewMembers([]);
+      return;
+    }
+    let cancelled = false;
+    fetchListMembersByListId(profileListId).then((members) => {
+      if (!cancelled) setListViewMembers(members);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [profileSubPanel, profileListId, activeUser, userLists, profileListMeta]);
+
+  // Resolver avatares de miembros para la TopBar (misma fuente que Gestionar invitados: fetchUserById con avatar_url normalizado).
+  useEffect(() => {
+    if (listViewMembers.length === 0) {
+      setListViewMemberUsers([]);
+      return;
+    }
+    const ids = [...new Set(listViewMembers.map((m) => m.user_id))];
+    let cancelled = false;
+    fetchUsersByIds(ids)
+      .then((rows) => {
+        if (!cancelled) setListViewMemberUsers(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setListViewMemberUsers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [listViewMembers]);
+
+  // Cargar miembros e invitaciones cuando se abre la página Opciones de lista (sección Miembros).
+  useEffect(() => {
+    if (!listOptionsView || !profileListId) {
+      setListOptionsMembers([]);
+      setListOptionsInvitations([]);
+      setListOptionsMemberUsers([]);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      fetchListMembersByListId(profileListId),
+      fetchListInvitationsByListId(profileListId)
+    ]).then(([members, invitations]) => {
+      if (!cancelled) {
+        setListOptionsMembers(members);
+        setListOptionsInvitations(invitations);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [listOptionsView, profileListId]);
+
+  useEffect(() => {
+    if (!listOptionsView || !profileListId) return;
+    const list = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
+    const ownerId = list?.user_id;
+    if (ownerId == null) return;
+    const ids = [ownerId, ...listOptionsMembers.map((m) => m.user_id)];
+    const uniq = [...new Set(ids)];
+    let cancelled = false;
+    fetchUsersByIds(uniq).then((rows) => {
+      if (!cancelled) setListOptionsMemberUsers(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [listOptionsView, profileListId, listOptionsMembers, userLists, profileListMeta]);
+
+  useEffect(() => {
+    if (!showCopyChip) {
+      setCopyChipExiting(false);
+      return;
+    }
+    const t1 = setTimeout(() => setCopyChipExiting(true), 3000);
+    const t2 = setTimeout(() => {
+      setShowCopyChip(false);
+      setCopyChipExiting(false);
+    }, 3250);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [showCopyChip]);
 
   const diaryCoffeesWithFirstTried = useMemo(() => {
     const coffeeEntries = diaryEntries.filter((e) => (e.type ?? "").toUpperCase() !== "WATER");
@@ -1485,7 +1700,12 @@ export function AppContainer() {
   }
 
   if (!authReady && !guestCanAccessCurrentTab) {
-    return <LoginGate loading message="Verificando sesion..." />;
+    return (
+      <div className="app-auth-check" role="status" aria-live="polite" aria-busy="true">
+        <div className="app-auth-check-spinner" aria-hidden="true" />
+        <p className="app-auth-check-message">Verificando sesión...</p>
+      </div>
+    );
   }
 
   if (!sessionEmail && !guestCanAccessCurrentTab) {
@@ -1801,14 +2021,25 @@ export function AppContainer() {
           }}
         />
       ) : profileSubPanel === "list" && profileListId ? (
-        <FavoritosListView
-          favoriteCoffees={listDetailCoffees}
-          onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "profile")}
-          onRemoveFavorite={async (coffeeId) => {
-            await removeUserListItem(profileListId, coffeeId);
-            setListDetailItemIds((prev) => prev.filter((id) => id !== coffeeId));
-          }}
-        />
+        (() => {
+          const list = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
+          const isOwner = list != null && activeUser != null && list.user_id === activeUser.id;
+          const canEditList = isOwner || (list?.members_can_edit === true && !isOwner);
+          return (
+            <FavoritosListView
+              favoriteCoffees={listDetailCoffees}
+              onOpenCoffee={(coffeeId) => openCoffeeDetail(coffeeId, "profile")}
+              onRemoveFavorite={
+                canEditList
+                  ? async (coffeeId) => {
+                      await removeUserListItem(profileListId, coffeeId);
+                      setListDetailItemIds((prev) => prev.filter((id) => id !== coffeeId));
+                    }
+                  : undefined
+              }
+            />
+          );
+        })()
       ) : (
       <LazyProfileView
         user={profileUser}
@@ -1941,6 +2172,26 @@ export function AppContainer() {
       onOpenUserProfile={(userId) => {
         navigateToTab("profile", { profileUserId: userId });
         closeNotificationsPanel();
+      }}
+      onAcceptListInvite={async (invitationId) => {
+        try {
+          const { acceptListInvitation } = await import("../data/supabaseApi");
+          await acceptListInvitation(invitationId);
+          setNotifications((prev) => prev.filter((n) => n.related_id !== invitationId));
+          closeNotificationsPanel();
+          reloadInitialData();
+        } catch (err) {
+          console.error("Accept list invite failed:", err);
+        }
+      }}
+      onDeclineListInvite={async (invitationId) => {
+        try {
+          const { declineListInvitation } = await import("../data/supabaseApi");
+          await declineListInvitation(invitationId);
+          setNotifications((prev) => prev.filter((n) => n.related_id !== invitationId));
+        } catch (err) {
+          console.error("Decline list invite failed:", err);
+        }
       }}
     />
   );
@@ -2181,8 +2432,76 @@ export function AppContainer() {
             navigateToTab("profile", { profileSection: "historial" });
           }}
           profileSubPanel={profileSubPanel}
-          profileListName={profileListId ? (userLists.find((l) => l.id === profileListId)?.name ?? "Lista") : undefined}
-          onOpenListOptionsSheet={profileSubPanel === "list" && profileListId ? handleOpenListOptionsSheet : undefined}
+          profileListName={
+            profileListId
+              ? (profileListMeta?.name ?? userLists.find((l) => l.id === profileListId)?.name ?? "Lista")
+              : undefined
+          }
+          onOpenListOptionsSheet={
+            profileSubPanel === "list" && profileListId && userLists.some((l) => l.id === profileListId)
+              ? handleOpenListOptionsSheet
+              : undefined
+          }
+          showShareListButton={
+            (() => {
+              if (profileSubPanel !== "list" || !profileListId || !activeUser) return false;
+              const list = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
+              return (list?.user_id ?? null) === activeUser.id;
+            })()
+          }
+          listMemberCount={
+            (() => {
+              if (profileSubPanel !== "list" || !profileListId || !activeUser) return undefined;
+              const list = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
+              if ((list?.user_id ?? null) !== activeUser.id) return undefined;
+              if (list?.privacy !== "public" && list?.privacy !== "invitation") return undefined;
+              if (listViewMembers.length === 0) return undefined;
+              return listViewMembers.length;
+            })()
+          }
+          listMemberPreviews={
+            (() => {
+              if (profileSubPanel !== "list" || !profileListId || !activeUser) return undefined;
+              const list = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
+              if ((list?.user_id ?? null) !== activeUser.id) return undefined;
+              if (list?.privacy !== "public" && list?.privacy !== "invitation") return undefined;
+              if (listViewMembers.length === 0) return undefined;
+              return listViewMembers.slice(0, 3).map((m) => {
+                const u = listViewMemberUsers.find((x) => x.id === m.user_id) ?? users.find((x) => x.id === m.user_id);
+                return { avatar_url: u?.avatar_url ?? null };
+              });
+            })()
+          }
+          showJoinPublicListButton={
+            Boolean(
+              profileSubPanel === "list" &&
+                profileListId &&
+                profileUser &&
+                activeUser &&
+                profileUser.id !== activeUser.id &&
+                (profileListMeta?.is_public ?? false) &&
+                !userLists.some((l) => l.id === profileListId)
+            )
+          }
+          onJoinPublicList={
+            profileListId && activeUser
+              ? async () => {
+                  try {
+                    const { joinPublicList } = await import("../data/supabaseApi");
+                    await joinPublicList(profileListId);
+                    const [owned, shared] = await Promise.all([
+                      fetchUserLists(activeUser.id),
+                      fetchSharedWithMeLists(activeUser.id)
+                    ]);
+                    const byId = new Map<string, UserListRow>();
+                    [...owned, ...shared].forEach((l) => byId.set(l.id, l));
+                    setUserLists(Array.from(byId.values()));
+                  } catch (err) {
+                    console.error("Join public list failed:", err);
+                  }
+                }
+              : undefined
+          }
           onHistorialBack={() => {
             navigateToTab("profile", { profileSection: null, profileListId: null, replace: true });
           }}
@@ -2236,51 +2555,207 @@ export function AppContainer() {
       {mode === "mobile" && !(guardedActiveTab === "brewlab" && showCreateCoffeeComposer) && !isSearchUsersPage && !detailCoffeeId ? <footer className="bottom-tabs">{nav}</footer> : null}
 
       {showListOptionsSheet && profileListId && typeof document !== "undefined"
-        ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones de lista" onDismiss={() => setShowListOptionsSheet(false)} onClick={() => setShowListOptionsSheet(false)}>
-              <SheetCard className="diary-sheet diary-sheet-pantry-options" onClick={(e) => e.stopPropagation()}>
-                <SheetHandle aria-hidden="true" />
-                <div className="diary-sheet-list">
-                  <Button
-                    variant="plain"
-                    className="diary-sheet-action diary-sheet-action-pantry"
-                    onClick={() => {
-                      setShowListOptionsSheet(false);
-                      setShowEditListSheet(true);
-                    }}
-                  >
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
-                    <span>Editar lista</span>
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                  </Button>
-                  <Button
-                    variant="plain"
-                    className="diary-sheet-action diary-sheet-action-pantry"
-                    onClick={() => {
-                      setShowListOptionsSheet(false);
-                      setShowDeleteListConfirmSheet(true);
-                    }}
-                  >
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
-                    <span>Eliminar lista</span>
-                    <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                  </Button>
-                </div>
-              </SheetCard>
-            </SheetOverlay>,
-            document.body
-          )
+        ? (() => {
+            const list = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
+            const isOwner = list != null && activeUser != null && list.user_id === activeUser.id;
+            const listPrivacy: ListPrivacy = list?.privacy ?? (list?.is_public ? "public" : "private");
+            const listMembersCanEdit = list?.members_can_edit ?? false;
+            const handlePrivacyChange = async (privacy: ListPrivacy, membersCanEdit: boolean) => {
+              if (!profileListId || !list?.name) return;
+              try {
+                await updateUserListWithPrivacy(profileListId, list.name, privacy, membersCanEdit);
+                setUserLists((prev) =>
+                  prev.map((l) =>
+                    l.id === profileListId
+                      ? { ...l, is_public: privacy === "public", privacy, members_can_edit: membersCanEdit }
+                      : l
+                  )
+                );
+                if (profileListMeta?.id === profileListId) {
+                  setProfileListMeta((m) =>
+                    m?.id === profileListId ? { ...m, is_public: privacy === "public", privacy, members_can_edit: membersCanEdit } : m
+                  );
+                }
+              } catch (err) {
+                console.error("Error al actualizar privacidad:", err);
+              }
+            };
+            return createPortal(
+              <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones de lista" onDismiss={() => setShowListOptionsSheet(false)} onClick={() => setShowListOptionsSheet(false)}>
+                <SheetCard className="diary-sheet diary-sheet-pantry-options list-options-sheet" onClick={(e) => e.stopPropagation()}>
+                  <SheetHandle aria-hidden="true" />
+                  <div className="diary-sheet-list list-options-sheet-content">
+                    {isOwner && (
+                      <div className="list-options-privacy create-list-sheet">
+                        <h3 className="create-list-privacy-subtitle">Privacidad</h3>
+                        <div className="create-list-privacy-options">
+                          {LIST_PRIVACY_OPTIONS.map((opt) => (
+                            <div
+                              key={opt.value}
+                              className={cn("create-list-privacy-option", listPrivacy === opt.value && "is-selected")}
+                            >
+                              <button
+                                type="button"
+                                className="create-list-privacy-option-btn"
+                                onClick={() => void handlePrivacyChange(opt.value, listMembersCanEdit)}
+                                aria-pressed={listPrivacy === opt.value}
+                              >
+                                <span className="create-list-privacy-option-check">
+                                  {listPrivacy === opt.value ? (
+                                    <UiIcon name="check-circle-filled" aria-hidden="true" />
+                                  ) : (
+                                    <span className="create-list-privacy-option-check-empty" aria-hidden="true" />
+                                  )}
+                                </span>
+                                <div className="create-list-privacy-option-text">
+                                  <span className="create-list-privacy-option-label">{opt.label}</span>
+                                  <span className="create-list-privacy-option-desc">{opt.description}</span>
+                                </div>
+                              </button>
+                              {(opt.value === "public" || opt.value === "invitation") && (
+                                <div
+                                  className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <span className="share-list-privacy-option-switch-label">Permitir editar lista</span>
+                                  <Switch
+                                    checked={listMembersCanEdit}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void handlePrivacyChange(listPrivacy, !listMembersCanEdit);
+                                    }}
+                                    aria-label="Permitir que los miembros añadan o quiten cafés de la lista"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {isOwner && list && (
+                      <ListOptionsMembersBlock
+                        listOwnerId={list.user_id}
+                        members={listOptionsMembers}
+                        memberUsers={listOptionsMemberUsers}
+                        users={users.filter((u) => u.id !== activeUser?.id)}
+                        currentUserId={activeUser!.id}
+                        shareUrl={`${typeof window !== "undefined" ? window.location.origin : ""}${buildRoute("profile", "coffees", null, null, "list", profileListId)}`}
+                        invitingId={listOptionsInvitingId}
+                        invitations={listOptionsInvitations}
+                        onInvite={async (inviteeId) => {
+                          setListOptionsInvitingId(inviteeId);
+                          try {
+                            await createListInvitation(profileListId!, inviteeId);
+                            const [invitations] = await Promise.all([
+                              fetchListInvitationsByListId(profileListId!),
+                              fetchListMembersByListId(profileListId!)
+                            ]);
+                            setListOptionsInvitations(invitations);
+                            setListOptionsMembers(await fetchListMembersByListId(profileListId!));
+                          } catch (err) {
+                            console.error("Error invitando a la lista:", err);
+                          } finally {
+                            setListOptionsInvitingId(null);
+                          }
+                        }}
+                        onCopyLink={() => {
+                          const url = `${typeof window !== "undefined" ? window.location.origin : ""}${buildRoute("profile", "coffees", null, null, "list", profileListId)}`;
+                          navigator.clipboard.writeText(url).catch(() => {
+                            const input = document.createElement("input");
+                            input.value = url;
+                            document.body.appendChild(input);
+                            input.select();
+                            document.execCommand("copy");
+                            document.body.removeChild(input);
+                          });
+                          setShowCopyChip(true);
+                        }}
+                        onRemoveMember={async (userId) => {
+                          try {
+                            await leaveList(profileListId!, userId);
+                            const members = await fetchListMembersByListId(profileListId!);
+                            setListOptionsMembers(members);
+                            const listForMeta = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
+                            const ownerId = listForMeta?.user_id;
+                            if (ownerId != null) {
+                              const ids = [ownerId, ...members.map((m) => m.user_id)];
+                              const rows = await fetchUsersByIds([...new Set(ids)]);
+                              setListOptionsMemberUsers(rows);
+                            }
+                          } catch (err) {
+                            console.error("Error al eliminar miembro:", err);
+                          }
+                        }}
+                        copyChipVisible={showCopyChip}
+                        copyChipExiting={copyChipExiting}
+                      />
+                    )}
+                    <div className="list-options-general">
+                      <h3 className="create-list-privacy-subtitle">General</h3>
+                      <div className="diary-sheet-list">
+                        {isOwner ? (
+                          <>
+                            <Button
+                              variant="plain"
+                              className="diary-sheet-action diary-sheet-action-pantry"
+                              onClick={() => {
+                                setShowListOptionsSheet(false);
+                                setShowEditListSheet(true);
+                              }}
+                            >
+                              <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
+                              <span>Editar lista</span>
+                              <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                            </Button>
+                            <Button
+                              variant="plain"
+                              className="diary-sheet-action diary-sheet-action-pantry"
+                              onClick={() => {
+                                setShowListOptionsSheet(false);
+                                setShowDeleteListConfirmSheet(true);
+                              }}
+                            >
+                              <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
+                              <span>Eliminar lista</span>
+                              <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="plain"
+                            className="diary-sheet-action diary-sheet-action-pantry diary-sheet-action-leave-list"
+                            onClick={() => {
+                              setShowListOptionsSheet(false);
+                              setShowLeaveListConfirmSheet(true);
+                            }}
+                          >
+                            <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">logout</span>
+                            <span>Abandonar lista</span>
+                            <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </SheetCard>
+              </SheetOverlay>,
+              document.body
+            );
+          })()
         : null}
       {showEditListSheet && profileListId && (() => {
         const list = userLists.find((l) => l.id === profileListId);
         if (!list) return null;
+        const initialPrivacy: ListPrivacy = list.privacy ?? (list.is_public ? "public" : "private");
         return typeof document !== "undefined"
           ? createPortal(
               <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar lista" onDismiss={() => setShowEditListSheet(false)} onClick={() => setShowEditListSheet(false)}>
                 <EditListSheet
                   listId={list.id}
                   initialName={list.name}
-                  initialIsPublic={list.is_public}
+                  initialPrivacy={initialPrivacy}
+                  initialMembersCanEdit={list.members_can_edit ?? false}
                   onDismiss={() => setShowEditListSheet(false)}
                   onSave={handleEditListSave}
                 />
@@ -2318,7 +2793,35 @@ export function AppContainer() {
             document.body
           )
         : null}
-
+      {showLeaveListConfirmSheet && profileListId && typeof document !== "undefined"
+        ? createPortal(
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Abandonar lista" onDismiss={() => setShowLeaveListConfirmSheet(false)} onClick={() => setShowLeaveListConfirmSheet(false)}>
+              <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
+                <SheetHandle aria-hidden="true" />
+                <div className="diary-delete-confirm-body">
+                  <h2 className="diary-delete-confirm-title">Abandonar lista</h2>
+                  <p className="diary-delete-confirm-text">
+                    ¿Estás seguro de que quieres abandonar esta lista? Dejarás de tener acceso a ella y ya no aparecerá en tu sección de listas.
+                  </p>
+                  <div className="diary-delete-confirm-actions">
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setShowLeaveListConfirmSheet(false)}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-delete-confirm-submit"
+                      onClick={() => void handleLeaveListConfirm()}
+                    >
+                      Abandonar
+                    </Button>
+                  </div>
+                </div>
+              </SheetCard>
+            </SheetOverlay>,
+            document.body
+          )
+        : null}
       <AppOverlayLayers
         authPrompt={authPromptOverlay}
         barcodeScanner={barcodeScannerOverlay}

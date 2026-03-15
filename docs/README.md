@@ -127,6 +127,8 @@ flowchart TB
 | Documento / carpeta | Descripción |
 |---------------------|-------------|
 | `supabase/*.sql` | Scripts RLS, triggers, migrations (notifications, push, coffees, diary, users, etc.). |
+| `supabase/CONEXION_SUPABASE_ANDROID.md` | **Conexión Android:** posibles problemas (red, 500, auth, timeouts) y qué comprobar; enlace al fix de `get_my_internal_id` y a user_lists_500_troubleshooting. |
+| `supabase/user_lists_500_troubleshooting.md` | 500 en user_lists / user_list_members: pasos para aplicar el fix y comprobar columna en users_db. |
 | `supabase/edge-functions/` | Edge Functions (trigger-coffees-build, process-pending-account-deletions, send-notification). |
 | `supabase/webhook-coffees-trigger-build.md` | Deploy web: prerender, SEO, SPA fallback, webhook cafés → build (ver también 4.2). |
 

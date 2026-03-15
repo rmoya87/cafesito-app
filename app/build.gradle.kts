@@ -112,7 +112,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
-            "-Xcontext-receivers" 
+            "-Xcontext-parameters"
         )
     }
 }

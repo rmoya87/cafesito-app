@@ -941,7 +941,7 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(CHART_MIN_HEIGHT_DP)
+                .heightIn(min = CHART_CANVAS_HEIGHT_DP + CHART_PADDING_TOP_DP + CHART_PADDING_BOTTOM_DP + 32.dp)
         ) {
             val chartVisible = remember(analytics.chartData) { mutableStateOf(false) }
             val isFirstAnimation = remember { mutableStateOf(true) }

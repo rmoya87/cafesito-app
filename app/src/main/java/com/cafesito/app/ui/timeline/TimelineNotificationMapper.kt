@@ -68,6 +68,23 @@ fun NotificationEntity.toTimelineNotification(users: List<UserEntity>): Timeline
                 message = normalizeNotificationMessage(message)
             )
         }
+        "LIST_INVITE" -> {
+            val invitationId = relatedId?.trim()?.takeIf { it.isNotBlank() } ?: return null
+            val user = users.find { it.username.equals(fromUsername, ignoreCase = true) }
+                ?: buildFallbackUser(
+                    notificationId = notificationId,
+                    fromUsername = fromUsername
+                )
+            TimelineNotification.ListInvite(
+                notificationId = notificationId,
+                id = notificationKey,
+                timestamp = timestamp,
+                isRead = isRead,
+                user = user,
+                invitationId = invitationId,
+                message = message
+            )
+        }
         else -> null
     }
 }

@@ -114,7 +114,7 @@ data class DiaryBaristaStats(
 class DiaryViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
     private val coffeeRepository: CoffeeRepository,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
@@ -248,7 +248,8 @@ class DiaryViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val analytics: StateFlow<DiaryAnalytics?> = combine(allEntriesFlow, _selectedPeriod, _selectedDiaryDateMs) { entries, period, selectedDateMs ->
+    val analytics: StateFlow<DiaryAnalytics> = combine(allEntriesFlow, _selectedPeriod, _selectedDiaryDateMs) { entries, period, selectedDateMs ->
+        try {
         val calendar = Calendar.getInstance()
         val now = System.currentTimeMillis()
         calendar.timeInMillis = now
@@ -379,10 +380,37 @@ class DiaryViewModel @Inject constructor(
             period = period,
             isCurrentWeek = isCurrentWeek
         )
+        } catch (e: Exception) {
+            defaultDiaryAnalytics()
+        }
     }
     .onEach { _isLoading.value = false }
     .flowOn(Dispatchers.Default)
-    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), defaultDiaryAnalytics())
+
+    private fun defaultDiaryAnalytics(): DiaryAnalytics {
+        val chartData = when (_selectedPeriod.value) {
+            DiaryPeriod.HOY -> (0..23).map { ChartEntry(String.format("%02d:00", it), 0, 0) }
+            DiaryPeriod.SEMANA -> listOf("L", "M", "X", "J", "V", "S", "D").map { ChartEntry(it, 0, 0) }
+            DiaryPeriod.MES -> (1..31).map { ChartEntry(it.toString(), 0, 0) }
+        }
+        return DiaryAnalytics(
+            chartData = chartData,
+            waterCount = 0,
+            totalWaterMl = 0,
+            cupsCount = 0,
+            totalCaffeine = 0,
+            averageCaffeine = 0,
+            avgCaffeineLast30 = 0,
+            avgCupsLast30 = 0f,
+            avgHydrationPctLast30 = 0,
+            caffeineTrendPct = 0,
+            hydrationTrendPct = 0,
+            hydrationProgressPct = 0,
+            period = _selectedPeriod.value,
+            isCurrentWeek = false
+        )
+    }
 
     private val dayNames = listOf("Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
     private val sinMetodo = "—"
@@ -401,7 +429,7 @@ class DiaryViewModel @Inject constructor(
         val sizeCount = coffeeEntries.groupingBy { (it.sizeLabel ?: "").trim().ifEmpty { "—" } }.eachCount()
         val mostSize = sizeCount.maxByOrNull { it.value }?.key ?: "—"
         val methodCount = coffeeEntries.groupingBy { e ->
-            val prep = (e.preparationType ?: "").trim()
+            val prep = e.preparationType.trim()
             if (prep.contains("|")) prep.substringBefore("|").trim() else prep
         }.eachCount().mapKeys { (k, _) -> k.ifEmpty { sinMetodo } }
         val mostMethod = methodCount.maxByOrNull { it.value }?.key ?: sinMetodo
@@ -584,8 +612,7 @@ class DiaryViewModel @Inject constructor(
     
     fun updateEntry(entry: DiaryEntryEntity) {
         viewModelScope.launch {
-            diaryRepository.updateDiaryEntry(entry)
-            refreshDiaryWidget()
+            runCatching { diaryRepository.updateDiaryEntry(entry) }.onSuccess { refreshDiaryWidget() }
         }
     }
 

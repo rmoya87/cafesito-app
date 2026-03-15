@@ -51,6 +51,11 @@ object TimelineNotificationSystem {
                     putExtra(EXTRA_POST_ID, notification.postId)
                     putExtra(EXTRA_COMMENT_ID, notification.commentId)
                 }
+                is TimelineNotification.ListInvite -> {
+                    putExtra(NAV_TYPE_KEY, "NOTIFICATIONS")
+                    putExtra(EXTRA_TYPE, "list_invite")
+                    putExtra("invitation_id", notification.invitationId)
+                }
             }
         }
         return PendingIntent.getActivity(
@@ -70,6 +75,7 @@ object TimelineNotificationSystem {
             is TimelineNotification.Follow -> notification.user.username to "ha empezado a seguirte"
             is TimelineNotification.Mention -> notification.user.username to "te ha mencionado en un comentario"
             is TimelineNotification.Comment -> notification.user.username to notification.message
+            is TimelineNotification.ListInvite -> "Invitación a lista" to notification.message
         }
         val channelId = NotificationChannels.resolveChannel(notification.type)
         val notificationId = notification.id.hashCode()
@@ -108,17 +114,40 @@ object TimelineNotificationSystem {
                 )
             }
 
+            is TimelineNotification.ListInvite -> {
+                builder.addAction(
+                    0,
+                    "Rechazar",
+                    buildReceiverPendingIntent(
+                        context = context,
+                        requestCode = notificationId + 1,
+                        action = NotificationActionReceiver.ACTION_DECLINE_LIST_INVITE,
+                        notificationId = notificationId,
+                        invitationId = notification.invitationId
+                    )
+                )
+                builder.addAction(
+                    0,
+                    "Añadir",
+                    buildReceiverPendingIntent(
+                        context = context,
+                        requestCode = notificationId + 2,
+                        action = NotificationActionReceiver.ACTION_ACCEPT_LIST_INVITE,
+                        notificationId = notificationId,
+                        invitationId = notification.invitationId
+                    )
+                )
+            }
+
             is TimelineNotification.Mention,
             is TimelineNotification.Comment -> {
                 val postId = when (notification) {
                     is TimelineNotification.Mention -> notification.postId
                     is TimelineNotification.Comment -> notification.postId
-                    else -> null
                 }
                 val commentId = when (notification) {
                     is TimelineNotification.Mention -> notification.commentId
                     is TimelineNotification.Comment -> notification.commentId
-                    else -> null
                 }
 
                 if (!postId.isNullOrBlank()) {
@@ -164,7 +193,8 @@ object TimelineNotificationSystem {
         notificationId: Int,
         targetUserId: Int? = null,
         postId: String? = null,
-        commentId: Int? = null
+        commentId: Int? = null,
+        invitationId: String? = null
     ): PendingIntent {
         val receiverIntent = Intent(context, NotificationActionReceiver::class.java).apply {
             this.action = action
@@ -172,6 +202,7 @@ object TimelineNotificationSystem {
             targetUserId?.let { putExtra(NotificationActionReceiver.EXTRA_TARGET_USER_ID, it) }
             postId?.let { putExtra(NotificationActionReceiver.EXTRA_POST_ID, it) }
             commentId?.let { putExtra(NotificationActionReceiver.EXTRA_COMMENT_ID, it) }
+            invitationId?.let { putExtra(NotificationActionReceiver.EXTRA_INVITATION_ID, it) }
         }
         return PendingIntent.getBroadcast(
             context,

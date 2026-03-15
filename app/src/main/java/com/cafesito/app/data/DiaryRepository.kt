@@ -229,16 +229,15 @@ class DiaryRepository @Inject constructor(
         reduceFromPantryItemId: String? = null
     ) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
+        var pantryItemIdUsed: String? = null
         val entry = DiaryEntryEntity(
-            userId = user.id, coffeeId = coffeeId, coffeeName = coffeeName, 
-            coffeeBrand = coffeeBrand, caffeineAmount = caffeineAmount, 
+            userId = user.id, coffeeId = coffeeId, coffeeName = coffeeName,
+            coffeeBrand = coffeeBrand, caffeineAmount = caffeineAmount,
             amountMl = amountMl, coffeeGrams = coffeeGrams,
-            preparationType = preparationType, sizeLabel = sizeLabel, timestamp = System.currentTimeMillis(), type = type
+            preparationType = preparationType, sizeLabel = sizeLabel, timestamp = System.currentTimeMillis(), type = type,
+            pantryItemId = null
         )
-        
-        val rowId = diaryDao.insertDiaryEntry(entry)
-        val entryWithId = entry.copy(id = rowId)
-        
+
         if (coffeeId != null && type == TYPE_CUP && reduceFromPantry) {
             val pantryItem = reduceFromPantryItemId?.let { diaryDao.getPantryItemById(it) }
                 ?: run {
@@ -247,12 +246,17 @@ class DiaryRepository @Inject constructor(
                         ?: pantryItems.firstOrNull { it.coffeeId == coffeeId }
                 }
             if (pantryItem != null) {
+                pantryItemIdUsed = pantryItem.id
                 val newRemaining = (pantryItem.gramsRemaining - coffeeGrams).coerceAtLeast(0)
                 val updatedItem = pantryItem.copy(gramsRemaining = newRemaining, lastUpdated = System.currentTimeMillis())
                 diaryDao.upsertPantryItem(updatedItem)
                 externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
             }
         }
+
+        val entryWithPantryId = entry.copy(pantryItemId = pantryItemIdUsed)
+        val rowId = diaryDao.insertDiaryEntry(entryWithPantryId)
+        val entryWithId = entryWithPantryId.copy(id = rowId)
 
         externalScope.launch {
             try {
@@ -421,20 +425,34 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun updateDiaryEntry(entry: DiaryEntryEntity) = withContext(Dispatchers.IO) {
-        val user = userRepository.getActiveUser() ?: return@withContext
-        diaryDao.insertDiaryEntry(entry)
-        externalScope.launch {
-            try {
-                supabaseDataSource.upsertDiaryEntry(entry.copy(userId = user.id))
-                diaryDao.deletePendingDiarySync(entry.id)
-            } catch (e: Exception) {
-                enqueueDiaryEntryForSync(entry.id, e)
+        try {
+            val user = userRepository.getActiveUser() ?: return@withContext
+            diaryDao.insertDiaryEntry(entry)
+            externalScope.launch {
+                try {
+                    supabaseDataSource.upsertDiaryEntry(entry.copy(userId = user.id))
+                    diaryDao.deletePendingDiarySync(entry.id)
+                } catch (e: Exception) {
+                    enqueueDiaryEntryForSync(entry.id, e)
+                }
             }
+        } catch (e: Exception) {
+            Log.e("DiaryRepository", "updateDiaryEntry failed", e)
         }
     }
 
-    /** Elimina una entrada del diario (actividad). No modifica la despensa: el café sigue en pantry_items si estaba. */
+    /** Elimina una entrada del diario (actividad). Si la entrada tenía pantry_item_id, restaura el stock en ese ítem. */
     suspend fun deleteDiaryEntry(entryId: Long) = withContext(Dispatchers.IO) {
+        val entry = diaryDao.getDiaryEntryById(entryId)
+        if (entry != null && entry.pantryItemId != null && entry.coffeeGrams > 0 && entry.type == TYPE_CUP) {
+            val pantryItem = diaryDao.getPantryItemById(entry.pantryItemId)
+            if (pantryItem != null) {
+                val newRemaining = (pantryItem.gramsRemaining + entry.coffeeGrams).coerceAtMost(pantryItem.totalGrams)
+                val updatedItem = pantryItem.copy(gramsRemaining = newRemaining, lastUpdated = System.currentTimeMillis())
+                diaryDao.upsertPantryItem(updatedItem)
+                externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
+            }
+        }
         diaryDao.deletePendingDiarySync(entryId)
         diaryDao.deleteDiaryEntryById(entryId)
         externalScope.launch { try { supabaseDataSource.deleteDiaryEntry(entryId) } catch (e: Exception) { } }

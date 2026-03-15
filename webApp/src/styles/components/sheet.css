@@ -116,6 +116,12 @@
   backdrop-filter: blur(8px);
 }
 
+/* Ninguna modal debe mostrar línea bajo el título */
+.sheet-card header,
+.sheet-card [class*="-header"] {
+  border-bottom: none !important;
+}
+
 .sheet-body {
   padding: 12px 14px 16px;
 }

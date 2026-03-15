@@ -269,6 +269,16 @@ fun NotificationsBottomSheet(
                                         onClick = { onNotificationClick(notification) }
                                     )
                                 }
+                                is TimelineNotification.ListInvite -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = notification.message,
+                                        isUnread = isUnread,
+                                        trailingContent = null,
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -431,8 +441,8 @@ fun MentionText(
                                 }
                             } else {
                                 SubcomposeAsyncImage(
-                                    model = mentionUser?.avatarUrl,
-                                    contentDescription = "Avatar de ${mentionUser?.username ?: "usuario"}",
+                                    model = mentionUser.avatarUrl,
+                                    contentDescription = "Avatar de ${mentionUser.username.ifBlank { "usuario" }}",
                                     modifier = Modifier
                                         .size(14.dp)
                                         .clip(CircleShape),
@@ -1235,7 +1245,11 @@ fun DiaryEntryEditBottomSheet(
                 val chipIconSize = 30.dp
                 val chipMinWidth = editModalChipMinWidth
                 val chipMinHeight = 56.dp
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = Spacing.space2) {
+                FadingLazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = (-Spacing.space6.value).dp),
+                    itemSpacing = Spacing.space2,
+                    contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
+                ) {
                     items(brewMethodNames, key = { it }) { methodName ->
                         val isSelected = selectedBrewMethod == methodName
                         val methodDrawable = diaryElaborationDrawableName(methodName)
@@ -1299,7 +1313,11 @@ fun DiaryEntryEditBottomSheet(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(Spacing.space1))
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = Spacing.space2) {
+                FadingLazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = (-Spacing.space6.value).dp),
+                    itemSpacing = Spacing.space2,
+                    contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
+                ) {
                     items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
                         val iconTint = if (isSelected) selectedChipContent else unselectedChipContent
@@ -1392,7 +1410,11 @@ fun DiaryEntryEditBottomSheet(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(Spacing.space1))
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
+                FadingLazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = (-Spacing.space6.value).dp),
+                    itemSpacing = 10.dp,
+                    contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
+                ) {
                     items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
                         val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBg
@@ -1500,7 +1522,11 @@ fun DiaryEntryEditBottomSheet(
                 val unselectedChipBgResult = if (isDark) PureBlack else PureWhite
                 val unselectedChipContentResult = if (isDark) PureWhite else PureBlack
                 val selectedChipContentResult = if (isDark) PureBlack else PureWhite
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = Spacing.space2) {
+                FadingLazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = (-Spacing.space6.value).dp),
+                    itemSpacing = Spacing.space2,
+                    contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
+                ) {
                     items(tasteOptionsWithIcons, key = { it.first }) { (taste, iconVector) ->
                         val isSelected = selectedBrewTaste == taste
                         Surface(
@@ -2149,47 +2175,17 @@ fun DeleteConfirmationDialog(
     }
 }
 
+/** LazyRow horizontal sin degradados laterales; alineado a la izquierda con el titular, sin padding a la derecha. */
 @Composable
 fun FadingLazyRow(
     modifier: Modifier = Modifier,
     itemSpacing: Dp = Spacing.space2,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
 ) {
-    val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
-    val showLeftGradient by remember {
-        derivedStateOf { scrollState.firstVisibleItemIndex > 0 || scrollState.firstVisibleItemScrollOffset > 0 }
-    }
-    val showRightGradient by remember {
-        derivedStateOf {
-            val layoutInfo = scrollState.layoutInfo
-            val totalItemsCount = layoutInfo.totalItemsCount
-            if (totalItemsCount == 0) false
-            else {
-                val lastItem = layoutInfo.visibleItemsInfo.lastOrNull()
-                lastItem == null || lastItem.index < totalItemsCount - 1 || lastItem.offset + lastItem.size > layoutInfo.viewportEndOffset
-            }
-        }
-    }
-
     androidx.compose.foundation.lazy.LazyRow(
-        state = scrollState,
-        modifier = modifier
-            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-            .drawWithContent {
-                drawContent()
-                val leftColor = if (showLeftGradient) Color.Transparent else PureBlack
-                val rightColor = if (showRightGradient) Color.Transparent else PureBlack
-                
-                drawRect(
-                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                        0.0f to leftColor,
-                        0.05f to PureBlack,
-                        0.95f to PureBlack,
-                        1.0f to rightColor
-                    ),
-                    blendMode = BlendMode.DstIn
-                )
-            },
+        modifier = modifier,
+        contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(itemSpacing),
         content = content
     )

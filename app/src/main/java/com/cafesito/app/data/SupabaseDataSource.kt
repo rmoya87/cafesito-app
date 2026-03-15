@@ -434,7 +434,8 @@ class SupabaseDataSource @Inject constructor(
             preparationType = entry.preparationType,
             sizeLabel = entry.sizeLabel,
             timestamp = entry.timestamp,
-            type = entry.type
+            type = entry.type,
+            pantryItemId = entry.pantryItemId
         )
         return client.postgrest["diary_entries"].insert(insertData) { select() }.decodeSingle<DiaryEntryEntity>()
     }
@@ -586,14 +587,94 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
-    // --- LISTAS PERSONALIZADAS (user_lists, user_list_items) ---
-    suspend fun getUserLists(userId: Int): List<UserListRow> = client.postgrest["user_lists"].select {
-        filter { eq("user_id", userId.toLong()) }
-    }.decodeList<UserListRow>()
+    // --- LISTAS PERSONALIZADAS (user_lists, user_list_items, invitaciones) ---
+    /** Listas propias del usuario (donde user_id = userId). En 500/error devuelve lista vacía para no romper la app. */
+    suspend fun getUserLists(userId: Int): List<UserListRow> = try {
+        client.postgrest["user_lists"].select {
+            filter { eq("user_id", userId.toLong()) }
+        }.decodeList<UserListRow>()
+    } catch (e: Exception) {
+        Log.w("SupabaseDataSource", "getUserLists: ${e.message}")
+        emptyList()
+    }
+
+    /** Obtiene una lista por ID (para deep link: abrir lista compartida). RLS permite si es pública, propia o miembro. */
+    suspend fun getUserListById(listId: String): UserListRow? = try {
+        client.postgrest["user_lists"].select {
+            filter { eq("id", listId) }
+        }.decodeList<UserListRow>().firstOrNull()
+    } catch (e: Exception) {
+        Log.w("SupabaseDataSource", "getUserListById: ${e.message}")
+        null
+    }
+
+    /** Listas compartidas con el usuario (donde está en user_list_members). */
+    suspend fun getSharedWithMeLists(userId: Int): List<UserListRow> {
+        val memberRows = try {
+            client.postgrest["user_list_members"].select {
+                filter { eq("user_id", userId.toLong()) }
+            }.decodeList<UserListMemberRow>()
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "getSharedWithMeLists members: ${e.message}")
+            return emptyList()
+        }
+        val listIds = memberRows.map { it.listId }.distinct()
+        if (listIds.isEmpty()) return emptyList()
+        return try {
+            client.postgrest["user_lists"].select {
+                filter { isIn("id", listIds) }
+            }.decodeList<UserListRow>()
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "getSharedWithMeLists lists: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun createListInvitation(listId: String, inviteeId: Int): String {
+        val raw = client.postgrest.rpc(
+            "create_list_invitation",
+            buildJsonObject {
+                put("p_list_id", listId)
+                put("p_invitee_id", inviteeId.toLong())
+            }
+        )
+        return try {
+            raw.decodeSingle<CreateListInvitationResult>().id
+        } catch (_: Exception) {
+            raw.decodeList<String>().firstOrNull()?.trim('"') ?: ""
+        }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class CreateListInvitationResult(
+        @kotlinx.serialization.SerialName("create_list_invitation") val id: String
+    )
+
+    suspend fun acceptListInvitation(invitationId: String) {
+        client.postgrest.rpc(
+            "accept_list_invitation",
+            buildJsonObject { put("p_invitation_id", invitationId) }
+        )
+    }
+
+    suspend fun declineListInvitation(invitationId: String) {
+        client.postgrest.rpc(
+            "decline_list_invitation",
+            buildJsonObject { put("p_invitation_id", invitationId) }
+        )
+    }
+
+    suspend fun joinPublicList(listId: String) {
+        client.postgrest.rpc(
+            "join_public_list",
+            buildJsonObject { put("p_list_id", listId) }
+        )
+    }
 
     suspend fun createUserList(userId: Int, name: String, isPublic: Boolean): UserListRow {
         val insert = UserListInsert(userId = userId.toLong(), name = name, isPublic = isPublic)
-        return client.postgrest["user_lists"].insert(insert) { select() }.decodeSingle<UserListRow>()
+        val list = client.postgrest["user_lists"].insert(insert) { select() }.decodeList<UserListRow>()
+        return list.firstOrNull() ?: throw IllegalStateException("createUserList: insert did not return row")
     }
 
     suspend fun getUserListItems(listId: String): List<UserListItemRow> = client.postgrest["user_list_items"].select {

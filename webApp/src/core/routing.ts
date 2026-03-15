@@ -26,7 +26,9 @@ export function parseRoute(pathname: string) {
   }
   if (first === "profile") {
     const third = routeSegments[2] ?? "";
+    const fourth = routeSegments[3] ?? "";
     const isListSection = second === "list" && third.length > 0;
+    const listOptionsView = isListSection && fourth === "options";
     const profileSectionFromSecond = second === "historial" || second === "followers" || second === "following" || second === "favorites" ? second : isListSection ? "list" : null;
     const profileSectionFromThird = third === "followers" || third === "following" || third === "favorites" || third === "historial" ? third : null;
     const profileSection = profileSectionFromThird ?? (isListSection ? "list" : profileSectionFromSecond);
@@ -42,7 +44,8 @@ export function parseRoute(pathname: string) {
       profileUsername,
       coffeeSlug: null,
       profileSection: profileSection as "historial" | "followers" | "following" | "favorites" | "list" | null,
-      profileListId: profileListId ?? undefined
+      profileListId: profileListId ?? undefined,
+      listOptionsView: listOptionsView || undefined
     };
   }
   if (first === "coffee") {
@@ -90,6 +93,11 @@ export function isKnownRoute(pathname: string): boolean {
       const third = routeSegments[2] ?? "";
       return third === "followers" || third === "following" || third === "favorites" || third === "historial" || (second === "list" && third.length > 0);
     }
+    if (routeSegments.length === 4 && second === "list") {
+      const third = routeSegments[2] ?? "";
+      const fourth = routeSegments[3] ?? "";
+      return third.length > 0 && fourth === "options";
+    }
     return false;
   }
   if (first === "coffee") return routeSegments.length === 2 && second.length > 0;
@@ -127,7 +135,8 @@ export function buildRoute(
   coffeeSlug?: string | null,
   profileSection?: ProfileSection,
   profileListId?: string | null,
-  diarySubView?: DiarySubView
+  diarySubView?: DiarySubView,
+  listOptionsView?: boolean
 ): string {
   if (tab === "search") return searchMode === "users" ? "/search/users" : "/search";
   if (tab === "brewlab") return "/brewlab";
@@ -135,7 +144,8 @@ export function buildRoute(
   if (tab === "profile") {
     if (profileSection === "historial") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/historial` : "/profile/historial";
     if (profileSection === "favorites") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/favorites` : "/profile/favorites";
-    if (profileSection === "list" && profileListId) return `/profile/list/${encodeURIComponent(profileListId)}`;
+    if (profileSection === "list" && profileListId)
+      return listOptionsView ? `/profile/list/${encodeURIComponent(profileListId)}/options` : `/profile/list/${encodeURIComponent(profileListId)}`;
     if (profileSection === "followers") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/followers` : "/profile/followers";
     if (profileSection === "following") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/following` : "/profile/following";
     return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}` : "/profile";

@@ -1,7 +1,7 @@
 # Analíticas: WebApp y Android
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-04  
+**Última actualización:** 2026-03-14  
 **Propósito:** Documentar qué se recoge en cada plataforma, dónde está el código y qué hacer al eliminar, modificar o añadir funcionalidades para no perder trazabilidad ni romper analíticas.
 
 **Consultar siempre este documento** antes de:
@@ -75,6 +75,8 @@ flowchart TD
 - **Parámetros:** `page_location` (origin + pathname del navegador), `page_path` (path lógico construido por `buildRoute`), `page_title` (ej. "Cafesito - Diario").
 - **PWA:** Si la app se ejecuta en modo standalone (añadida al escritorio), se añade `?pwa=1` a `page_path` y `page_location` para segmentar en GA4.
 
+**Cuándo no se carga GA4:** En `ga4.ts`, el script no se carga (y no se envían eventos) si el host es `localhost` o `127.0.0.1`, o si no hay red (`navigator.onLine === false`). Así se evitan en desarrollo los `POST https://region1.google-analytics.com/... net::ERR_NAME_NOT_RESOLVED` cuando GA está bloqueado por DNS/firewall o sin internet.
+
 ### 2.3 Rutas (page_path) que se envían
 
 Definidas por `buildRoute()` en `webApp/src/core/routing.ts`:
@@ -100,6 +102,20 @@ Definidas por `buildRoute()` en `webApp/src/core/routing.ts`:
 - No se envían eventos custom (login, completar perfil, clics en notificaciones, compartir, añadir a diario, etc.). Solo vistas de página.
 - No se usa `setUserId` desde el código actual (GA4 puede tener usuario por cookie/sesión).
 
+### 2.5 Páginas estáticas públicas (landing y legal)
+
+Las siguientes URLs son **públicas** (acceso sin autenticación) y se sirven como HTML estático. Cualquier usuario puede acceder.
+
+| URL | Descripción | GA4 page_path |
+|-----|-------------|----------------|
+| `/landing/` | Landing de presentación | `/landing` |
+| `/legal/privacidad.html` | Política de privacidad | `/legal/privacidad.html` |
+| `/legal/condiciones.html` | Condiciones del servicio | `/legal/condiciones.html` |
+| `/legal/eliminacion-cuenta.html` | Eliminación de cuenta y datos | `/legal/eliminacion-cuenta.html` |
+
+- **Analíticas:** Usan el script `webApp/public/ga4-static.js` con el mismo measurement ID que la SPA (`G-BMZEQNRKR4`). Cada página define `window.__GA4_PAGE__ = { path, title }` y carga el script; se envía un `page_view` al cargar. No se carga en localhost.
+- **Añadir una nueva página estática pública:** Crear el HTML en `webApp/public/` (o subcarpeta como `legal/`), añadir antes de `</body>` el bloque con `__GA4_PAGE__` y `<script src="/ga4-static.js"></script>`, y registrar aquí la URL y el `page_path`.
+
 ---
 
 ## 3. Android (Firebase Analytics)
@@ -112,7 +128,7 @@ Definidas por `buildRoute()` en `webApp/src/core/routing.ts`:
 | `app/src/main/java/com/cafesito/app/di/AnalyticsModule.kt` | Proporciona `FirebaseAnalytics` (singleton). |
 | `app/src/main/java/com/cafesito/app/navigation/AppNavigation.kt` | En cada cambio de ruta: `analyticsHelper.trackScreenView(currentRoute)`. Eventos: `login_success`, `profile_completed`. |
 | `app/src/main/java/com/cafesito/app/startup/AppSessionCoordinator.kt` | `analyticsHelper.setUserId(userId)` al autenticar, `setUserId(null)` al cerrar sesión. |
-| `app/src/main/java/com/cafesito/app/notifications/NotificationActionReceiver.kt` | Eventos: `notification_action_reply`, `notification_action_follow_back`, `notification_action_save_post`. |
+| `app/src/main/java/com/cafesito/app/notifications/NotificationActionReceiver.kt` | Eventos: `notification_action_reply`, `notification_action_follow_back`, `notification_action_save_post`, **`notification_action_accept_list_invite`**, **`notification_action_decline_list_invite`**. |
 
 ### 3.2 Qué se envía
 
@@ -187,14 +203,22 @@ Usar este checklist siempre que vayas a tocar rutas, pantallas o flujos crítico
 - [ ] **Android:** Llamar a `analyticsHelper.trackEvent("nombre_evento", bundleOf(...))` desde el punto adecuado. Usar nombres en minúsculas con guiones bajos (se sanitizan en `AnalyticsHelper`). Documentar aquí el nuevo evento y sus parámetros.
 - [ ] **WebApp (si se implementan eventos):** Crear en `ga4.ts` una función tipo `sendEvent(name, params)` que llame a `gtag('event', name, params)` y usarla en el flujo correspondiente. Documentar aquí.
 
+### 5.5 Al añadir una página estática pública (HTML)
+
+- [ ] Crear el HTML en `webApp/public/` (o subcarpeta, ej. `legal/`).
+- [ ] Incluir antes de `</body>`: `<script>window.__GA4_PAGE__ = { path: '/ruta/pagina.html', title: 'Título' };</script>` y `<script src="/ga4-static.js"></script>`.
+- [ ] Cumplir accesibilidad (ver `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` §2.1): skip-link, `<main>`, viewport sin `user-scalable=no`, aria-labels, área de tap ≥ 44px.
+- [ ] Añadir la URL y el `page_path` en la tabla de §2.5 de este documento.
+
 ---
 
 ## 6. Referencia rápida de archivos
 
 | Plataforma | Inicialización | Envío vistas | Envío eventos | Usuario |
 |------------|----------------|--------------|---------------|--------|
-| WebApp | `main.tsx` → `initGa4()` | `AppContainer.tsx` → `sendPageView(gaPagePath, title)` | — | — |
-| WebApp | `ga4.ts` | `ga4.ts` `sendPageView` | — | — |
+| WebApp (SPA) | `main.tsx` → `initGa4()` | `AppContainer.tsx` → `sendPageView(gaPagePath, title)` | — | — |
+| WebApp (SPA) | `ga4.ts` | `ga4.ts` `sendPageView` | — | — |
+| WebApp (estáticas) | — | `public/ga4-static.js` + `__GA4_PAGE__` en cada HTML | — | — |
 | Android | — | `AppNavigation.kt` → `trackScreenView(currentRoute)` | `AppNavigation.kt`, `NotificationActionReceiver.kt` → `trackEvent(...)` | `AppSessionCoordinator.kt` → `setUserId` |
 | Android | `AnalyticsModule.kt` (Firebase) | `AnalyticsHelper.kt` | `AnalyticsHelper.kt` | `AnalyticsHelper.kt` |
 

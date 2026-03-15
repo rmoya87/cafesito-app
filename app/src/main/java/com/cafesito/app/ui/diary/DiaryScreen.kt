@@ -75,7 +75,7 @@ fun DiaryScreen(
     val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
     val allDiaryEntries by viewModel.allDiaryEntries.collectAsState(initial = emptyList())
     val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
-    val analytics by viewModel.analytics.collectAsState(initial = null)
+    val analytics by viewModel.analytics.collectAsState(initial = viewModel.analytics.value)
     val habitStats by viewModel.habitStats.collectAsState()
     val consumptionStats by viewModel.consumptionStats.collectAsState()
     val baristaStats by viewModel.baristaStats.collectAsState()
@@ -372,12 +372,7 @@ fun DiaryScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             item {
-                val currentAnalytics = analytics
-                if (isLoading) {
-                    CaffeinePremiumCardShimmer()
-                } else if (currentAnalytics != null) {
-                    CaffeinePremiumCard(currentAnalytics)
-                }
+                CaffeinePremiumCard(analytics)
                 Spacer(Modifier.height(24.dp))
             }
             item {

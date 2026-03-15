@@ -2,7 +2,7 @@ import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { EMPTY } from "../../core/emptyErrorStrings";
 import { toRelativeMinutes } from "../../core/time";
-import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserListRow, UserRow } from "../../types";
+import type { CoffeeReviewRow, CoffeeRow, ListPrivacy, PantryItemRow, UserListRow, UserRow } from "../../types";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
 import { CreateListSheet } from "../lists/CreateListSheet";
@@ -75,7 +75,7 @@ export function CoffeeDetailView({
   fullPage: boolean;
   externalOpenStockSignal: number;
   userLists?: UserListRow[];
-  onCreateList?: (name: string, isPublic: boolean) => Promise<void>;
+  onCreateList?: (name: string, privacy: ListPrivacy) => Promise<void>;
   onAddCoffeeToList?: (listId: string) => Promise<void>;
 }) {
   const [showSensorySheet, setShowSensorySheet] = useState(false);
@@ -945,8 +945,8 @@ export function CoffeeDetailView({
             <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => setShowCreateListInModal(false)} onClick={() => setShowCreateListInModal(false)}>
               <CreateListSheet
                 onDismiss={() => setShowCreateListInModal(false)}
-                onCreate={(name, isPublic) =>
-                  (onCreateList?.(name, isPublic) ?? Promise.resolve()).then(() => setShowCreateListInModal(false))
+                onCreate={(name, privacy) =>
+                  (onCreateList?.(name, privacy) ?? Promise.resolve()).then(() => setShowCreateListInModal(false))
                 }
               />
             </SheetOverlay>,

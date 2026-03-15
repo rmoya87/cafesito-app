@@ -1343,7 +1343,7 @@ export function DiaryView({
                       <h4 className="diary-edit-entry-block-title">{DIARY_STR.METODO_UPPER}</h4>
                       <div
                         ref={editMethodScrollRef}
-                        className={`diary-edit-entry-presets is-coffee ${editChipsDragging ? "is-dragging" : ""} ${methodLeftFade ? "has-left-fade" : ""} ${methodRightFade ? "has-right-fade" : ""}`.trim()}
+                        className={`diary-edit-entry-presets is-coffee ${editChipsDragging ? "is-dragging" : ""}`.trim()}
                         onPointerDown={(event) => handleEditScrollPointerDown(event, "method")}
                         onPointerMove={handleEditScrollPointerMove}
                         onPointerUp={handleEditScrollPointerEnd}
@@ -1372,7 +1372,7 @@ export function DiaryView({
                     <h4 className="diary-edit-entry-block-title">{DIARY_STR.TIPO}</h4>
                     <div
                       ref={editPrepScrollRef}
-                      className={`diary-edit-entry-presets diary-edit-entry-tipo-presets is-coffee ${editChipsDragging ? "is-dragging" : ""} ${prepLeftFade ? "has-left-fade" : ""} ${prepRightFade ? "has-right-fade" : ""}`.trim()}
+                      className={`diary-edit-entry-presets diary-edit-entry-tipo-presets is-coffee ${editChipsDragging ? "is-dragging" : ""}`.trim()}
                       onPointerDown={(event) => handleEditScrollPointerDown(event, "prep")}
                       onPointerMove={handleEditScrollPointerMove}
                       onPointerUp={handleEditScrollPointerEnd}
@@ -1436,7 +1436,7 @@ export function DiaryView({
                     <h4 className="diary-edit-entry-block-title">{DIARY_STR.TAMANO}</h4>
                     <div
                       ref={editSizeScrollRef}
-                      className={`diary-coffee-size-presets diary-edit-entry-size-presets ${editChipsDragging ? "is-dragging" : ""} ${sizeLeftFade ? "has-left-fade" : ""} ${sizeRightFade ? "has-right-fade" : ""}`.trim()}
+                      className={`diary-coffee-size-presets diary-edit-entry-size-presets ${editChipsDragging ? "is-dragging" : ""}`.trim()}
                       onPointerDown={(event) => handleEditScrollPointerDown(event, "size")}
                       onPointerMove={handleEditScrollPointerMove}
                       onPointerUp={handleEditScrollPointerEnd}

@@ -212,7 +212,8 @@ export function mapDiaryEntryRow(input: unknown): DiaryEntryRow {
     preparation_type: toStringOrEmpty(row.preparation_type),
     size_label: toNullableString(row.size_label),
     timestamp: toTimestamp(row.timestamp),
-    type: toStringOrEmpty(row.type)
+    type: toStringOrEmpty(row.type),
+    pantry_item_id: toNullableString(row.pantry_item_id)
   };
 }
 

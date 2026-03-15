@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -61,16 +62,17 @@ fun CoffeeListItem(
         imageSize >= 56.dp -> 86.dp
         else -> 72.dp
     }
+    val minHeight = if (!secondLine.isNullOrBlank()) 80.dp else rowHeight
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick(coffee.id) },
+            .clickable(enabled = coffee.id.isNotBlank()) { onClick(coffee.id) },
         shape = Shapes.card,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
-        Box(modifier = Modifier.height(rowHeight)) {
+        Box(modifier = Modifier.heightIn(min = minHeight)) {
             Row(
                 modifier = Modifier
                     .padding(Spacing.space3)

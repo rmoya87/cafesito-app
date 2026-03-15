@@ -8,6 +8,37 @@ import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/** Handler que sirve public/landing/index.html para GET /landing y /landing/ */
+function createLandingHandler(): (req: any, res: any, next: () => void) => void {
+  const landingPath = path.join(__dirname, "public", "landing", "index.html");
+  return (req, res, next) => {
+    const url = (req.url ?? "").split("?")[0];
+    if (url !== "/landing" && url !== "/landing/") {
+      next();
+      return;
+    }
+    if (!fs.existsSync(landingPath)) {
+      next();
+      return;
+    }
+    const html = fs.readFileSync(landingPath, "utf-8");
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.end(html);
+  };
+}
+
+/** Inserta el middleware al inicio del stack de Connect para que /landing se sirva antes del SPA fallback */
+function prependLandingMiddleware(server: { middlewares: any }): void {
+  const handler = createLandingHandler();
+  const app = server.middlewares as { stack?: Array<{ route?: string; handle: (req: any, res: any, next: () => void) => void }> };
+  if (Array.isArray(app?.stack)) {
+    app.stack.unshift({ route: "", handle: handler });
+  } else {
+    server.middlewares.use(handler);
+  }
+}
+
 function loadEnvFromWebApp(mode: string): Record<string, string> {
   const env: Record<string, string> = {};
   const tryPaths = [
@@ -124,13 +155,23 @@ export default defineConfig(({ mode }) => {
     extensions: [".tsx", ".ts", ".jsx", ".js", ".json"]
   },
   plugins: [
+    {
+      name: "landing-static",
+      enforce: "pre",
+      configureServer(server) {
+        prependLandingMiddleware(server);
+      },
+      configurePreviewServer(server) {
+        prependLandingMiddleware(server);
+      }
+    },
     injectSupabaseConfig,
     react(),
     mkcert(),
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: null,
-      includeAssets: ["favicon.svg", "logo.png", "splash.png", "splash-1170x2532.png", "splash-750x1294.png"],
+      includeAssets: ["favicon.svg", "logo.png", "splash.png", "splash-1170x2532.png", "splash-750x1294.png", "fonts/material-symbols-outlined-latin-fill-normal.woff2"],
       manifest: {
         name: "Cafesito",
         short_name: "Cafesito",
@@ -239,9 +280,9 @@ export default defineConfig(({ mode }) => {
         res.end(`Error: ${(err as Error).message}`);
       }
     };
-    // Registrar primero para que /api/dev-login no lo atrape el SPA fallback de Vite
-    const app = server.middlewares as { stack?: Array<{ route?: string; path?: string; handle?: (req: any, res: any, next: () => void) => void }> };
-    if (Array.isArray(app.stack)) {
+    // Registrar api/dev-login al inicio (landing la sirve el plugin landing-static)
+    const app = server.middlewares as { stack?: Array<{ route?: string; handle?: (req: any, res: any, next: () => void) => void }> };
+    if (Array.isArray(app?.stack)) {
       app.stack.unshift({ route: "", handle: devLoginHandler });
     } else {
       server.middlewares.use(devLoginHandler);

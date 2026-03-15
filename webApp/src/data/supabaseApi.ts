@@ -9,12 +9,14 @@ import type {
   FollowRow,
   InitialDataBundle,
   LikeRow,
+  ListPrivacy,
   NotificationRow,
   PantryItemRow,
   PostCoffeeTagRow,
   PostRow,
   UserDataBundle,
-  UserListRow
+  UserListRow,
+  UserRow
 } from "../types";
 import {
   mapCommentRow,
@@ -25,7 +27,8 @@ import {
   mapPostRow,
   mapReviewRow,
   mapSensoryProfileRow,
-  mapUserDataBundle
+  mapUserDataBundle,
+  mapUserRow
 } from "../mappers/supabaseMappers";
 
 type SupabaseErrorLike = { message: string } | null;
@@ -206,7 +209,7 @@ export async function fetchUserData(userId: number): Promise<UserDataBundle> {
   const supabase = getSupabaseClient();
   const diaryReq = supabase
     .from("diary_entries")
-    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type")
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type,pantry_item_id")
     .eq("user_id", userId)
     .order("timestamp", { ascending: false })
     .limit(500);
@@ -273,34 +276,38 @@ export type UserListItemActivityRow = {
   is_public?: boolean;
 };
 
-/** Devuelve ítems de listas del usuario con nombre y visibilidad (solo listas públicas en actividad de terceros). */
+/** Devuelve ítems de listas del usuario con nombre y visibilidad (solo listas públicas en actividad de terceros). En 500/error devuelve []. */
 export async function fetchAllListItemsForActivity(userId: number): Promise<UserListItemActivityRow[]> {
-  const supabase = getSupabaseClient();
-  const { data: listsData, error: listsError } = await supabase
-    .from("user_lists")
-    .select("id,name,is_public")
-    .eq("user_id", userId);
-  if (listsError || !listsData?.length) return [];
-  const lists = listsData as { id: string; name: string; is_public: boolean }[];
-  const listIds = lists.map((r) => r.id);
-  const listMap = new Map(lists.map((l) => [l.id, { name: l.name, is_public: l.is_public }]));
-  const { data, error } = await supabase
-    .from("user_list_items")
-    .select("list_id,coffee_id,created_at")
-    .in("list_id", listIds)
-    .order("created_at", { ascending: false });
-  if (error) return [];
-  const rows = (data ?? []) as { list_id: string; coffee_id: string; created_at: string }[];
-  return rows.map((r) => {
-    const meta = listMap.get(r.list_id);
-    return {
-      list_id: r.list_id,
-      coffee_id: r.coffee_id,
-      created_at: typeof r.created_at === "number" ? r.created_at : new Date(r.created_at).getTime(),
-      list_name: meta?.name,
-      is_public: meta?.is_public
-    };
-  });
+  try {
+    const supabase = getSupabaseClient();
+    const { data: listsData, error: listsError } = await supabase
+      .from("user_lists")
+      .select("id,name,is_public")
+      .eq("user_id", userId);
+    if (listsError || !listsData?.length) return [];
+    const lists = listsData as { id: string; name: string; is_public: boolean }[];
+    const listIds = lists.map((r) => r.id);
+    const listMap = new Map(lists.map((l) => [l.id, { name: l.name, is_public: l.is_public }]));
+    const { data, error } = await supabase
+      .from("user_list_items")
+      .select("list_id,coffee_id,created_at")
+      .in("list_id", listIds)
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    const rows = (data ?? []) as { list_id: string; coffee_id: string; created_at: string }[];
+    return rows.map((r) => {
+      const meta = listMap.get(r.list_id);
+      return {
+        list_id: r.list_id,
+        coffee_id: r.coffee_id,
+        created_at: typeof r.created_at === "number" ? r.created_at : new Date(r.created_at).getTime(),
+        list_name: meta?.name,
+        is_public: meta?.is_public
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 /** Diario, favoritos e ítems de listas de un usuario (perfil visitado) para la pestaña Actividad. */
@@ -312,7 +319,7 @@ export async function fetchProfileUserActivityData(userId: number): Promise<{
   const supabase = getSupabaseClient();
   const diaryReq = supabase
     .from("diary_entries")
-    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type")
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type,pantry_item_id")
     .eq("user_id", userId)
     .order("timestamp", { ascending: false })
     .limit(200);
@@ -574,56 +581,229 @@ export async function toggleFavoriteCoffee(
   return payload;
 }
 
-/** Obtiene las listas personalizadas del usuario (user_lists). */
-export async function fetchUserLists(userId: number): Promise<UserListRow[]> {
+/** Obtiene un usuario por ID (para resolver owner de lista, avatares en Gestionar invitados, etc.). */
+export async function fetchUserById(userId: number): Promise<UserRow | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
-    .from("user_lists")
-    .select("id,user_id,name,is_public,created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true });
-  throwIfError(error);
-  return ((data ?? []) as UserListRow[]).map((row) => ({
-    id: String(row.id),
-    user_id: Number(row.user_id),
-    name: String(row.name ?? ""),
-    is_public: Boolean(row.is_public),
-    created_at: row.created_at
-  }));
+    .from("users_db")
+    .select("id,username,full_name,avatar_url,email,bio")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapUserRow(data);
 }
 
-/** Crea una lista personalizada y devuelve la fila insertada. */
-export async function createUserList(userId: number, name: string, isPublic: boolean): Promise<UserListRow> {
+/** Obtiene varios usuarios por ID en una sola petición (avatares en Gestionar invitados y TopBar). Requiere RLS que permita SELECT en users_db para usuarios autenticados (ver users_db_public_profiles_select.sql). */
+export async function fetchUsersByIds(userIds: number[]): Promise<UserRow[]> {
+  if (userIds.length === 0) return [];
+  const supabase = getSupabaseClient();
+  const uniq = [...new Set(userIds)];
+  const { data, error } = await supabase
+    .from("users_db")
+    .select("id,username,full_name,avatar_url,email,bio")
+    .in("id", uniq);
+  if (error) return [];
+  return ((data ?? []) as unknown[]).map(mapUserRow);
+}
+
+/** Obtiene una lista por ID si el usuario actual tiene acceso (RLS: propia, pública o miembro). */
+export async function fetchUserListById(listId: string): Promise<UserListRow | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("user_lists")
-    .insert({
-      user_id: userId,
-      name: name.trim(),
-      is_public: isPublic
-    })
-    .select("id,user_id,name,is_public,created_at")
-    .single();
-  throwIfError(error);
-  const row = data as { id: string; user_id: number; name: string; is_public: boolean; created_at?: string };
+    .select("id,user_id,name,is_public,privacy,members_can_edit,created_at")
+    .eq("id", listId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as { id: string; user_id: number; name: string; is_public: boolean; privacy?: string; members_can_edit?: boolean; created_at?: string };
+  const privacy = row.privacy === "public" || row.privacy === "invitation" || row.privacy === "private" ? row.privacy : undefined;
   return {
     id: String(row.id),
     user_id: Number(row.user_id),
     name: String(row.name ?? ""),
     is_public: Boolean(row.is_public),
+    privacy: privacy ?? (row.is_public ? "public" : "private"),
+    members_can_edit: row.members_can_edit,
     created_at: row.created_at
   };
+}
+
+/** Obtiene las listas propias del usuario (user_lists donde user_id = userId). En 500/error devuelve [] para no romper la app. */
+export async function fetchUserLists(userId: number): Promise<UserListRow[]> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("user_lists")
+      .select("id,user_id,name,is_public,privacy,members_can_edit,created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return ((data ?? []) as Array<{ id: string; user_id: number; name: string; is_public: boolean; privacy?: string; members_can_edit?: boolean; created_at?: string }>).map((row) => {
+      const pr = row.privacy === "public" || row.privacy === "invitation" || row.privacy === "private" ? row.privacy : (row.is_public ? "public" : "private");
+      return {
+        id: String(row.id),
+        user_id: Number(row.user_id),
+        name: String(row.name ?? ""),
+        is_public: Boolean(row.is_public),
+        privacy: pr,
+        members_can_edit: row.members_can_edit,
+        created_at: row.created_at
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** Obtiene las listas compartidas con el usuario (donde está en user_list_members). En 500/error devuelve [] para no romper la app. */
+export async function fetchSharedWithMeLists(userId: number): Promise<UserListRow[]> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data: memberRows, error: membersError } = await supabase
+      .from("user_list_members")
+      .select("list_id")
+      .eq("user_id", userId);
+    if (membersError) throw membersError;
+    const listIds = [...new Set(((memberRows ?? []) as { list_id: string }[]).map((r) => r.list_id))];
+    if (listIds.length === 0) return [];
+    const { data: lists, error: listsError } = await supabase
+      .from("user_lists")
+      .select("id,user_id,name,is_public,privacy,members_can_edit,created_at")
+      .in("id", listIds);
+    if (listsError) throw listsError;
+    return ((lists ?? []) as Array<{ id: string; user_id: number; name: string; is_public: boolean; privacy?: string; members_can_edit?: boolean; created_at?: string }>).map((row) => {
+      const pr = row.privacy === "public" || row.privacy === "invitation" || row.privacy === "private" ? row.privacy : (row.is_public ? "public" : "private");
+      return {
+        id: String(row.id),
+        user_id: Number(row.user_id),
+        name: String(row.name ?? ""),
+        is_public: Boolean(row.is_public),
+        privacy: pr,
+        members_can_edit: row.members_can_edit,
+        created_at: row.created_at
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** Crea invitación a lista y dispara notificación (RPC). Devuelve el invitation_id. */
+export async function createListInvitation(listId: string, inviteeId: number): Promise<string> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("create_list_invitation", {
+    p_list_id: listId,
+    p_invitee_id: inviteeId
+  });
+  throwIfError(error);
+  if (data != null && typeof data === "object" && "create_list_invitation" in data) {
+    return String((data as { create_list_invitation: unknown }).create_list_invitation ?? "").replace(/^"|"$/g, "");
+  }
+  return String(data ?? "").replace(/^"|"$/g, "");
+}
+
+/** Acepta una invitación a lista (RPC). */
+export async function acceptListInvitation(invitationId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc("accept_list_invitation", { p_invitation_id: invitationId });
+  throwIfError(error);
+}
+
+/** Rechaza una invitación a lista (RPC). */
+export async function declineListInvitation(invitationId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc("decline_list_invitation", { p_invitation_id: invitationId });
+  throwIfError(error);
+}
+
+/** Se une a una lista pública (RPC). */
+export async function joinPublicList(listId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc("join_public_list", { p_list_id: listId });
+  throwIfError(error);
+}
+
+/** Abandona una lista (el usuario actual deja de ser miembro). Requiere política RLS que permita DELETE donde user_id = get_my_internal_id(). */
+export async function leaveList(listId: string, userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("user_list_members")
+    .delete()
+    .eq("list_id", listId)
+    .eq("user_id", userId);
+  throwIfError(error);
+}
+
+/** Crea una lista personalizada (privacy: public | invitation | private) y devuelve la fila insertada. */
+export async function createUserList(
+  userId: number,
+  name: string,
+  privacy: ListPrivacy,
+  membersCanEdit?: boolean
+): Promise<UserListRow> {
+  try {
+    const supabase = getSupabaseClient();
+    const isPublic = privacy === "public";
+    const insertPayload: Record<string, unknown> = { user_id: userId, name: name.trim(), is_public: isPublic, privacy };
+    if (membersCanEdit !== undefined) insertPayload.members_can_edit = membersCanEdit;
+    const { data, error } = await supabase
+      .from("user_lists")
+      .insert(insertPayload)
+      .select("id,user_id,name,is_public,privacy,members_can_edit,created_at")
+      .single();
+    if (error) {
+      const fallbackPayload: Record<string, unknown> = { user_id: userId, name: name.trim(), is_public: isPublic };
+      if (membersCanEdit !== undefined) fallbackPayload.members_can_edit = membersCanEdit;
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("user_lists")
+        .insert(fallbackPayload)
+        .select("id,user_id,name,is_public,created_at")
+        .single();
+      throwIfError(fallbackError);
+      const row = fallbackData as { id: string; user_id: number; name: string; is_public: boolean; created_at?: string };
+      return {
+        id: String(row.id),
+        user_id: Number(row.user_id),
+        name: String(row.name ?? ""),
+        is_public: Boolean(row.is_public),
+        privacy: row.is_public ? "public" : "private",
+        created_at: row.created_at
+      };
+    }
+    const row = data as { id: string; user_id: number; name: string; is_public: boolean; privacy?: string; members_can_edit?: boolean; created_at?: string };
+    const pr = row.privacy === "public" || row.privacy === "invitation" || row.privacy === "private" ? row.privacy : (row.is_public ? "public" : "private");
+    return {
+      id: String(row.id),
+      user_id: Number(row.user_id),
+      name: String(row.name ?? ""),
+      is_public: Boolean(row.is_public),
+      privacy: pr,
+      members_can_edit: row.members_can_edit,
+      created_at: row.created_at
+    };
+  } catch (err) {
+    const msg = (err as { message?: string })?.message ?? "";
+    if (msg.includes("500") || msg.includes("Internal Server Error") || msg.includes("permission") || msg.includes("policy")) {
+      throw new Error("No se pudo crear la lista. Comprueba que la sesión es válida o inténtalo más tarde. Si persiste, puede ser un fallo de permisos en el servidor.");
+    }
+    throw err;
+  }
 }
 
 /** Ítems de una lista (cafés en user_list_items). */
 export type UserListItemRow = { coffee_id: string };
 
-/** Devuelve los coffee_id que están en al menos una lista del usuario (para mostrar icono activo). */
+/** Devuelve los coffee_id que están en al menos una lista del usuario (propias + compartidas; para icono activo). */
 export async function fetchCoffeeIdsInUserLists(userId: number): Promise<string[]> {
-  const supabase = getSupabaseClient();
-  const { data: lists } = await supabase.from("user_lists").select("id").eq("user_id", userId);
-  const listIds = ((lists ?? []) as { id: string }[]).map((r) => r.id);
+  const [owned, shared] = await Promise.all([fetchUserLists(userId), fetchSharedWithMeLists(userId)]);
+  const listIds = [...new Set([...owned, ...shared].map((l) => l.id))];
+  return fetchCoffeeIdsInLists(listIds);
+}
+
+/** Devuelve los coffee_id que están en las listas indicadas. */
+export async function fetchCoffeeIdsInLists(listIds: string[]): Promise<string[]> {
   if (listIds.length === 0) return [];
+  const supabase = getSupabaseClient();
   const { data: items, error } = await supabase
     .from("user_list_items")
     .select("coffee_id")
@@ -671,22 +851,121 @@ export async function removeUserListItem(listId: string, coffeeId: string): Prom
 
 /** Actualiza nombre y/o visibilidad de una lista personalizada. */
 export async function updateUserList(listId: string, name: string, isPublic: boolean): Promise<UserListRow> {
+  return updateUserListWithPrivacy(listId, name, isPublic ? "public" : "private");
+}
+
+/** Actualiza nombre, privacidad y/o si los miembros pueden editar (privacy: public | invitation | private). */
+export async function updateUserListWithPrivacy(
+  listId: string,
+  name: string,
+  privacy: ListPrivacy,
+  membersCanEdit?: boolean
+): Promise<UserListRow> {
   const supabase = getSupabaseClient();
+  const isPublic = privacy === "public";
+  const payload: Record<string, unknown> = { name: name.trim(), is_public: isPublic, privacy };
+  if (membersCanEdit !== undefined) payload.members_can_edit = membersCanEdit;
+  const selectCols = "id,user_id,name,is_public,privacy,created_at";
+  const selectWithEdit = "id,user_id,name,is_public,privacy,members_can_edit,created_at";
   const { data, error } = await supabase
     .from("user_lists")
-    .update({ name: name.trim(), is_public: isPublic })
+    .update(payload)
     .eq("id", listId)
-    .select("id,user_id,name,is_public,created_at")
+    .select(selectWithEdit)
     .single();
-  throwIfError(error);
-  const row = data as { id: string; user_id: number; name: string; is_public: boolean; created_at?: string };
+  if (error) {
+    const fallbackPayload: Record<string, unknown> = { name: name.trim(), is_public: isPublic, privacy };
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("user_lists")
+      .update(fallbackPayload)
+      .eq("id", listId)
+      .select(selectCols)
+      .single();
+    throwIfError(fallbackError);
+    const row = fallbackData as { id: string; user_id: number; name: string; is_public: boolean; privacy?: string; created_at?: string };
+    const pr = row.privacy === "public" || row.privacy === "invitation" || row.privacy === "private" ? row.privacy : (row.is_public ? "public" : "private");
+    return {
+      id: String(row.id),
+      user_id: Number(row.user_id),
+      name: String(row.name ?? ""),
+      is_public: Boolean(row.is_public),
+      privacy: pr,
+      created_at: row.created_at
+    };
+  }
+  const row = data as { id: string; user_id: number; name: string; is_public: boolean; privacy?: string; members_can_edit?: boolean; created_at?: string };
+  const pr = row.privacy === "public" || row.privacy === "invitation" || row.privacy === "private" ? row.privacy : (row.is_public ? "public" : "private");
   return {
     id: String(row.id),
     user_id: Number(row.user_id),
     name: String(row.name ?? ""),
     is_public: Boolean(row.is_public),
+    privacy: pr,
+    members_can_edit: row.members_can_edit,
     created_at: row.created_at
   };
+}
+
+/** Invitación a una lista (para el dueño: listado de invitaciones enviadas). */
+export type ListInvitationRow = {
+  id: string;
+  list_id: string;
+  inviter_id: number;
+  invitee_id: number;
+  status: "pending" | "accepted" | "declined";
+  created_at?: string;
+};
+
+/** Miembro de una lista (para el dueño: listado de quienes tienen acceso). */
+export type ListMemberRow = {
+  list_id: string;
+  user_id: number;
+  role: string;
+  invited_by: number | null;
+  created_at?: string;
+};
+
+/** Invitaciones enviadas por el dueño para esta lista (RLS: inviter_id = yo). */
+export async function fetchListInvitationsByListId(listId: string): Promise<ListInvitationRow[]> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("user_list_invitations")
+      .select("id,list_id,inviter_id,invitee_id,status,created_at")
+      .eq("list_id", listId);
+    if (error) return [];
+    return ((data ?? []) as ListInvitationRow[]).map((r) => ({
+      id: String(r.id),
+      list_id: String(r.list_id),
+      inviter_id: Number(r.inviter_id),
+      invitee_id: Number(r.invitee_id),
+      status: r.status as "pending" | "accepted" | "declined",
+      created_at: r.created_at
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Miembros de la lista (para el dueño; RLS permite si es dueño). */
+export async function fetchListMembersByListId(listId: string): Promise<ListMemberRow[]> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("user_list_members")
+      .select("list_id,user_id,role,invited_by,created_at")
+      .eq("list_id", listId);
+    if (error) return [];
+    return ((data ?? []) as ListMemberRow[]).map((r) => ({
+      list_id: String(r.list_id),
+      user_id: Number(r.user_id),
+      role: String(r.role),
+      invited_by: r.invited_by != null ? Number(r.invited_by) : null,
+      created_at: r.created_at
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /** Elimina una lista personalizada (user_list_items en cascada). No modifica pantry_items: los cafés en despensa no se borran. */
@@ -874,6 +1153,8 @@ export async function createDiaryEntry(payload: {
   preparationType: string;
   sizeLabel?: string | null;
   type?: string;
+  /** Si se resta de despensa, id del ítem concreto del que restar (varios ítems pueden ser del mismo café). */
+  pantryItemId?: string | null;
 }): Promise<DiaryEntryRow> {
   const supabase = getSupabaseClient();
   const row: Record<string, unknown> = {
@@ -889,20 +1170,49 @@ export async function createDiaryEntry(payload: {
   if (payload.coffeeBrand !== undefined) row.coffee_brand = payload.coffeeBrand;
   if (payload.coffeeGrams !== undefined) row.coffee_grams = Math.max(0, Math.round(payload.coffeeGrams));
   if (payload.sizeLabel !== undefined) row.size_label = payload.sizeLabel ?? null;
+  if (payload.pantryItemId !== undefined && payload.pantryItemId != null) row.pantry_item_id = payload.pantryItemId;
   const { data, error } = await supabase
     .from("diary_entries")
     .insert(row)
-    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type")
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type,pantry_item_id")
     .single();
   throwIfError(error);
   return mapDiaryEntryRow(data);
 }
 
-/** Elimina solo la entrada del diario (actividad). No modifica pantry_items: el café en despensa no se borra. */
-export async function deleteDiaryEntry(entryId: number, userId: number): Promise<void> {
+/** Elimina la entrada del diario. Si tenía pantry_item_id, restaura el stock en ese ítem. Devuelve el ítem de despensa actualizado si se restauró. */
+export async function deleteDiaryEntry(
+  entryId: number,
+  userId: number
+): Promise<PantryItemRow | null> {
   const supabase = getSupabaseClient();
+  let restored: PantryItemRow | null = null;
+  const { data: entryRow, error: fetchErr } = await supabase
+    .from("diary_entries")
+    .select("id,pantry_item_id,coffee_grams,type")
+    .eq("id", entryId)
+    .eq("user_id", userId)
+    .single();
+  if (!fetchErr && entryRow?.pantry_item_id && (entryRow.coffee_grams ?? 0) > 0 && entryRow.type === "CUP") {
+    const { data: pantryRow } = await supabase
+      .from("pantry_items")
+      .select("id,coffee_id,user_id,grams_remaining,total_grams,last_updated")
+      .eq("id", entryRow.pantry_item_id)
+      .single();
+    if (pantryRow) {
+      const newRemaining = Math.min(
+        (pantryRow.grams_remaining ?? 0) + (entryRow.coffee_grams ?? 0),
+        pantryRow.total_grams ?? 0
+      );
+      restored = await updatePantryItem(String(entryRow.pantry_item_id), {
+        totalGrams: pantryRow.total_grams ?? 0,
+        gramsRemaining: newRemaining
+      });
+    }
+  }
   const { error } = await supabase.from("diary_entries").delete().eq("id", entryId).eq("user_id", userId);
   throwIfError(error);
+  return restored;
 }
 
 export async function updateDiaryEntry(payload: {
@@ -929,7 +1239,7 @@ export async function updateDiaryEntry(payload: {
     .update(row)
     .eq("id", payload.entryId)
     .eq("user_id", payload.userId)
-    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type")
+    .select("id,user_id,coffee_id,coffee_name,caffeine_mg,amount_ml,coffee_grams,preparation_type,size_label,timestamp,type,pantry_item_id")
     .single();
   throwIfError(error);
   return mapDiaryEntryRow(data);
@@ -1028,6 +1338,8 @@ async function hardDeleteAccountData(userId: number): Promise<void> {
     supabase.from("diary_entries").delete().eq("user_id", userId),
     supabase.from("pantry_items").delete().eq("user_id", userId),
     supabase.from("notifications_db").delete().eq("user_id", userId),
+    supabase.from("user_list_invitations").delete().or(`inviter_id.eq.${userId},invitee_id.eq.${userId}`),
+    supabase.from("user_list_members").delete().or(`user_id.eq.${userId},invited_by.eq.${userId}`),
     supabase.from("follows").delete().eq("follower_id", userId),
     supabase.from("follows").delete().eq("followed_id", userId),
     supabase.from("posts_db").delete().eq("user_id", userId),

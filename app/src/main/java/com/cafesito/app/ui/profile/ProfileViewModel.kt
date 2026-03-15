@@ -316,7 +316,7 @@ class ProfileViewModel @Inject constructor(
 
             // Diario: "primera vez" = café que ese usuario ha tomado exactamente una vez (entrada más antigua por café; excluir agua)
             suspend fun firstTimeFromDiary(entries: List<DiaryEntryEntity>, userId: Int, userName: String, avatarUrl: String?): List<ProfileActivityItem.FirstTimeCoffee> {
-                val coffeeEntries = entries.filter { (it.type ?: "").uppercase() != "WATER" }
+                val coffeeEntries = entries.filter { it.type.uppercase() != "WATER" }
                 val countByCoffeeId = coffeeEntries.mapNotNull { it.coffeeId }.groupingBy { it }.eachCount()
                 val byCoffee = mutableMapOf<String, DiaryEntryEntity>()
                 for (e in coffeeEntries) {
@@ -435,7 +435,9 @@ class ProfileViewModel @Inject constructor(
                 userRepository.triggerRefresh()
                 socialRepository.triggerRefresh()
                 userRepository.getActiveUser()?.let { user ->
-                    _userLists.value = supabaseDataSource.getUserLists(user.id)
+                    val owned = supabaseDataSource.getUserLists(user.id)
+                    val shared = supabaseDataSource.getSharedWithMeLists(user.id)
+                    _userLists.value = (owned + shared).distinctBy { it.id }
                     _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInUserLists(user.id).toSet()
                 } ?: run {
                     _userLists.value = emptyList()
@@ -444,7 +446,7 @@ class ProfileViewModel @Inject constructor(
                 val profileUserId = if (requestedUserId == 0) userRepository.getActiveUser()?.id else requestedUserId
                 _profileUserDiaryCoffeeIds.value = if (profileUserId != null) {
                     runCatching { supabaseDataSource.getDiaryEntries(profileUserId) }.getOrElse { emptyList() }
-                        .filter { (it.type ?: "").uppercase() != "WATER" }
+                        .filter { it.type.uppercase() != "WATER" }
                         .mapNotNull { it.coffeeId }
                         .toSet()
                 } else emptySet()
@@ -462,11 +464,17 @@ class ProfileViewModel @Inject constructor(
     fun createList(name: String, isPublic: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val user = userRepository.getActiveUser() ?: return@launch
+                val user = userRepository.getActiveUser() ?: run {
+                    withContext(Dispatchers.Main) { _error.value = "No hay sesión activa" }
+                    return@launch
+                }
                 val newList = supabaseDataSource.createUserList(user.id, name, isPublic)
                 _userLists.update { it + newList }
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error creating list", e)
+                withContext(Dispatchers.Main) {
+                    _error.value = "No se pudo crear la lista. Comprueba la conexión o ejecuta el fix en Supabase (get_my_internal_id)."
+                }
             }
         }
     }

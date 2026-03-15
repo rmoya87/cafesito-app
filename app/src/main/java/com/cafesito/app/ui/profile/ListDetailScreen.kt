@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
@@ -22,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.cafesito.app.ui.theme.Spacing
 import com.cafesito.app.ui.components.CreateListBottomSheet
 import com.cafesito.app.ui.components.GlassyTopBar
 import com.cafesito.app.ui.components.ListDeleteConfirmBottomSheet
@@ -40,16 +42,31 @@ fun ListDetailScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val listName by viewModel.listName.collectAsState()
     val listIsPublic by viewModel.listIsPublic.collectAsState()
+    val isOwnList by viewModel.isOwnList.collectAsState()
+    val usersForInvite by viewModel.usersForInvite.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     var showOptionsMenu by remember { mutableStateOf(false) }
     var showEditSheet by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showShareSheet by remember { mutableStateOf(false) }
 
     if (showOptionsMenu) {
         ListOptionsBottomSheet(
             onDismiss = { showOptionsMenu = false },
             onEditList = { showEditSheet = true },
-            onDeleteList = { showDeleteConfirm = true }
+            onDeleteList = { showDeleteConfirm = true },
+            onShareList = if (isOwnList) { { showShareSheet = true } } else null
+        )
+    }
+    if (showShareSheet) {
+        com.cafesito.app.ui.components.ShareListBottomSheet(
+            users = usersForInvite,
+            onDismiss = { showShareSheet = false },
+            onInvite = { inviteeId ->
+                viewModel.inviteUser(inviteeId)
+                showShareSheet = false
+            },
+            onLoadUsers = { viewModel.loadUsersForInvite() }
         )
     }
     if (showEditSheet) {
@@ -84,8 +101,17 @@ fun ListDetailScreen(
                 onBackClick = onBackClick,
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    IconButton(onClick = { showOptionsMenu = true }) {
-                        androidx.compose.material3.Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones")
+                    if (isOwnList) {
+                        IconButton(onClick = { showOptionsMenu = true }) {
+                            androidx.compose.material3.Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones de lista")
+                        }
+                    } else if (listIsPublic) {
+                        Button(
+                            onClick = { viewModel.joinPublicList() },
+                            modifier = Modifier.padding(end = Spacing.space2)
+                        ) {
+                            Text("Añadirme")
+                        }
                     }
                 }
             )

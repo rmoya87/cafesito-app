@@ -1,21 +1,27 @@
 import { useState } from "react";
-import { Input, Select, SheetCard, SheetHandle } from "../../ui/components";
+import { cn, Input, SheetCard, SheetHandle, Switch } from "../../ui/components";
+import { UiIcon } from "../../ui/iconography";
+import type { ListPrivacy } from "../../types";
+import { LIST_PRIVACY_OPTIONS } from "./listPrivacyOptions";
 
 export function EditListSheet({
   listId,
   initialName,
-  initialIsPublic,
+  initialPrivacy,
+  initialMembersCanEdit = false,
   onDismiss,
   onSave
 }: {
   listId: string;
   initialName: string;
-  initialIsPublic: boolean;
+  initialPrivacy: ListPrivacy;
+  initialMembersCanEdit?: boolean;
   onDismiss: () => void;
-  onSave: (listId: string, name: string, isPublic: boolean) => void | Promise<void>;
+  onSave: (listId: string, name: string, privacy: ListPrivacy, membersCanEdit?: boolean) => void | Promise<void>;
 }) {
   const [name, setName] = useState(initialName);
-  const [privacy, setPrivacy] = useState<"public" | "private">(initialIsPublic ? "public" : "private");
+  const [privacy, setPrivacy] = useState<ListPrivacy>(initialPrivacy);
+  const [membersCanEdit, setMembersCanEdit] = useState(initialMembersCanEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +30,12 @@ export function EditListSheet({
     setError(null);
     setSaving(true);
     try {
-      const result = onSave(listId, name.trim(), privacy === "public");
+      const result = onSave(
+        listId,
+        name.trim(),
+        privacy,
+        privacy === "public" || privacy === "invitation" ? membersCanEdit : undefined
+      );
       await (typeof (result as Promise<unknown>)?.then === "function" ? result : Promise.resolve());
       onDismiss();
     } catch (err) {
@@ -62,21 +73,52 @@ export function EditListSheet({
             />
           </div>
         </label>
-        <label className="diary-edit-entry-metric-field is-caffeine create-list-field">
+        <label className="diary-edit-entry-metric-field is-caffeine create-list-field create-list-privacy-label">
           <span>Privacidad</span>
-          <div className="diary-edit-entry-metric-value">
-            <Select
-              className="diary-edit-entry-metric-input create-list-privacy-select"
-              value={privacy}
-              onChange={(e) => setPrivacy(e.target.value === "public" ? "public" : "private")}
-              aria-label="Privacidad"
-            >
-              <option value="public">Público</option>
-              <option value="private">Privado</option>
-            </Select>
-          </div>
         </label>
-        <p className="create-list-hint">Público: visible en la pestaña de seguidores. Privado: solo tú.</p>
+        <div className="create-list-privacy-options">
+          {LIST_PRIVACY_OPTIONS.map((opt) => (
+            <div
+              key={opt.value}
+              className={cn("create-list-privacy-option", privacy === opt.value && "is-selected")}
+            >
+              <button
+                type="button"
+                className="create-list-privacy-option-btn"
+                onClick={() => setPrivacy(opt.value)}
+                aria-pressed={privacy === opt.value}
+              >
+                <span className="create-list-privacy-option-check">
+                  {privacy === opt.value ? (
+                    <UiIcon name="check-circle-filled" aria-hidden="true" />
+                  ) : (
+                    <span className="create-list-privacy-option-check-empty" aria-hidden="true" />
+                  )}
+                </span>
+                <div className="create-list-privacy-option-text">
+                  <span className="create-list-privacy-option-label">{opt.label}</span>
+                  <span className="create-list-privacy-option-desc">{opt.description}</span>
+                </div>
+              </button>
+              {(opt.value === "public" || opt.value === "invitation") && (
+                <div
+                  className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="share-list-privacy-option-switch-label">Permitir editar lista</span>
+                  <Switch
+                    checked={membersCanEdit}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMembersCanEdit((prev) => !prev);
+                    }}
+                    aria-label="Permitir que los miembros añadan o quiten cafés de la lista"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
         {error && <p className="create-list-error" role="alert">{error}</p>}
       </div>
     </SheetCard>

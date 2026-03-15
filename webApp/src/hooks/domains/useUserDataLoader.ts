@@ -47,19 +47,33 @@ export function useUserDataLoader({
     const loadInitialData = async () => {
       try {
         const data = await fetchUserData(activeUser.id);
-        const { fetchNotifications, fetchUserLists, fetchCoffeeIdsInUserLists, fetchAllListItemsForActivity } = await import("../../data/supabaseApi");
-        const [notifications, userLists, coffeeIdsInLists, listItemsForActivity] = await Promise.all([
+        const {
+          fetchNotifications,
+          fetchUserLists,
+          fetchSharedWithMeLists,
+          fetchCoffeeIdsInLists,
+          fetchAllListItemsForActivity
+        } = await import("../../data/supabaseApi");
+        const [notifications, ownedLists, sharedLists, listItemsForActivity] = await Promise.all([
           fetchNotifications(activeUser.id),
           fetchUserLists(activeUser.id),
-          fetchCoffeeIdsInUserLists(activeUser.id),
+          fetchSharedWithMeLists(activeUser.id),
           fetchAllListItemsForActivity(activeUser.id)
         ]);
+        if (cancelled) return;
+
+        const mergedLists = (() => {
+          const byId = new Map<string, (typeof ownedLists)[0]>();
+          [...ownedLists, ...sharedLists].forEach((l) => byId.set(l.id, l));
+          return Array.from(byId.values());
+        })();
+        const coffeeIdsInLists = await fetchCoffeeIdsInLists(mergedLists.map((l) => l.id));
         if (cancelled) return;
 
         setDiaryEntries(data.diaryEntries);
         setPantryItems(data.pantryItems);
         setFavorites(data.favorites);
-        setUserLists(userLists);
+        setUserLists(mergedLists);
         setCoffeeIdsInUserLists(coffeeIdsInLists);
         setAllListItemsForActivity(listItemsForActivity);
         setCustomCoffees(data.customCoffees);

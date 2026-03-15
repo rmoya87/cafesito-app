@@ -5,7 +5,7 @@ import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
 import { CreateListSheet } from "../lists/CreateListSheet";
 import { toRelativeMinutes } from "../../core/time";
-import type { CoffeeRow, CoffeeReviewRow, CoffeeSensoryProfileRow, ProfileActivityItem, UserListRow, UserRow, ViewMode } from "../../types";
+import type { CoffeeRow, ListPrivacy, CoffeeReviewRow, CoffeeSensoryProfileRow, ProfileActivityItem, UserListRow, UserRow, ViewMode } from "../../types";
 
 const SWIPE_THRESHOLD_PX = 3;
 const VERTICAL_LOCK_PX = 2;
@@ -262,7 +262,7 @@ export function ProfileView({
   ) => Promise<void>;
   onRemoveFavorite: (coffeeId: string) => Promise<void>;
   userLists?: UserListRow[];
-  onCreateList?: (name: string, isPublic: boolean) => Promise<void>;
+  onCreateList?: (name: string, privacy: ListPrivacy) => Promise<void>;
   onOpenList?: (listId: string) => void;
   externalEditProfileSignal: number;
   sidePanel?: ReactNode;
@@ -980,7 +980,7 @@ export function ProfileView({
                 <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => setShowCreateListModal(false)} onClick={() => setShowCreateListModal(false)}>
                   <CreateListSheet
                     onDismiss={() => setShowCreateListModal(false)}
-                    onCreate={(name, isPublic) => onCreateList?.(name, isPublic) ?? Promise.resolve()}
+                    onCreate={(name, privacy) => onCreateList?.(name, privacy) ?? Promise.resolve()}
                   />
                 </SheetOverlay>,
                 document.body

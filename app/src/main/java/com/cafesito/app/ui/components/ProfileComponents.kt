@@ -466,7 +466,7 @@ fun ProfileActivityCard(
                                 }
                                 if (!comment.isNullOrBlank()) {
                                     Text(
-                                        text = comment!!,
+                                        text = comment,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = reviewCommentColor,
                                         maxLines = 2,
@@ -736,7 +736,7 @@ fun CreateListBottomSheet(
             }
             Spacer(Modifier.height(Spacing.space2))
             Text(
-                text = if (isPublic) "Si es público se mostrará en la actividad de los perfiles de las personas que te sigan." else "Si es privado no se mostrará en tu actividad.",
+                text = if (isPublic) "Público: cualquiera con el enlace puede unirse a la lista. Se mostrará en la actividad." else "Privado: solo tú y quienes invites podéis ver la lista.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -843,13 +843,14 @@ fun AddToListBottomSheet(
     }
 }
 
-/** Modal de opciones de lista (Editar / Eliminar): mismo estilo que la modal de opciones del perfil. Sin título. Iconos mismo color (onSurface). */
+/** Modal de opciones de lista (Editar / Eliminar / Compartir): mismo estilo que la modal de opciones del perfil. Sin título. Iconos mismo color (onSurface). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListOptionsBottomSheet(
     onDismiss: () -> Unit,
     onEditList: () -> Unit,
-    onDeleteList: () -> Unit
+    onDeleteList: () -> Unit,
+    onShareList: (() -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -865,12 +866,82 @@ fun ListOptionsBottomSheet(
                 label = "Editar lista",
                 onClick = { onDismiss(); onEditList() }
             )
+            if (onShareList != null) {
+                Spacer(Modifier.height(Spacing.space2))
+                AddToListOptionRow(
+                    icon = { Icon(Icons.Default.Share, contentDescription = "Compartir lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
+                    label = "Compartir lista",
+                    onClick = { onDismiss(); onShareList() }
+                )
+            }
             Spacer(Modifier.height(Spacing.space2))
             AddToListOptionRow(
                 icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
                 label = "Eliminar lista",
                 onClick = { onDismiss(); onDeleteList() }
             )
+            Spacer(Modifier.height(Spacing.space6))
+        }
+    }
+}
+
+/** Modal para invitar a usuarios a la lista: lista de usuarios con botón Invitar. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShareListBottomSheet(
+    users: List<UserEntity>,
+    onDismiss: () -> Unit,
+    onInvite: (Int) -> Unit,
+    onLoadUsers: () -> Unit
+) {
+    LaunchedEffect(Unit) { onLoadUsers() }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = Shapes.sheetLarge,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        scrimColor = ScrimDefault
+    ) {
+        Column(Modifier.padding(horizontal = Spacing.space6, vertical = Spacing.space2).navigationBarsPadding()) {
+            Text(
+                "Invitar a la lista",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = Spacing.space3)
+            )
+            if (users.isEmpty()) {
+                Text("Cargando usuarios…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.space2), modifier = Modifier.heightIn(max = 320.dp)) {
+                    items(users, key = { it.id }) { user ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = user.avatarUrl,
+                                contentDescription = "Avatar de @${user.username}",
+                                modifier = Modifier.size(Spacing.space6 * 2f).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
+                            Spacer(Modifier.width(Spacing.space3))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("@${user.username}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                user.fullName.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            }
+                            Button(
+                                onClick = { onInvite(user.id) },
+                                modifier = Modifier.height(Spacing.space8),
+                                shape = Shapes.cardSmall,
+                                contentPadding = PaddingValues(horizontal = Spacing.space3)
+                            ) {
+                                Text("Invitar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
             Spacer(Modifier.height(Spacing.space6))
         }
     }

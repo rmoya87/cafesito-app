@@ -877,7 +877,7 @@ fun ReviewBottomSheet(
                                     if (selectedImageUri != null) {
                                         AsyncImage(model = selectedImageUri, contentDescription = "Foto de la reseña", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                                     } else if (!existingReview?.imageUrl.isNullOrBlank()) {
-                                        AsyncImage(model = existingReview?.imageUrl, contentDescription = "Foto de la reseña", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                        AsyncImage(model = existingReview.imageUrl, contentDescription = "Foto de la reseña", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                                     } else {
                                         Icon(Icons.Default.PhotoCamera, contentDescription = "Añadir foto a la reseña", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                     }

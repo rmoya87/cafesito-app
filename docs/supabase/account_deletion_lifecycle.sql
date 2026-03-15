@@ -57,6 +57,12 @@ begin
   delete from public.follows where follower_id = p_user_id or followed_id = p_user_id;
   delete from public.posts_db where user_id = p_user_id;
 
+  -- Listas compartidas e invitaciones
+  delete from public.user_list_invitations where inviter_id = p_user_id or invitee_id = p_user_id;
+  delete from public.user_list_members where user_id = p_user_id or invited_by = p_user_id;
+  delete from public.user_list_items where list_id in (select id from public.user_lists where user_id = p_user_id);
+  delete from public.user_lists where user_id = p_user_id;
+
   -- Tokens FCM si existen
   delete from public.user_fcm_tokens where user_id = p_user_id;
 

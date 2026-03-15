@@ -75,6 +75,7 @@ export function useAuthSession(): UseAuthSessionResult {
 
     const supabase = getSupabaseClient();
     let mounted = true;
+    let initialCheckDone = false;
 
     async function applySession(session: { user: { email?: string | null } } | null) {
       const now = Date.now();
@@ -98,16 +99,20 @@ export function useAuthSession(): UseAuthSessionResult {
       if (!mounted) return;
       if (error) {
         setAuthError(error.message);
+        initialCheckDone = true;
         setAuthReady(true);
         return;
       }
       await applySession(data.session);
-      if (mounted) setAuthReady(true);
+      if (mounted) {
+        initialCheckDone = true;
+        setAuthReady(true);
+      }
     });
 
     const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
       await applySession(session);
-      if (mounted) {
+      if (mounted && initialCheckDone) {
         setAuthReady(true);
         setAuthBusy(false);
       }

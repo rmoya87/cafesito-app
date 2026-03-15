@@ -20,6 +20,7 @@ import com.cafesito.app.data.TimelinePage
 import com.cafesito.app.data.TimelineReasonCode
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.data.UserReviewInfo
+import com.cafesito.app.data.SupabaseDataSource
 import com.cafesito.app.data.UserRepository
 import com.cafesito.shared.domain.Review
 import com.cafesito.shared.domain.SuggestedUserInfo
@@ -45,13 +46,14 @@ import kotlin.random.Random
 
 @HiltViewModel
 class TimelineViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
     private val reviewRepository: ReviewRepository,
     private val diaryRepository: DiaryRepository,
-    private val notificationStore: TimelineNotificationStore
+    private val notificationStore: TimelineNotificationStore,
+    private val supabaseDataSource: SupabaseDataSource
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -543,6 +545,19 @@ class TimelineViewModel @Inject constructor(
 
     fun savePostFromNotification(notification: TimelineNotification) {
         viewModelScope.launch { markNotificationRead(notification) }
+    }
+
+    fun acceptListInvitation(invitationId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { supabaseDataSource.acceptListInvitation(invitationId) }
+                .onSuccess { markAllAsRead() }
+        }
+    }
+
+    fun declineListInvitation(invitationId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { supabaseDataSource.declineListInvitation(invitationId) }
+        }
     }
 
     fun markNotificationsNotified(notificationIds: Set<String>) {

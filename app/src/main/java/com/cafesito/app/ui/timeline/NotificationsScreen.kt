@@ -45,6 +45,8 @@ fun NotificationsScreen(
     onSavePostFromNotification: (TimelineNotification) -> Unit,
     onDeleteNotification: (TimelineNotification) -> Unit,
     onNotificationClick: (TimelineNotification) -> Unit,
+    onAcceptListInvite: (String) -> Unit = {},
+    onDeclineListInvite: (String) -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
 ) {
@@ -143,6 +145,8 @@ fun NotificationsScreen(
                                     onFollowToggle = onFollowToggle,
                                     onReplyToNotification = onReplyToNotification,
                                     onSavePostFromNotification = onSavePostFromNotification,
+                                    onAcceptListInvite = onAcceptListInvite,
+                                    onDeclineListInvite = onDeclineListInvite,
                                     onClick = { onNotificationClick(notification) }
                                 )
                             }
@@ -205,6 +209,8 @@ private fun NotificationItemRow(
     onFollowToggle: (Int) -> Unit,
     onReplyToNotification: (TimelineNotification) -> Unit,
     onSavePostFromNotification: (TimelineNotification) -> Unit,
+    onAcceptListInvite: (String) -> Unit,
+    onDeclineListInvite: (String) -> Unit,
     onClick: () -> Unit
 ) {
     val unreadColor = ElectricRed
@@ -220,6 +226,11 @@ private fun NotificationItemRow(
             notification.commentText
         )
         is TimelineNotification.Comment -> Triple(
+            notification.user.avatarUrl,
+            "@${notification.user.username}",
+            notification.message
+        )
+        is TimelineNotification.ListInvite -> Triple(
             notification.user.avatarUrl,
             "@${notification.user.username}",
             notification.message
@@ -309,6 +320,32 @@ private fun NotificationItemRow(
                         contentPadding = PaddingValues(horizontal = 12.dp)
                     ) {
                         Text("RESPONDER", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    }
+                }
+
+                is TimelineNotification.ListInvite -> {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { onDeclineListInvite(notification.invitationId) },
+                            modifier = Modifier.height(32.dp),
+                            shape = Shapes.cardSmall,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Text("Rechazar", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        }
+                        Button(
+                            onClick = { onAcceptListInvite(notification.invitationId) },
+                            modifier = Modifier.height(32.dp),
+                            shape = Shapes.cardSmall,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Text("Añadir", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        }
                     }
                 }
             }

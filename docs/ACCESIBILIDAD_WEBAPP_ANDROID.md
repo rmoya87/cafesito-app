@@ -51,24 +51,36 @@ Revisar en paralelo: equivalente en la otra plataforma no debe ser mucho menor (
 | `webApp/docs/ACCESSIBILITY_AUDIT.md` | Auditoría WebApp (dialogs, aria-label, teclado, focus trap, tests e2e). |
 | `docs/DESIGN_TOKENS.md` | Colores y contraste; asegurar que combinaciones cumplan ratio en día/noche. |
 
+### 2.1 Páginas estáticas públicas (landing y legal)
+
+Las rutas `/landing/` y `/legal/*.html` son **públicas** (acceso sin login). Cualquier HTML que se añada en `webApp/public/` con el mismo carácter público debe cumplir este checklist:
+
+- **Estructura:** `lang="es"`, `<main id="main-content">`, enlace "Ir al contenido" (skip-link) que en foco sea visible.
+- **Viewport:** Sin `user-scalable=no` (permitir zoom).
+- **Controles:** Enlaces con `aria-label` si el texto no es suficiente (ej. "Volver al inicio"); área de tap ≥ 44px en el enlace Volver.
+- **Contenido:** Encabezados jerárquicos (h1, h2, h3), `meta name="description"` para SEO y resumen.
+
+Ver `webApp/public/landing/index.html` y `webApp/public/legal/*.html` como referencia.
+
 ---
 
 ## 3. Lo que ya está cubierto
 
 ### 3.1 WebApp
 
-- **Modales y sheets:** `role="dialog"`, `aria-modal="true"`, `aria-label` en overlays (Auth, Notificaciones, Opciones lista, Editar lista, Eliminar lista, Opciones perfil, Eliminar cuenta, Editar stock, Tu opinión, Añadir a lista, etc.).
+- **Modales y sheets:** `role="dialog"`, `aria-modal="true"`, `aria-label` en overlays (Auth, Notificaciones, Opciones lista, Editar lista, Eliminar lista, **Compartir lista (invitar usuarios)**, Opciones perfil, Eliminar cuenta, Editar stock, Tu opinión, Añadir a lista, etc.).
 - **Navegación:** `nav` con `aria-label="Navegación principal"`; tabs con `aria-current="page"` y `aria-label`/`title` en rail.
-- **TopBar:** Iconos con `aria-label` (Atrás, Buscar usuarios, Guardar, Volver, Notificaciones, Opciones de perfil, Añadir a listas, Añadir a stock, etc.); chip de periodo con `role="group"` y botones con `aria-label`.
+- **TopBar:** Iconos con `aria-label` (Atrás, Buscar usuarios, Guardar, Volver, Notificaciones, Opciones de perfil, Añadir a listas, Añadir a stock, **Añadirme a esta lista** en listas públicas, etc.); chip de periodo con `role="group"` y botones con `aria-label`.
 - **Contenido dinámico:** `aria-live="polite"` en sección principal y en fallbacks de carga ("Cargando...").
 - **Focus:** Outline solo en `:focus-visible` (teclado); focus trap en sheets; cierre con Escape.
 - **Imágenes:** La mayoría con `alt` descriptivo (nombre café, "Tu reseña", "Imagen reseña", "Logo Cafesito"); decorativas con `alt=""` y `aria-hidden="true"` donde corresponde.
 - **Área de tap:** `buttons.css` y `features.css` con `min-width`/`min-height` 44px en icon-button y controles clave.
+- **Notificaciones LIST_INVITE:** En `NotificationRow`, la invitación a lista tiene `role="group"` y `aria-label="Invitación a lista"`; botones "Rechazar" y "Añadir" con `aria-label` descriptivos; contenedor de acciones con clase `.notifications-list-invite-actions` (gap con tokens).
 - **Tests e2e:** `accessibility-smoke.spec.ts` (botón principal por teclado), `modal-accessibility.spec.ts` (dialog auth, focus trap).
 
 ### 3.2 Android
 
-- **Iconos y botones:** En muchas pantallas ya hay `contentDescription` (Timeline, Diary, AddDiaryEntry, Search, BrewLab, Detail, Notifications, Profile, Followers/Following, CompleteProfile, etc.).
+- **Iconos y botones:** En muchas pantallas ya hay `contentDescription` (Timeline, Diary, AddDiaryEntry, Search, BrewLab, Detail, Notifications, Profile, Followers/Following, CompleteProfile, **ListDetailScreen** "Opciones de lista", **ShareListBottomSheet** avatares "Avatar de @username" e "Invitar", etc.).
 - **Imágenes:** Cafés y avatares con descripción (nombre café, "Avatar de...", "Imagen del café", "Entrada de agua", etc.).
 - **Área táctil:** Uso de `Modifier.size(48.dp)` o superior en IconButton; `minimumInteractiveComponentSize()` en DiaryScreen (selector de periodo) y en ProfileComponents (acción concreta).
 - **Tema:** MaterialTheme y tokens para contraste (Design Tokens).

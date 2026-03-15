@@ -5,8 +5,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import android.util.Log
 import com.cafesito.app.analytics.AnalyticsHelper
 import com.cafesito.app.data.SocialRepository
+import com.cafesito.app.data.SupabaseDataSource
 import com.cafesito.app.data.UserRepository
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.EntryPoint
@@ -15,6 +17,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class NotificationActionReceiver : BroadcastReceiver() {
 
@@ -46,6 +49,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 when (action) {
                     ACTION_FOLLOW_BACK -> handleFollowBack(intent, userRepository, analytics)
                     ACTION_SAVE_POST -> handleSavePost(intent, userRepository, socialRepository, analytics)
+                    ACTION_ACCEPT_LIST_INVITE -> handleAcceptListInvite(context, intent, entryPoint.supabaseDataSource(), analytics)
+                    ACTION_DECLINE_LIST_INVITE -> handleDeclineListInvite(context, intent, entryPoint.supabaseDataSource(), analytics)
                     ACTION_REPLY -> {
                         analytics.trackEvent("notification_action_reply")
                     }
@@ -79,11 +84,51 @@ class NotificationActionReceiver : BroadcastReceiver() {
         analytics.trackEvent("notification_action_save_post")
     }
 
+    private suspend fun handleAcceptListInvite(
+        context: Context,
+        intent: Intent,
+        supabaseDataSource: SupabaseDataSource,
+        analytics: AnalyticsHelper
+    ) {
+        val invitationId = intent.getStringExtra(EXTRA_INVITATION_ID) ?: return
+        runCatching {
+            supabaseDataSource.acceptListInvitation(invitationId)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Lista añadida", Toast.LENGTH_SHORT).show()
+            }
+            analytics.trackEvent("notification_action_accept_list_invite")
+        }.onFailure {
+            Log.e("NotificationActionReceiver", "acceptListInvitation failed", it)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "No se pudo añadir la lista", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private suspend fun handleDeclineListInvite(
+        context: Context,
+        intent: Intent,
+        supabaseDataSource: SupabaseDataSource,
+        analytics: AnalyticsHelper
+    ) {
+        val invitationId = intent.getStringExtra(EXTRA_INVITATION_ID) ?: return
+        runCatching {
+            supabaseDataSource.declineListInvitation(invitationId)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Invitación rechazada", Toast.LENGTH_SHORT).show()
+            }
+            analytics.trackEvent("notification_action_decline_list_invite")
+        }.onFailure {
+            Log.e("NotificationActionReceiver", "declineListInvitation failed", it)
+        }
+    }
+
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface NotificationActionsEntryPoint {
         fun userRepository(): UserRepository
         fun socialRepository(): SocialRepository
+        fun supabaseDataSource(): SupabaseDataSource
         fun analyticsHelper(): AnalyticsHelper
     }
 
@@ -92,10 +137,13 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_FOLLOW_BACK = "com.cafesito.app.ACTION_FOLLOW_BACK"
         const val ACTION_REPLY = "com.cafesito.app.ACTION_REPLY"
         const val ACTION_SAVE_POST = "com.cafesito.app.ACTION_SAVE_POST"
+        const val ACTION_ACCEPT_LIST_INVITE = "com.cafesito.app.ACTION_ACCEPT_LIST_INVITE"
+        const val ACTION_DECLINE_LIST_INVITE = "com.cafesito.app.ACTION_DECLINE_LIST_INVITE"
 
         const val EXTRA_NOTIFICATION_ID = "extra_notification_id"
         const val EXTRA_TARGET_USER_ID = "extra_target_user_id"
         const val EXTRA_POST_ID = "extra_post_id"
         const val EXTRA_COMMENT_ID = "extra_comment_id"
+        const val EXTRA_INVITATION_ID = "extra_invitation_id"
     }
 }

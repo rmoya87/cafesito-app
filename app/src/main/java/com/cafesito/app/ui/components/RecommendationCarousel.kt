@@ -128,13 +128,13 @@ private fun RecommendationCard3x3(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .clickable { onClick(item.coffee.id) },
+                        .clickable(enabled = item.coffee.id.isNotBlank()) { onClick(item.coffee.id) },
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                 ) {
                     if (!item.coffee.imageUrl.isNullOrBlank()) {
                         AsyncImage(
                             model = item.coffee.imageUrl,
-                            contentDescription = item.coffee.nombre ?: "Café",
+                            contentDescription = item.coffee.nombre.ifBlank { "Café" },
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(Shapes.small),
@@ -159,7 +159,7 @@ private fun RecommendationCard3x3(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = item.coffee.nombre ?: "Café",
+                            text = item.coffee.nombre.ifBlank { "Café" },
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             maxLines = 2,
@@ -167,7 +167,7 @@ private fun RecommendationCard3x3(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = (item.coffee.marca ?: "").ifBlank { "Café" },
+                            text = item.coffee.marca.ifBlank { "Café" },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,

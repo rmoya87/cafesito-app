@@ -91,7 +91,7 @@ fun ProfileScreen(
                 onBackClick = if ((uiState as? ProfileUiState.Success)?.isCurrentUser == false) onBackClick else null,
                 navigationContent = if ((uiState as? ProfileUiState.Success)?.isCurrentUser == true && onSearchUsersClick != null) {
                     {
-                        IconButton(onClick = { onSearchUsersClick?.invoke() }) {
+                        IconButton(onClick = { onSearchUsersClick.invoke() }) {
                             Icon(Icons.Default.Search, contentDescription = "Buscar usuarios", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
@@ -143,7 +143,7 @@ fun ProfileScreen(
                 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 100.dp)
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     item {
                         Column(
@@ -206,26 +206,9 @@ fun ProfileScreen(
                     when (selectedTabIndex) {
                         0 -> {
                             if (profileActivityLoading) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(40.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(32.dp),
-                                                color = MaterialTheme.colorScheme.primary,
-                                                strokeWidth = 2.dp
-                                            )
-                                            Spacer(Modifier.height(12.dp))
-                                            Text(
-                                                text = "Recargando…",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
+                                items(5) {
+                                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                                        ProfileActivityCardShimmer()
                                     }
                                 }
                             } else if (profileActivityItems.isEmpty()) {

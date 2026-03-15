@@ -472,6 +472,7 @@ input {
 
 /* iOS PWA "Añadir a inicio": respetar safe area. Absoluto para que solo se mueva la barra, no el contenido. */
 /* will-change y -webkit-transform para que iOS pinte bien el topbar al actualizar --topbar-translate-y */
+/* Mismo fondo con y sin scroll para evitar cambio de aspecto en iOS al hacer scroll */
 .topbar {
   --topbar-hide-offset: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   position: absolute;
@@ -487,8 +488,10 @@ input {
   padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 4px;
   border-radius: 0;
   border: none;
+  background-color: var(--screen-dark-background);
   background: var(--screen-dark-background);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   will-change: transform;
   transform: translateY(calc(-1 * var(--topbar-translate-y, 0px)));
   -webkit-transform: translateY(calc(-1 * var(--topbar-translate-y, 0px)));
@@ -497,6 +500,7 @@ input {
 }
 
 .topbar-scrolled {
+  background-color: var(--screen-dark-background);
   background: var(--screen-dark-background);
   border-color: rgba(255, 255, 255, 0.18);
 }
@@ -826,7 +830,444 @@ input {
   gap: 6px;
 }
 
+/* Botón "Añadirme" en detalle de lista pública (área tap ≥ 44px) */
+.topbar-join-list-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Botón invitar a la lista (person_add en círculo outline): blanco en noche, negro en día */
+.topbar-share-list-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--text-main);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.topbar-share-list-btn:hover {
+  opacity: 0.85;
+}
+.topbar-share-list-btn .topbar-share-list-icon {
+  color: var(--text-main);
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+html.theme-dark .topbar-share-list-btn {
+  border-color: #fff;
+}
+html.theme-dark .topbar-share-list-btn .topbar-share-list-icon {
+  color: #fff;
+}
+html.theme-light .topbar-share-list-btn {
+  border-color: #000;
+}
+html.theme-light .topbar-share-list-btn .topbar-share-list-icon {
+  color: #000;
+}
+
+/* Lista: número de miembros + hasta 3 avatares apilados (sustituye person_add si lista pública/invitación) */
+.topbar-list-members-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--surface-variant);
+  color: var(--text-main);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-height: 40px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.topbar-list-members-btn:hover {
+  opacity: 0.9;
+}
+.topbar-list-members-count {
+  line-height: 1;
+}
+.topbar-list-members-avatars {
+  display: flex;
+  align-items: center;
+  margin-left: 2px;
+}
+.topbar-list-members-avatar-wrap {
+  margin-left: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--surface-variant);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.topbar-list-members-avatar-wrap:first-child {
+  margin-left: 0;
+}
+.topbar-list-members-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.topbar-list-members-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--text-subtle);
+  background: var(--surface);
+}
+
 /* Botón 3 puntos en círculo (detalle de lista) */
+/* Opciones de lista: bloque Privacidad arriba (mismos estilos que crear/editar lista) */
+.list-options-sheet-content {
+  padding: 0 16px 16px;
+  overflow-y: auto;
+}
+.list-options-sheet .list-options-privacy,
+.list-options-sheet .list-options-general {
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* Privacidad: más margen en "Permitir editar lista" y switch a la derecha */
+.list-options-sheet .list-options-privacy .create-list-privacy-option-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding-right: 12px;
+}
+.list-options-sheet .list-options-privacy .create-list-privacy-option-switch-row .ui-switch {
+  flex-shrink: 0;
+}
+.list-options-sheet .list-options-general .diary-sheet-list {
+  padding: 0;
+}
+
+/* Página Opciones de lista (misma estructura que seguidores/siguiendo) */
+.list-options-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.list-options-page-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px var(--app-shell-gutter);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.list-options-page-section {
+  margin-bottom: 24px;
+}
+.list-options-page-section:last-child {
+  margin-bottom: 0;
+}
+.list-options-page .list-options-privacy .create-list-privacy-option-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding-right: 12px;
+}
+.list-options-page .list-options-privacy .create-list-privacy-option-switch-row .ui-switch {
+  flex-shrink: 0;
+}
+.list-options-page-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 8px;
+}
+.list-options-page-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+  margin-bottom: 8px;
+}
+.list-options-page-action:last-child {
+  margin-bottom: 0;
+}
+.list-options-page-action .ui-icon:last-child {
+  margin-left: auto;
+  color: var(--text-subtle);
+}
+
+/* Sección Miembros: cuadrado negro, buscador, copiar enlace, lista con swipe */
+.list-options-members {
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.list-options-members-box {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-top: 6px;
+}
+html.theme-dark .list-options-members-box,
+html:not(.theme-light) .list-options-members-box {
+  background: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-box {
+    background: #1a1a1a;
+  }
+}
+.list-options-members-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: var(--input-bg, transparent);
+}
+.list-options-members-search-icon {
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+.list-options-members-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font: inherit;
+}
+.list-options-members-suggestions {
+  margin-bottom: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.list-options-members-suggestions-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-subtle);
+}
+.list-options-members-suggestion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.list-options-members-suggestion-row:last-child {
+  border-bottom: none;
+}
+.list-options-members-suggestion-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.list-options-members-avatar,
+.list-options-members-avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.list-options-members-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-variant);
+  color: var(--text-subtle);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.list-options-members-suggestion-name {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-options-members-invite-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+.list-options-members-copy-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-variant);
+  color: var(--link);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.list-options-members-copy-link:hover {
+  filter: brightness(1.05);
+}
+.list-options-members-copy-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+.list-options-members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.list-options-members-row {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+}
+.list-options-members-row-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-variant);
+  border-radius: var(--radius-sm);
+  position: relative;
+  z-index: 1;
+  transition: transform 0.2s ease;
+}
+.list-options-members-row.is-swiped .list-options-members-row-content {
+  transform: translateX(-72px);
+}
+.list-options-members-row-delete {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: #c62828;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 0;
+}
+/* Variante página: botón Eliminar alineado como en seguidores/siguiendo */
+.list-options-members-row-delete--page {
+  position: static;
+  width: auto;
+  min-width: 80px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+}
+.list-options-members--page .list-options-members-box {
+  margin-bottom: 0;
+}
+.list-options-members--page .search-users-container {
+  margin-top: 12px;
+}
+.list-options-members-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.list-options-members-row-name {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+.list-options-members-row-role {
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+.list-options-members-row-chevron {
+  width: 20px;
+  height: 20px;
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+.list-options-members-copy-chip {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: var(--surface-variant);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 10000;
+  animation: list-options-chip-in 0.25s ease forwards;
+}
+.list-options-members-copy-chip[role="status"] {
+  animation: list-options-chip-in 0.25s ease forwards;
+}
+@keyframes list-options-chip-in {
+  from {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+.list-options-members-copy-chip.hide {
+  animation: list-options-chip-out 0.25s ease forwards;
+}
+@keyframes list-options-chip-out {
+  from {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-50%) translateY(-60px);
+    opacity: 0;
+  }
+}
+
 .topbar-list-options-btn {
   width: 40px;
   height: 40px;
@@ -6954,6 +7395,12 @@ html.theme-dark .diary-day-header.is-today {
   color: var(--text-main);
 }
 
+/* Método, Tipo, Tamaño: izquierda alineada con el titular; derecha sin padding hasta el borde */
+.diary-edit-entry-presets.is-coffee,
+.diary-edit-entry-tipo-presets,
+.diary-edit-entry-size-presets {
+  margin-right: -16px;
+}
 .diary-edit-entry-presets.is-coffee {
   display: flex;
   gap: 10px;
@@ -7140,7 +7587,7 @@ html.theme-dark .diary-day-header.is-today {
   touch-action: pan-x;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  padding: 0 0 2px;
+  padding-bottom: 2px;
   cursor: grab;
   box-sizing: border-box;
   scroll-behavior: smooth;
@@ -7166,21 +7613,6 @@ html.theme-dark .diary-day-header.is-today {
   column-gap: 8px;
   row-gap: 2px;
   padding: 8px 10px;
-}
-
-.diary-edit-entry-presets.is-coffee.has-right-fade,
-.diary-edit-entry-size-presets.has-right-fade {
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 10px), transparent 100%);
-}
-
-.diary-edit-entry-presets.is-coffee.has-left-fade,
-.diary-edit-entry-size-presets.has-left-fade {
-  mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 100%);
-}
-
-.diary-edit-entry-presets.is-coffee.has-left-fade.has-right-fade,
-.diary-edit-entry-size-presets.has-left-fade.has-right-fade {
-  mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
 }
 
 .diary-edit-entry-size-presets .diary-coffee-size-chip small {
@@ -9728,6 +10160,25 @@ html.theme-dark .content.content-profile {
   width: 100%;
   min-width: 0;
 }
+/* Modo noche: nombre de la lista con fondo negro total, texto claro */
+html.theme-dark .create-list-sheet .create-list-name-input {
+  background: #000000;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+html.theme-dark .create-list-sheet .create-list-name-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-name-input {
+    background: #000000;
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  html:not(.theme-light) .create-list-sheet .create-list-name-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
 .create-list-sheet-body .create-list-privacy-select {
   width: 100%;
   min-width: 0;
@@ -9738,6 +10189,769 @@ html.theme-dark .content.content-profile {
   margin: 4px 0 0;
   font-size: 0.8rem;
   color: var(--text-subtle);
+}
+
+.create-list-privacy-subtitle {
+  margin: 0 0 6px;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  background: none;
+  border: none;
+  grid-column: 1 / -1;
+}
+.create-list-privacy-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Opciones de privacidad: base (contenedor; el botón y el switch van dentro) */
+.create-list-privacy-option {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.create-list-privacy-option-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.create-list-sheet .create-list-privacy-option-switch-row {
+  border-top: 1px solid var(--border-default);
+  /* Alinear "Permitir editar lista" con el texto de la opción (check 24px + gap 12px + padding btn 12px) */
+  padding-left: 48px;
+}
+/* Modo noche: recuadro negro (tema forzado o auto + sistema oscuro) */
+html.theme-dark .create-list-sheet .create-list-privacy-option {
+  background: black;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option {
+    background: black;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+  }
+}
+/* Modo día: recuadro blanco (tema forzado o auto + sistema claro) */
+html.theme-light .create-list-sheet .create-list-privacy-option {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--text-main);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option {
+    background: white;
+    border-color: rgba(0, 0, 0, 0.12);
+    color: var(--text-main);
+  }
+}
+
+/* Opción con check activo: marrón (día) y marrón claro (noche) */
+html.theme-light .create-list-sheet .create-list-privacy-option.is-selected {
+  background: #6f4e37;
+  border-color: rgba(111, 78, 55, 0.5);
+  color: #fffbf7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option.is-selected {
+    background: #6f4e37;
+    border-color: rgba(111, 78, 55, 0.5);
+    color: #fffbf7;
+  }
+}
+html.theme-light .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-label,
+html.theme-light .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-desc {
+  color: #fffbf7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-label,
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-desc {
+    color: #fffbf7;
+  }
+}
+html.theme-dark .create-list-sheet .create-list-privacy-option.is-selected {
+  background: #d4a373;
+  border-color: rgba(212, 163, 115, 0.5);
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option.is-selected {
+    background: #d4a373;
+    border-color: rgba(212, 163, 115, 0.5);
+    color: #1a1a1a;
+  }
+}
+html.theme-dark .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-label,
+html.theme-dark .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-desc {
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-label,
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-desc {
+    color: #1a1a1a;
+  }
+}
+/* Check seleccionado: blanco en día, negro en noche */
+html.theme-light .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-check {
+  color: #ffffff;
+}
+html.theme-dark .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-check {
+  color: #000000;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-check {
+    color: #000000;
+  }
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-check {
+    color: #ffffff;
+  }
+}
+
+.create-list-privacy-option-check {
+  flex-shrink: 0;
+  color: var(--caramel-soft);
+}
+/* Círculo sin check: outline marrón (no marcadas) */
+.create-list-privacy-option-check-empty {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--caramel-soft);
+  border-radius: 50%;
+  background: transparent;
+}
+/* Círculo inactivo: negro en día, blanco en noche */
+html.theme-light .create-list-sheet .create-list-privacy-option-check-empty {
+  border-color: #000000;
+}
+html.theme-dark .create-list-sheet .create-list-privacy-option-check-empty {
+  border-color: #ffffff;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option-check-empty {
+    border-color: #000000;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option-check-empty {
+    border-color: #ffffff;
+  }
+}
+.create-list-privacy-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.create-list-privacy-option-label {
+  font-weight: 600;
+  color: inherit;
+}
+.create-list-privacy-option-desc {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  color: inherit;
+}
+
+/* Share list sheet: invitar usuarios a la lista (paridad con Android) */
+.share-list-sheet .share-list-sheet-title {
+  margin: 0 0 4px;
+  padding: 0 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.share-list-sheet .share-list-sheet-hint {
+  margin: 0 0 12px;
+  padding: 0 16px;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+.share-list-sheet-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0 0 16px;
+}
+.share-list-sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.share-list-sheet-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.share-list-sheet-avatar,
+.share-list-sheet-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-subtle);
+}
+.share-list-sheet-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.share-list-sheet-username {
+  font-weight: 600;
+  color: var(--text-main);
+}
+.share-list-sheet-fullname {
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+.share-list-sheet-invite-btn {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--caramel-soft);
+  color: var(--bg-page);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.share-list-sheet-invite-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.share-list-sheet-invite-btn:disabled,
+.share-list-sheet-invite-btn.is-busy {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+/* Modal Invitaciones: botón Invitar — modo día marrón + blanco, modo noche marrón claro + negro */
+html.theme-light .share-list-invite-sheet .share-list-sheet-invite-btn {
+  background: #6f4e37;
+  color: #ffffff;
+}
+html.theme-dark .share-list-invite-sheet .share-list-sheet-invite-btn {
+  background: #d4a373;
+  color: #000000;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-invite-sheet .share-list-sheet-invite-btn {
+    background: #6f4e37;
+    color: #ffffff;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-invite-sheet .share-list-sheet-invite-btn {
+    background: #d4a373;
+    color: #000000;
+  }
+}
+.share-list-sheet-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-subtle);
+  font-size: 0.95rem;
+}
+
+/* List share menu: modal principal (Privacidad, Invitaciones, Gestionar invitados) */
+.list-share-menu-sheet .list-share-menu-sheet-title {
+  margin: 0 0 12px;
+  padding: 0 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+}
+.list-share-menu-content {
+  padding: 0 16px 16px;
+  overflow-y: auto;
+}
+.list-share-menu-privacy-subtitle {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+.list-share-menu-privacy-inline {
+  margin-bottom: 16px;
+}
+.list-share-menu-list {
+  padding: 0;
+}
+.list-share-menu-list .diary-sheet-action-pantry {
+  margin-bottom: 8px;
+}
+.list-share-menu-list .diary-sheet-action-pantry:last-child {
+  margin-bottom: 0;
+}
+
+/* Submodal Privacidad */
+.share-list-privacy-submodal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.share-list-privacy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 8px;
+}
+.share-list-privacy-back,
+.share-list-privacy-save {
+  padding: 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.share-list-privacy-title {
+  font-weight: 700;
+  color: var(--text-main);
+}
+.share-list-privacy-options {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Opciones de privacidad: mismos estilos que Nueva lista (contenedor) */
+.share-list-privacy-submodal .share-list-privacy-option {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  overflow: hidden;
+}
+.share-list-privacy-submodal .share-list-privacy-option-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+/* Modo noche: recuadro negro */
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option {
+  background: black;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option {
+    background: black;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+  }
+}
+/* Modo día: recuadro blanco */
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--text-main);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option {
+    background: white;
+    border-color: rgba(0, 0, 0, 0.12);
+    color: var(--text-main);
+  }
+}
+/* Opción seleccionada: marrón (día) y marrón claro (noche) */
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option.is-selected {
+  background: #6f4e37;
+  border-color: rgba(111, 78, 55, 0.5);
+  color: #fffbf7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option.is-selected {
+    background: #6f4e37;
+    border-color: rgba(111, 78, 55, 0.5);
+    color: #fffbf7;
+  }
+}
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-label,
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-desc {
+  color: #fffbf7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-label,
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-desc {
+    color: #fffbf7;
+  }
+}
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option.is-selected {
+  background: #d4a373;
+  border-color: rgba(212, 163, 115, 0.5);
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option.is-selected {
+    background: #d4a373;
+    border-color: rgba(212, 163, 115, 0.5);
+    color: #1a1a1a;
+  }
+}
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-label,
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-desc {
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-label,
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-desc {
+    color: #1a1a1a;
+  }
+}
+/* Check seleccionado: blanco en día, negro en noche */
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-check {
+  color: #ffffff;
+}
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-check {
+  color: #000000;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-check {
+    color: #000000;
+  }
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-check {
+    color: #ffffff;
+  }
+}
+.share-list-privacy-submodal .share-list-privacy-option-check {
+  flex-shrink: 0;
+  color: var(--caramel-soft);
+}
+/* Círculo inactivo: negro en día, blanco en noche */
+.share-list-privacy-submodal .share-list-privacy-option-check-empty {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--caramel-soft);
+  border-radius: 50%;
+  background: transparent;
+}
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option-check-empty {
+  border-color: #000000;
+}
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option-check-empty {
+  border-color: #ffffff;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option-check-empty {
+    border-color: #000000;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option-check-empty {
+    border-color: #ffffff;
+  }
+}
+.share-list-privacy-submodal .share-list-privacy-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.share-list-privacy-submodal .share-list-privacy-option-label {
+  font-weight: 600;
+  color: inherit;
+}
+.share-list-privacy-submodal .share-list-privacy-option-desc {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  color: inherit;
+}
+/* Fila del switch: alinear "Permitir editar lista" con el texto de la opción */
+.share-list-privacy-submodal .share-list-privacy-option-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 12px 48px;
+  border-top: 1px solid var(--border-default);
+}
+.share-list-privacy-submodal .share-list-privacy-option-switch-label {
+  font-size: 0.9rem;
+  color: inherit;
+}
+.share-list-privacy-submodal .share-list-privacy-option-switch-row .ui-switch {
+  flex-shrink: 0;
+}
+
+/* Invitaciones: enlace + buscador + lista */
+.share-list-invite-sheet {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.share-list-invite-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+}
+.share-list-invite-done,
+.share-list-manage-done {
+  padding: 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.share-list-invite-title {
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  justify-self: center;
+}
+.share-list-invite-header-spacer {
+  width: 44px;
+}
+.share-list-invite-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+.share-list-invite-link-row {
+  margin-bottom: 12px;
+}
+.share-list-invite-link-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+  min-height: 44px;
+}
+.share-list-invite-link-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+.share-list-invite-link-input:focus {
+  outline: none;
+}
+.share-list-invite-link-btn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: none;
+  border-left: 1px solid var(--border-default);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Modo día: fondo marrón, letras blanco */
+html.theme-light .share-list-invite-link-btn {
+  background: #6f4e37;
+  color: #ffffff;
+}
+html.theme-light .share-list-invite-link-btn:hover {
+  filter: brightness(1.08);
+}
+/* Modo noche: fondo marrón claro, letras negro */
+html.theme-dark .share-list-invite-link-btn {
+  background: #d4a373;
+  color: #000000;
+}
+html.theme-dark .share-list-invite-link-btn:hover {
+  filter: brightness(1.05);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-invite-link-btn {
+    background: #6f4e37;
+    color: #ffffff;
+  }
+  html:not(.theme-dark) .share-list-invite-link-btn:hover {
+    filter: brightness(1.08);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-invite-link-btn {
+    background: #d4a373;
+    color: #000000;
+  }
+  html:not(.theme-light) .share-list-invite-link-btn:hover {
+    filter: brightness(1.05);
+  }
+}
+/* Buscador: mismo patrón que perfil (campo + cancelar con animación) */
+.share-list-invite-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: 12px;
+  transition: grid-template-columns var(--duration-normal) var(--ease-standard);
+}
+.share-list-invite-search-row.has-cancel {
+  grid-template-columns: minmax(0, 1fr) 84px;
+}
+.share-list-invite-search-row .search-cancel-button {
+  flex-shrink: 0;
+}
+.share-list-invite-search-field {
+  position: relative;
+  min-width: 0;
+  min-height: 40px;
+}
+.share-list-invite-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 19px;
+  height: 19px;
+  color: var(--text-subtle);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.share-list-invite-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px 0 42px;
+  border-radius: 999px;
+  border: 1px solid var(--search-border-inactive);
+  background: var(--surface);
+  font-size: 0.94rem;
+  color: var(--text-main);
+  box-sizing: border-box;
+}
+.share-list-invite-search-input:focus,
+.share-list-invite-search-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--caramel-accent);
+}
+.share-list-invite-search-input::placeholder {
+  color: var(--text-subtle);
+}
+
+/* Gestionar invitados */
+.share-list-manage-guests-sheet {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.share-list-manage-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+}
+.share-list-manage-title {
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  justify-self: center;
+}
+.share-list-manage-header-spacer {
+  width: 44px;
+}
+.share-list-manage-section-desc {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+.share-list-manage-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+.share-list-manage-section {
+  margin-bottom: 20px;
+}
+.share-list-manage-section-title {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+.share-list-manage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.share-list-manage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.share-list-manage-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.share-list-manage-badge.is-pending {
+  background: var(--surface-variant);
+  color: var(--text-subtle);
+}
+.share-list-manage-badge.is-accepted {
+  background: var(--caramel-soft);
+  color: var(--bg-page);
+}
+.share-list-manage-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-subtle);
+  font-size: 0.95rem;
 }
 
 .historial-view .profile-favorite-list {
@@ -11100,9 +12314,14 @@ html.theme-dark .content.content-profile {
   overflow: visible;
 }
 
+/* Titular y chips alineados: el wrap tiene el gutter a la izquierda; título y strip sin padding extra */
+.brew-select-step .brew-tipo-strip-wrap,
+.brew-select-step .brew-tamaño-strip-wrap {
+  padding-left: var(--app-shell-gutter);
+}
 .brew-select-step .brew-tipo-strip-wrap .brew-select-section-title,
 .brew-select-step .brew-tamaño-strip-wrap .brew-select-section-title {
-  padding-left: var(--app-shell-gutter);
+  padding-left: 0;
 }
 
 .brew-tipo-strip {
@@ -11130,14 +12349,14 @@ html.theme-dark .content.content-profile {
 }
 
 .brew-select-step .brew-tipo-strip {
-  padding-left: var(--app-shell-gutter);
+  padding-left: 0;
   padding-right: 0;
   padding-top: 8px;
   padding-bottom: 8px;
 }
 
 .brew-select-step .brew-tamaño-strip {
-  padding-left: var(--app-shell-gutter);
+  padding-left: 0;
   padding-right: 0;
   padding-bottom: 4px;
 }
@@ -13301,6 +14520,12 @@ html.theme-dark .app-range.app-range--time {
 .notifications-reply {
   background: var(--surface);
   color: var(--text-main);
+}
+
+.notifications-list-invite-actions {
+  display: flex;
+  gap: var(--space-2, 8px);
+  flex-shrink: 0;
 }
 
 .notifications-empty {
@@ -16970,9 +18195,18 @@ html.theme-dark .app-range.app-range--time {
   height: env(safe-area-inset-top, 24px);
   background: var(--screen-dark-background);
 }
+/* PWA/iOS: mismo fondo con y sin scroll para que el topbar no cambie al hacer scroll */
+.pwa-standalone .topbar.topbar-scrolled {
+  background-color: var(--screen-dark-background);
+  background: var(--screen-dark-background);
+}
 @media (prefers-color-scheme: light) {
   html.theme-light .pwa-standalone .topbar,
   html.theme-light .pwa-standalone .topbar::before {
+    background: var(--screen-light-background);
+  }
+  html.theme-light .pwa-standalone .topbar.topbar-scrolled {
+    background-color: var(--screen-light-background);
     background: var(--screen-light-background);
   }
 }

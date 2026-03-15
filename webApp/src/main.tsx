@@ -5,7 +5,7 @@ import { Button } from "./ui/components";
 import { initGa4 } from "./core/ga4";
 import { registerSW } from "virtual:pwa-register";
 import { applyThemeToDocument, getThemeMode } from "./core/theme";
-import "@fontsource-variable/material-symbols-outlined/fill.css";
+import "./fonts-material-symbols.css";
 import "./styles.css";
 
 initGa4();

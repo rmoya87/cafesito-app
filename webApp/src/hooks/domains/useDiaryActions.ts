@@ -102,14 +102,19 @@ export function useDiaryActions({
     [activeUser, brewMethod, coffeeGrams, navigateToDiary, pantryItems, selectedCoffee, setBrewRunning, setBrewStep, setDiaryEntries, setPantryItems, setTimerSeconds, waterMl]
   );
 
-  /** Elimina solo la entrada del diario (actividad). No modifica la despensa: el café sigue en pantry si estaba. */
+  /** Elimina la entrada del diario. Si la actividad había restado de un ítem de despensa, restaura el stock en ese ítem. */
   const handleDeleteDiaryEntry = useCallback(
     async (entryId: number) => {
       if (!activeUser) return;
-      await deleteDiaryEntry(entryId, activeUser.id);
+      const restoredPantryItem = await deleteDiaryEntry(entryId, activeUser.id);
       setDiaryEntries((prev) => prev.filter((entry) => entry.id !== entryId));
+      if (restoredPantryItem) {
+        setPantryItems((prev) =>
+          prev.map((p) => (p.id === restoredPantryItem.id ? restoredPantryItem : p))
+        );
+      }
     },
-    [activeUser, setDiaryEntries]
+    [activeUser, setDiaryEntries, setPantryItems]
   );
 
   const handleUpdateDiaryEntry = useCallback(

@@ -958,8 +958,21 @@ export function useAppDerivedData({
       const type = n.type.toLowerCase();
       const isComment = type === "comment" || type === "mention";
       const isFollow = type === "follow";
+      const isListInvite = type === "list_invite";
       const sender = usersByUsername.get(normalizeLookupText(n.from_username)) ?? usersById.get(n.user_id);
       const target = isComment ? parseNotificationTarget(n.related_id) : {};
+
+      if (isListInvite) {
+        return {
+          id: String(n.id),
+          type: "list_invite" as const,
+          userId: sender?.id ?? n.user_id,
+          text: normalizeNotificationText(n.message),
+          timestamp: n.timestamp,
+          invitationId: n.related_id?.trim() ?? undefined,
+          is_read: n.is_read
+        } as TimelineNotificationItem;
+      }
 
       return {
         id: String(n.id),
