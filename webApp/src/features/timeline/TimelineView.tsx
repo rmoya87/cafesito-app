@@ -120,6 +120,78 @@ export function HomeView({
   const recommendationsScrollRef = useRef<HTMLDivElement | null>(null);
   const suggestionsScrollRef = useRef<HTMLDivElement | null>(null);
 
+  /* Drag-to-scroll para carrusel de método (home): mismo comportamiento que en elaboración */
+  const HOME_CAROUSEL_DRAG_THRESHOLD = 8;
+  const homeCarouselDragElRef = useRef<HTMLDivElement | null>(null);
+  const homeCarouselDragStartXRef = useRef(0);
+  const homeCarouselDragStartScrollRef = useRef(0);
+  const homeCarouselDragPointerIdRef = useRef<number | null>(null);
+  const homeCarouselDragActiveRef = useRef(false);
+  const homeCarouselPendingScrollRef = useRef<number | null>(null);
+  const homeCarouselRafRef = useRef<number | null>(null);
+  const [homeCarouselDragging, setHomeCarouselDragging] = useState(false);
+
+  const handleHomeCarouselPointerDown = useCallback((e: React.PointerEvent, el: HTMLDivElement | null) => {
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    if (homeCarouselRafRef.current != null) {
+      cancelAnimationFrame(homeCarouselRafRef.current);
+      homeCarouselRafRef.current = null;
+    }
+    homeCarouselDragElRef.current = el;
+    homeCarouselDragStartXRef.current = e.clientX;
+    homeCarouselDragStartScrollRef.current = el.scrollLeft;
+    homeCarouselDragPointerIdRef.current = e.pointerId;
+    homeCarouselDragActiveRef.current = false;
+    homeCarouselPendingScrollRef.current = null;
+    setHomeCarouselDragging(false);
+  }, []);
+
+  const handleHomeCarouselPointerMove = useCallback((e: React.PointerEvent) => {
+    const el = homeCarouselDragElRef.current;
+    if (!el || homeCarouselDragPointerIdRef.current !== e.pointerId) return;
+    if (!homeCarouselDragActiveRef.current) {
+      if (Math.abs(e.clientX - homeCarouselDragStartXRef.current) < HOME_CAROUSEL_DRAG_THRESHOLD) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      homeCarouselDragActiveRef.current = true;
+      setHomeCarouselDragging(true);
+    }
+    e.preventDefault();
+    const delta = e.clientX - homeCarouselDragStartXRef.current;
+    const newLeft = homeCarouselDragStartScrollRef.current - delta;
+    const clamped = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, newLeft));
+    homeCarouselPendingScrollRef.current = clamped;
+    if (homeCarouselRafRef.current == null) {
+      homeCarouselRafRef.current = requestAnimationFrame(() => {
+        homeCarouselRafRef.current = null;
+        const target = homeCarouselDragElRef.current;
+        const pending = homeCarouselPendingScrollRef.current;
+        if (target != null && pending != null) {
+          target.scrollLeft = pending;
+        }
+      });
+    }
+  }, []);
+
+  const handleHomeCarouselPointerUp = useCallback((e: React.PointerEvent) => {
+    if (homeCarouselDragPointerIdRef.current !== e.pointerId) return;
+    const el = homeCarouselDragElRef.current;
+    if (homeCarouselRafRef.current != null) {
+      cancelAnimationFrame(homeCarouselRafRef.current);
+      homeCarouselRafRef.current = null;
+    }
+    const pending = homeCarouselPendingScrollRef.current;
+    if (el != null && pending != null) {
+      el.scrollLeft = pending;
+    }
+    homeCarouselDragPointerIdRef.current = null;
+    homeCarouselDragElRef.current = null;
+    homeCarouselDragActiveRef.current = false;
+    homeCarouselPendingScrollRef.current = null;
+    setHomeCarouselDragging(false);
+    if (el?.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+  }, []);
+
   const [carouselHasScroll, setCarouselHasScroll] = useState({
     elaboration: false,
     despensa: false,
@@ -255,7 +327,15 @@ export function HomeView({
   const elaborationMethodsBlock = onOpenBrewToMethod ? (
     <section className="home-elaboration-methods" aria-label="Formas de elaboración">
       <div className="home-carousel-with-nav">
-        <div ref={elaborationScrollRef} className="home-elaboration-methods-scroll">
+        <div
+          ref={elaborationScrollRef}
+          className={`home-elaboration-methods-scroll${homeCarouselDragging ? " is-dragging" : ""}`.trim()}
+          onPointerDown={(e) => handleHomeCarouselPointerDown(e, elaborationScrollRef.current)}
+          onPointerMove={handleHomeCarouselPointerMove}
+          onPointerUp={handleHomeCarouselPointerUp}
+          onPointerLeave={handleHomeCarouselPointerUp}
+          onPointerCancel={handleHomeCarouselPointerUp}
+        >
           {elaborationMethodsToShow.map((method) => (
             <Button
               key={method.name}

@@ -368,7 +368,6 @@ html.theme-dark .brew-select-step .section-title.brew-select-section-title {
   color: var(--pure-white) !important;
 }
 html.theme-dark .brew-select-step .brew-timer-row,
-html.theme-dark .brew-select-step .brew-select-coffee-row,
 html.theme-dark .brew-select-step .brew-method-card,
 html.theme-dark .brew-select-step .brew-tipo-card,
 html.theme-dark .brew-select-step .brew-tamaño-card {
@@ -376,27 +375,73 @@ html.theme-dark .brew-select-step .brew-tamaño-card {
   border-color: rgba(255, 255, 255, 0.15) !important;
   color: var(--pure-white) !important;
 }
-/* Chips inactivos Método, Tipo y Tamaño en elaboración: #212121 en modo noche (debe ganar a la regla anterior) */
+/* Consumo: tipo y tamaño no están en .brew-select-step; base gris oscuro (color página) en modo noche */
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tipo-card,
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card {
+  background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--pure-white) !important;
+}
+/* Selecciona café en elaboración: fondo negro puro en modo noche, sin borde */
+/* Modo noche: fila «Selecciona café» fondo negro (aplica a toda la app) */
+html.theme-dark .brew-select-coffee-row {
+  background: #000000 !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--pure-white) !important;
+}
+html.theme-dark .brew-select-step .brew-select-coffee-row {
+  background: #000000 !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--pure-white) !important;
+}
+/* Chips inactivos Método, Tipo y Tamaño: gris oscuro (#212121, color página) en modo noche */
 html.theme-dark .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
 html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
-html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tipo-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
   background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Chips activos Método, Tipo y Tamaño: mismo caramelo en modo noche (button en Consumo para ganar especificidad) */
+html.theme-dark .brew-method-card.is-active,
+html.theme-dark .brew-select-step .brew-tipo-card.is-active,
+html.theme-dark .brew-select-step .brew-tamaño-card.is-active,
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tipo-card.is-active,
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card.is-active,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card.is-active,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card.is-active {
+  background: var(--caramel-accent, #b8860b) !important;
   border: none !important;
   box-shadow: none !important;
 }
 /* Modo noche: chips inactivos — texto blanco; chips activos — texto negro */
 html.theme-dark .brew-select-step .brew-method-card-label,
 html.theme-dark .brew-select-step .brew-tipo-card-label,
-html.theme-dark .brew-select-step .brew-tamaño-card-label {
+html.theme-dark .brew-select-step .brew-tamaño-card-label,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card-label,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card-label {
   color: var(--pure-white) !important;
 }
-html.theme-dark .brew-select-step .brew-tamaño-card-range {
+html.theme-dark .brew-select-step .brew-tamaño-card-range,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card-range {
   color: #bdb7b2 !important;
 }
 html.theme-dark .brew-method-card.is-active .brew-method-card-label,
 html.theme-dark .brew-select-step .brew-tipo-card.is-active .brew-tipo-card-label,
 html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-label,
-html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-range {
+html.theme-dark .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-range,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card.is-active .brew-tipo-card-label,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-label,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range {
   color: var(--pure-black) !important;
 }
 /* Modal edición Mi diario: chip activo tipo — texto negro en modo noche */
@@ -1147,6 +1192,12 @@ html.theme-dark .diary-sheet-action.is-active {
 }
 
 /* ========== Tema forzado CLARO (html.theme-light): anular @media (prefers-color-scheme: dark) ========== */
+/* Líneas de separación elaboración/config: color específico modo día */
+html.theme-light .brew-config-option-divider,
+html.theme-light .brew-config-cafe-card .brew-config-option-divider,
+html.theme-light .brew-forma-card .brew-config-option-divider {
+  background: #d5d5d5 !important;
+}
 /* Modales, sheets, notificaciones */
 html.theme-light .sheet-card,
 html.theme-light .sheet-header {

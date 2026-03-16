@@ -88,6 +88,7 @@ fun AddStockScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = 8.dp)
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

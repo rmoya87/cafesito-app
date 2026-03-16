@@ -282,8 +282,22 @@ export function TopBar({
     );
   }
 
-  if (activeTab === "brewlab") {
-    if (brewSelectCoffeePageOpen && onBrewSelectCoffeeBack) {
+  if (activeTab === "crear-cafe" && onBrewCreateCoffeeBack) {
+    return (
+      <header className={`topbar topbar-home topbar-brew topbar-crear-cafe topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
+        <div className="topbar-slot">
+          <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Volver">
+            <UiIcon name="arrow-left" className="ui-icon" />
+          </IconButton>
+        </div>
+        <h1 className="title title-upper topbar-title-center">Crea tu café</h1>
+        <div className="topbar-slot topbar-slot-end" />
+      </header>
+    );
+  }
+
+  if (activeTab === "brewlab" || activeTab === "selecciona-cafe") {
+    if ((brewSelectCoffeePageOpen || activeTab === "selecciona-cafe") && onBrewSelectCoffeeBack) {
       return (
         <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
           <div className="topbar-slot">

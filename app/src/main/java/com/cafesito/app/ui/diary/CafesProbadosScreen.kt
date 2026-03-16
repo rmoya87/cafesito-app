@@ -39,6 +39,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -122,7 +124,12 @@ fun CafesProbadosScreen(
     viewModel: CafesProbadosViewModel = hiltViewModel()
 ) {
     val coffeesWithFirstTried by viewModel.coffeesWithFirstTried.collectAsState()
-    var selectedCountry by remember { mutableStateOf<String?>(null) }
+    val selectedCountry by viewModel.selectedCountryFilter.collectAsState()
+
+    // Cada vez que se muestra la pantalla (incl. volver del detalle), recargar como primera vez
+    LaunchedEffect(Unit) {
+        viewModel.triggerRefresh()
+    }
 
     val countriesWithCoords = remember(coffeesWithFirstTried) {
         val seen = mutableSetOf<String>()
@@ -173,6 +180,10 @@ fun CafesProbadosScreen(
     /** Ajustar vista del mapa: una vez al cargar (todos los pins) y al quitar filtro (X) volver a mostrar todos. */
     val hasInitialFit = remember { mutableStateOf(false) }
     val prevSelectedCountry = remember { mutableStateOf<String?>(null) }
+    /** Referencia al MapView para llamar onPause al salir de la pantalla y evitar estado roto al volver. */
+    val mapViewRef = remember { mutableStateOf<MapView?>(null) }
+    /** Si ya se llamó onResume en el MapView (ciclo de vida osmdroid). */
+    val mapResumed = remember { mutableStateOf(false) }
 
     LazyColumn(
         state = listState,
@@ -217,10 +228,15 @@ fun CafesProbadosScreen(
                             } else {
                                 defaultCenter
                             })
-                        }
+                            onResume()
+                        }.also { mapViewRef.value = it }
                     },
                     update = { mapView ->
                         val ctx = mapView.context
+                        if (!mapResumed.value) {
+                            mapView.onResume()
+                            mapResumed.value = true
+                        }
                         val sizePx = (32 * ctx.resources.displayMetrics.density).toInt()
                         mapView.setMinZoomLevel(3.0)
                         mapView.setMaxZoomLevel(18.0)
@@ -254,7 +270,7 @@ fun CafesProbadosScreen(
                                 icon = createFlagIconDrawable(ctx, flagEmoji, sizePx)
                                 setAnchor(OsmMarker.ANCHOR_CENTER, OsmMarker.ANCHOR_CENTER)
                                 setOnMarkerClickListener { _, _ ->
-                                    selectedCountry = country
+                                    viewModel.setSelectedCountry(country)
                                     mapView.controller.setCenter(GeoPoint(lat, lng))
                                     mapView.controller.setZoom(6.0)
                                     true
@@ -265,6 +281,13 @@ fun CafesProbadosScreen(
                         mapView.invalidate()
                     }
                 )
+                DisposableEffect(Unit) {
+                    onDispose {
+                        mapViewRef.value?.onPause()
+                        mapViewRef.value = null
+                        mapResumed.value = false
+                    }
+                }
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -296,7 +319,7 @@ fun CafesProbadosScreen(
                         shadowElevation = 4.dp
                     ) {
                         IconButton(
-                            onClick = { selectedCountry = null },
+                            onClick = { viewModel.setSelectedCountry(null) },
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(

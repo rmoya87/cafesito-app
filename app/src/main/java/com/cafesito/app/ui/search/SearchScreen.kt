@@ -658,6 +658,7 @@ private fun FilterSelectionContent(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(min = 52.dp)
                         .padding(vertical = Spacing.space1)
                         .clickable { onOptionToggle(option) },
                     shape = Shapes.cardSmall,
@@ -665,7 +666,9 @@ private fun FilterSelectionContent(
                     border = BorderStroke(1.dp, if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = Spacing.space2, vertical = Spacing.space2),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.space2, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(

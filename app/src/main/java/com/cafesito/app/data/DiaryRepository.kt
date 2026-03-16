@@ -319,17 +319,23 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun createCustomCoffee(
-        name: String, brand: String, specialty: String, roast: String?, variety: String?, 
+        name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
-        totalGrams: Int = 250
+        totalGrams: Int = 250,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ): String? = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext null
         val coffeeId = UUID.randomUUID().toString()
-        
+
         var imageUrl = ""
         if (imageBytes != null) {
             try {
-                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$coffeeId.jpg", imageBytes)
+                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$coffeeId.webp", imageBytes)
             } catch (e: Exception) { }
         }
 
@@ -345,7 +351,13 @@ class DiaryRepository @Inject constructor(
             formato = format,
             imageUrl = imageUrl,
             isCustom = true,
-            userId = user.id
+            userId = user.id,
+            descripcion = descripcion?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            proceso = proceso?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            codigoBarras = codigoBarras?.trim()?.takeIf { it.isNotEmpty() },
+            moliendaRecomendada = moliendaRecomendada?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            productUrl = productUrl?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            aroma = aroma, sabor = sabor, cuerpo = cuerpo, acidez = acidez, dulzura = dulzura
         )
 
         coffeeDao.insertCoffees(listOf(customCoffee))
@@ -357,11 +369,17 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun createCustomCoffeeAndAddToPantry(
-        name: String, brand: String, specialty: String, roast: String?, variety: String?, 
+        name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
-        totalGrams: Int = 250
+        totalGrams: Int = 250,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ): String? = withContext(Dispatchers.IO) {
-        val coffeeId = createCustomCoffee(name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams)
+        val coffeeId = createCustomCoffee(name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams, descripcion, proceso, codigoBarras, moliendaRecomendada, productUrl, aroma, sabor, cuerpo, acidez, dulzura)
             ?: return@withContext null
 
         addToPantry(coffeeId, totalGrams)
@@ -369,16 +387,22 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun updateCustomCoffee(
-        id: String, name: String, brand: String, specialty: String, roast: String?, 
-        variety: String?, country: String, hasCaffeine: Boolean, format: String, 
-        imageBytes: ByteArray?, totalGrams: Int
+        id: String, name: String, brand: String, specialty: String, roast: String?,
+        variety: String?, country: String, hasCaffeine: Boolean, format: String,
+        imageBytes: ByteArray?, totalGrams: Int,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
-        
+
         var imageUrl = coffeeDao.getCoffeeById(id)?.imageUrl ?: ""
         if (imageBytes != null) {
             try {
-                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$id.jpg", imageBytes)
+                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$id.webp", imageBytes)
             } catch (e: Exception) { }
         }
 
@@ -394,7 +418,13 @@ class DiaryRepository @Inject constructor(
             formato = format,
             imageUrl = imageUrl,
             isCustom = true,
-            userId = user.id
+            userId = user.id,
+            descripcion = descripcion?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            proceso = proceso?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            codigoBarras = codigoBarras?.trim()?.takeIf { it.isNotEmpty() },
+            moliendaRecomendada = moliendaRecomendada?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            productUrl = productUrl?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            aroma = aroma, sabor = sabor, cuerpo = cuerpo, acidez = acidez, dulzura = dulzura
         )
 
         coffeeDao.insertCoffees(listOf(customCoffee))

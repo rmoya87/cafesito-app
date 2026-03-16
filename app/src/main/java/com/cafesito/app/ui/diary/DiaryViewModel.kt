@@ -1,8 +1,11 @@
 package com.cafesito.app.ui.diary
 
 import android.content.Context
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
+import java.io.ByteArrayOutputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
@@ -16,6 +19,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
 import javax.inject.Inject
+
+/** Convierte imagen desde Uri a WebP (calidad 85) para subir a Supabase. */
+private fun Context.uriToWebPBytes(uri: Uri): ByteArray? {
+    return runCatching {
+        contentResolver.openInputStream(uri)?.use { input ->
+            val bitmap = BitmapFactory.decodeStream(input) ?: return@runCatching null
+            val out = ByteArrayOutputStream()
+            if (bitmap.compress(Bitmap.CompressFormat.WEBP, 85, out)) out.toByteArray() else null
+        }
+    }.getOrNull()
+}
 
 /** Devuelve el lunes 00:00 de la semana que contiene la fecha dada (en ms). */
 fun getMondayOfWeek(dateMs: Long): Long {
@@ -246,6 +260,10 @@ class DiaryViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val availableCoffees: StateFlow<List<CoffeeWithDetails>> = coffeeRepository.allCoffees
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Catálogo + custom para número y listado de cafés probados (mismo criterio que CafesProbadosViewModel). */
+    private val coffeesForBarista: StateFlow<List<CoffeeWithDetails>> = coffeeRepository.allCoffeesIncludingCustom
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -519,14 +537,13 @@ class DiaryViewModel @Inject constructor(
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000),
         DiaryConsumptionStats(0, 0, 0, 0, 0, "—", null))
 
-    /** Datos barista (cafés probados, tostadores, origen favorito): totalidad de la cuenta, no del periodo. */
-    val baristaStats: StateFlow<DiaryBaristaStats> = combine(allDiaryEntries, availableCoffees) { entries, coffees ->
+    /** Datos barista (cafés probados, tostadores, origen favorito): totalidad de la cuenta, no del periodo. Misma lógica que CafesProbadosViewModel (catálogo+custom, número = tamaño del listado). */
+    val baristaStats: StateFlow<DiaryBaristaStats> = combine(allDiaryEntries, coffeesForBarista) { entries, coffees ->
         val coffeeEntries = entries.filter { isCupEntry(it) }
         val coffeeById = coffees.associate { it.coffee.id to it.coffee }
         val byCoffeeId = mutableMapOf<String, Long>()
         val roasterSet = mutableSetOf<String>()
         val originCount = mutableMapOf<String, Int>()
-        val countByCoffeeId = coffeeEntries.mapNotNull { it.coffeeId }.groupingBy { it }.eachCount()
         coffeeEntries.forEach { e ->
             e.coffeeId?.let { id ->
                 val ts = e.timestamp
@@ -540,13 +557,11 @@ class DiaryViewModel @Inject constructor(
             }
         }
         val favoriteOrigin = originCount.maxByOrNull { it.value }?.key ?: "—"
-        // Solo mostrar "Primera vez" si ese café tiene exactamente una entrada (no si lo ha tomado más veces).
         val coffeesWithFirstTried = byCoffeeId.mapNotNull { (id, firstMs) ->
-            if ((countByCoffeeId[id] ?: 0) != 1) return@mapNotNull null
             coffeeById[id]?.let { TriedCoffeeItem(it, firstMs) }
         }.sortedBy { it.firstTriedMs }
         DiaryBaristaStats(
-            distinctCoffees = byCoffeeId.size,
+            distinctCoffees = coffeesWithFirstTried.size,
             distinctRoasters = roasterSet.size,
             favoriteOrigin = favoriteOrigin,
             coffeesWithFirstTried = coffeesWithFirstTried
@@ -688,17 +703,22 @@ class DiaryViewModel @Inject constructor(
     fun saveCustomCoffee(
         name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String, totalGrams: Int,
-        imageUri: Uri?, onSuccess: () -> Unit
+        imageUri: Uri?, onSuccess: () -> Unit,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ) {
         viewModelScope.launch {
             try {
                 val imageBytes = imageUri?.let { uri ->
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    }
+                    withContext(Dispatchers.IO) { context.uriToWebPBytes(uri) }
                 }
                 diaryRepository.createCustomCoffeeAndAddToPantry(
-                    name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams
+                    name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams,
+                    descripcion, proceso, codigoBarras, moliendaRecomendada, productUrl, aroma, sabor, cuerpo, acidez, dulzura
                 )
                 onSuccess()
             } catch (e: Exception) {
@@ -710,14 +730,18 @@ class DiaryViewModel @Inject constructor(
     fun saveCustomCoffeeForDiary(
         name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String,
-        imageUri: Uri?, totalGrams: Int = 250, onSuccess: (String) -> Unit
+        imageUri: Uri?, totalGrams: Int = 250, onSuccess: (String) -> Unit,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ) {
         viewModelScope.launch {
             try {
                 val imageBytes = imageUri?.let { uri ->
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    }
+                    withContext(Dispatchers.IO) { context.uriToWebPBytes(uri) }
                 }
                 val coffeeId = diaryRepository.createCustomCoffeeAndAddToPantry(
                     name = name,
@@ -729,7 +753,17 @@ class DiaryViewModel @Inject constructor(
                     hasCaffeine = hasCaffeine,
                     format = format,
                     imageBytes = imageBytes,
-                    totalGrams = totalGrams
+                    totalGrams = totalGrams,
+                    descripcion = descripcion,
+                    proceso = proceso,
+                    codigoBarras = codigoBarras,
+                    moliendaRecomendada = moliendaRecomendada,
+                    productUrl = productUrl,
+                    aroma = aroma,
+                    sabor = sabor,
+                    cuerpo = cuerpo,
+                    acidez = acidez,
+                    dulzura = dulzura
                 )
                 coffeeId?.let(onSuccess)
             } catch (e: Exception) {
@@ -741,17 +775,22 @@ class DiaryViewModel @Inject constructor(
     fun updateCustomCoffee(
         id: String, name: String, brand: String, specialty: String, roast: String?,
         variety: String?, country: String, hasCaffeine: Boolean, format: String,
-        imageUri: Uri?, totalGrams: Int, onSuccess: () -> Unit
+        imageUri: Uri?, totalGrams: Int, onSuccess: () -> Unit,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ) {
         viewModelScope.launch {
             try {
                 val imageBytes = imageUri?.let { uri ->
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    }
+                    withContext(Dispatchers.IO) { context.uriToWebPBytes(uri) }
                 }
                 diaryRepository.updateCustomCoffee(
-                    id, name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams
+                    id, name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams,
+                    descripcion, proceso, codigoBarras, moliendaRecomendada, productUrl, aroma, sabor, cuerpo, acidez, dulzura
                 )
                 refreshDiaryWidget()
                 onSuccess()

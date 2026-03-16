@@ -171,7 +171,7 @@ fun NotificationsBottomSheet(
     ) {
         Column(Modifier
             .fillMaxWidth()
-            .padding(top = 20.dp, bottom = Spacing.space8)) {
+            .padding(top = 8.dp, bottom = Spacing.space8)) {
             Text(
                 text = "NOTIFICACIONES",
                 style = MaterialTheme.typography.labelLarge,
@@ -1194,12 +1194,12 @@ fun DiaryEntryEditBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2)
+                .padding(top = 8.dp, bottom = Spacing.space2)
                 .padding(bottom = 28.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6)) {
                 Text(
                     text = "Editar",
                     style = MaterialTheme.typography.titleLarge,
@@ -1235,7 +1235,8 @@ fun DiaryEntryEditBottomSheet(
                     text = "Método",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
                 Spacer(Modifier.height(Spacing.space1))
                 val brewMethodNames = remember { BREW_METHOD_NAMES + listOf(BREW_METHOD_OTROS, BREW_METHOD_AGUA) }
@@ -1246,7 +1247,7 @@ fun DiaryEntryEditBottomSheet(
                 val chipMinWidth = editModalChipMinWidth
                 val chipMinHeight = 56.dp
                 FadingLazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = (-Spacing.space6.value).dp),
+                    modifier = Modifier.fillMaxWidth(),
                     itemSpacing = Spacing.space2,
                     contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
                 ) {
@@ -1310,11 +1311,12 @@ fun DiaryEntryEditBottomSheet(
                     text = "Tipo",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
                 Spacer(Modifier.height(Spacing.space1))
                 FadingLazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = (-Spacing.space6.value).dp),
+                    modifier = Modifier.fillMaxWidth(),
                     itemSpacing = Spacing.space2,
                     contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
                 ) {
@@ -1357,7 +1359,7 @@ fun DiaryEntryEditBottomSheet(
                 }
 
                 Spacer(Modifier.height(Spacing.space6))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6)) {
                     OutlinedTextField(
                         value = caffeineText,
                         onValueChange = { caffeineText = it.filter(Char::isDigit) },
@@ -1407,11 +1409,12 @@ fun DiaryEntryEditBottomSheet(
                     text = "Tamaño",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
                 Spacer(Modifier.height(Spacing.space1))
                 FadingLazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = (-Spacing.space6.value).dp),
+                    modifier = Modifier.fillMaxWidth(),
                     itemSpacing = 10.dp,
                     contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
                 ) {
@@ -1455,7 +1458,7 @@ fun DiaryEntryEditBottomSheet(
                 }
             } else {
                 Spacer(Modifier.height(Spacing.space6))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6)) {
                     OutlinedTextField(
                         value = amountText,
                         onValueChange = { amountText = it.filter(Char::isDigit) },
@@ -1495,7 +1498,7 @@ fun DiaryEntryEditBottomSheet(
                     label = { Text("Tiempo (HH:mm)") },
                     leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6),
                     textStyle = editFieldTextStyle,
                     colors = editFieldColors
                 )
@@ -1507,7 +1510,8 @@ fun DiaryEntryEditBottomSheet(
                     text = "Resultado",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
                 Spacer(Modifier.height(Spacing.space1))
                 val tasteOptionsWithIcons = listOf(
@@ -1523,7 +1527,7 @@ fun DiaryEntryEditBottomSheet(
                 val unselectedChipContentResult = if (isDark) PureWhite else PureBlack
                 val selectedChipContentResult = if (isDark) PureBlack else PureWhite
                 FadingLazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = (-Spacing.space6.value).dp),
+                    modifier = Modifier.fillMaxWidth(),
                     itemSpacing = Spacing.space2,
                     contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
                 ) {
@@ -1566,7 +1570,8 @@ fun DiaryEntryEditBottomSheet(
                 Text(
                     text = errorText!!,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
             }
 
@@ -1817,7 +1822,7 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
     ) {
         Column(Modifier
             .fillMaxWidth()
-            .padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space8)) {
+            .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space8)) {
             Text(
                 text = "Recomendaciones OMS",
                 style = MaterialTheme.typography.titleLarge,
@@ -1862,7 +1867,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space6)
+                .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space6)
                 .padding(bottom = Spacing.space8)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -2048,7 +2053,7 @@ fun PostOptionsBottomSheet(
         shape = Shapes.sheetLarge,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             ModalMenuOption(
                 title = "Editar",
                 icon = Icons.Default.Edit,
@@ -2080,7 +2085,7 @@ fun SettingsBottomSheet(
         shape = Shapes.sheetLarge,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 48.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 48.dp)) {
             Text(
                 "General",
                 style = MaterialTheme.typography.titleSmall,
@@ -2182,7 +2187,7 @@ fun DeleteConfirmationDialog(
         shape = Shapes.sheetLarge
     ) {
         Column(
-            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 20.dp, bottom = 40.dp),
+            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 8.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(

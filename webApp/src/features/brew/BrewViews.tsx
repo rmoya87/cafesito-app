@@ -1,13 +1,39 @@
 import { type CSSProperties, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getOrderedBrewMethods } from "../../config/brew";
 import type { BrewMethodItem } from "../../config/brew";
 import { COFFEE_SIZE_OPTIONS, COFFEE_TIPO_OPTIONS } from "../../data/diaryBrewOptions";
 import { EMPTY } from "../../core/emptyErrorStrings";
 import { BREW_COFFEE_ABS_MAX_G, BREW_COFFEE_ABS_MIN_G, BREW_SLIDER_MAX_COFFEE_G, BREW_SLIDER_MIN_COFFEE_G, BREW_SLIDER_MAX_TIME_S, BREW_SLIDER_MAX_WATER_ML, BREW_SLIDER_MIN_WATER_ML, BREW_WATER_ABS_MAX_ML, BREW_WATER_ABS_MIN_ML, formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
+import type { CreateCoffeeDraft } from "../../hooks/domains/useCreateCoffeeDomain";
 import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
+import { convertImageToWebP, webPBlobToFile } from "../../utils/imageToWebP";
 import { Button, Input, Select, SheetCard, SheetHandle, SheetOverlay, Switch } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
+
+const ROAST_OPTIONS = ["Ligero", "Medio", "Medio-oscuro"];
+const FORMAT_OPTIONS = ["Grano", "Molido", "Capsula"];
+const PROCESS_OPTIONS = ["Natural", "Lavado", "Honey", "Semi-lavado", "Otro"];
+const VARIETY_OPTIONS = ["Geisha", "Caturra", "Arábica 100%", "Robusta", "Bourbon", "Typica", "Maragogype", "Pacamara", "Otro"];
+const GRIND_OPTIONS = ["Molido fino", "Molido medio", "Molido grueso", "Grano entero"];
+
+type PickerId = "specialty" | "roast" | "country" | "variety" | "format" | "process" | "grind";
+
+function parseMultiValue(s: string): string[] {
+  if (!s || !String(s).trim()) return [];
+  return String(s)
+    .split(/[,;|]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+function formatMultiValue(arr: string[]): string {
+  return arr.filter(Boolean).join(", ");
+}
+/** Texto para mostrar en el campo: valores múltiples separados por comas */
+function displayMultiValue(s: string | undefined): string {
+  return formatMultiValue(parseMultiValue(s ?? ""));
+}
 export function BrewLabView({
   brewStep,
   setBrewStep,
@@ -103,21 +129,8 @@ export function BrewLabView({
   const brewCarouselPendingScrollRef = useRef<number | null>(null);
   const brewCarouselRafRef = useRef<number | null>(null);
   const [brewCarouselDragging, setBrewCarouselDragging] = useState(false);
-  const handleBrewCarouselPointerDown = useCallback((e: React.PointerEvent, el: HTMLDivElement | null) => {
-    if (!el || el.scrollWidth <= el.clientWidth) return;
-    if (brewCarouselRafRef.current != null) {
-      cancelAnimationFrame(brewCarouselRafRef.current);
-      brewCarouselRafRef.current = null;
-    }
-    brewCarouselDragElRef.current = el;
-    brewCarouselDragStartXRef.current = e.clientX;
-    brewCarouselDragStartScrollRef.current = el.scrollLeft;
-    brewCarouselDragPointerIdRef.current = e.pointerId;
-    brewCarouselDragActiveRef.current = false;
-    brewCarouselPendingScrollRef.current = null;
-    setBrewCarouselDragging(false);
-  }, []);
-  const handleBrewCarouselPointerMove = useCallback((e: React.PointerEvent) => {
+  /* Handlers que aceptan evento nativo para usarlos también desde document (capture), así el drag funciona al arrastrar desde la imagen/chip */
+  const doBrewCarouselMove = useCallback((e: { clientX: number; pointerId: number; preventDefault: () => void }) => {
     const el = brewCarouselDragElRef.current;
     if (!el || brewCarouselDragPointerIdRef.current !== e.pointerId) return;
     if (!brewCarouselDragActiveRef.current) {
@@ -143,7 +156,7 @@ export function BrewLabView({
       });
     }
   }, []);
-  const handleBrewCarouselPointerUp = useCallback((e: React.PointerEvent) => {
+  const doBrewCarouselUp = useCallback((e: { pointerId: number }) => {
     if (brewCarouselDragPointerIdRef.current !== e.pointerId) return;
     const el = brewCarouselDragElRef.current;
     if (brewCarouselRafRef.current != null) {
@@ -161,6 +174,47 @@ export function BrewLabView({
     setBrewCarouselDragging(false);
     if (el?.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
   }, []);
+
+  const docCarouselMoveRef = useRef<(e: PointerEvent) => void>(() => {});
+  const docCarouselUpRef = useRef<(e: PointerEvent) => void>(() => {});
+
+  const handleBrewCarouselPointerDown = useCallback(
+    (e: React.PointerEvent, el: HTMLDivElement | null) => {
+      if (!el || el.scrollWidth <= el.clientWidth) return;
+      if (!el.contains(e.target as Node)) return;
+      if (brewCarouselRafRef.current != null) {
+        cancelAnimationFrame(brewCarouselRafRef.current);
+        brewCarouselRafRef.current = null;
+      }
+      brewCarouselDragElRef.current = el;
+      brewCarouselDragStartXRef.current = e.clientX;
+      brewCarouselDragStartScrollRef.current = el.scrollLeft;
+      brewCarouselDragPointerIdRef.current = e.pointerId;
+      brewCarouselDragActiveRef.current = false;
+      brewCarouselPendingScrollRef.current = null;
+      setBrewCarouselDragging(false);
+
+      docCarouselMoveRef.current = (ev: PointerEvent) => doBrewCarouselMove(ev);
+      docCarouselUpRef.current = (ev: PointerEvent) => {
+        doBrewCarouselUp(ev);
+        document.removeEventListener("pointermove", docCarouselMoveRef.current, true);
+        document.removeEventListener("pointerup", docCarouselUpRef.current, true);
+        document.removeEventListener("pointercancel", docCarouselUpRef.current, true);
+      };
+      document.addEventListener("pointermove", docCarouselMoveRef.current, true);
+      document.addEventListener("pointerup", docCarouselUpRef.current, true);
+      document.addEventListener("pointercancel", docCarouselUpRef.current, true);
+    },
+    [doBrewCarouselMove, doBrewCarouselUp]
+  );
+  const handleBrewCarouselPointerMove = useCallback(
+    (e: React.PointerEvent) => doBrewCarouselMove(e.nativeEvent),
+    [doBrewCarouselMove]
+  );
+  const handleBrewCarouselPointerUp = useCallback(
+    (e: React.PointerEvent) => doBrewCarouselUp(e.nativeEvent),
+    [doBrewCarouselUp]
+  );
   const [showBaristaPopover, setShowBaristaPopover] = useState(false);
   /** Tamaño elegido por clic en la strip; hace que el borde marrón se mantenga hasta cambiar de método o elegir otro tamaño */
   const [selectedSizeMl, setSelectedSizeMl] = useState<number | null>(null);
@@ -226,9 +280,10 @@ export function BrewLabView({
     onSaveResultToDiary,
     waterMl: 0,
     onSaveWaterFromBrew: undefined as ((amountMl: number) => Promise<void>) | undefined,
-    brewDrinkType: "Espresso"
+    brewDrinkType: "Espresso",
+    selectedSizeMl: null as number | null
   });
-  refs.current = { selectedCoffee, resultTaste, savingResult, onSaveResultToDiary, waterMl, onSaveWaterFromBrew, brewDrinkType };
+  refs.current = { selectedCoffee, resultTaste, savingResult, onSaveResultToDiary, waterMl, onSaveWaterFromBrew, brewDrinkType, selectedSizeMl };
   const q = normalizeLookupText(brewCoffeeQuery);
   const filteredPantry = useMemo(
     () =>
@@ -344,16 +399,18 @@ export function BrewLabView({
         if (cur.savingResult) return;
         setSavingResult(true);
         try {
-          await cur.onSaveResultToDiary(cur.resultTaste?.trim() || "—", cur.brewDrinkType);
+          // El sabor es opcional en Consumo; si no hay texto, se envía cadena vacía.
+          await cur.onSaveResultToDiary(cur.resultTaste?.trim() || "", cur.brewDrinkType);
         } finally {
           setSavingResult(false);
         }
       },
-      canSave: true,
+      // Solo son obligatorios Tipo y Tamaño; el resultado (sabor) no bloquea el guardado.
+      canSave: Boolean(brewDrinkType && selectedSizeMl != null),
       saving: savingResult,
       showGuardar: true
     });
-  }, [isResultStep, onBrewResultSaveState, resultTaste, savingResult, brewMethod, waterMl]);
+  }, [isResultStep, onBrewResultSaveState, resultTaste, savingResult, brewMethod, waterMl, brewDrinkType, selectedSizeMl]);
   const currentPhaseIndex = useMemo(() => {
     if (!brewTimeline.length) return 0;
     let elapsed = 0;
@@ -482,6 +539,11 @@ export function BrewLabView({
     return `RATIO 1:${value} - ${ratioProfile.toUpperCase()}`;
   }, [effectiveRatio, methodProfile.ratioStep, ratioProfile]);
 
+  const espressoCoffeeSliderLabel = useMemo(() => {
+    const value = methodProfile.ratioStep < 1 ? effectiveRatio.toFixed(1) : String(Math.round(effectiveRatio));
+    return `RATIO 1:${value} - ${ratioProfile}`;
+  }, [effectiveRatio, methodProfile.ratioStep, ratioProfile]);
+
   const methodsToShow = useMemo(
     () => (orderedBrewMethods.length > 0 ? orderedBrewMethods : getOrderedBrewMethods([])),
     [orderedBrewMethods]
@@ -493,7 +555,6 @@ export function BrewLabView({
     <>
       {brewStep === "method" ? (
         <div className="brew-select-step">
-          <p className="section-title brew-select-section-title">Forma de elaboración</p>
           <div className="brew-forma-card brew-tech-card">
             <section className="home-elaboration-methods brew-elaboration-methods brew-forma-methods" aria-label="Método">
               <div className="home-carousel-with-nav brew-method-carousel-wrap">
@@ -502,7 +563,7 @@ export function BrewLabView({
                   className={`home-elaboration-methods-scroll brew-method-scroll${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
                   role="listbox"
                   aria-label="Método de elaboración"
-                  onPointerDown={(e) => handleBrewCarouselPointerDown(e, brewMethodScrollRef.current)}
+                  onPointerDownCapture={(e) => handleBrewCarouselPointerDown(e, brewMethodScrollRef.current)}
                   onPointerMove={handleBrewCarouselPointerMove}
                   onPointerUp={handleBrewCarouselPointerUp}
                   onPointerLeave={handleBrewCarouselPointerUp}
@@ -551,6 +612,54 @@ export function BrewLabView({
                 </div>
               </div>
             </section>
+            {!isAguaMethod ? (
+              <>
+                <div className="brew-config-option-divider" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="brew-select-coffee-row"
+                  onClick={onAddToPantry ?? onAddNotFoundCoffee}
+                  aria-label={
+                    selectedCoffee
+                      ? (() => {
+                          const pantryRow = brewCoffeeId ? pantryItems.find((r) => r.coffee.id === brewCoffeeId) : null;
+                          if (pantryRow) {
+                            const gramsForBrew = Number(coffeeGrams) || 0;
+                            const displayRemaining = Math.max(0, pantryRow.remaining - gramsForBrew);
+                            return `Selecciona café: ${selectedCoffee.nombre}, ${Math.round(displayRemaining)} de ${Math.round(pantryRow.total)} g en bolsa`;
+                          }
+                          return `Selecciona café: ${selectedCoffee.nombre}`;
+                        })()
+                      : "Selecciona café"
+                  }
+                >
+                  {selectedCoffee ? (
+                    <span className="brew-select-coffee-selected">
+                      {selectedCoffee.image_url ? (
+                        <img src={selectedCoffee.image_url} alt="" className="brew-select-coffee-img" loading="lazy" decoding="async" />
+                      ) : null}
+                      <span className="brew-select-coffee-selected-copy">
+                        <span className="brew-select-coffee-name">{selectedCoffee.nombre}</span>
+                        {(() => {
+                          const pantryRow = brewCoffeeId ? pantryItems.find((r) => r.coffee.id === brewCoffeeId) : null;
+                          if (!pantryRow) return null;
+                          const gramsForBrew = Number(coffeeGrams) || 0;
+                          const displayRemaining = Math.max(0, pantryRow.remaining - gramsForBrew);
+                          return (
+                            <span className="brew-select-coffee-stock" aria-hidden="true">
+                              {Math.round(displayRemaining)}/{Math.round(pantryRow.total)}g
+                            </span>
+                          );
+                        })()}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="brew-select-coffee-row-label">Selecciona café</span>
+                  )}
+                  <UiIcon name="arrow-right" className="ui-icon brew-select-coffee-row-arrow" aria-hidden="true" />
+                </button>
+              </>
+            ) : null}
             {!isOtrosMethod ? (
             <>
               <div className="brew-config-option-divider" aria-hidden="true" />
@@ -600,9 +709,9 @@ export function BrewLabView({
                   ) : null}
 
                   {!isAguaMethod ? (
-                  <div className="brew-tech-row">
+                  <div className={`brew-tech-row ${isEspressoMethod ? "brew-tech-row-coffee-espresso" : ""}`.trim()}>
                     <div className="brew-tech-field">
-                      <span>Café (g)</span>
+                      <span>Café</span>
                       <div className="brew-tech-value-field">
                         <Input
                           className="search-wide brew-tech-value-input is-coffee"
@@ -632,7 +741,7 @@ export function BrewLabView({
                     </div>
                     {isCoffeeSliderShown ? (
                       <label className="brew-tech-slider">
-                        <span className="brew-tech-slider-label">{isEspressoMethod ? "Café (g)" : ratioLabel}</span>
+                        <span className="brew-tech-slider-label">{isEspressoMethod ? espressoCoffeeSliderLabel : ratioLabel}</span>
                         <Input
                           className="app-range app-range--coffee"
                           style={{ "--range-progress": `${coffeeProgress}%` } as CSSProperties}
@@ -743,111 +852,6 @@ export function BrewLabView({
             </>
             ) : null}
           </div>
-
-          {!isAguaMethod ? (
-          <>
-            <p className="section-title brew-select-section-title brew-config-cafe-title">Configura tu café</p>
-            <div className="brew-config-cafe-card brew-tech-card">
-              <button
-                type="button"
-                className="brew-select-coffee-row"
-                onClick={onAddToPantry ?? onAddNotFoundCoffee}
-                aria-label={selectedCoffee ? `Selecciona café: ${selectedCoffee.nombre}` : "Selecciona café"}
-              >
-                {selectedCoffee ? (
-                  <span className="brew-select-coffee-selected">
-                    {selectedCoffee.image_url ? (
-                      <img src={selectedCoffee.image_url} alt="" className="brew-select-coffee-img" loading="lazy" decoding="async" />
-                    ) : null}
-                    <span className="brew-select-coffee-name">{selectedCoffee.nombre}</span>
-                  </span>
-                ) : (
-                  <span className="brew-select-coffee-row-label">Selecciona café</span>
-                )}
-                <UiIcon name="arrow-right" className="ui-icon brew-select-coffee-row-arrow" aria-hidden="true" />
-              </button>
-              <div className="brew-config-option-divider" aria-hidden="true" />
-              <section className="brew-tipo-strip-wrap brew-config-cafe-section" aria-label="Tipo de café">
-                <div className="brew-config-cafe-carousel-wrap">
-              <div
-                ref={brewTipoScrollRef}
-                className={`brew-tipo-strip${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
-                role="listbox"
-                aria-label="Tipo de café"
-                onPointerDown={(e) => handleBrewCarouselPointerDown(e, brewTipoScrollRef.current)}
-                onPointerMove={handleBrewCarouselPointerMove}
-                onPointerUp={handleBrewCarouselPointerUp}
-                onPointerLeave={handleBrewCarouselPointerUp}
-                onPointerCancel={handleBrewCarouselPointerUp}
-              >
-                {COFFEE_TIPO_OPTIONS.map(({ label, drawable }) => {
-                  const isSelected = brewDrinkType === label;
-                  return (
-                    <Button
-                      variant="plain"
-                      key={label}
-                      type="button"
-                      role="option"
-                      aria-selected={isSelected}
-                      className={`brew-tipo-card ${isSelected ? "is-active" : ""}`.trim()}
-                      onClick={() => setBrewDrinkType?.(label)}
-                    >
-                      <span className="brew-tipo-card-icon">
-                        <img src={`/android-drawable/${drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
-                      </span>
-                      <span className="brew-tipo-card-copy">
-                        <span className="brew-tipo-card-label">{label}</span>
-                      </span>
-                    </Button>
-                  );
-                })}
-              </div>
-                </div>
-              </section>
-              <div className="brew-config-option-divider" aria-hidden="true" />
-              <section className="brew-tamaño-strip-wrap brew-config-cafe-section" aria-label="Tamaño">
-                <div className="brew-config-cafe-carousel-wrap">
-                <div
-                ref={brewTamañoScrollRef}
-                className={`brew-tamaño-strip${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
-                role="listbox"
-                aria-label="Tamaño de la taza"
-                onPointerDown={(e) => handleBrewCarouselPointerDown(e, brewTamañoScrollRef.current)}
-                onPointerMove={handleBrewCarouselPointerMove}
-                onPointerUp={handleBrewCarouselPointerUp}
-                onPointerLeave={handleBrewCarouselPointerUp}
-                onPointerCancel={handleBrewCarouselPointerUp}
-              >
-              {COFFEE_SIZE_OPTIONS.map((size) => {
-                const isSelected = selectedSizeMl === size.ml;
-                return (
-                  <Button
-                    variant="plain"
-                    key={size.label}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    className={`brew-tamaño-card ${isSelected ? "is-active" : ""}`.trim()}
-                    onClick={() => {
-                      setSelectedSizeMl(size.ml);
-                    }}
-                  >
-                    <span className="brew-tamaño-card-icon">
-                      <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
-                    </span>
-                    <span className="brew-tamaño-card-copy">
-                      <span className="brew-tamaño-card-label">{size.label}</span>
-                      <span className="brew-tamaño-card-range">{size.rangeLabel}</span>
-                    </span>
-                    </Button>
-                );
-              })}
-                </div>
-                </div>
-              </section>
-            </div>
-          </>
-          ) : null}
         </div>
       ) : null}
 
@@ -983,13 +987,96 @@ export function BrewLabView({
       ) : null}
 
       {brewStep === "result" ? (
-        <section className="brew-result-screen" aria-label="Resultado de la elaboración">
+        <section className="brew-result-screen" aria-label="Consumo">
+          {!isAguaMethod ? (
+            <>
+              <p className="section-title brew-select-section-title brew-config-cafe-title">Configura tu café</p>
+              <div className="brew-config-cafe-card brew-tech-card">
+                <section className="brew-tipo-strip-wrap brew-config-cafe-section" aria-label="Tipo de café">
+                  <div className="brew-config-cafe-carousel-wrap">
+                    <div
+                      ref={brewTipoScrollRef}
+                      className={`brew-tipo-strip${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
+                      role="listbox"
+                      aria-label="Tipo de café"
+                      onPointerDownCapture={(e) => handleBrewCarouselPointerDown(e, brewTipoScrollRef.current)}
+                      onPointerMove={handleBrewCarouselPointerMove}
+                      onPointerUp={handleBrewCarouselPointerUp}
+                      onPointerLeave={handleBrewCarouselPointerUp}
+                      onPointerCancel={handleBrewCarouselPointerUp}
+                    >
+                      {COFFEE_TIPO_OPTIONS.map(({ label, drawable }) => {
+                        const isSelected = brewDrinkType === label;
+                        return (
+                          <Button
+                            variant="plain"
+                            key={label}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            className={`brew-tipo-card ${isSelected ? "is-active" : ""}`.trim()}
+                            onClick={() => setBrewDrinkType?.(label)}
+                          >
+                            <span className="brew-tipo-card-icon">
+                              <img src={`/android-drawable/${drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+                            </span>
+                            <span className="brew-tipo-card-copy">
+                              <span className="brew-tipo-card-label">{label}</span>
+                            </span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </section>
+                <div className="brew-config-option-divider" aria-hidden="true" />
+                <section className="brew-tamaño-strip-wrap brew-config-cafe-section" aria-label="Tamaño">
+                  <div className="brew-config-cafe-carousel-wrap">
+                    <div
+                      ref={brewTamañoScrollRef}
+                      className={`brew-tamaño-strip${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
+                      role="listbox"
+                      aria-label="Tamaño de la taza"
+                      onPointerDownCapture={(e) => handleBrewCarouselPointerDown(e, brewTamañoScrollRef.current)}
+                      onPointerMove={handleBrewCarouselPointerMove}
+                      onPointerUp={handleBrewCarouselPointerUp}
+                      onPointerLeave={handleBrewCarouselPointerUp}
+                      onPointerCancel={handleBrewCarouselPointerUp}
+                    >
+                      {COFFEE_SIZE_OPTIONS.map((size) => {
+                        const isSelected = selectedSizeMl === size.ml;
+                        return (
+                          <Button
+                            variant="plain"
+                            key={size.label}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            className={`brew-tamaño-card ${isSelected ? "is-active" : ""}`.trim()}
+                            onClick={() => setSelectedSizeMl(size.ml)}
+                          >
+                            <span className="brew-tamaño-card-icon">
+                              <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+                            </span>
+                            <span className="brew-tamaño-card-copy">
+                              <span className="brew-tamaño-card-label">{size.label}</span>
+                              <span className="brew-tamaño-card-range">{size.rangeLabel}</span>
+                            </span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </>
+          ) : null}
+          <p className="section-title brew-select-section-title brew-result-section-title">Resultado</p>
           <article className="brew-result-card">
             {isAguaMethod ? (
               <p className="brew-result-title">Registrar {waterMl} ml de agua</p>
             ) : (
               <>
-            <p className="brew-result-title">¿QUÉ SABOR HAS OBTENIDO?</p>
             <div className="brew-result-grid">
               {tasteOptions.map((taste) => (
                 <Button
@@ -1062,6 +1149,124 @@ export function BrewLabView({
   );
 }
 
+const SENSORY_MIN = 0;
+const SENSORY_MAX = 5;
+const SENSORY_LABELS: Record<string, string> = {
+  aroma: "Aroma",
+  sabor: "Sabor",
+  cuerpo: "Cuerpo",
+  acidez: "Acidez",
+  dulzura: "Dulzura"
+};
+
+function OptionPickerModal({
+  open,
+  title,
+  options,
+  selectedSingle,
+  selectedMulti,
+  multi,
+  onSelectSingle,
+  onConfirmMulti,
+  onClose
+}: {
+  open: boolean;
+  title: string;
+  options: string[];
+  selectedSingle: string;
+  selectedMulti: string[];
+  multi: boolean;
+  onSelectSingle: (value: string) => void;
+  onConfirmMulti: (values: string[]) => void;
+  onClose: () => void;
+}) {
+  const [tempMulti, setTempMulti] = useState<string[]>(selectedMulti);
+
+  useEffect(() => {
+    if (open) setTempMulti(selectedMulti);
+  }, [open, selectedMulti]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const handleSingle = (value: string) => {
+    onSelectSingle(value);
+    onClose();
+  };
+
+  const handleConfirmMulti = () => {
+    onConfirmMulti(tempMulti);
+    onClose();
+  };
+
+  const toggleMulti = (value: string) => {
+    setTempMulti((prev) =>
+      prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value]
+    );
+  };
+
+  const content = (
+    <SheetOverlay
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onDismiss={onClose}
+      onClick={onClose}
+    >
+      <SheetCard className="diary-sheet create-coffee-picker-sheet" onClick={(e) => e.stopPropagation()}>
+        <SheetHandle aria-hidden="true" />
+        <header className="sheet-header create-coffee-picker-sheet-header">
+          <span className="create-coffee-picker-header-spacer" aria-hidden="true" />
+          <strong className="sheet-title">{title}</strong>
+          {multi ? (
+            <Button variant="plain" type="button" className="create-coffee-picker-apply" onClick={handleConfirmMulti}>
+              Aplicar
+            </Button>
+          ) : (
+            <span className="create-coffee-picker-header-spacer" aria-hidden="true" />
+          )}
+        </header>
+        <div className="create-coffee-picker-list">
+          {multi ? (
+            options.map((opt) => (
+              <label key={opt} className="create-coffee-picker-option create-coffee-picker-option-multi">
+                <input
+                  type="checkbox"
+                  checked={tempMulti.includes(opt)}
+                  onChange={() => toggleMulti(opt)}
+                  className="create-coffee-picker-checkbox"
+                />
+                <span>{opt}</span>
+              </label>
+            ))
+          ) : (
+            options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                className={`create-coffee-picker-option ${selectedSingle === opt ? "is-selected" : ""}`.trim()}
+                onClick={() => handleSingle(opt)}
+              >
+                {opt}
+              </button>
+            ))
+          )}
+        </div>
+      </SheetCard>
+    </SheetOverlay>
+  );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : null;
+}
+
 export function CreateCoffeeView({
   draft,
   imagePreviewUrl,
@@ -1069,6 +1274,7 @@ export function CreateCoffeeView({
   error,
   countryOptions = [],
   specialtyOptions = [],
+  brandSuggestions = [],
   onChange,
   onPickImage,
   onRemoveImage,
@@ -1079,33 +1285,15 @@ export function CreateCoffeeView({
   hideHead,
   showQuantityField = false
 }: {
-  draft: {
-    name: string;
-    brand: string;
-    specialty: string;
-    country: string;
-    format: string;
-    roast: string;
-    variety: string;
-    hasCaffeine: boolean;
-    totalGrams: number;
-  };
+  draft: CreateCoffeeDraft;
   imagePreviewUrl: string;
   saving: boolean;
   error: string | null;
   countryOptions?: string[];
   specialtyOptions?: string[];
-  onChange: (next: {
-    name: string;
-    brand: string;
-    specialty: string;
-    country: string;
-    format: string;
-    roast: string;
-    variety: string;
-    hasCaffeine: boolean;
-    totalGrams: number;
-  }) => void;
+  /** Marcas ya usadas en cafés creados; se muestran como sugerencias al escribir */
+  brandSuggestions?: string[];
+  onChange: (next: CreateCoffeeDraft) => void;
   onPickImage: (file: File | null, previewUrl: string) => void;
   onRemoveImage: () => void;
   onClose: () => void;
@@ -1117,13 +1305,18 @@ export function CreateCoffeeView({
 }) {
   const rootRef = useRef<HTMLElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const brandDropdownRef = useRef<HTMLDivElement | null>(null);
   const [attemptedSave, setAttemptedSave] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState<PickerId | null>(null);
+  const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
+  const brandBlurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requiredValues = [
     draft.name.trim(),
     draft.brand.trim(),
     draft.specialty.trim(),
     draft.country.trim(),
-    draft.format.trim()
+    draft.format.trim(),
+    draft.totalGrams > 0
   ];
   const missingRequiredCount = requiredValues.filter((value) => !value).length;
   const canSave = missingRequiredCount === 0;
@@ -1132,6 +1325,49 @@ export function CreateCoffeeView({
   const specialtyMissing = attemptedSave && !draft.specialty.trim();
   const countryMissing = attemptedSave && !draft.country.trim();
   const formatMissing = attemptedSave && !draft.format.trim();
+  const quantityMissing = attemptedSave && !(draft.totalGrams > 0);
+  const barcodeInvalid =
+    attemptedSave &&
+    !!draft.codigo_barras &&
+    !/^[0-9]{6,}$/.test(draft.codigo_barras.replace(/\s+/g, ""));
+  const productUrlInvalid =
+    attemptedSave &&
+    !!draft.product_url &&
+    !/^https?:\/\/.+/i.test(draft.product_url.trim());
+
+  const filteredBrandSuggestions = useMemo(() => {
+    const q = draft.brand.trim().toLowerCase();
+    if (!q || !brandSuggestions.length) return [];
+    return brandSuggestions.filter((b) => b.toLowerCase().includes(q)).slice(0, 8);
+  }, [draft.brand, brandSuggestions]);
+
+  const showBrandDropdown = brandDropdownOpen && filteredBrandSuggestions.length > 0;
+
+  const handleBrandFocus = useCallback(() => {
+    if (brandBlurTimeoutRef.current) {
+      clearTimeout(brandBlurTimeoutRef.current);
+      brandBlurTimeoutRef.current = null;
+    }
+    setBrandDropdownOpen(true);
+  }, []);
+
+  const handleBrandBlur = useCallback(() => {
+    brandBlurTimeoutRef.current = setTimeout(() => setBrandDropdownOpen(false), 150);
+  }, []);
+
+  const handleSelectBrand = useCallback(
+    (brand: string) => {
+      onChange({ ...draft, brand });
+      setBrandDropdownOpen(false);
+    },
+    [draft, onChange]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (brandBlurTimeoutRef.current) clearTimeout(brandBlurTimeoutRef.current);
+    };
+  }, []);
 
   const handleSaveAttempt = () => {
     setAttemptedSave(true);
@@ -1175,193 +1411,451 @@ export function CreateCoffeeView({
     []
   );
 
+  const getPickerConfig = useCallback(
+    (id: PickerId) => {
+      switch (id) {
+        case "specialty":
+          return { title: "Especialidad", options: specialtyOptions, single: draft.specialty, multi: [] };
+        case "roast":
+          return { title: "Tueste", options: ROAST_OPTIONS, single: draft.roast, multi: [] };
+        case "country":
+          return { title: "País de origen", options: countryOptions, single: "", multi: parseMultiValue(draft.country ?? "") };
+        case "variety":
+          return { title: "Variedad o tipo", options: VARIETY_OPTIONS, single: "", multi: parseMultiValue(draft.variety ?? "") };
+        case "format":
+          return { title: "Formato", options: FORMAT_OPTIONS, single: draft.format, multi: [] };
+        case "process":
+          return { title: "Proceso", options: PROCESS_OPTIONS, single: "", multi: parseMultiValue(draft.proceso ?? "") };
+        case "grind":
+          return { title: "Molienda recomendada", options: GRIND_OPTIONS, single: draft.molienda_recomendada ?? "", multi: [] };
+        default:
+          return { title: "", options: [], single: "", multi: [] };
+      }
+    },
+    [specialtyOptions, countryOptions, draft.specialty, draft.roast, draft.country, draft.variety, draft.format, draft.proceso, draft.molienda_recomendada]
+  );
+
   return (
-    <section ref={rootRef} className={`create-coffee-view ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}>
+    <section
+      ref={rootRef}
+      className={`create-coffee-view create-coffee-form ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}
+      aria-label="Crea tu café"
+    >
       {!hideHead ? (
-        <div className="create-coffee-head">
-          <p className="section-title">Datos del café</p>
-        </div>
+        <header className="create-coffee-head">
+          <p className="create-coffee-subtitle">Crea tu café y añade la bolsa que tendrás en tu despensa.</p>
+        </header>
       ) : null}
-      <p className="create-coffee-hint">{attemptedSave ? (canSave ? "Listo para guardar" : `Faltan ${missingRequiredCount} campos obligatorios`) : ""}</p>
-      <div className="create-coffee-image create-coffee-image-top create-coffee-image-card">
-        <Input
-          ref={imageInputRef}
-          type="file"
-          accept="image/*"
-          className="file-input-hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0] ?? null;
-            if (!file) return;
-            const previewUrl = URL.createObjectURL(file);
-            onPickImage(file, previewUrl);
-            event.currentTarget.value = "";
-          }}
-        />
-        {imagePreviewUrl ? (
-          <div className="create-coffee-image-preview-wrap">
-            <img src={imagePreviewUrl} alt="Previsualización café" loading="lazy" decoding="async" />
-            <Button variant="plain" className="icon-button" onClick={onRemoveImage} aria-label="Quitar imagen">
-              <UiIcon name="close" className="ui-icon" />
-            </Button>
-          </div>
-        ) : (
-          <Button variant="plain" className="create-coffee-image-empty" onClick={() => imageInputRef.current?.click()}>
-            <span className="create-coffee-image-empty-icon" aria-hidden="true">
-              <UiIcon name="camera" className="ui-icon" />
-              <span className="create-coffee-image-empty-plus">+</span>
-            </span>
-            <span>Añadir foto</span>
-          </Button>
-        )}
-        <div className="create-coffee-image-fields">
-          <div className={`create-coffee-inline-field ${nameMissing ? "is-invalid" : ""}`.trim()}>
+
+      {attemptedSave ? (
+        <p className="create-coffee-status" role="status" aria-live="polite">
+          {canSave ? "Listo para guardar" : `Faltan ${missingRequiredCount} campos obligatorios`}
+        </p>
+      ) : null}
+
+      <div className="create-coffee-form-body">
+        {/* ——— Hero: foto + nombre + marca ——— */}
+        <div className="create-coffee-card create-coffee-hero">
+          <div className="create-coffee-photo-wrap">
             <Input
-              variant="default"
-              className="search-wide"
-              placeholder="Nombre del café"
-              value={draft.name}
-              onChange={(event) => onChange({ ...draft, name: event.target.value })}
-              aria-invalid={nameMissing}
-            />
-          </div>
-          <div className={`create-coffee-inline-field ${brandMissing ? "is-invalid" : ""}`.trim()}>
-            <Input
-              variant="default"
-              className="search-wide"
-              placeholder="Marca"
-              value={draft.brand}
-              onChange={(event) => onChange({ ...draft, brand: event.target.value })}
-              aria-invalid={brandMissing}
-            />
-          </div>
-        </div>
-      </div>
-      <div className="create-coffee-profile-origin">
-        <p className="create-coffee-block-title">Perfil y Origen</p>
-        <p className="create-coffee-block-subtitle">Especialidad</p>
-        <div className={`create-coffee-choice-grid create-coffee-choice-grid-specialty ${specialtyMissing ? "is-invalid" : ""}`.trim()}>
-          {specialtyOptions.length ? specialtyOptions.map((value) => (
-            <Button variant="plain"
-              key={value}
-              className={`create-coffee-choice ${draft.specialty === value ? "is-selected" : ""}`.trim()}
-              onClick={() => onChange({ ...draft, specialty: value })}
-              aria-pressed={draft.specialty === value}
-            >
-              <UiIcon name={getSpecialtyIcon(value)} className="ui-icon" />
-              <span>{value}</span>
-            </Button>
-          )) : (
-            <p className="coffee-sub">Sin opciones</p>
-          )}
-        </div>
-        <p className="create-coffee-block-subtitle">Tueste</p>
-        <div className="create-coffee-choice-grid create-coffee-choice-grid-roast">
-          {roastChoices.map((choice) => (
-            <Button variant="plain"
-              key={choice.value}
-              className={`create-coffee-choice ${draft.roast === choice.value ? "is-selected" : ""}`.trim()}
-              onClick={() => onChange({ ...draft, roast: draft.roast === choice.value ? "" : choice.value })}
-              aria-pressed={draft.roast === choice.value}
-            >
-              <UiIcon name={getRoastIcon(choice.value)} className="ui-icon" />
-              <span>{choice.label}</span>
-            </Button>
-          ))}
-        </div>
-        <label className={`create-coffee-country ${countryMissing ? "is-invalid" : ""}`.trim()}>
-          <span>País</span>
-          <Select
-            className="search-wide"
-            value={draft.country}
-            onChange={(event) => onChange({ ...draft, country: event.target.value })}
-            aria-invalid={countryMissing}
-          >
-            <option value="">Selecciona</option>
-            {countryOptions.map((value) => (
-              <option key={value} value={value}>{value}</option>
-            ))}
-          </Select>
-        </label>
-      </div>
-      <div className={`create-coffee-format-block ${formatMissing ? "is-invalid" : ""}`.trim()}>
-        <p className="create-coffee-block-title">Formato</p>
-        <label className="create-coffee-caffeine-row">
-          <span>¿Tiene cafeína?</span>
-          <Switch
-            checked={draft.hasCaffeine}
-            className="create-coffee-caffeine-switch"
-            onClick={() => onChange({ ...draft, hasCaffeine: !draft.hasCaffeine })}
-          />
-        </label>
-        <p className="create-coffee-block-subtitle">Presentación</p>
-        <div className="create-coffee-choice-grid create-coffee-choice-grid-format">
-          {formatChoices.map((choice) => (
-            <Button variant="plain"
-              key={choice.value}
-              className={`create-coffee-choice ${draft.format === choice.value ? "is-selected" : ""}`.trim()}
-              onClick={() => onChange({ ...draft, format: choice.value })}
-              aria-pressed={draft.format === choice.value}
-            >
-              <UiIcon
-                name={
-                  choice.value === "Grano"
-                    ? "rugby"
-                    : choice.value === "Molido"
-                      ? "blend"
-                      : "recycle"
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="file-input-hidden"
+              onChange={async (event) => {
+                const file = event.target.files?.[0] ?? null;
+                if (!file) return;
+                try {
+                  const webpBlob = await convertImageToWebP(file);
+                  const webpFile = webPBlobToFile(webpBlob, file.name);
+                  onPickImage(webpFile, URL.createObjectURL(webpBlob));
+                } catch {
+                  onPickImage(file, URL.createObjectURL(file));
                 }
-                className="ui-icon"
-              />
-              <span>{choice.label}</span>
-            </Button>
-          ))}
-        </div>
-        {showQuantityField ? (
-          <>
-            <p className="create-coffee-block-subtitle">Cantidad a añadir (g)</p>
-            <label className="create-coffee-quantity-row">
+                event.currentTarget.value = "";
+              }}
+            />
+            {imagePreviewUrl ? (
+              <div className="create-coffee-photo-preview">
+                <img src={imagePreviewUrl} alt="" loading="lazy" decoding="async" />
+                <Button
+                  variant="plain"
+                  className="create-coffee-photo-remove"
+                  onClick={onRemoveImage}
+                  aria-label="Quitar imagen del café"
+                >
+                  <UiIcon name="close" className="ui-icon" />
+                </Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="create-coffee-photo-placeholder"
+                onClick={() => imageInputRef.current?.click()}
+                aria-label="Añadir foto del café"
+              >
+                <span className="material-symbols-outlined create-coffee-photo-icon" aria-hidden="true">photo_camera</span>
+                <span className="create-coffee-photo-text">Añadir foto</span>
+              </button>
+            )}
+          </div>
+          <div className="create-coffee-hero-fields">
+            <div className={`create-coffee-group ${nameMissing ? "is-invalid" : ""}`.trim()}>
               <Input
                 variant="default"
-                className="search-wide create-coffee-quantity-input"
+                className="create-coffee-input search-wide"
+                placeholder="Nombre del café *"
+                value={draft.name}
+                onChange={(e) => onChange({ ...draft, name: e.target.value })}
+                aria-invalid={nameMissing}
+                aria-label="Nombre del café (obligatorio)"
+              />
+            </div>
+            <div className="create-coffee-field-divider" aria-hidden="true" />
+            <div className={`create-coffee-group create-coffee-brand-group ${brandMissing ? "is-invalid" : ""}`.trim()} ref={brandDropdownRef}>
+              <div className="create-coffee-brand-input-wrap">
+                <Input
+                  variant="default"
+                  className="create-coffee-input search-wide"
+                  placeholder="Tostador"
+                  value={draft.brand}
+                  onChange={(e) => onChange({ ...draft, brand: e.target.value })}
+                  onFocus={handleBrandFocus}
+                  onBlur={handleBrandBlur}
+                  aria-invalid={brandMissing}
+                  aria-label="Tostador (obligatorio)"
+                  aria-autocomplete="list"
+                  aria-expanded={showBrandDropdown}
+                  aria-controls={showBrandDropdown ? "create-coffee-brand-listbox" : undefined}
+                />
+                {showBrandDropdown ? (
+                  <div
+                    id="create-coffee-brand-listbox"
+                    className="create-coffee-brand-suggestions-wrap"
+                    role="listbox"
+                    aria-label="Tostadores sugeridos"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <p className="create-coffee-brand-suggestions-title">Tostadores sugeridos</p>
+                    <ul className="create-coffee-brand-suggestions" role="group">
+                      {filteredBrandSuggestions.map((brand) => (
+                        <li key={brand} role="option">
+                          <button
+                            type="button"
+                            className="create-coffee-brand-suggestion-item"
+                            onMouseDown={() => handleSelectBrand(brand)}
+                          >
+                            {brand}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ——— Origen y perfil ——— */}
+        <section className="create-coffee-form-section">
+          <h3 className="create-coffee-section-heading">Origen y perfil</h3>
+          <div className="create-coffee-card">
+            <div className={`create-coffee-group ${specialtyMissing ? "is-invalid" : ""}`.trim()}>
+              <button
+                type="button"
+                className="create-coffee-picker-trigger search-wide"
+                onClick={() => setPickerOpen("specialty")}
+                aria-haspopup="dialog"
+                aria-expanded={pickerOpen === "specialty"}
+                aria-label="Especialidad (obligatorio)"
+              >
+                <span className={draft.specialty ? "" : "create-coffee-picker-placeholder"}>
+                  {draft.specialty || "Seleccionar especialidad"}
+                </span>
+                <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
+              </button>
+            </div>
+            <div className="create-coffee-field-divider" aria-hidden="true" />
+            <div className="create-coffee-group">
+              <button
+                type="button"
+                className="create-coffee-picker-trigger search-wide"
+                onClick={() => setPickerOpen("roast")}
+                aria-haspopup="dialog"
+                aria-expanded={pickerOpen === "roast"}
+                aria-label="Tueste"
+              >
+                <span className={draft.roast ? "" : "create-coffee-picker-placeholder"}>{draft.roast || "Seleccionar tueste"}</span>
+                <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
+              </button>
+            </div>
+            <div className="create-coffee-field-divider" aria-hidden="true" />
+            <div className={`create-coffee-group ${countryMissing ? "is-invalid" : ""}`.trim()}>
+              <button
+                type="button"
+                className="create-coffee-picker-trigger search-wide"
+                onClick={() => setPickerOpen("country")}
+                aria-haspopup="dialog"
+                aria-expanded={pickerOpen === "country"}
+                aria-label="País de origen (obligatorio)"
+              >
+                <span className={displayMultiValue(draft.country) ? "" : "create-coffee-picker-placeholder"}>
+                  {displayMultiValue(draft.country) || "Seleccionar país(es)"}
+                </span>
+                <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
+              </button>
+            </div>
+            <div className="create-coffee-field-divider" aria-hidden="true" />
+            <div className="create-coffee-group">
+              <button
+                type="button"
+                className="create-coffee-picker-trigger search-wide"
+                onClick={() => setPickerOpen("variety")}
+                aria-haspopup="dialog"
+                aria-expanded={pickerOpen === "variety"}
+                aria-label="Variedad o tipo"
+              >
+                <span className={displayMultiValue(draft.variety) ? "" : "create-coffee-picker-placeholder"}>
+                  {displayMultiValue(draft.variety) || "Seleccionar variedad(es)"}
+                </span>
+                <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ——— Presentación ——— */}
+        <section className="create-coffee-form-section">
+          <h3 className="create-coffee-section-heading">Presentación</h3>
+          <div className={`create-coffee-card ${formatMissing || quantityMissing ? "is-invalid" : ""}`.trim()}>
+            <div className="create-coffee-row create-coffee-row-caffeine">
+              <span className="create-coffee-label-inline">¿Tiene cafeína?</span>
+              <Switch
+                checked={draft.hasCaffeine}
+                className="create-coffee-switch"
+                onClick={() => onChange({ ...draft, hasCaffeine: !draft.hasCaffeine })}
+                aria-label="Café con cafeína"
+              />
+            </div>
+            <div className="create-coffee-field-divider" aria-hidden="true" />
+            <div className="create-coffee-group">
+              <button
+                type="button"
+                className="create-coffee-picker-trigger search-wide"
+                onClick={() => setPickerOpen("format")}
+                aria-haspopup="dialog"
+                aria-expanded={pickerOpen === "format"}
+                aria-label="Formato (obligatorio)"
+              >
+                <span className={draft.format ? "" : "create-coffee-picker-placeholder"}>{draft.format || "Seleccionar formato"}</span>
+                <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
+              </button>
+            </div>
+            <div className="create-coffee-field-divider" aria-hidden="true" />
+            <div className={`create-coffee-row create-coffee-quantity-row ${quantityMissing ? "is-invalid" : ""}`.trim()}>
+              <span className="create-coffee-label-inline">Cantidad (g)</span>
+              <Input
+                variant="default"
+                className="create-coffee-input create-coffee-quantity-input search-wide"
                 type="number"
                 inputMode="numeric"
                 min={1}
                 max={5000}
                 value={draft.totalGrams > 0 ? String(draft.totalGrams) : ""}
-                onChange={(event) => {
-                  const v = event.target.value;
+                onChange={(e) => {
+                  const v = e.target.value;
                   const n = v === "" ? 0 : Math.max(0, Math.min(5000, parseInt(v, 10) || 0));
                   onChange({ ...draft, totalGrams: n });
                 }}
-                placeholder="250"
-                aria-label="Gramos a añadir a despensa"
+                placeholder=""
+                aria-label="Cantidad en gramos, tamaño de la bolsa (obligatorio)"
+                aria-invalid={quantityMissing}
               />
-            </label>
-          </>
-        ) : null}
+            </div>
+          </div>
+        </section>
+
+        {/* ——— Detalles opcionales ——— */}
+        <section className="create-coffee-form-section">
+          <h3 className="create-coffee-section-heading">
+            Detalles opcionales
+            <span className="create-coffee-badge">Opcional</span>
+          </h3>
+          <div className="create-coffee-card create-coffee-card-optional">
+            <div className="create-coffee-details-grid">
+              <div className="create-coffee-group create-coffee-group-full">
+                <textarea
+                  className="create-coffee-textarea search-wide"
+                  placeholder="Descripción"
+                  value={draft.descripcion ?? ""}
+                  onChange={(e) => onChange({ ...draft, descripcion: e.target.value })}
+                  rows={3}
+                  aria-label="Descripción del café"
+                />
+              </div>
+              <div className="create-coffee-field-divider" aria-hidden="true" />
+              <div className="create-coffee-group create-coffee-group-full">
+                <button
+                  type="button"
+                  className="create-coffee-picker-trigger search-wide"
+                  onClick={() => setPickerOpen("process")}
+                  aria-haspopup="dialog"
+                  aria-expanded={pickerOpen === "process"}
+                  aria-label="Proceso"
+                >
+                  <span className={`create-coffee-picker-trigger-text ${displayMultiValue(draft.proceso) ? "" : "create-coffee-picker-placeholder"}`.trim()}>
+                    {displayMultiValue(draft.proceso) || "Seleccionar proceso(s)"}
+                  </span>
+                  <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron create-coffee-picker-chevron-right" aria-hidden />
+                </button>
+              </div>
+              <div className="create-coffee-field-divider" aria-hidden="true" />
+              <div className="create-coffee-group create-coffee-group-full">
+                <button
+                  type="button"
+                  className="create-coffee-picker-trigger search-wide"
+                  onClick={() => setPickerOpen("grind")}
+                  aria-haspopup="dialog"
+                  aria-expanded={pickerOpen === "grind"}
+                  aria-label="Molienda recomendada"
+                >
+                  <span className={`create-coffee-picker-trigger-text ${draft.molienda_recomendada ? "" : "create-coffee-picker-placeholder"}`.trim()}>
+                    {draft.molienda_recomendada || "Seleccionar molienda"}
+                  </span>
+                  <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron create-coffee-picker-chevron-right" aria-hidden />
+                </button>
+              </div>
+              <div className="create-coffee-field-divider" aria-hidden="true" />
+              <div className={`create-coffee-group create-coffee-group-full ${barcodeInvalid ? "is-invalid" : ""}`.trim()}>
+                <Input
+                  variant="default"
+                  className="create-coffee-input search-wide"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Código de barras"
+                  value={draft.codigo_barras ?? ""}
+                  onChange={(e) => onChange({ ...draft, codigo_barras: e.target.value })}
+                  aria-label="Código de barras"
+                  aria-invalid={barcodeInvalid}
+                />
+              </div>
+              <div className="create-coffee-field-divider" aria-hidden="true" />
+              <div className={`create-coffee-group create-coffee-group-full ${productUrlInvalid ? "is-invalid" : ""}`.trim()}>
+                <Input
+                  variant="default"
+                  className="create-coffee-input search-wide"
+                  type="url"
+                  inputMode="url"
+                  placeholder="Enlace al producto"
+                  value={draft.product_url ?? ""}
+                  onChange={(e) => onChange({ ...draft, product_url: e.target.value })}
+                  aria-label="Enlace al producto"
+                  aria-invalid={productUrlInvalid}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ——— Perfil sensorial ——— */}
+        <section className="create-coffee-form-section">
+          <h3 className="create-coffee-section-heading">
+            Perfil sensorial
+            <span className="create-coffee-badge">Opcional</span>
+          </h3>
+          <div className="create-coffee-card create-coffee-card-optional">
+            <p className="create-coffee-hint-block">Valoración del 0 al 5 (0 = no valorar)</p>
+          <div className="create-coffee-sensory-list">
+            {(["aroma", "sabor", "cuerpo", "acidez", "dulzura"] as const).map((key) => {
+              const val = draft[key] ?? null;
+              const num = val != null && Number.isFinite(val) ? Math.max(SENSORY_MIN, Math.min(SENSORY_MAX, val)) : 0;
+              return (
+                <label key={key} className="create-coffee-sensory-item">
+                  <span className="create-coffee-sensory-name">
+                    <strong>{SENSORY_LABELS[key]}</strong>
+                    <small>{num}</small>
+                  </span>
+                  <input
+                    type="range"
+                    className="app-range create-coffee-sensory-range search-wide"
+                    min={SENSORY_MIN}
+                    max={SENSORY_MAX}
+                    step={1}
+                    value={num}
+                    style={{ "--range-progress": `${((num - SENSORY_MIN) / (SENSORY_MAX - SENSORY_MIN)) * 100}%` } as CSSProperties}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      const n = Number.isFinite(v) ? Math.max(SENSORY_MIN, Math.min(SENSORY_MAX, v)) : 0;
+                      onChange({ ...draft, [key]: n });
+                    }}
+                    aria-label={`${SENSORY_LABELS[key]} de 1 a 5`}
+                  />
+                </label>
+              );
+            })}
+          </div>
+          </div>
+        </section>
       </div>
-      {error ? <p className="create-coffee-error">{error}</p> : null}
-      {!hideActions && !fullPage ? (
-        <div className="create-coffee-actions">
-          <Button variant="plain" className="action-button action-button-ghost" onClick={onClose} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button variant="plain" className="action-button" onClick={handleSaveAttempt} disabled={saving}>
-            {saving ? "Guardando..." : "Guardar"}
-          </Button>
+
+      {pickerOpen ? (
+        (() => {
+          const cfg = getPickerConfig(pickerOpen);
+          const isMulti = pickerOpen === "country" || pickerOpen === "variety" || pickerOpen === "process";
+          return (
+            <OptionPickerModal
+              open={true}
+              title={cfg.title}
+              options={cfg.options}
+              selectedSingle={cfg.single}
+              selectedMulti={cfg.multi}
+              multi={isMulti}
+              onSelectSingle={(v) => {
+                if (pickerOpen === "specialty") onChange({ ...draft, specialty: v });
+                else if (pickerOpen === "roast") onChange({ ...draft, roast: v });
+                else if (pickerOpen === "format") onChange({ ...draft, format: v });
+                else if (pickerOpen === "grind") onChange({ ...draft, molienda_recomendada: v });
+              }}
+              onConfirmMulti={(arr) => {
+                const s = formatMultiValue(arr);
+                if (pickerOpen === "country") onChange({ ...draft, country: s });
+                else if (pickerOpen === "variety") onChange({ ...draft, variety: s });
+                else if (pickerOpen === "process") onChange({ ...draft, proceso: s });
+              }}
+              onClose={() => setPickerOpen(null)}
+            />
+          );
+        })()
+      ) : null}
+
+      {error ? (
+        <div className="create-coffee-error-wrap" role="alert">
+          <p className="create-coffee-error">{error}</p>
         </div>
       ) : null}
+
+      {!hideActions && !fullPage ? (
+        <footer className="create-coffee-actions">
+          <Button variant="plain" className="create-coffee-btn create-coffee-btn-ghost" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button variant="plain" className="create-coffee-btn create-coffee-btn-primary" onClick={handleSaveAttempt} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar café"}
+          </Button>
+        </footer>
+      ) : null}
       {!hideActions && fullPage ? (
-        <Button variant="plain" className="action-button create-coffee-mobile-save" onClick={handleSaveAttempt} disabled={saving}>
+        <Button variant="plain" className="create-coffee-btn create-coffee-btn-primary create-coffee-mobile-save" onClick={handleSaveAttempt} disabled={saving}>
           {saving ? "Guardando..." : "Guardar café"}
         </Button>
       ) : null}
       {hideActions && !fullPage ? (
-        <div className="create-coffee-actions create-coffee-actions-desktop-save">
-          <Button variant="plain" className="action-button" onClick={handleSaveAttempt} disabled={saving}>
+        <footer className="create-coffee-actions create-coffee-actions-desktop-save">
+          <Button variant="plain" className="create-coffee-btn create-coffee-btn-primary" onClick={handleSaveAttempt} disabled={saving}>
             {saving ? "Guardando..." : "Guardar"}
           </Button>
-        </div>
+        </footer>
       ) : null}
     </section>
   );

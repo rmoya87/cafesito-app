@@ -398,7 +398,7 @@ fun BaristaCoffeesListSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
                 text = "Cafés probados",
                 style = MaterialTheme.typography.titleMedium,
@@ -605,7 +605,7 @@ fun AddEntryBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
 text = "NUEVO REGISTRO",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
@@ -684,7 +684,7 @@ fun DiaryDatePickerSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.fillMaxWidth().padding(top = 20.dp).navigationBarsPadding()) {
+        Column(Modifier.fillMaxWidth().padding(top = 8.dp).navigationBarsPadding()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1128,7 +1128,7 @@ fun PeriodBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
                 text = "SELECCIONAR PERIODO",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),

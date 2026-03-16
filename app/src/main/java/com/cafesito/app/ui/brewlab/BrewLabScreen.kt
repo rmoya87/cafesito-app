@@ -80,6 +80,7 @@ fun BrewLabScreen(
     val brewMethods by viewModel.brewMethods.collectAsState(initial = emptyList())
     val brewTimerEnabled by viewModel.brewTimerEnabled.collectAsState()
     val canGoNext by viewModel.canGoNextFromMainStep.collectAsState()
+    val canSaveForResult by viewModel.canSaveForResult.collectAsState()
     val drinkType by viewModel.drinkType.collectAsState()
     val selectedSizeLabel by viewModel.selectedSizeLabel.collectAsState()
 
@@ -100,11 +101,17 @@ fun BrewLabScreen(
         onConsumeSelection()
     }
 
-    val toneGenerator = remember { ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100) }
+    val toneGenerator = remember {
+        try {
+            ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.phaseEvent.collect {
-            toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
         }
     }
 
@@ -152,7 +159,10 @@ fun BrewLabScreen(
                         }
                     }
                     if (step == BrewStep.RESULT) {
-                        TextButton(onClick = { viewModel.saveToDiary { onNavigateToDiary() } }) {
+                        TextButton(
+                            onClick = { viewModel.saveToDiary { onNavigateToDiary() } },
+                            enabled = canSaveForResult
+                        ) {
                             Text("Guardar", fontWeight = FontWeight.Bold)
                         }
                     }
@@ -235,7 +245,7 @@ fun BrewLabSelectCoffeeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("Selecciona café", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -245,8 +255,8 @@ fun BrewLabSelectCoffeeScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )

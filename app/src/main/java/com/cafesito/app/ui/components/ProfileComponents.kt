@@ -192,7 +192,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
         Column(
             Modifier
                 .navigationBarsPadding()
-                .padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space6)
+                .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space6)
         ) {
             Text(
                 text = "ANÁLISIS DE PREFERENCIAS",
@@ -679,7 +679,7 @@ fun CreateListBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Box(Modifier.fillMaxWidth()) {
                 Text(
                     if (isEditMode) "Editar lista" else "Nueva lista",
@@ -856,7 +856,7 @@ fun AddToListBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -963,7 +963,7 @@ fun ListOptionsBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             AddToListOptionRow(
                 icon = { Icon(Icons.Default.Edit, contentDescription = "Editar lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
                 label = "Editar lista",
@@ -1006,7 +1006,7 @@ fun ShareListBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(top = 20.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Text(
                 "Invitar a la lista",
                 style = MaterialTheme.typography.titleMedium,
@@ -1071,7 +1071,7 @@ fun ListDeleteConfirmBottomSheet(
         scrimColor = ScrimDefault
     ) {
         Column(
-            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 20.dp, bottom = 40.dp),
+            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 8.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(

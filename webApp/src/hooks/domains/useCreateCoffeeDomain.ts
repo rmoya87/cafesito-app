@@ -11,10 +11,22 @@ const initialDraft = {
   roast: "",
   variety: "",
   hasCaffeine: true,
-  totalGrams: 250
+  totalGrams: 250,
+  descripcion: "",
+  proceso: "",
+  codigo_barras: "",
+  molienda_recomendada: "",
+  product_url: "",
+  aroma: null as number | null,
+  sabor: null as number | null,
+  cuerpo: null as number | null,
+  acidez: null as number | null,
+  dulzura: null as number | null
 };
 
-type Draft = typeof initialDraft;
+export type CreateCoffeeDraft = typeof initialDraft;
+
+type Draft = CreateCoffeeDraft;
 
 export function useCreateCoffeeDomain({
   activeUser,
@@ -59,6 +71,24 @@ export function useCreateCoffeeDomain({
       setCreateCoffeeError("Completa especialidad, país y formato.");
       return null;
     }
+    if (!(createCoffeeDraft.totalGrams > 0)) {
+      setCreateCoffeeError("Indica la cantidad (tamaño de la bolsa en gramos) para darlo de alta en la despensa.");
+      return null;
+    }
+    if (createCoffeeDraft.codigo_barras.trim()) {
+      const raw = createCoffeeDraft.codigo_barras.replace(/\s+/g, "");
+      if (!/^[0-9]{6,}$/.test(raw)) {
+        setCreateCoffeeError("Revisa el código de barras (solo números, al menos 6 dígitos).");
+        return null;
+      }
+    }
+    if (createCoffeeDraft.product_url.trim()) {
+      const url = createCoffeeDraft.product_url.trim();
+      if (!/^https?:\/\/.+/i.test(url)) {
+        setCreateCoffeeError("Revisa el enlace del producto (debe empezar por http:// o https://).");
+        return null;
+      }
+    }
     const fromDiarySheet = options?.fromDiarySheet === true;
     const fromPantrySheet = options?.fromPantrySheet === true;
     const fromBrewChooser = options?.fromBrewChooser === true;
@@ -78,7 +108,17 @@ export function useCreateCoffeeDomain({
         variety: createCoffeeDraft.variety || null,
         hasCaffeine: createCoffeeDraft.hasCaffeine,
         imageUrl,
-        totalGrams: createCoffeeDraft.totalGrams
+        totalGrams: createCoffeeDraft.totalGrams,
+        descripcion: createCoffeeDraft.descripcion?.trim() || null,
+        proceso: createCoffeeDraft.proceso?.trim() || null,
+        codigo_barras: createCoffeeDraft.codigo_barras?.trim() || null,
+        molienda_recomendada: createCoffeeDraft.molienda_recomendada?.trim() || null,
+        product_url: createCoffeeDraft.product_url?.trim() || null,
+        aroma: (createCoffeeDraft.aroma != null && createCoffeeDraft.aroma > 0) ? createCoffeeDraft.aroma : null,
+        sabor: (createCoffeeDraft.sabor != null && createCoffeeDraft.sabor > 0) ? createCoffeeDraft.sabor : null,
+        cuerpo: (createCoffeeDraft.cuerpo != null && createCoffeeDraft.cuerpo > 0) ? createCoffeeDraft.cuerpo : null,
+        acidez: (createCoffeeDraft.acidez != null && createCoffeeDraft.acidez > 0) ? createCoffeeDraft.acidez : null,
+        dulzura: (createCoffeeDraft.dulzura != null && createCoffeeDraft.dulzura > 0) ? createCoffeeDraft.dulzura : null
       });
 
       if (!fromPantrySheet) {

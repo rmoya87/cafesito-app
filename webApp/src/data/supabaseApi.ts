@@ -1198,10 +1198,20 @@ export async function upsertCustomCoffee(payload: {
   hasCaffeine: boolean;
   imageUrl?: string;
   totalGrams?: number;
+  descripcion?: string | null;
+  proceso?: string | null;
+  codigo_barras?: string | null;
+  molienda_recomendada?: string | null;
+  product_url?: string | null;
+  aroma?: number | null;
+  sabor?: number | null;
+  cuerpo?: number | null;
+  acidez?: number | null;
+  dulzura?: number | null;
 }): Promise<CoffeeRow> {
   const supabase = getSupabaseClient();
   const id = crypto.randomUUID();
-  const row = {
+  const row: Record<string, unknown> = {
     id,
     user_id: payload.userId,
     nombre: payload.name.trim(),
@@ -1215,11 +1225,21 @@ export async function upsertCustomCoffee(payload: {
     image_url: payload.imageUrl ?? "",
     is_custom: true
   };
+  if (payload.descripcion != null && payload.descripcion.trim() !== "") row.descripcion = payload.descripcion.trim();
+  if (payload.proceso != null && payload.proceso.trim() !== "") row.proceso = payload.proceso.trim();
+  if (payload.codigo_barras != null && payload.codigo_barras.trim() !== "") row.codigo_barras = payload.codigo_barras.trim();
+  if (payload.molienda_recomendada != null && payload.molienda_recomendada.trim() !== "") row.molienda_recomendada = payload.molienda_recomendada.trim();
+  if (payload.product_url != null && payload.product_url.trim() !== "") row.product_url = payload.product_url.trim();
+  if (payload.aroma != null && Number.isFinite(payload.aroma)) row.aroma = payload.aroma;
+  if (payload.sabor != null && Number.isFinite(payload.sabor)) row.sabor = payload.sabor;
+  if (payload.cuerpo != null && Number.isFinite(payload.cuerpo)) row.cuerpo = payload.cuerpo;
+  if (payload.acidez != null && Number.isFinite(payload.acidez)) row.acidez = payload.acidez;
+  if (payload.dulzura != null && Number.isFinite(payload.dulzura)) row.dulzura = payload.dulzura;
 
   const { data, error } = await supabase
     .from("coffees")
     .upsert(row, { onConflict: "id" })
-    .select("id,nombre,marca,pais_origen,especialidad,tueste,variedad_tipo,cafeina,formato,image_url")
+    .select("id,nombre,marca,pais_origen,codigo_barras,descripcion,proceso,variedad_tipo,molienda_recomendada,product_url,cafeina,aroma,sabor,cuerpo,acidez,dulzura,especialidad,tueste,formato,image_url")
     .single();
   throwIfError(error);
 

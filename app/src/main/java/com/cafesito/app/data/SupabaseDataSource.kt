@@ -327,6 +327,11 @@ class SupabaseDataSource @Inject constructor(
             set("cafeina", coffee.cafeina)
             set("formato", coffee.formato)
             set("image_url", coffee.imageUrl)
+            set("descripcion", coffee.descripcion)
+            set("proceso", coffee.proceso)
+            set("codigo_barras", coffee.codigoBarras)
+            set("molienda_recomendada", coffee.moliendaRecomendada)
+            set("product_url", coffee.productUrl)
         }) {
             filter {
                 eq("id", id)

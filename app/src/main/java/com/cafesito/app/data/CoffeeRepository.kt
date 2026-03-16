@@ -78,6 +78,23 @@ class CoffeeRepository @Inject constructor(
         .onStart { emit(emptyList()) }
         .flowOn(Dispatchers.IO)
 
+    /** Lista unificada de catálogo + custom del usuario para Cafés probados (sin depender solo del fetch). */
+    val allCoffeesIncludingCustom: Flow<List<CoffeeWithDetails>> = combine(
+        coffeeDao.getAllCoffeesWithDetails(),
+        userRepository.getActiveUserFlow()
+    ) { dbList, user ->
+        Pair(dbList, user)
+    }.flatMapLatest { (dbList, user) ->
+        flow {
+            val custom = withContext(Dispatchers.IO) {
+                if (user != null) coffeeDao.getCustomCoffeesByUserId(user.id) else emptyList()
+            }
+            val dbIds = dbList.map { it.coffee.id }.toSet()
+            val extra = custom.filter { it.id !in dbIds }.map { CoffeeWithDetails(it, null, emptyList()) }
+            emit(dbList + extra)
+        }.flowOn(Dispatchers.IO)
+    }.onStart { emit(emptyList()) }
+
     fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = _refreshTrigger
         .flatMapLatest {
             networkBoundResource(

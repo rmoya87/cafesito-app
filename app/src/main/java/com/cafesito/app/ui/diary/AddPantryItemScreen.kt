@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -44,6 +45,23 @@ import java.util.UUID
 import com.cafesito.app.ui.components.toCoffeeBrandFormat
 import com.cafesito.app.ui.components.toCoffeeNameFormat
 
+private val SPECIALTY_OPTIONS = listOf("Arabica", "Mezcla")
+private val ROAST_OPTIONS = listOf("Ligero", "Medio", "Medio-Oscuro")
+private val FORMAT_OPTIONS = listOf("Grano", "Molido", "Capsula")
+private val PROCESS_OPTIONS = listOf("Natural", "Lavado", "Honey", "Semi-lavado", "Otro")
+private val GRIND_OPTIONS = listOf("Molido fino", "Molido medio", "Molido grueso", "Grano entero")
+private val VARIETY_OPTIONS = listOf("Geisha", "Caturra", "Arábica 100%", "Robusta", "Bourbon", "Typica", "Maragogype", "Pacamara", "Otro")
+private const val SENSORY_MIN = 0
+private const val SENSORY_MAX = 5
+private val SENSORY_LABELS = mapOf(
+    "aroma" to "Aroma", "sabor" to "Sabor", "cuerpo" to "Cuerpo",
+    "acidez" to "Acidez", "dulzura" to "Dulzura"
+)
+
+private fun parseMultiValue(s: String): List<String> =
+    s.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+private fun formatMultiValue(list: List<String>): String = list.joinToString(", ")
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun AddPantryItemScreen(
@@ -58,15 +76,28 @@ fun AddPantryItemScreen(
 ) {
     var name by remember { mutableStateOf("") }
     var brand by remember { mutableStateOf("") }
-    var specialty by remember { mutableStateOf("Arabica") }
-    var roast by remember { mutableStateOf("Medio") }
+    var specialty by remember { mutableStateOf("") }
+    var roast by remember { mutableStateOf("") }
     var variety by remember { mutableStateOf("") }
-    var country by remember { mutableStateOf("España") }
+    var country by remember { mutableStateOf("") }
     var hasCaffeine by remember { mutableStateOf(true) }
-    var format by remember { mutableStateOf("Grano") }
+    var format by remember { mutableStateOf("") }
     var grams by remember { mutableStateOf("250") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var existingImageUrl by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
+    var proceso by remember { mutableStateOf("") }
+    var moliendaRecomendada by remember { mutableStateOf("") }
+    var codigoBarras by remember { mutableStateOf("") }
+    var productUrl by remember { mutableStateOf("") }
+    var brandDropdownExpanded by remember { mutableStateOf(false) }
+    var pickerOpen by remember { mutableStateOf<String?>(null) }
+    var tempMultiSelection by remember { mutableStateOf<List<String>>(emptyList()) }
+    var aroma by remember { mutableStateOf(0) }
+    var sabor by remember { mutableStateOf(0) }
+    var cuerpo by remember { mutableStateOf(0) }
+    var acidez by remember { mutableStateOf(0) }
+    var dulzura by remember { mutableStateOf(0) }
 
     val coffees by viewModel.availableCoffees.collectAsState()
     val pantryItems by viewModel.pantryItems.collectAsState()
@@ -81,15 +112,24 @@ fun AddPantryItemScreen(
             details?.let { d ->
                 val c = d.coffee
                 name = c.nombre.toCoffeeNameFormat()
-                brand = c.marca.toCoffeeBrandFormat()
+                brand = c.marca.trim().let { raw -> if (raw.isBlank()) "" else raw.replaceFirstChar { it.uppercase() } + raw.drop(1).lowercase() }
                 specialty = c.especialidad ?: ""
                 roast = c.tueste
                 variety = c.variedadTipo ?: ""
-                country = c.paisOrigen ?: "España"
+                country = c.paisOrigen ?: ""
                 hasCaffeine = c.cafeina == "Sí"
                 format = c.formato
                 existingImageUrl = c.imageUrl
-                
+                descripcion = c.descripcion ?: ""
+                proceso = c.proceso ?: ""
+                moliendaRecomendada = c.moliendaRecomendada ?: ""
+                codigoBarras = c.codigoBarras ?: ""
+                productUrl = c.productUrl ?: ""
+                aroma = c.aroma.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX).takeIf { c.aroma > 0f } ?: 0
+                sabor = c.sabor.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX).takeIf { c.sabor > 0f } ?: 0
+                cuerpo = c.cuerpo.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX).takeIf { c.cuerpo > 0f } ?: 0
+                acidez = c.acidez.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX).takeIf { c.acidez > 0f } ?: 0
+                dulzura = c.dulzura.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX).takeIf { c.dulzura > 0f } ?: 0
                 foundInPantry?.let {
                     grams = it.pantryItem.totalGrams.toString()
                 }
@@ -98,6 +138,22 @@ fun AddPantryItemScreen(
     }
 
     var countryExpanded by remember { mutableStateOf(false) }
+    LaunchedEffect(pickerOpen) {
+        when (pickerOpen) {
+            "country" -> tempMultiSelection = parseMultiValue(country)
+            "variety" -> tempMultiSelection = parseMultiValue(variety)
+            "process" -> tempMultiSelection = parseMultiValue(proceso)
+            else -> { }
+        }
+    }
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val fieldBackground = if (isDark) PureBlack else PureWhite
+    val noBorderColors = OutlinedTextFieldDefaults.colors(
+        unfocusedBorderColor = Color.Transparent,
+        focusedBorderColor = Color.Transparent,
+        unfocusedContainerColor = fieldBackground,
+        focusedContainerColor = fieldBackground
+    )
     val countries = remember { 
         Locale.getISOCountries().map { Locale.Builder().setRegion(it).build().getDisplayCountry(Locale.forLanguageTag("es")) }.sorted() 
     }
@@ -119,12 +175,30 @@ fun AddPantryItemScreen(
     }
 
     val customFlow = diaryEntryFlow || brewLabFlow
-    val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && (diaryEntryFlow || grams.isNotEmpty())
+    val gramsNum = grams.toIntOrNull() ?: 0
+    val quantityValid = diaryEntryFlow || (grams.isNotBlank() && gramsNum in 1..5000)
+    val barcodeValid = codigoBarras.isBlank() || codigoBarras.replace(" ", "").matches(Regex("^[0-9]{6,}$"))
+    val urlValid = productUrl.isBlank() || productUrl.trim().matches(Regex("^https?://.+", RegexOption.IGNORE_CASE))
+    val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && quantityValid && barcodeValid && urlValid
+
+    val brandSuggestions = remember(coffees, brand) {
+        val byKey = mutableMapOf<String, String>()
+        coffees.forEach { c ->
+            val raw = c.coffee.marca.trim()
+            if (raw.isEmpty()) return@forEach
+            val key = raw.lowercase()
+            if (key in byKey) return@forEach
+            byKey[key] = raw.replaceFirstChar { it.uppercase() } + raw.drop(1).lowercase()
+        }
+        val list = byKey.values.sortedWith(java.text.Collator.getInstance(java.util.Locale("es")))
+        val q = brand.trim().lowercase()
+        if (q.isEmpty()) list else list.filter { it.lowercase().contains(q) }.take(8)
+    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(if (coffeeId != null) "EDITAR CAFÉ" else if (customFlow || brewLabFlow) "CREAR MI CAFÉ" else "NUEVO CAFÉ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, letterSpacing = 1.sp) },
+                title = { Text(if (coffeeId != null) "Editar café" else if (customFlow || brewLabFlow) "Crea tu café" else "Nuevo café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = { onBackClick(null) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = MaterialTheme.colorScheme.onSurface)
@@ -145,9 +219,15 @@ fun AddPantryItemScreen(
                                     country = country,
                                     hasCaffeine = hasCaffeine,
                                     format = format,
-                                    totalGrams = grams.toIntOrNull() ?: 250,
+                                    totalGrams = grams.toIntOrNull()?.coerceIn(1, 5000) ?: 250,
                                     imageUri = imageUri,
-                                    onSuccess = { onBackClick(onSuccessNavigation) }
+                                    onSuccess = { onBackClick(onSuccessNavigation) },
+                                    descripcion = descripcion.ifBlank { null },
+                                    proceso = proceso.ifBlank { null },
+                                    codigoBarras = codigoBarras.ifBlank { null },
+                                    moliendaRecomendada = moliendaRecomendada.ifBlank { null },
+                                    productUrl = productUrl.ifBlank { null },
+                                    aroma = aroma.toFloat(), sabor = sabor.toFloat(), cuerpo = cuerpo.toFloat(), acidez = acidez.toFloat(), dulzura = dulzura.toFloat()
                                 )
                             } else if (customFlow) {
                                 viewModel.saveCustomCoffeeForDiary(
@@ -160,18 +240,24 @@ fun AddPantryItemScreen(
                                     hasCaffeine = hasCaffeine,
                                     format = format,
                                     imageUri = imageUri,
-                                    totalGrams = grams.toIntOrNull()?.coerceIn(1, 2000) ?: 250,
+                                    totalGrams = grams.toIntOrNull()?.coerceIn(1, 5000) ?: 250,
                                     onSuccess = { createdCoffeeId ->
                                         if (diaryEntryFlow) onCoffeeCreatedForDiary?.invoke(createdCoffeeId)
                                         if (brewLabFlow) onCoffeeCreatedForBrewLab?.invoke(createdCoffeeId)
                                         onBackClick(
-                                        when {
-                                            diaryEntryFlow -> "pantry_loading"
-                                            brewLabFlow -> "brewlab"
-                                            else -> null
-                                        }
-                                    )
-                                    }
+                                            when {
+                                                diaryEntryFlow -> "pantry_loading"
+                                                brewLabFlow -> "brewlab"
+                                                else -> null
+                                            }
+                                        )
+                                    },
+                                    descripcion = descripcion.ifBlank { null },
+                                    proceso = proceso.ifBlank { null },
+                                    codigoBarras = codigoBarras.ifBlank { null },
+                                    moliendaRecomendada = moliendaRecomendada.ifBlank { null },
+                                    productUrl = productUrl.ifBlank { null },
+                                    aroma = aroma.toFloat(), sabor = sabor.toFloat(), cuerpo = cuerpo.toFloat(), acidez = acidez.toFloat(), dulzura = dulzura.toFloat()
                                 )
                             } else {
                                 viewModel.saveCustomCoffee(
@@ -183,9 +269,15 @@ fun AddPantryItemScreen(
                                     country = country,
                                     hasCaffeine = hasCaffeine,
                                     format = format,
-                                    totalGrams = grams.toIntOrNull() ?: 250,
+                                    totalGrams = grams.toIntOrNull()?.coerceIn(1, 5000) ?: 250,
                                     imageUri = imageUri,
-                                    onSuccess = { onBackClick(onSuccessNavigation) }
+                                    onSuccess = { onBackClick(onSuccessNavigation) },
+                                    descripcion = descripcion.ifBlank { null },
+                                    proceso = proceso.ifBlank { null },
+                                    codigoBarras = codigoBarras.ifBlank { null },
+                                    moliendaRecomendada = moliendaRecomendada.ifBlank { null },
+                                    productUrl = productUrl.ifBlank { null },
+                                    aroma = aroma.toFloat(), sabor = sabor.toFloat(), cuerpo = cuerpo.toFloat(), acidez = acidez.toFloat(), dulzura = dulzura.toFloat()
                                 )
                             }
                         },
@@ -216,120 +308,101 @@ fun AddPantryItemScreen(
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // IDENTIDAD
+            // Hero: foto a la izquierda (cuadrado), nombre y tostador a la derecha (sin título en card)
             item {
-                FormSectionCard {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                FormSectionCard(title = null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(130.dp)
-                                .clip(Shapes.pill)
-                                .background(Color.White)
+                                .size(120.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(fieldBackground)
                                 .clickable { showImagePickerSheet = true },
                             contentAlignment = Alignment.Center
                         ) {
-                            if (imageUri != null) {
-                                AsyncImage(model = imageUri, contentDescription = "Imagen del café", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                            } else if (existingImageUrl.isNotBlank()) {
-                                AsyncImage(model = existingImageUrl, contentDescription = "Imagen del café", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                            } else {
-                                Icon(Icons.Default.AddAPhoto, contentDescription = "Añadir foto del café", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(44.dp))
-                            }
-                        }
-                        
-                        Spacer(Modifier.height(24.dp))
-                        
-                        OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it.toCoffeeNameFormat() },
-                            label = { Text("Nombre del café") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = Shapes.cardSmall,
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = brand,
-                            onValueChange = { brand = it.toCoffeeBrandFormat() },
-                            label = { Text("Marca") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = Shapes.cardSmall,
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
-                        )
-                    }
-                }
-            }
-
-            // PERFIL Y ORIGEN
-            item {
-                FormSectionCard(title = "Perfil y Origen") {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text("Especialidad", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            VisualOptionTile(
-                                label = "Arabica",
-                                icon = Icons.Default.Eco,
-                                isSelected = specialty == "Arabica",
-                                modifier = Modifier.weight(1f),
-                                onClick = { specialty = "Arabica" }
-                            )
-                            VisualOptionTile(
-                                label = "Mezcla",
-                                icon = Icons.Default.Grain,
-                                isSelected = specialty == "Mezcla",
-                                modifier = Modifier.weight(1f),
-                                onClick = { specialty = "Mezcla" }
-                            )
-                        }
-
-                        Text("Tueste", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                Triple("Ligero", Icons.Default.LocalFireDepartment, 0.6f),
-                                Triple("Medio", Icons.Default.Whatshot, 0.8f),
-                                Triple("Medio-Oscuro", Icons.Default.Fireplace, 1f)
-                            ).forEach { (label, icon, _) ->
-                                VisualOptionTile(
-                                    label = label,
-                                    icon = icon,
-                                    isSelected = roast == label,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = { roast = label }
+                            if (imageUri != null || existingImageUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = imageUri ?: existingImageUrl,
+                                    contentDescription = "Imagen del café",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
                                 )
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(6.dp)
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isDark) PureWhite else PureBlack)
+                                        .clickable {
+                                            imageUri = null
+                                            existingImageUrl = ""
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Quitar foto",
+                                        tint = if (isDark) PureBlack else PureWhite,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            } else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                    Icon(Icons.Default.AddAPhoto, contentDescription = "Añadir foto", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Añadir foto", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
-
-                        ExposedDropdownMenuBox(
-                            expanded = countryExpanded,
-                            onExpandedChange = { countryExpanded = !countryExpanded },
-                            modifier = Modifier.fillMaxWidth()
+                        Column(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            verticalArrangement = Arrangement.spacedBy(0.dp)
                         ) {
                             OutlinedTextField(
-                                country,
-                                {},
-                                readOnly = true,
-                                label = { Text("País") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = countryExpanded) },
-                                modifier = Modifier
-                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
-                                    .fillMaxWidth(),
+                                value = name,
+                                onValueChange = { name = it.toCoffeeNameFormat() },
+                                placeholder = { Text("Nombre del café *") },
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = Shapes.cardSmall,
-                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                                singleLine = true,
+                                colors = noBorderColors
                             )
-                            ExposedDropdownMenu(
-                                expanded = countryExpanded,
-                                onDismissRequest = { countryExpanded = false }
+                            Spacer(Modifier.height(12.dp))
+                            ExposedDropdownMenuBox(
+                                expanded = brandDropdownExpanded,
+                                onExpandedChange = { brandDropdownExpanded = it },
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                countries.forEach { selectionOption ->
-                                    DropdownMenuItem(
-                                        text = { Text(selectionOption) },
-                                        onClick = {
-                                            country = selectionOption
-                                            countryExpanded = false
-                                        }
-                                    )
+                                OutlinedTextField(
+                                    value = brand,
+                                    onValueChange = { v -> brand = v; brandDropdownExpanded = v.isNotBlank() },
+                                    placeholder = { Text("Tostador") },
+                                    modifier = Modifier
+                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, brandDropdownExpanded)
+                                        .fillMaxWidth(),
+                                    shape = Shapes.cardSmall,
+                                    singleLine = true,
+                                    colors = noBorderColors
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = brandDropdownExpanded,
+                                    onDismissRequest = { brandDropdownExpanded = false }
+                                ) {
+                                    Text("Tostadores sugeridos", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                                    brandSuggestions.forEach { suggestion ->
+                                        DropdownMenuItem(
+                                            text = { Text(suggestion) },
+                                            onClick = {
+                                                brand = suggestion
+                                                brandDropdownExpanded = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -337,19 +410,44 @@ fun AddPantryItemScreen(
                 }
             }
 
-            // FORMATO Y STOCK
+            // Origen y perfil — título fuera, menos espacio con la card de abajo
             item {
-                FormSectionCard(title = when {
-                                diaryEntryFlow -> "Formato"
-                                brewLabFlow -> "Formato y cantidad"
-                                else -> "Formato y Despensa"
-                            }) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Origen y perfil", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(4.dp))
+            }
+            item {
+                FormSectionCard(title = null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        PickerTriggerRow(value = specialty, placeholder = "Seleccionar especialidad", onClick = { pickerOpen = "specialty" })
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(12.dp))
+                        PickerTriggerRow(value = roast, placeholder = "Seleccionar tueste", onClick = { pickerOpen = "roast" })
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(12.dp))
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(country)), placeholder = "Seleccionar país(es)", onClick = { pickerOpen = "country" })
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(12.dp))
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(variety)), placeholder = "Seleccionar variedad(es)", onClick = { pickerOpen = "variety" })
+                    }
+                }
+            }
+
+            // Presentación — título fuera
+            item {
+                Text("Presentación", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(4.dp))
+            }
+            item {
+                FormSectionCard(title = null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                             Switch(
-                                checked = hasCaffeine, 
-                                onCheckedChange = { hasCaffeine = it }, 
+                                checked = hasCaffeine,
+                                onCheckedChange = { hasCaffeine = it },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
                                     checkedTrackColor = MaterialTheme.colorScheme.primary,
@@ -359,55 +457,150 @@ fun AddPantryItemScreen(
                                 )
                             )
                         }
-
-                        Text("Presentación", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("Grano", "Molido", "Capsula").forEach { option ->
-                                VisualOptionTile(
-                                    label = option,
-                                    icon = when(option) {
-                                        "Grano" -> Icons.Default.SportsRugby
-                                        "Molido" -> Icons.Default.Grain
-                                        else -> Icons.Default.AutoMode
-                                    },
-                                    isSelected = format == option,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = { format = option }
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(12.dp))
+                        PickerTriggerRow(value = format, placeholder = "Seleccionar formato", onClick = { pickerOpen = "format" })
+                        if (!diaryEntryFlow) {
+                            Spacer(Modifier.height(12.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 56.dp)
+                                    .padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Cantidad (g)",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                BasicTextField(
+                                    value = grams,
+                                    onValueChange = { input -> if (input.isEmpty() || input.all { c -> c.isDigit() }) grams = input },
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.End
+                                    ),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    modifier = Modifier.widthIn(min = 80.dp)
                                 )
                             }
                         }
+                    }
+                }
+            }
 
-                        if (!diaryEntryFlow) {
-                            val gramsValue = grams.toFloatOrNull() ?: 250f
-                            Text(
-                                text = "Cantidad del café (g)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            BasicTextField(
-                                value = grams,
-                                onValueChange = { input -> if (input.isEmpty() || input.all { c -> c.isDigit() }) grams = input },
-                                textStyle = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 4.dp)
-                            )
-                            Slider(
-                                value = gramsValue.coerceIn(0f, 2000f),
-                                onValueChange = { grams = it.toInt().toString() },
-                                valueRange = 0f..2000f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = MaterialTheme.colorScheme.primary,
-                                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                                    inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+            // Detalles opcionales — título y badge fuera
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Detalles opcionales", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                        Text("Opcional", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+            item {
+                FormSectionCard(title = null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        OutlinedTextField(
+                            value = descripcion,
+                            onValueChange = { descripcion = it },
+                            placeholder = { Text("Descripción") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = Shapes.cardSmall,
+                            minLines = 3,
+                            colors = noBorderColors
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(12.dp))
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(proceso)), placeholder = "Seleccionar proceso(s)", onClick = { pickerOpen = "process" })
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(12.dp))
+                        PickerTriggerRow(value = moliendaRecomendada, placeholder = "Seleccionar molienda", onClick = { pickerOpen = "grind" })
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = codigoBarras,
+                            onValueChange = { codigoBarras = it },
+                            placeholder = { Text("Código de barras") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = Shapes.cardSmall,
+                            singleLine = true,
+                            isError = codigoBarras.isNotBlank() && !barcodeValid,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = noBorderColors
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = productUrl,
+                            onValueChange = { productUrl = it },
+                            placeholder = { Text("Enlace al producto") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = Shapes.cardSmall,
+                            singleLine = true,
+                            isError = productUrl.isNotBlank() && !urlValid,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                            colors = noBorderColors
+                        )
+                    }
+                }
+            }
+
+            // Perfil sensorial — título y badge fuera
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Perfil sensorial", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                        Text("Opcional", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+            item {
+                FormSectionCard(title = null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text("Valoración del 1 al 5", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        listOf(
+                            "aroma" to aroma, "sabor" to sabor, "cuerpo" to cuerpo,
+                            "acidez" to acidez, "dulzura" to dulzura
+                        ).forEach { (key, value) ->
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text(SENSORY_LABELS[key] ?: key, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("$value", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Slider(
+                                    value = value.toFloat(),
+                                    onValueChange = { when (key) {
+                                        "aroma" -> aroma = it.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX)
+                                        "sabor" -> sabor = it.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX)
+                                        "cuerpo" -> cuerpo = it.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX)
+                                        "acidez" -> acidez = it.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX)
+                                        "dulzura" -> dulzura = it.toInt().coerceIn(SENSORY_MIN, SENSORY_MAX)
+                                        else -> { }
+                                    } },
+                                    valueRange = SENSORY_MIN.toFloat()..SENSORY_MAX.toFloat(),
+                                    steps = SENSORY_MAX - SENSORY_MIN,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = MaterialTheme.colorScheme.primary,
+                                        activeTrackColor = if (isDark) CaramelSoft else CaramelAccent,
+                                        inactiveTrackColor = if (isDark) SliderTrackInactiveDark else SliderTrackInactiveLight
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
@@ -421,7 +614,7 @@ fun AddPantryItemScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 scrimColor = ScrimDefault
             ) {
-                Column(Modifier.padding(top = 20.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
+                Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
                         text = "AÑADIR FOTO",
                         style = MaterialTheme.typography.labelLarge,
@@ -455,6 +648,157 @@ fun AddPantryItemScreen(
                     )
                 }
             }
+        }
+
+        // Modal de opciones (especialidad, tueste, país, variedad, formato, proceso, molienda)
+        val pickerId = pickerOpen
+        if (pickerId != null) {
+            val (title, options, isMulti) = when (pickerId) {
+                "specialty" -> Triple("Especialidad", SPECIALTY_OPTIONS, false)
+                "roast" -> Triple("Tueste", ROAST_OPTIONS, false)
+                "country" -> Triple("País(es)", countries, true)
+                "variety" -> Triple("Variedad(es)", VARIETY_OPTIONS, true)
+                "format" -> Triple("Formato", FORMAT_OPTIONS, false)
+                "process" -> Triple("Proceso", PROCESS_OPTIONS, true)
+                "grind" -> Triple("Molienda recomendada", GRIND_OPTIONS, false)
+                else -> Triple("", emptyList(), false)
+            }
+            val optionBg = if (isDark) PureBlack else PureWhite
+            ModalBottomSheet(
+                onDismissRequest = { pickerOpen = null },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                scrimColor = ScrimDefault
+            ) {
+                Column(Modifier.padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 20.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                        if (isMulti) {
+                            TextButton(
+                                onClick = {
+                                    when (pickerId) {
+                                        "country" -> country = formatMultiValue(tempMultiSelection)
+                                        "variety" -> variety = formatMultiValue(tempMultiSelection)
+                                        "process" -> proceso = formatMultiValue(tempMultiSelection)
+                                        else -> { }
+                                    }
+                                    pickerOpen = null
+                                },
+                                modifier = Modifier.align(Alignment.CenterEnd)
+                            ) { Text("Aplicar") }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    if (isMulti) {
+                        options.forEach { opt ->
+                            val isSelected = opt in tempMultiSelection
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .padding(vertical = 4.dp)
+                                    .clickable {
+                                        tempMultiSelection = if (opt in tempMultiSelection) tempMultiSelection - opt else tempMultiSelection + opt
+                                    },
+                                shape = Shapes.cardSmall,
+                                color = optionBg,
+                                border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = isSelected,
+                                        onCheckedChange = {
+                                            tempMultiSelection = if (opt in tempMultiSelection) tempMultiSelection - opt else tempMultiSelection + opt
+                                        }
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(opt, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
+                        }
+                    } else {
+                        options.forEach { opt ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .padding(vertical = 4.dp)
+                                    .clickable {
+                                        when (pickerId) {
+                                            "specialty" -> specialty = opt
+                                            "roast" -> roast = opt
+                                            "format" -> format = opt
+                                            "grind" -> moliendaRecomendada = opt
+                                            else -> { }
+                                        }
+                                        pickerOpen = null
+                                    },
+                                shape = Shapes.cardSmall,
+                                color = optionBg,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        opt,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickerTriggerRow(
+    value: String,
+    placeholder: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = Shapes.cardSmall,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (value.isNotBlank()) value else placeholder,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (value.isNotBlank()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "Abrir",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

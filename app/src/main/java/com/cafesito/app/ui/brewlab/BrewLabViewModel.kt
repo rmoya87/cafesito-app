@@ -25,10 +25,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class BrewStep(val title: String) {
-    /** Pantalla única: carrusel métodos + Selecciona café + tipo/tamaño + config + temporizador (paridad web). */
+    /** Pantalla única: carrusel métodos + Selecciona café + config + temporizador; tipo/tamaño en pantalla Consumo. */
     CHOOSE_METHOD("Elaboración"),
     BREWING("Proceso en curso"),
-    RESULT("Resultado")
+    RESULT("Consumo")
 }
 
 data class BrewMethod(
@@ -96,6 +96,10 @@ class BrewLabViewModel @Inject constructor(
                 )
             }
             getOrderedBrewMethods(forOrder).mapNotNull { nameToBrewMethod[it] }
+        }
+        .catch { e ->
+            Log.e("BrewLabViewModel", "Error loading brew methods", e)
+            emit(getOrderedBrewMethods(emptyList()).mapNotNull { nameToBrewMethod[it] })
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -583,6 +587,14 @@ class BrewLabViewModel @Inject constructor(
     val timerEnded: StateFlow<Boolean> = combine(timerSeconds, phasesTimeline) { seconds, timeline ->
         val total = timeline.sumOf { it.durationSeconds }
         total > 0 && seconds >= total
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /** Guardar en pantalla Consumo habilitado solo con tipo y tamaño; el sabor es opcional. */
+    val canSaveForResult: StateFlow<Boolean> = combine(
+        _drinkType,
+        _selectedSizeLabel
+    ) { type, size ->
+        type.isNotBlank() && size != null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 }
 

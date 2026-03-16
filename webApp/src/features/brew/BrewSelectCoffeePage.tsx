@@ -16,6 +16,7 @@ export type BrewSelectCoffeePantryRow = {
 export function BrewSelectCoffeePage({
   pantryItems,
   coffeeOptions,
+  brewCoffeeGrams,
   onBack,
   onSelectCoffee,
   onAddToPantry,
@@ -30,6 +31,8 @@ export function BrewSelectCoffeePage({
   pantryItems: BrewSelectCoffeePantryRow[];
   /** Opciones de café para la sección Sugerencias (catálogo + despensa). */
   coffeeOptions: CoffeeRow[];
+  /** Gramos de café que el usuario va a usar en esta elaboración; si se pasa, en cada ítem de despensa se muestra restante/total (restante = stock actual − brewCoffeeGrams) en tiempo real. */
+  brewCoffeeGrams?: number;
   onBack: () => void;
   /** Al seleccionar un café, se usa para elaboración y se cierra la página. */
   onSelectCoffee: (coffeeId: string) => void;
@@ -151,54 +154,63 @@ export function BrewSelectCoffeePage({
           <div className="home-carousel-with-nav">
             <div ref={despensaScrollRef} className="home-despensa-scroll">
               <div className="brew-pantry-row">
-                {pantryItems.map((row) => (
-                  <div
-                    key={row.item.id}
-                    className="brew-pantry-card"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => onSelectCoffee(row.coffee.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onSelectCoffee(row.coffee.id);
-                      }
-                    }}
-                  >
-                    <div className="diary-pantry-top">
-                      {row.coffee.image_url ? (
-                        <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" decoding="async" />
-                      ) : (
-                        <span className="brew-pantry-fallback" aria-hidden="true">
-                          {row.coffee.nombre.slice(0, 1).toUpperCase()}
-                        </span>
-                      )}
-                      {hasPantryOptions ? (
-                        <Button
-                          variant="plain"
-                          type="button"
-                          className="diary-pantry-options"
-                          aria-label="Opciones"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPantryOptionsCoffeeId(row.item.id);
-                          }}
+                {pantryItems.map((row) => {
+                  const gramsForBrew = Number(brewCoffeeGrams) || 0;
+                  const remainingAfterBrew = Math.max(0, row.remaining - gramsForBrew);
+                  const displayRemaining = gramsForBrew > 0 ? remainingAfterBrew : row.remaining;
+                  const displayProgress = row.total > 0 ? displayRemaining / row.total : 0;
+                  return (
+                    <div
+                      key={row.item.id}
+                      className="brew-pantry-card"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onSelectCoffee(row.coffee.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onSelectCoffee(row.coffee.id);
+                        }
+                      }}
+                    >
+                      <div className="diary-pantry-top">
+                        {row.coffee.image_url ? (
+                          <img src={row.coffee.image_url} alt={row.coffee.nombre} loading="lazy" decoding="async" />
+                        ) : (
+                          <span className="brew-pantry-fallback" aria-hidden="true">
+                            {row.coffee.nombre.slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
+                        {hasPantryOptions ? (
+                          <Button
+                            variant="plain"
+                            type="button"
+                            className="diary-pantry-options"
+                            aria-label="Opciones"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPantryOptionsCoffeeId(row.item.id);
+                            }}
+                          >
+                            <UiIcon name="more" className="ui-icon" />
+                          </Button>
+                        ) : null}
+                      </div>
+                      <div className="brew-pantry-body">
+                        <strong>{row.coffee.nombre}</strong>
+                        <small
+                          title={gramsForBrew > 0 ? `Quedarían ${Math.round(displayRemaining)} g de ${Math.round(row.total)} g tras esta elaboración` : undefined}
+                          aria-label={gramsForBrew > 0 ? `Quedarían ${Math.round(displayRemaining)} de ${Math.round(row.total)} gramos tras esta elaboración` : undefined}
                         >
-                          <UiIcon name="more" className="ui-icon" />
-                        </Button>
-                      ) : null}
-                    </div>
-                    <div className="brew-pantry-body">
-                      <strong>{row.coffee.nombre}</strong>
-                      <small>
-                        {Math.round(row.remaining)}/{Math.round(row.total)}g
-                      </small>
-                      <div className="brew-pantry-progress" aria-hidden="true">
-                        <span style={{ width: `${Math.max(0, Math.min(100, row.progress * 100))}%` }} />
+                          {Math.round(displayRemaining)}/{Math.round(row.total)}g
+                        </small>
+                        <div className="brew-pantry-progress" aria-hidden="true">
+                          <span style={{ width: `${Math.max(0, Math.min(100, displayProgress * 100))}%` }} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {onAddToPantry ? (
                   <Button
                     variant="plain"

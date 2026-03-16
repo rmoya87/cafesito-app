@@ -120,7 +120,7 @@ fun HomeScreen(
                 shape = Shapes.sheetLarge,
                 scrimColor = ScrimDefault
             ) {
-                Column(Modifier.padding(top = 20.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
+                Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
                         text = "Opciones",
                         style = MaterialTheme.typography.labelLarge,

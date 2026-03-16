@@ -2140,6 +2140,11 @@ html.theme-light .list-options-members-copy-link .list-options-members-copy-icon
   overflow: hidden;
 }
 
+/* Home: espacio entre topbar y el carrusel de método */
+.content.content-home .home-elaboration-methods {
+  margin-top: var(--space-4);
+}
+
 html.theme-dark .home-elaboration-methods {
   background: var(--screen-dark-background);
 }
@@ -2173,25 +2178,51 @@ html.theme-dark .home-elaboration-methods {
   .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-label {
     color: #ffffff !important;
   }
-  /* Elaboración: chips inactivos método, tipo y tamaño = #212121 en modo noche (sistema) */
-  .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
-  .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
-  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+  /* Consumo: tipo y tamaño base gris oscuro (color página) en modo noche (sistema) */
+  .brew-result-screen .brew-config-cafe-card button.brew-tipo-card,
+  .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card,
+  .brew-result-screen .brew-config-cafe-card .brew-tipo-card,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card {
     background: #212121 !important;
     border: none !important;
     box-shadow: none !important;
   }
-  /* Elaboración modo noche (sistema): inactivos texto blanco, activos texto negro */
+  /* Elaboración y Consumo: chips inactivos = gris oscuro #212121 en modo noche (sistema) */
+  .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
+  .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+  .brew-result-screen .brew-config-cafe-card button.brew-tipo-card:not(.is-active),
+  .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card:not(.is-active),
+  .brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+    background: #212121 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Consumo modo noche (sistema): chips activos caramelo */
+  .brew-result-screen .brew-config-cafe-card button.brew-tipo-card.is-active,
+  .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card.is-active {
+    background: var(--caramel-accent, #b8860b) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Elaboración y Consumo modo noche (sistema): inactivos texto blanco, activos texto negro */
   .brew-select-step .brew-forma-card .brew-method-card:not(.is-active) .brew-method-card-label,
   .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active) .brew-tipo-card-label,
   .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-label,
-  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-range {
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-range,
+  .brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active) .brew-tipo-card-label,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-label,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-range {
     color: #ffffff !important;
   }
   .brew-select-step .brew-forma-card .brew-method-card.is-active .brew-method-card-label,
   .brew-select-step .brew-config-cafe-card .brew-tipo-card.is-active .brew-tipo-card-label,
   .brew-select-step .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-label,
-  .brew-select-step .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range {
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range,
+  .brew-result-screen .brew-config-cafe-card .brew-tipo-card.is-active .brew-tipo-card-label,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-label,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range {
     color: #000 !important;
   }
   /* Tipo en editar (Mi diario): chip activo texto negro en modo noche */
@@ -6349,11 +6380,12 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   z-index: 700;
 }
 
-/* Zoom + / -: barra de botones */
+/* Zoom + / -: barra de botones. Modo día (base y theme-light) */
 .cafes-probados-map .leaflet-bar a {
-  background-color: #212121;
+  background-color: #f7f7f7;
   border-bottom: none;
 }
+
 /* Zoom + / - visibles en modo noche: fondo claro y símbolos en negro */
 html.theme-dark .cafes-probados-map .leaflet-control-zoom {
   border-color: rgba(255, 255, 255, 0.2) !important;
@@ -6371,6 +6403,21 @@ html.theme-dark .cafes-probados-map .leaflet-control-zoom a:hover {
   background-color: rgba(0, 0, 0, 0.05) !important;
   color: #000000 !important;
 }
+
+/* Modo noche: botones de la barra zoom (debe ir después para ganar a .leaflet-control-zoom a) */
+html.theme-dark .cafes-probados-map .leaflet-bar a {
+  background-color: #212121 !important;
+  border-bottom: none;
+}
+
+/* Modo noche por sistema (tema auto + prefers-color-scheme: dark) sin clase theme-dark */
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .cafes-probados-map .leaflet-bar a {
+    background-color: #212121 !important;
+    border-bottom: none;
+  }
+}
+
 .cafes-probados-map-placeholder {
   display: flex;
   flex-direction: column;
@@ -8003,15 +8050,15 @@ html.theme-dark .diary-day-header.is-today {
     color: var(--pure-white) !important;
   }
 
-  /* Formulario nuevo café: estado seleccionado en modo claro */
-  .create-coffee-choice.is-selected {
+  /* Formulario nuevo café: chips y switch en modo claro */
+  .create-coffee-chip.is-selected {
     border-color: var(--espresso-deep);
-    background: #efefef;
+    background: rgba(26, 18, 11, 0.08);
     color: var(--espresso-deep);
   }
 
-  .create-coffee-caffeine-switch:not(.is-on),
-  .create-coffee-caffeine-switch:not([aria-checked="true"]) {
+  .create-coffee-switch:not(.is-on),
+  .create-coffee-switch:not([aria-checked="true"]) {
     background: #b9b9b9;
   }
 }
@@ -11937,11 +11984,13 @@ html.theme-dark .share-list-invite-link-btn:hover {
 }
 
 .brew-pantry-card small {
+  display: block;
   color: var(--muted-cream);
   letter-spacing: 0;
   text-transform: none;
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .brew-pantry-progress {
@@ -12062,152 +12111,498 @@ html.theme-dark .share-list-invite-link-btn:hover {
   min-height: calc(100vh - var(--topbar-height) - 8px);
 }
 
+/* ========== Formulario Crear café — Rediseño completo UI/UX ========== */
+.create-coffee-view.create-coffee-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 520px;
+  margin: 0 auto;
+}
+
 .create-coffee-view.is-full-page {
   border: none;
   border-radius: 0;
   background: transparent;
-  padding: 8px 12px 118px;
+  /* Menos espacio al final de la página de crear café */
+  padding: var(--space-4) var(--space-4) 40px;
 }
 
-.create-coffee-head .section-title {
+.create-coffee-head {
+  margin-bottom: var(--space-2);
+}
+
+.create-coffee-title {
   margin: 0;
-}
-
-.create-coffee-hint {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--muted-cream);
-}
-
-.create-coffee-section-title {
-  margin: 2px 0 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-cream);
+  font-size: 1.5rem;
   font-weight: 700;
-}
-
-.create-coffee-profile-origin {
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
-  background: var(--surface);
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.create-coffee-block-title {
-  margin: 0;
-  font-size: 0.76rem;
-  letter-spacing: 0.06em;
-  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text-main);
+  line-height: 1.2;
 }
 
-.create-coffee-block-subtitle {
+.create-coffee-subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: 0.9rem;
+  color: var(--muted-cream);
+  line-height: 1.4;
+}
+
+.create-coffee-status {
   margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8rem;
+  color: var(--muted-cream);
+  background: var(--surface-elevated);
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+}
+
+.create-coffee-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Títulos de sección fuera de la card */
+.create-coffee-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.create-coffee-section-heading {
+  margin: 0;
+  font-size: 1rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.create-coffee-section-heading .create-coffee-badge {
+  font-size: 0.68rem;
+}
+
+/* Icono cámara: Material Symbols photo_camera */
+.create-coffee-photo-icon.material-symbols-outlined {
+  font-family: "Material Symbols Outlined Variable", "Material Symbols Outlined";
+  font-size: 40px;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 48;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ——— Cards ——— */
+.create-coffee-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.create-coffee-card.is-invalid {
+  border-color: rgba(184, 90, 69, 0.4);
+  box-shadow: 0 0 0 1px rgba(184, 90, 69, 0.08);
+}
+
+.create-coffee-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.create-coffee-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-cream);
+  padding: 2px 8px;
+  background: var(--surface-elevated);
+  border-radius: 999px;
+}
+
+/* ——— Hero: foto + nombre + marca ——— */
+.create-coffee-hero {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--space-5);
+  width: 100%;
+  min-width: 0;
+}
+
+.create-coffee-photo-wrap {
+  position: relative;
+  width: 120px;
+  min-width: 120px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 120px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface-elevated);
+  display: flex;
+  flex-direction: column;
+}
+
+.create-coffee-photo-placeholder {
+  flex: 1;
+  width: 100%;
+  min-height: 120px;
+  border: 2px dashed var(--border-light);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--muted-cream);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.create-coffee-photo-placeholder:hover {
+  border-color: var(--caramel-soft);
+  background: rgba(111, 78, 55, 0.06);
   color: var(--text-subtle);
 }
 
-.create-coffee-choice-grid {
-  display: grid;
-  gap: 10px;
+.create-coffee-photo-placeholder:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
-.create-coffee-choice-grid-specialty {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.create-coffee-photo-icon {
+  width: 40px;
+  height: 40px;
+  opacity: 0.7;
 }
 
-.create-coffee-choice-grid-roast {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.create-coffee-choice-grid-format {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.create-coffee-choice {
-  border: 1px solid var(--border-light);
-  border-radius: 16px;
-  background: var(--surface);
-  min-height: 74px;
-  display: grid;
-  place-items: center;
-  gap: 6px;
-  color: var(--text-main);
-  text-align: center;
-}
-
-.create-coffee-choice .ui-icon {
-  width: 28px;
-  height: 28px;
-  stroke-width: 1.9;
-}
-
-.create-coffee-choice .material-symbol-icon {
-  font-size: 28px;
-  line-height: 1;
-}
-
-.create-coffee-choice span {
-  font-size: 0.88rem;
+.create-coffee-photo-text {
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
-.create-coffee-choice.is-selected {
-  border: 2px solid var(--caramel-accent);
-  background: var(--surface-elevated);
+.create-coffee-photo-preview {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 120px;
 }
 
-.create-coffee-choice-grid.is-invalid .create-coffee-choice {
-  border-color: rgba(184, 90, 69, 0.42);
+.create-coffee-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* No recortar la imagen en el preview */
+  display: block;
 }
 
-.create-coffee-format-block {
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
-  background: var(--surface);
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.create-coffee-format-block.is-invalid {
-  border-color: rgba(184, 90, 69, 0.5);
-}
-
-.create-coffee-caffeine-row {
+.create-coffee-photo-remove {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 40px;
+  height: 40px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--pure-white);
   display: flex;
-  flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
+  border: none;
 }
 
-/* Anular .diary-sheet-form label { display: grid } para que texto y switch queden en fila */
-.diary-sheet-form .create-coffee-caffeine-row,
-.create-coffee-format-block .create-coffee-caffeine-row {
+.create-coffee-photo-remove:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* A la derecha de la foto: nombre y marca en una sola columna (uno debajo del otro) */
+.create-coffee-hero-fields {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  gap: 0;
+  justify-content: center;
 }
 
-.create-coffee-caffeine-row>span {
-  font-size: 0.95rem;
+.create-coffee-hero-fields .create-coffee-field-divider {
+  width: 100%;
+}
+
+.create-coffee-brand-input-wrap {
+  position: relative;
+}
+
+.create-coffee-brand-suggestions-wrap {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--surface-elevated, #fff);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+}
+
+.create-coffee-brand-suggestions-title {
+  margin: 0;
+  padding: 10px 14px 6px;
+  font-size: 0.75rem;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-cream, #888);
+}
+
+.create-coffee-brand-suggestions {
+  margin: 0;
+  padding: 4px 0 10px;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.create-coffee-brand-suggestion-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  border: none;
+  background: none;
+  font-size: 1rem;
+  font-family: var(--font-sans, inherit);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.create-coffee-brand-suggestion-item:hover,
+.create-coffee-brand-suggestion-item:focus-visible {
+  background: rgba(111, 78, 55, 0.08);
+  outline: none;
+}
+
+.create-coffee-brand-suggestion-item:active {
+  background: rgba(111, 78, 55, 0.12);
+}
+
+html.theme-dark .create-coffee-view .create-coffee-brand-suggestions-wrap {
+  background: var(--surface-elevated);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html.theme-dark .create-coffee-view .create-coffee-brand-suggestion-item:hover,
+html.theme-dark .create-coffee-view .create-coffee-brand-suggestion-item:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ——— Grupos y labels ——— */
+.create-coffee-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.create-coffee-group-full {
+  grid-column: 1 / -1;
+}
+
+.create-coffee-group.is-invalid .create-coffee-label {
+  color: #b85a45;
+}
+
+.create-coffee-group.is-invalid .create-coffee-input,
+.create-coffee-group.is-invalid .create-coffee-select,
+.create-coffee-group.is-invalid .create-coffee-textarea,
+.create-coffee-group.is-invalid .create-coffee-picker-trigger {
+  border: none;
+  box-shadow: none;
+}
+
+.create-coffee-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted-cream);
+}
+
+.create-coffee-label em {
+  font-style: normal;
+  color: var(--caramel-soft);
+}
+
+/* Fondo de campos (texto + botones tipología): gris claro día, gris oscuro noche */
+.create-coffee-view {
+  --create-coffee-field-bg: #f7f7f7;
+}
+
+html.theme-light .create-coffee-view {
+  --create-coffee-field-bg: #f7f7f7;
+}
+
+html.theme-dark .create-coffee-view {
+  --create-coffee-field-bg: #212121;
+}
+
+.create-coffee-label-inline {
+  font-size: 0.9rem;
+  font-weight: 600;
   color: var(--text-main);
 }
 
-.create-coffee-caffeine-switch {
+/* Campos texto y tipología: mismo estilo que Mi diario > Actividad > Editar (cafeína mg), sin sombra ni borde */
+.create-coffee-input,
+.create-coffee-select,
+.create-coffee-textarea {
+  width: 100%;
+  min-height: 56px;
+  padding: 0;
+  border-radius: var(--surface-card-radius, 12px);
+  border: none;
+  background: var(--create-coffee-field-bg);
+  color: var(--text-main);
+  font-size: 1.06rem;
+  font-weight: 400;
+  font-family: var(--font-sans, inherit);
+  box-sizing: border-box;
+  box-shadow: none;
+  transition: background-color 0.2s ease;
+}
+
+.create-coffee-input::placeholder,
+.create-coffee-textarea::placeholder {
+  color: var(--muted-cream);
+  font-weight: 400;
+}
+
+.create-coffee-input:focus,
+.create-coffee-select:focus,
+.create-coffee-textarea:focus {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.create-coffee-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23bdb7b2' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.create-coffee-textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 0;
+  resize: vertical;
+}
+
+/* ——— Chips (especialidad, tueste, formato) ——— */
+.create-coffee-chips {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.create-coffee-chips-specialty {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.create-coffee-chips-roast {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.create-coffee-chips-format {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.create-coffee-chip {
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--space-2);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.create-coffee-chip:hover {
+  border-color: var(--caramel-soft);
+  background: var(--surface-elevated);
+}
+
+.create-coffee-chip.is-selected {
+  border: 2px solid var(--caramel-accent);
+  background: rgba(111, 78, 55, 0.12);
+  color: var(--text-main);
+}
+
+.create-coffee-chip-icon {
+  width: 26px;
+  height: 26px;
+  stroke-width: 1.8;
+}
+
+.create-coffee-chip span {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.create-coffee-chips.is-invalid .create-coffee-chip {
+  border-color: rgba(184, 90, 69, 0.4);
+}
+
+.create-coffee-muted {
+  font-size: 0.85rem;
+  color: var(--muted-cream);
+}
+
+/* ——— Fila (cafeína) ——— */
+.create-coffee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
+
+.create-coffee-quantity-row .create-coffee-quantity-input {
+  width: auto;
+  min-width: 5rem;
+  max-width: 8rem;
+  text-align: right;
+}
+
+.create-coffee-switch {
   width: 52px;
   height: 30px;
   border-radius: 999px !important;
@@ -12218,7 +12613,7 @@ html.theme-dark .share-list-invite-link-btn:hover {
   align-items: center;
 }
 
-.create-coffee-caffeine-switch .ui-switch-thumb {
+.create-coffee-switch .ui-switch-thumb {
   width: 24px;
   height: 24px;
   border-radius: 999px !important;
@@ -12226,292 +12621,426 @@ html.theme-dark .share-list-invite-link-btn:hover {
   transition: transform 180ms ease;
 }
 
-.create-coffee-caffeine-switch:not(.is-on),
-.create-coffee-caffeine-switch:not([aria-checked="true"]) {
+.create-coffee-switch:not(.is-on),
+.create-coffee-switch:not([aria-checked="true"]) {
   background: var(--surface-elevated);
 }
 
-.create-coffee-country {
+/* ——— Detalles opcionales ——— */
+.create-coffee-details-grid {
   display: grid;
-  gap: 4px;
-}
-
-.create-coffee-country>span {
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
-  color: var(--muted-cream);
-}
-
-.create-coffee-country .search-wide {
-  height: 44px;
-  border-radius: 12px;
-  background: var(--surface);
-  padding: 0 12px;
-  color: var(--text-main);
-}
-
-.create-coffee-country.is-invalid .search-wide {
-  border-color: rgba(184, 90, 69, 0.7);
-  box-shadow: 0 0 0 1px rgba(184, 90, 69, 0.12) inset;
-}
-
-.create-coffee-quantity-row {
-  display: block;
-}
-
-.create-coffee-quantity-row .create-coffee-quantity-input,
-.create-coffee-format-block .create-coffee-quantity-input {
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid var(--border-light);
-  background: var(--surface);
-  padding: 0 12px;
-  width: 100%;
-  box-sizing: border-box;
-  font-size: 0.95rem;
-  color: var(--text-main);
-}
-
-.create-coffee-format-block .create-coffee-block-subtitle + .create-coffee-quantity-row {
-  margin-top: 4px;
-}
-
-.create-coffee-grid {
-  display: grid;
+  gap: 0;
   grid-template-columns: 1fr 1fr;
-  gap: 9px;
 }
 
-.create-coffee-field {
-  display: grid;
-  gap: 4px;
+.create-coffee-details-grid .create-coffee-field-divider {
+  grid-column: 1 / -1;
 }
 
-.create-coffee-field>span {
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.create-coffee-group-full .create-coffee-textarea {
+  min-height: 100px;
+}
+
+.create-coffee-hint-block {
+  margin: 0 0 var(--space-2);
+  font-size: 0.8rem;
   color: var(--muted-cream);
-  font-weight: 700;
 }
 
-.create-coffee-field>span em {
-  font-style: normal;
-  color: var(--caramel-soft);
+/* ——— Perfil sensorial ——— */
+.create-coffee-sensory-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.create-coffee-field.is-invalid>span {
-  color: #b85a45;
+.create-coffee-sensory-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
 }
 
-.create-coffee-field.is-invalid .search-wide {
-  border-color: rgba(184, 90, 69, 0.7);
-  box-shadow: 0 0 0 1px rgba(184, 90, 69, 0.12) inset;
-}
-
-.create-coffee-grid .search-wide {
-  height: 44px;
-  border-radius: 12px;
-  padding: 0 12px;
-  background: var(--surface);
-  color: var(--text-main);
-  border: 1px solid var(--border-light);
-}
-
-.create-coffee-grid select.search-wide {
-  appearance: none;
-}
-
-.create-coffee-toggle {
-  display: inline-flex;
+.create-coffee-sensory-name {
+  display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: space-between;
+  font-size: 0.9rem;
   color: var(--text-main);
-  font-size: 0.88rem;
-  min-height: 36px;
-  padding: 2px 0 4px;
 }
 
-.create-coffee-image {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.create-coffee-image-top {
-  margin-top: 14px;
-  margin-bottom: 0;
-}
-
-.create-coffee-image-card {
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
-  background: var(--surface);
-  padding: 12px;
-}
-
-.create-coffee-image-empty {
-  width: 100%;
-  min-height: 150px;
-  border: none;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--muted-cream);
-  display: grid;
-  place-items: center;
-  gap: 6px;
-  text-align: center;
-}
-
-.create-coffee-image-empty-icon {
-  position: relative;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.create-coffee-image-empty-icon .ui-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.create-coffee-image-empty-plus {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--caramel-accent);
-  color: var(--pure-white);
-  font-size: 0.72rem;
-  line-height: 14px;
-  font-weight: 700;
-}
-
-.create-coffee-image-empty>span:last-child {
-  font-size: 0.84rem;
+.create-coffee-sensory-name strong {
   font-weight: 600;
 }
 
-.create-coffee-image-preview-wrap {
-  position: relative;
-  border-radius: 14px;
+.create-coffee-sensory-name small {
+  font-size: 0.8rem;
+  color: var(--muted-cream);
+  min-width: 1.2em;
+  text-align: right;
+}
+
+.create-coffee-sensory-range {
+  width: 100%;
+  --slider-color: var(--caramel-soft);
+}
+
+/* Trigger: mismo estilo que inputs (cafeína mg), sin sombra ni borde */
+.create-coffee-picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 56px;
+  padding: 0;
+  border-radius: var(--surface-card-radius, 12px);
+  border: none;
+  background: var(--create-coffee-field-bg);
+  color: var(--text-main);
+  font-size: 1.06rem;
+  font-weight: 400;
+  font-family: var(--font-sans, inherit);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color 0.2s ease;
+}
+
+/* Texto a la izquierda, flecha siempre a la derecha */
+.create-coffee-picker-trigger-text {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.create-coffee-picker-chevron-right {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.create-coffee-picker-trigger:hover {
+  box-shadow: none;
+}
+
+.create-coffee-picker-trigger:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+/* Divisor horizontal entre campos (como en página elaboración) */
+.create-coffee-field-divider {
+  height: 1px;
+  background: var(--border-light, rgba(0, 0, 0, 0.12));
+  width: 100%;
+}
+
+html.theme-light .create-coffee-view .create-coffee-field-divider,
+html:not(.theme-dark) .create-coffee-view .create-coffee-field-divider {
+  background: #d5d5d5;
+}
+
+html.theme-dark .create-coffee-view .create-coffee-field-divider {
+  background: #212121;
+}
+
+.create-coffee-picker-placeholder {
+  color: var(--muted-cream);
+  font-weight: 400;
+}
+
+.create-coffee-picker-chevron {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Sheet de selección de opciones (mismo patrón que filtros del buscador: sale de abajo) */
+.create-coffee-picker-sheet {
+  max-height: min(84vh, 560px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.create-coffee-image-preview-wrap img {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  display: block;
-}
-
-.create-coffee-image-preview-wrap .icon-button {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
-
-.create-coffee-image-fields {
+.create-coffee-picker-sheet-header {
   display: grid;
-  gap: 10px;
-  margin-top: 2px;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 16px var(--space-4) 12px;
 }
 
-.create-coffee-inline-field .search-wide {
-  height: 44px;
+.create-coffee-picker-sheet-header .sheet-title {
+  margin: 0;
+  justify-self: center;
+  text-align: center;
+  grid-column: 2;
+}
+
+.create-coffee-picker-sheet-header .create-coffee-picker-apply {
+  justify-self: end;
+  grid-column: 3;
+  background: none;
+  border: none;
+  color: var(--caramel-accent);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 8px 4px;
+  min-height: 0;
+}
+
+.create-coffee-picker-sheet-header .create-coffee-picker-apply:hover {
+  background: transparent;
+  color: var(--caramel-accent);
+  opacity: 0.85;
+}
+
+.create-coffee-picker-header-spacer {
+  grid-column: 1;
+  min-width: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .create-coffee-picker-sheet-header .create-coffee-picker-apply {
+    color: var(--caramel-soft);
+  }
+  .create-coffee-picker-sheet-header .create-coffee-picker-apply:hover {
+    color: var(--caramel-soft);
+  }
+}
+
+html.theme-dark .create-coffee-picker-sheet-header .create-coffee-picker-apply,
+html:not(.theme-light) .create-coffee-picker-sheet-header .create-coffee-picker-apply {
+  color: var(--caramel-soft);
+}
+html.theme-dark .create-coffee-picker-sheet-header .create-coffee-picker-apply:hover,
+html:not(.theme-light) .create-coffee-picker-sheet-header .create-coffee-picker-apply:hover {
+  color: var(--caramel-soft);
+}
+
+.create-coffee-picker-sheet .create-coffee-picker-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.create-coffee-picker-list {
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.create-coffee-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-4);
   border-radius: 12px;
-  padding: 0 12px;
-  background: var(--surface);
+  border: 1px solid transparent;
+  background: var(--pure-black);
   color: var(--text-main);
+  font-size: 0.95rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.create-coffee-inline-field.is-invalid .search-wide {
-  border-color: rgba(184, 90, 69, 0.7);
-  box-shadow: 0 0 0 1px rgba(184, 90, 69, 0.12) inset;
+.create-coffee-picker-option:hover {
+  background: var(--pure-black);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.create-coffee-picker-option.is-selected {
+  background: var(--pure-black);
+  border-color: var(--caramel-accent);
+  font-weight: 600;
+}
+
+.create-coffee-picker-option-multi {
+  cursor: pointer;
+  gap: var(--space-3);
+}
+
+.create-coffee-picker-option-multi span {
+  flex: 1;
+}
+
+.create-coffee-picker-checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+}
+
+.create-coffee-picker-checkbox:checked {
+  border-color: var(--caramel-soft);
+  background: var(--caramel-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23101010' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: 12px 12px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.create-coffee-picker-actions {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-light);
+}
+
+/* ——— Error y acciones ——— */
+.create-coffee-error-wrap {
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 59, 48, 0.08);
+  border: 1px solid rgba(255, 59, 48, 0.25);
+  border-radius: 14px;
 }
 
 .create-coffee-error {
   margin: 0;
   color: var(--electric-red);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .create-coffee-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--border-light);
 }
 
 .create-coffee-actions-desktop-save {
-  margin-top: 16px;
-  padding-top: 12px;
+  margin-top: 0;
+  padding-top: var(--space-4);
+  border-top: none;
+}
+
+.create-coffee-btn {
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.create-coffee-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.create-coffee-btn-ghost {
+  background: transparent;
+  color: var(--text-subtle);
+  border: 1px solid var(--border-light);
+}
+
+.create-coffee-btn-ghost:hover:not(:disabled) {
+  background: var(--surface-elevated);
+  color: var(--text-main);
+}
+
+.create-coffee-btn-primary {
+  background: var(--caramel-accent);
+  color: var(--pure-white);
+  border: none;
+}
+
+.create-coffee-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.create-coffee-btn-primary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .create-coffee-mobile-save {
   position: sticky;
-  bottom: 80px;
+  bottom: 88px;
   width: 100%;
-  min-height: 48px;
-  border-radius: 999px;
-  margin-top: 10px;
+  min-height: 52px;
+  border-radius: 16px;
+  margin-top: var(--space-4);
+  font-size: 1rem;
 }
 
 .create-coffee-mobile-save:disabled {
   opacity: 0.58;
 }
 
+/* Anular diary-sheet-form label para que rows y grupos se vean bien */
+.diary-sheet-form .create-coffee-form .create-coffee-row {
+  display: flex;
+}
+.diary-sheet-form .create-coffee-form .create-coffee-group {
+  display: flex;
+  flex-direction: column;
+}
+
 @media (prefers-color-scheme: dark) {
-  /* Nuevo café: sin borde en el cuadro que engloba Perfil y Origen y Formato */
-  .create-coffee-profile-origin,
-  .create-coffee-format-block {
-    border: none;
+  .create-coffee-view {
+    --create-coffee-field-bg: #212121;
   }
-  /* Borde gris oscuro solo en los elementos internos */
-  .create-coffee-profile-origin .create-coffee-choice,
-  .create-coffee-profile-origin .create-coffee-country .search-wide,
-  .create-coffee-format-block .create-coffee-choice,
-  .create-coffee-format-block .create-coffee-caffeine-switch,
-  .create-coffee-format-block .create-coffee-quantity-input,
-  .create-coffee-format-block .create-coffee-quantity-row .create-coffee-quantity-input {
-    border-color: rgba(255, 255, 255, 0.18);
+  .create-coffee-view .create-coffee-field-divider {
+    background: #212121;
+  }
+  .create-coffee-card {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  .create-coffee-photo-placeholder {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .create-coffee-photo-placeholder:hover {
+    border-color: var(--caramel-soft);
+    background: rgba(212, 163, 115, 0.08);
+  }
+  .create-coffee-picker-trigger:hover {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+  .create-coffee-chip {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .create-coffee-chip.is-selected {
+    border-color: var(--caramel-soft);
+    background: rgba(212, 163, 115, 0.15);
+  }
+  .create-coffee-sensory-range {
+    --slider-color: var(--caramel-soft);
+  }
+  .create-coffee-btn-primary {
+    background: var(--caramel-soft);
+    color: var(--espresso-deep);
+  }
+}
+
+@media (max-width: 599px) {
+  .create-coffee-details-grid {
+    grid-template-columns: 1fr;
+  }
+  .create-coffee-chips-roast {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 899px) {
-  .create-coffee-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
-  }
-
-  .create-coffee-choice-grid-roast {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .create-coffee-choice-grid-format {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .create-coffee-view.is-full-page {
-    padding: 8px 12px 124px;
-  }
-
-  .create-coffee-section-title {
-    margin-top: 4px;
-  }
-
-  .create-coffee-image-preview-wrap img {
-    height: 196px;
-  }
-
-  .create-coffee-image-empty {
-    min-height: 142px;
-  }
-
-  .create-coffee-image-preview-wrap img {
-    height: 142px;
+    padding: var(--space-4) var(--space-4) 40px;
   }
 }
 
@@ -12671,18 +13200,18 @@ html.theme-dark .share-list-invite-link-btn:hover {
   color: var(--text-main);
 }
 
-/* Rectángulo «Selecciona café» (mismo estilo que temporizador), con flecha a la derecha */
+/* Rectángulo «Selecciona café» (mismo estilo que temporizador), con flecha a la derecha.
+   En elaboración: fondo blanco en modo día / negro puro en modo noche, sin border line. */
 .brew-select-coffee-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   padding: var(--space-4) var(--space-4);
-  margin-top: var(--space-3);
-  background: var(--surface-1, #fff);
-  border: var(--surface-card-border);
+  background: #ffffff;
+  border: none;
   border-radius: var(--surface-card-radius);
-  box-shadow: var(--surface-card-shadow);
+  box-shadow: none;
   box-sizing: border-box;
   cursor: pointer;
   font: inherit;
@@ -12740,6 +13269,15 @@ html.theme-dark .share-list-invite-link-btn:hover {
   flex-shrink: 0;
 }
 
+.brew-select-coffee-selected-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
 .brew-select-coffee-name {
   font-size: var(--font-size-base, 1rem);
   font-weight: 600;
@@ -12747,6 +13285,13 @@ html.theme-dark .share-list-invite-link-btn:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.brew-select-coffee-stock {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--muted-cream));
+  letter-spacing: 0.02em;
 }
 
 /* Forma de elaboración: card con método + línea + parámetros */
@@ -12839,7 +13384,10 @@ html.theme-dark .share-list-invite-link-btn:hover {
   border-color: var(--border-strong);
 }
 
-.brew-method-card.is-active {
+/* Chip activo: mismo estilo en método, tipo y tamaño (día y noche) */
+.brew-method-card.is-active,
+.brew-tipo-card.is-active,
+.brew-tamaño-card.is-active {
   background: var(--caramel-accent, #b8860b) !important;
   border: none !important;
   box-shadow: none !important;
@@ -13014,23 +13562,19 @@ html:not(.theme-dark) .brew-config-cafe-card .brew-tamaño-card:not(.is-active) 
   display: none;
 }
 
-/* Página Selecciona café (desde elaboración): misma lógica y UI que Tu despensa de home */
+/* Página Selecciona café (desde elaboración): fondo negro (noche) / blanco (día), sin borde, sin margen superior */
 .brew-select-coffee-page {
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  background: var(--screen-light-background);
+  margin-top: 0;
 }
 @media (prefers-color-scheme: dark) {
-  .brew-select-coffee-page {
-    background: var(--screen-dark-background);
+  html:not(.theme-light) .brew-select-coffee-row {
+    background: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
   }
-}
-html.theme-dark .brew-select-coffee-page {
-  background: var(--screen-dark-background);
-}
-html.theme-light .brew-select-coffee-page {
-  background: var(--screen-light-background);
 }
 .brew-select-coffee-page-header {
   display: flex;
@@ -13039,7 +13583,8 @@ html.theme-light .brew-select-coffee-page {
   position: relative;
   padding: 12px 14px 12px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border-default);
+  border: none;
+  border-bottom: none;
 }
 .brew-select-coffee-page-header .brew-select-coffee-page-title {
   position: absolute;
@@ -13064,7 +13609,8 @@ html.theme-light .brew-select-coffee-page {
 .brew-select-coffee-page-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-4) var(--space-4) var(--space-6);
+  margin-top: 0;
+  padding: 0 var(--space-4) var(--space-6);
 }
 .brew-select-coffee-page-content .brew-select-coffee-despensa {
   margin-top: 0;
@@ -13080,20 +13626,32 @@ html.theme-light .brew-select-coffee-page {
 .brew-method-card:not(.is-active),
 .brew-forma-card .brew-method-card:not(.is-active),
 .brew-config-cafe-card .brew-tipo-card:not(.is-active),
-.brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+.brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+.brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+.brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
   background: var(--screen-light-background) !important;
   border: none !important;
   box-shadow: none !important;
 }
 
 /* Chips inactivos Método, Tipo y Tamaño: color de fondo = página (modo noche), sin bordes */
+/* Modo noche (theme-dark): Consumo — tipo y tamaño base gris oscuro (color página) */
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card {
+  background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Modo noche: chips inactivos método, tipo y tamaño = gris oscuro #212121 (color página) */
 html.theme-dark .brew-method-card:not(.is-active),
 html.theme-dark .brew-forma-card .brew-method-card:not(.is-active),
 html.theme-dark .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
 html.theme-dark .brew-config-cafe-card .brew-tipo-card:not(.is-active),
 html.theme-dark .brew-config-cafe-card .brew-tamaño-card:not(.is-active),
 html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
-html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
   background: #212121 !important;
   border: none !important;
   box-shadow: none !important;
@@ -13201,13 +13759,6 @@ html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(
   border-color: var(--border-strong);
 }
 
-/* Activo: mismo estilo día y noche que método (fondo caramel, texto negro) */
-.brew-tipo-strip .brew-tipo-card.is-active {
-  background: var(--caramel-accent, #b8860b) !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
 .brew-tipo-card-icon {
   display: flex;
   align-items: center;
@@ -13266,13 +13817,6 @@ html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(
   border-color: var(--border-strong);
 }
 
-/* Activo: mismo estilo día y noche que método (fondo caramel, texto negro) */
-.brew-tamaño-strip .brew-tamaño-card.is-active {
-  background: var(--caramel-accent, #b8860b) !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
 .brew-tamaño-card-icon {
   display: flex;
   align-items: center;
@@ -13314,6 +13858,22 @@ html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 72px;
+}
+
+/* Consumo en modo noche: chips tipo/tamaño inactivos gris oscuro #212121 (color página) */
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tipo-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card:not(.is-active) {
+  background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .brew-result-screen .brew-config-cafe-card button.brew-tipo-card:not(.is-active),
+  html:not(.theme-light) .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card:not(.is-active) {
+    background: #212121 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
 
 .brew-select-params-layout {
@@ -13411,16 +13971,21 @@ html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(
   background: var(--border-light, rgba(0, 0, 0, 0.12));
   width: 100%;
 }
-/* Modo día: líneas de separación visibles */
+/* Modo día: líneas de separación en elaboración/config — color específico #d5d5d5 (cualquier contenedor) */
+html.theme-light .brew-config-option-divider,
+html:not(.theme-dark) .brew-config-option-divider {
+  background: #d5d5d5 !important;
+}
+html.theme-light .brew-config-cafe-card .brew-config-option-divider,
+html.theme-light .brew-forma-card .brew-config-option-divider,
 html:not(.theme-dark) .brew-config-cafe-card .brew-config-option-divider,
 html:not(.theme-dark) .brew-forma-card .brew-config-option-divider {
-  background: #f7f7f7;
+  background: #d5d5d5 !important;
 }
-/* Modo noche: líneas de separación solo en elaboración/config con #212121 (misma especificidad que modo día) */
+/* Modo noche: solo cuando html.theme-dark está presente (no usar :not(.theme-light) para no pisar modo día) */
 html.theme-dark .brew-config-cafe-card .brew-config-option-divider,
 html.theme-dark .brew-forma-card .brew-config-option-divider,
-html:not(.theme-light) .brew-config-cafe-card .brew-config-option-divider,
-html:not(.theme-light) .brew-forma-card .brew-config-option-divider {
+html.theme-dark .brew-config-option-divider {
   background: #212121 !important;
 }
 .brew-config-option-row {
@@ -13651,6 +14216,11 @@ html.theme-dark .brew-barista-sheet-close:hover {
 /* Slider de tiempo (espresso): alineado por abajo */
 .brew-tech-row-time {
   align-items: end;
+}
+
+/* Fila Café en espresso: títulos "Café" y "RATIO..." a la misma altura */
+.brew-tech-row-coffee-espresso {
+  align-items: start;
 }
 
 .brew-tech-row .brew-tech-field {
@@ -14334,6 +14904,13 @@ html.theme-dark .app-range.app-range--time {
 .brew-result-screen {
   display: grid;
   gap: 14px;
+}
+
+/* Consumo: títulos con más margen arriba y menos abajo (pegados a la card inferior) */
+.brew-result-screen .brew-config-cafe-title,
+.brew-result-screen .brew-result-section-title {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-1);
 }
 
 .brew-result-card {
@@ -18269,6 +18846,31 @@ html.theme-dark .app-range.app-range--time {
     border-color: rgba(26, 18, 11, 0.35);
   }
   .search-filter-item input[type="checkbox"]:checked {
+    border-color: var(--caramel-accent);
+    background-color: var(--caramel-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  }
+
+  /* Crear café: items de picker con mismo estilo de cards que filtros (modo día: blanco) */
+  .create-coffee-picker-option {
+    background: var(--pure-white);
+  }
+
+  .create-coffee-picker-option:hover {
+    background: var(--pure-white);
+    border-color: rgba(111, 78, 55, 0.3);
+  }
+
+  .create-coffee-picker-option.is-selected {
+    background: var(--pure-white);
+    border-color: var(--caramel-accent);
+  }
+
+  .create-coffee-picker-checkbox {
+    border-color: rgba(26, 18, 11, 0.35);
+  }
+
+  .create-coffee-picker-checkbox:checked {
     border-color: var(--caramel-accent);
     background-color: var(--caramel-accent);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");

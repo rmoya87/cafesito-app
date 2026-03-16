@@ -423,7 +423,7 @@ export function DiaryView({
     });
     coffeesWithFirstTried.sort((a, b) => a.firstTriedTs - b.firstTriedTs);
     return {
-      distinctCoffees: byCoffeeId.size,
+      distinctCoffees: coffeesWithFirstTried.length,
       coffeesWithFirstTried,
       distinctRoasters: roasterSet.size,
       favoriteOrigin

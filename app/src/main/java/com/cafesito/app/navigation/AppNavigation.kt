@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -450,10 +451,18 @@ fun AppNavigation(
                     )
                 }
 
-                composable(route = "cafesProbados") {
+                composable(route = "cafesProbados") { backStackEntry ->
+                    // ViewModel scoped to Activity para que el listado y el mapa se conserven al volver del detalle
+                    val activity = LocalContext.current as? ComponentActivity
+                    val viewModel: CafesProbadosViewModel = if (activity != null) {
+                        hiltViewModel(activity)
+                    } else {
+                        hiltViewModel(backStackEntry)
+                    }
                     CafesProbadosScreen(
                         onBack = { navController.popBackStack() },
-                        onCoffeeClick = { id -> navController.navigate("detail/$id") }
+                        onCoffeeClick = { id -> navController.navigate("detail/$id") },
+                        viewModel = viewModel
                     )
                 }
 

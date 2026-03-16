@@ -58,10 +58,30 @@ export function parseRoute(pathname: string) {
       profileListId: undefined
     };
   }
+  if (first === "crear-cafe") {
+    return {
+      tab: "crear-cafe" as TabId,
+      searchMode: "coffees" as const,
+      profileUsername: null,
+      coffeeSlug: null,
+      profileSection: null,
+      profileListId: undefined
+    };
+  }
+  if (first === "selecciona-cafe") {
+    return {
+      tab: "selecciona-cafe" as TabId,
+      searchMode: "coffees" as const,
+      profileUsername: null,
+      coffeeSlug: null,
+      profileSection: null,
+      profileListId: undefined
+    };
+  }
   return { tab: "home" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined };
 }
 
-const TAB_SEGMENTS = ["home", "search", "brewlab", "diary", "profile", "coffee"];
+const TAB_SEGMENTS = ["home", "search", "brewlab", "diary", "profile", "coffee", "crear-cafe", "selecciona-cafe"];
 
 /** Pathname de la raíz de la app (para mostrar login en URL raíz, no /home). */
 export function getAppRootPath(pathname: string): string {
@@ -83,7 +103,7 @@ export function isKnownRoute(pathname: string): boolean {
   const first = routeSegments[0] ?? "";
   const second = routeSegments[1] ?? "";
 
-  if (first === "home" || first === "brewlab") return routeSegments.length === 1;
+  if (first === "home" || first === "brewlab" || first === "crear-cafe" || first === "selecciona-cafe") return routeSegments.length === 1;
   if (first === "diary") return routeSegments.length === 1 || (routeSegments.length === 2 && second === "cafes-probados");
   if (first === "search") return routeSegments.length <= 2 && (second === "" || second === "users");
   if (first === "profile") {
@@ -151,5 +171,7 @@ export function buildRoute(
     return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}` : "/profile";
   }
   if (tab === "coffee") return coffeeSlug ? `/coffee/${encodeURIComponent(coffeeSlug)}/` : "/home";
+  if (tab === "crear-cafe") return "/crear-cafe";
+  if (tab === "selecciona-cafe") return "/selecciona-cafe";
   return "/home";
 }

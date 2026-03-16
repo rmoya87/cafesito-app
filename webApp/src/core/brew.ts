@@ -312,7 +312,7 @@ export function getBrewStepTitle(step: BrewStep): string {
   if (step === "coffee") return "ELIGE TU CAFÉ";
   if (step === "config") return "CONFIGURA";
   if (step === "brewing") return "PROCESO EN CURSO";
-  return "RESULTADO";
+  return "CONSUMO";
 }
 
 export function getBrewTimelineForMethod(

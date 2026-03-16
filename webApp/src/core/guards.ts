@@ -1,9 +1,10 @@
 import type { TabId } from "../types";
 
-/** searchMode solo aplica cuando tab === "search". Buscar usuarios exige login. */
+/** searchMode solo aplica cuando tab === "search". Buscar usuarios y crear café exigen login. */
 export function canAccessTabAsGuest(tab: TabId, searchMode?: "coffees" | "users"): boolean {
   if (tab === "coffee") return true;
   if (tab === "search") return searchMode !== "users";
+  if (tab === "crear-cafe" || tab === "selecciona-cafe") return false;
   return false;
 }
 

@@ -2,12 +2,17 @@ import { useEffect } from "react";
 import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../../core/routing";
 import { canNavigateToTab } from "../../core/guards";
 
-export function useRouteCanonicalSync(isAuthenticated?: boolean) {
+/**
+ * Sincroniza la URL canónica (normalización y redirección cuando no autenticado).
+ * Solo aplica la lógica cuando authReady es true para no pisar la URL en F5 antes de restaurar sesión.
+ */
+export function useRouteCanonicalSync(isAuthenticated?: boolean, authReady = true) {
   useEffect(() => {
     const pathname = window.location.pathname;
     if (!isKnownRoute(pathname)) return;
     const base = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
     if (!isAuthenticated) {
+      if (!authReady) return;
       const route = parseRoute(pathname);
       if (canNavigateToTab(route.tab, false, route.tab === "search" ? route.searchMode : undefined)) {
         return;
@@ -24,7 +29,7 @@ export function useRouteCanonicalSync(isAuthenticated?: boolean) {
     if (pathname !== normalized) {
       window.history.replaceState({}, "", `${normalized}${window.location.search}${window.location.hash}`);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authReady]);
 }
 
 const RETURN_AFTER_LOGIN_KEY = "cafesito_return_after_login";

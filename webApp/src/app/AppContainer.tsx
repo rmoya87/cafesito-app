@@ -301,9 +301,6 @@ export function AppContainer() {
       /* ignore */
     }
   }, [brewMethod, brewDrinkType, waterMl, brewCoffeeGrams, brewStep, brewTimerEnabled]);
-  useEffect(() => {
-    if (activeTab === "brewlab") setBrewCoffeeId("");
-  }, [activeTab, setBrewCoffeeId]);
   const [diaryTab, setDiaryTab] = useState<"actividad" | "despensa">("actividad");
   const [diaryPeriod, setDiaryPeriod] = useState<DiaryPeriod>("week");
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -560,6 +557,24 @@ export function AppContainer() {
     onRequireAuth: requestLogin
   });
 
+  const handleOpenCreateCoffee = useCallback(() => {
+    runWithAuth(() => navigateToTab("crear-cafe"));
+  }, [runWithAuth, navigateToTab]);
+
+  const handleCloseCreateCoffee = useCallback(() => {
+    setShowCreateCoffeeComposer(false);
+    if (activeTab === "crear-cafe") navigateToTab("selecciona-cafe");
+  }, [activeTab, navigateToTab, setShowCreateCoffeeComposer]);
+
+  const handleOpenSeleccionaCafe = useCallback(() => {
+    runWithAuth(() => navigateToTab("selecciona-cafe"));
+  }, [runWithAuth, navigateToTab]);
+
+  const handleCloseSeleccionaCafe = useCallback(() => {
+    setBrewSelectCoffeePageOpen(false);
+    if (activeTab === "selecciona-cafe") navigateToTab("brewlab");
+  }, [activeTab, navigateToTab, setBrewSelectCoffeePageOpen]);
+
   const handleOpenBrewToMethod = useCallback(
     (methodName: string) => {
       const profile = getBrewMethodProfile(methodName);
@@ -633,7 +648,7 @@ export function AppContainer() {
     }
   }, [profileListId, activeUser, navigateToTab]);
 
-  useRouteCanonicalSync(Boolean(sessionEmail));
+  useRouteCanonicalSync(Boolean(sessionEmail), authReady);
   const loginRootPath = useMemo(() => getAppRootPath(window.location.pathname) || "/", []);
   useRouteGuardSync({
     authReady,
@@ -899,6 +914,19 @@ export function AppContainer() {
     followedUsersActivityData
   });
 
+  const createCoffeeBrandSuggestions = useMemo(() => {
+    const byKey = new Map<string, string>();
+    coffees.forEach((c) => {
+      const raw = c.marca?.trim();
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      if (byKey.has(key)) return;
+      const unified = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+      byKey.set(key, unified);
+    });
+    return Array.from(byKey.values()).sort((a, b) => a.localeCompare(b, "es"));
+  }, [coffees]);
+
   useEffect(() => {
     if (profileSubPanel !== "list" || !profileListId) {
       setProfileListMeta(null);
@@ -1066,10 +1094,16 @@ export function AppContainer() {
     };
   }, [showCopyChip]);
 
+  /** Catálogo + custom para listado y total de cafés probados (solo se muestran los que están en esta lista). */
+  const coffeeCatalogIncludingCustom = useMemo(
+    () => [...brewCoffeeCatalog, ...customCoffees],
+    [brewCoffeeCatalog, customCoffees]
+  );
+
   const diaryCoffeesWithFirstTried = useMemo(() => {
     const coffeeEntries = diaryEntries.filter((e) => (e.type ?? "").toUpperCase() !== "WATER");
     const coffeeById = new Map<string, CoffeeRow>();
-    brewCoffeeCatalog.forEach((c) => coffeeById.set(String(c.id), c));
+    coffeeCatalogIncludingCustom.forEach((c) => coffeeById.set(String(c.id), c));
     const byCoffeeId = new Map<string, number>();
     coffeeEntries.forEach((entry) => {
       if (entry.coffee_id) {
@@ -1085,7 +1119,7 @@ export function AppContainer() {
     });
     list.sort((a, b) => a.firstTriedTs - b.firstTriedTs);
     return list;
-  }, [diaryEntries, brewCoffeeCatalog]);
+  }, [diaryEntries, coffeeCatalogIncludingCustom]);
 
   const isListActive = useMemo(
     () =>
@@ -1250,10 +1284,10 @@ export function AppContainer() {
     openAddPantrySheet();
   }, [openAddPantrySheet]);
 
-  /** Abre la página «Selecciona café» (Tu despensa, misma UI que home) para elegir café para la elaboración. */
+  /** Abre la página «Selecciona café» (URL /selecciona-cafe) para elegir café para la elaboración. */
   const openCoffeeSheetForBrew = useCallback(() => {
-    setBrewSelectCoffeePageOpen(true);
-  }, []);
+    handleOpenSeleccionaCafe();
+  }, [handleOpenSeleccionaCafe]);
 
   /** Abre añadir a despensa desde la página Selecciona café de elaboración; al guardar se asigna ese café a la elaboración y se cierra la página. */
   const openAddPantrySheetFromBrewSelect = useCallback(() => {
@@ -1276,9 +1310,9 @@ export function AppContainer() {
       setBrewCoffeeId(coffeeId);
       setBrewStep("method");
       addPantryOpenedFromBrewRef.current = false;
-      setBrewSelectCoffeePageOpen(false);
+      handleCloseSeleccionaCafe();
     }
-  }, [navigateToTab, savePantry, selectedDiaryPantryCoffee?.id, setBrewCoffeeId, setBrewStep]);
+  }, [handleCloseSeleccionaCafe, navigateToTab, savePantry, selectedDiaryPantryCoffee?.id, setBrewCoffeeId, setBrewStep]);
 
   useCoffeeDetailDraftSync({
     hasDetailCoffee: Boolean(detailCoffee),
@@ -1379,7 +1413,8 @@ export function AppContainer() {
     visibleTimelineNotifications: visibleHomeNotifications,
     dismissNotificationTimersRef,
     closeDiarySheets,
-    handleRefreshTimeline: handleRefreshHome
+    handleRefreshTimeline: handleRefreshHome,
+    onCloseCreateCoffee: handleCloseCreateCoffee
   });
 
   const { openCoffeeDetail, closeCoffeePanel } = useCoffeeDetailNavigation({
@@ -1492,6 +1527,7 @@ export function AppContainer() {
       error={createCoffeeError}
       countryOptions={searchOriginOptions}
       specialtyOptions={searchSpecialtyOptions}
+      brandSuggestions={createCoffeeBrandSuggestions}
       onChange={setCreateCoffeeDraft}
       onPickImage={onPickCreateCoffeeImage}
       onRemoveImage={onRemoveCreateCoffeeImage}
@@ -1499,6 +1535,55 @@ export function AppContainer() {
       onSave={() => void saveCreateCoffee({ fromBrewChooser: true })}
       fullPage={mode !== "desktop"}
       hideActions={true}
+    />
+  );
+
+  const crearCafeContent = (
+    <section className="create-coffee-mobile-screen">
+      <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+        <LazyCreateCoffeeView
+          draft={createCoffeeDraft}
+          imagePreviewUrl={createCoffeeImagePreviewUrl}
+          saving={createCoffeeSaving}
+          error={createCoffeeError}
+          countryOptions={searchOriginOptions}
+          specialtyOptions={searchSpecialtyOptions}
+          brandSuggestions={createCoffeeBrandSuggestions}
+          onChange={setCreateCoffeeDraft}
+          onPickImage={onPickCreateCoffeeImage}
+          onRemoveImage={onRemoveCreateCoffeeImage}
+          onClose={handleCloseCreateCoffee}
+          onSave={() => void saveCreateCoffee({ fromBrewChooser: true })}
+          fullPage={true}
+          hideActions={true}
+        />
+      </Suspense>
+    </section>
+  );
+
+  const seleccionarCafeContent = (
+    <BrewSelectCoffeePage
+      pantryItems={brewPantryItems}
+      coffeeOptions={diaryCoffeeOptions}
+      brewCoffeeGrams={brewCoffeeGrams}
+      onBack={handleCloseSeleccionaCafe}
+      onSelectCoffee={(coffeeId) => {
+        setBrewCoffeeId(coffeeId);
+        handleCloseSeleccionaCafe();
+      }}
+      onAddToPantry={openAddPantrySheetFromBrewSelect}
+      onCreateCoffee={() => {
+        handleCloseSeleccionaCafe();
+        handleOpenCreateCoffee();
+      }}
+      onUpdatePantryStock={handleUpdatePantryStock}
+      onRemovePantryItem={handleRemovePantryItem}
+      onMarkPantryCoffeeFinished={handleMarkPantryCoffeeFinished}
+      showBarcodeButton={isMobileOsDevice}
+      onBarcodeClick={() => {
+        setBarcodeOrigin("brew");
+        setShowBarcodeScannerSheet(true);
+      }}
     />
   );
 
@@ -1511,6 +1596,7 @@ export function AppContainer() {
         error={createCoffeeError}
         countryOptions={searchOriginOptions}
         specialtyOptions={searchSpecialtyOptions}
+        brandSuggestions={createCoffeeBrandSuggestions}
         onChange={setCreateCoffeeDraft}
         onPickImage={onPickCreateCoffeeImage}
         onRemoveImage={onRemoveCreateCoffeeImage}
@@ -1535,7 +1621,8 @@ export function AppContainer() {
     createCoffeeDraft.brand.trim() !== "" &&
     createCoffeeDraft.specialty.trim() !== "" &&
     createCoffeeDraft.country.trim() !== "" &&
-    createCoffeeDraft.format.trim() !== "";
+    createCoffeeDraft.format.trim() !== "" &&
+    createCoffeeDraft.totalGrams > 0;
 
   const createCoffeeFormForPantrySheet = (
     <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
@@ -1546,6 +1633,7 @@ export function AppContainer() {
         error={createCoffeeError}
         countryOptions={createCoffeeCountryOptions}
         specialtyOptions={searchSpecialtyOptions}
+        brandSuggestions={createCoffeeBrandSuggestions}
         onChange={setCreateCoffeeDraft}
         onPickImage={onPickCreateCoffeeImage}
         onRemoveImage={onRemoveCreateCoffeeImage}
@@ -1611,7 +1699,9 @@ export function AppContainer() {
       brewlab: "Elabora",
       diary: "Diario",
       profile: "Perfil",
-      coffee: detailCoffee?.nombre ? `Café · ${detailCoffee.nombre}` : "Café"
+      coffee: detailCoffee?.nombre ? `Café · ${detailCoffee.nombre}` : "Café",
+      "crear-cafe": "Crea tu café",
+      "selecciona-cafe": "Seleccionar café"
     };
     const pageTitle = titles[guardedActiveTab] ?? "Cafesito";
     sendPageView(gaPagePath, `Cafesito - ${pageTitle}`);
@@ -1635,6 +1725,7 @@ export function AppContainer() {
   const showingLogin = (!authReady && !guestCanAccessCurrentTab) || (!sessionEmail && !guestCanAccessCurrentTab);
   useLayoutEffect(() => {
     if (isNotFoundRoute) return;
+    if (!authReady) return;
     if (!showingLogin) return;
     const pathname = window.location.pathname;
     const root = (getAppRootPath(pathname) || "/").replace(/\/+$/, "") || "/";
@@ -1642,7 +1733,7 @@ export function AppContainer() {
     if (current !== root) {
       window.history.replaceState({}, "", `${root}${window.location.search}${window.location.hash}`);
     }
-  }, [isNotFoundRoute, showingLogin]);
+  }, [isNotFoundRoute, showingLogin, authReady]);
   const mentionUsersByUsername = useMemo(() => {
     const map = new Map<string, UserRow>();
     users.forEach((user) => {
@@ -1659,7 +1750,7 @@ export function AppContainer() {
     return { username: user.username, avatarUrl: user.avatar_url };
   }, [mentionUsersByUsername]);
   const isSearchUsersPage = guardedActiveTab === "search" && searchMode === "users";
-  const navActiveTab = isSearchUsersPage ? "home" : guardedActiveTab;
+  const navActiveTab = isSearchUsersPage ? "home" : guardedActiveTab === "crear-cafe" || guardedActiveTab === "selecciona-cafe" ? "brewlab" : guardedActiveTab;
   const nav = <BottomNav activeTab={navActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
   const navRail = <DesktopNavRail activeTab={navActiveTab} onNavClick={handleNavClick} avatarUrl={activeUser?.avatar_url ?? null} />;
   const topbarActions = useTopBarActions({
@@ -1907,30 +1998,7 @@ export function AppContainer() {
     ) : null;
   const brewContent =
     guardedActiveTab === "brewlab" ? (
-      brewSelectCoffeePageOpen ? (
-        <BrewSelectCoffeePage
-          pantryItems={brewPantryItems}
-          coffeeOptions={diaryCoffeeOptions}
-          onBack={() => setBrewSelectCoffeePageOpen(false)}
-          onSelectCoffee={(coffeeId) => {
-            setBrewCoffeeId(coffeeId);
-            setBrewSelectCoffeePageOpen(false);
-          }}
-          onAddToPantry={openAddPantrySheetFromBrewSelect}
-          onCreateCoffee={() => {
-            setBrewSelectCoffeePageOpen(false);
-            openCreateCoffeeComposer();
-          }}
-          onUpdatePantryStock={handleUpdatePantryStock}
-          onRemovePantryItem={handleRemovePantryItem}
-          onMarkPantryCoffeeFinished={handleMarkPantryCoffeeFinished}
-          showBarcodeButton={isMobileOsDevice}
-          onBarcodeClick={() => {
-            setBarcodeOrigin("brew");
-            setShowBarcodeScannerSheet(true);
-          }}
-        />
-      ) : showCreateCoffeeComposer && mode !== "desktop" ? (
+      showCreateCoffeeComposer && mode !== "desktop" ? (
         <section className="create-coffee-mobile-screen">
           <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
             {createCoffeePanel}
@@ -1949,7 +2017,7 @@ export function AppContainer() {
           coffees={brewCoffeeCatalog}
           orderedBrewMethods={orderedBrewMethods}
           pantryItems={brewPantryItems}
-          onAddNotFoundCoffee={openCreateCoffeeComposer}
+          onAddNotFoundCoffee={handleOpenCreateCoffee}
           onAddToPantry={openCoffeeSheetForBrew}
           waterMl={waterMl}
           setWaterMl={setWaterMl}
@@ -1998,7 +2066,7 @@ export function AppContainer() {
           selectedDiaryDate={selectedDiaryDate}
           selectedDiaryMonth={selectedDiaryMonth}
           entries={diaryEntriesActivity}
-          coffeeCatalog={brewCoffeeCatalog}
+          coffeeCatalog={coffeeCatalogIncludingCustom}
           pantryRows={pantryCoffeeRows}
           orderedBrewMethods={orderedBrewMethods}
           onDeleteEntry={handleDeleteDiaryEntry}
@@ -2017,7 +2085,7 @@ export function AppContainer() {
       profileSubPanel === "historial" ? (
         <HistorialView
           finishedCoffees={finishedCoffees}
-          coffeeCatalog={brewCoffeeCatalog}
+          coffeeCatalog={coffeeCatalogIncludingCustom}
           onBack={() => {
             setProfileSubPanel(null);
             navigateToTab("profile", { replace: true });
@@ -2562,10 +2630,10 @@ export function AppContainer() {
           brewResultCanSave={brewResultSaveMeta.canSave}
           brewResultSaving={brewResultSaveMeta.saving}
           brewResultShowGuardar={brewResultSaveMeta.showGuardar}
-          brewSelectCoffeePageOpen={brewSelectCoffeePageOpen}
-          onBrewSelectCoffeeBack={() => setBrewSelectCoffeePageOpen(false)}
-          brewCreateCoffeeOpen={showCreateCoffeeComposer}
-          onBrewCreateCoffeeBack={closeCreateCoffeeComposer}
+          brewSelectCoffeePageOpen={guardedActiveTab === "selecciona-cafe" || brewSelectCoffeePageOpen}
+          onBrewSelectCoffeeBack={handleCloseSeleccionaCafe}
+          brewCreateCoffeeOpen={guardedActiveTab === "crear-cafe" || showCreateCoffeeComposer}
+          onBrewCreateCoffeeBack={handleCloseCreateCoffee}
           onBrewCreateCoffeeSave={() => void saveCreateCoffee({ fromBrewChooser: true })}
           brewCreateCoffeeFormValid={isCreateCoffeeFormValid}
           brewCreateCoffeeSaving={createCoffeeSaving}
@@ -2688,6 +2756,8 @@ export function AppContainer() {
               brewContent={brewContent}
               diaryContent={diaryContent}
               profileContent={profileContent}
+              crearCafeContent={crearCafeContent}
+              seleccionarCafeContent={seleccionarCafeContent}
             />
           </Suspense>
         </div>
@@ -2696,7 +2766,7 @@ export function AppContainer() {
       {mode === "desktop" && !(guardedActiveTab === "search" && !detailCoffee) ? (
         <aside
           className={useRightRailDetail || (guardedActiveTab === "brewlab" && showCreateCoffeeComposer) ? "detail-rail-fixed" : "fab-rail"}
-          aria-label={useRightRailDetail ? "Detalle cafe" : guardedActiveTab === "brewlab" && showCreateCoffeeComposer ? "Crear cafe" : "Acciones"}
+          aria-label={useRightRailDetail ? "Detalle cafe" : guardedActiveTab === "brewlab" && showCreateCoffeeComposer ? "Crea tu café" : "Acciones"}
         >
           {useRightRailDetail ? (
             <div className="desktop-detail-wrap">{detailPanel}</div>
@@ -2706,7 +2776,7 @@ export function AppContainer() {
         </aside>
       ) : null}
 
-      {mode === "mobile" && !(guardedActiveTab === "brewlab" && showCreateCoffeeComposer) && !isSearchUsersPage && !detailCoffeeId ? <footer className="bottom-tabs">{nav}</footer> : null}
+      {mode === "mobile" && guardedActiveTab !== "crear-cafe" && guardedActiveTab !== "selecciona-cafe" && !(guardedActiveTab === "brewlab" && showCreateCoffeeComposer) && !isSearchUsersPage && !detailCoffeeId ? <footer className="bottom-tabs">{nav}</footer> : null}
 
       {showEditListSheet && profileListId && (() => {
         const list = userLists.find((l) => l.id === profileListId);

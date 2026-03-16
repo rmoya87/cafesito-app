@@ -1,4 +1,4 @@
-export type TabId = "home" | "search" | "brewlab" | "diary" | "profile" | "coffee";
+export type TabId = "home" | "search" | "brewlab" | "diary" | "profile" | "coffee" | "crear-cafe" | "selecciona-cafe";
 export type ViewMode = "mobile" | "desktop";
 export type BrewStep = "method" | "coffee" | "config" | "brewing" | "result";
 
