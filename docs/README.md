@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-14 (registro §16 elaboración Android/WebApp)  
+**Última actualización:** 2026-03-17 (registro §17 despensa, diario, deploy, CI)  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -91,7 +91,9 @@ flowchart TB
 | `GUIA_COMPONENTES_UI.md` | **Inventario de componentes UI:** cada componente (WebApp y Android) definido por estilos, funcionalidad, dónde se usa y estado; reutilizar o evolucionar en nuevas pantallas; eliminar los no usados. |
 | `UX_EMPTY_AND_ERROR_STATES.md` | Patrón unificado para estados vacío (mensaje + CTA) y error de red (mensaje + Reintentar) en Web y Android. |
 | `SHARED_BUSINESS_LOGIC.md` | Qué lógica de negocio es compartida (diario, brew, reseñas, recomendaciones) y dónde vive (shared/, webApp/core/). |
+| `DOCUMENTO_FUNCIONAL_CAFESITO.md` | **Especificación funcional:** flujos principales (Despensa, Diario, Elaboración, Perfil, Auth) y criterios de aceptación por flujo. Consultar antes de cambiar comportamiento de usuario. |
 | `SMOKE_TESTS.md` | Flujo de humo crítico (login → diario → detalle/añadir) y dónde añadir tests en Web y Android. |
+| `TESTING_PRE_POST_DESARROLLO.md` | **Testing pre y post:** qué validar antes de codear (docs, criterios, flujos) y después (build, tests, smoke, checklist manual). |
 | `ACCESIBILIDAD_WEBAPP_ANDROID.md` | **Accesibilidad (fuente única):** criterios mínimos (aria-label/contentDescription, 44px/48dp, contraste WCAG), revisión WebApp y Android, huecos, checklist al eliminar/modificar/añadir UI. |
 | `DEVELOPMENT_WORKFLOW_AI_CURSOR.md` | Flujo para desarrollo con IA: consultar docs antes de código; avisar antes de modificar docs. |
 | `ANALITICAS_WEB_Y_ANDROID.md` | **Analíticas:** qué se recoge en WebApp (GA4) y Android (Firebase), archivos implicados y checklist al eliminar/modificar/añadir funcionalidades. Consultar siempre antes de tocar rutas o pantallas. |
@@ -229,6 +231,8 @@ flowchart TB
 | Ámbito | Documento(s) prioritario(s) |
 |--------|-----------------------------|
 | Principios, capas, dominio, shared | `MASTER_ARCHITECTURE_GOVERNANCE.md`, `SHARED_BUSINESS_LOGIC.md` |
+| Comportamiento funcional, criterios de aceptación | `DOCUMENTO_FUNCIONAL_CAFESITO.md` |
+| Testing pre y post desarrollo | `TESTING_PRE_POST_DESARROLLO.md`, `SMOKE_TESTS.md` |
 | Colores, espaciado, radios | `DESIGN_TOKENS.md` |
 | Componentes, reutilización, inventario | `GUIA_UNIFICACION_COMPONENTES_UI.md`, `GUIA_COMPONENTES_UI.md` |
 | Estados vacío/error | `UX_EMPTY_AND_ERROR_STATES.md` |
@@ -255,6 +259,7 @@ flowchart TD
 ```
 
 - **Decisión arquitectónica relevante:** ADR en `docs/adr/` (crear carpeta si no existe) o sección en MASTER si es principio transversal.
+- **Comportamiento funcional nuevo o cambio de flujo:** actualizar `DOCUMENTO_FUNCIONAL_CAFESITO.md` (flujos y criterios de aceptación).
 - **Runbook de incidente:** `docs/runbooks/` o `docs/supabase/` si es solo backend/Supabase; añadir entrada en `runbooks/README.md`.
 - **Cambio de flujo de release/deploy:** actualizar `RELEASE_DEPLOY_WORKFLOW.md` y, si aplica, la tabla de registro de despliegues y commit-notes.
 - **Documentación solo WebApp:** `webApp/docs/`.

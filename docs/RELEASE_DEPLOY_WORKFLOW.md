@@ -1,7 +1,7 @@
 # Workflow Release & Deploy
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-09  
+**Última actualización:** 2026-03-17  
 **Fuente de verdad:** comportamiento por rama y despliegue (Android + Web).
 
 Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que gestiona el release de Android en Google Play y el despliegue de la web en Ionos según la rama.
@@ -189,3 +189,4 @@ Se documentan aquí los despliegues relevantes (push a main + Alpha/Beta/Producc
 | Fecha       | Ramas        | Descripción |
 |------------|--------------|-------------|
 | 2026-02-28 | main, Alpha  | **Webapp**: redirect OAuth con path completo (fix 500 PWA iOS), topbar hide on scroll down / show on scroll up, .htaccess excluye `registerSW.js`. Ver `docs/commit-notes/commit-20260228-webapp-main-alpha.md`. |
+| 2026-03-16 | main, beta   | **Despensa/diario:** guardar y añadir desde elaboración y Home, stock restante en UI, método espresso títulos, fix 400 insert pantry (id UUID), modal "Café terminado" Android. **CI:** fix deploy-web (DiarySheets props, git 128 en job changes). Ver `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` §17 y `docs/commit-notes/commit-20260316-despensa-diario-deploy.md`. |

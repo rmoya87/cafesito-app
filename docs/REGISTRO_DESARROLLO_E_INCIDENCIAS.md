@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-16
+**Última actualización:** 2026-03-17
 
 ---
 
@@ -38,6 +38,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 14. [Segunda pasada GUIA — Colores Android y documentación (13 mar 2026)](#14-segunda-pasada-guia--colores-android-y-documentación-13-mar-2026)
 15. [Tercera pasada GUIA — Dimensiones, Spacing, Dimens, WebApp chart (13 mar 2026)](#15-tercera-pasada-guia--dimensiones-spacing-dimens-webapp-chart-13-mar-2026)
 16. [Elaboración Android y WebApp — chips, carruseles, márgenes, Selecciona café como página (13–14 mar 2026)](#16-elaboración-android-y-webapp--chips-carruseles-márgenes-selecciona-café-como-página-1314-mar-2026)
+17. [Resumen de cambios — despensa, diario, deploy, CI (15–16 mar 2026)](#17-resumen-de-cambios--despensa-diario-deploy-ci-1516-mar-2026)
 
 ---
 
@@ -115,6 +116,8 @@ This comparison appears to be unintentional because the types '"search" | "timel
 
 **Archivo:** `.github/workflows/release-deploy.yml` (step checkout del job `deploy-web`).
 
+**Si git 128 sigue apareciendo en `changes` o `deploy-web`:** (1) En **push**: comprobar que la rama a la que se hace push existe y el nombre coincide exactamente (mayúsculas/minúsculas, p. ej. `beta` no `Beta`). (2) En **workflow_dispatch**: comprobar que la rama elegida existe en el repo (p. ej. crear/actualizar con `git push origin main:beta`) y que en Settings → Actions → General → Workflow permissions está "Read and write". (3) En el job `changes` se añadió `ref: ${{ github.ref }}` explícito en el checkout (push) para alinearlo con deploy-web y release-android.
+
 ---
 
 ### 2.4 release-android: git exit 128 y deprecación Node.js 20
@@ -129,6 +132,23 @@ This comparison appears to be unintentional because the types '"search" | "timel
 3. **Node 24:** Añadido `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` en `env` del workflow para optar por Node 24 en las acciones y eliminar el aviso de deprecación.
 
 **Archivo:** `.github/workflows/release-deploy.yml`.
+
+---
+
+### 2.5 Error: `Cannot find name 'diarySelectedPantryItemIdDraft'` en deploy-web
+
+**Síntoma:** El job `deploy-web` fallaba con errores TypeScript:
+
+```text
+Cannot find name 'diarySelectedPantryItemIdDraft'.
+Cannot find name 'setDiarySelectedPantryItemIdDraft'.
+```
+
+**Causa:** En `DiarySheets.tsx`, las props `diarySelectedPantryItemIdDraft` y `setDiarySelectedPantryItemIdDraft` estaban declaradas en el **tipo** del componente pero **no** en la destructuración del parámetro. El cuerpo del componente las usaba, por lo que TypeScript las consideraba no definidas.
+
+**Solución:** Añadir ambas a la destructuración de props de `DiarySheets`, junto a `diaryCoffeeIdDraft` / `setDiaryCoffeeIdDraft`.
+
+**Archivo:** `webApp/src/features/diary/DiarySheets.tsx`.
 
 ---
 
@@ -544,6 +564,55 @@ Ajustes de UI en elaboración (BrewLab) en Android y conversión de "Selecciona 
 ### WebApp
 
 - **Selecciona café:** Modal sustituido por página completa (`BrewSelectCoffeePage`); TopBar "Selecciona café" y flecha atrás; misma lógica y UI que "Tu despensa" de Home; sugerencias sin cafés ya en despensa; despensa por último uso.
+
+---
+
+## 17. Resumen de cambios — despensa, diario, deploy, CI (15–16 mar 2026)
+
+Cambios en flujos de despensa (guardar/añadir desde elaboración y Home), stock restante en UI, método espresso, error 400 al insertar en despensa, modal "Café terminado" en Android, y correcciones de CI/deploy-web (TypeScript y git exit 128).
+
+### 17.1 Guardar en despensa desde "Selecciona café"
+
+| Plataforma | Archivo(s) | Cambio |
+|------------|------------|--------|
+| **WebApp** | `useDiarySheetActions.ts`, `AppContainer` (o equivalente donde se maneja brew) | `savePantry` devuelve el ítem creado; en `handleSavePantry` se llama a `setBrewPantryItemId(newRow.id)` además de `setBrewCoffeeId` cuando se abre desde elaboración. |
+| **Android** | `AppNavigation.kt` | Callback `onCoffeeCreatedForBrewLab` guarda el id del ítem en `getBackStackEntry("brewlab")?.savedStateHandle` (no en `previousBackStackEntry`). |
+
+### 17.2 Stock restante en "Tu despensa" (1000/1000 vs real)
+
+En WebApp se mostraba "restante tras esta elaboración" en lugar del stock real. Se pasó a mostrar siempre el stock real (`row.remaining` / `row.total`) en **BrewSelectCoffeePage** y **BrewViews**. Android ya mostraba el stock real.
+
+### 17.3 Método espresso: títulos en la misma línea y "Café (g)"
+
+**WebApp:** En `BrewViews.tsx` se añadió la fila `brew-tech-coffee-espresso-titles` con "Café (g)" y "RATIO 1:2.0 - CONCENTRADO" en la misma línea; estilos en `features.css`. La etiqueta "Café (g)" se reutiliza en otros métodos donde aplique.
+
+### 17.4 Añadir a despensa no funcionaba (Home y Selecciona café)
+
+| Plataforma | Cambio |
+|------------|--------|
+| **WebApp** | En `useDiarySheetActions.ts` se usa `customCoffees` y `getLastSelectedPantryCoffee` para resolver el café en `savePantry`. En `AppContainer.tsx`: `lastSelectedPantryCoffeeRef` y `onSelectPantryCoffee`; en `DiarySheets.tsx` se llama a `onSelectPantryCoffee(coffee)` al elegir un café y el botón Guardar pasa a `disabled={!diaryPantryCoffeeIdDraft}`. |
+| **Android** | En `DiaryViewModel.kt`, `addToPantry` tiene `onFailure`; en `AddStockScreen.kt` se usa para poner `isSaving = false`; en `AppNavigation.kt` se usa `getBackStackEntry("brewlab")?.savedStateHandle?.set(...)` para devolver el ítem creado a elaboración. |
+
+### 17.5 Error 400 al guardar en despensa (null en columna "id")
+
+**Causa:** La tabla `pantry_items` exige valor en la columna `id`; el insert no lo enviaba.
+
+**Solución:** En `webApp/src/data/supabaseApi.ts`, en `insertPantryItem`, añadir `id: crypto.randomUUID()` al objeto que se inserta en `pantry_items`.
+
+### 17.6 Android: modal "Café terminado"
+
+En **TimelineComponents.kt**, `DeleteConfirmationDialog` tiene el parámetro opcional `confirmButtonText` (por defecto `"ELIMINAR"`). En **DiaryScreen.kt** y **TimelineScreen.kt**, para la modal de café terminado se pasa `confirmButtonText = "CONFIRMAR"`.
+
+### 17.7 Deploy y CI
+
+| Incidencia | Solución |
+|------------|----------|
+| deploy-web: `Cannot find name 'diarySelectedPantryItemIdDraft'` / `setDiarySelectedPantryItemIdDraft` | Añadir ambas props a la destructuración del componente en `DiarySheets.tsx` (§2.5). |
+| Git exit 128 en jobs `changes` y `deploy-web` | En el job `changes`, checkout con `ref: ${{ github.ref }}` explícito en push; en §2.3 se amplió qué comprobar si el error persiste (rama exacta, permisos workflow, etc.). |
+
+### 17.8 Flujo main → beta
+
+Se subieron los cambios a `origin/main` y se llevó la rama `beta` al mismo estado (`git push origin main:beta` o merge de main en beta y push). Ver §3.3.
 
 ---
 
