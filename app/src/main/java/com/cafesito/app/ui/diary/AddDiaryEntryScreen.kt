@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -73,6 +72,7 @@ fun AddDiaryEntryScreen(
     val allCoffees by viewModel.availableCoffees.collectAsState(initial = emptyList())
     
     var selectedCoffee by remember { mutableStateOf<Coffee?>(null) }
+    var selectedPantryItemId by remember { mutableStateOf<String?>(null) }
     var step by remember(quickStart, initialType) { mutableIntStateOf(if (quickStart && initialType != "WATER") 2 else 1) }
     var isFromPantry by remember { mutableStateOf(false) }
     var selectedDoseGrams by remember { mutableFloatStateOf(15f) }
@@ -90,6 +90,7 @@ fun AddDiaryEntryScreen(
         val createdCoffee = allCoffees.firstOrNull { it.coffee.id == newCoffeeId }?.coffee ?: return@LaunchedEffect
         selectedCoffee = createdCoffee
         isFromPantry = false
+        selectedPantryItemId = null
         selectedDoseGrams = 15f
         selectedPrepType = "Espresso"
         selectedSize = CoffeeSizeOption.default()
@@ -113,7 +114,8 @@ fun AddDiaryEntryScreen(
                 amountMl = selectedSize.defaultMl,
                 coffeeGrams = selectedDoseGrams.roundToInt(),
                 preparationType = selectedPrepType,
-                sizeLabel = selectedSize.label
+                sizeLabel = selectedSize.label,
+                pantryItemId = selectedPantryItemId
             )
             onBackClick()
         }
@@ -169,6 +171,7 @@ fun AddDiaryEntryScreen(
                         IconButton(
                             onClick = {
                                 selectedCoffee = null
+                                selectedPantryItemId = null
                                 isFromPantry = false
                                 selectedDoseGrams = 15f
                                 selectedPrepType = "Espresso"
@@ -221,9 +224,10 @@ fun AddDiaryEntryScreen(
                             searchQuery = searchQuery,
                             onSearchQueryChange = { searchQuery = it },
                             onAddNotFoundClick = onAddNotFoundClick,
-                            onCoffeeSelected = { coffee, fromPantry -> 
+                            onCoffeeSelected = { coffee, fromPantry, pantryItemId -> 
                                 selectedCoffee = coffee
                                 isFromPantry = fromPantry
+                                selectedPantryItemId = pantryItemId
                                 selectedDoseGrams = 15f
                                 selectedPrepType = "Espresso"
                                 selectedSize = CoffeeSizeOption.default()
@@ -241,6 +245,7 @@ fun AddDiaryEntryScreen(
                                             if (found != null) {
                                                 selectedCoffee = found.coffee
                                                 isFromPantry = false
+                                                selectedPantryItemId = null
                                                 selectedDoseGrams = 15f
                                                 selectedPrepType = "Espresso"
                                                 selectedSize = CoffeeSizeOption.default()
@@ -284,7 +289,7 @@ fun WaterRegistrationStepPremium(
 ) {
     val waterBlue = WaterBlue
     var mlInput by remember(ml) { mutableStateOf(ml.roundToInt().toString()) }
-    val sliderInactiveTrackColor = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFE0E0E0)
+    val sliderInactiveTrackColor = if (isSystemInDarkTheme()) SliderTrackInactiveDark else SliderTrackInactiveLight
 
     Column(
         modifier = Modifier
@@ -358,7 +363,7 @@ fun CoffeeSelectionStepPremium(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onAddNotFoundClick: () -> Unit,
-    onCoffeeSelected: (Coffee, Boolean) -> Unit,
+    onCoffeeSelected: (Coffee, Boolean, String?) -> Unit,
     onBarcodeClick: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
@@ -398,7 +403,7 @@ fun CoffeeSelectionStepPremium(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(pantryItems, key = { it.pantryItem.id }) { item ->
-                        PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true) }
+                        PantryPremiumMiniCard(item) { onCoffeeSelected(item.coffee, true, item.pantryItem.id) }
                     }
                 }
             }
@@ -411,11 +416,11 @@ fun CoffeeSelectionStepPremium(
                 onValueChange = onSearchQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Busca un café o marca") },
-                shape = RoundedCornerShape(999.dp),
+                shape = Shapes.pillFull,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = if (isDark) Color.Black else Color.White,
-                    focusedContainerColor = if (isDark) Color.Black else Color.White
+                    unfocusedContainerColor = if (isDark) PureBlack else PureWhite,
+                    focusedContainerColor = if (isDark) PureBlack else PureWhite
                 ),
                 singleLine = true,
                 leadingIcon = { 
@@ -455,7 +460,7 @@ fun CoffeeSelectionStepPremium(
         }
 
         items(filteredCatalog, key = { it.coffee.id }) { coffee ->
-            CoffeePremiumRowItem(coffee) { onCoffeeSelected(coffee.coffee, false) }
+            CoffeePremiumRowItem(coffee) { onCoffeeSelected(coffee.coffee, false, null) }
             Spacer(Modifier.height(12.dp))
         }
     }
@@ -579,7 +584,7 @@ fun CoffeeTypeStepPremium(
             val resId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
             Surface(
                 onClick = { onTypeSelected(option.label) },
-                shape = RoundedCornerShape(20.dp),
+                shape = Shapes.shapeCardMedium,
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
                     width = if (isSelected) 2.dp else 1.dp,
@@ -626,7 +631,7 @@ fun CoffeeSizeStepPremium(
             val isSelected = option.label == selected.label
             Surface(
                 onClick = { onSelected(option) },
-                shape = RoundedCornerShape(18.dp),
+                shape = Shapes.cardLarge,
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
                     width = if (isSelected) 2.dp else 1.dp,
@@ -696,7 +701,7 @@ private fun calculateAverageCaffeine(type: String, grams: Int, isDecaf: Boolean)
 fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
     PremiumCard(
         modifier = Modifier.width(160.dp).clickable { onClick() },
-        shape = RoundedCornerShape(24.dp)
+        shape = Shapes.pill
     ) {
         Column {
             AsyncImage(
@@ -715,12 +720,12 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
 
 @Composable
 fun CoffeePremiumRowItem(coffee: CoffeeWithDetails, onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(20.dp)) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = Shapes.shapeCardMedium) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffee.coffee.imageUrl,
                 contentDescription = coffee.coffee.nombre,
-                modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp)),
+                modifier = Modifier.size(50.dp).clip(Shapes.cardSmall),
                 contentScale = ContentScale.Crop
             )
             Spacer(Modifier.width(16.dp))

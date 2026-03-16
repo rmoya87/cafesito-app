@@ -1,6 +1,9 @@
-import { useCallback, startTransition } from "react";
+import { useCallback, useRef, startTransition } from "react";
 import { buildRoute, getAppRootPath, toCoffeeSlug } from "../../core/routing";
 import type { CoffeeRow, TabId } from "../../types";
+
+/** Al cerrar el detalle, si veníamos de "Cafés probados", volver a esa página. */
+type ReturnDiarySubView = "cafes-probados" | null;
 
 export function useCoffeeDetailNavigation({
   coffeesById,
@@ -11,7 +14,8 @@ export function useCoffeeDetailNavigation({
   activeTab,
   setDetailCoffeeId,
   setDetailHostTab,
-  setActiveTab
+  setActiveTab,
+  setDiarySubView
 }: {
   coffeesById: Map<string, CoffeeRow>;
   coffeeSlugById: Map<string, string>;
@@ -22,9 +26,16 @@ export function useCoffeeDetailNavigation({
   setDetailCoffeeId: (value: string | null) => void;
   setDetailHostTab: (value: "home" | "search" | "profile" | null) => void;
   setActiveTab: (value: TabId) => void;
+  setDiarySubView: (value: "cafes-probados" | null) => void;
 }) {
+  const returnDiarySubViewRef = useRef<ReturnDiarySubView>(null);
+
   const openCoffeeDetail = useCallback(
-    (coffeeId: string, sourceTab: "home" | "search" | "profile" | "diary") => {
+    (
+      coffeeId: string,
+      sourceTab: "home" | "search" | "profile" | "diary",
+      options?: { diarySubView?: "cafes-probados" }
+    ) => {
       const coffee = coffeesById.get(coffeeId);
       if (!coffee) return;
       const slug = coffeeSlugById.get(coffeeId) ?? toCoffeeSlug(coffee.nombre, coffee.marca);
@@ -32,6 +43,11 @@ export function useCoffeeDetailNavigation({
       const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
       const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
       startTransition(() => {
+        if (sourceTab === "diary" && options?.diarySubView === "cafes-probados") {
+          returnDiarySubViewRef.current = "cafes-probados";
+        } else {
+          returnDiarySubViewRef.current = null;
+        }
         setDetailCoffeeId(coffeeId);
         if (sourceTab === "diary") {
           setDetailHostTab(null);
@@ -51,9 +67,21 @@ export function useCoffeeDetailNavigation({
   );
 
   const closeCoffeePanel = useCallback(() => {
+    const returnTo = returnDiarySubViewRef.current;
+    returnDiarySubViewRef.current = null;
     setDetailCoffeeId(null);
     setDetailHostTab(null);
-    if (mode === "desktop") {
+
+    if (returnTo === "cafes-probados") {
+      setActiveTab("diary");
+      setDiarySubView("cafes-probados");
+      const routePath = buildRoute("diary", searchMode, null, null, undefined, undefined, "cafes-probados");
+      const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
+      const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
+      if (window.location.pathname !== fullPath) {
+        window.history.pushState({}, "", `${fullPath}${window.location.search}${window.location.hash}`);
+      }
+    } else if (mode === "desktop") {
       const routePath = buildRoute(activeTab, searchMode, profileUsername, null);
       const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
       const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
@@ -61,7 +89,7 @@ export function useCoffeeDetailNavigation({
         window.history.replaceState({}, "", `${fullPath}${window.location.search}${window.location.hash}`);
       }
     }
-  }, [activeTab, mode, profileUsername, searchMode, setDetailCoffeeId, setDetailHostTab]);
+  }, [activeTab, mode, profileUsername, searchMode, setActiveTab, setDiarySubView, setDetailCoffeeId, setDetailHostTab]);
 
   return { openCoffeeDetail, closeCoffeePanel };
 }

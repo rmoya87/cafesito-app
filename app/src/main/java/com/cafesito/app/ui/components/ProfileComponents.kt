@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -104,6 +105,14 @@ private fun formatRelativeTime(timestampMillis: Long): String {
     }
 }
 
+/** Textos de actividad en segunda persona (usuario logueado) vs tercera (otros). Igual que webapp ACTIVITY_LABEL_SECOND. */
+private fun activityLabel(isOwn: Boolean, type: String): String = when (type) {
+    "review" -> if (isOwn) "opinaste sobre un café" else "opinó sobre un café"
+    "diary" -> if (isOwn) "probaste por primera vez" else "probó por primera vez"
+    "favorite" -> if (isOwn) "añadiste a tu lista" else "añadió a su lista"
+    else -> if (isOwn) "añadiste a tu lista" else "añadió a su lista"
+}
+
 // --- PROFILE COMPONENTS ---
 
 @Composable
@@ -112,22 +121,22 @@ fun ProfileAdn(
     listState: LazyListState = rememberLazyListState(),
     onShowSensoryDetail: () -> Unit
 ) {
-    LazyColumn(state = listState, contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
+    LazyColumn(state = listState, contentPadding = PaddingValues(top = Spacing.space4, bottom = 120.dp)) {
         item {
             PremiumCard(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = Spacing.space4, vertical = Spacing.space2)
                     .clickable(onClick = onShowSensoryDetail),
-                containerColor = if (isSystemInDarkTheme()) Color.Black else MaterialTheme.colorScheme.surface
+                containerColor = if (isSystemInDarkTheme()) PureBlack else MaterialTheme.colorScheme.surface
             ) {
-                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(modifier = Modifier.padding(Spacing.space6), horizontalAlignment = Alignment.CenterHorizontally) {
                     SensoryRadarChart(
                         data = state.sensoryProfile,
                         lineColor = MaterialTheme.colorScheme.primary,
                         fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Spacing.space2))
                     Text(
                         "Pulsa para descubrir tus preferencias",
                         style = MaterialTheme.typography.labelSmall,
@@ -144,7 +153,7 @@ fun ProfileAdn(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 8.dp)
+                    .padding(horizontal = Spacing.space8, vertical = Spacing.space2)
             )
         }
     }
@@ -157,9 +166,9 @@ fun ProfileFavorites(
     onCoffeeClick: (String) -> Unit,
     listState: LazyListState = rememberLazyListState()
 ) {
-    LazyColumn(state = listState, contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)) {
+    LazyColumn(state = listState, contentPadding = PaddingValues(top = Spacing.space4, bottom = 120.dp)) {
         items(favoriteCoffees) { item ->
-            Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+            Box(Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space1)) {
                 CoffeeFavoritePremiumItem(
                     coffeeDetails = item,
                     onFavoriteClick = { viewModel.onToggleFavorite(item.coffee.id, false) },
@@ -178,22 +187,22 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
         onDismissRequest = onDismiss, 
         containerColor = MaterialTheme.colorScheme.surfaceContainer, 
         sheetState = sheetState,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(
             Modifier
                 .navigationBarsPadding()
-                .padding(24.dp)
+                .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space6)
         ) {
             Text(
                 text = "ANÁLISIS DE PREFERENCIAS",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
 
             val sorted = profile.toList().sortedByDescending { it.second }
             val highest = sorted.getOrNull(0)
@@ -213,7 +222,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(Spacing.space3))
 
                 val description = when (highest.first) {
                     "Acidez" -> "Buscas brillo en cada taza. Te apasionan los perfiles cítricos y vibrantes de cafés de altura (1500m+)."
@@ -234,236 +243,294 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                     else -> "Blends equilibrados" to "Cualquier origen de especialidad"
                 }
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(Spacing.space6))
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = Shapes.card,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(Spacing.space2))
+                            Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
                         }
-                        Spacer(Modifier.height(12.dp))
-                        Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(Spacing.space3))
+                        Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                         Text(text = "Orígenes sugeridos: $idealOrigin", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(Spacing.space8))
             Button(
                 onClick = onDismiss,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(28.dp)
-            ) { Text("CONTINUAR EXPLORANDO", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary) }
+                shape = Shapes.shapeXl
+            ) { Text("CONTINUAR EXPLORANDO", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onPrimary) }
         }
     }
 }
 
+/** Tarjeta de actividad unificada: mismo diseño, textos y disposición que webapp (Perfil > Actividad). */
 @Composable
-fun ProfileActivityReviewCard(
-    reviewInfo: UserReviewInfo,
+fun ProfileActivityCard(
+    item: ProfileActivityItem,
+    activeUserId: Int?,
+    onUserClick: (Int) -> Unit,
     onCoffeeClick: (String) -> Unit,
-    onDeleteClick: (() -> Unit)? = null,
-    isCurrentUser: Boolean = false
+    onListClick: ((Int, String) -> Unit)?,
+    isCurrentUser: Boolean
 ) {
-    val coffee = reviewInfo.coffeeDetails.coffee
-    val review = reviewInfo.review
-    val labelLine = if (isCurrentUser) "Opinaste sobre un café" else "${reviewInfo.authorName?.takeIf { it.isNotBlank() } ?: "Usuario"} opinó sobre un café"
-    PremiumCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onCoffeeClick(coffee.id) }
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!reviewInfo.authorAvatarUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = reviewInfo.authorAvatarUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Text(
-                        text = (reviewInfo.authorName ?: "?").take(2).uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = labelLine,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = coffee.nombre.ifBlank { "Un café" },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    SemicircleRatingBar(rating = review.rating, onRatingChanged = {}, modifier = Modifier.height(14.dp))
-                    Spacer(Modifier.width(8.dp))
-                    if (review.comment.isNotBlank()) {
-                        Text(
-                            text = review.comment,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = formatRelativeTime(review.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (onDeleteClick != null) {
-                IconButton(onClick = onDeleteClick) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar reseña", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+    val displayName = if (activeUserId != null && item.userId == activeUserId) "Tú" else item.userName
+    val type = when (item) {
+        is ProfileActivityItem.Review -> "review"
+        is ProfileActivityItem.FirstTimeCoffee -> "diary"
+        is ProfileActivityItem.AddedToList -> "favorite"
+    }
+    val isOwn = activeUserId != null && item.userId == activeUserId
+    val displayLabel = activityLabel(isOwn, type)
+
+    val coffeeId: String
+    val coffeeName: String
+    val coffeeImageUrl: String
+    val coffeeBrand: String
+    val listId: String?
+    val listName: String?
+    val rating: Float?
+    val comment: String?
+    val showListBadge: Boolean
+    when (item) {
+        is ProfileActivityItem.Review -> {
+            coffeeId = item.reviewInfo.coffeeDetails.coffee.id
+            coffeeName = item.reviewInfo.coffeeDetails.coffee.nombre.ifBlank { "Un café" }
+            coffeeImageUrl = item.reviewInfo.coffeeDetails.coffee.imageUrl
+            coffeeBrand = item.reviewInfo.coffeeDetails.coffee.marca.ifBlank { "Marca" }
+            listId = null
+            listName = null
+            rating = item.reviewInfo.review.rating
+            comment = item.reviewInfo.review.comment.takeIf { it.isNotBlank() }
+            showListBadge = false
+        }
+        is ProfileActivityItem.FirstTimeCoffee -> {
+            coffeeId = item.coffeeId
+            coffeeName = item.coffeeName.ifBlank { "Un café" }
+            coffeeImageUrl = item.coffeeImageUrl
+            coffeeBrand = item.coffeeBrand.ifBlank { "Marca" }
+            listId = null
+            listName = null
+            rating = null
+            comment = null
+            showListBadge = false
+        }
+        is ProfileActivityItem.AddedToList -> {
+            coffeeId = item.coffeeId
+            coffeeName = item.coffeeName.ifBlank { "Un café" }
+            coffeeImageUrl = item.coffeeImageUrl
+            coffeeBrand = item.coffeeBrand.ifBlank { "Marca" }
+            listId = item.listId
+            listName = item.listName
+            rating = null
+            comment = null
+            showListBadge = true
         }
     }
-}
 
-@Composable
-fun ProfileActivityFirstTimeCard(
-    item: ProfileActivityItem.FirstTimeCoffee,
-    onCoffeeClick: () -> Unit
-) {
-    PremiumCard(modifier = Modifier.fillMaxWidth()) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) PureBlack else MaterialTheme.colorScheme.surface
+    val coffeeCardBg = if (isDark) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+
+    PremiumCard(modifier = Modifier.fillMaxWidth(), containerColor = cardBg) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onCoffeeClick)
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = Spacing.space4, vertical = Spacing.space3),
+            verticalAlignment = Alignment.Top
         ) {
+            // Avatar (clickable → perfil usuario)
             Box(
-                Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { onUserClick(item.userId) },
                 contentAlignment = Alignment.Center
             ) {
                 if (!item.avatarUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = item.avatarUrl,
-                        contentDescription = null,
+                        contentDescription = "Avatar de $displayName",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
                     Text(
-                        text = item.userName.take(2).uppercase(),
+                        text = displayName.take(2).uppercase(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(Spacing.space3))
             Column(Modifier.weight(1f)) {
+                // Línea de texto: "Tú" / nombre + label (segunda/tercera persona)
                 Text(
-                    text = "${item.userName} probó por primera vez",
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)) {
+                            append(displayName)
+                        }
+                        append(" $displayLabel")
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = item.coffeeName.ifBlank { "Un café" },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(4.dp))
+                // Meta: tiempo relativo en mayúsculas (como webapp)
                 Text(
                     text = formatRelativeTime(item.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.space1)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfileActivityListCard(
-    item: ProfileActivityItem.AddedToList,
-    onCoffeeClick: () -> Unit,
-    onListClick: (() -> Unit)?
-) {
-    PremiumCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
+                // Bloque café (mismo ancho que el resto): por tipo → lista (icono+nombre) / reseña (★ X/5 + comentario) / fila principal (imagen, nombre, marca, flecha)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.space3)
+                        .clip(Shapes.cardSmall)
+                        .then(
+                            if (type == "review") Modifier.clickable { onCoffeeClick(coffeeId) }
+                            else Modifier
+                        ),
+                    color = coffeeCardBg
                 ) {
-                    if (!item.avatarUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = item.avatarUrl,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = item.userName.take(2).uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Column(modifier = Modifier.padding(Spacing.space3)) {
+                        // Tipo lista (favorite): icono lista + nombre lista; tap lleva a esa lista. Debajo separador y fila café.
+                        if (showListBadge && listId != null && onListClick != null) {
+                            val isFavoritesList = listId == "favorites" || (listName?.equals("Favoritos", ignoreCase = true) == true)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onListClick(item.userId, listId) },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (isFavoritesList) Icons.Default.Favorite else Icons.AutoMirrored.Filled.FormatListBulleted,
+                                    contentDescription = if (isFavoritesList) "Favoritos" else "Lista",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = if (isFavoritesList) ElectricRed else MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.width(Spacing.space2))
+                                Text(
+                                    text = listName?.ifBlank { "Lista" } ?: "Lista",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            HorizontalDivider(Modifier.padding(vertical = Spacing.space2), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
+                        // Tipo opinión (review): chip ★ X/5 (amarillo-naranja) + texto nota negro (noche) / blanco (día); comentario mismo criterio
+                        if (rating != null || !comment.isNullOrBlank()) {
+                            val noteTextColor = if (isDark) PureBlack else PureWhite
+                            val reviewCommentColor = if (isDark) Color(0xFFf5f5f5) else Color(0xFF1a1a1a)
+                            val noteChipOrange = Color(0xFFFFB74D)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (rating != null) {
+                                    Surface(
+                                        shape = Shapes.pillFull,
+                                        color = noteChipOrange
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = Spacing.space1),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Star, contentDescription = "Nota", modifier = Modifier.size(Spacing.space3), tint = noteTextColor)
+                                            Spacer(Modifier.width(Spacing.space1))
+                                            Text(
+                                                text = "${rating.toInt()}/5",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = noteTextColor,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                    if (!comment.isNullOrBlank()) Spacer(Modifier.width(Spacing.space2))
+                                }
+                                if (!comment.isNullOrBlank()) {
+                                    Text(
+                                        text = comment,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = reviewCommentColor,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            HorizontalDivider(Modifier.padding(vertical = Spacing.space2), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
+                        // Fila principal (todos los tipos): imagen 48dp, nombre, marca en mayúsculas, flecha → detalle café (en review el tap lo maneja la Surface)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(
+                                    if (type != "review") Modifier.clickable { onCoffeeClick(coffeeId) }
+                                    else Modifier
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(48.dp)
+                                    .clip(Shapes.small)
+                                    .background(LocalCaramelAccent.current.copy(alpha = 0.25f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (coffeeImageUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = coffeeImageUrl,
+                                        contentDescription = coffeeName,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        text = coffeeName.take(1).uppercase(),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = LocalCaramelAccent.current
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(Spacing.space3))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = coffeeName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = coffeeBrand.uppercase(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = "Ver café", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                        }
                     }
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "${item.userName} añadió un café a la lista",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = item.coffeeName.ifBlank { "Café" },
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable(onClick = onCoffeeClick)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = formatRelativeTime(item.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            if (onListClick != null && item.listName.isNotBlank()) {
-                Spacer(Modifier.height(8.dp))
-                TextButton(onClick = onListClick) {
-                    Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Ver lista: ${item.listName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -482,7 +549,7 @@ fun ProfileStatsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = Spacing.space4),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         StatItem("Seguidores", followers.toString(), onFollowersClick)
@@ -495,13 +562,13 @@ fun StatItem(label: String, value: String, onClick: (() -> Unit)? = null) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(Shapes.cardSmall)
             .let {
                 if (onClick != null) it.clickable(onClick = onClick) else it
             }
-            .padding(8.dp)
+            .padding(Spacing.space2)
     ) {
-        Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         Text(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelLarge,
@@ -515,13 +582,13 @@ fun StatItem(label: String, value: String, onClick: (() -> Unit)? = null) {
 /** Fila "Crea una lista nueva" en la pestaña Listas (mismo ancho completo que Favoritos). Bordes más cuadrados. */
 @Composable
 fun ListRowCreateList(onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = Shapes.card) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(Spacing.space4).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(16.dp))
+            Icon(Icons.Default.Add, contentDescription = "Crear lista nueva", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(Spacing.space6))
+            Spacer(Modifier.width(Spacing.space4))
             Text("Crea una lista nueva", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
@@ -530,15 +597,15 @@ fun ListRowCreateList(onClick: () -> Unit) {
 /** Fila "Favoritos" en la pestaña Listas: corazón + nombre + flecha. Bordes más cuadrados. */
 @Composable
 fun ListRowFavoritos(onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = Shapes.card) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(Spacing.space4).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Favorite, contentDescription = null, tint = ElectricRed, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(16.dp))
+            Icon(Icons.Default.Favorite, contentDescription = "Favoritos", tint = ElectricRed, modifier = Modifier.size(Spacing.space6))
+            Spacer(Modifier.width(Spacing.space4))
             Text("Favoritos", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir Favoritos", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -546,42 +613,52 @@ fun ListRowFavoritos(onClick: () -> Unit) {
 /** Fila de lista personalizada: icono lista + nombre + flecha. Bordes más cuadrados. */
 @Composable
 fun ListRowCustomList(name: String, onClick: () -> Unit) {
-    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+    PremiumCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = Shapes.card) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(Spacing.space4).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 painter = rememberListAltSvgPainter(),
-                contentDescription = null,
+                contentDescription = "Lista",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(Spacing.space6)
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(Spacing.space4))
             Text(name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir lista", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
-/** Modal para crear/editar lista: título centrado, botón a la derecha. Campos como tiempo en editar actividad. Si listIdForEdit != null es modo edición. */
+/** Opciones de privacidad (igual que WebApp): valor, etiqueta y descripción. */
+private val LIST_PRIVACY_OPTIONS = listOf(
+    Triple("public", "Pública", "Cualquier persona puede suscribirse. Visible en actividad."),
+    Triple("invitation", "Por invitación", "Solo quienes invites podrán ver la lista. No visible en actividad."),
+    Triple("private", "Privada", "Solo tú. No visible en actividad.")
+)
+
+/** Modal para crear/editar lista: título centrado, nombre, privacidad (3 opciones) y "Permitir editar lista". Paridad con WebApp. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateListBottomSheet(
     onDismiss: () -> Unit,
-    onCreate: (name: String, isPublic: Boolean) -> Unit,
+    onCreate: (name: String, privacy: String, membersCanEdit: Boolean) -> Unit,
     listIdForEdit: String? = null,
     initialName: String = "",
     initialIsPublic: Boolean = false,
-    onUpdate: ((name: String, isPublic: Boolean) -> Unit)? = null
+    initialPrivacy: String? = null,
+    initialMembersCanEdit: Boolean = false,
+    onUpdate: ((name: String, privacy: String, membersCanEdit: Boolean) -> Unit)? = null
 ) {
     var name by remember(listIdForEdit, initialName) { mutableStateOf(initialName) }
-    var isPublic by remember(listIdForEdit, initialIsPublic) { mutableStateOf(initialIsPublic) }
-    var privacyExpanded by remember { mutableStateOf(false) }
+    val initialPr = initialPrivacy ?: if (initialIsPublic) "public" else "private"
+    var privacy by remember(listIdForEdit, initialPr) { mutableStateOf(initialPr) }
+    var membersCanEdit by remember(listIdForEdit, initialMembersCanEdit) { mutableStateOf(initialMembersCanEdit) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isDark = isSystemInDarkTheme()
-    val fieldBackground = if (isDark) Color.Black else Color.White
-    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val fieldBackground = if (isDark) PureBlack else PureWhite
+    val fieldTextColor = if (isDark) PureWhite else PureBlack
     val editFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = fieldBackground,
         unfocusedContainerColor = fieldBackground,
@@ -589,7 +666,7 @@ fun CreateListBottomSheet(
         unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
     )
     val editFieldTextStyle = MaterialTheme.typography.bodyLarge.copy(
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Medium,
         color = fieldTextColor
     )
     val isEditMode = listIdForEdit != null
@@ -598,23 +675,23 @@ fun CreateListBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Box(Modifier.fillMaxWidth()) {
                 Text(
                     if (isEditMode) "Editar lista" else "Nueva lista",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.align(Alignment.Center)
                 )
                 TextButton(
                     onClick = {
                         if (canSave) {
-                            if (isEditMode) onUpdate?.invoke(name.trim(), isPublic) else onCreate(name.trim(), isPublic)
+                            if (isEditMode) onUpdate?.invoke(name.trim(), privacy, membersCanEdit) else onCreate(name.trim(), privacy, membersCanEdit)
                             onDismiss()
                         }
                     },
@@ -624,7 +701,7 @@ fun CreateListBottomSheet(
                     Text(if (isEditMode) "Guardar" else "Crear lista", fontWeight = FontWeight.SemiBold)
                 }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -633,48 +710,58 @@ fun CreateListBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = editFieldTextStyle,
                 colors = editFieldColors,
-                shape = RoundedCornerShape(16.dp)
+                shape = Shapes.card
             )
-            Spacer(Modifier.height(16.dp))
-            ExposedDropdownMenuBox(
-                expanded = privacyExpanded,
-                onExpandedChange = { privacyExpanded = it },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = if (isPublic) "Público" else "Privado",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Privacidad") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = privacyExpanded) },
-                    modifier = Modifier
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
-                        .fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    textStyle = editFieldTextStyle,
-                    colors = editFieldColors
-                )
-                ExposedDropdownMenu(
-                    expanded = privacyExpanded,
-                    onDismissRequest = { privacyExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Público") },
-                        onClick = { isPublic = true; privacyExpanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Privado") },
-                        onClick = { isPublic = false; privacyExpanded = false }
-                    )
-                }
-            }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.space4))
             Text(
-                text = if (isPublic) "Si es público se mostrará en la actividad de los perfiles de las personas que te sigan." else "Si es privado no se mostrará en tu actividad.",
-                style = MaterialTheme.typography.bodySmall,
+                "Privacidad",
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space2))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    LIST_PRIVACY_OPTIONS.forEach { (value, label, desc) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = privacy == value,
+                                onClick = { privacy = value }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(label, style = MaterialTheme.typography.bodyLarge)
+                                Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                    if (privacy == "public" || privacy == "invitation") {
+                        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Permitir editar lista", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = membersCanEdit,
+                                onCheckedChange = { membersCanEdit = it },
+                                colors = SwitchDefaults.colors(
+                                    uncheckedTrackColor = if (isSystemInDarkTheme()) Color(0xFFB0B0B0) else Color(0xFF757575),
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.surface
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(Spacing.space6))
         }
     }
 }
@@ -689,60 +776,136 @@ private fun AddToListOptionRow(
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = Spacing.space4, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { icon() }
-            Spacer(Modifier.width(12.dp))
+            Box(Modifier.size(Spacing.space6), contentAlignment = Alignment.Center) { icon() }
+            Spacer(Modifier.width(Spacing.space3))
             Text(
                 label,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir lista", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
-/** Modal bottom sheet "Añadir a lista": estilo como modal de opciones (imagen). Título centrado. Filas redondeadas con icono + texto + chevron. */
+private const val ADD_TO_LIST_FAVORITES_ID = "__favorites"
+
+/** Fila con checkbox a la izquierda + icono + texto (para modal Añadir a lista). */
+@Composable
+private fun AddToListCheckboxRow(
+    checked: Boolean,
+    onCheckedChange: () -> Unit,
+    icon: @Composable () -> Unit,
+    label: String
+) {
+    Surface(
+        onClick = onCheckedChange,
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shapes.card,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.space4, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = if (checked) Icons.Default.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                contentDescription = if (checked) "Seleccionado" else "No seleccionado",
+                tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(Spacing.space3))
+            Box(Modifier.size(Spacing.space6), contentAlignment = Alignment.Center) { icon() }
+            Spacer(Modifier.width(Spacing.space3))
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+/** Modal bottom sheet "Añadir a lista": título a la izquierda, botón Añadir a la derecha; filas con checkbox para elegir una o varias listas. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddToListBottomSheet(
     onDismiss: () -> Unit,
     userLists: List<UserListRow>,
+    isFavorite: Boolean,
     onCreateListRequest: () -> Unit,
     onAddToList: (listId: String) -> Unit,
     onFavoriteToggle: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selectedIds by remember { mutableStateOf(setOf<String>()) }
+    var saving by remember { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
-            Text(
-                "Añadir a lista",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box(Modifier.weight(1f))
+                Text(
+                    "Añadir a lista",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally)
+                )
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    TextButton(
+                        onClick = {
+                            if (selectedIds.isEmpty() || saving) return@TextButton
+                            saving = true
+                            selectedIds.forEach { id ->
+                                if (id == ADD_TO_LIST_FAVORITES_ID) {
+                                    if (!isFavorite) onFavoriteToggle()
+                                } else {
+                                    onAddToList(id)
+                                }
+                            }
+                            onDismiss()
+                        },
+                        enabled = selectedIds.isNotEmpty() && !saving,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Text(
+                            if (saving) "Añadiendo…" else "Añadir",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(20.dp))
             AddToListOptionRow(
                 icon = {
                     Icon(
                         painter = rememberListAltAddSvgPainter(),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
+                        contentDescription = "Crear lista nueva",
+                        modifier = Modifier.size(Spacing.space6),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
@@ -750,62 +913,139 @@ fun AddToListBottomSheet(
                 onClick = onCreateListRequest
             )
             userLists.forEach { list ->
-                Spacer(Modifier.height(8.dp))
-                AddToListOptionRow(
+                Spacer(Modifier.height(Spacing.space2))
+                AddToListCheckboxRow(
+                    checked = list.id in selectedIds,
+                    onCheckedChange = {
+                        selectedIds = if (list.id in selectedIds) selectedIds - list.id else selectedIds + list.id
+                    },
                     icon = {
                         Icon(
                             painter = rememberListAltSvgPainter(),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
+                            contentDescription = "Lista",
+                            modifier = Modifier.size(Spacing.space6),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     },
-                    label = list.name,
-                    onClick = { onAddToList(list.id); onDismiss() }
+                    label = list.name
                 )
             }
-            Spacer(Modifier.height(8.dp))
-            AddToListOptionRow(
-                icon = {
-                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(24.dp), tint = ElectricRed)
+            Spacer(Modifier.height(Spacing.space2))
+            AddToListCheckboxRow(
+                checked = ADD_TO_LIST_FAVORITES_ID in selectedIds,
+                onCheckedChange = {
+                    selectedIds = if (ADD_TO_LIST_FAVORITES_ID in selectedIds) selectedIds - ADD_TO_LIST_FAVORITES_ID else selectedIds + ADD_TO_LIST_FAVORITES_ID
                 },
-                label = "Favoritos",
-                onClick = { onFavoriteToggle(); onDismiss() }
+                icon = {
+                    Icon(Icons.Default.Favorite, contentDescription = "Favoritos", modifier = Modifier.size(Spacing.space6), tint = ElectricRed)
+                },
+                label = "Favoritos"
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
         }
     }
 }
 
-/** Modal de opciones de lista (Editar / Eliminar): mismo estilo que la modal de opciones del perfil. Sin título. Iconos mismo color (onSurface). */
+/** Modal de opciones de lista (Editar / Eliminar / Compartir): mismo estilo que la modal de opciones del perfil. Sin título. Iconos mismo color (onSurface). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListOptionsBottomSheet(
     onDismiss: () -> Unit,
     onEditList: () -> Unit,
-    onDeleteList: () -> Unit
+    onDeleteList: () -> Unit,
+    onShareList: (() -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).navigationBarsPadding()) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             AddToListOptionRow(
-                icon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface) },
+                icon = { Icon(Icons.Default.Edit, contentDescription = "Editar lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
                 label = "Editar lista",
                 onClick = { onDismiss(); onEditList() }
             )
-            Spacer(Modifier.height(8.dp))
+            if (onShareList != null) {
+                Spacer(Modifier.height(Spacing.space2))
+                AddToListOptionRow(
+                    icon = { Icon(Icons.Default.Share, contentDescription = "Compartir lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
+                    label = "Compartir lista",
+                    onClick = { onDismiss(); onShareList() }
+                )
+            }
+            Spacer(Modifier.height(Spacing.space2))
             AddToListOptionRow(
-                icon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface) },
+                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
                 label = "Eliminar lista",
                 onClick = { onDismiss(); onDeleteList() }
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
+        }
+    }
+}
+
+/** Modal para invitar a usuarios a la lista: lista de usuarios con botón Invitar. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShareListBottomSheet(
+    users: List<UserEntity>,
+    onDismiss: () -> Unit,
+    onInvite: (Int) -> Unit,
+    onLoadUsers: () -> Unit
+) {
+    LaunchedEffect(Unit) { onLoadUsers() }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = Shapes.sheetLarge,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        scrimColor = ScrimDefault
+    ) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
+            Text(
+                "Invitar a la lista",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = Spacing.space3)
+            )
+            if (users.isEmpty()) {
+                Text("Cargando usuarios…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.space2), modifier = Modifier.heightIn(max = 320.dp)) {
+                    items(users, key = { it.id }) { user ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = user.avatarUrl,
+                                contentDescription = "Avatar de @${user.username}",
+                                modifier = Modifier.size(Spacing.space6 * 2f).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
+                            Spacer(Modifier.width(Spacing.space3))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("@${user.username}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                user.fullName.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            }
+                            Button(
+                                onClick = { onInvite(user.id) },
+                                modifier = Modifier.height(Spacing.space8),
+                                shape = Shapes.cardSmall,
+                                contentPadding = PaddingValues(horizontal = Spacing.space3)
+                            ) {
+                                Text("Invitar", fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(Spacing.space6))
         }
     }
 }
@@ -819,30 +1059,30 @@ fun ListDeleteConfirmBottomSheet(
     onConfirm: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
-    val cancelColor = if (isDark) Color.White else Color.Black
+    val cancelColor = if (isDark) PureWhite else PureBlack
     val deleteContainer = ElectricRed
-    val deleteContent = if (isDark) Color.Black else Color.White
+    val deleteContent = if (isDark) PureBlack else PureWhite
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = Shapes.sheetLarge,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 40.dp),
+            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 8.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 "Eliminar lista",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.space2))
             Text(
                 "¿Eliminar la lista \"$listName\"? Se quitarán todos los cafés de la lista.",
                 textAlign = TextAlign.Center,
@@ -850,27 +1090,27 @@ fun ListDeleteConfirmBottomSheet(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(999.dp),
+                    shape = Shapes.pillFull,
                     border = BorderStroke(1.dp, cancelColor),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text("CANCELAR", fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick = { onConfirm(); onDismiss() },
                     modifier = Modifier.weight(1f).height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = deleteContainer, contentColor = deleteContent),
-                    shape = RoundedCornerShape(999.dp)
+                    shape = Shapes.pillFull
                 ) {
-                    Text("ELIMINAR", fontWeight = FontWeight.Bold)
+                    Text("ELIMINAR", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -884,21 +1124,21 @@ fun CoffeeFavoritePremiumItem(
     onClick: () -> Unit
 ) {
     PremiumCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.padding(Spacing.space3), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = coffeeDetails.coffee.imageUrl,
                 contentDescription = coffeeDetails.coffee.nombre,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(70.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(Shapes.shapeCardMedium)
             )
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Spacer(Modifier.width(Spacing.space4))
+            Column(modifier = Modifier.weight(1f).padding(end = Spacing.space2)) {
                 Text(
                     text = coffeeDetails.coffee.nombre,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -925,14 +1165,14 @@ fun CoffeeFavoriteListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(Spacing.space3)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -942,16 +1182,16 @@ fun CoffeeFavoriteListItem(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(60.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(Shapes.cardSmall)
             )
 
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(Spacing.space4))
 
-            Column(modifier = Modifier.weight(1f).padding(end = if (showListIcon) 40.dp else 8.dp)) {
+            Column(modifier = Modifier.weight(1f).padding(end = if (showListIcon) 40.dp else Spacing.space2)) {
                 Text(
                     text = coffeeDetails.coffee.nombre,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -968,7 +1208,7 @@ fun CoffeeFavoriteListItem(
                     onClick = onFavoriteClick,
                     modifier = Modifier
                         .minimumInteractiveComponentSize()
-                        .size(28.dp)
+                        .size(24.dp)
                 ) {
                     Icon(
                         painter = rememberListAltCheckSvgPainter(),
@@ -992,14 +1232,14 @@ fun CoffeeListRowWithChevron(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(Spacing.space3)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1009,9 +1249,9 @@ fun CoffeeListRowWithChevron(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(60.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(Shapes.cardSmall)
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(Spacing.space4))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = coffee.nombre,
@@ -1031,7 +1271,7 @@ fun CoffeeListRowWithChevron(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Abrir",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(Spacing.space6)
             )
         }
     }
@@ -1042,8 +1282,18 @@ fun CoffeeListRowWithChevron(
 fun SwipeableFavoriteItem(
     coffeeDetails: CoffeeWithDetails,
     onRemoveFromFavorites: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enableSwipeToRemove: Boolean = true
 ) {
+    if (!enableSwipeToRemove) {
+        CoffeeFavoriteListItem(
+            coffeeDetails = coffeeDetails,
+            onClick = onClick,
+            onFavoriteClick = { },
+            showListIcon = false
+        )
+        return
+    }
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
             if (it == SwipeToDismissBoxValue.EndToStart) {
@@ -1059,15 +1309,15 @@ fun SwipeableFavoriteItem(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(Shapes.card)
                     .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Quitar de favoritos",
-                    tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
-                    modifier = Modifier.padding(end = 16.dp)
+                    tint = if (isSystemInDarkTheme()) PureBlack else PureWhite,
+                    modifier = Modifier.padding(end = Spacing.space4)
                 )
             }
         }
@@ -1086,8 +1336,8 @@ fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
     val isDark = isSystemInDarkTheme()
     val followBg = if (isDark) CaramelSoft else CaramelAccent
     val followingBg = Color.Transparent
-    val followingBorder = if (isDark) BorderStroke(1.dp, Color.White) else BorderStroke(1.dp, Color.Black)
-    val followingColor = if (isDark) Color.White else Color.Black
+    val followingBorder = if (isDark) BorderStroke(1.dp, PureWhite) else BorderStroke(1.dp, PureBlack)
+    val followingColor = if (isDark) PureWhite else PureBlack
     Button(
         onClick = onClick,
         modifier = Modifier
@@ -1095,12 +1345,12 @@ fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
             .height(48.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isFollowing) followingBg else followBg,
-            contentColor = if (isFollowing) followingColor else if (isDark) Color.Black else Color.White
+            contentColor = if (isFollowing) followingColor else if (isDark) PureBlack else PureWhite
         ),
-        shape = RoundedCornerShape(24.dp),
+        shape = Shapes.pill,
         border = if (isFollowing) followingBorder else null
     ) {
-        Text(if (isFollowing) "SIGUIENDO" else "SEGUIR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text(if (isFollowing) "SIGUIENDO" else "SEGUIR", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
     }
 }
 
@@ -1116,63 +1366,63 @@ fun EditProfileFields(
     usernameError: String?
 ) {
     val isDark = isSystemInDarkTheme()
-    val fieldBackground = if (isDark) Color.Black else Color.White
-    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val fieldBackground = if (isDark) PureBlack else PureWhite
+    val fieldTextColor = if (isDark) PureWhite else PureBlack
     val saveBackground = LocalCaramelAccent.current
-    val saveTextColor = if (isDark) Color.Black else Color.White
+    val saveTextColor = if (isDark) PureBlack else PureWhite
     val editFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = fieldBackground,
         unfocusedContainerColor = fieldBackground,
-        focusedBorderColor = Color.White,
-        unfocusedBorderColor = Color.White,
+        focusedBorderColor = PureWhite,
+        unfocusedBorderColor = PureWhite,
         focusedTextColor = fieldTextColor,
         unfocusedTextColor = fieldTextColor,
         focusedLabelColor = fieldTextColor.copy(alpha = 0.78f),
         unfocusedLabelColor = fieldTextColor.copy(alpha = 0.78f)
     )
     val editFieldTextStyle = MaterialTheme.typography.bodyLarge.copy(
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Medium,
         color = fieldTextColor
     )
 
     Column(modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 8.dp)) {
+        .padding(horizontal = Spacing.space2)) {
         OutlinedTextField(
             value = username,
             onValueChange = { onUsernameChange(it.take(40)) },
             label = { Text("Usuario") },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = Shapes.small,
             isError = usernameError != null, supportingText = { if (usernameError != null) Text(usernameError) },
             singleLine = true,
             textStyle = editFieldTextStyle,
             colors = editFieldColors
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(Spacing.space3))
         OutlinedTextField(
             value = fullName,
             onValueChange = { onFullNameChange(it.take(120)) },
             label = { Text("Nombre") },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = Shapes.small,
             singleLine = true,
             textStyle = editFieldTextStyle,
             colors = editFieldColors
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(Spacing.space3))
         OutlinedTextField(
             value = bio,
             onValueChange = { onBioChange(it.take(500)) },
             label = { Text("Bio") },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = Shapes.small,
             minLines = 3,
             maxLines = 6,
             textStyle = editFieldTextStyle,
             colors = editFieldColors
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(Spacing.space6))
         Button(
             onClick = onSave, modifier = Modifier
                 .fillMaxWidth(0.74f)
@@ -1182,7 +1432,7 @@ fun EditProfileFields(
                 containerColor = saveBackground,
                 contentColor = saveTextColor
             ),
-            shape = RoundedCornerShape(28.dp)
-        ) { Text("GUARDAR", fontWeight = FontWeight.Bold, color = saveTextColor) }
+            shape = Shapes.shapeXl
+        ) { Text("GUARDAR", fontWeight = FontWeight.SemiBold, color = saveTextColor) }
     }
 }

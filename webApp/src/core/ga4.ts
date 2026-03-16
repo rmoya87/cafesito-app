@@ -40,9 +40,18 @@ declare global {
   }
 }
 
-/** Inicializa gtag.js con el measurement ID (por defecto G-BMZEQNRKR4). Llamar al arranque de la app. */
+/** True si estamos en localhost (evitar cargar GA en dev y evitar ERR_NAME_NOT_RESOLVED si GA está bloqueado). */
+function isLocalhost(): boolean {
+  if (typeof window === "undefined") return false;
+  const h = window.location?.hostname ?? "";
+  return h === "localhost" || h === "127.0.0.1" || h === "";
+}
+
+/** Inicializa gtag.js con el measurement ID (por defecto G-BMZEQNRKR4). Llamar al arranque de la app. No carga el script en localhost ni sin red para evitar ERR_NAME_NOT_RESOLVED. */
 export function initGa4(): void {
   if (typeof window === "undefined") return;
+  if (isLocalhost()) return;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return;
   const id = GA4_MEASUREMENT_ID;
   if (!id) return;
   if (!window.gtag) {

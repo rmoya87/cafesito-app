@@ -26,11 +26,12 @@ export function useAppUiEffects({
   visibleTimelineNotifications,
   dismissNotificationTimersRef,
   closeDiarySheets,
-  handleRefreshTimeline
+  handleRefreshTimeline,
+  onCloseCreateCoffee
 }: {
   timelineActionBanner: string | null;
   setTimelineActionBanner: (value: string | null) => void;
-  activeTab: "home" | "search" | "coffee" | "brewlab" | "diary" | "profile";
+  activeTab: "home" | "search" | "coffee" | "brewlab" | "diary" | "profile" | "crear-cafe" | "selecciona-cafe";
   searchMode: "users" | "coffees";
   searchFocusCoffeeProfile: boolean;
   setSearchActiveFilterType: (value: "origen" | "especialidad" | "tueste" | "formato" | "nota" | null) => void;
@@ -54,6 +55,7 @@ export function useAppUiEffects({
   dismissNotificationTimersRef: MutableRefObject<number[]>;
   closeDiarySheets: () => void;
   handleRefreshTimeline: () => Promise<void>;
+  onCloseCreateCoffee?: () => void;
 }) {
   useEffect(() => {
     if (!timelineActionBanner) return;
@@ -74,11 +76,16 @@ export function useAppUiEffects({
       if (showNotificationsPanel) setShowNotificationsPanel(false);
       if (showCreatePost) resetCreatePostComposer();
       if (showCreatePostCoffeeSheet) setShowCreatePostCoffeeSheet(false);
-      if (showCreateCoffeeComposer) setShowCreateCoffeeComposer(false);
+      if (showCreateCoffeeComposer || activeTab === "crear-cafe") {
+        if (onCloseCreateCoffee) onCloseCreateCoffee();
+        else setShowCreateCoffeeComposer(false);
+      }
     };
     window.addEventListener("keydown", onEscSheet);
     return () => window.removeEventListener("keydown", onEscSheet);
   }, [
+    activeTab,
+    onCloseCreateCoffee,
     resetCreatePostComposer,
     setShowCreateCoffeeComposer,
     setShowCreatePostCoffeeSheet,

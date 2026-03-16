@@ -16,7 +16,9 @@ export function NotificationsSheet({
   onDismiss,
   onToggleFollow,
   onOpenCommentThread,
-  onOpenUserProfile
+  onOpenUserProfile,
+  onAcceptListInvite,
+  onDeclineListInvite
 }: {
   open: boolean;
   notifications: TimelineNotificationItem[];
@@ -29,6 +31,8 @@ export function NotificationsSheet({
   onToggleFollow: (userId: number) => void;
   onOpenCommentThread: (postId: string, commentId: number | null) => void;
   onOpenUserProfile: (userId: number) => void;
+  onAcceptListInvite?: (invitationId: string) => void;
+  onDeclineListInvite?: (invitationId: string) => void;
 }) {
   if (!open) return null;
 
@@ -130,6 +134,8 @@ export function NotificationsSheet({
                         if (item.type !== "comment" || !item.postId) return;
                         onOpenCommentThread(item.postId, item.commentId ?? null);
                       }}
+                      onAcceptListInvite={onAcceptListInvite}
+                      onDeclineListInvite={onDeclineListInvite}
                     />
                   );
                 })}

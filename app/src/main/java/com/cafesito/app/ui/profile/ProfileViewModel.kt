@@ -87,6 +87,7 @@ class ProfileViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
     private val reviewRepository: ReviewRepository,
     private val supabaseDataSource: SupabaseDataSource,
+    private val syncManager: SyncManager,
     private val connectivityObserver: ConnectivityObserver
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
@@ -103,6 +104,8 @@ class ProfileViewModel @Inject constructor(
     private val _profileUserDiaryCoffeeIds = MutableStateFlow<Set<String>>(emptySet())
     private val _profileActivityItems = MutableStateFlow<List<ProfileActivityItem>>(emptyList())
     val profileActivityItems: StateFlow<List<ProfileActivityItem>> = _profileActivityItems.asStateFlow()
+    private val _profileActivityLoading = MutableStateFlow(true)
+    val profileActivityLoading: StateFlow<Boolean> = _profileActivityLoading.asStateFlow()
 
     private val activeUserFlow = userRepository.getActiveUserFlow()
     
@@ -270,11 +273,15 @@ class ProfileViewModel @Inject constructor(
     }
 
     private fun refreshProfileActivity(success: ProfileUiState.Success) {
+        _profileActivityLoading.value = true
         viewModelScope.launch(Dispatchers.IO) {
+            try {
             val allCoffees = coffeeRepository.allCoffees.first()
             val allUsers = userRepository.getAllUsersFlow().first()
             val usersById = allUsers.associateBy { it.id }
             fun coffeeName(id: String?) = id?.let { allCoffees.find { c -> c.coffee.id == it }?.coffee?.nombre } ?: ""
+            fun coffeeImageUrl(id: String?) = id?.let { allCoffees.find { c -> c.coffee.id == it }?.coffee?.imageUrl } ?: ""
+            fun coffeeBrand(id: String?) = id?.let { allCoffees.find { c -> c.coffee.id == it }?.coffee?.marca } ?: ""
             /** Resuelve nombre de café desde caché o Supabase (homogeneiza con webapp: mismo nombre en actividad). */
             suspend fun resolveCoffeeName(id: String?): String {
                 if (id.isNullOrBlank()) return ""
@@ -282,19 +289,35 @@ class ProfileViewModel @Inject constructor(
                 if (fromCache.isNotBlank()) return fromCache
                 return coffeeRepository.getCoffeeById(id)?.nombre?.takeIf { it.isNotBlank() } ?: ""
             }
+            /** Resuelve nombre, imagen y marca desde caché o Supabase (para mostrar imagen en actividad "primera vez" y "lista"). */
+            suspend fun resolveCoffeeDetails(id: String?): Triple<String, String, String> {
+                if (id.isNullOrBlank()) return Triple("", "", "")
+                val cached = id.let { cid -> allCoffees.find { c -> c.coffee.id == cid }?.coffee }
+                if (cached != null) return Triple(
+                    cached.nombre.ifBlank { "" },
+                    cached.imageUrl.ifBlank { "" },
+                    cached.marca.ifBlank { "" }
+                )
+                val coffee = coffeeRepository.getCoffeeById(id) ?: return Triple("", "", "")
+                return Triple(
+                    coffee.nombre.ifBlank { "" },
+                    coffee.imageUrl.ifBlank { "" },
+                    coffee.marca.ifBlank { "" }
+                )
+            }
 
             val items = mutableListOf<ProfileActivityItem>()
 
             // Reglas de Actividad:
-            // - Mi perfil: tus opiniones, tu "primera vez" por café, tus añadidos a listas; y lo mismo por cada usuario que sigues (solo listas públicas de seguidos).
-            // - Perfil de terceros: solo actividad de ese usuario (opiniones, primera vez, añadidos a listas); no se muestra actividad de la gente que él sigue.
+            // - Mi perfil (persona logueada): toda mi actividad (pública y privada) + actividad de gente que sigo (solo pública: listas públicas; opiniones y primera vez visibles).
+            // - Perfil tercero: solo actividad de esa persona y solo pública (listas públicas; opiniones y primera vez de ese usuario).
             success.userReviews.forEach { reviewInfo ->
                 items.add(ProfileActivityItem.Review(reviewInfo))
             }
 
             // Diario: "primera vez" = café que ese usuario ha tomado exactamente una vez (entrada más antigua por café; excluir agua)
             suspend fun firstTimeFromDiary(entries: List<DiaryEntryEntity>, userId: Int, userName: String, avatarUrl: String?): List<ProfileActivityItem.FirstTimeCoffee> {
-                val coffeeEntries = entries.filter { (it.type ?: "").uppercase() != "WATER" }
+                val coffeeEntries = entries.filter { it.type.uppercase() != "WATER" }
                 val countByCoffeeId = coffeeEntries.mapNotNull { it.coffeeId }.groupingBy { it }.eachCount()
                 val byCoffee = mutableMapOf<String, DiaryEntryEntity>()
                 for (e in coffeeEntries) {
@@ -305,37 +328,45 @@ class ProfileViewModel @Inject constructor(
                 }
                 return buildList {
                     for (e in byCoffee.values) {
-                        val name = e.coffeeName.ifBlank { resolveCoffeeName(e.coffeeId) }
+                        val cid = e.coffeeId ?: ""
+                        val (name, imgUrl, brand) = resolveCoffeeDetails(cid)
+                        val displayName = e.coffeeName.ifBlank { name }
                         add(
                             ProfileActivityItem.FirstTimeCoffee(
                                 userId = userId,
                                 userName = userName,
                                 avatarUrl = avatarUrl,
                                 timestamp = e.timestamp,
-                                coffeeId = e.coffeeId ?: "",
-                                coffeeName = name
+                                coffeeId = cid,
+                                coffeeName = displayName,
+                                coffeeImageUrl = imgUrl,
+                                coffeeBrand = brand
                             )
                         )
                     }
                 }
             }
 
-            // Listas: ítems con meta (solo públicos si es perfil ajeno); resolveCoffeeName para homogeneizar nombres con webapp
+            // Listas: ítems con meta. Mi perfil = todas mis listas (público y privado). Perfil ajeno o seguidos = solo listas públicas.
             suspend fun listItemsForUser(userId: Int, userName: String, avatarUrl: String?, onlyPublic: Boolean): List<ProfileActivityItem.AddedToList> {
                 return try {
                     val rows = supabaseDataSource.getListItemsWithMetaForUser(userId).filter { !onlyPublic || it.isPublic }
                     buildList {
                         for (row in rows) {
+                            val cid = row.coffeeId
+                            val (name, imgUrl, brand) = resolveCoffeeDetails(cid)
                             add(
                                 ProfileActivityItem.AddedToList(
                                     userId = userId,
                                     userName = userName,
                                     avatarUrl = avatarUrl,
                                     timestamp = row.createdAt,
-                                    coffeeId = row.coffeeId,
-                                    coffeeName = resolveCoffeeName(row.coffeeId),
+                                    coffeeId = cid,
+                                    coffeeName = resolveCoffeeName(cid).ifBlank { name },
                                     listId = row.listId,
-                                    listName = row.listName
+                                    listName = row.listName,
+                                    coffeeImageUrl = imgUrl,
+                                    coffeeBrand = brand
                                 )
                             )
                         }
@@ -387,6 +418,9 @@ class ProfileViewModel @Inject constructor(
             }
 
             _profileActivityItems.value = items.sortedByDescending { it.timestamp }
+            } finally {
+                _profileActivityLoading.value = false
+            }
         }
     }
 
@@ -394,15 +428,17 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 userRepository.restoreSessionFromSupabaseIfNeeded()
-                coffeeRepository.syncCoffees()
-                coffeeRepository.syncFavoritesFromRemote()
+                syncManager.syncCoffeesIfNeeded(force = true)
+                syncManager.syncFavoritesIfNeeded(force = true)
                 coffeeRepository.triggerRefresh()
-                userRepository.syncUsers()
+                syncManager.syncUsersIfNeeded(force = true)
                 userRepository.syncFollows()
                 userRepository.triggerRefresh()
                 socialRepository.triggerRefresh()
                 userRepository.getActiveUser()?.let { user ->
-                    _userLists.value = supabaseDataSource.getUserLists(user.id)
+                    val owned = supabaseDataSource.getCachedUserLists(user.id)
+                    val shared = supabaseDataSource.getCachedSharedWithMeLists(user.id)
+                    _userLists.value = (owned + shared).distinctBy { it.id }
                     _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInUserLists(user.id).toSet()
                 } ?: run {
                     _userLists.value = emptyList()
@@ -411,7 +447,7 @@ class ProfileViewModel @Inject constructor(
                 val profileUserId = if (requestedUserId == 0) userRepository.getActiveUser()?.id else requestedUserId
                 _profileUserDiaryCoffeeIds.value = if (profileUserId != null) {
                     runCatching { supabaseDataSource.getDiaryEntries(profileUserId) }.getOrElse { emptyList() }
-                        .filter { (it.type ?: "").uppercase() != "WATER" }
+                        .filter { it.type.uppercase() != "WATER" }
                         .mapNotNull { it.coffeeId }
                         .toSet()
                 } else emptySet()
@@ -426,14 +462,21 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun createList(name: String, isPublic: Boolean) {
+    fun createList(name: String, privacy: String, membersCanEdit: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val user = userRepository.getActiveUser() ?: return@launch
-                val newList = supabaseDataSource.createUserList(user.id, name, isPublic)
+                val user = userRepository.getActiveUser() ?: run {
+                    withContext(Dispatchers.Main) { _error.value = "No hay sesión activa" }
+                    return@launch
+                }
+                val newList = supabaseDataSource.createUserListWithPrivacy(user.id, name, privacy, membersCanEdit)
+                supabaseDataSource.invalidateUserListsCache(user.id)
                 _userLists.update { it + newList }
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error creating list", e)
+                withContext(Dispatchers.Main) {
+                    _error.value = "No se pudo crear la lista. Comprueba la conexión o ejecuta el fix en Supabase (get_my_internal_id)."
+                }
             }
         }
     }

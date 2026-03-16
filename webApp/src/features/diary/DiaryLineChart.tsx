@@ -35,8 +35,8 @@ const CAFFEINE_COLOR = "#6f4e37";
 
 export type DiaryChartPoint = { label: string; caffeine: number; water: number };
 
-/** Altura mínima; el contenedor usa el alto completo de la card vía CSS. */
-const CHART_MIN_HEIGHT = 140;
+/** Altura mínima del gráfico; usa variable CSS --chart-min-height (tokens.css). */
+const CHART_MIN_HEIGHT = 'var(--chart-min-height)';
 
 type DiaryLineChartProps = {
   chartData: DiaryChartPoint[];
@@ -122,16 +122,7 @@ export function DiaryLineChart({
       interaction: { intersect: false, mode: "index" },
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const v = ctx.parsed.y;
-              const label = ctx.dataset.label ?? "";
-              if (label.startsWith("Agua")) return `${label}: ${v} ml`;
-              return `${label}: ${v} mg`;
-            }
-          }
-        },
+        tooltip: { enabled: false },
       },
       scales: {
         x: {

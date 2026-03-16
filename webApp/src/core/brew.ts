@@ -109,6 +109,20 @@ const DEFAULT_TIME_PROFILE: BrewTimeProfile = {
   defaultSeconds: 180
 };
 
+/** Límites libres: el usuario puede poner la cantidad de agua y café que quiera. Ratio y forma se calculan en base a ello. */
+export const BREW_WATER_ABS_MIN_ML = 1;
+export const BREW_WATER_ABS_MAX_ML = 5000;
+export const BREW_COFFEE_ABS_MIN_G = 0.5;
+export const BREW_COFFEE_ABS_MAX_G = 2000;
+
+/** Rango solo del slider café (0–50 g); el input numérico permite desde ABS_MIN hasta ABS_MAX. */
+export const BREW_SLIDER_MIN_COFFEE_G = 0;
+export const BREW_SLIDER_MAX_COFFEE_G = 50;
+/** Rango solo del slider agua (0–500 ml); el input numérico permite hasta ABS_MAX. */
+export const BREW_SLIDER_MIN_WATER_ML = 0;
+export const BREW_SLIDER_MAX_WATER_ML = 500;
+export const BREW_SLIDER_MAX_TIME_S = 60;
+
 export function getBrewMethodProfile(method: string): BrewMethodProfile {
   const key = normalizeLookupText(method);
   if (key.includes("agua")) {
@@ -260,12 +274,45 @@ export function getBrewTimeProfile(method: string): BrewTimeProfile {
   return DEFAULT_TIME_PROFILE;
 }
 
+/** Valoración breve de la configuración actual; dinámica según método (y ratio/agua si aplica). */
+export function getBrewConfigAdvice(method: string, ratio: number, waterMl: number): string {
+  const key = normalizeLookupText(method);
+  if (key.includes("agua")) {
+    return "Configuración aplicada para agua; ajusta la cantidad con los consejos del barista.";
+  }
+  if (key.includes("espresso")) {
+    return "Configuración aplicada para espresso; afina con los consejos del barista.";
+  }
+  if (key.includes("italiana") || key.includes("moka")) {
+    return "Configuración aplicada para italiana; afina molienda y fuego con los consejos del barista.";
+  }
+  if (key.includes("aeropress")) {
+    return "Configuración aplicada para Aeropress; afina molienda, tiempo y presión con los consejos del barista.";
+  }
+  if (key.includes("prensa") || key.includes("french")) {
+    return "Configuración aplicada para prensa; afina molienda e inmersión con los consejos del barista.";
+  }
+  if (key.includes("v60") || key.includes("chemex") || key.includes("filtro") || key.includes("goteo") || key.includes("hario") || key.includes("manual")) {
+    return "Configuración aplicada para filtro; afina molienda, vertido y cuerpo con los consejos del barista.";
+  }
+  if (key.includes("sifon")) {
+    return "Configuración aplicada para sifón; afina molienda y tiempos con los consejos del barista.";
+  }
+  if (key.includes("turco")) {
+    return "Configuración aplicada para turco; afina molienda y temperatura con los consejos del barista.";
+  }
+  if (key.includes("otros") || key.includes("rapido")) {
+    return "Configuración aplicada para elaboración rápida; elige tipo de bebida y usa los consejos del barista.";
+  }
+  return "Configuración aplicada; afina molienda, vertido y cuerpo con los consejos del barista.";
+}
+
 export function getBrewStepTitle(step: BrewStep): string {
   if (step === "method") return "ELABORACION";
   if (step === "coffee") return "ELIGE TU CAFÉ";
   if (step === "config") return "CONFIGURA";
   if (step === "brewing") return "PROCESO EN CURSO";
-  return "RESULTADO";
+  return "CONSUMO";
 }
 
 export function getBrewTimelineForMethod(

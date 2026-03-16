@@ -14,8 +14,9 @@ function FavoritosListRow({
 }: {
   coffee: CoffeeRow;
   onOpenCoffee: (coffeeId: string) => void;
-  onRemoveFavorite: (coffeeId: string) => Promise<void>;
+  onRemoveFavorite?: (coffeeId: string) => Promise<void>;
 }) {
+  const canRemove = typeof onRemoveFavorite === "function";
   const [isRemoving, setIsRemoving] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
   const [swipeActive, setSwipeActive] = useState(false);
@@ -45,9 +46,11 @@ function FavoritosListRow({
 
   return (
     <li className="profile-favorite-item favoritos-list-item">
-      <div className="profile-favorite-swipe-bg" aria-hidden="true">
-        <UiIcon name="trash" className="ui-icon" />
-      </div>
+      {canRemove ? (
+        <div className="profile-favorite-swipe-bg" aria-hidden="true">
+          <UiIcon name="trash" className="ui-icon" />
+        </div>
+      ) : null}
       <div
         ref={contentRef}
         className={`favoritos-list-card profile-favorite-row ${swipeActive || offsetX < -1 ? "is-swiping" : ""}`.trim()}
@@ -62,14 +65,14 @@ function FavoritosListRow({
           onOpenCoffee(coffee.id);
         }}
         onPointerDown={(event) => {
-          if (isRemoving) return;
+          if (!canRemove || isRemoving) return;
           pointerIdRef.current = event.pointerId;
           startXRef.current = event.clientX;
           startYRef.current = event.clientY;
           movedRef.current = false;
         }}
         onPointerMove={(event) => {
-          if (startXRef.current == null || startYRef.current == null || pointerIdRef.current !== event.pointerId) return;
+          if (!canRemove || startXRef.current == null || startYRef.current == null || pointerIdRef.current !== event.pointerId) return;
           const dx = event.clientX - startXRef.current;
           const dy = event.clientY - startYRef.current;
           const absDx = Math.abs(dx);
@@ -119,7 +122,7 @@ function FavoritosListRow({
           const finalOffset = offsetRef.current;
           const el = contentRef.current;
           if (el) el.style.transform = "";
-          if (finalOffset <= SWIPE_THRESHOLD && !isRemoving) {
+          if (finalOffset <= SWIPE_THRESHOLD && !isRemoving && onRemoveFavorite) {
             setOffsetX(0);
             setIsRemoving(true);
             try {
@@ -167,7 +170,7 @@ export function FavoritosListView({
 }: {
   favoriteCoffees: CoffeeRow[];
   onOpenCoffee: (coffeeId: string) => void;
-  onRemoveFavorite: (coffeeId: string) => Promise<void>;
+  onRemoveFavorite?: (coffeeId: string) => Promise<void>;
 }) {
   const sorted = useMemo(
     () => [...favoriteCoffees].sort((a, b) => (a.nombre ?? "").localeCompare(b.nombre ?? "")),

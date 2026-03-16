@@ -20,6 +20,63 @@ Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que g
 
 Si lo dejas activo, la función responderá en modo diferido y el despliegue se aplicará en la ventana nocturna.
 
+### Esquema del workflow: disparadores y jobs
+
+```mermaid
+flowchart TB
+  subgraph Triggers["Disparadores"]
+    PUSH[Push a Interna/alpha/beta/Producción]
+    DISPATCH[workflow_dispatch - Manual]
+    SCHEDULE[schedule - 03:00 UTC]
+  end
+  subgraph Sync["Solo en manual"]
+    SYNC[sync-main-into-branch\nmerge main en rama elegida]
+  end
+  subgraph Changes["Decisión"]
+    CHANGES[job: changes\nandroid? web?]
+  end
+  subgraph Jobs["Jobs de despliegue"]
+    ANDROID[release-android\nAAB → Play Console]
+    WEB[deploy-web\nbuild → SFTP Ionos]
+  end
+  PUSH --> CHANGES
+  DISPATCH --> SYNC
+  SYNC --> CHANGES
+  SCHEDULE --> CHANGES
+  CHANGES -->|android=true| ANDROID
+  CHANGES -->|web=true| WEB
+```
+
+### Esquema ramas → pistas
+
+```mermaid
+flowchart LR
+  subgraph Ramas["Ramas"]
+    MAIN[main]
+    BETA[beta]
+    ALPHA[alpha]
+    INTERNA[Interna]
+    PROD[Producción]
+  end
+  subgraph Android["Android (Play)"]
+    A_BETA[Pruebas abiertas]
+    A_ALPHA[Pruebas cerradas]
+    A_INTERNA[Interna]
+    A_PROD[Producción]
+  end
+  subgraph Web["Web (Ionos)"]
+    W_PATH["/cafesito-web/app/"]
+  end
+  MAIN -.->|no dispara workflow| MAIN
+  BETA --> A_BETA
+  BETA --> W_PATH
+  ALPHA --> A_ALPHA
+  ALPHA --> W_PATH
+  INTERNA --> A_INTERNA
+  PROD --> A_PROD
+  PROD --> W_PATH
+```
+
 ## Comportamiento por rama y por ficheros (push)
 
 En **push a alpha o beta**: siempre se ejecutan **release-android** y **deploy-web** (así, al hacer merge de main en beta se despliega aunque el último commit solo toque docs o workflow).

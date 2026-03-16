@@ -74,6 +74,7 @@ class DiaryRepository @Inject constructor(
         }
         .flowOn(Dispatchers.IO)
 
+    /** Despensa ordenada por último uso (actividad del usuario): el café más recientemente usado en el diario aparece a la izquierda. */
     fun getPantryItems(): Flow<List<PantryItemWithDetails>> = combine(
         _refreshTrigger.onStart { emit(Unit) },
         userRepository.getActiveUserFlow()
@@ -82,17 +83,30 @@ class DiaryRepository @Inject constructor(
             if (user == null) return@flatMapLatest flowOf(emptyList())
             combine(
                 diaryDao.getPantryItems(user.id),
-                coffeeDao.getAllCoffeesWithDetails()
-            ) { items, coffeesWithDetails ->
+                coffeeDao.getAllCoffeesWithDetails(),
+                diaryDao.getDiaryEntries(user.id)
+            ) { items, coffeesWithDetails, diaryEntries ->
+                val lastUsedByPantryId = mutableMapOf<String, Long>()
+                val lastUsedByCoffeeId = mutableMapOf<String, Long>()
+                diaryEntries.forEach { entry ->
+                    val ts = entry.timestamp
+                    entry.pantryItemId?.let { id -> lastUsedByPantryId[id] = maxOf(lastUsedByPantryId.getOrDefault(id, 0L), ts) }
+                    entry.coffeeId?.let { id -> lastUsedByCoffeeId[id] = maxOf(lastUsedByCoffeeId.getOrDefault(id, 0L), ts) }
+                }
+                fun lastUsed(item: PantryItemEntity): Long =
+                    maxOf(
+                        lastUsedByPantryId.getOrDefault(item.id, 0L),
+                        lastUsedByCoffeeId.getOrDefault(item.coffeeId, 0L),
+                        item.lastUpdated
+                    )
                 items.map { item ->
                     val details = coffeesWithDetails.find { it.coffee.id == item.coffeeId }
                     if (details != null) {
                         PantryItemWithDetails(item, details.coffee, details.coffee.isCustom)
                     } else {
-                        // Café aún no en la lista (p. ej. recién sincronizado): mostrar ítem con stub para que la despensa no lo oculte
                         PantryItemWithDetails(item, stubCoffeeForId(item.coffeeId), false)
                     }
-                }
+                }.sortedByDescending { lastUsed(it.pantryItem) }
             }.onStart {
                 if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
                     externalScope.launch { syncPantryItems() }
@@ -229,16 +243,15 @@ class DiaryRepository @Inject constructor(
         reduceFromPantryItemId: String? = null
     ) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
+        var pantryItemIdUsed: String? = null
         val entry = DiaryEntryEntity(
-            userId = user.id, coffeeId = coffeeId, coffeeName = coffeeName, 
-            coffeeBrand = coffeeBrand, caffeineAmount = caffeineAmount, 
+            userId = user.id, coffeeId = coffeeId, coffeeName = coffeeName,
+            coffeeBrand = coffeeBrand, caffeineAmount = caffeineAmount,
             amountMl = amountMl, coffeeGrams = coffeeGrams,
-            preparationType = preparationType, sizeLabel = sizeLabel, timestamp = System.currentTimeMillis(), type = type
+            preparationType = preparationType, sizeLabel = sizeLabel, timestamp = System.currentTimeMillis(), type = type,
+            pantryItemId = null
         )
-        
-        val rowId = diaryDao.insertDiaryEntry(entry)
-        val entryWithId = entry.copy(id = rowId)
-        
+
         if (coffeeId != null && type == TYPE_CUP && reduceFromPantry) {
             val pantryItem = reduceFromPantryItemId?.let { diaryDao.getPantryItemById(it) }
                 ?: run {
@@ -247,12 +260,17 @@ class DiaryRepository @Inject constructor(
                         ?: pantryItems.firstOrNull { it.coffeeId == coffeeId }
                 }
             if (pantryItem != null) {
+                pantryItemIdUsed = pantryItem.id
                 val newRemaining = (pantryItem.gramsRemaining - coffeeGrams).coerceAtLeast(0)
                 val updatedItem = pantryItem.copy(gramsRemaining = newRemaining, lastUpdated = System.currentTimeMillis())
                 diaryDao.upsertPantryItem(updatedItem)
                 externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
             }
         }
+
+        val entryWithPantryId = entry.copy(pantryItemId = pantryItemIdUsed)
+        val rowId = diaryDao.insertDiaryEntry(entryWithPantryId)
+        val entryWithId = entryWithPantryId.copy(id = rowId)
 
         externalScope.launch {
             try {
@@ -301,17 +319,23 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun createCustomCoffee(
-        name: String, brand: String, specialty: String, roast: String?, variety: String?, 
+        name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
-        totalGrams: Int = 250
+        totalGrams: Int = 250,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ): String? = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext null
         val coffeeId = UUID.randomUUID().toString()
-        
+
         var imageUrl = ""
         if (imageBytes != null) {
             try {
-                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$coffeeId.jpg", imageBytes)
+                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$coffeeId.webp", imageBytes)
             } catch (e: Exception) { }
         }
 
@@ -327,7 +351,13 @@ class DiaryRepository @Inject constructor(
             formato = format,
             imageUrl = imageUrl,
             isCustom = true,
-            userId = user.id
+            userId = user.id,
+            descripcion = descripcion?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            proceso = proceso?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            codigoBarras = codigoBarras?.trim()?.takeIf { it.isNotEmpty() },
+            moliendaRecomendada = moliendaRecomendada?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            productUrl = productUrl?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            aroma = aroma, sabor = sabor, cuerpo = cuerpo, acidez = acidez, dulzura = dulzura
         )
 
         coffeeDao.insertCoffees(listOf(customCoffee))
@@ -339,11 +369,17 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun createCustomCoffeeAndAddToPantry(
-        name: String, brand: String, specialty: String, roast: String?, variety: String?, 
+        name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String, imageBytes: ByteArray?,
-        totalGrams: Int = 250
+        totalGrams: Int = 250,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ): String? = withContext(Dispatchers.IO) {
-        val coffeeId = createCustomCoffee(name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams)
+        val coffeeId = createCustomCoffee(name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams, descripcion, proceso, codigoBarras, moliendaRecomendada, productUrl, aroma, sabor, cuerpo, acidez, dulzura)
             ?: return@withContext null
 
         addToPantry(coffeeId, totalGrams)
@@ -351,16 +387,22 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun updateCustomCoffee(
-        id: String, name: String, brand: String, specialty: String, roast: String?, 
-        variety: String?, country: String, hasCaffeine: Boolean, format: String, 
-        imageBytes: ByteArray?, totalGrams: Int
+        id: String, name: String, brand: String, specialty: String, roast: String?,
+        variety: String?, country: String, hasCaffeine: Boolean, format: String,
+        imageBytes: ByteArray?, totalGrams: Int,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ) = withContext(Dispatchers.IO) {
         val user = userRepository.getActiveUser() ?: return@withContext
-        
+
         var imageUrl = coffeeDao.getCoffeeById(id)?.imageUrl ?: ""
         if (imageBytes != null) {
             try {
-                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$id.jpg", imageBytes)
+                imageUrl = supabaseDataSource.uploadImage("coffees", "custom/$id.webp", imageBytes)
             } catch (e: Exception) { }
         }
 
@@ -376,7 +418,13 @@ class DiaryRepository @Inject constructor(
             formato = format,
             imageUrl = imageUrl,
             isCustom = true,
-            userId = user.id
+            userId = user.id,
+            descripcion = descripcion?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            proceso = proceso?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            codigoBarras = codigoBarras?.trim()?.takeIf { it.isNotEmpty() },
+            moliendaRecomendada = moliendaRecomendada?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            productUrl = productUrl?.trim()?.takeIf { it.isNotEmpty() } ?: "",
+            aroma = aroma, sabor = sabor, cuerpo = cuerpo, acidez = acidez, dulzura = dulzura
         )
 
         coffeeDao.insertCoffees(listOf(customCoffee))
@@ -421,20 +469,34 @@ class DiaryRepository @Inject constructor(
     }
 
     suspend fun updateDiaryEntry(entry: DiaryEntryEntity) = withContext(Dispatchers.IO) {
-        val user = userRepository.getActiveUser() ?: return@withContext
-        diaryDao.insertDiaryEntry(entry)
-        externalScope.launch {
-            try {
-                supabaseDataSource.upsertDiaryEntry(entry.copy(userId = user.id))
-                diaryDao.deletePendingDiarySync(entry.id)
-            } catch (e: Exception) {
-                enqueueDiaryEntryForSync(entry.id, e)
+        try {
+            val user = userRepository.getActiveUser() ?: return@withContext
+            diaryDao.insertDiaryEntry(entry)
+            externalScope.launch {
+                try {
+                    supabaseDataSource.upsertDiaryEntry(entry.copy(userId = user.id))
+                    diaryDao.deletePendingDiarySync(entry.id)
+                } catch (e: Exception) {
+                    enqueueDiaryEntryForSync(entry.id, e)
+                }
             }
+        } catch (e: Exception) {
+            Log.e("DiaryRepository", "updateDiaryEntry failed", e)
         }
     }
 
-    /** Elimina una entrada del diario (actividad). No modifica la despensa: el café sigue en pantry_items si estaba. */
+    /** Elimina una entrada del diario (actividad). Si la entrada tenía pantry_item_id, restaura el stock en ese ítem. */
     suspend fun deleteDiaryEntry(entryId: Long) = withContext(Dispatchers.IO) {
+        val entry = diaryDao.getDiaryEntryById(entryId)
+        if (entry != null && entry.pantryItemId != null && entry.coffeeGrams > 0 && entry.type == TYPE_CUP) {
+            val pantryItem = diaryDao.getPantryItemById(entry.pantryItemId)
+            if (pantryItem != null) {
+                val newRemaining = (pantryItem.gramsRemaining + entry.coffeeGrams).coerceAtMost(pantryItem.totalGrams)
+                val updatedItem = pantryItem.copy(gramsRemaining = newRemaining, lastUpdated = System.currentTimeMillis())
+                diaryDao.upsertPantryItem(updatedItem)
+                externalScope.launch { try { supabaseDataSource.upsertPantryItem(updatedItem) } catch (e: Exception) { } }
+            }
+        }
         diaryDao.deletePendingDiarySync(entryId)
         diaryDao.deleteDiaryEntryById(entryId)
         externalScope.launch { try { supabaseDataSource.deleteDiaryEntry(entryId) } catch (e: Exception) { } }

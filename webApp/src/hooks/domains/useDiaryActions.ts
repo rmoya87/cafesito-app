@@ -10,6 +10,7 @@ export function useDiaryActions({
   coffeeGrams,
   brewMethod,
   waterMl,
+  pantryItems,
   setDiaryEntries,
   setPantryItems,
   setBrewRunning,
@@ -22,6 +23,7 @@ export function useDiaryActions({
   coffeeGrams: number;
   brewMethod: string;
   waterMl: number;
+  pantryItems: PantryItemRow[];
   setDiaryEntries: React.Dispatch<React.SetStateAction<DiaryEntryRow[]>>;
   setPantryItems: React.Dispatch<React.SetStateAction<PantryItemRow[]>>;
   setBrewRunning: (value: boolean) => void;
@@ -62,9 +64,10 @@ export function useDiaryActions({
       const methodPart = `Lab: ${brewMethod || "Metodo"} (${taste})`;
       const preparationType = drinkType?.trim() ? `${methodPart}|${drinkType.trim()}` : methodPart;
       const sizeLabel = cupSizeLabelForAmountMl(waterMl);
+      const coffeeId = selectedCoffee?.id ?? null;
       const created = await createDiaryEntry({
         userId: activeUser.id,
-        coffeeId: selectedCoffee?.id ?? null,
+        coffeeId,
         coffeeName: selectedCoffee?.nombre ?? "Café",
         amountMl: waterMl,
         caffeineMg,
@@ -74,22 +77,44 @@ export function useDiaryActions({
         type: "CUP"
       });
       setDiaryEntries((prev) => [created, ...prev]);
+
+      // Restar de la despensa si el café está en despensa
+      if (coffeeId && gramsToSave > 0 && pantryItems.length > 0) {
+        const toReduce = pantryItems.find((p) => p.coffee_id === coffeeId && p.grams_remaining >= gramsToSave)
+          ?? pantryItems.find((p) => p.coffee_id === coffeeId);
+        if (toReduce) {
+          const newRemaining = Math.max(0, toReduce.grams_remaining - gramsToSave);
+          const updated = await updatePantryItem(toReduce.id, {
+            totalGrams: toReduce.total_grams,
+            gramsRemaining: newRemaining
+          });
+          setPantryItems((prev) =>
+            prev.map((p) => (p.id === toReduce.id ? updated : p))
+          );
+        }
+      }
+
       setBrewRunning(false);
       setTimerSeconds(0);
       setBrewStep("method");
       navigateToDiary();
     },
-    [activeUser, brewMethod, coffeeGrams, navigateToDiary, selectedCoffee, setBrewRunning, setBrewStep, setDiaryEntries, setTimerSeconds, waterMl]
+    [activeUser, brewMethod, coffeeGrams, navigateToDiary, pantryItems, selectedCoffee, setBrewRunning, setBrewStep, setDiaryEntries, setPantryItems, setTimerSeconds, waterMl]
   );
 
-  /** Elimina solo la entrada del diario (actividad). No modifica la despensa: el café sigue en pantry si estaba. */
+  /** Elimina la entrada del diario. Si la actividad había restado de un ítem de despensa, restaura el stock en ese ítem. */
   const handleDeleteDiaryEntry = useCallback(
     async (entryId: number) => {
       if (!activeUser) return;
-      await deleteDiaryEntry(entryId, activeUser.id);
+      const restoredPantryItem = await deleteDiaryEntry(entryId, activeUser.id);
       setDiaryEntries((prev) => prev.filter((entry) => entry.id !== entryId));
+      if (restoredPantryItem) {
+        setPantryItems((prev) =>
+          prev.map((p) => (p.id === restoredPantryItem.id ? restoredPantryItem : p))
+        );
+      }
     },
-    [activeUser, setDiaryEntries]
+    [activeUser, setDiaryEntries, setPantryItems]
   );
 
   const handleUpdateDiaryEntry = useCallback(

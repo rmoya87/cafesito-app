@@ -26,11 +26,11 @@ class DetailViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
     private val reviewRepository: ReviewRepository,
     private val supabaseDataSource: SupabaseDataSource,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
-    private val coffeeId: String = checkNotNull(savedStateHandle["coffeeId"])
+    private val coffeeId: String = savedStateHandle.get<String>("coffeeId").orEmpty()
 
     private val _userLists = kotlinx.coroutines.flow.MutableStateFlow<List<UserListRow>>(emptyList())
     private val _coffeeIdsInUserLists = kotlinx.coroutines.flow.MutableStateFlow<List<String>>(emptyList())
@@ -38,27 +38,30 @@ class DetailViewModel @Inject constructor(
     init {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             userRepository.getActiveUser()?.let { user ->
-                _userLists.value = supabaseDataSource.getUserLists(user.id)
+                _userLists.value = supabaseDataSource.getCachedUserListsMerged(user.id)
                 _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInUserLists(user.id)
             }
         }
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<DetailUiState> = combine(
+    val uiState: StateFlow<DetailUiState> = if (coffeeId.isBlank()) {
+        kotlinx.coroutines.flow.MutableStateFlow(DetailUiState.Error("Identificador de café no válido")).asStateFlow()
+    } else {
         combine(
-            userRepository.getActiveUserFlow(),
+            combine(
+                userRepository.getActiveUserFlow(),
             coffeeRepository.getCoffeeWithDetailsById(coffeeId),
             socialRepository.getReviewsForCoffee(coffeeId),
             socialRepository.getSensoryProfilesForCoffee(coffeeId),
-            diaryRepository.getPantryItems()
-        ) { activeUser, coffee, allReviews, sensoryProfiles, pantryItems ->
-            PentaState(activeUser, coffee, allReviews, sensoryProfiles, pantryItems)
-        },
-        coffeeRepository.favorites,
-        _userLists,
-        _coffeeIdsInUserLists
-    ) { penta, favorites, userLists, coffeeIdsInUserLists ->
+                diaryRepository.getPantryItems()
+            ) { activeUser, coffee, allReviews, sensoryProfiles, pantryItems ->
+                PentaState(activeUser, coffee, allReviews, sensoryProfiles, pantryItems)
+            },
+            coffeeRepository.favorites,
+            _userLists,
+            _coffeeIdsInUserLists
+        ) { penta, favorites, userLists, coffeeIdsInUserLists ->
         val activeUser = penta.activeUser
         val coffee = penta.coffee
         val allReviews = penta.allReviews
@@ -109,9 +112,11 @@ class DetailViewModel @Inject constructor(
             sensoryEditorsCount = sensoryEditorsCount,
             activeUser = activeUser,
             userLists = userLists,
-            isListActive = isListActive
+            isListActive = isListActive,
+            isFavorite = isFavoriteLocally
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetailUiState.Loading)
+    }
 
     private data class PentaState(
         val activeUser: UserEntity?,
@@ -139,10 +144,10 @@ class DetailViewModel @Inject constructor(
         }
     }
 
-    fun createList(name: String, isPublic: Boolean) {
+    fun createList(name: String, privacy: String, membersCanEdit: Boolean) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             userRepository.getActiveUser()?.let { user ->
-                val newList = supabaseDataSource.createUserList(user.id, name, isPublic)
+                val newList = supabaseDataSource.createUserListWithPrivacy(user.id, name, privacy, membersCanEdit)
                 _userLists.update { it + newList }
             }
         }
@@ -268,7 +273,8 @@ sealed interface DetailUiState {
         val sensoryEditorsCount: Int,
         val activeUser: UserEntity? = null,
         val userLists: List<UserListRow> = emptyList(),
-        val isListActive: Boolean = false
+        val isListActive: Boolean = false,
+        val isFavorite: Boolean = false
     ) : DetailUiState
     data class Error(val message: String) : DetailUiState
 }

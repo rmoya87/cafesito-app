@@ -16,11 +16,23 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
 import java.time.Instant
+import kotlinx.coroutines.delay
 
 @Singleton
 class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
+    // --- Caché recomendaciones (RPC): TTL 1h; en error o expirado, fuente de verdad = Supabase ---
+    private val recommendationsCacheLock = Any()
+    private val recommendationsCache = mutableMapOf<Int, Pair<List<Coffee>, Long>>()
+    private val RECOMMENDATIONS_TTL_MS = 60 * 60 * 1000L
+
+    // --- Caché listas por usuario: TTL 5 min; en error o expirado, fuente de verdad = Supabase ---
+    private val userListsCacheLock = Any()
+    private data class UserListsCacheEntry(val owned: List<UserListRow>, val shared: List<UserListRow>, val timestampMs: Long)
+    private val userListsCache = mutableMapOf<Int, UserListsCacheEntry>()
+    private val USER_LISTS_TTL_MS = 5 * 60 * 1000L
+    private val CACHE_RETRY_DELAY_MS = 2000L
     @kotlinx.serialization.Serializable
     data class AccountLifecycleInfo(
         @kotlinx.serialization.SerialName("account_status") val accountStatus: String? = null,
@@ -49,28 +61,7 @@ class SupabaseDataSource @Inject constructor(
         return bucketRef.publicUrl(path)
     }
 
-    // --- REALTIME ---
-    fun subscribeToLikes(): Flow<PostgresAction> {
-        val channel = client.realtime.channel("likes-realtime")
-        return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-            table = "likes_db"
-        }
-    }
-
-    fun subscribeToComments(): Flow<PostgresAction> {
-        val channel = client.realtime.channel("comments-realtime")
-        return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-            table = "comments_db"
-        }
-    }
-
-    fun subscribeToPosts(): Flow<PostgresAction> {
-        val channel = client.realtime.channel("posts-realtime")
-        return channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-            table = "posts_db"
-        }
-    }
-
+    // --- REALTIME (solo notificaciones; likes/comments/posts ya no se usan) ---
     @Suppress("DEPRECATION")
     fun subscribeToNotifications(userId: Int): Flow<PostgresAction> {
         val channel = client.realtime.channel("notifications-$userId")
@@ -184,7 +175,14 @@ class SupabaseDataSource @Inject constructor(
     suspend fun deleteFollow(followerId: Int, followedId: Int) { client.postgrest["follows"].delete { filter { eq("follower_id", followerId); eq("followed_id", followedId) } } }
 
     // --- CAFÉS ---
-    /** Obtiene todos los cafés desde Supabase (tabla coffees). Sin range PostgREST limita a 1000 filas. */
+    /** Tamaño de página para sync de catálogo (evitar range 0–9999). */
+    companion object {
+        const val COFFEE_SYNC_PAGE_SIZE = 500
+        /** Límite para una sola petición de catálogo (flow allCoffees); si el catálogo crece, usar sync paginado. */
+        const val MAX_COFFEES_SINGLE_FETCH = 2000
+    }
+
+    /** Obtiene cafés desde Supabase en rango acotado (no 0–9999). Para sync completo usar fetchAllCoffeesPaginated(). */
     suspend fun getAllCoffees(
         query: String? = null,
         origin: String? = null,
@@ -201,8 +199,21 @@ class SupabaseDataSource @Inject constructor(
             if (roast != null) eq("tueste", roast)
         }
         order("nombre", Order.ASCENDING)
-        range(0, 9999)
+        range(0L, (MAX_COFFEES_SINGLE_FETCH - 1).toLong())
     }.decodeList<Coffee>()
+
+    /** Obtiene todos los cafés en páginas (para sync sin límite 9999). */
+    suspend fun fetchAllCoffeesPaginated(): List<Coffee> {
+        val list = mutableListOf<Coffee>()
+        var from = 0L
+        while (true) {
+            val chunk = getCoffeesPaginated(from, from + COFFEE_SYNC_PAGE_SIZE - 1)
+            list.addAll(chunk)
+            if (chunk.size < COFFEE_SYNC_PAGE_SIZE) break
+            from += COFFEE_SYNC_PAGE_SIZE
+        }
+        return list
+    }
     
     suspend fun getCoffeesPaginated(
         from: Long, 
@@ -249,9 +260,49 @@ class SupabaseDataSource @Inject constructor(
         limit(1)
     }.decodeSingleOrNull<Coffee>()
 
-    // --- RECOMENDACIONES (RPC) ---
+    // --- RECOMENDACIONES (RPC) con caché TTL 1h; en error o expirado se llama a Supabase (fuente de verdad) ---
     suspend fun getRecommendationsRpc(userId: Int): List<Coffee> {
         return client.postgrest.rpc("get_coffee_recommendations", mapOf("target_user_id" to userId)).decodeList<Coffee>()
+    }
+
+    suspend fun getRecommendationsWithCache(userId: Int): List<Coffee> {
+        val now = System.currentTimeMillis()
+        synchronized(recommendationsCacheLock) {
+            recommendationsCache[userId]?.let { (list, ts) ->
+                if (now - ts < RECOMMENDATIONS_TTL_MS) return list
+            }
+        }
+        return runRecommendationsWithRetry(userId)
+    }
+
+    private suspend fun runRecommendationsWithRetry(userId: Int): List<Coffee> {
+        return try {
+            val list = getRecommendationsRpc(userId)
+            synchronized(recommendationsCacheLock) {
+                recommendationsCache[userId] = list to System.currentTimeMillis()
+            }
+            list
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "getRecommendationsWithCache: ${e.message}, reintentando...")
+            delay(CACHE_RETRY_DELAY_MS)
+            try {
+                val list = getRecommendationsRpc(userId)
+                synchronized(recommendationsCacheLock) {
+                    recommendationsCache[userId] = list to System.currentTimeMillis()
+                }
+                list
+            } catch (e2: Exception) {
+                Log.e("SupabaseDataSource", "getRecommendationsWithCache falló tras reintento", e2)
+                synchronized(recommendationsCacheLock) { recommendationsCache.remove(userId) }
+                emptyList()
+            }
+        }
+    }
+
+    /** Invalida caché de recomendaciones (p. ej. tras cambiar preferencias o sync). */
+    fun invalidateRecommendationsCache(userId: Int?) {
+        if (userId == null) return
+        synchronized(recommendationsCacheLock) { recommendationsCache.remove(userId) }
     }
 
     // --- CAFÉS PERSONALIZADOS (tabla coffees con is_custom = true y user_id) ---
@@ -276,6 +327,11 @@ class SupabaseDataSource @Inject constructor(
             set("cafeina", coffee.cafeina)
             set("formato", coffee.formato)
             set("image_url", coffee.imageUrl)
+            set("descripcion", coffee.descripcion)
+            set("proceso", coffee.proceso)
+            set("codigo_barras", coffee.codigoBarras)
+            set("molienda_recomendada", coffee.moliendaRecomendada)
+            set("product_url", coffee.productUrl)
         }) {
             filter {
                 eq("id", id)
@@ -434,7 +490,8 @@ class SupabaseDataSource @Inject constructor(
             preparationType = entry.preparationType,
             sizeLabel = entry.sizeLabel,
             timestamp = entry.timestamp,
-            type = entry.type
+            type = entry.type,
+            pantryItemId = entry.pantryItemId
         )
         return client.postgrest["diary_entries"].insert(insertData) { select() }.decodeSingle<DiaryEntryEntity>()
     }
@@ -446,7 +503,11 @@ class SupabaseDataSource @Inject constructor(
     suspend fun deleteDiaryEntry(entryId: Long) { client.postgrest["diary_entries"].delete { filter { eq("id", entryId) } } }
 
     // --- DESPENSA (varios registros por café; cada ítem tiene id único) ---
-    suspend fun getPantryItems(userId: Int): List<PantryItemEntity> = client.postgrest["pantry_items"].select { filter { eq("user_id", userId) } }.decodeList<PantryItemEntity>()
+    /** Despensa: último café usado primero (a la izquierda). */
+    suspend fun getPantryItems(userId: Int): List<PantryItemEntity> = client.postgrest["pantry_items"].select {
+        filter { eq("user_id", userId) }
+        order("last_updated", Order.DESCENDING)
+    }.decodeList<PantryItemEntity>()
     suspend fun upsertPantryItem(item: PantryItemEntity) {
         client.postgrest["pantry_items"].upsert(item)
     }
@@ -586,14 +647,168 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
-    // --- LISTAS PERSONALIZADAS (user_lists, user_list_items) ---
-    suspend fun getUserLists(userId: Int): List<UserListRow> = client.postgrest["user_lists"].select {
-        filter { eq("user_id", userId.toLong()) }
-    }.decodeList<UserListRow>()
+    // --- LISTAS PERSONALIZADAS (user_lists, user_list_items, invitaciones) ---
+    /** Listas propias del usuario (donde user_id = userId). En 500/error devuelve lista vacía para no romper la app. */
+    suspend fun getUserLists(userId: Int): List<UserListRow> = try {
+        client.postgrest["user_lists"].select {
+            filter { eq("user_id", userId.toLong()) }
+        }.decodeList<UserListRow>()
+    } catch (e: Exception) {
+        Log.w("SupabaseDataSource", "getUserLists: ${e.message}")
+        emptyList()
+    }
 
-    suspend fun createUserList(userId: Int, name: String, isPublic: Boolean): UserListRow {
-        val insert = UserListInsert(userId = userId.toLong(), name = name, isPublic = isPublic)
-        return client.postgrest["user_lists"].insert(insert) { select() }.decodeSingle<UserListRow>()
+    /** Listas propias + compartidas con caché TTL corto. Fuente de verdad: Supabase; en error o expirado se refresca desde remoto. */
+    suspend fun getCachedUserLists(userId: Int): List<UserListRow> = getCachedUserListsAndShared(userId).first
+
+    /** Listas propias y en las que el usuario es miembro (merged), para "Añadir a lista" en detalle de café. */
+    suspend fun getCachedUserListsMerged(userId: Int): List<UserListRow> {
+        val (owned, shared) = getCachedUserListsAndShared(userId)
+        return (owned + shared).distinctBy { it.id }
+    }
+
+    /** Listas compartidas con el usuario con caché TTL corto. Fuente de verdad: Supabase. */
+    suspend fun getCachedSharedWithMeLists(userId: Int): List<UserListRow> = getCachedUserListsAndShared(userId).second
+
+    private suspend fun getCachedUserListsAndShared(userId: Int): Pair<List<UserListRow>, List<UserListRow>> {
+        val now = System.currentTimeMillis()
+        synchronized(userListsCacheLock) {
+            userListsCache[userId]?.let { entry ->
+                if (now - entry.timestampMs < USER_LISTS_TTL_MS) {
+                    return entry.owned to entry.shared
+                }
+            }
+        }
+        return fetchUserListsAndSharedWithRetry(userId)
+    }
+
+    private suspend fun fetchUserListsAndSharedWithRetry(userId: Int): Pair<List<UserListRow>, List<UserListRow>> {
+        return try {
+            val owned = getUserLists(userId)
+            val shared = getSharedWithMeLists(userId)
+            synchronized(userListsCacheLock) {
+                userListsCache[userId] = UserListsCacheEntry(owned, shared, System.currentTimeMillis())
+            }
+            owned to shared
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "fetchUserListsAndShared: ${e.message}, reintentando...")
+            delay(CACHE_RETRY_DELAY_MS)
+            try {
+                val owned = getUserLists(userId)
+                val shared = getSharedWithMeLists(userId)
+                synchronized(userListsCacheLock) {
+                    userListsCache[userId] = UserListsCacheEntry(owned, shared, System.currentTimeMillis())
+                }
+                owned to shared
+            } catch (e2: Exception) {
+                Log.e("SupabaseDataSource", "fetchUserListsAndShared falló tras reintento", e2)
+                synchronized(userListsCacheLock) { userListsCache.remove(userId) }
+                emptyList<UserListRow>() to emptyList()
+            }
+        }
+    }
+
+    /** Invalida caché de listas del usuario (tras crear/editar/borrar lista o aceptar invitación). */
+    fun invalidateUserListsCache(userId: Int?) {
+        if (userId == null) return
+        synchronized(userListsCacheLock) { userListsCache.remove(userId) }
+    }
+
+    /** Obtiene una lista por ID (para deep link: abrir lista compartida). RLS permite si es pública, propia o miembro. */
+    suspend fun getUserListById(listId: String): UserListRow? = try {
+        client.postgrest["user_lists"].select {
+            filter { eq("id", listId) }
+        }.decodeList<UserListRow>().firstOrNull()
+    } catch (e: Exception) {
+        Log.w("SupabaseDataSource", "getUserListById: ${e.message}")
+        null
+    }
+
+    /** Listas compartidas con el usuario (donde está en user_list_members). */
+    suspend fun getSharedWithMeLists(userId: Int): List<UserListRow> {
+        val memberRows = try {
+            client.postgrest["user_list_members"].select {
+                filter { eq("user_id", userId.toLong()) }
+            }.decodeList<UserListMemberRow>()
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "getSharedWithMeLists members: ${e.message}")
+            return emptyList()
+        }
+        val listIds = memberRows.map { it.listId }.distinct()
+        if (listIds.isEmpty()) return emptyList()
+        return try {
+            client.postgrest["user_lists"].select {
+                filter { isIn("id", listIds) }
+            }.decodeList<UserListRow>()
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "getSharedWithMeLists lists: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun createListInvitation(listId: String, inviteeId: Int): String {
+        val raw = client.postgrest.rpc(
+            "create_list_invitation",
+            buildJsonObject {
+                put("p_list_id", listId)
+                put("p_invitee_id", inviteeId.toLong())
+            }
+        )
+        return try {
+            raw.decodeSingle<CreateListInvitationResult>().id
+        } catch (_: Exception) {
+            raw.decodeList<String>().firstOrNull()?.trim('"') ?: ""
+        }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class CreateListInvitationResult(
+        @kotlinx.serialization.SerialName("create_list_invitation") val id: String
+    )
+
+    suspend fun acceptListInvitation(invitationId: String) {
+        client.postgrest.rpc(
+            "accept_list_invitation",
+            buildJsonObject { put("p_invitation_id", invitationId) }
+        )
+    }
+
+    suspend fun declineListInvitation(invitationId: String) {
+        client.postgrest.rpc(
+            "decline_list_invitation",
+            buildJsonObject { put("p_invitation_id", invitationId) }
+        )
+    }
+
+    suspend fun joinPublicList(listId: String) {
+        client.postgrest.rpc(
+            "join_public_list",
+            buildJsonObject { put("p_list_id", listId) }
+        )
+    }
+
+    suspend fun createUserList(userId: Int, name: String, isPublic: Boolean): UserListRow =
+        createUserListWithPrivacy(userId, name, if (isPublic) "public" else "private", null)
+
+    /** Crea lista con privacidad (public | invitation | private), members_can_edit y members_can_invite. */
+    suspend fun createUserListWithPrivacy(
+        userId: Int,
+        name: String,
+        privacy: String,
+        membersCanEdit: Boolean?,
+        membersCanInvite: Boolean? = null
+    ): UserListRow {
+        val isPublic = privacy == "public"
+        val insert = UserListInsert(
+            userId = userId.toLong(),
+            name = name,
+            isPublic = isPublic,
+            privacy = privacy,
+            membersCanEdit = membersCanEdit ?: false,
+            membersCanInvite = membersCanInvite ?: false
+        )
+        val list = client.postgrest["user_lists"].insert(insert) { select() }.decodeList<UserListRow>()
+        return list.firstOrNull() ?: throw IllegalStateException("createUserList: insert did not return row")
     }
 
     suspend fun getUserListItems(listId: String): List<UserListItemRow> = client.postgrest["user_list_items"].select {
@@ -659,15 +874,62 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
+    /** Actualiza nombre, privacidad (public | invitation | private), si los miembros pueden editar y/o invitar. */
+    suspend fun updateUserListWithPrivacy(
+        listId: String,
+        name: String,
+        privacy: String,
+        membersCanEdit: Boolean?,
+        membersCanInvite: Boolean? = null
+    ) {
+        val isPublic = privacy == "public"
+        client.postgrest["user_lists"].update({
+            set("name", name)
+            set("is_public", isPublic)
+            set("privacy", privacy)
+            if (membersCanEdit != null) set("members_can_edit", membersCanEdit)
+            if (membersCanInvite != null) set("members_can_invite", membersCanInvite)
+        }) {
+            filter { eq("id", listId) }
+        }
+    }
+
+    /** Abandona una lista o elimina a un miembro (dueño elimina a otro). DELETE en user_list_members. */
+    suspend fun leaveList(listId: String, userId: Int) {
+        client.postgrest["user_list_members"].delete {
+            filter { eq("list_id", listId); eq("user_id", userId.toLong()) }
+        }
+    }
+
+    /** Miembros de la lista (para opciones de lista; RLS: solo dueño). */
+    suspend fun fetchListMembersByListId(listId: String): List<ListMemberRow> = try {
+        client.postgrest["user_list_members"].select {
+            filter { eq("list_id", listId) }
+        }.decodeList<ListMemberRow>()
+    } catch (e: Exception) {
+        Log.w("SupabaseDataSource", "fetchListMembersByListId: ${e.message}")
+        emptyList()
+    }
+
+    /** Invitaciones de la lista (para opciones de lista; RLS: inviter). */
+    suspend fun fetchListInvitationsByListId(listId: String): List<ListInvitationRow> = try {
+        client.postgrest["user_list_invitations"].select {
+            filter { eq("list_id", listId) }
+        }.decodeList<ListInvitationRow>()
+    } catch (e: Exception) {
+        Log.w("SupabaseDataSource", "fetchListInvitationsByListId: ${e.message}")
+        emptyList()
+    }
+
     /** Elimina la lista y sus ítems. No modifica pantry_items: los cafés de la despensa no se borran. */
     suspend fun deleteUserList(listId: String) {
         client.postgrest["user_list_items"].delete { filter { eq("list_id", listId) } }
         client.postgrest["user_lists"].delete { filter { eq("id", listId) } }
     }
 
-    /** IDs de cafés que están en alguna lista custom del usuario (para icono activo en detalle). */
+    /** IDs de cafés que están en alguna lista del usuario (propias o donde es miembro, para icono activo en detalle). */
     suspend fun getCoffeeIdsInUserLists(userId: Int): List<String> {
-        val lists = getUserLists(userId)
+        val lists = getCachedUserListsMerged(userId)
         if (lists.isEmpty()) return emptyList()
         val listIds = lists.map { it.id }
         return client.postgrest["user_list_items"].select {

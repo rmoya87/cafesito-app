@@ -26,7 +26,7 @@ object AppModule {
             context.applicationContext,
             AppDatabase::class.java,
             "cafesito_db"
-        ).fallbackToDestructiveMigration().build()
+        ).fallbackToDestructiveMigration(dropAllTables = true).build()
     }
 
     @Provides

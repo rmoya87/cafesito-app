@@ -9,6 +9,10 @@ import com.cafesito.shared.domain.brew.BREW_METHOD_AGUA
 import com.cafesito.shared.domain.brew.BREW_METHOD_OTROS
 import com.cafesito.shared.domain.brew.getOrderedBrewMethods
 import com.cafesito.shared.domain.brew.BrewDiaryEntryForOrder
+import com.cafesito.shared.domain.brew.BREW_COFFEE_ABS_MAX_G
+import com.cafesito.shared.domain.brew.BREW_COFFEE_ABS_MIN_G
+import com.cafesito.shared.domain.brew.BREW_WATER_ABS_MAX_ML
+import com.cafesito.shared.domain.brew.BREW_WATER_ABS_MIN_ML
 import com.cafesito.shared.domain.brew.BrewEngine
 import com.cafesito.shared.domain.brew.BrewMethodProfile
 import com.cafesito.shared.domain.brew.BrewSource
@@ -21,10 +25,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class BrewStep(val title: String) {
-    /** Pantalla única: carrusel métodos + Selecciona café + tipo/tamaño + config + temporizador (paridad web). */
+    /** Pantalla única: carrusel métodos + Selecciona café + config + temporizador; tipo/tamaño en pantalla Consumo. */
     CHOOSE_METHOD("Elaboración"),
     BREWING("Proceso en curso"),
-    RESULT("Resultado")
+    RESULT("Consumo")
 }
 
 data class BrewMethod(
@@ -93,6 +97,10 @@ class BrewLabViewModel @Inject constructor(
             }
             getOrderedBrewMethods(forOrder).mapNotNull { nameToBrewMethod[it] }
         }
+        .catch { e ->
+            Log.e("BrewLabViewModel", "Error loading brew methods", e)
+            emit(getOrderedBrewMethods(emptyList()).mapNotNull { nameToBrewMethod[it] })
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _selectedMethod = MutableStateFlow<BrewMethod?>(null)
@@ -105,21 +113,17 @@ class BrewLabViewModel @Inject constructor(
         .map { method -> BrewEngine.timeProfileFor(method?.name.orEmpty()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BrewEngine.timeProfileFor(""))
 
-    private val sizeOptionsForDefault = listOf(
-        "Espresso" to 30, "Pequeño" to 180, "Mediano" to 275, "Grande" to 375, "Tazón XL" to 475
-    )
-
     fun selectMethod(method: BrewMethod) {
         _selectedMethod.value = method
         val profile = BrewEngine.methodProfileFor(method.name)
         val timeProfile = BrewEngine.timeProfileFor(method.name)
         val defaultWater = profile.defaultWaterMl.toFloat()
+        val defaultCoffee = if (profile.defaultRatio > 0) (defaultWater / profile.defaultRatio).toFloat() else 15.6f
         _waterAmount.value = defaultWater
-        _ratio.value = profile.defaultRatio.toFloat()
+        _coffeeGramsState.value = defaultCoffee.coerceIn(BREW_COFFEE_ABS_MIN_G, BREW_COFFEE_ABS_MAX_G)
         _brewTimeSeconds.value = if (timeProfile.defaultSeconds > 0) timeProfile.defaultSeconds else 180
-        _selectedSizeLabel.value = if (method.isAgua) null
-            else sizeOptionsForDefault.minByOrNull { (_, ml) -> kotlin.math.abs(ml - defaultWater.toInt()) }?.first
-        // Sin cambio de paso: todo en la misma pantalla (paridad web).
+        _selectedSizeLabel.value = null
+        // Sin cambio de paso: todo en la misma pantalla (paridad web). Agua y tamaño no se modifican uno al otro.
     }
 
     /** Limpiar café seleccionado al entrar en la pantalla Elaboración (paridad con web). */
@@ -133,10 +137,9 @@ class BrewLabViewModel @Inject constructor(
     val drinkType = _drinkType.asStateFlow()
     fun setDrinkType(value: String) { _drinkType.value = value }
 
-    /** Tamaño seleccionado (label) para que la UI marque la opción correctamente. */
+    /** Tamaño seleccionado (label) para que la UI marque la opción correctamente. No modifica el valor de agua. */
     private val _selectedSizeLabel = MutableStateFlow<String?>(null)
     val selectedSizeLabel = _selectedSizeLabel.asStateFlow()
-    /** Al cambiar tamaño solo se actualiza la etiqueta; café y agua los configura el usuario. */
     fun setSelectedSize(label: String, defaultMl: Float) {
         _selectedSizeLabel.value = label
     }
@@ -175,7 +178,10 @@ class BrewLabViewModel @Inject constructor(
         _selectedPantryItem.value = item
         _selectedCoffee.value = item.coffee
         _isCoffeeFromPantry.value = true
-        _waterAmount.value = selectedMethodProfile.value.defaultWaterMl.toFloat()
+        val profile = selectedMethodProfile.value
+        _waterAmount.value = profile.defaultWaterMl.toFloat()
+        val defaultCoffee = if (profile.defaultRatio > 0) (profile.defaultWaterMl / profile.defaultRatio).toFloat() else 15.6f
+        _coffeeGramsState.value = defaultCoffee.coerceIn(BREW_COFFEE_ABS_MIN_G, BREW_COFFEE_ABS_MAX_G)
         _hasTimerStarted.value = false
     }
 
@@ -183,7 +189,10 @@ class BrewLabViewModel @Inject constructor(
         _selectedPantryItem.value = null
         _selectedCoffee.value = coffee
         _isCoffeeFromPantry.value = false
-        _waterAmount.value = selectedMethodProfile.value.defaultWaterMl.toFloat()
+        val profile = selectedMethodProfile.value
+        _waterAmount.value = profile.defaultWaterMl.toFloat()
+        val defaultCoffee = if (profile.defaultRatio > 0) (profile.defaultWaterMl / profile.defaultRatio).toFloat() else 15.6f
+        _coffeeGramsState.value = defaultCoffee.coerceIn(BREW_COFFEE_ABS_MIN_G, BREW_COFFEE_ABS_MAX_G)
         _hasTimerStarted.value = false
     }
 
@@ -206,12 +215,18 @@ class BrewLabViewModel @Inject constructor(
         }
     }
 
-    // --- 3. CONFIGURATION ---
-        private val _waterAmount = MutableStateFlow(250f)
+    // --- 3. CONFIGURATION (agua y café independientes; ratio derivado) ---
+    private val _waterAmount = MutableStateFlow(250f)
     val waterAmount = _waterAmount.asStateFlow()
 
-    private val _ratio = MutableStateFlow(16f)
-    val ratio = _ratio.asStateFlow()
+    private val _coffeeGramsState = MutableStateFlow(15.6f)
+    /** Café en gramos: parámetro independiente. Para Rápido se usa aproximación por tipo/tamaño. */
+    val coffeeGramsState = _coffeeGramsState.asStateFlow()
+
+    /** Ratio derivado: agua / café (solo lectura para UI y valoración). */
+    val ratio = combine(_waterAmount, _coffeeGramsState) { water, coffee ->
+        if (coffee <= 0f) 16f else (water / coffee).coerceIn(1f, 100f)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 16f)
     private val _brewTimeSeconds = MutableStateFlow(180)
     val brewTimeSeconds = _brewTimeSeconds.asStateFlow()
     val isEspressoMethod = _selectedMethod
@@ -227,21 +242,20 @@ class BrewLabViewModel @Inject constructor(
         .map { isEspresso -> !isEspresso }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    val coffeeGrams = combine(_waterAmount, _ratio) { water, rat ->
-        if (rat <= 0f) 0f else water / rat
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 15.6f)
-
-    /** Para Rápido: dosis aproximada por tipo/tamaño; para el resto igual que coffeeGrams. Usar para mostrar en UI y al guardar. */
-    val displayCoffeeGrams = combine(_selectedMethod, _waterAmount, _drinkType, coffeeGrams) { method, water, drink, grams ->
+    /** Gramos de café para cálculos: estado directo salvo Rápido (aproximado). */
+    val coffeeGrams = combine(_selectedMethod, _waterAmount, _drinkType, _coffeeGramsState) { method, water, drink, grams ->
         if (method?.name == BREW_METHOD_OTROS && water > 0f) {
             BrewEngine.approximateCoffeeGramsForRapido(water.toInt(), drink.trim().ifBlank { "Espresso" }).toFloat()
         } else grams
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 15.6f)
 
-    val baristaTips = combine(_selectedMethod, _ratio, _waterAmount, coffeeGrams, _brewTimeSeconds) { method, ratio, water, grams, brewTime ->
+    /** Para mostrar en UI y al guardar (igual que coffeeGrams). */
+    val displayCoffeeGrams = coffeeGrams
+
+    val baristaTips = combine(_selectedMethod, ratio, _waterAmount, coffeeGrams, _brewTimeSeconds) { method, r, water, grams, brewTime ->
         BrewEngine.baristaTipsForMethod(
             method = method?.name.orEmpty(),
-            ratio = ratio.toDouble(),
+            ratio = r.toDouble(),
             waterMl = water.toInt(),
             coffeeGrams = grams.toDouble(),
             brewTimeSeconds = brewTime
@@ -250,43 +264,30 @@ class BrewLabViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val brewValuation = combine(_selectedMethod, _ratio, _waterAmount) { method, rat, water ->
+    val brewValuation = combine(_selectedMethod, ratio, _waterAmount, _coffeeGramsState) { method, rat, water, _ ->
         if (method == null) return@combine ""
         BrewEngine.brewAdvice(method.name, rat.toDouble(), water.toInt())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     fun setWaterAmount(value: Float) {
         val profile = selectedMethodProfile.value
-        val clamped = value.coerceIn(profile.waterMinMl.toFloat(), profile.waterMaxMl.toFloat())
+        val clamped = value.coerceIn(0f, BREW_WATER_ABS_MAX_ML.toFloat())
         _waterAmount.value = snapToStep(clamped, profile.waterStepMl.toFloat(), profile.waterMinMl.toFloat())
     }
 
-    fun setRatio(value: Float) {
-        if (!isRatioEditable.value) {
-            _ratio.value = selectedMethodProfile.value.defaultRatio.toFloat()
-            return
-        }
-        val profile = selectedMethodProfile.value
-        val clamped = value.coerceIn(profile.ratioMin.toFloat(), profile.ratioMax.toFloat())
-        _ratio.value = snapToStep(clamped, profile.ratioStep.toFloat(), profile.ratioMin.toFloat())
-    }
-
+    /** Actualiza solo el café (gramos); el ratio se deriva. En Espresso el agua (yield) se deriva del café. Input numérico permite hasta ABS_MAX. */
     fun setCoffeeGrams(value: Float) {
-        val safe = value.coerceIn(1f, 250f)
+        val profile = selectedMethodProfile.value
         if (isEspressoMethod.value) {
-            val yieldMl = (safe * selectedMethodProfile.value.defaultRatio.toFloat()).toInt()
-            _waterAmount.value = yieldMl.toFloat()
-            _ratio.value = selectedMethodProfile.value.defaultRatio.toFloat()
+            val safe = value.coerceIn(1f, BREW_COFFEE_ABS_MAX_G)
+            _coffeeGramsState.value = safe
+            val yieldMl = (safe * profile.defaultRatio.toFloat()).toInt()
+            _waterAmount.value = yieldMl.toFloat().coerceIn(BREW_WATER_ABS_MIN_ML.toFloat(), BREW_WATER_ABS_MAX_ML.toFloat())
             return
         }
-        if (!isRatioEditable.value) {
-            val waterMl = (safe * selectedMethodProfile.value.defaultRatio.toFloat()).toInt()
-            _waterAmount.value = waterMl.toFloat()
-            _ratio.value = selectedMethodProfile.value.defaultRatio.toFloat()
-            return
-        }
-        val nextRatio = if (safe <= 0f) selectedMethodProfile.value.defaultRatio.toFloat() else _waterAmount.value / safe
-        setRatio(nextRatio)
+        val coffeeMin = (profile.waterMinMl / profile.ratioMax).toFloat().coerceAtLeast(BREW_COFFEE_ABS_MIN_G)
+        val clamped = value.coerceIn(coffeeMin, BREW_COFFEE_ABS_MAX_G)
+        _coffeeGramsState.value = snapToStep(clamped, 0.5f, coffeeMin)
     }
 
     fun setBrewTimeSeconds(value: Int) {
@@ -372,12 +373,12 @@ class BrewLabViewModel @Inject constructor(
 
     val brewingProcessAdvice: StateFlow<String> = combine(
         _selectedMethod,
-        _ratio,
+        ratio,
         _waterAmount,
         currentPhaseIndex,
         phasesTimeline
-    ) { method, ratio, water, phaseIndex, timeline ->
-        BrewingAdviceContext(method, ratio, water, phaseIndex, timeline)
+    ) { method, r, water, phaseIndex, timeline ->
+        BrewingAdviceContext(method, r, water, phaseIndex, timeline)
     }.combine(secondsRemainingInPhase) { ctx, remaining ->
         if (ctx.method == null || ctx.timeline.isEmpty()) return@combine ""
         val phaseLabel = ctx.timeline.getOrNull(ctx.phaseIndex)?.label.orEmpty()
@@ -586,6 +587,14 @@ class BrewLabViewModel @Inject constructor(
     val timerEnded: StateFlow<Boolean> = combine(timerSeconds, phasesTimeline) { seconds, timeline ->
         val total = timeline.sumOf { it.durationSeconds }
         total > 0 && seconds >= total
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /** Guardar en pantalla Consumo habilitado solo con tipo y tamaño; el sabor es opcional. */
+    val canSaveForResult: StateFlow<Boolean> = combine(
+        _drinkType,
+        _selectedSizeLabel
+    ) { type, size ->
+        type.isNotBlank() && size != null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 }
 

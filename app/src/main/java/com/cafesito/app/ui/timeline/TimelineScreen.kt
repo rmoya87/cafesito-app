@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,14 +48,14 @@ import com.cafesito.shared.domain.brew.BREW_METHOD_OTROS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TimelineScreen(
+fun HomeScreen(
     onUserClick: (Int) -> Unit,
     onCoffeeClick: (String) -> Unit,
     onBrewLabClick: () -> Unit,
     onAddToPantryClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onEditCoffeeClick: (String) -> Unit = {},
-    viewModel: TimelineViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
@@ -95,7 +96,7 @@ fun TimelineScreen(
     var itemToDeleteId by remember { mutableStateOf<String?>(null) }
     var showFinishedConfirmId by remember { mutableStateOf<String?>(null) }
 
-    val state = uiState as? TimelineUiState.Success
+    val state = uiState as? HomeUiState.Success
     val pantryItems = state?.pantryItems ?: emptyList()
 
     if (showStockSheet && itemToEdit != null) {
@@ -116,57 +117,84 @@ fun TimelineScreen(
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                scrimColor = Color.Black.copy(alpha = 0.5f)
+                shape = Shapes.sheetLarge,
+                scrimColor = ScrimDefault
             ) {
-                Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
                         text = "Opciones",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium
                     )
-                    ModalMenuOption(
-                        title = "Editar stock",
-                        icon = Icons.Default.Edit,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            itemToEdit = selectedItem
-                            showStockSheet = true
-                            showPantryOptionsId = null
+                    Text(
+                        text = "Organiza",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column {
+                            PantryOptionRow(
+                                icon = Icons.Default.Edit,
+                                label = "Editar stock",
+                                onClick = {
+                                    itemToEdit = selectedItem
+                                    showStockSheet = true
+                                    showPantryOptionsId = null
+                                }
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                            PantryOptionRow(
+                                icon = Icons.Default.Done,
+                                label = "Café terminado",
+                                onClick = {
+                                    showFinishedConfirmId = showPantryOptionsId
+                                    showPantryOptionsId = null
+                                }
+                            )
                         }
-                    )
-                    ModalMenuOption(
-                        title = "Café terminado",
-                        icon = Icons.Default.Done,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            showFinishedConfirmId = showPantryOptionsId
-                            showPantryOptionsId = null
-                        }
-                    )
-                    if (selectedItem.isCustom) {
-                        ModalMenuOption(
-                            title = "Editar café",
-                            icon = Icons.Default.LocalCafe,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            onClick = {
-                                onEditCoffeeClick(selectedItem.coffee.id)
-                                showPantryOptionsId = null
-                            }
-                        )
                     }
-                    ModalMenuOption(
-                        title = "Eliminar de la despensa",
-                        icon = Icons.Default.Delete,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            itemToDeleteId = showPantryOptionsId
-                            showPantryOptionsId = null
-                        }
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = "General",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column {
+                            if (selectedItem.isCustom) {
+                                PantryOptionRow(
+                                    icon = Icons.Default.LocalCafe,
+                                    label = "Editar café",
+                                    onClick = {
+                                        onEditCoffeeClick(selectedItem.coffee.id)
+                                        showPantryOptionsId = null
+                                    }
+                                )
+                                HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                            }
+                            PantryOptionRow(
+                                icon = Icons.Default.Delete,
+                                label = "Eliminar de la despensa",
+                                onClick = {
+                                    itemToDeleteId = showPantryOptionsId
+                                    showPantryOptionsId = null
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -239,11 +267,11 @@ fun TimelineScreen(
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             when (val state = uiState) {
-                is TimelineUiState.Loading -> TimelineLoadingContent()
-                is TimelineUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                is HomeUiState.Loading -> HomeLoadingContent()
+                is HomeUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ErrorStateMessage(message = state.message, onRetry = { viewModel.refreshData() })
                 }
-                is TimelineUiState.Success -> {
+                is HomeUiState.Success -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 88.dp)
@@ -330,9 +358,9 @@ private fun HomeBrewMethodsCarousel(
                     modifier = Modifier
                         .width(100.dp)
                         .height(100.dp)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(Shapes.shapeCardMedium)
                         .clickable(onClick = onMethodClick),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = Shapes.shapeCardMedium,
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                     tonalElevation = 2.dp
                 ) {

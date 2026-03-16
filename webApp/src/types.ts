@@ -1,4 +1,4 @@
-export type TabId = "home" | "search" | "brewlab" | "diary" | "profile" | "coffee";
+export type TabId = "home" | "search" | "brewlab" | "diary" | "profile" | "coffee" | "crear-cafe" | "selecciona-cafe";
 export type ViewMode = "mobile" | "desktop";
 export type BrewStep = "method" | "coffee" | "config" | "brewing" | "result";
 
@@ -95,6 +95,8 @@ export type DiaryEntryRow = {
   size_label?: string | null;
   timestamp: number;
   type: string;
+  /** ID del ítem de despensa del que se restó stock; para restaurar al eliminar. */
+  pantry_item_id?: string | null;
 };
 
 export type PantryItemRow = {
@@ -118,12 +120,21 @@ export type FavoriteRow = {
   saved_at: number;
 };
 
+/** Modo de privacidad de una lista: pública (cualquiera puede suscribirse), por invitación, o privada (solo dueño). */
+export type ListPrivacy = "public" | "invitation" | "private";
+
 /** Lista personalizada del usuario (tabla user_lists en Supabase). */
 export type UserListRow = {
   id: string;
   user_id: number;
   name: string;
   is_public: boolean;
+  /** Si existe en BD (columna privacy); si no, se deriva: is_public true → "public", false → "private". */
+  privacy?: ListPrivacy;
+  /** Si los miembros pueden añadir/quitar cafés (solo aplica cuando privacy es public o invitation). Por defecto false. */
+  members_can_edit?: boolean;
+  /** Si los miembros pueden invitar a otras personas (solo aplica cuando privacy es invitation). Por defecto false. */
+  members_can_invite?: boolean;
   created_at?: string;
 };
 
@@ -164,7 +175,7 @@ export type ProfileActivityItem = {
   listName?: string | null;
 };
 
-export type TimelineCard = {
+export type HomeCard = {
   id: string;
   userId: number;
   userName: string;
@@ -189,10 +200,6 @@ export type InitialDataBundle = {
   coffees: CoffeeRow[];
   reviews: CoffeeReviewRow[];
   sensoryProfiles: CoffeeSensoryProfileRow[];
-  posts: PostRow[];
-  likes: LikeRow[];
-  comments: CommentRow[];
-  postCoffeeTags: PostCoffeeTagRow[];
   follows: FollowRow[];
 };
 

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.CoffeeRepository
 import com.cafesito.app.data.CoffeeWithDetails
+import com.cafesito.app.data.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val repository: CoffeeRepository
+    private val repository: CoffeeRepository,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _isRefreshing = MutableStateFlow(false)
@@ -55,8 +57,8 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                repository.syncCoffees()
-                repository.syncFavoritesFromRemote()
+                syncManager.syncCoffeesIfNeeded(force = true)
+                syncManager.syncFavoritesIfNeeded(force = true)
             } catch (e: Exception) {
                 Log.e("SEARCH_VM", "Error al sincronizar desde Supabase: ${e.message}", e)
             } finally {

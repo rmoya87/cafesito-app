@@ -101,7 +101,7 @@ fun FollowingScreen(
                                             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                             focusedBorderColor = MaterialTheme.colorScheme.primary
                                         ),
-                                        shape = RoundedCornerShape(999.dp),
+                                        shape = Shapes.pillFull,
                                     )
                                 }
                             )

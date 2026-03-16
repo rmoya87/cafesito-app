@@ -50,10 +50,9 @@ class CoffeeRepository @Inject constructor(
         ).flow
     }
 
-    /** Pide a Supabase todos los cafés (una sola petición). Lo que devuelva depende de RLS.
-     *  Para ver toda la tabla, en Supabase aplica la política "Coffees readable by authenticated (all rows)" (coffees_rls.sql). */
+    /** Pide a Supabase todos los cafés en páginas (rangos acotados, sin 0–9999). Usado por sync y por flow allCoffees. */
     private suspend fun fetchAllCoffees(): List<Coffee> {
-        return supabaseDataSource.getAllCoffees()
+        return supabaseDataSource.fetchAllCoffeesPaginated()
     }
 
     val allCoffees: Flow<List<CoffeeWithDetails>> = _refreshTrigger
@@ -78,6 +77,23 @@ class CoffeeRepository @Inject constructor(
         }
         .onStart { emit(emptyList()) }
         .flowOn(Dispatchers.IO)
+
+    /** Lista unificada de catálogo + custom del usuario para Cafés probados (sin depender solo del fetch). */
+    val allCoffeesIncludingCustom: Flow<List<CoffeeWithDetails>> = combine(
+        coffeeDao.getAllCoffeesWithDetails(),
+        userRepository.getActiveUserFlow()
+    ) { dbList, user ->
+        Pair(dbList, user)
+    }.flatMapLatest { (dbList, user) ->
+        flow {
+            val custom = withContext(Dispatchers.IO) {
+                if (user != null) coffeeDao.getCustomCoffeesByUserId(user.id) else emptyList()
+            }
+            val dbIds = dbList.map { it.coffee.id }.toSet()
+            val extra = custom.filter { it.id !in dbIds }.map { CoffeeWithDetails(it, null, emptyList()) }
+            emit(dbList + extra)
+        }.flowOn(Dispatchers.IO)
+    }.onStart { emit(emptyList()) }
 
     fun getCoffeeWithDetailsById(id: String): Flow<CoffeeWithDetails?> = _refreshTrigger
         .flatMapLatest {
@@ -156,10 +172,14 @@ class CoffeeRepository @Inject constructor(
     }
 
     suspend fun syncCoffees() {
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) {
+            Log.d("CoffeeRepository", "syncCoffees: sin conectividad, omitido")
+            return
+        }
         val all = fetchAllCoffees()
         coffeeDao.insertCoffees(all)
         lastSyncMap["all_coffees"] = System.currentTimeMillis()
-        Log.d("CoffeeRepository", "syncCoffees: ${all.size} cafés (públicos + custom + referenciados)")
+        Log.d("CoffeeRepository", "syncCoffees: ${all.size} cafés (paginado)")
         triggerRefresh()
     }
 

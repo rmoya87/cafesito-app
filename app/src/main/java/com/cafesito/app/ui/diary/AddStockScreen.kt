@@ -83,11 +83,12 @@ fun AddStockScreen(
             onDismissRequest = { if (!isSaving) selectedCoffeeId = null },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+            shape = Shapes.sheetLarge
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = 8.dp)
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -157,7 +158,7 @@ fun AddStockScreen(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     enabled = !isSaving && grams.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = Shapes.shapeXl
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
@@ -194,11 +195,11 @@ fun AddStockScreen(
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(stringResource(R.string.add_stock_search_placeholder)) },
-                    shape = RoundedCornerShape(999.dp),
+                    shape = Shapes.pillFull,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedContainerColor = if (isDark) Color.Black else Color.White,
-                        focusedContainerColor = if (isDark) Color.Black else Color.White
+                        unfocusedContainerColor = if (isDark) PureBlack else PureWhite,
+                        focusedContainerColor = if (isDark) PureBlack else PureWhite
                     ),
                     singleLine = true,
                     leadingIcon = { 

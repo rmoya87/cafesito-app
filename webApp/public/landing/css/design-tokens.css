@@ -1,0 +1,83 @@
+:root {
+  /* COLORS (Light Mode) */
+  --color-primary: #000000;
+  /* Black */
+  --color-text: #000000;
+  /* Black */
+  --color-muted-text: #333333;
+  /* Dark Grey */
+  --color-accent: #6F4E37;
+  /* CaramelAccent - Keeping for brand */
+  --color-bg: #FFFFFF;
+  /* PureWhite */
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F9F5F2;
+  /* CreamLight */
+  --color-surface-3: #FDFDFD;
+  /* SoftOffWhite */
+  --color-border: rgba(0, 0, 0, 0.1);
+  /* Light Border */
+  --color-success: #81C784;
+  --color-error: #FF3B30;
+  --color-warn: #FFB300;
+
+  /* TYPOGRAPHY */
+  --font-family-base: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* SPACING */
+  --spacing-1: 8px;
+  --spacing-2: 16px;
+  --spacing-3: 24px;
+  --spacing-4: 32px;
+  --spacing-5: 40px;
+  --spacing-6: 48px;
+  --spacing-8: 64px;
+
+  /* LAYOUT */
+  --container-width: 1200px;
+  --header-height: 70px;
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+  --transition-speed: 0.3s;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* COLORS (Dark Mode Override - Forced Light/White) */
+    --color-primary: #000000;
+    --color-text: #000000;
+    --color-muted-text: #333333;
+    --color-accent: #6F4E37;
+    --color-bg: #FFFFFF;
+    --color-surface: #FFFFFF;
+    --color-surface-2: #F9F5F2;
+    --color-surface-3: #FDFDFD;
+    --color-border: rgba(0, 0, 0, 0.1);
+  }
+}
+
+[data-theme="dark"] {
+  /* COLORS (Dark Mode Manual Override - Forced Light/White) */
+  --color-primary: #000000;
+  --color-text: #000000;
+  --color-muted-text: #333333;
+  --color-accent: #6F4E37;
+  --color-bg: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F9F5F2;
+  --color-surface-3: #FDFDFD;
+  --color-border: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] {
+  /* COLORS (Light Mode Manual Override) */
+  --color-primary: #000000;
+  --color-text: #000000;
+  --color-muted-text: #333333;
+  --color-accent: #6F4E37;
+  --color-bg: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F9F5F2;
+  --color-surface-3: #FDFDFD;
+  --color-border: rgba(0, 0, 0, 0.1);
+}

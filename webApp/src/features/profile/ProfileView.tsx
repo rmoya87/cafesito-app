@@ -5,10 +5,17 @@ import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
 import { CreateListSheet } from "../lists/CreateListSheet";
 import { toRelativeMinutes } from "../../core/time";
-import type { CoffeeRow, CoffeeReviewRow, CoffeeSensoryProfileRow, ProfileActivityItem, UserListRow, UserRow, ViewMode } from "../../types";
+import type { CoffeeRow, ListPrivacy, CoffeeReviewRow, CoffeeSensoryProfileRow, ProfileActivityItem, UserListRow, UserRow, ViewMode } from "../../types";
 
 const SWIPE_THRESHOLD_PX = 3;
 const VERTICAL_LOCK_PX = 2;
+
+/** Textos de actividad en segunda persona (usuario logueado) vs tercera (otros). */
+const ACTIVITY_LABEL_SECOND: Record<string, string> = {
+  "añadió a su lista": "añadiste a tu lista",
+  "opinó sobre un café": "opinaste sobre un café",
+  "probó por primera vez": "probaste por primera vez"
+};
 
 function ProfileFavoriteItem({
   coffee,
@@ -213,7 +220,9 @@ export function ProfileView({
   externalEditProfileSignal,
   sidePanel,
   profileDiaryCoffeeIds = [],
-  profileListCoffeeIds = []
+  profileListCoffeeIds = [],
+  onExploreCafes,
+  activeUserId = null
 }: {
   user: UserRow;
   mode: ViewMode;
@@ -223,6 +232,10 @@ export function ProfileView({
   followedActivity: ProfileActivityItem[];
   /** true cuando la actividad mostrada es la del usuario del perfil visitado (perfil tercero) */
   activityIsProfileUser?: boolean;
+  /** Opcional: al pulsar CTA "Explorar cafés" en estado vacío de Actividad (ej. ir a pestaña Búsqueda) */
+  onExploreCafes?: () => void;
+  /** ID del usuario logueado: si la actividad es suya, se muestra en segunda persona */
+  activeUserId?: number | null;
   favoriteCoffees: CoffeeRow[];
   allCoffees: CoffeeRow[];
   coffeeReviews: CoffeeReviewRow[];
@@ -249,7 +262,7 @@ export function ProfileView({
   ) => Promise<void>;
   onRemoveFavorite: (coffeeId: string) => Promise<void>;
   userLists?: UserListRow[];
-  onCreateList?: (name: string, isPublic: boolean) => Promise<void>;
+  onCreateList?: (name: string, privacy: ListPrivacy) => Promise<void>;
   onOpenList?: (listId: string) => void;
   externalEditProfileSignal: number;
   sidePanel?: ReactNode;
@@ -716,55 +729,111 @@ export function ProfileView({
             <div className="profile-tab-panel" aria-hidden={tab !== "actividad"}>
               <ul className="profile-activity-list" aria-label={activityIsProfileUser ? "Actividad de este usuario" : "Tu actividad y la de personas que sigues"}>
                 {followedActivity.length
-                  ? followedActivity.map((item) => (
+                  ? followedActivity.map((item) => {
+                      const coffee = item.coffeeId != null ? coffeesById.get(item.coffeeId) : null;
+                      const isOwnActivity = activeUserId != null && item.userId === activeUserId;
+                      const displayName = isOwnActivity ? "Tú" : item.userName;
+                      const displayLabel = isOwnActivity ? (ACTIVITY_LABEL_SECOND[item.label] ?? item.label) : item.label;
+                      return (
                       <li key={item.id} className="profile-activity-item">
-                        <article className="profile-activity-card">
-                          {item.avatarUrl ? (
-                            <img className="avatar avatar-photo profile-activity-avatar" src={item.avatarUrl} alt={item.username} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
-                          ) : (
-                            <div className="avatar profile-activity-avatar" aria-hidden="true">{item.userName.slice(0, 2).toUpperCase()}</div>
-                          )}
+                        <article className="card profile-activity-card" data-activity-type={item.type}>
+                          <Button
+                            variant="plain"
+                            type="button"
+                            className="profile-activity-avatar-link"
+                            onClick={() => onOpenUserProfile(item.userId)}
+                            aria-label={isOwnActivity ? "Ver tu perfil" : `Ver perfil de ${item.userName}`}
+                          >
+                            {item.avatarUrl ? (
+                              <img className="avatar avatar-photo profile-activity-avatar" src={item.avatarUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                            ) : (
+                              <div className="avatar profile-activity-avatar" aria-hidden="true">{displayName.slice(0, 2).toUpperCase()}</div>
+                            )}
+                          </Button>
                           <div className="profile-activity-copy">
                             <p className="profile-activity-text">
-                              <strong>{item.userName}</strong> {item.label}
-                              {item.coffeeName ? (
-                                item.coffeeId ? (
-                                  <Button variant="plain" type="button" className="profile-activity-coffee-link" onClick={() => { if (item.coffeeId != null) onOpenCoffee(item.coffeeId); }}>
-                                    {item.coffeeName}
-                                  </Button>
-                                ) : (
-                                  <span> · {item.coffeeName}</span>
-                                )
-                              ) : null}
-                              {item.type === "favorite" && item.listId != null && item.listName ? (
-                                <>
-                                  {" · "}
-                                  <Button
-                                    variant="plain"
-                                    type="button"
-                                    className="profile-activity-coffee-link"
-                                    onClick={() => { onOpenUserList?.(item.userId, item.listId!); }}
-                                  >
-                                    Ver lista: {item.listName}
-                                  </Button>
-                                </>
-                              ) : null}
+                              <Button variant="plain" type="button" className="profile-activity-coffee-link profile-activity-user-name-link" onClick={() => onOpenUserProfile(item.userId)} aria-label={isOwnActivity ? "Ver tu perfil" : `Ver perfil de ${item.userName}`}>
+                                <strong>{displayName}</strong>
+                              </Button>
+                              {" "}
+                              {displayLabel}
                             </p>
-                            {item.type === "review" && (item.rating != null || item.comment) ? (
-                              <p className="profile-activity-review-meta">
-                                {item.rating != null ? <span className="profile-activity-rating">{item.rating}/10</span> : null}
-                                {item.rating != null && item.comment ? " · " : null}
-                                {item.comment ? <span className="profile-activity-comment">{item.comment}</span> : null}
-                              </p>
+                            <p className="profile-activity-meta">{toRelativeMinutes(item.timestamp).toUpperCase()}</p>
+                            {item.coffeeId != null && coffee ? (
+                              <div className="profile-activity-coffee-card">
+                                {item.type === "favorite" && item.listId != null && onOpenUserList ? (
+                                  <>
+                                    <Button
+                                      variant="plain"
+                                      type="button"
+                                      className={`profile-activity-coffee-card-list ${item.listId === "favorites" ? "is-favorites" : ""}`.trim()}
+                                      onClick={(e) => { e.stopPropagation(); onOpenUserList(item.userId, item.listId!); }}
+                                      aria-label={`Ver lista ${item.listName ?? "Lista"}`}
+                                    >
+                                      {item.listId === "favorites" ? (
+                                        <UiIcon name="favorite-filled" className="ui-icon profile-activity-coffee-card-list-icon" aria-hidden="true" />
+                                      ) : (
+                                        <UiIcon name="list-alt" className="ui-icon profile-activity-coffee-card-list-icon" aria-hidden="true" />
+                                      )}
+                                      <span className="profile-activity-coffee-card-list-name">{item.listName ?? "Lista"}</span>
+                                    </Button>
+                                    <div className="profile-activity-coffee-card-sep" aria-hidden="true" />
+                                  </>
+                                ) : null}
+                                {item.type === "review" && (item.rating != null || item.comment) ? (
+                                  <>
+                                    <div className="profile-activity-coffee-card-review-block" aria-label="Valoración y opinión">
+                                      {item.rating != null ? <span className="coffee-detail-opinion-rating-chip" aria-label="Nota"><UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(item.rating)}/5</span> : null}
+                                      {item.rating != null && item.comment ? " " : null}
+                                      {item.comment ? <span className="profile-activity-coffee-card-review-comment">{item.comment}</span> : null}
+                                    </div>
+                                    <div className="profile-activity-coffee-card-sep" aria-hidden="true" />
+                                  </>
+                                ) : null}
+                                <Button
+                                  variant="plain"
+                                  type="button"
+                                  className="profile-activity-coffee-card-main"
+                                  onClick={() => onOpenCoffee(item.coffeeId!)}
+                                  aria-label={`Ver detalle de ${coffee.nombre}`}
+                                >
+                                  <span className="profile-activity-coffee-card-media">
+                                    {coffee.image_url ? (
+                                      <img className="profile-activity-coffee-card-image" src={coffee.image_url} alt="" loading="lazy" decoding="async" />
+                                    ) : (
+                                      <span className="profile-activity-coffee-card-image profile-activity-coffee-card-fallback" aria-hidden="true">{(coffee.nombre || "C").slice(0, 1).toUpperCase()}</span>
+                                    )}
+                                  </span>
+                                  <span className="profile-activity-coffee-card-copy">
+                                    <strong className="profile-activity-coffee-card-name">{coffee.nombre}</strong>
+                                    <em className="profile-activity-coffee-card-brand">{coffee.marca || "Marca"}</em>
+                                  </span>
+                                  <UiIcon name="chevron-right" className="ui-icon profile-activity-coffee-card-arrow" aria-hidden="true" />
+                                </Button>
+                              </div>
                             ) : null}
-                            <p className="feed-meta">{toRelativeMinutes(item.timestamp).toUpperCase()}</p>
                           </div>
                         </article>
                       </li>
-                    ))
+                    ); })
                   : (
-                    <li className="profile-activity-empty">
-                      {activityIsProfileUser ? "Sin actividad reciente" : "Comienza a seguir a otras personas y descubre nuevos cafés"}
+                    <li className="profile-activity-empty-wrap">
+                      <article className="profile-activity-empty" aria-live="polite">
+                        <span className="profile-activity-empty-icon" aria-hidden="true">
+                          <UiIcon name="coffee" className="ui-icon" />
+                        </span>
+                        <h3 className="profile-activity-empty-title">
+                          {activityIsProfileUser ? EMPTY.ACTIVITY_PROFILE_EMPTY_TITLE : EMPTY.ACTIVITY_MINE_EMPTY_TITLE}
+                        </h3>
+                        <p className="profile-activity-empty-sub">
+                          {activityIsProfileUser ? EMPTY.ACTIVITY_PROFILE_EMPTY_SUB : EMPTY.ACTIVITY_MINE_EMPTY_SUB}
+                        </p>
+                        {!activityIsProfileUser && onExploreCafes ? (
+                          <Button variant="primary" type="button" className="profile-activity-empty-cta" onClick={onExploreCafes}>
+                            {EMPTY.ACTIVITY_CTA_EXPLORE}
+                          </Button>
+                        ) : null}
+                      </article>
                     </li>
                   )}
               </ul>
@@ -911,7 +980,7 @@ export function ProfileView({
                 <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => setShowCreateListModal(false)} onClick={() => setShowCreateListModal(false)}>
                   <CreateListSheet
                     onDismiss={() => setShowCreateListModal(false)}
-                    onCreate={(name, isPublic) => onCreateList?.(name, isPublic) ?? Promise.resolve()}
+                    onCreate={(name, privacy) => onCreateList?.(name, privacy) ?? Promise.resolve()}
                   />
                 </SheetOverlay>,
                 document.body
@@ -959,7 +1028,7 @@ export function ProfileView({
     return (
       <div className="split-with-side">
         <div className="profile-content-wrap">{content}</div>
-        <aside className="timeline-side-column">{sidePanel}</aside>
+        <aside className="home-side-column">{sidePanel}</aside>
       </div>
     );
   }

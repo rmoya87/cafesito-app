@@ -5,7 +5,7 @@ import { Button } from "./ui/components";
 import { initGa4 } from "./core/ga4";
 import { registerSW } from "virtual:pwa-register";
 import { applyThemeToDocument, getThemeMode } from "./core/theme";
-import "@fontsource-variable/material-symbols-outlined/fill.css";
+import "./fonts-material-symbols.css";
 import "./styles.css";
 
 initGa4();
@@ -75,7 +75,7 @@ class RootErrorBoundary extends React.Component<
   render() {
     if (!this.state.hasError) return this.props.children;
     return (
-      <div className="coffee-detail-empty coffee-detail-empty-full" style={{ minHeight: "100vh", paddingTop: 28 }}>
+      <div className="coffee-detail-empty coffee-detail-empty-full is-full-viewport">
         <h1 className="title">Se produjo un error</h1>
         <p className="coffee-sub">{this.state.message || "No se pudo renderizar la aplicación."}</p>
         <Button variant="primary" onClick={() => window.location.reload()}>

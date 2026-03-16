@@ -104,7 +104,7 @@ fun FollowersScreen(
                                             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                             focusedBorderColor = MaterialTheme.colorScheme.primary
                                         ),
-                                        shape = RoundedCornerShape(999.dp),
+                                        shape = Shapes.pillFull,
                                     )
                                 }
                             )
@@ -198,7 +198,7 @@ fun FollowItemModern(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
@@ -231,7 +231,7 @@ fun FollowItemModern(
                 val followTextColor = if (isDark) Color.Black else Color.White
                 Button(
                     onClick = onFollowClick,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = Shapes.cardSmall,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isFollowing) Color.Transparent else followBg,
                         contentColor = if (isFollowing) followingColor else followTextColor

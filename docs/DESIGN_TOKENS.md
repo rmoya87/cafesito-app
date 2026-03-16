@@ -2,8 +2,41 @@
 
 **Propósito:** Un único documento de referencia para colores, espaciados y radios usados en WebApp y Android. Evita que ambas plataformas se desalineen con el tiempo.
 
-**Última actualización:** 2026-03-04  
+**Última actualización:** 2026-03-13  
 **Ámbito:** WebApp (`webApp/`), Android (`app/`).
+
+---
+
+## Esquema: uso de tokens por plataforma
+
+```mermaid
+flowchart LR
+  subgraph Fuente["Fuente de verdad"]
+    DOC[DESIGN_TOKENS.md\neste documento]
+  end
+  subgraph WebApp["WebApp"]
+    TOKENS_CSS[webApp/src/styles/tokens.css\nvariables :root y dark]
+    FEATURES[features.css, components/*.css\nvar(--space-*), --radius-*, etc.]
+  end
+  subgraph Android["Android"]
+    COLOR[app/.../ui/theme/Color.kt]
+    SPACING[Spacing.kt]
+    SHAPES[Shapes.kt]
+    DIMENS[Dimens.kt]
+    THEME[Theme.kt - MaterialTheme]
+  end
+  DOC --> TOKENS_CSS
+  DOC --> COLOR
+  DOC --> SPACING
+  DOC --> SHAPES
+  DOC --> DIMENS
+  TOKENS_CSS --> FEATURES
+  COLOR --> THEME
+  SPACING --> THEME
+  SHAPES --> THEME
+```
+
+Al añadir o cambiar un token: actualizar este documento y la implementación en **ambas** plataformas para mantener paridad.
 
 ---
 
@@ -85,13 +118,18 @@ Usar esta escala para consistencia. Android puede mapear a `dp` (1:1 con px para
 | `--space-6` | 24px | Separación grande |
 | `--space-8` | 32px | Padding de pantalla, márgenes amplios |
 
-**Android:** Usar `4.dp`, `8.dp`, `12.dp`, `16.dp`, `20.dp`, `24.dp`, `32.dp` de forma coherente con esta escala.
+**Android:** Usar `Spacing.space1` … `Spacing.space8` (ver `app/.../ui/theme/Spacing.kt`) para alinear con esta escala.
+
+**Gutter de pantalla (Android):** 16dp — márgenes laterales de contenido (equivalente a `--space-4`). Usar `Spacing.space4` donde aplique.
+
+**Dimensiones fijas (Android):** `Dimens.kt` (`app/.../ui/theme/Dimens.kt`) define `iconSizeEmpty` (64.dp), `cardImageHeight` (86.dp), `contentPaddingBottom` (100.dp), `navBarHeight` (64.dp) para listas, iconos vacíos y barra de navegación.
 
 ### 2.2 Casos de uso documentados
 
 | Componente | Gap / espaciado | Notas |
 |------------|-----------------|--------|
 | Rejilla de meta del diario (`.diary-entry-meta-grid`) | **Base:** `8px 30px` (row col). **&lt; 899px:** `8px 25px` | Web: `features.css`. Android: alinear si existe equivalente. |
+| Gráfico de línea (diario) | `--chart-min-height: 140px` | Web: `tokens.css`; usado en `DiaryLineChart.tsx`. |
 
 ---
 

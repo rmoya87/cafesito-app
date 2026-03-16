@@ -1,8 +1,8 @@
-﻿import { expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("guest guards", () => {
   test("rutas protegidas muestran login gate", async ({ page }) => {
-    for (const route of ["/timeline", "/search", "/search/users", "/brewlab", "/diary", "/profile", "/profile/usuario-demo"]) {
+    for (const route of ["/home", "/search", "/search/users", "/brewlab", "/diary", "/profile", "/profile/usuario-demo"]) {
       await page.goto(route);
       await expect(page.getByRole("button", { name: /continuar con google|empezar ahora/i })).toBeVisible();
     }
@@ -14,9 +14,9 @@ test.describe("guest guards", () => {
     await expect(page.getByRole("button", { name: /continuar con google/i })).toHaveCount(0);
   });
 
-  test("ruta protegida se normaliza a /timeline para invitado", async ({ page }) => {
+  test("ruta protegida se normaliza a /home para invitado", async ({ page }) => {
     await page.goto("/profile/privado");
     await expect(page.getByRole("button", { name: /continuar con google|empezar ahora/i })).toBeVisible();
-    await expect(page).toHaveURL(/\/timeline$/);
+    await expect(page).toHaveURL(/\/home$/);
   });
 });

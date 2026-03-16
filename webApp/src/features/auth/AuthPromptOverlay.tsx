@@ -21,9 +21,9 @@ export function AuthPromptOverlay({
 }) {
   const googleClientId = useMemo(() => getGoogleClientId(), []);
 
-  // One Tap en el overlay: sugiere "Continuar como [email]" si hay sesión en Google
+  // One Tap en el overlay: sugiere "Continuar como [email]" si hay sesión en Google (solo con red para evitar ERR_NAME_NOT_RESOLVED)
   useEffect(() => {
-    if (!open || !googleClientId || !onGoogleCredential) return;
+    if (!open || !googleClientId || !onGoogleCredential || typeof navigator !== "undefined" && !navigator.onLine) return;
     const cancel = showGoogleOneTap(googleClientId, (token) => onGoogleCredential(token));
     return cancel;
   }, [open, googleClientId, onGoogleCredential]);

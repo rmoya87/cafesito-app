@@ -5,12 +5,14 @@ import type { UserRow } from "../../types";
 
 export type TimelineNotificationItem = {
   id: string;
-  type: "follow" | "comment";
+  type: "follow" | "comment" | "list_invite";
   userId: number;
   text: string;
   timestamp: number;
   postId?: string;
   commentId?: number;
+  /** Para type "list_invite": id de la invitación (related_id en notifications_db). */
+  invitationId?: string;
   /** Desde Supabase notifications_db: false = no leída, mostrar bolita */
   is_read?: boolean;
 };
@@ -25,7 +27,9 @@ export function NotificationRow({
   onOpen,
   onToggleFollow,
   onOpenUserProfile,
-  onReply
+  onReply,
+  onAcceptListInvite,
+  onDeclineListInvite
 }: {
   item: TimelineNotificationItem;
   user?: UserRow;
@@ -37,6 +41,8 @@ export function NotificationRow({
   onToggleFollow: (userId: number) => void;
   onOpenUserProfile: () => void;
   onReply: () => void;
+  onAcceptListInvite?: (invitationId: string) => void;
+  onDeclineListInvite?: (invitationId: string) => void;
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [swipeActive, setSwipeActive] = useState(false);
@@ -212,6 +218,32 @@ export function NotificationRow({
             >
               RESPONDER
             </Button>
+          ) : null}
+          {item.type === "list_invite" && item.invitationId ? (
+            <span className="notifications-action notifications-list-invite-actions" role="group" aria-label="Invitación a lista">
+              <Button
+                variant="plain"
+                className="notifications-action"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeclineListInvite?.(item.invitationId!);
+                }}
+                aria-label="Rechazar invitación a la lista"
+              >
+                Rechazar
+              </Button>
+              <Button
+                variant="primary"
+                className="notifications-action"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onAcceptListInvite?.(item.invitationId!);
+                }}
+                aria-label="Añadir lista a mis listas"
+              >
+                Añadir
+              </Button>
+            </span>
           ) : null}
         </div>
       </div>

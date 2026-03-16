@@ -1,7 +1,7 @@
 .profile-adn-card {
-  padding: 14px 14px 12px;
+  padding: var(--space-3) var(--space-3) var(--space-3);
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
   border: var(--surface-card-border);
   border-radius: var(--surface-card-radius);
   box-shadow: var(--surface-card-shadow);
@@ -11,8 +11,8 @@
   border: var(--surface-card-border);
   box-shadow: var(--surface-card-shadow);
   border-radius: var(--surface-card-radius);
-  background: rgba(255, 255, 255, 0.04);
-  padding: 16px 14px 12px;
+  background: var(--surface-muted);
+  padding: var(--space-4) var(--space-3) var(--space-3);
 }
 
 .profile-adn-open {
@@ -28,7 +28,7 @@
 
 .profile-adn-layout {
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .profile-adn-layout.is-desktop {
@@ -50,7 +50,7 @@
 
 .profile-adn-analysis-title {
   margin: 0;
-  padding: 14px 24px 0;
+  padding: var(--space-3) var(--space-6) 0;
   text-align: center;
   font-size: 1.18rem;
   letter-spacing: 0.03em;
@@ -105,14 +105,14 @@
 .profile-adn-analysis-sheet {
   width: min(100%, 420px);
   max-width: 420px;
-  border-radius: 30px 30px 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .profile-adn-analysis-sheet .sheet-header {
   position: static;
   background: transparent;
   border-bottom: none;
-  padding: 0 20px 0;
+  padding: 0 var(--space-5) 0;
 }
 
 .profile-adn-analysis-sheet .sheet-title {
@@ -124,8 +124,8 @@
 
 .profile-adn-analysis-body {
   display: grid;
-  gap: 12px;
-  padding: 8px 24px 20px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-6) var(--space-5);
 }
 
 .profile-adn-analysis-lead {
@@ -147,21 +147,21 @@
   border: var(--surface-card-border);
   box-shadow: var(--surface-card-shadow);
   border-radius: var(--surface-card-radius);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 14px 16px 14px;
+  background: var(--surface-muted);
+  padding: var(--space-3) var(--space-4) var(--space-3);
 }
 
 .profile-adn-recommend-head {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   color: var(--text-main);
 }
 
 .profile-adn-recommend-head .ui-icon {
-  width: 17px;
-  height: 17px;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
   color: var(--caramel-accent);
 }
 
@@ -191,7 +191,7 @@
   min-height: 54px;
   border-radius: 999px;
   letter-spacing: 0.06em;
-  margin-top: 6px;
+  margin-top: var(--space-2);
   font-weight: 800;
   font-size: 0.95rem;
   background: var(--caramel-soft);
@@ -211,7 +211,7 @@
   .profile-adn-card,
   .profile-adn-radar-card,
   .profile-adn-analysis-panel {
-    background: #000 !important;
+    background: var(--surface) !important;
   }
   .profile-adn-radar-ring,
   .profile-adn-radar-axis {
@@ -240,7 +240,7 @@
   }
 
   .profile-adn-analysis-body {
-    padding: 8px 20px 18px;
+    padding: var(--space-2) var(--space-5) var(--space-4);
   }
 }
 

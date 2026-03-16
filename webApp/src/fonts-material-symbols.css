@@ -1,0 +1,12 @@
+/**
+ * Material Symbols Outlined (variable, fill axis).
+ * La fuente se sirve desde public/fonts/ (copiada por scripts/copy-material-symbols-font.mjs en postinstall)
+ * para evitar que el navegador pida node_modules y reciba HTML (OTS parsing error en dev).
+ */
+@font-face {
+  font-family: "Material Symbols Outlined Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 700;
+  src: url("/fonts/material-symbols-outlined-latin-fill-normal.woff2") format("woff2-variations");
+}

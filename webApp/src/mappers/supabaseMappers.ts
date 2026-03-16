@@ -212,7 +212,8 @@ export function mapDiaryEntryRow(input: unknown): DiaryEntryRow {
     preparation_type: toStringOrEmpty(row.preparation_type),
     size_label: toNullableString(row.size_label),
     timestamp: toTimestamp(row.timestamp),
-    type: toStringOrEmpty(row.type)
+    type: toStringOrEmpty(row.type),
+    pantry_item_id: toNullableString(row.pantry_item_id)
   };
 }
 
@@ -257,10 +258,6 @@ export function mapInitialDataBundle(input: InitialDataBundle): InitialDataBundl
     coffees: input.coffees.map(mapCoffeeRow),
     reviews: input.reviews.map(mapReviewRow),
     sensoryProfiles: input.sensoryProfiles.map(mapSensoryProfileRow),
-    posts: input.posts.map(mapPostRow),
-    likes: input.likes.map(mapLikeRow),
-    comments: input.comments.map(mapCommentRow),
-    postCoffeeTags: input.postCoffeeTags.map(mapPostCoffeeTagRow),
     follows: input.follows.map(mapFollowRow)
   };
 }

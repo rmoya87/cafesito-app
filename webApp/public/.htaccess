@@ -14,6 +14,10 @@ ErrorDocument 404 /index.html
   RewriteRule ^assets/ - [L]
   RewriteRule ^registerSW\.js$ - [L]
   RewriteRule \.(js|css|png|svg|ico|webmanifest|woff2?)$ - [L]
+  # /landing sin barra final → redirigir a /landing/
+  RewriteRule ^landing$ /landing/ [R=301,L]
+  # /landing/ y contenido de landing: no enviar al SPA
+  RewriteRule ^landing/ - [L]
   # No reescribir si existe un fichero o directorio
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

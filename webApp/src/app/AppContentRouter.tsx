@@ -9,7 +9,9 @@ export function AppContentRouter({
   coffeeContent,
   brewContent,
   diaryContent,
-  profileContent
+  profileContent,
+  crearCafeContent,
+  seleccionarCafeContent
 }: {
   activeTab: TabId;
   mode: string;
@@ -19,6 +21,8 @@ export function AppContentRouter({
   brewContent: ReactNode;
   diaryContent: ReactNode;
   profileContent: ReactNode;
+  crearCafeContent?: ReactNode;
+  seleccionarCafeContent?: ReactNode;
 }) {
   return (
     <section aria-live="polite" className={`content content-${activeTab}`.trim()}>
@@ -28,6 +32,8 @@ export function AppContentRouter({
       {activeTab === "brewlab" ? brewContent : null}
       {activeTab === "diary" ? diaryContent : null}
       {activeTab === "profile" ? profileContent : null}
+      {activeTab === "crear-cafe" ? crearCafeContent : null}
+      {activeTab === "selecciona-cafe" ? seleccionarCafeContent : null}
     </section>
   );
 }

@@ -20,7 +20,7 @@ import com.cafesito.app.ui.theme.*
 fun TagChip(label: String, value: String) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(8.dp),
+        shape = Shapes.cardSmall,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(

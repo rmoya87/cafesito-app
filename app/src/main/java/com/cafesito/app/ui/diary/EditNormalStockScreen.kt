@@ -72,12 +72,12 @@ fun EditNormalStockScreen(
                 alpha = 1f - (scrollState.firstVisibleItemScrollOffset / 800f).coerceIn(0f, 1f)
             }) {
                 AsyncImage(model = coffee.imageUrl, contentDescription = coffee.nombre, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)), startY = 600f)))
+                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, PureBlack.copy(alpha = 0.7f)), startY = 600f)))
                 Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 48.dp, end = 120.dp)) {
-                    Text(text = coffee.marca.uppercase(), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
-                    Text(text = coffee.nombre, color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
+                    Text(text = coffee.marca.uppercase(), color = PureWhite.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
+                    Text(text = coffee.nombre, color = PureWhite, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
                 }
-                Surface(modifier = Modifier.padding(end = 24.dp, bottom = 48.dp).align(Alignment.BottomEnd), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), shape = RoundedCornerShape(16.dp)) {
+                Surface(modifier = Modifier.padding(end = 24.dp, bottom = 48.dp).align(Alignment.BottomEnd), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), shape = Shapes.card) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Nota Media", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -90,7 +90,7 @@ fun EditNormalStockScreen(
                 item {
                     Surface(
                         modifier = Modifier.fillMaxWidth(), 
-                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), 
+                        shape = Shapes.sheetLarge, 
                         color = MaterialTheme.colorScheme.background,
                         tonalElevation = 1.dp
                     ) {
@@ -103,7 +103,7 @@ fun EditNormalStockScreen(
                                 onValueChange = { if (it.all { c -> c.isDigit() } || it.isEmpty()) gramsRemaining = it },
                                 label = { Text("Gramos restantes en la bolsa (g)") },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = Shapes.card,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 trailingIcon = {
                                     Icon(
@@ -122,7 +122,7 @@ fun EditNormalStockScreen(
                                     onBackClick()
                                 },
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = Shapes.card,
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
                                 Text("ACTUALIZAR STOCK", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimary)

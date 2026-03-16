@@ -2,12 +2,12 @@ import { Fragment, type CSSProperties, type ReactNode, useCallback, useEffect, u
 import { createPortal } from "react-dom";
 import { getOrderedBrewMethods, type BrewMethodItem } from "../../config/brew";
 import { EMPTY, ERROR } from "../../core/emptyErrorStrings";
-import type { CoffeeRow, TimelineCard, UserRow } from "../../types";
+import type { CoffeeRow, HomeCard, UserRow } from "../../types";
 import { MentionText } from "../../ui/MentionText";
 import { UiIcon } from "../../ui/iconography";
-import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
+import { Button, EmptyState, ErrorState, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, Textarea } from "../../ui/components";
 
-export type TimelineHeroUser = { fullName: string; username: string; avatarUrl: string | null };
+export type HomeHeroUser = { fullName: string; username: string; avatarUrl: string | null };
 
 function SuggestionAvatar({
   avatarUrl,
@@ -34,7 +34,7 @@ function SuggestionAvatar({
   );
 }
 
-export function TimelineView({
+export function HomeView({
   mode,
   cards,
   recommendations,
@@ -59,14 +59,13 @@ export function TimelineView({
   orderedBrewMethods = [],
   pantryItems = [],
   onPantryCoffeeClick,
-  onAddCoffeeToDiary,
   onAddToPantry,
   onUpdatePantryStock,
   onRemovePantryItem,
   onMarkPantryCoffeeFinished
 }: {
   mode: "mobile" | "desktop";
-  cards: TimelineCard[];
+  cards: HomeCard[];
   recommendations: CoffeeRow[];
   suggestions: UserRow[];
   suggestionIndices: number[];
@@ -83,7 +82,7 @@ export function TimelineView({
   onOpenUserProfile: (userId: number) => void;
   onOpenCoffee: (coffeeId: string) => void;
   onOpenSearch?: () => void;
-  activeUserDisplay?: TimelineHeroUser | null;
+  activeUserDisplay?: HomeHeroUser | null;
   sidePanel?: ReactNode;
   /** Al pulsar un método de elaboración: ir a pestaña Elabora en el paso de elegir café con ese método */
   onOpenBrewToMethod?: (methodName: string) => void;
@@ -93,11 +92,9 @@ export function TimelineView({
   pantryItems?: Array<{ item: { id: string; coffee_id: string }; coffee: CoffeeRow; total: number; remaining: number; progress: number }>;
   /** Al pulsar un café de despensa: ir a elaboración dosis (CONFIGURA) y al terminar ir a Mi diario */
   onPantryCoffeeClick?: (coffeeId: string) => void;
-  /** Al pulsar «Añadir café» en el menú de despensa: abrir «Añade café a mi diario» (DOSIS) con el café preseleccionado */
-  onAddCoffeeToDiary?: (coffeeId: string) => void;
-  /** Al pulsar el + de despensa: flujo añadir a despensa; al terminar volver a home (timeline) */
+  /** Al pulsar el + de despensa: flujo añadir a despensa; al terminar volver a home */
   onAddToPantry?: () => void;
-  /** Opciones despensa (como en Mi diario): editar stock, café terminado, eliminar */
+  /** Opciones despensa: editar stock, café terminado, eliminar */
   onUpdatePantryStock?: (pantryItemId: string, totalGrams: number, gramsRemaining: number) => Promise<void>;
   onRemovePantryItem?: (pantryItemId: string) => Promise<void>;
   onMarkPantryCoffeeFinished?: (pantryItemId: string) => Promise<void>;
@@ -122,6 +119,78 @@ export function TimelineView({
   const despensaScrollRef = useRef<HTMLDivElement | null>(null);
   const recommendationsScrollRef = useRef<HTMLDivElement | null>(null);
   const suggestionsScrollRef = useRef<HTMLDivElement | null>(null);
+
+  /* Drag-to-scroll para carrusel de método (home): mismo comportamiento que en elaboración */
+  const HOME_CAROUSEL_DRAG_THRESHOLD = 8;
+  const homeCarouselDragElRef = useRef<HTMLDivElement | null>(null);
+  const homeCarouselDragStartXRef = useRef(0);
+  const homeCarouselDragStartScrollRef = useRef(0);
+  const homeCarouselDragPointerIdRef = useRef<number | null>(null);
+  const homeCarouselDragActiveRef = useRef(false);
+  const homeCarouselPendingScrollRef = useRef<number | null>(null);
+  const homeCarouselRafRef = useRef<number | null>(null);
+  const [homeCarouselDragging, setHomeCarouselDragging] = useState(false);
+
+  const handleHomeCarouselPointerDown = useCallback((e: React.PointerEvent, el: HTMLDivElement | null) => {
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    if (homeCarouselRafRef.current != null) {
+      cancelAnimationFrame(homeCarouselRafRef.current);
+      homeCarouselRafRef.current = null;
+    }
+    homeCarouselDragElRef.current = el;
+    homeCarouselDragStartXRef.current = e.clientX;
+    homeCarouselDragStartScrollRef.current = el.scrollLeft;
+    homeCarouselDragPointerIdRef.current = e.pointerId;
+    homeCarouselDragActiveRef.current = false;
+    homeCarouselPendingScrollRef.current = null;
+    setHomeCarouselDragging(false);
+  }, []);
+
+  const handleHomeCarouselPointerMove = useCallback((e: React.PointerEvent) => {
+    const el = homeCarouselDragElRef.current;
+    if (!el || homeCarouselDragPointerIdRef.current !== e.pointerId) return;
+    if (!homeCarouselDragActiveRef.current) {
+      if (Math.abs(e.clientX - homeCarouselDragStartXRef.current) < HOME_CAROUSEL_DRAG_THRESHOLD) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      homeCarouselDragActiveRef.current = true;
+      setHomeCarouselDragging(true);
+    }
+    e.preventDefault();
+    const delta = e.clientX - homeCarouselDragStartXRef.current;
+    const newLeft = homeCarouselDragStartScrollRef.current - delta;
+    const clamped = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, newLeft));
+    homeCarouselPendingScrollRef.current = clamped;
+    if (homeCarouselRafRef.current == null) {
+      homeCarouselRafRef.current = requestAnimationFrame(() => {
+        homeCarouselRafRef.current = null;
+        const target = homeCarouselDragElRef.current;
+        const pending = homeCarouselPendingScrollRef.current;
+        if (target != null && pending != null) {
+          target.scrollLeft = pending;
+        }
+      });
+    }
+  }, []);
+
+  const handleHomeCarouselPointerUp = useCallback((e: React.PointerEvent) => {
+    if (homeCarouselDragPointerIdRef.current !== e.pointerId) return;
+    const el = homeCarouselDragElRef.current;
+    if (homeCarouselRafRef.current != null) {
+      cancelAnimationFrame(homeCarouselRafRef.current);
+      homeCarouselRafRef.current = null;
+    }
+    const pending = homeCarouselPendingScrollRef.current;
+    if (el != null && pending != null) {
+      el.scrollLeft = pending;
+    }
+    homeCarouselDragPointerIdRef.current = null;
+    homeCarouselDragElRef.current = null;
+    homeCarouselDragActiveRef.current = false;
+    homeCarouselPendingScrollRef.current = null;
+    setHomeCarouselDragging(false);
+    if (el?.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+  }, []);
 
   const [carouselHasScroll, setCarouselHasScroll] = useState({
     elaboration: false,
@@ -190,7 +259,7 @@ export function TimelineView({
     el.scrollBy({ left: delta, behavior: "smooth" });
   }, []);
   const visibleCards = cards;
-  const isDesktopTimeline = mode === "desktop";
+  const isDesktopHome = mode === "desktop";
 
   const isMobileLike = typeof window !== "undefined" ? window.innerWidth < 900 : false;
   const pullProgress = Math.min(1, pullDistance / 84);
@@ -247,49 +316,54 @@ export function TimelineView({
 
   if (errorMessage) {
     return (
-      <article className="timeline-empty timeline-error" role="alert">
-        <h3>{ERROR.LOAD_DATA}</h3>
-        <p>{errorMessage}</p>
-        <Button variant="ghost" className="action-button" onClick={() => void onRefresh()} aria-label={`${ERROR.RETRY} carga`}>
-          {ERROR.RETRY}
-        </Button>
-      </article>
+      <ErrorState
+        detail={errorMessage}
+        onRetry={() => void onRefresh()}
+      />
     );
   }
 
   const elaborationMethodsToShow = orderedBrewMethods.length > 0 ? orderedBrewMethods : getOrderedBrewMethods([]);
   const elaborationMethodsBlock = onOpenBrewToMethod ? (
-    <section className="timeline-elaboration-methods" aria-label="Formas de elaboración">
-      <div className="timeline-carousel-with-nav">
-        <div ref={elaborationScrollRef} className="timeline-elaboration-methods-scroll">
+    <section className="home-elaboration-methods" aria-label="Formas de elaboración">
+      <div className="home-carousel-with-nav">
+        <div
+          ref={elaborationScrollRef}
+          className={`home-elaboration-methods-scroll${homeCarouselDragging ? " is-dragging" : ""}`.trim()}
+          onPointerDown={(e) => handleHomeCarouselPointerDown(e, elaborationScrollRef.current)}
+          onPointerMove={handleHomeCarouselPointerMove}
+          onPointerUp={handleHomeCarouselPointerUp}
+          onPointerLeave={handleHomeCarouselPointerUp}
+          onPointerCancel={handleHomeCarouselPointerUp}
+        >
           {elaborationMethodsToShow.map((method) => (
             <Button
               key={method.name}
               variant="plain"
               type="button"
-              className="timeline-elaboration-method-circle"
+              className="home-elaboration-method-circle"
               onClick={() => onOpenBrewToMethod(method.name)}
               aria-label={`Elaborar con ${method.name}`}
             >
-              <span className="timeline-elaboration-method-circle-inner">
+              <span className="home-elaboration-method-circle-inner">
                 {method.icon === "bolt" ? (
-                  <UiIcon name="bolt" className="ui-icon timeline-elaboration-method-icon-bolt" aria-hidden="true" />
+                  <UiIcon name="bolt" className="ui-icon home-elaboration-method-icon-bolt" aria-hidden="true" />
                 ) : method.icon === "water" ? (
-                  <UiIcon name="water" className="ui-icon timeline-elaboration-method-icon-water" aria-hidden="true" />
+                  <UiIcon name="water" className="ui-icon home-elaboration-method-icon-water" aria-hidden="true" />
                 ) : (
                   <img src={method.icon} alt="" loading="lazy" decoding="async" />
                 )}
               </span>
-              <span className="timeline-elaboration-method-label">{method.name}</span>
+              <span className="home-elaboration-method-label">{method.name}</span>
             </Button>
           ))}
         </div>
         {carouselHasScroll.elaboration ? (
-          <div className="timeline-carousel-nav">
-            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(elaborationScrollRef, "prev")}>
+          <div className="home-carousel-nav">
+            <button type="button" className="home-carousel-nav-btn home-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(elaborationScrollRef, "prev")}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </button>
-            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(elaborationScrollRef, "next")}>
+            <button type="button" className="home-carousel-nav-btn home-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(elaborationScrollRef, "next")}>
               <UiIcon name="arrow-right" className="ui-icon" />
             </button>
           </div>
@@ -298,7 +372,7 @@ export function TimelineView({
     </section>
   ) : null;
 
-  const hasPantryOptions = onPantryCoffeeClick != null || onAddCoffeeToDiary != null || onAddToPantry != null || onUpdatePantryStock != null || onRemovePantryItem != null || onMarkPantryCoffeeFinished != null;
+  const hasPantryOptions = onPantryCoffeeClick != null || onAddToPantry != null || onUpdatePantryStock != null || onRemovePantryItem != null || onMarkPantryCoffeeFinished != null;
   const parsedStockTotal = Number(stockEditTotal || 0);
   const parsedStockRemaining = Number(stockEditRemaining || 0);
   const canSaveStock =
@@ -319,10 +393,10 @@ export function TimelineView({
             : "";
 
   const pantryBlock = hasPantryOptions ? (
-    <section className="timeline-despensa suggestion-strip" aria-label="Tu despensa">
+    <section className="home-despensa suggestion-strip" aria-label="Tu despensa">
       <p className="section-title">TU DESPENSA</p>
-      <div className="timeline-carousel-with-nav">
-        <div ref={despensaScrollRef} className="timeline-despensa-scroll">
+      <div className="home-carousel-with-nav">
+        <div ref={despensaScrollRef} className="home-despensa-scroll">
         <div className="brew-pantry-row">
           {pantryItems.map((row) => (
             <div
@@ -385,11 +459,11 @@ export function TimelineView({
         </div>
         </div>
         {carouselHasScroll.despensa ? (
-          <div className="timeline-carousel-nav">
-            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(despensaScrollRef, "prev")}>
+          <div className="home-carousel-nav">
+            <button type="button" className="home-carousel-nav-btn home-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(despensaScrollRef, "prev")}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </button>
-            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(despensaScrollRef, "next")}>
+            <button type="button" className="home-carousel-nav-btn home-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(despensaScrollRef, "next")}>
               <UiIcon name="arrow-right" className="ui-icon" />
             </button>
           </div>
@@ -399,29 +473,29 @@ export function TimelineView({
   ) : null;
 
   const recommendationSection = recommendations.length ? (
-    <section className="suggestion-strip timeline-recommendations-day" aria-label="Recomendaciones del día">
+    <section className="suggestion-strip home-recommendations-day" aria-label="Recomendaciones del día">
       <p className="section-title">Recomendaciones del día</p>
-      <div className="timeline-carousel-with-nav">
-        <div ref={recommendationsScrollRef} className="timeline-recommendations-list timeline-carousel-scroll">
+      <div className="home-carousel-with-nav">
+        <div ref={recommendationsScrollRef} className="home-recommendations-list home-carousel-scroll">
           {recommendationChunks.map((chunk, chunkIndex) => (
-            <div key={chunkIndex} className="timeline-recommendation-card">
+            <div key={chunkIndex} className="home-recommendation-card">
               {chunk.map((coffee) => (
                 <Button
                   key={coffee.id}
                   variant="plain"
-                  className="timeline-recommendation-row"
+                  className="home-recommendation-row"
                   onClick={() => onOpenCoffee(coffee.id)}
                 >
-                  <span className="timeline-recommendation-row-image">
+                  <span className="home-recommendation-row-image">
                     {coffee.image_url ? (
                       <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
                     ) : (
-                      <span className="timeline-recommendation-row-placeholder" aria-hidden="true" />
+                      <span className="home-recommendation-row-placeholder" aria-hidden="true" />
                     )}
                   </span>
-                  <span className="timeline-recommendation-row-copy">
-                    <span className="timeline-recommendation-row-name">{coffee.nombre}</span>
-                    <span className="timeline-recommendation-row-brand">{(coffee.marca || "").trim() || "—"}</span>
+                  <span className="home-recommendation-row-copy">
+                    <span className="home-recommendation-row-name">{coffee.nombre}</span>
+                    <span className="home-recommendation-row-brand">{(coffee.marca || "").trim() || "—"}</span>
                   </span>
                 </Button>
               ))}
@@ -429,11 +503,11 @@ export function TimelineView({
           ))}
         </div>
         {carouselHasScroll.recommendations ? (
-          <div className="timeline-carousel-nav">
-            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(recommendationsScrollRef, "prev")}>
+          <div className="home-carousel-nav">
+            <button type="button" className="home-carousel-nav-btn home-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(recommendationsScrollRef, "prev")}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </button>
-            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(recommendationsScrollRef, "next")}>
+            <button type="button" className="home-carousel-nav-btn home-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(recommendationsScrollRef, "next")}>
               <UiIcon name="arrow-right" className="ui-icon" />
             </button>
           </div>
@@ -445,8 +519,8 @@ export function TimelineView({
   const userSuggestionsSection = suggestions.length ? (
     <section className="suggestion-strip">
       <p className="section-title">Personas que podrias seguir</p>
-      <div className="timeline-carousel-with-nav">
-        <div ref={suggestionsScrollRef} className="horizontal-cards timeline-carousel-scroll">
+      <div className="home-carousel-with-nav">
+        <div ref={suggestionsScrollRef} className="horizontal-cards home-carousel-scroll">
         {suggestions.map((user) => {
           const isDismissing = dismissingSuggestionIds.has(user.id);
           const isPendingFollow = pendingSuggestionFollowIds.has(user.id);
@@ -487,11 +561,11 @@ export function TimelineView({
         })}
         </div>
         {carouselHasScroll.suggestions ? (
-          <div className="timeline-carousel-nav">
-            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(suggestionsScrollRef, "prev")}>
+          <div className="home-carousel-nav">
+            <button type="button" className="home-carousel-nav-btn home-carousel-nav-prev" aria-label="Anterior" onClick={() => scrollCarousel(suggestionsScrollRef, "prev")}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </button>
-            <button type="button" className="timeline-carousel-nav-btn timeline-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(suggestionsScrollRef, "next")}>
+            <button type="button" className="home-carousel-nav-btn home-carousel-nav-next" aria-label="Siguiente" onClick={() => scrollCarousel(suggestionsScrollRef, "next")}>
               <UiIcon name="arrow-right" className="ui-icon" />
             </button>
           </div>
@@ -501,21 +575,21 @@ export function TimelineView({
   ) : null;
 
   const desktopSideContent = sidePanel ? (
-    <aside className="timeline-side-column">{sidePanel}</aside>
+    <aside className="home-side-column">{sidePanel}</aside>
   ) : null;
 
   if (!cards.length) {
-    const emptyTitle = EMPTY.TIMELINE_TITLE;
-    const emptySubtitle = EMPTY.TIMELINE_SUBTITLE;
-    if (isDesktopTimeline) {
+    const emptyTitle = EMPTY.HOME_TITLE;
+    const emptySubtitle = EMPTY.HOME_SUBTITLE;
+    if (isDesktopHome) {
       return (
-        <div className="timeline-shell timeline-shell-desktop">
-          <div className={`timeline-desktop-columns ${desktopSideContent ? "timeline-desktop-columns-has-side" : ""}`.trim()}>
-            <div className="timeline-main-column">
+        <div className="home-shell home-shell-desktop">
+          <div className={`home-desktop-columns ${desktopSideContent ? "home-desktop-columns-has-side" : ""}`.trim()}>
+            <div className="home-main-column">
               {elaborationMethodsBlock}
               {pantryBlock}
               {recommendationSection}
-              <article className="timeline-empty">
+              <article className="home-empty">
                 <h3>{emptyTitle}</h3>
                 <p>{emptySubtitle}</p>
               </article>
@@ -531,7 +605,7 @@ export function TimelineView({
         {elaborationMethodsBlock}
         {pantryBlock}
         {recommendationSection}
-        <article className="timeline-empty">
+        <article className="home-empty">
           <h3>{emptyTitle}</h3>
           <p>{emptySubtitle}</p>
         </article>
@@ -542,7 +616,7 @@ export function TimelineView({
 
   return (
     <div
-      className={`timeline-shell ${isDesktopTimeline ? "timeline-shell-desktop" : ""}`.trim()}
+      className={`home-shell ${isDesktopHome ? "home-shell-desktop" : ""}`.trim()}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -555,93 +629,87 @@ export function TimelineView({
         <span className={`pull-dot ${pullProgress >= 1 ? "is-ready" : ""}`} />
       </div>
 
-      <div className={`timeline-desktop-columns ${isDesktopTimeline && desktopSideContent ? "timeline-desktop-columns-has-side" : ""}`.trim()}>
-          <div className="timeline-main-column">
+      <div className={`home-desktop-columns ${isDesktopHome && desktopSideContent ? "home-desktop-columns-has-side" : ""}`.trim()}>
+          <div className="home-main-column">
             {elaborationMethodsBlock}
             {pantryBlock}
             {recommendationSection}
             {!visibleCards.length ? (
-              <article className="timeline-empty">
-                <h3>{EMPTY.TIMELINE_NO_POSTS}</h3>
-                <p>{EMPTY.TIMELINE_NO_POSTS_SUB}</p>
-              </article>
+              <EmptyState
+                title={EMPTY.HOME_NO_POSTS}
+                subtitle={EMPTY.HOME_NO_POSTS_SUB}
+              />
             ) : null}
             {userSuggestionsSection}
           </div>
-          {isDesktopTimeline ? desktopSideContent : null}
+          {isDesktopHome ? desktopSideContent : null}
         </div>
       {pantryOptionsCoffeeId && typeof document !== "undefined"
         ? createPortal(
             <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => setPantryOptionsCoffeeId(null)} onClick={() => setPantryOptionsCoffeeId(null)}>
-              <SheetCard className="diary-sheet diary-sheet-pantry-options" onClick={(event) => event.stopPropagation()}>
+              <SheetCard className="diary-sheet diary-sheet-pantry-options list-options-general-wrap" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
-                <div className="diary-sheet-list">
-                  {onAddCoffeeToDiary ? (
-                    <Button
-                      variant="plain"
-                      type="button"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      onClick={() => {
-                        const row = pantryItems.find((r) => r.item.id === pantryOptionsCoffeeId);
-                        if (row) onAddCoffeeToDiary(row.coffee.id);
-                        setPantryOptionsCoffeeId(null);
-                      }}
-                    >
-                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">add_circle</span>
-                      <span>Añadir café</span>
-                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
-                    </Button>
-                  ) : null}
-                  {onUpdatePantryStock ? (
-                    <Button
-                      variant="plain"
-                      type="button"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      onClick={() => {
-                        const row = pantryItems.find((r) => r.item.id === pantryOptionsCoffeeId);
-                        if (!row) return;
-                        setStockEditTotal(String(Math.max(1, row.total)));
-                        setStockEditRemaining(String(Math.max(0, row.remaining)));
-                        setStockEditCoffeeId(pantryOptionsCoffeeId);
-                        setPantryOptionsCoffeeId(null);
-                      }}
-                    >
-                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">edit</span>
-                      <span>Editar stock</span>
-                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
-                    </Button>
-                  ) : null}
-                  {onMarkPantryCoffeeFinished ? (
-                    <Button
-                      variant="plain"
-                      type="button"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      onClick={() => {
-                        setPantryFinishedConfirmCoffeeId(pantryOptionsCoffeeId);
-                        setPantryOptionsCoffeeId(null);
-                      }}
-                    >
-                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">check_circle</span>
-                      <span>Café terminado</span>
-                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
-                    </Button>
-                  ) : null}
-                  {onRemovePantryItem ? (
-                    <Button
-                      variant="plain"
-                      type="button"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      disabled={removingStock}
-                      onClick={() => {
-                        setPantryDeleteConfirmCoffeeId(pantryOptionsCoffeeId);
-                        setPantryOptionsCoffeeId(null);
-                      }}
-                    >
-                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">delete</span>
-                      <span>Eliminar de la despensa</span>
-                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
-                    </Button>
-                  ) : null}
+                <div className="diary-sheet-list list-options-general-wrap">
+                  <div className="list-options-page-section">
+                    <h3 className="create-list-privacy-subtitle">Organiza</h3>
+                    <div className="list-options-general-card">
+                      {onUpdatePantryStock ? (
+                        <Button
+                          variant="plain"
+                          type="button"
+                          className="list-options-page-action diary-sheet-action-pantry"
+                          onClick={() => {
+                            const row = pantryItems.find((r) => r.item.id === pantryOptionsCoffeeId);
+                            if (!row) return;
+                            setStockEditTotal(String(Math.max(1, row.total)));
+                            setStockEditRemaining(String(Math.max(0, row.remaining)));
+                            setStockEditCoffeeId(pantryOptionsCoffeeId);
+                            setPantryOptionsCoffeeId(null);
+                          }}
+                        >
+                          <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">edit</span>
+                          <span>Editar stock</span>
+                          <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                        </Button>
+                      ) : null}
+                      {onMarkPantryCoffeeFinished ? (
+                        <Button
+                          variant="plain"
+                          type="button"
+                          className="list-options-page-action diary-sheet-action-pantry"
+                          onClick={() => {
+                            setPantryFinishedConfirmCoffeeId(pantryOptionsCoffeeId);
+                            setPantryOptionsCoffeeId(null);
+                          }}
+                        >
+                          <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">check_circle</span>
+                          <span>Café terminado</span>
+                          <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="list-options-page-section list-options-section-spaced">
+                    <h3 className="create-list-privacy-subtitle">General</h3>
+                    <div className="list-options-general-card">
+                      {onRemovePantryItem ? (
+                        <Button
+                          variant="plain"
+                          type="button"
+                          className="list-options-page-action diary-sheet-action-pantry"
+                          disabled={removingStock}
+                          onClick={() => {
+                            setPantryDeleteConfirmCoffeeId(pantryOptionsCoffeeId);
+                            setPantryOptionsCoffeeId(null);
+                          }}
+                        >
+                          <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">delete</span>
+                          <span>Eliminar de la despensa</span>
+                          <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </SheetCard>
             </SheetOverlay>,

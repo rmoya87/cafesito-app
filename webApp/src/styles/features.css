@@ -71,14 +71,14 @@ input {
   border-right: 1px solid var(--surface-elevated);
   background: var(--sheet-overlay-bg);
   backdrop-filter: blur(12px);
-  padding: 24px 10px;
+  padding: var(--space-6) var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4);
 }
 
 .brand-rail {
-  padding: 10px 10px 4px;
+  padding: var(--space-2) var(--space-2) var(--space-1);
 }
 
 .wordmark {
@@ -100,25 +100,25 @@ input {
 .sidebar-meta {
   margin-top: auto;
   border: none;
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   background: rgba(0, 0, 0, 0.36);
 }
 
 .meta-label {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-1);
   color: var(--muted-cream);
   font-size: 0.75rem;
 }
 
 .session-logout {
-  margin-top: 8px;
+  margin-top: var(--space-2);
   width: 100%;
   text-align: left;
 }
 
 .main-shell {
-  --app-shell-gutter: 12px;
+  --app-shell-gutter: var(--space-3);
   --topbar-translate-y: 0px;
   display: flex;
   flex-direction: column;
@@ -145,7 +145,7 @@ input {
   overflow: auto;
   overflow-x: hidden;
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
-  padding: 10px var(--app-shell-gutter) 120px;
+  padding: var(--space-2) var(--app-shell-gutter) 120px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: none;
   overscroll-behavior-y: contain;
@@ -156,10 +156,34 @@ input {
   padding-top: 0;
 }
 
+/* Cafés probados: sin topbar, mapa desde arriba; altura fija y scroll solo en el listado */
+.main-shell-scroll.is-cafes-probados {
+  margin-top: 0;
+  padding-top: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.main-shell-scroll.is-cafes-probados .content.content-diary {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  padding-top: 0;
+}
+.main-shell-scroll.is-cafes-probados .content.content-diary > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Buscador cafés: header completo (campo + chips = 106px) para que la barra de scroll no quede bajo el topbar */
 .main-shell-scroll.is-search-coffees {
   margin-top: calc(106px + env(safe-area-inset-top, 0px));
-  padding-top: 10px;
+  padding-top: var(--space-2);
 }
 
 /* Buscador usuarios: asegurar que el área de contenido sea visible y tenga espacio */
@@ -277,8 +301,8 @@ input {
   z-index: 90;
   margin: 0;
   border-radius: 0;
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  padding-bottom: 10px;
+  padding-top: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--space-2);
   padding-left: var(--app-shell-gutter);
   padding-right: var(--app-shell-gutter);
   box-sizing: border-box;
@@ -287,12 +311,12 @@ input {
 .android-install-banner {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  margin: 0 0 8px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-2);
   background: rgba(26, 18, 11, 0.92);
-  color: #ffffff;
-  border-radius: 12px;
+  color: var(--text-main);
+  border-radius: var(--radius-md);
   flex-shrink: 0;
   margin-left: var(--app-shell-gutter);
   margin-right: var(--app-shell-gutter);
@@ -301,7 +325,7 @@ input {
 .android-install-banner-link {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
   color: inherit;
@@ -320,8 +344,8 @@ input {
 }
 
 .android-install-banner-icon .ui-icon {
-  width: 24px;
-  height: 24px;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
 }
 
 .android-install-banner-text {
@@ -339,23 +363,24 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-main);
+  opacity: 0.85;
   border-radius: 50%;
 }
 
 .android-install-banner-dismiss:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--surface-muted);
   color: var(--text-main);
 }
 
 .android-install-banner-dismiss .ui-icon {
-  width: 20px;
-  height: 20px;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
 }
 
 @media (max-width: 899px) {
   .main-shell {
-    --app-shell-gutter: 12px;
+    --app-shell-gutter: var(--space-3);
   }
 
   .main-shell-scroll {
@@ -447,6 +472,7 @@ input {
 
 /* iOS PWA "Añadir a inicio": respetar safe area. Absoluto para que solo se mueva la barra, no el contenido. */
 /* will-change y -webkit-transform para que iOS pinte bien el topbar al actualizar --topbar-translate-y */
+/* Mismo fondo con y sin scroll para evitar cambio de aspecto en iOS al hacer scroll */
 .topbar {
   --topbar-hide-offset: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   position: absolute;
@@ -462,8 +488,10 @@ input {
   padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--app-shell-gutter) 4px;
   border-radius: 0;
   border: none;
+  background-color: var(--screen-dark-background);
   background: var(--screen-dark-background);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   will-change: transform;
   transform: translateY(calc(-1 * var(--topbar-translate-y, 0px)));
   -webkit-transform: translateY(calc(-1 * var(--topbar-translate-y, 0px)));
@@ -472,6 +500,7 @@ input {
 }
 
 .topbar-scrolled {
+  background-color: var(--screen-dark-background);
   background: var(--screen-dark-background);
   border-color: rgba(255, 255, 255, 0.18);
 }
@@ -677,7 +706,7 @@ input {
 .search-cancel-button {
   color: var(--text-main);
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -801,7 +830,668 @@ input {
   gap: 6px;
 }
 
+/* Botón "Añadirme" en detalle de lista pública (área tap ≥ 44px) */
+.topbar-join-list-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Botón invitar a la lista (person_add en círculo outline): blanco en noche, negro en día */
+.topbar-share-list-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--text-main);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.topbar-share-list-btn:hover {
+  opacity: 0.85;
+}
+.topbar-share-list-btn .topbar-share-list-icon {
+  color: var(--text-main);
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+html.theme-dark .topbar-share-list-btn {
+  border-color: #fff;
+}
+html.theme-dark .topbar-share-list-btn .topbar-share-list-icon {
+  color: #fff;
+}
+html.theme-light .topbar-share-list-btn {
+  border-color: #000;
+}
+html.theme-light .topbar-share-list-btn .topbar-share-list-icon {
+  color: #000;
+}
+
+/* Lista: total de miembros a la izquierda + hasta 3 avatares apilados (pisándose), cuando hay gente en la lista */
+.topbar-list-members-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 8px 4px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--surface-variant);
+  color: var(--text-main);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-height: 40px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.topbar-list-members-btn:hover {
+  opacity: 0.9;
+}
+.topbar-list-members-count {
+  line-height: 1;
+  margin-right: 8px;
+}
+.topbar-list-members-avatars {
+  display: flex;
+  align-items: center;
+  margin-left: 0;
+}
+.topbar-list-members-avatar-wrap {
+  margin-left: -10px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--surface-variant);
+  background: var(--surface);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 0;
+}
+.topbar-list-members-avatar-wrap:first-child {
+  margin-left: 0;
+}
+.topbar-list-members-avatar-wrap:nth-child(1) { z-index: 1; }
+.topbar-list-members-avatar-wrap:nth-child(2) { z-index: 2; }
+.topbar-list-members-avatar-wrap:nth-child(3) { z-index: 3; }
+.topbar-list-members-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.topbar-list-members-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--text-subtle);
+  background: var(--surface);
+}
+
 /* Botón 3 puntos en círculo (detalle de lista) */
+/* Opciones de lista: bloque Privacidad arriba (mismos estilos que crear/editar lista) */
+.list-options-sheet-content {
+  padding: 0 16px 16px;
+  overflow-y: auto;
+}
+.list-options-sheet .list-options-privacy,
+.list-options-sheet .list-options-general {
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* Privacidad: más margen en "Permitir editar lista" y switch a la derecha */
+.list-options-sheet .list-options-privacy .create-list-privacy-option-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding-right: 12px;
+}
+.list-options-sheet .list-options-privacy .create-list-privacy-option-switch-row .ui-switch {
+  flex-shrink: 0;
+}
+.list-options-sheet .list-options-general .diary-sheet-list {
+  padding: 0;
+}
+
+/* Página Opciones de lista (misma estructura que seguidores/siguiendo) */
+.list-options-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.list-options-page-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px var(--app-shell-gutter);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.list-options-page-section {
+  margin-bottom: 24px;
+}
+.list-options-page-section:last-child {
+  margin-bottom: 0;
+}
+/* "Permitir editar lista": separación clara por encima (página Opciones de lista) */
+.list-options-page .list-options-privacy .create-list-privacy-option-switch-row,
+.list-options-page .create-list-sheet .create-list-privacy-option .create-list-privacy-option-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  margin-bottom: 10px;
+  padding-top: 4px;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+.list-options-page .list-options-privacy .create-list-privacy-option-switch-row .ui-switch,
+.list-options-page .create-list-sheet .create-list-privacy-option-switch-row .ui-switch {
+  flex-shrink: 0;
+}
+.list-options-page-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 8px;
+}
+.list-options-page-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+  margin-bottom: 8px;
+}
+.list-options-page-action:last-child {
+  margin-bottom: 0;
+}
+.list-options-page-action .ui-icon:last-child {
+  margin-left: auto;
+  color: var(--text-subtle);
+}
+
+/* Sección Miembros: cuadrado negro, buscador, copiar enlace, lista con swipe */
+.list-options-members {
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* Card Miembros: bg blanco (día) / negro (noche); el subtítulo "Miembros" queda fuera */
+.list-options-members-box {
+  border-radius: var(--radius-md);
+  padding: 0 16px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+html.theme-light .list-options-members-box {
+  background: #fff;
+}
+html.theme-dark .list-options-members-box,
+html:not(.theme-light) .list-options-members-box {
+  background: #000;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-box {
+    background: #fff;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-box {
+    background: #000;
+  }
+}
+/* Mismo padding vertical en todos los elementos; líneas de separación a ancho completo (sin padding lateral) */
+.list-options-members-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 14px 16px;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-default);
+}
+/* Modo día: separación entre elementos gris clara */
+html.theme-light .list-options-members-box .list-options-members-add,
+html.theme-light .list-options-members-box .list-options-members-copy-link,
+html.theme-light .list-options-members-box .list-options-members-row .list-options-members-row-content,
+html.theme-light .list-options-members--page .search-users-container .search-users-row {
+  border-bottom-color: #d7d3cf;
+}
+html.theme-light .list-options-members-box .list-options-members-add {
+  border-bottom-color: #f7f7f7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-box .list-options-members-add,
+  html:not(.theme-dark) .list-options-members-box .list-options-members-copy-link,
+  html:not(.theme-dark) .list-options-members-box .list-options-members-row .list-options-members-row-content,
+  html:not(.theme-dark) .list-options-members--page .search-users-container .search-users-row {
+    border-bottom-color: #d7d3cf;
+  }
+  html:not(.theme-dark) .list-options-members-box .list-options-members-add {
+    border-bottom-color: #f7f7f7;
+  }
+}
+/* Modo noche: separación entre elementos gris clara (visible sobre fondo oscuro) */
+html.theme-dark .list-options-members-add,
+html:not(.theme-light) .list-options-members-add {
+  border-bottom-color: rgb(33, 33, 33);
+}
+html.theme-dark .list-options-members-copy-link,
+html:not(.theme-light) .list-options-members-copy-link {
+  border-bottom-color: rgb(33, 33, 33);
+}
+html.theme-dark .list-options-members-box .list-options-members-row .list-options-members-row-content,
+html:not(.theme-light) .list-options-members-box .list-options-members-row .list-options-members-row-content {
+  border-bottom-color: rgba(255, 255, 255, 0.4);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-add {
+    border-bottom-color: rgb(33, 33, 33);
+  }
+  html:not(.theme-light) .list-options-members-copy-link {
+    border-bottom-color: rgb(33, 33, 33);
+  }
+  html:not(.theme-light) .list-options-members-box .list-options-members-row .list-options-members-row-content {
+    border-bottom-color: rgba(255, 255, 255, 0.4);
+  }
+}
+/* Input sin borde propio: lupa y texto dentro del mismo campo pill */
+.list-options-members-add .list-options-members-search-input.search-wide {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+.list-options-members-add .list-options-members-search-input.search-wide:focus,
+.list-options-members-add .list-options-members-search-input.search-wide:focus-visible {
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Campo búsqueda: sin borde; colores según tema (card ya tiene bg) */
+html.theme-light .list-options-members-box .list-options-members-add {
+  background: transparent;
+  color: #1a1a1a;
+}
+html.theme-light .list-options-members-add .list-options-members-search-icon {
+  color: #1a1a1a;
+}
+html.theme-light .list-options-members-search-input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+html.theme-dark .list-options-members-box .list-options-members-add,
+html:not(.theme-light) .list-options-members-box .list-options-members-add {
+  background: transparent;
+  color: #fff;
+}
+html.theme-dark .list-options-members-add .list-options-members-search-icon,
+html:not(.theme-light) .list-options-members-add .list-options-members-search-icon {
+  color: #fff;
+}
+html.theme-dark .list-options-members-search-input::placeholder,
+html:not(.theme-light) .list-options-members-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-box .list-options-members-add {
+    background: transparent;
+    color: #1a1a1a;
+  }
+  html:not(.theme-dark) .list-options-members-add .list-options-members-search-icon {
+    color: #1a1a1a;
+  }
+  html:not(.theme-dark) .list-options-members-search-input::placeholder {
+    color: rgba(0, 0, 0, 0.5);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-box .list-options-members-add {
+    background: transparent;
+    color: #fff;
+  }
+  html:not(.theme-light) .list-options-members-add .list-options-members-search-icon {
+    color: #fff;
+  }
+  html:not(.theme-light) .list-options-members-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+.list-options-members-search-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.list-options-members-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+.list-options-members-search-input:focus {
+  outline: none;
+}
+.list-options-members-suggestions {
+  margin-bottom: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.list-options-members-suggestions-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-subtle);
+}
+.list-options-members-suggestion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.list-options-members-suggestion-row:last-child {
+  border-bottom: none;
+}
+.list-options-members-suggestion-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.list-options-members-avatar,
+.list-options-members-avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+.list-options-members-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-variant);
+  color: var(--text-subtle);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.list-options-members-suggestion-name {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-options-members-invite-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+}
+/* Botón Invitar: modo día marrón + blanco, modo noche marrón claro + negro (como en modal Invitaciones) */
+html.theme-light .list-options-members-invite-btn {
+  background: #6f4e37;
+  color: #ffffff;
+}
+html.theme-dark .list-options-members-invite-btn,
+html:not(.theme-light) .list-options-members-invite-btn {
+  background: #d4a373;
+  color: #000000;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-invite-btn {
+    background: #6f4e37;
+    color: #ffffff;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-invite-btn {
+    background: #d4a373;
+    color: #000000;
+  }
+}
+.list-options-members-invite-btn:disabled {
+  opacity: 0.7;
+}
+.list-options-members-already-in-list,
+.list-options-members-pending-label {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.list-options-members-copy-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% + 32px);
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 14px 16px;
+  margin-bottom: 0;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--link);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+/* Copiar enlace: texto/icono blanco en modo noche (card negro), negro en modo día (card blanco) */
+html.theme-dark .list-options-members-copy-link,
+html.theme-dark .list-options-members-copy-link .list-options-members-copy-icon {
+  color: #fff;
+}
+html.theme-light .list-options-members-copy-link,
+html.theme-light .list-options-members-copy-link .list-options-members-copy-icon {
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-members-copy-link,
+  html:not(.theme-light) .list-options-members-copy-link .list-options-members-copy-icon {
+    color: #fff;
+  }
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .list-options-members-copy-link,
+  html:not(.theme-dark) .list-options-members-copy-link .list-options-members-copy-icon {
+    color: #1a1a1a;
+  }
+}
+.list-options-members-copy-link:hover {
+  filter: brightness(1.05);
+}
+.list-options-members-copy-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+.list-options-members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.list-options-members-row {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+}
+.list-options-members-row-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-variant);
+  border-radius: var(--radius-sm);
+  position: relative;
+  z-index: 1;
+  transition: transform 0.2s ease;
+  border-bottom: 1px solid var(--border-default);
+}
+.list-options-members-row:last-child .list-options-members-row-content {
+  border-bottom: none;
+}
+.list-options-members-row.is-swiped .list-options-members-row-content {
+  transform: translateX(-72px);
+}
+.list-options-members-row-delete {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: #c62828;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 0;
+}
+/* Variante página: botón Eliminar alineado como en seguidores/siguiendo */
+.list-options-members-row-delete--page {
+  position: static;
+  width: auto;
+  min-width: 80px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+}
+.list-options-members--page .list-options-members-box {
+  margin-bottom: 0;
+}
+.list-options-members--page .search-users-container {
+  margin-top: 0;
+}
+/* Filas de usuario: poca altura (poco padding arriba/abajo, avatar más pequeño) */
+.list-options-members--page .search-users-container .search-users-row {
+  border: none;
+  border-radius: 0;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 12px 16px;
+  min-height: 0;
+  width: calc(100% + 32px);
+  box-sizing: border-box;
+  background: transparent;
+  margin-bottom: 0;
+}
+.list-options-members--page .search-users-container .search-users-row .search-users-avatar,
+.list-options-members--page .search-users-container .search-users-row .search-users-avatar-fallback {
+  width: 40px;
+  height: 40px;
+}
+.list-options-members--page .search-users-container .search-users-row:last-child {
+  border-bottom: none;
+}
+.list-options-members-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.list-options-members-row-name {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+.list-options-members-row-role {
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+.list-options-members-row-chevron {
+  width: 20px;
+  height: 20px;
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+.list-options-members-copy-chip {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: var(--surface-variant);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 10000;
+  animation: list-options-chip-in 0.25s ease forwards;
+}
+.list-options-members-copy-chip[role="status"] {
+  animation: list-options-chip-in 0.25s ease forwards;
+}
+@keyframes list-options-chip-in {
+  from {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+.list-options-members-copy-chip.hide {
+  animation: list-options-chip-out 0.25s ease forwards;
+}
+@keyframes list-options-chip-out {
+  from {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-50%) translateY(-60px);
+    opacity: 0;
+  }
+}
+
 .topbar-list-options-btn {
   width: 40px;
   height: 40px;
@@ -1078,7 +1768,7 @@ input {
 
 .diary-calendar-month-title {
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-main);
   margin-bottom: 8px;
   text-align: center;
@@ -1316,7 +2006,7 @@ input {
   padding-right: 16px;
 }
 
-.timeline-shell {
+.home-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
@@ -1326,7 +2016,7 @@ input {
 }
 
 /* Marrón solo en la zona del hero: el bloque se extiende con márgenes negativos (arriba y laterales) */
-.timeline-hero {
+.home-hero {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -1338,13 +2028,13 @@ input {
   background: var(--caramel-accent);
 }
 
-.timeline-hero-greeting {
+.home-hero-greeting {
   display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.timeline-hero-avatar {
+.home-hero-avatar {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-pill);
@@ -1353,7 +2043,7 @@ input {
   border: 2px solid rgba(255, 255, 255, 0.4);
 }
 
-.timeline-hero-avatar-fallback {
+.home-hero-avatar-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1363,19 +2053,19 @@ input {
   font-weight: var(--font-weight-semibold);
 }
 
-.timeline-hero-greeting-text {
+.home-hero-greeting-text {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--pure-white);
   margin: 0;
 }
 
-.timeline-hero-strip {
+.home-hero-strip {
   padding: var(--space-4) var(--space-4);
   border-radius: var(--radius-md);
 }
 
-.timeline-hero-strip .timeline-hero-title {
+.home-hero-strip .home-hero-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
@@ -1383,21 +2073,21 @@ input {
   margin: 0;
 }
 
-.timeline-hero .timeline-search-row .search-coffee-input {
+.home-hero .home-search-row .search-coffee-input {
   background: rgba(255, 255, 255, 0.95) !important;
   border-color: rgba(255, 255, 255, 0.6) !important;
   color: var(--espresso-deep);
 }
 
-.timeline-hero .timeline-search-row .search-coffee-placeholder {
+.home-hero .home-search-row .search-coffee-placeholder {
   color: var(--espresso-medium);
 }
 
-.timeline-hero .timeline-search-row .search-coffee-leading-icon {
+.home-hero .home-search-row .search-coffee-leading-icon {
   color: var(--espresso-medium);
 }
 
-.timeline-search-row {
+.home-search-row {
   display: flex;
   align-items: center;
   width: 100%;
@@ -1405,18 +2095,18 @@ input {
   cursor: pointer;
 }
 
-.timeline-search-row .search-coffee-field {
+.home-search-row .search-coffee-field {
   width: 100%;
 }
 
 /* Solo el buscador falso (sin .topbar-search) tiene input no interactivo */
-.timeline-search-row:not(.topbar-search) .timeline-search-input {
+.home-search-row:not(.topbar-search) .home-search-input {
   pointer-events: none;
   cursor: pointer;
 }
 
 /* Hero: mismo layout que topbar-search (campo + cancel) sin chips */
-.timeline-hero .timeline-hero-search-row.topbar-search {
+.home-hero .home-hero-search-row.topbar-search {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 0;
   gap: 6px var(--space-2);
@@ -1427,31 +2117,35 @@ input {
   background: transparent;
   transition: grid-template-columns var(--duration-normal) var(--ease-standard);
 }
-.timeline-hero .timeline-hero-search-row.topbar-search.has-cancel {
+.home-hero .home-hero-search-row.topbar-search.has-cancel {
   grid-template-columns: minmax(0, 1fr) 84px;
 }
 
-.timeline-search-row .search-coffee-placeholder span {
+.home-search-row .search-coffee-placeholder span {
   animation: none;
 }
 
 /* Formas de elaboración: ancho completo hasta ambos bordes (izq. con margen inicial, der. pegada) */
-.timeline-elaboration-methods {
+.home-elaboration-methods {
   flex-shrink: 0;
   min-width: 0;
   width: calc(100% + 2 * var(--app-shell-gutter));
   max-width: none;
-  margin-top: var(--space-6);
+  margin-top: 0;
   margin-left: calc(-1 * var(--app-shell-gutter));
   margin-right: 0;
   margin-bottom: var(--space-6);
-  padding: var(--space-4) 0;
-  background: var(--screen-light-background);
+  padding: 0;
   box-sizing: border-box;
   overflow: hidden;
 }
 
-html.theme-dark .timeline-elaboration-methods {
+/* Home: espacio entre topbar y el carrusel de método */
+.content.content-home .home-elaboration-methods {
+  margin-top: var(--space-4);
+}
+
+html.theme-dark .home-elaboration-methods {
   background: var(--screen-dark-background);
 }
 
@@ -1469,45 +2163,66 @@ html.theme-dark .timeline-elaboration-methods {
   }
 }
 
-/* Modo noche por sistema (prefers-color-scheme: dark): mismo estilo que html.theme-dark — fondos negros, activos marrón sin borde */
+/* Modo noche por sistema (prefers-color-scheme: dark). Elaboración solo usa modo día/noche por tema (html.theme-dark); aquí no se aplican estilos a .brew-select-step */
 @media (prefers-color-scheme: dark) {
-  .timeline-elaboration-methods,
-  .brew-select-step .timeline-elaboration-methods {
+  .home-elaboration-methods,
+  .brew-select-step .home-elaboration-methods {
     background: transparent !important;
   }
-  /* Círculos método y tipo: negro por defecto; activo marrón sin borde */
-  .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
+  /* Círculos método (Home): negro por defecto; no aplica a elaboración */
+  .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-circle .home-elaboration-method-circle-inner {
     background: #000 !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
-  .timeline-elaboration-method-label,
-  .brew-select-step .timeline-elaboration-method-label {
+  .home-elaboration-method-label,
+  .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-label {
     color: #ffffff !important;
   }
-  .brew-select-step .brew-select-section-title,
-  .brew-select-step .section-title.brew-select-section-title {
+  /* Consumo: tipo y tamaño base gris oscuro (color página) en modo noche (sistema) */
+  .brew-result-screen .brew-config-cafe-card button.brew-tipo-card,
+  .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card,
+  .brew-result-screen .brew-config-cafe-card .brew-tipo-card,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card {
+    background: #212121 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Elaboración y Consumo: chips inactivos = gris oscuro #212121 en modo noche (sistema) */
+  .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
+  .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+  .brew-result-screen .brew-config-cafe-card button.brew-tipo-card:not(.is-active),
+  .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card:not(.is-active),
+  .brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+    background: #212121 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Consumo modo noche (sistema): chips activos caramelo */
+  .brew-result-screen .brew-config-cafe-card button.brew-tipo-card.is-active,
+  .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card.is-active {
+    background: var(--caramel-accent, #b8860b) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Elaboración y Consumo modo noche (sistema): inactivos texto blanco, activos texto negro */
+  .brew-select-step .brew-forma-card .brew-method-card:not(.is-active) .brew-method-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active) .brew-tipo-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-range,
+  .brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active) .brew-tipo-card-label,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-label,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-range {
     color: #ffffff !important;
   }
-  /* Selecciona café, temporizador, tipo y tamaño: fondo negro; activo marrón sin borde */
-  .brew-select-step .brew-timer-row,
-  .brew-select-step .brew-select-coffee-row,
-  .brew-select-step .brew-tipo-card,
-  .brew-select-step .brew-tamaño-card {
-    background: #000 !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-    color: #ffffff !important;
-  }
-  .brew-select-step .brew-tipo-card-label,
-  .brew-select-step .brew-tamaño-card-label {
-    color: #ffffff !important;
-  }
-  .brew-select-step .brew-tamaño-card-range {
-    color: #bdb7b2 !important;
-  }
-  /* Elaboración: chips activos tipo y tamaño — texto negro en modo noche */
-  .brew-select-step .brew-tipo-card.is-active .brew-tipo-card-label,
-  .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-label,
-  .brew-select-step .brew-tamaño-card.is-active .brew-tamaño-card-range {
+  .brew-select-step .brew-forma-card .brew-method-card.is-active .brew-method-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tipo-card.is-active .brew-tipo-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-label,
+  .brew-select-step .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range,
+  .brew-result-screen .brew-config-cafe-card .brew-tipo-card.is-active .brew-tipo-card-label,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-label,
+  .brew-result-screen .brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range {
     color: #000 !important;
   }
   /* Tipo en editar (Mi diario): chip activo texto negro en modo noche */
@@ -1521,12 +2236,6 @@ html.theme-dark .timeline-elaboration-methods {
     color: #ffffff !important;
   }
   .diary-edit-entry-tipo-presets .brew-tipo-card-label {
-    color: #ffffff !important;
-  }
-  .brew-select-step .brew-coffee-search,
-  .brew-select-step .search-wide {
-    background: #212121 !important;
-    border-color: rgba(255, 255, 255, 0.18) !important;
     color: #ffffff !important;
   }
   /* Card recomendación (resultado y durante proceso) */
@@ -1551,44 +2260,44 @@ html.theme-dark .timeline-elaboration-methods {
     color: #fff !important;
   }
   /* Home: módulo método (círculos) — fondo negro */
-  .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-circle-inner {
+  .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-circle-inner {
     background: #000 !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
-  .timeline-elaboration-methods:not(.brew-elaboration-methods) .timeline-elaboration-method-label {
+  .home-elaboration-methods:not(.brew-elaboration-methods) .home-elaboration-method-label {
     color: #ffffff !important;
   }
   /* Recomendaciones del día (Home): card negro */
-  .timeline-recommendation-card {
+  .home-recommendation-card {
     background: #000 !important;
     border-color: rgba(255, 255, 255, 0.15) !important;
   }
-  .timeline-recommendation-card .timeline-recommendation-row {
+  .home-recommendation-card .home-recommendation-row {
     color: #ffffff !important;
     border-bottom-color: rgba(255, 255, 255, 0.08) !important;
   }
-  .timeline-recommendation-card .timeline-recommendation-row:hover {
+  .home-recommendation-card .home-recommendation-row:hover {
     background: rgba(255, 255, 255, 0.06) !important;
   }
-  .timeline-recommendation-row-name {
+  .home-recommendation-row-name {
     color: #ffffff !important;
   }
-  .timeline-recommendation-row-brand {
+  .home-recommendation-row-brand {
     color: #bdb7b2 !important;
   }
-  .brew-select-step .timeline-despensa .brew-pantry-card {
+  .brew-select-step .home-despensa .brew-pantry-card {
     background: #212121 !important;
     border-color: rgba(255, 255, 255, 0.12) !important;
     color: #ffffff !important;
   }
-  .timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+  .home-elaboration-method-circle-inner .home-elaboration-method-icon-water {
     fill: rgba(255, 255, 255, 0.85) !important;
     stroke: rgba(255, 255, 255, 0.5) !important;
     color: rgba(255, 255, 255, 0.85) !important;
   }
 }
 
-.timeline-elaboration-methods-scroll {
+.home-elaboration-methods-scroll {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
@@ -1604,11 +2313,11 @@ html.theme-dark .timeline-elaboration-methods {
   box-sizing: border-box;
 }
 
-.timeline-elaboration-methods-scroll::-webkit-scrollbar {
+.home-elaboration-methods-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.timeline-elaboration-method-circle {
+.home-elaboration-method-circle {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1623,7 +2332,7 @@ html.theme-dark .timeline-elaboration-methods {
   scroll-snap-align: start;
 }
 
-.timeline-elaboration-method-circle-inner {
+.home-elaboration-method-circle-inner {
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -1637,34 +2346,34 @@ html.theme-dark .timeline-elaboration-methods {
 }
 
 /* En .brew-select-step los círculos se estilizan en theme-forced (negro/marrón). Fuera de elaboración se mantiene surface. */
-html.theme-dark .timeline-elaboration-method-circle-inner {
+html.theme-dark .home-elaboration-method-circle-inner {
   background: var(--surface);
   border-color: var(--border-light);
 }
-html.theme-dark .brew-select-step .timeline-elaboration-method-circle .timeline-elaboration-method-circle-inner {
+html.theme-dark .brew-select-step .home-elaboration-method-circle .home-elaboration-method-circle-inner {
   background: #000 !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
-html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+html.theme-dark .brew-select-step .home-elaboration-method-circle.is-active .home-elaboration-method-circle-inner {
   background: var(--caramel-accent) !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-.timeline-elaboration-method-circle-inner img {
+.home-elaboration-method-circle-inner img {
   width: 40px;
   height: 40px;
   object-fit: contain;
 }
 
-.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-bolt,
-.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+.home-elaboration-method-circle-inner .home-elaboration-method-icon-bolt,
+.home-elaboration-method-circle-inner .home-elaboration-method-icon-water {
   width: 32px;
   height: 32px;
   object-fit: contain;
 }
 
-.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-bolt {
+.home-elaboration-method-circle-inner .home-elaboration-method-icon-bolt {
   display: block;
   flex-shrink: 0;
   color: var(--text-main);
@@ -1672,7 +2381,7 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active 
   stroke: currentColor;
 }
 
-.timeline-elaboration-method-circle-inner .timeline-elaboration-method-icon-water {
+.home-elaboration-method-circle-inner .home-elaboration-method-icon-water {
   display: block;
   flex-shrink: 0;
   fill: #dadcde;
@@ -1682,12 +2391,12 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active 
   margin: 0 auto;
 }
 
-.timeline-elaboration-method-icon-bolt {
+.home-elaboration-method-icon-bolt {
   display: block;
   color: var(--text-main);
 }
 
-.timeline-elaboration-method-label {
+.home-elaboration-method-label {
   font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--text-subtle);
@@ -1699,17 +2408,17 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active 
 }
 
 /* Contenedor carrusel con botones de navegación (solo desktop); en móvil se desliza con el dedo */
-.timeline-carousel-with-nav {
+.home-carousel-with-nav {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.timeline-carousel-nav {
+.home-carousel-nav {
   display: none;
 }
 
-.timeline-carousel-nav-btn {
+.home-carousel-nav-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -1725,33 +2434,33 @@ html.theme-dark .brew-select-step .timeline-elaboration-method-circle.is-active 
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.timeline-carousel-nav-btn:hover {
+.home-carousel-nav-btn:hover {
   background: #d0d0d0;
   color: #424242;
 }
 
-.timeline-carousel-nav-btn .ui-icon {
+.home-carousel-nav-btn .ui-icon {
   width: 20px;
   height: 20px;
 }
 
-.timeline-carousel-nav-btn svg {
+.home-carousel-nav-btn svg {
   width: 20px;
   height: 20px;
 }
 
-html.theme-dark .timeline-carousel-nav-btn {
+html.theme-dark .home-carousel-nav-btn {
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.85);
 }
 
-html.theme-dark .timeline-carousel-nav-btn:hover {
+html.theme-dark .home-carousel-nav-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   color: var(--pure-white);
 }
 
 @media (min-width: 900px) {
-  .timeline-carousel-nav {
+  .home-carousel-nav {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -1765,25 +2474,25 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   }
 
   /* Ocultar barra de desplazamiento en desktop en carruseles del timeline y elaboración (Tipo) */
-  .timeline-carousel-with-nav .timeline-elaboration-methods-scroll,
-  .timeline-carousel-with-nav .timeline-despensa-scroll,
-  .timeline-carousel-with-nav .horizontal-cards.timeline-carousel-scroll,
-  .timeline-carousel-with-nav .timeline-recommendations-list,
-  .timeline-carousel-with-nav .brew-tipo-strip {
+  .home-carousel-with-nav .home-elaboration-methods-scroll,
+  .home-carousel-with-nav .home-despensa-scroll,
+  .home-carousel-with-nav .horizontal-cards.home-carousel-scroll,
+  .home-carousel-with-nav .home-recommendations-list,
+  .home-carousel-with-nav .brew-tipo-strip {
     scrollbar-width: none;
   }
 
-  .timeline-carousel-with-nav .timeline-elaboration-methods-scroll::-webkit-scrollbar,
-  .timeline-carousel-with-nav .timeline-despensa-scroll::-webkit-scrollbar,
-  .timeline-carousel-with-nav .horizontal-cards.timeline-carousel-scroll::-webkit-scrollbar,
-  .timeline-carousel-with-nav .timeline-recommendations-list::-webkit-scrollbar,
-  .timeline-carousel-with-nav .brew-tipo-strip::-webkit-scrollbar {
+  .home-carousel-with-nav .home-elaboration-methods-scroll::-webkit-scrollbar,
+  .home-carousel-with-nav .home-despensa-scroll::-webkit-scrollbar,
+  .home-carousel-with-nav .horizontal-cards.home-carousel-scroll::-webkit-scrollbar,
+  .home-carousel-with-nav .home-recommendations-list::-webkit-scrollbar,
+  .home-carousel-with-nav .brew-tipo-strip::-webkit-scrollbar {
     display: none;
   }
 }
 
 /* Recomendaciones del día: listado con imagen a la izquierda, nombre + marca a la derecha, scroll horizontal */
-.suggestion-strip.timeline-recommendations-day {
+.suggestion-strip.home-recommendations-day {
   width: calc(100% + 2 * var(--app-shell-gutter));
   max-width: none;
   margin-left: calc(-1 * var(--app-shell-gutter));
@@ -1796,7 +2505,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   overflow: hidden;
 }
 
-.timeline-recommendations-list {
+.home-recommendations-list {
   display: flex;
   flex-direction: row;
   gap: var(--space-4);
@@ -1807,12 +2516,12 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   scrollbar-width: none;
   padding-right: var(--app-shell-gutter);
 }
-.timeline-recommendations-list::-webkit-scrollbar {
+.home-recommendations-list::-webkit-scrollbar {
   display: none;
 }
 
 /* Una card = 3 cafés en columna; scroll horizontal entre cards */
-.timeline-recommendation-card {
+.home-recommendation-card {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -1827,7 +2536,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   box-sizing: border-box;
 }
 
-.timeline-recommendation-card .timeline-recommendation-row {
+.home-recommendation-card .home-recommendation-row {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1846,14 +2555,14 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   cursor: pointer;
   box-sizing: border-box;
 }
-.timeline-recommendation-card .timeline-recommendation-row:last-child {
+.home-recommendation-card .home-recommendation-row:last-child {
   border-bottom: none;
 }
-.timeline-recommendation-card .timeline-recommendation-row:hover {
+.home-recommendation-card .home-recommendation-row:hover {
   background: var(--surface-elevated, rgba(0, 0, 0, 0.03));
 }
 
-.timeline-recommendation-row-image {
+.home-recommendation-row-image {
   flex-shrink: 0;
   width: 56px;
   height: 56px;
@@ -1861,20 +2570,20 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   overflow: hidden;
   background: var(--surface-elevated, #eee);
 }
-.timeline-recommendation-row-image img {
+.home-recommendation-row-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.timeline-recommendation-row-placeholder {
+.home-recommendation-row-placeholder {
   display: block;
   width: 100%;
   height: 100%;
   background: var(--surface-elevated, #eee);
 }
 
-.timeline-recommendation-row-copy {
+.home-recommendation-row-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1882,7 +2591,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   flex: 1;
 }
 
-.timeline-recommendation-row-name {
+.home-recommendation-row-name {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-main);
@@ -1894,7 +2603,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   word-break: break-word;
 }
 
-.timeline-recommendation-row-brand {
+.home-recommendation-row-brand {
   font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--text-subtle);
@@ -1903,7 +2612,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   text-overflow: ellipsis;
 }
 
-.timeline-despensa {
+.home-despensa {
   flex-shrink: 0;
   min-width: 0;
   width: calc(100% + 2 * var(--app-shell-gutter));
@@ -1919,7 +2628,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   overflow: hidden;
 }
 
-.timeline-despensa-scroll {
+.home-despensa-scroll {
   min-width: 0;
   width: 100%;
   overflow-x: auto;
@@ -1930,11 +2639,11 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   box-sizing: border-box;
 }
 
-.timeline-despensa-scroll::-webkit-scrollbar {
+.home-despensa-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.timeline-despensa .brew-pantry-row {
+.home-despensa .brew-pantry-row {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(158px, 176px);
@@ -1943,19 +2652,19 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   scroll-snap-align: start;
 }
 
-.timeline-desktop-columns {
+.home-desktop-columns {
   display: block;
   min-width: 0;
   max-width: 100%;
 }
 
-.timeline-main-column,
-.timeline-side-column {
+.home-main-column,
+.home-side-column {
   min-width: 0;
   max-width: 100%;
 }
 
-.timeline-side-column {
+.home-side-column {
   display: grid;
   gap: 10px;
 }
@@ -1974,7 +2683,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   align-items: start;
 }
 
-.profile-split-with-side>.timeline-side-column {
+.profile-split-with-side>.home-side-column {
   width: 240px;
   min-width: 240px;
   align-self: start;
@@ -1992,7 +2701,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .profile-activity-list {
   list-style: none;
   margin: 0;
-  padding: 0 var(--app-shell-gutter) 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -2009,20 +2718,16 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   min-width: 0;
 }
 
-/* Mismo color, borde y sombra que historial (profile-favorite-row / coffee-card) */
-.profile-activity-card {
+/* Hereda base de .card (surface, borde, radio, sombra); solo layout y padding específico */
+.card.profile-activity-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
   width: 100%;
   max-width: 100%;
   padding: var(--space-3) var(--space-4);
   text-align: left;
   color: var(--text-main);
-  background: var(--surface);
-  border: var(--surface-card-border);
-  border-radius: var(--surface-card-radius);
-  box-shadow: var(--surface-card-shadow);
   box-sizing: border-box;
   min-width: 0;
 }
@@ -2072,11 +2777,345 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   color: var(--text-subtle);
 }
 
-.profile-activity-empty {
-  padding: var(--space-6) var(--space-4);
-  text-align: center;
-  font-size: var(--font-size-base);
+/* Solo avatar: enlace al perfil del usuario */
+.profile-activity-avatar-link {
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: block;
+  line-height: 0;
+}
+
+.profile-activity-avatar-link .profile-activity-avatar {
+  flex-shrink: 0;
+}
+
+/* Nombre de usuario dentro del texto: mismo estilo que enlace al café (parte de la frase) */
+.profile-activity-user-name-link {
+  font-weight: 600;
+  vertical-align: baseline;
+}
+
+.profile-activity-meta {
+  margin: 0;
+  margin-top: 4px;
+  font-size: var(--font-size-sm);
   color: var(--text-subtle);
+}
+
+/* Card del café debajo del tiempo: si es lista, arriba icono+nombre → lista; línea de separación; abajo imagen, nombre+marca, flecha → detalle (fondo = página) */
+.profile-activity-coffee-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  color: var(--text-main);
+  background: var(--screen-dark-background);
+  border: none;
+  border-radius: var(--radius-md, 12px);
+  box-sizing: border-box;
+}
+
+/* Lista en card de café: resto de listas = texto/icono negro día, blanco noche; Favoritos = corazón rojo */
+.profile-activity-coffee-card-list {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 0 0 var(--space-2);
+  margin: 0;
+  border: none;
+  background: none;
+  color: var(--profile-activity-list-color, var(--pure-black));
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: left;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-activity-coffee-card-list {
+    color: var(--profile-activity-list-color, var(--pure-white));
+  }
+}
+
+.profile-activity-coffee-card-list:hover {
+  opacity: 0.85;
+}
+
+/* Favoritos: icono corazón rojo; texto negro (día) / blanco (noche) */
+.profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-icon {
+  color: var(--electric-red);
+}
+
+.profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-name {
+  color: var(--pure-black);
+}
+
+.profile-activity-coffee-card-list.is-favorites:hover {
+  opacity: 0.9;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-name {
+    color: var(--pure-white);
+  }
+}
+
+html.theme-light .profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-name {
+  color: var(--pure-black);
+}
+
+html.theme-dark .profile-activity-coffee-card-list.is-favorites .profile-activity-coffee-card-list-name {
+  color: var(--pure-white);
+}
+
+.profile-activity-coffee-card-list-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.profile-activity-coffee-card-list-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tema forzado: resto de listas negro (día) / blanco (noche) */
+html.theme-light .profile-activity-coffee-card-list:not(.is-favorites) {
+  color: var(--pure-black);
+}
+
+html.theme-dark .profile-activity-coffee-card-list:not(.is-favorites) {
+  color: var(--pure-white);
+}
+
+.profile-activity-coffee-card-sep {
+  width: 100%;
+  height: 0;
+  border: none;
+  border-top: 1px solid var(--border-default, rgba(224, 224, 224, 0.4));
+  margin: 0 0 var(--space-2);
+}
+
+.profile-activity-coffee-card-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.profile-activity-coffee-card-media {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm, 10px);
+  overflow: hidden;
+  background: var(--caramel-soft);
+}
+
+.profile-activity-coffee-card-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-activity-coffee-card-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--caramel-accent);
+}
+
+.profile-activity-coffee-card-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-activity-coffee-card-name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.profile-activity-coffee-card-brand {
+  font-size: var(--font-size-sm);
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  font-style: normal;
+}
+
+/* Opinión (nota + comentario): día = blanco, noche = negro */
+.profile-activity-coffee-card .profile-activity-coffee-card-review-block {
+  padding: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  color: #1a1a1a !important;
+}
+
+.profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+  color: #1a1a1a !important;
+}
+
+.profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip {
+  margin-right: 0.25em;
+}
+
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon,
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star {
+  color: #000000 !important;
+  fill: #000000 !important;
+}
+
+html.theme-light .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+:root:not(.theme-dark) .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+html.theme-light .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon,
+:root:not(.theme-dark) .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon {
+  color: #ffffff !important;
+}
+
+:root:not(.theme-dark) .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip {
+  color: black !important;
+}
+
+.profile-activity-coffee-card-review-comment {
+  opacity: 0.9;
+}
+
+/* Modo día: texto negro */
+@media (prefers-color-scheme: light) {
+  .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
+  .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+    color: #1a1a1a !important;
+  }
+}
+
+/* Modo noche: texto blanco (excepto píldora de nota: ver bloque siguiente) */
+@media (prefers-color-scheme: dark) {
+  .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
+  .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+    color: #f5f5f5 !important;
+  }
+  /* Píldora nota en actividad perfil: texto y estrella en negro (sobre fondo amarillo) */
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip,
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .ui-icon,
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip svg {
+    color: #000000 !important;
+    fill: #000000 !important;
+  }
+  /* Píldora nota en detalle de café: texto y estrella en negro (sobre fondo amarillo) */
+  .coffee-detail-opinion-rating-chip,
+  .coffee-detail-opinion-card .coffee-detail-opinion-rating-chip,
+  .coffee-detail-opinion-body .coffee-detail-opinion-rating-chip,
+  .coffee-detail-opinion-rating-chip .ui-icon,
+  .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+  .coffee-detail-opinion-rating-chip svg,
+  .coffee-detail-opinion-rating-chip path {
+    color: #000000 !important;
+    fill: #000000 !important;
+  }
+  .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip path {
+    fill: #000000 !important;
+  }
+}
+
+/* theme-light = día → negro; theme-dark = noche → blanco */
+html.theme-light .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
+html.theme-light .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+  color: #1a1a1a !important;
+}
+
+html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-review-block,
+html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-review-block .profile-activity-coffee-card-review-comment {
+  color: #f5f5f5 !important;
+}
+
+.profile-activity-coffee-card-arrow {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--text-subtle);
+}
+
+/* Contenedor del estado vacío (mantiene el ítem de lista) */
+.profile-activity-empty-wrap {
+  list-style: none;
+  min-width: 0;
+}
+
+/* Estado vacío: card centrada con icono, título, subtítulo y CTA (ver UX_EMPTY_AND_ERROR_STATES.md) */
+.profile-activity-empty {
+  border-radius: var(--radius-lg, 18px);
+  border: var(--surface-card-border);
+  background: var(--surface);
+  box-shadow: var(--surface-card-shadow);
+  padding: var(--space-6) var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  text-align: center;
+  justify-items: center;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.profile-activity-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--caramel-soft);
+  color: var(--caramel-accent);
+}
+
+.profile-activity-empty-icon .ui-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.profile-activity-empty-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.profile-activity-empty-sub {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-subtle);
+  line-height: 1.4;
+}
+
+.profile-activity-empty-cta {
+  margin-top: var(--space-2);
 }
 
 .profile-coffee-link {
@@ -2269,33 +3308,50 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   color: rgba(255, 255, 255, 0.82);
 }
 
-.coffee-detail-rating-badge {
+/* Nota del café: abajo a la derecha del hero (igual que Android). Título y valor siempre en negro. */
+.coffee-detail-nota-block {
   position: absolute;
-  right: 12px;
-  top: 12px;
-  z-index: 2;
-  min-width: 52px;
-  height: 34px;
-  padding: 0 11px;
-  border-radius: 14px;
+  right: 24px;
+  bottom: 60px;
+  z-index: 4;
+  padding: 10px 16px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.95);
-  color: var(--espresso-deep);
-  display: inline-flex;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-weight: 700;
-  font-size: 0.9rem;
+  gap: 0;
 }
 
-.coffee-detail-rating-badge .ui-icon {
-  width: 13px;
-  height: 13px;
+html.theme-dark .coffee-detail-nota-block {
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.coffee-detail-rating-badge strong {
-  font-size: 0.86rem;
-  line-height: 1;
+.coffee-detail-nota-title {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pure-black);
+}
+
+.coffee-detail-nota-value {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--pure-black);
+}
+
+.coffee-detail.is-side-panel .coffee-detail-nota-block {
+  right: 16px;
+  bottom: 24px;
+  padding: 8px 12px;
+}
+
+.coffee-detail.is-side-panel .coffee-detail-nota-value {
+  font-size: 1.1rem;
 }
 
 .coffee-detail-close {
@@ -2317,7 +3373,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .coffee-detail .section-title {
   margin: 0 0 10px;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
+  font-weight: 600;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--text-main);
@@ -3026,6 +4082,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .coffee-detail-review-textarea {
   min-height: 120px;
   padding: 12px 12px 6px;
+  caret-color: #ffffff;
 }
 
 .coffee-detail-review-textarea.search-wide:focus,
@@ -3136,9 +4193,29 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 }
 
 .coffee-detail-review-submit:not(:disabled) {
-  background: var(--surface) !important;
-  color: var(--text-main) !important;
-  border-color: var(--surface) !important;
+  background: var(--caramel-soft) !important;
+  border-color: var(--caramel-soft) !important;
+}
+
+/* Publicar activo: texto blanco modo día, negro modo noche */
+html.theme-light .coffee-detail-review-submit:not(:disabled) {
+  color: #ffffff !important;
+}
+
+html.theme-dark .coffee-detail-review-submit:not(:disabled) {
+  color: #000000 !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .coffee-detail-review-submit:not(:disabled) {
+    color: #ffffff !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .coffee-detail-review-submit:not(:disabled) {
+    color: #000000 !important;
+  }
 }
 
 .coffee-detail-review-submit:disabled {
@@ -3178,6 +4255,12 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   gap: var(--space-2);
 }
 
+/* Hereda base de .coffee-card; solo padding y margen específicos */
+.coffee-card.coffee-detail-opinion-card {
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
 .coffee-detail-opinion-preview {
   display: grid;
   gap: 9px;
@@ -3209,6 +4292,11 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   color: var(--text-subtle);
 }
 
+.coffee-detail-opinion-editar {
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
 .coffee-detail-opinion-label {
   margin: 0;
   font-size: var(--font-size-xs);
@@ -3219,9 +4307,38 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 
 .coffee-detail-opinion-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: var(--space-2);
+}
+
+.coffee-detail-opinion-avatar-wrap {
+  flex: 0 0 auto;
+}
+
+.coffee-detail-opinion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.coffee-detail-opinion-body .coffee-detail-opinion-rating-chip {
+  align-self: flex-start;
+}
+
+.coffee-detail-opinion-body .feed-text {
+  margin: 0;
+}
+
+.coffee-detail-opinion-body .coffee-detail-review-image {
+  margin-top: 2px;
+}
+
+.coffee-detail-opinion-copy-link {
+  display: block;
+  text-align: left;
+  width: 100%;
 }
 
 .coffee-detail-opinion-user {
@@ -3284,6 +4401,56 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   height: 12px;
 }
 
+/* Píldora nota: amarillo-anaranjado; estrella outline negro (noche) / blanco (día) */
+.coffee-detail-opinion-rating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ffb300;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+/* Modo noche: texto y estrella de la nota en negro (detalle café y actividad) */
+html.theme-dark .coffee-detail-opinion-rating-chip,
+html.theme-dark .coffee-detail-opinion-card .coffee-detail-opinion-rating-chip,
+html.theme-dark .coffee-detail-opinion-body .coffee-detail-opinion-rating-chip,
+html.theme-dark .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+html.theme-dark .coffee-detail-opinion-rating-chip .ui-icon {
+  color: #000000 !important;
+  fill: #000000 !important;
+}
+
+html.theme-dark .coffee-detail-opinion-rating-chip svg,
+html.theme-dark .coffee-detail-opinion-rating-chip .ui-icon svg,
+html.theme-dark .coffee-detail-opinion-rating-chip path,
+html.theme-dark .profile-activity-coffee-card-review-block .coffee-detail-opinion-rating-chip path {
+  fill: #000000 !important;
+  color: #000000 !important;
+}
+
+html.theme-light .coffee-detail-opinion-rating-chip,
+:root:not(.theme-dark) .coffee-detail-opinion-rating-chip {
+  color: #ffffff;
+}
+
+html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star,
+:root:not(.theme-dark) .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-star {
+  color: #ffffff;
+}
+
+.coffee-detail-opinion-rating-chip .ui-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.coffee-detail-opinion-comment {
+  margin-top: 8px;
+}
+
 .coffee-detail .coffee-card .feed-user {
   margin: 0;
 }
@@ -3311,6 +4478,11 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   border-right: none;
   min-height: calc(100vh - 140px);
   align-content: start;
+}
+
+.coffee-detail-empty-full.is-full-viewport {
+  min-height: 100vh;
+  padding-top: var(--space-6);
 }
 
 .pull-indicator {
@@ -3357,7 +4529,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   background: rgba(212, 163, 115, 0.18);
 }
 
-.timeline-refresh-bar {
+.home-refresh-bar {
   height: 3px;
   width: 100%;
   border-radius: 99px;
@@ -3366,7 +4538,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
       rgba(212, 163, 115, 0.8) 50%,
       rgba(212, 163, 115, 0.2) 100%);
   background-size: 200% 100%;
-  animation: timeline-progress 1.1s linear infinite;
+  animation: home-progress 1.1s linear infinite;
 }
 
 .status-chip {
@@ -3384,7 +4556,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   text-transform: uppercase;
 }
 
-.timeline-banner {
+.home-banner {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -3397,14 +4569,14 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   font-weight: 600;
 }
 
-.timeline-banner-dot {
+.home-banner-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--caramel-soft);
 }
 
-.timeline-overlay {
+.home-overlay {
   position: sticky;
   top: 86px;
   z-index: 15;
@@ -3412,7 +4584,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   justify-content: center;
 }
 
-.timeline-overlay-card {
+.home-overlay-card {
   width: min(520px, 100%);
   border: none;
   border-radius: 16px;
@@ -3421,7 +4593,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-.timeline-overlay-row {
+.home-overlay-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -3429,7 +4601,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   font-size: 0.86rem;
 }
 
-.timeline-spinner {
+.home-spinner {
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -3438,7 +4610,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   animation: spin 700ms linear infinite;
 }
 
-.timeline-overlay-progress {
+.home-overlay-progress {
   margin-top: 9px;
   height: 3px;
   border-radius: 99px;
@@ -3447,7 +4619,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
       rgba(212, 163, 115, 0.8) 50%,
       rgba(212, 163, 115, 0.2) 100%);
   background-size: 200% 100%;
-  animation: timeline-progress 1.1s linear infinite;
+  animation: home-progress 1.1s linear infinite;
 }
 
 .composer-card,
@@ -3678,7 +4850,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .search-recent-title {
   margin: 0;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted-cream);
@@ -3784,7 +4956,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 .search-rating-label {
   margin: 0;
   font-size: 0.92rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .search-rating-scale {
@@ -3909,7 +5081,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 }
 
 .search-users-container {
-  padding: 12px 0 24px;
+  padding: 0 0 12px;
   min-width: 0;
 }
 
@@ -3919,7 +5091,6 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   padding: 0;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
 }
 
 .search-users-row {
@@ -3979,7 +5150,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 
 .search-users-username {
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-main);
   line-height: 1.2;
 }
@@ -4070,7 +5241,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 
 .feed-user {
   margin: 0;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .feed-head .feed-user {
@@ -4296,7 +5467,7 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 
 .section-title {
   margin: 0 0 8px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 0.8rem;
@@ -4304,12 +5475,12 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
 }
 
 /* Espacio homogéneo entre secciones del timeline: misma separación antes de cada bloque */
-.timeline-main-column > .suggestion-strip:not(.timeline-recommendations-day):not(.timeline-despensa) {
+.home-main-column > .suggestion-strip:not(.home-recommendations-day):not(.home-despensa) {
   margin-top: var(--space-6);
 }
 
 /* Titulares de sección del timeline: más grandes y con margen inferior homogéneo */
-.timeline-main-column .section-title {
+.home-main-column .section-title {
   margin: 0 0 var(--space-3);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
@@ -4491,23 +5662,15 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   gap: 10px;
 }
 
-.diary-empty-card {
-  padding: 22px 14px;
-  border-radius: var(--surface-card-radius);
-  border: var(--surface-card-border);
-  box-shadow: var(--surface-card-shadow);
-  background: var(--surface);
+.card.diary-empty-card {
+  padding: var(--space-6) var(--space-3);
   text-align: center;
   color: var(--text-muted);
   font-size: 0.92rem;
 }
 
-.diary-analytics-card {
-  border-radius: var(--surface-card-radius);
-  border: var(--surface-card-border);
-  box-shadow: var(--surface-card-shadow);
-  background: var(--surface);
-  padding: 24px 20px 18px;
+.card.diary-analytics-card {
+  padding: var(--space-6) var(--space-5) var(--space-4);
   min-width: 0;
   min-height: 430px;
   overflow: hidden;
@@ -4934,12 +6097,32 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   margin: 20px 0 8px;
 }
 
-.diary-stats-card {
-  border-radius: var(--surface-card-radius);
-  border: var(--surface-card-border);
-  box-shadow: var(--surface-card-shadow);
-  background: var(--surface);
-  padding: 16px 20px;
+.card.diary-stats-card {
+  padding: var(--space-4) var(--space-5);
+}
+
+/* Mi diario: tarjetas Hábito, Consumo, Barista — estándar .card (bg blanco día, negro noche) */
+@media (prefers-color-scheme: light) {
+  .card.diary-stats-card {
+    background: var(--pure-white);
+    border-color: var(--border-light);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .card.diary-stats-card {
+    background: var(--pure-black);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .card.diary-stats-card .diary-stats-card-row {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+  .card.diary-stats-card .diary-stats-card-label {
+    color: var(--text-subtle);
+  }
+  .card.diary-stats-card .diary-stats-card-value {
+    color: var(--text-main);
+  }
 }
 
 .diary-stats-card-list {
@@ -4976,6 +6159,45 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   font-weight: 600;
   text-align: right;
   max-width: 70%;
+}
+
+/* Origen favorito: bandera a la izquierda del nombre del país */
+.diary-stats-card-value-origin {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.diary-origin-flag-img {
+  flex-shrink: 0;
+  width: 24px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+/* Consumo > Momento: label en primera línea, valor (Mañana/Tarde/Noche) en segunda línea para que no se parta */
+.diary-stats-card-row-momento {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.diary-stats-card-row-momento .diary-stats-card-value-momento {
+  flex-basis: 100%;
+  max-width: none;
+  margin-top: 2px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Desktop: Momento en la misma línea que la etiqueta */
+.layout.desktop .diary-stats-card-row-momento {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.layout.desktop .diary-stats-card-row-momento .diary-stats-card-value-momento {
+  flex-basis: auto;
+  max-width: 70%;
+  margin-top: 0;
 }
 
 .diary-stats-card-row-clickable {
@@ -5057,6 +6279,236 @@ html.theme-dark .timeline-carousel-nav-btn:hover {
   color: var(--text-subtle);
 }
 
+/* Página completa Cafés probados (mapa + listado por país) */
+.cafes-probados-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--screen-dark-background);
+}
+.cafes-probados-map-wrap {
+  position: relative;
+  flex: 0 0 33.33vh;
+  min-height: 160px;
+  max-height: 33.33vh;
+  background: var(--surface-muted);
+  transition: flex-basis 0.25s ease-out;
+  flex-shrink: 0;
+}
+.cafes-probados-map-wrap--collapsed {
+  flex: 0 0 25vh;
+  min-height: 120px;
+  max-height: 25vh;
+}
+.cafes-probados-map-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 16px;
+  z-index: 1000;
+}
+.cafes-probados-map-overlay .cafes-probados-back-fab,
+.cafes-probados-map-overlay .cafes-probados-clear-fab {
+  pointer-events: auto;
+}
+.cafes-probados-back-fab,
+.cafes-probados-clear-fab {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+}
+.cafes-probados-back-fab .ui-icon,
+.cafes-probados-clear-fab .ui-icon {
+  width: 24px;
+  height: 24px;
+}
+.cafes-probados-map {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+}
+.cafes-probados-map .leaflet-tile-pane {
+  z-index: 0;
+}
+.cafes-probados-map .leaflet-marker-pane {
+  z-index: 600;
+}
+.cafes-probados-map .leaflet-marker-icon.cafes-probados-marker {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cafes-probados-map .leaflet-marker-icon.cafes-probados-marker span,
+.cafes-probados-map .leaflet-marker-icon.cafes-probados-marker .cafes-probados-marker-emoji {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 1 !important;
+  pointer-events: none;
+}
+.cafes-probados-map .leaflet-marker-icon.cafes-probados-marker .cafes-probados-marker-emoji img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+}
+.cafes-probados-map .leaflet-top,
+.cafes-probados-map .leaflet-bottom {
+  z-index: 700;
+}
+
+/* Zoom + / -: barra de botones. Modo día (base y theme-light) */
+.cafes-probados-map .leaflet-bar a {
+  background-color: #f7f7f7;
+  border-bottom: none;
+}
+
+/* Zoom + / - visibles en modo noche: fondo claro y símbolos en negro */
+html.theme-dark .cafes-probados-map .leaflet-control-zoom {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: #ffffff !important;
+}
+
+html.theme-dark .cafes-probados-map .leaflet-control-zoom a,
+html.theme-dark .cafes-probados-map .leaflet-control-zoom a.leaflet-disabled {
+  color: #000000 !important;
+  background-color: transparent !important;
+  filter: invert(1);
+}
+
+html.theme-dark .cafes-probados-map .leaflet-control-zoom a:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: #000000 !important;
+}
+
+/* Modo noche: botones de la barra zoom (debe ir después para ganar a .leaflet-control-zoom a) */
+html.theme-dark .cafes-probados-map .leaflet-bar a {
+  background-color: #212121 !important;
+  border-bottom: none;
+}
+
+/* Modo noche por sistema (tema auto + prefers-color-scheme: dark) sin clase theme-dark */
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .cafes-probados-map .leaflet-bar a {
+    background-color: #212121 !important;
+    border-bottom: none;
+  }
+}
+
+.cafes-probados-map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  height: 100%;
+  min-height: 200px;
+  color: var(--text-subtle);
+  font-size: var(--font-size-sm);
+}
+.cafes-probados-map-placeholder-hint {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+.cafes-probados-map-countries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+.cafes-probados-country-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-card-border);
+  background: var(--surface);
+  color: var(--text-main);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.cafes-probados-country-chip:hover {
+  background: var(--surface-muted);
+}
+.cafes-probados-list-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+}
+.cafes-probados-list-filter {
+  margin: 0 0 12px;
+  font-size: var(--font-size-sm);
+  color: var(--text-subtle);
+}
+.cafes-probados-list-filter strong {
+  color: var(--text-main);
+}
+.cafes-probados-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cafes-probados-country-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cafes-probados-country-subtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  padding: 0 4px;
+}
+.cafes-probados-coffee-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cafes-probados-coffee-list .coffee-card {
+  border: 1px solid var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+}
+.cafes-probados-coffee-list .coffee-card:hover {
+  background: var(--surface);
+}
+.cafes-probados-first-date {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-subtle);
+}
 
 .diary-entry-media {
   width: 44px;
@@ -5453,10 +6905,16 @@ html.theme-dark .diary-day-header.is-today {
   }
 }
 
+/* Mismo espacio superior que .sheet-header para modales sin título */
 .diary-sheet-list {
-  padding: 4px 18px 24px;
+  padding: 20px 18px 24px;
   display: grid;
   gap: var(--space-2);
+}
+/* Cuando la lista va justo después del header, menos padding superior para no duplicar espacio */
+.sheet-header + .diary-sheet-list,
+[class*="-sheet-header"] + .diary-sheet-list {
+  padding-top: 12px;
 }
 
 .diary-sheet-action {
@@ -5473,7 +6931,7 @@ html.theme-dark .diary-day-header.is-today {
   align-items: center;
   gap: 10px;
   text-align: left;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .diary-sheet-action .ui-icon:first-child {
@@ -5534,7 +6992,7 @@ html.theme-dark .diary-day-header.is-today {
 }
 
 .diary-sheet-month-label {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 1rem;
   color: var(--text-main);
   min-width: 8rem;
@@ -5553,7 +7011,7 @@ html.theme-dark .diary-day-header.is-today {
 
 .diary-sheet-pantry-options .sheet-title {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-main);
 }
 
@@ -5798,7 +7256,7 @@ html.theme-dark .diary-day-header.is-today {
 }
 
 .diary-edit-entry-sheet .sheet-header {
-  padding: 8px 14px 10px;
+  padding: 20px 14px 10px;
 }
 
 .diary-edit-entry-header {
@@ -6229,10 +7687,16 @@ html.theme-dark .diary-day-header.is-today {
 .diary-edit-entry-block-title {
   margin: 0;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-main);
 }
 
+/* Método, Tipo, Tamaño: izquierda alineada con el titular; derecha sin padding hasta el borde */
+.diary-edit-entry-presets.is-coffee,
+.diary-edit-entry-tipo-presets,
+.diary-edit-entry-size-presets {
+  margin-right: -16px;
+}
 .diary-edit-entry-presets.is-coffee {
   display: flex;
   gap: 10px;
@@ -6419,7 +7883,7 @@ html.theme-dark .diary-day-header.is-today {
   touch-action: pan-x;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  padding: 0 0 2px;
+  padding-bottom: 2px;
   cursor: grab;
   box-sizing: border-box;
   scroll-behavior: smooth;
@@ -6445,21 +7909,6 @@ html.theme-dark .diary-day-header.is-today {
   column-gap: 8px;
   row-gap: 2px;
   padding: 8px 10px;
-}
-
-.diary-edit-entry-presets.is-coffee.has-right-fade,
-.diary-edit-entry-size-presets.has-right-fade {
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 10px), transparent 100%);
-}
-
-.diary-edit-entry-presets.is-coffee.has-left-fade,
-.diary-edit-entry-size-presets.has-left-fade {
-  mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 100%);
-}
-
-.diary-edit-entry-presets.is-coffee.has-left-fade.has-right-fade,
-.diary-edit-entry-size-presets.has-left-fade.has-right-fade {
-  mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
 }
 
 .diary-edit-entry-size-presets .diary-coffee-size-chip small {
@@ -6601,15 +8050,15 @@ html.theme-dark .diary-day-header.is-today {
     color: var(--pure-white) !important;
   }
 
-  /* Formulario nuevo café: estado seleccionado en modo claro */
-  .create-coffee-choice.is-selected {
+  /* Formulario nuevo café: chips y switch en modo claro */
+  .create-coffee-chip.is-selected {
     border-color: var(--espresso-deep);
-    background: #efefef;
+    background: rgba(26, 18, 11, 0.08);
     color: var(--espresso-deep);
   }
 
-  .create-coffee-caffeine-switch:not(.is-on),
-  .create-coffee-caffeine-switch:not([aria-checked="true"]) {
+  .create-coffee-switch:not(.is-on),
+  .create-coffee-switch:not([aria-checked="true"]) {
     background: #b9b9b9;
   }
 }
@@ -8286,7 +9735,7 @@ html.theme-dark .diary-day-header.is-today {
 .profile-stat-label {
   margin-top: 3px;
   font-size: 0.67rem;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.12em;
   line-height: 1;
   color: var(--text-subtle);
@@ -8352,6 +9801,7 @@ html.theme-dark .diary-day-header.is-today {
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
+  margin-top: var(--space-6, 24px);
 }
 
 .profile-tab-panels-wrap {
@@ -8730,9 +10180,37 @@ html.theme-dark .diary-day-header.is-today {
   border-radius: 28px 28px 0 0;
 }
 
+/* Modal Añadir a lista: usa estándar .sheet-header-with-action y .modal-action-btn (sheet.css) */
+.add-to-list-sheet .sheet-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.add-to-list-sheet .modal-action-btn {
+  flex-shrink: 0;
+}
+.add-to-list-sheet .add-to-list-row {
+  grid-template-columns: auto 18px 1fr;
+  gap: 10px;
+}
+.add-to-list-sheet .add-to-list-row .add-to-list-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-to-list-sheet .add-to-list-row .add-to-list-checkbox .ui-icon {
+  width: 22px;
+  height: 22px;
+  font-size: 22px;
+  color: var(--caramel-accent);
+}
+.add-to-list-sheet .add-to-list-row.is-checked .add-to-list-checkbox .ui-icon {
+  color: var(--caramel-accent);
+}
+
 .profile-options-section-title {
   margin: 0;
-  padding: 2px 4px 6px;
+  margin-top: var(--space-4);
+  padding: var(--space-1) var(--space-1) var(--space-2);
   font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -8841,7 +10319,7 @@ html.theme-dark .content.content-profile {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px var(--app-shell-gutter);
+  padding: 0;
 }
 .profile-list-row {
   display: flex;
@@ -8958,7 +10436,7 @@ html.theme-dark .content.content-profile {
   padding-right: 8px;
 }
 .favoritos-list-card .profile-favorite-name {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 1rem;
   color: var(--text-main);
   overflow: hidden;
@@ -8991,7 +10469,7 @@ html.theme-dark .content.content-profile {
 }
 
 .create-list-sheet .sheet-header {
-  padding: 8px 14px 10px;
+  padding: 20px 14px 10px;
 }
 .create-list-sheet .sheet-body {
   padding: 16px 18px 24px;
@@ -9004,6 +10482,26 @@ html.theme-dark .content.content-profile {
 .create-list-sheet-body .create-list-name-input {
   width: 100%;
   min-width: 0;
+  font-weight: 500;
+}
+/* Modo noche: nombre de la lista con fondo negro total, texto claro */
+html.theme-dark .create-list-sheet .create-list-name-input {
+  background: #000000;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+html.theme-dark .create-list-sheet .create-list-name-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-name-input {
+    background: #000000;
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  html:not(.theme-light) .create-list-sheet .create-list-name-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
 }
 .create-list-sheet-body .create-list-privacy-select {
   width: 100%;
@@ -9015,6 +10513,915 @@ html.theme-dark .content.content-profile {
   margin: 4px 0 0;
   font-size: 0.8rem;
   color: var(--text-subtle);
+}
+
+.create-list-privacy-subtitle {
+  margin: 0 0 6px;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  background: none;
+  border: none;
+  grid-column: 1 / -1;
+}
+
+/* Una sola card para las 3 opciones + switch (como Android): list-options-page y create-list-sheet */
+.create-list-privacy-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+html.theme-light .create-list-privacy-card,
+html.theme-light .create-list-sheet .create-list-privacy-card {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+html.theme-dark .create-list-privacy-card,
+html.theme-dark .create-list-sheet .create-list-privacy-card,
+.create-list-sheet .create-list-privacy-card {
+  background: #000;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-privacy-card { background: #fff; border-color: rgba(0, 0, 0, 0.12); }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-privacy-card { background: #000; border-color: rgba(255, 255, 255, 0.15); }
+}
+.create-list-privacy-card .create-list-privacy-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.create-list-privacy-card .create-list-privacy-option-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.create-list-privacy-card .create-list-privacy-option-btn.is-selected {
+  background: #6f4e37;
+  color: #fffbf7;
+}
+.create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+.create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc { color: #fffbf7; }
+.create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-check { color: #fff; }
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-btn.is-selected,
+.create-list-sheet .create-list-privacy-card .create-list-privacy-option-btn.is-selected {
+  background: #d4a373;
+  color: #1a1a1a;
+}
+/* Opciones de lista: en modo noche la opción seleccionada siempre marrón claro (no el marrón del modo día) */
+html.theme-dark .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected {
+  background: #d4a373;
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected {
+    background: #d4a373;
+    color: #1a1a1a;
+  }
+  html:not(.theme-light) .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+  html:not(.theme-light) .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc { color: #1a1a1a; }
+  html:not(.theme-light) .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-check { color: #000; }
+}
+html.theme-dark .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+html.theme-dark .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc { color: #1a1a1a; }
+html.theme-dark .list-options-page .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-check { color: #000; }
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc,
+.create-list-sheet .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-label,
+.create-list-sheet .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-desc { color: #1a1a1a; }
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-btn.is-selected .create-list-privacy-option-check { color: #000; }
+.create-list-privacy-card .create-list-privacy-option-switch-row {
+  border-top: 1px solid var(--border-default);
+  padding: 12px 12px 12px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+html.theme-light .create-list-privacy-card .create-list-privacy-option-switch-row { border-top-color: rgba(0, 0, 0, 0.12); }
+html.theme-dark .create-list-privacy-card .create-list-privacy-option-switch-row { border-top-color: rgba(255, 255, 255, 0.2); }
+
+/* General: Editar y Eliminar en una sola card */
+.list-options-general-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  overflow: hidden;
+  margin-top: 8px;
+}
+.list-options-general-card .list-options-page-action {
+  margin-bottom: 0;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-default);
+  box-shadow: none;
+}
+.list-options-general-card .list-options-page-action:last-child {
+  border-bottom: none;
+}
+.list-options-section-spaced {
+  margin-top: 16px;
+}
+
+/* Modal opciones despensa: menos espacio entre Organiza y General (igual que opciones de lista / Android) */
+.diary-sheet-pantry-options .list-options-page-section {
+  margin-bottom: 8px;
+}
+.diary-sheet-pantry-options .list-options-section-spaced {
+  margin-top: 0;
+}
+.diary-sheet-pantry-options .diary-sheet-list.list-options-general-wrap {
+  gap: 8px;
+}
+
+.create-list-privacy-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Opciones de privacidad: base (contenedor; el botón y el switch van dentro) - legacy por si se usa .create-list-privacy-option */
+.create-list-privacy-option {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.create-list-privacy-option-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.create-list-sheet .create-list-privacy-option-switch-row {
+  border-top: 1px solid var(--border-default);
+  /* Alinear "Permitir editar lista" con el texto de la opción (check 24px + gap 12px + padding btn 12px) */
+  padding-left: 48px;
+}
+/* Modo día: línea divisoria gris muy clara (tema forzado o sistema claro) */
+html.theme-light .create-list-sheet .create-list-privacy-option-switch-row {
+  border-top-color: rgb(247 247 247);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option-switch-row {
+    border-top-color: rgb(247 247 247);
+  }
+}
+/* Modo noche: línea divisoria gris oscura (solo con tema oscuro o sistema oscuro; no usar :not(.theme-light) fuera de media para no pisar modo día) */
+html.theme-dark .create-list-sheet .create-list-privacy-option-switch-row {
+  border-top-color: rgb(33, 33, 33);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option-switch-row {
+    border-top-color: rgb(33, 33, 33);
+  }
+}
+/* Modo noche: recuadro negro (tema forzado o auto + sistema oscuro) */
+html.theme-dark .create-list-sheet .create-list-privacy-option {
+  background: black;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option {
+    background: black;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+  }
+}
+/* Modo día: recuadro blanco (tema forzado o auto + sistema claro) */
+html.theme-light .create-list-sheet .create-list-privacy-option {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--text-main);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option {
+    background: white;
+    border-color: rgba(0, 0, 0, 0.12);
+    color: var(--text-main);
+  }
+}
+
+/* Opción con check activo: marrón (día) y marrón claro (noche) */
+html.theme-light .create-list-sheet .create-list-privacy-option.is-selected {
+  background: #6f4e37;
+  border-color: rgba(111, 78, 55, 0.5);
+  color: #fffbf7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option.is-selected {
+    background: #6f4e37;
+    border-color: rgba(111, 78, 55, 0.5);
+    color: #fffbf7;
+  }
+}
+html.theme-light .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-label,
+html.theme-light .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-desc {
+  color: #fffbf7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-label,
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-desc {
+    color: #fffbf7;
+  }
+}
+html.theme-dark .create-list-sheet .create-list-privacy-option.is-selected {
+  background: #d4a373;
+  border-color: rgba(212, 163, 115, 0.5);
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option.is-selected {
+    background: #d4a373;
+    border-color: rgba(212, 163, 115, 0.5);
+    color: #1a1a1a;
+  }
+}
+html.theme-dark .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-label,
+html.theme-dark .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-desc {
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-label,
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-desc {
+    color: #1a1a1a;
+  }
+}
+/* Check seleccionado: blanco en día, negro en noche */
+html.theme-light .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-check {
+  color: #ffffff;
+}
+html.theme-dark .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-check {
+  color: #000000;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-check {
+    color: #000000;
+  }
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option.is-selected .create-list-privacy-option-check {
+    color: #ffffff;
+  }
+}
+
+.create-list-privacy-option-check {
+  flex-shrink: 0;
+  color: var(--caramel-soft);
+}
+/* Círculo sin check: outline marrón (no marcadas) */
+.create-list-privacy-option-check-empty {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--caramel-soft);
+  border-radius: 50%;
+  background: transparent;
+}
+/* Círculo inactivo: negro en día, blanco en noche */
+html.theme-light .create-list-sheet .create-list-privacy-option-check-empty {
+  border-color: #000000;
+}
+html.theme-dark .create-list-sheet .create-list-privacy-option-check-empty {
+  border-color: #ffffff;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .create-list-sheet .create-list-privacy-option-check-empty {
+    border-color: #000000;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .create-list-sheet .create-list-privacy-option-check-empty {
+    border-color: #ffffff;
+  }
+}
+.create-list-privacy-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.create-list-privacy-option-label {
+  font-weight: 600;
+  color: inherit;
+}
+.create-list-privacy-option-desc {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  color: inherit;
+}
+
+/* Share list sheet: invitar usuarios a la lista (paridad con Android) */
+.share-list-sheet .share-list-sheet-title {
+  margin: 0 0 4px;
+  padding: 0 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.share-list-sheet .share-list-sheet-hint {
+  margin: 0 0 12px;
+  padding: 0 16px;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+.share-list-sheet-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0 0 16px;
+}
+.share-list-sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.share-list-sheet-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.share-list-sheet-avatar,
+.share-list-sheet-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-subtle);
+}
+.share-list-sheet-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.share-list-sheet-username {
+  font-weight: 600;
+  color: var(--text-main);
+}
+.share-list-sheet-fullname {
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+.share-list-sheet-invite-btn {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--caramel-soft);
+  color: var(--bg-page);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.share-list-sheet-invite-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.share-list-sheet-invite-btn:disabled,
+.share-list-sheet-invite-btn.is-busy {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+/* Modal Invitaciones: botón Invitar — modo día marrón + blanco, modo noche marrón claro + negro */
+html.theme-light .share-list-invite-sheet .share-list-sheet-invite-btn {
+  background: #6f4e37;
+  color: #ffffff;
+}
+html.theme-dark .share-list-invite-sheet .share-list-sheet-invite-btn {
+  background: #d4a373;
+  color: #000000;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-invite-sheet .share-list-sheet-invite-btn {
+    background: #6f4e37;
+    color: #ffffff;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-invite-sheet .share-list-sheet-invite-btn {
+    background: #d4a373;
+    color: #000000;
+  }
+}
+.share-list-sheet-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-subtle);
+  font-size: 0.95rem;
+}
+
+/* List share menu: modal principal (Privacidad, Invitaciones, Gestionar invitados) */
+.list-share-menu-sheet .list-share-menu-sheet-title {
+  margin: 0 0 12px;
+  padding: 0 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+}
+.list-share-menu-content {
+  padding: 0 16px 16px;
+  overflow-y: auto;
+}
+.list-share-menu-privacy-subtitle {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+.list-share-menu-privacy-inline {
+  margin-bottom: 16px;
+}
+.list-share-menu-list {
+  padding: 0;
+}
+.list-share-menu-list .diary-sheet-action-pantry {
+  margin-bottom: 8px;
+}
+.list-share-menu-list .diary-sheet-action-pantry:last-child {
+  margin-bottom: 0;
+}
+
+/* Submodal Privacidad */
+.share-list-privacy-submodal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.share-list-privacy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 8px;
+}
+.share-list-privacy-back,
+.share-list-privacy-save {
+  padding: 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.share-list-privacy-title {
+  font-weight: 700;
+  color: var(--text-main);
+}
+.share-list-privacy-options {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Opciones de privacidad: mismos estilos que Nueva lista (contenedor) */
+.share-list-privacy-submodal .share-list-privacy-option {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  overflow: hidden;
+}
+.share-list-privacy-submodal .share-list-privacy-option-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+/* Modo noche: recuadro negro */
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option {
+  background: black;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option {
+    background: black;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+  }
+}
+/* Modo día: recuadro blanco */
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--text-main);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option {
+    background: white;
+    border-color: rgba(0, 0, 0, 0.12);
+    color: var(--text-main);
+  }
+}
+/* Opción seleccionada: marrón (día) y marrón claro (noche) */
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option.is-selected {
+  background: #6f4e37;
+  border-color: rgba(111, 78, 55, 0.5);
+  color: #fffbf7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option.is-selected {
+    background: #6f4e37;
+    border-color: rgba(111, 78, 55, 0.5);
+    color: #fffbf7;
+  }
+}
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-label,
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-desc {
+  color: #fffbf7;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-label,
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-desc {
+    color: #fffbf7;
+  }
+}
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option.is-selected {
+  background: #d4a373;
+  border-color: rgba(212, 163, 115, 0.5);
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option.is-selected {
+    background: #d4a373;
+    border-color: rgba(212, 163, 115, 0.5);
+    color: #1a1a1a;
+  }
+}
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-label,
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-desc {
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-label,
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-desc {
+    color: #1a1a1a;
+  }
+}
+/* Check seleccionado: blanco en día, negro en noche */
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-check {
+  color: #ffffff;
+}
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-check {
+  color: #000000;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-check {
+    color: #000000;
+  }
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option.is-selected .share-list-privacy-option-check {
+    color: #ffffff;
+  }
+}
+.share-list-privacy-submodal .share-list-privacy-option-check {
+  flex-shrink: 0;
+  color: var(--caramel-soft);
+}
+/* Círculo inactivo: negro en día, blanco en noche */
+.share-list-privacy-submodal .share-list-privacy-option-check-empty {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--caramel-soft);
+  border-radius: 50%;
+  background: transparent;
+}
+html.theme-light .share-list-privacy-submodal .share-list-privacy-option-check-empty {
+  border-color: #000000;
+}
+html.theme-dark .share-list-privacy-submodal .share-list-privacy-option-check-empty {
+  border-color: #ffffff;
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-privacy-submodal .share-list-privacy-option-check-empty {
+    border-color: #000000;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-privacy-submodal .share-list-privacy-option-check-empty {
+    border-color: #ffffff;
+  }
+}
+.share-list-privacy-submodal .share-list-privacy-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.share-list-privacy-submodal .share-list-privacy-option-label {
+  font-weight: 600;
+  color: inherit;
+}
+.share-list-privacy-submodal .share-list-privacy-option-desc {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  color: inherit;
+}
+/* Fila del switch: alinear "Permitir editar lista" con el texto de la opción */
+.share-list-privacy-submodal .share-list-privacy-option-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 12px 48px;
+  border-top: 1px solid var(--border-default);
+}
+.share-list-privacy-submodal .share-list-privacy-option-switch-label {
+  font-size: 0.9rem;
+  color: inherit;
+}
+.share-list-privacy-submodal .share-list-privacy-option-switch-row .ui-switch {
+  flex-shrink: 0;
+}
+
+/* Invitaciones: enlace + buscador + lista */
+.share-list-invite-sheet {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.share-list-invite-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+}
+.share-list-invite-done,
+.share-list-manage-done {
+  padding: 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--link);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.share-list-invite-title {
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  justify-self: center;
+}
+.share-list-invite-header-spacer {
+  width: 44px;
+}
+.share-list-invite-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+.share-list-invite-link-row {
+  margin-bottom: 12px;
+}
+.share-list-invite-link-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+  min-height: 44px;
+}
+.share-list-invite-link-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+.share-list-invite-link-input:focus {
+  outline: none;
+}
+.share-list-invite-link-btn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: none;
+  border-left: 1px solid var(--border-default);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Modo día: fondo marrón, letras blanco */
+html.theme-light .share-list-invite-link-btn {
+  background: #6f4e37;
+  color: #ffffff;
+}
+html.theme-light .share-list-invite-link-btn:hover {
+  filter: brightness(1.08);
+}
+/* Modo noche: fondo marrón claro, letras negro */
+html.theme-dark .share-list-invite-link-btn {
+  background: #d4a373;
+  color: #000000;
+}
+html.theme-dark .share-list-invite-link-btn:hover {
+  filter: brightness(1.05);
+}
+@media (prefers-color-scheme: light) {
+  html:not(.theme-dark) .share-list-invite-link-btn {
+    background: #6f4e37;
+    color: #ffffff;
+  }
+  html:not(.theme-dark) .share-list-invite-link-btn:hover {
+    filter: brightness(1.08);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .share-list-invite-link-btn {
+    background: #d4a373;
+    color: #000000;
+  }
+  html:not(.theme-light) .share-list-invite-link-btn:hover {
+    filter: brightness(1.05);
+  }
+}
+/* Buscador: mismo patrón que perfil (campo + cancelar con animación) */
+.share-list-invite-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: 12px;
+  transition: grid-template-columns var(--duration-normal) var(--ease-standard);
+}
+.share-list-invite-search-row.has-cancel {
+  grid-template-columns: minmax(0, 1fr) 84px;
+}
+.share-list-invite-search-row .search-cancel-button {
+  flex-shrink: 0;
+}
+.share-list-invite-search-field {
+  position: relative;
+  min-width: 0;
+  min-height: 40px;
+}
+.share-list-invite-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 19px;
+  height: 19px;
+  color: var(--text-subtle);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.share-list-invite-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px 0 42px;
+  border-radius: 999px;
+  border: 1px solid var(--search-border-inactive);
+  background: var(--surface);
+  font-size: 0.94rem;
+  color: var(--text-main);
+  box-sizing: border-box;
+}
+.share-list-invite-search-input:focus,
+.share-list-invite-search-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--caramel-accent);
+}
+.share-list-invite-search-input::placeholder {
+  color: var(--text-subtle);
+}
+
+/* Gestionar invitados */
+.share-list-manage-guests-sheet {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.share-list-manage-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+}
+.share-list-manage-title {
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  justify-self: center;
+}
+.share-list-manage-header-spacer {
+  width: 44px;
+}
+.share-list-manage-section-desc {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+.share-list-manage-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+.share-list-manage-section {
+  margin-bottom: 20px;
+}
+.share-list-manage-section-title {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+.share-list-manage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.share-list-manage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.share-list-manage-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.share-list-manage-badge.is-pending {
+  background: var(--surface-variant);
+  color: var(--text-subtle);
+}
+.share-list-manage-badge.is-accepted {
+  background: var(--caramel-soft);
+  color: var(--bg-page);
+}
+.share-list-manage-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-subtle);
+  font-size: 0.95rem;
 }
 
 .historial-view .profile-favorite-list {
@@ -9186,28 +11593,28 @@ html.theme-dark .content.content-profile {
   }
 }
 
-.timeline-empty {
-  border-radius: 28px;
+.home-empty {
+  border-radius: var(--radius-xl);
   border: none;
   background: var(--surface);
-  padding: 22px;
+  padding: var(--space-4) var(--space-6);
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
   text-align: center;
   justify-items: center;
 }
 
-.timeline-empty h3 {
+.home-empty h3 {
   margin: 0;
 }
 
-.timeline-empty p {
+.home-empty p {
   margin: 0;
   color: var(--muted-cream);
 }
 
-.timeline-error {
-  border-color: #6a3326;
+.home-error {
+  border-color: var(--caramel-accent);
   background: var(--surface);
 }
 
@@ -9577,11 +11984,13 @@ html.theme-dark .content.content-profile {
 }
 
 .brew-pantry-card small {
+  display: block;
   color: var(--muted-cream);
   letter-spacing: 0;
   text-transform: none;
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .brew-pantry-progress {
@@ -9702,152 +12111,498 @@ html.theme-dark .content.content-profile {
   min-height: calc(100vh - var(--topbar-height) - 8px);
 }
 
+/* ========== Formulario Crear café — Rediseño completo UI/UX ========== */
+.create-coffee-view.create-coffee-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 520px;
+  margin: 0 auto;
+}
+
 .create-coffee-view.is-full-page {
   border: none;
   border-radius: 0;
   background: transparent;
-  padding: 8px 12px 118px;
+  /* Menos espacio al final de la página de crear café */
+  padding: var(--space-4) var(--space-4) 40px;
 }
 
-.create-coffee-head .section-title {
+.create-coffee-head {
+  margin-bottom: var(--space-2);
+}
+
+.create-coffee-title {
   margin: 0;
-}
-
-.create-coffee-hint {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--muted-cream);
-}
-
-.create-coffee-section-title {
-  margin: 2px 0 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-cream);
+  font-size: 1.5rem;
   font-weight: 700;
-}
-
-.create-coffee-profile-origin {
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
-  background: var(--surface);
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.create-coffee-block-title {
-  margin: 0;
-  font-size: 0.76rem;
-  letter-spacing: 0.06em;
-  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text-main);
+  line-height: 1.2;
 }
 
-.create-coffee-block-subtitle {
+.create-coffee-subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: 0.9rem;
+  color: var(--muted-cream);
+  line-height: 1.4;
+}
+
+.create-coffee-status {
   margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8rem;
+  color: var(--muted-cream);
+  background: var(--surface-elevated);
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+}
+
+.create-coffee-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Títulos de sección fuera de la card */
+.create-coffee-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.create-coffee-section-heading {
+  margin: 0;
+  font-size: 1rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.create-coffee-section-heading .create-coffee-badge {
+  font-size: 0.68rem;
+}
+
+/* Icono cámara: Material Symbols photo_camera */
+.create-coffee-photo-icon.material-symbols-outlined {
+  font-family: "Material Symbols Outlined Variable", "Material Symbols Outlined";
+  font-size: 40px;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 48;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ——— Cards ——— */
+.create-coffee-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.create-coffee-card.is-invalid {
+  border-color: rgba(184, 90, 69, 0.4);
+  box-shadow: 0 0 0 1px rgba(184, 90, 69, 0.08);
+}
+
+.create-coffee-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.create-coffee-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-cream);
+  padding: 2px 8px;
+  background: var(--surface-elevated);
+  border-radius: 999px;
+}
+
+/* ——— Hero: foto + nombre + marca ——— */
+.create-coffee-hero {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--space-5);
+  width: 100%;
+  min-width: 0;
+}
+
+.create-coffee-photo-wrap {
+  position: relative;
+  width: 120px;
+  min-width: 120px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 120px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface-elevated);
+  display: flex;
+  flex-direction: column;
+}
+
+.create-coffee-photo-placeholder {
+  flex: 1;
+  width: 100%;
+  min-height: 120px;
+  border: 2px dashed var(--border-light);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--muted-cream);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.create-coffee-photo-placeholder:hover {
+  border-color: var(--caramel-soft);
+  background: rgba(111, 78, 55, 0.06);
   color: var(--text-subtle);
 }
 
-.create-coffee-choice-grid {
-  display: grid;
-  gap: 10px;
+.create-coffee-photo-placeholder:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
-.create-coffee-choice-grid-specialty {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.create-coffee-photo-icon {
+  width: 40px;
+  height: 40px;
+  opacity: 0.7;
 }
 
-.create-coffee-choice-grid-roast {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.create-coffee-choice-grid-format {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.create-coffee-choice {
-  border: 1px solid var(--border-light);
-  border-radius: 16px;
-  background: var(--surface);
-  min-height: 74px;
-  display: grid;
-  place-items: center;
-  gap: 6px;
-  color: var(--text-main);
-  text-align: center;
-}
-
-.create-coffee-choice .ui-icon {
-  width: 28px;
-  height: 28px;
-  stroke-width: 1.9;
-}
-
-.create-coffee-choice .material-symbol-icon {
-  font-size: 28px;
-  line-height: 1;
-}
-
-.create-coffee-choice span {
-  font-size: 0.88rem;
+.create-coffee-photo-text {
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
-.create-coffee-choice.is-selected {
-  border: 2px solid var(--caramel-accent);
-  background: var(--surface-elevated);
+.create-coffee-photo-preview {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 120px;
 }
 
-.create-coffee-choice-grid.is-invalid .create-coffee-choice {
-  border-color: rgba(184, 90, 69, 0.42);
+.create-coffee-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* No recortar la imagen en el preview */
+  display: block;
 }
 
-.create-coffee-format-block {
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
-  background: var(--surface);
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.create-coffee-format-block.is-invalid {
-  border-color: rgba(184, 90, 69, 0.5);
-}
-
-.create-coffee-caffeine-row {
+.create-coffee-photo-remove {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 40px;
+  height: 40px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--pure-white);
   display: flex;
-  flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
+  border: none;
 }
 
-/* Anular .diary-sheet-form label { display: grid } para que texto y switch queden en fila */
-.diary-sheet-form .create-coffee-caffeine-row,
-.create-coffee-format-block .create-coffee-caffeine-row {
+.create-coffee-photo-remove:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* A la derecha de la foto: nombre y marca en una sola columna (uno debajo del otro) */
+.create-coffee-hero-fields {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  gap: 0;
+  justify-content: center;
 }
 
-.create-coffee-caffeine-row>span {
-  font-size: 0.95rem;
+.create-coffee-hero-fields .create-coffee-field-divider {
+  width: 100%;
+}
+
+.create-coffee-brand-input-wrap {
+  position: relative;
+}
+
+.create-coffee-brand-suggestions-wrap {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--surface-elevated, #fff);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+}
+
+.create-coffee-brand-suggestions-title {
+  margin: 0;
+  padding: 10px 14px 6px;
+  font-size: 0.75rem;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-cream, #888);
+}
+
+.create-coffee-brand-suggestions {
+  margin: 0;
+  padding: 4px 0 10px;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.create-coffee-brand-suggestion-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  border: none;
+  background: none;
+  font-size: 1rem;
+  font-family: var(--font-sans, inherit);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.create-coffee-brand-suggestion-item:hover,
+.create-coffee-brand-suggestion-item:focus-visible {
+  background: rgba(111, 78, 55, 0.08);
+  outline: none;
+}
+
+.create-coffee-brand-suggestion-item:active {
+  background: rgba(111, 78, 55, 0.12);
+}
+
+html.theme-dark .create-coffee-view .create-coffee-brand-suggestions-wrap {
+  background: var(--surface-elevated);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html.theme-dark .create-coffee-view .create-coffee-brand-suggestion-item:hover,
+html.theme-dark .create-coffee-view .create-coffee-brand-suggestion-item:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ——— Grupos y labels ——— */
+.create-coffee-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.create-coffee-group-full {
+  grid-column: 1 / -1;
+}
+
+.create-coffee-group.is-invalid .create-coffee-label {
+  color: #b85a45;
+}
+
+.create-coffee-group.is-invalid .create-coffee-input,
+.create-coffee-group.is-invalid .create-coffee-select,
+.create-coffee-group.is-invalid .create-coffee-textarea,
+.create-coffee-group.is-invalid .create-coffee-picker-trigger {
+  border: none;
+  box-shadow: none;
+}
+
+.create-coffee-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted-cream);
+}
+
+.create-coffee-label em {
+  font-style: normal;
+  color: var(--caramel-soft);
+}
+
+/* Fondo de campos (texto + botones tipología): gris claro día, gris oscuro noche */
+.create-coffee-view {
+  --create-coffee-field-bg: #f7f7f7;
+}
+
+html.theme-light .create-coffee-view {
+  --create-coffee-field-bg: #f7f7f7;
+}
+
+html.theme-dark .create-coffee-view {
+  --create-coffee-field-bg: #212121;
+}
+
+.create-coffee-label-inline {
+  font-size: 0.9rem;
+  font-weight: 600;
   color: var(--text-main);
 }
 
-.create-coffee-caffeine-switch {
+/* Campos texto y tipología: mismo estilo que Mi diario > Actividad > Editar (cafeína mg), sin sombra ni borde */
+.create-coffee-input,
+.create-coffee-select,
+.create-coffee-textarea {
+  width: 100%;
+  min-height: 56px;
+  padding: 0;
+  border-radius: var(--surface-card-radius, 12px);
+  border: none;
+  background: var(--create-coffee-field-bg);
+  color: var(--text-main);
+  font-size: 1.06rem;
+  font-weight: 400;
+  font-family: var(--font-sans, inherit);
+  box-sizing: border-box;
+  box-shadow: none;
+  transition: background-color 0.2s ease;
+}
+
+.create-coffee-input::placeholder,
+.create-coffee-textarea::placeholder {
+  color: var(--muted-cream);
+  font-weight: 400;
+}
+
+.create-coffee-input:focus,
+.create-coffee-select:focus,
+.create-coffee-textarea:focus {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.create-coffee-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23bdb7b2' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.create-coffee-textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 0;
+  resize: vertical;
+}
+
+/* ——— Chips (especialidad, tueste, formato) ——— */
+.create-coffee-chips {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.create-coffee-chips-specialty {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.create-coffee-chips-roast {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.create-coffee-chips-format {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.create-coffee-chip {
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--space-2);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.create-coffee-chip:hover {
+  border-color: var(--caramel-soft);
+  background: var(--surface-elevated);
+}
+
+.create-coffee-chip.is-selected {
+  border: 2px solid var(--caramel-accent);
+  background: rgba(111, 78, 55, 0.12);
+  color: var(--text-main);
+}
+
+.create-coffee-chip-icon {
+  width: 26px;
+  height: 26px;
+  stroke-width: 1.8;
+}
+
+.create-coffee-chip span {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.create-coffee-chips.is-invalid .create-coffee-chip {
+  border-color: rgba(184, 90, 69, 0.4);
+}
+
+.create-coffee-muted {
+  font-size: 0.85rem;
+  color: var(--muted-cream);
+}
+
+/* ——— Fila (cafeína) ——— */
+.create-coffee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
+
+.create-coffee-quantity-row .create-coffee-quantity-input {
+  width: auto;
+  min-width: 5rem;
+  max-width: 8rem;
+  text-align: right;
+}
+
+.create-coffee-switch {
   width: 52px;
   height: 30px;
   border-radius: 999px !important;
@@ -9858,7 +12613,7 @@ html.theme-dark .content.content-profile {
   align-items: center;
 }
 
-.create-coffee-caffeine-switch .ui-switch-thumb {
+.create-coffee-switch .ui-switch-thumb {
   width: 24px;
   height: 24px;
   border-radius: 999px !important;
@@ -9866,292 +12621,426 @@ html.theme-dark .content.content-profile {
   transition: transform 180ms ease;
 }
 
-.create-coffee-caffeine-switch:not(.is-on),
-.create-coffee-caffeine-switch:not([aria-checked="true"]) {
+.create-coffee-switch:not(.is-on),
+.create-coffee-switch:not([aria-checked="true"]) {
   background: var(--surface-elevated);
 }
 
-.create-coffee-country {
+/* ——— Detalles opcionales ——— */
+.create-coffee-details-grid {
   display: grid;
-  gap: 4px;
-}
-
-.create-coffee-country>span {
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
-  color: var(--muted-cream);
-}
-
-.create-coffee-country .search-wide {
-  height: 44px;
-  border-radius: 12px;
-  background: var(--surface);
-  padding: 0 12px;
-  color: var(--text-main);
-}
-
-.create-coffee-country.is-invalid .search-wide {
-  border-color: rgba(184, 90, 69, 0.7);
-  box-shadow: 0 0 0 1px rgba(184, 90, 69, 0.12) inset;
-}
-
-.create-coffee-quantity-row {
-  display: block;
-}
-
-.create-coffee-quantity-row .create-coffee-quantity-input,
-.create-coffee-format-block .create-coffee-quantity-input {
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid var(--border-light);
-  background: var(--surface);
-  padding: 0 12px;
-  width: 100%;
-  box-sizing: border-box;
-  font-size: 0.95rem;
-  color: var(--text-main);
-}
-
-.create-coffee-format-block .create-coffee-block-subtitle + .create-coffee-quantity-row {
-  margin-top: 4px;
-}
-
-.create-coffee-grid {
-  display: grid;
+  gap: 0;
   grid-template-columns: 1fr 1fr;
-  gap: 9px;
 }
 
-.create-coffee-field {
-  display: grid;
-  gap: 4px;
+.create-coffee-details-grid .create-coffee-field-divider {
+  grid-column: 1 / -1;
 }
 
-.create-coffee-field>span {
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.create-coffee-group-full .create-coffee-textarea {
+  min-height: 100px;
+}
+
+.create-coffee-hint-block {
+  margin: 0 0 var(--space-2);
+  font-size: 0.8rem;
   color: var(--muted-cream);
-  font-weight: 700;
 }
 
-.create-coffee-field>span em {
-  font-style: normal;
-  color: var(--caramel-soft);
+/* ——— Perfil sensorial ——— */
+.create-coffee-sensory-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.create-coffee-field.is-invalid>span {
-  color: #b85a45;
+.create-coffee-sensory-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
 }
 
-.create-coffee-field.is-invalid .search-wide {
-  border-color: rgba(184, 90, 69, 0.7);
-  box-shadow: 0 0 0 1px rgba(184, 90, 69, 0.12) inset;
-}
-
-.create-coffee-grid .search-wide {
-  height: 44px;
-  border-radius: 12px;
-  padding: 0 12px;
-  background: var(--surface);
-  color: var(--text-main);
-  border: 1px solid var(--border-light);
-}
-
-.create-coffee-grid select.search-wide {
-  appearance: none;
-}
-
-.create-coffee-toggle {
-  display: inline-flex;
+.create-coffee-sensory-name {
+  display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: space-between;
+  font-size: 0.9rem;
   color: var(--text-main);
-  font-size: 0.88rem;
-  min-height: 36px;
-  padding: 2px 0 4px;
 }
 
-.create-coffee-image {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.create-coffee-image-top {
-  margin-top: 14px;
-  margin-bottom: 0;
-}
-
-.create-coffee-image-card {
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
-  background: var(--surface);
-  padding: 12px;
-}
-
-.create-coffee-image-empty {
-  width: 100%;
-  min-height: 150px;
-  border: none;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--muted-cream);
-  display: grid;
-  place-items: center;
-  gap: 6px;
-  text-align: center;
-}
-
-.create-coffee-image-empty-icon {
-  position: relative;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.create-coffee-image-empty-icon .ui-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.create-coffee-image-empty-plus {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--caramel-accent);
-  color: var(--pure-white);
-  font-size: 0.72rem;
-  line-height: 14px;
-  font-weight: 700;
-}
-
-.create-coffee-image-empty>span:last-child {
-  font-size: 0.84rem;
+.create-coffee-sensory-name strong {
   font-weight: 600;
 }
 
-.create-coffee-image-preview-wrap {
-  position: relative;
-  border-radius: 14px;
+.create-coffee-sensory-name small {
+  font-size: 0.8rem;
+  color: var(--muted-cream);
+  min-width: 1.2em;
+  text-align: right;
+}
+
+.create-coffee-sensory-range {
+  width: 100%;
+  --slider-color: var(--caramel-soft);
+}
+
+/* Trigger: mismo estilo que inputs (cafeína mg), sin sombra ni borde */
+.create-coffee-picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 56px;
+  padding: 0;
+  border-radius: var(--surface-card-radius, 12px);
+  border: none;
+  background: var(--create-coffee-field-bg);
+  color: var(--text-main);
+  font-size: 1.06rem;
+  font-weight: 400;
+  font-family: var(--font-sans, inherit);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color 0.2s ease;
+}
+
+/* Texto a la izquierda, flecha siempre a la derecha */
+.create-coffee-picker-trigger-text {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.create-coffee-picker-chevron-right {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.create-coffee-picker-trigger:hover {
+  box-shadow: none;
+}
+
+.create-coffee-picker-trigger:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+/* Divisor horizontal entre campos (como en página elaboración) */
+.create-coffee-field-divider {
+  height: 1px;
+  background: var(--border-light, rgba(0, 0, 0, 0.12));
+  width: 100%;
+}
+
+html.theme-light .create-coffee-view .create-coffee-field-divider,
+html:not(.theme-dark) .create-coffee-view .create-coffee-field-divider {
+  background: #d5d5d5;
+}
+
+html.theme-dark .create-coffee-view .create-coffee-field-divider {
+  background: #212121;
+}
+
+.create-coffee-picker-placeholder {
+  color: var(--muted-cream);
+  font-weight: 400;
+}
+
+.create-coffee-picker-chevron {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Sheet de selección de opciones (mismo patrón que filtros del buscador: sale de abajo) */
+.create-coffee-picker-sheet {
+  max-height: min(84vh, 560px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.create-coffee-image-preview-wrap img {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  display: block;
-}
-
-.create-coffee-image-preview-wrap .icon-button {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
-
-.create-coffee-image-fields {
+.create-coffee-picker-sheet-header {
   display: grid;
-  gap: 10px;
-  margin-top: 2px;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 16px var(--space-4) 12px;
 }
 
-.create-coffee-inline-field .search-wide {
-  height: 44px;
+.create-coffee-picker-sheet-header .sheet-title {
+  margin: 0;
+  justify-self: center;
+  text-align: center;
+  grid-column: 2;
+}
+
+.create-coffee-picker-sheet-header .create-coffee-picker-apply {
+  justify-self: end;
+  grid-column: 3;
+  background: none;
+  border: none;
+  color: var(--caramel-accent);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 8px 4px;
+  min-height: 0;
+}
+
+.create-coffee-picker-sheet-header .create-coffee-picker-apply:hover {
+  background: transparent;
+  color: var(--caramel-accent);
+  opacity: 0.85;
+}
+
+.create-coffee-picker-header-spacer {
+  grid-column: 1;
+  min-width: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .create-coffee-picker-sheet-header .create-coffee-picker-apply {
+    color: var(--caramel-soft);
+  }
+  .create-coffee-picker-sheet-header .create-coffee-picker-apply:hover {
+    color: var(--caramel-soft);
+  }
+}
+
+html.theme-dark .create-coffee-picker-sheet-header .create-coffee-picker-apply,
+html:not(.theme-light) .create-coffee-picker-sheet-header .create-coffee-picker-apply {
+  color: var(--caramel-soft);
+}
+html.theme-dark .create-coffee-picker-sheet-header .create-coffee-picker-apply:hover,
+html:not(.theme-light) .create-coffee-picker-sheet-header .create-coffee-picker-apply:hover {
+  color: var(--caramel-soft);
+}
+
+.create-coffee-picker-sheet .create-coffee-picker-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.create-coffee-picker-list {
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.create-coffee-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-4);
   border-radius: 12px;
-  padding: 0 12px;
-  background: var(--surface);
+  border: 1px solid transparent;
+  background: var(--pure-black);
   color: var(--text-main);
+  font-size: 0.95rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.create-coffee-inline-field.is-invalid .search-wide {
-  border-color: rgba(184, 90, 69, 0.7);
-  box-shadow: 0 0 0 1px rgba(184, 90, 69, 0.12) inset;
+.create-coffee-picker-option:hover {
+  background: var(--pure-black);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.create-coffee-picker-option.is-selected {
+  background: var(--pure-black);
+  border-color: var(--caramel-accent);
+  font-weight: 600;
+}
+
+.create-coffee-picker-option-multi {
+  cursor: pointer;
+  gap: var(--space-3);
+}
+
+.create-coffee-picker-option-multi span {
+  flex: 1;
+}
+
+.create-coffee-picker-checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+}
+
+.create-coffee-picker-checkbox:checked {
+  border-color: var(--caramel-soft);
+  background: var(--caramel-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23101010' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: 12px 12px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.create-coffee-picker-actions {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-light);
+}
+
+/* ——— Error y acciones ——— */
+.create-coffee-error-wrap {
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 59, 48, 0.08);
+  border: 1px solid rgba(255, 59, 48, 0.25);
+  border-radius: 14px;
 }
 
 .create-coffee-error {
   margin: 0;
   color: var(--electric-red);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .create-coffee-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--border-light);
 }
 
 .create-coffee-actions-desktop-save {
-  margin-top: 16px;
-  padding-top: 12px;
+  margin-top: 0;
+  padding-top: var(--space-4);
+  border-top: none;
+}
+
+.create-coffee-btn {
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.create-coffee-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.create-coffee-btn-ghost {
+  background: transparent;
+  color: var(--text-subtle);
+  border: 1px solid var(--border-light);
+}
+
+.create-coffee-btn-ghost:hover:not(:disabled) {
+  background: var(--surface-elevated);
+  color: var(--text-main);
+}
+
+.create-coffee-btn-primary {
+  background: var(--caramel-accent);
+  color: var(--pure-white);
+  border: none;
+}
+
+.create-coffee-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.create-coffee-btn-primary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .create-coffee-mobile-save {
   position: sticky;
-  bottom: 80px;
+  bottom: 88px;
   width: 100%;
-  min-height: 48px;
-  border-radius: 999px;
-  margin-top: 10px;
+  min-height: 52px;
+  border-radius: 16px;
+  margin-top: var(--space-4);
+  font-size: 1rem;
 }
 
 .create-coffee-mobile-save:disabled {
   opacity: 0.58;
 }
 
+/* Anular diary-sheet-form label para que rows y grupos se vean bien */
+.diary-sheet-form .create-coffee-form .create-coffee-row {
+  display: flex;
+}
+.diary-sheet-form .create-coffee-form .create-coffee-group {
+  display: flex;
+  flex-direction: column;
+}
+
 @media (prefers-color-scheme: dark) {
-  /* Nuevo café: sin borde en el cuadro que engloba Perfil y Origen y Formato */
-  .create-coffee-profile-origin,
-  .create-coffee-format-block {
-    border: none;
+  .create-coffee-view {
+    --create-coffee-field-bg: #212121;
   }
-  /* Borde gris oscuro solo en los elementos internos */
-  .create-coffee-profile-origin .create-coffee-choice,
-  .create-coffee-profile-origin .create-coffee-country .search-wide,
-  .create-coffee-format-block .create-coffee-choice,
-  .create-coffee-format-block .create-coffee-caffeine-switch,
-  .create-coffee-format-block .create-coffee-quantity-input,
-  .create-coffee-format-block .create-coffee-quantity-row .create-coffee-quantity-input {
-    border-color: rgba(255, 255, 255, 0.18);
+  .create-coffee-view .create-coffee-field-divider {
+    background: #212121;
+  }
+  .create-coffee-card {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  .create-coffee-photo-placeholder {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .create-coffee-photo-placeholder:hover {
+    border-color: var(--caramel-soft);
+    background: rgba(212, 163, 115, 0.08);
+  }
+  .create-coffee-picker-trigger:hover {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+  .create-coffee-chip {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .create-coffee-chip.is-selected {
+    border-color: var(--caramel-soft);
+    background: rgba(212, 163, 115, 0.15);
+  }
+  .create-coffee-sensory-range {
+    --slider-color: var(--caramel-soft);
+  }
+  .create-coffee-btn-primary {
+    background: var(--caramel-soft);
+    color: var(--espresso-deep);
+  }
+}
+
+@media (max-width: 599px) {
+  .create-coffee-details-grid {
+    grid-template-columns: 1fr;
+  }
+  .create-coffee-chips-roast {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 899px) {
-  .create-coffee-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
-  }
-
-  .create-coffee-choice-grid-roast {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .create-coffee-choice-grid-format {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .create-coffee-view.is-full-page {
-    padding: 8px 12px 124px;
-  }
-
-  .create-coffee-section-title {
-    margin-top: 4px;
-  }
-
-  .create-coffee-image-preview-wrap img {
-    height: 196px;
-  }
-
-  .create-coffee-image-empty {
-    min-height: 142px;
-  }
-
-  .create-coffee-image-preview-wrap img {
-    height: 142px;
+    padding: var(--space-4) var(--space-4) 40px;
   }
 }
 
@@ -10213,7 +13102,7 @@ html.theme-dark .content.content-profile {
 }
 
 /* Igual que timeline: carrusel a ancho completo, derecha al borde (padding 0), izquierda con gutter inicial al hacer scroll */
-.brew-select-step .timeline-elaboration-methods {
+.brew-select-step .home-elaboration-methods {
   width: calc(100% + 2 * var(--app-shell-gutter));
   max-width: none;
   margin-left: calc(-1 * var(--app-shell-gutter));
@@ -10222,7 +13111,7 @@ html.theme-dark .content.content-profile {
   overflow: visible;
 }
 
-.brew-select-step .timeline-elaboration-methods-scroll {
+.brew-select-step .home-elaboration-methods-scroll {
   padding-left: var(--app-shell-gutter);
   padding-right: 0;
   padding-top: 4px;
@@ -10230,8 +13119,8 @@ html.theme-dark .content.content-profile {
   overflow-y: visible;
 }
 
-.brew-select-step .timeline-despensa.suggestion-strip,
-.brew-select-step .timeline-despensa {
+.brew-select-step .home-despensa.suggestion-strip,
+.brew-select-step .home-despensa {
   width: calc(100% + 2 * var(--app-shell-gutter));
   max-width: none;
   margin-left: calc(-1 * var(--app-shell-gutter));
@@ -10242,14 +13131,14 @@ html.theme-dark .content.content-profile {
   overflow: visible;
 }
 
-.brew-select-step .timeline-despensa-scroll {
+.brew-select-step .home-despensa-scroll {
   padding-right: 0;
   padding-top: 4px;
   padding-bottom: 4px;
   overflow-y: visible;
 }
 
-.brew-select-step .timeline-despensa .brew-pantry-row {
+.brew-select-step .home-despensa .brew-pantry-row {
   padding-right: 0;
 }
 
@@ -10259,7 +13148,7 @@ html.theme-dark .content.content-profile {
 }
 
 /* Activo: mismo estilo día y noche (fondo caramel, texto negro) */
-.brew-select-step .timeline-elaboration-method-circle.is-active .timeline-elaboration-method-circle-inner {
+.brew-select-step .home-elaboration-method-circle.is-active .home-elaboration-method-circle-inner {
   background: var(--caramel-accent, #b8860b) !important;
   border: none !important;
   box-shadow: none !important;
@@ -10280,6 +13169,14 @@ html.theme-dark .content.content-profile {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-main);
+}
+
+/* Texto debajo del título "Configura tu XXX" (consejos del barista) */
+.brew-config-applied-hint {
+  margin: 0 0 var(--space-3);
+  font-size: 0.875rem;
+  color: var(--text-subtle);
+  line-height: 1.35;
 }
 
 /* Fila ancho completo: Temporizador + switch (debajo de Configura tu XXX) */
@@ -10303,18 +13200,18 @@ html.theme-dark .content.content-profile {
   color: var(--text-main);
 }
 
-/* Rectángulo «Selecciona café» (mismo estilo que temporizador), con flecha a la derecha */
+/* Rectángulo «Selecciona café» (mismo estilo que temporizador), con flecha a la derecha.
+   En elaboración: fondo blanco en modo día / negro puro en modo noche, sin border line. */
 .brew-select-coffee-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   padding: var(--space-4) var(--space-4);
-  margin-top: var(--space-3);
-  background: var(--surface-1, #fff);
-  border: var(--surface-card-border);
+  background: #ffffff;
+  border: none;
   border-radius: var(--surface-card-radius);
-  box-shadow: var(--surface-card-shadow);
+  box-shadow: none;
   box-sizing: border-box;
   cursor: pointer;
   font: inherit;
@@ -10356,10 +13253,414 @@ html.theme-dark .content.content-profile {
   color: var(--text-main);
 }
 
+.brew-select-coffee-selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.brew-select-coffee-img {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--surface-card-radius);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.brew-select-coffee-selected-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.brew-select-coffee-name {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brew-select-coffee-stock {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--muted-cream));
+  letter-spacing: 0.02em;
+}
+
+/* Forma de elaboración: card con método + línea + parámetros */
+.brew-forma-card {
+  padding: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.brew-forma-card .brew-forma-methods,
+.brew-forma-card .home-elaboration-methods {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 0;
+  min-width: 0; /* permite que el grid item se encoja y el carrusel haga scroll */
+}
+
+/* Método: carrusel hasta el borde derecho de la card; contenedor con ancho limitado para scroll */
+.brew-forma-card .brew-method-carousel-wrap {
+  padding-top: 0;
+  padding-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  margin-right: calc(-1 * var(--space-4));
+  width: calc(100% + var(--space-4));
+}
+
+.brew-forma-card .brew-method-scroll {
+  padding: 8px 0;
+  padding-left: 0;
+  padding-right: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.brew-forma-card .home-carousel-nav,
+.brew-config-cafe-card .home-carousel-nav {
+  display: none !important;
+}
+
+/* Método: rectángulo imagen izquierda + texto derecha; carrusel con scroll horizontal */
+.brew-method-scroll {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  padding: 2px 0;
+  min-width: 0;
+  box-sizing: border-box;
+  cursor: grab;
+  user-select: none;
+}
+.brew-method-scroll.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+.brew-method-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Método: mismo estilo base que tipo/tamaño (fondo, borde, sombra, padding) para modo día */
+.brew-method-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  width: 130px;
+  min-width: 130px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--surface-card-radius);
+  border: var(--surface-card-border);
+  background: var(--surface-1, #fff);
+  box-shadow: var(--surface-card-shadow);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  scroll-snap-align: start;
+  box-sizing: border-box;
+}
+
+.brew-method-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Chip activo: mismo estilo en método, tipo y tamaño (día y noche) */
+.brew-method-card.is-active,
+.brew-tipo-card.is-active,
+.brew-tamaño-card.is-active {
+  background: var(--caramel-accent, #b8860b) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.brew-method-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--surface-card-radius);
+  overflow: hidden;
+}
+
+.brew-method-card-icon img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.brew-method-card-icon .home-elaboration-method-icon-bolt,
+.brew-method-card-icon .home-elaboration-method-icon-water {
+  width: 24px;
+  height: 24px;
+}
+
+.brew-method-card-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  flex: 1;
+}
+
+.brew-method-card-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  line-height: 1.25;
+}
+
+/* Chip activo método, tipo y tamaño: texto blanco en modo día sobre fondo marrón */
+.brew-method-card.is-active .brew-method-card-label,
+.brew-config-cafe-card .brew-tipo-card.is-active .brew-tipo-card-label,
+.brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-label,
+.brew-config-cafe-card .brew-tamaño-card.is-active .brew-tamaño-card-range {
+  color: #ffffff !important;
+}
+
+/* Modo día: chips inactivos — texto oscuro para diferenciar del activo */
+html:not(.theme-dark) .brew-forma-card .brew-method-card:not(.is-active) .brew-method-card-label,
+html:not(.theme-dark) .brew-config-cafe-card .brew-tipo-card:not(.is-active) .brew-tipo-card-label,
+html:not(.theme-dark) .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-label,
+html:not(.theme-dark) .brew-config-cafe-card .brew-tamaño-card:not(.is-active) .brew-tamaño-card-range {
+  color: var(--text-main) !important;
+}
+
+.brew-method-card-word {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.brew-forma-card .brew-config-option-divider {
+  margin: var(--space-3) 0;
+}
+
+.brew-forma-params {
+  margin-top: 0;
+}
+
+/* Configura tu café: título separado de la card de arriba y unido a la card de abajo */
+.brew-select-step .brew-config-cafe-title {
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-2);
+}
+/* Configura tu café: contenido dentro del card */
+.brew-config-cafe-card {
+  padding: var(--space-4);
+  margin-top: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Selecciona café: mismo estilo que opciones de lista (fila con borde abajo, flecha derecha) */
+.brew-config-cafe-card .brew-select-coffee-row {
+  margin-top: 0;
+  margin-left: calc(-1 * var(--space-4));
+  margin-right: calc(-1 * var(--space-4));
+  width: calc(100% + 2 * var(--space-4));
+  padding: 0 14px 0px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.brew-config-cafe-card .brew-select-coffee-row .ui-icon.brew-select-coffee-row-arrow {
+  margin-left: auto;
+  color: var(--text-subtle);
+}
+
+.brew-config-cafe-card .brew-config-option-divider {
+  margin: var(--space-3) 0;
+}
+
+.brew-config-cafe-section {
+  margin-top: var(--space-3);
+}
+
+.brew-config-cafe-section:first-of-type {
+  margin-top: 0;
+}
+
+/* Wrapper Tipo y Tamaño: hasta el borde derecho de la card; permite scroll horizontal */
+.brew-config-cafe-card .brew-config-cafe-carousel-wrap {
+  min-width: 0;
+  overflow: hidden;
+  margin-right: calc(-1 * var(--space-4));
+  width: calc(100% + var(--space-4));
+}
+
+/* Tipo y Tamaño: sección con min-width 0 para que el carrusel haga scroll */
+.brew-config-cafe-card .brew-tipo-strip-wrap,
+.brew-config-cafe-card .brew-tamaño-strip-wrap {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  padding-left: 0;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Strips Tipo y Tamaño: scroll horizontal; llegan al borde derecho de la card; drag para desplazar */
+.brew-config-cafe-card .brew-tipo-strip,
+.brew-config-cafe-card .brew-tamaño-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  padding: 8px var(--space-4) 8px 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: grab;
+  user-select: none;
+}
+.brew-config-cafe-card .brew-tipo-strip.is-dragging,
+.brew-config-cafe-card .brew-tamaño-strip.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+
+.brew-config-cafe-card .brew-tipo-strip::-webkit-scrollbar,
+.brew-config-cafe-card .brew-tamaño-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* Página Selecciona café (desde elaboración): fondo negro (noche) / blanco (día), sin borde, sin margen superior */
+.brew-select-coffee-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  margin-top: 0;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .brew-select-coffee-row {
+    background: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+.brew-select-coffee-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: 12px 14px 12px;
+  flex-shrink: 0;
+  border: none;
+  border-bottom: none;
+}
+.brew-select-coffee-page-header .brew-select-coffee-page-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+.brew-select-coffee-page-back {
+  position: relative;
+  z-index: 1;
+}
+.brew-select-coffee-page-right {
+  width: 40px;
+  flex-shrink: 0;
+}
+.brew-select-coffee-page-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 0;
+  padding: 0 var(--space-4) var(--space-6);
+}
+.brew-select-coffee-page-content .brew-select-coffee-despensa {
+  margin-top: 0;
+}
+.brew-select-coffee-page-content .brew-select-coffee-search-row {
+  margin-top: var(--space-4);
+}
+.brew-select-coffee-page-content .brew-select-coffee-suggestions {
+  margin-top: var(--space-4);
+}
+
+/* Chips inactivos Método, Tipo y Tamaño (modo día): color de fondo = página, sin bordes — mismo estilo que tipo */
+.brew-method-card:not(.is-active),
+.brew-forma-card .brew-method-card:not(.is-active),
+.brew-config-cafe-card .brew-tipo-card:not(.is-active),
+.brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+.brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+.brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+  background: var(--screen-light-background) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Chips inactivos Método, Tipo y Tamaño: color de fondo = página (modo noche), sin bordes */
+/* Modo noche (theme-dark): Consumo — tipo y tamaño base gris oscuro (color página) */
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card,
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card {
+  background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Modo noche: chips inactivos método, tipo y tamaño = gris oscuro #212121 (color página) */
+html.theme-dark .brew-method-card:not(.is-active),
+html.theme-dark .brew-forma-card .brew-method-card:not(.is-active),
+html.theme-dark .brew-select-step .brew-forma-card .brew-method-card:not(.is-active),
+html.theme-dark .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+html.theme-dark .brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+html.theme-dark .brew-select-step .brew-config-cafe-card .brew-tamaño-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tipo-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card .brew-tamaño-card:not(.is-active) {
+  background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 /* Sliders Tipo y Tamaño en elaboración (mismas opciones que Mi diario) */
 .brew-tipo-strip-wrap,
 .brew-tamaño-strip-wrap {
-  margin-top: var(--space-4);
+  margin-top: 0px;
 }
 
 .brew-tipo-strip-wrap .brew-select-section-title,
@@ -10377,9 +13678,14 @@ html.theme-dark .content.content-profile {
   overflow: visible;
 }
 
+/* Titular y chips alineados: el wrap tiene el gutter a la izquierda; título y strip sin padding extra */
+.brew-select-step .brew-tipo-strip-wrap,
+.brew-select-step .brew-tamaño-strip-wrap {
+  padding-left: var(--app-shell-gutter);
+}
 .brew-select-step .brew-tipo-strip-wrap .brew-select-section-title,
 .brew-select-step .brew-tamaño-strip-wrap .brew-select-section-title {
-  padding-left: var(--app-shell-gutter);
+  padding-left: 0;
 }
 
 .brew-tipo-strip {
@@ -10407,14 +13713,14 @@ html.theme-dark .content.content-profile {
 }
 
 .brew-select-step .brew-tipo-strip {
-  padding-left: var(--app-shell-gutter);
+  padding-left: 0;
   padding-right: 0;
   padding-top: 8px;
   padding-bottom: 8px;
 }
 
 .brew-select-step .brew-tamaño-strip {
-  padding-left: var(--app-shell-gutter);
+  padding-left: 0;
   padding-right: 0;
   padding-bottom: 4px;
 }
@@ -10451,13 +13757,6 @@ html.theme-dark .content.content-profile {
 
 .brew-tipo-card:hover {
   border-color: var(--border-strong);
-}
-
-/* Activo: mismo estilo día y noche que método (fondo caramel, texto negro) */
-.brew-tipo-strip .brew-tipo-card.is-active {
-  background: var(--caramel-accent, #b8860b) !important;
-  border: none !important;
-  box-shadow: none !important;
 }
 
 .brew-tipo-card-icon {
@@ -10518,13 +13817,6 @@ html.theme-dark .content.content-profile {
   border-color: var(--border-strong);
 }
 
-/* Activo: mismo estilo día y noche que método (fondo caramel, texto negro) */
-.brew-tamaño-strip .brew-tamaño-card.is-active {
-  background: var(--caramel-accent, #b8860b) !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
 .brew-tamaño-card-icon {
   display: flex;
   align-items: center;
@@ -10566,6 +13858,22 @@ html.theme-dark .content.content-profile {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 72px;
+}
+
+/* Consumo en modo noche: chips tipo/tamaño inactivos gris oscuro #212121 (color página) */
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tipo-card:not(.is-active),
+html.theme-dark .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card:not(.is-active) {
+  background: #212121 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .brew-result-screen .brew-config-cafe-card button.brew-tipo-card:not(.is-active),
+  html:not(.theme-light) .brew-result-screen .brew-config-cafe-card button.brew-tamaño-card:not(.is-active) {
+    background: #212121 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
 
 .brew-select-params-layout {
@@ -10619,6 +13927,83 @@ html.theme-dark .content.content-profile {
 .brew-select-params-info-icon {
   font-style: italic;
   font-family: Georgia, serif;
+}
+
+/* CTA debajo del último slider: abre modal consejos del barista (mismo fondo que página, sin borde) */
+.brew-select-barista-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: var(--space-3, 12px);
+  padding: 12px 14px;
+  border: none;
+  border-radius: var(--surface-card-radius);
+  background: var(--screen-dark-background);
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.brew-select-barista-cta:hover {
+  opacity: 0.9;
+}
+
+.brew-select-barista-cta-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.brew-select-barista-cta-arrow {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  color: var(--text-subtle);
+}
+
+/* Opciones debajo de Consejos del barista: línea de separación + fila estilo opciones de lista */
+.brew-config-option-divider {
+  height: 1px;
+  margin: 10px 0;
+  background: var(--border-light, rgba(0, 0, 0, 0.12));
+  width: 100%;
+}
+/* Modo día: líneas de separación en elaboración/config — color específico #d5d5d5 (cualquier contenedor) */
+html.theme-light .brew-config-option-divider,
+html:not(.theme-dark) .brew-config-option-divider {
+  background: #d5d5d5 !important;
+}
+html.theme-light .brew-config-cafe-card .brew-config-option-divider,
+html.theme-light .brew-forma-card .brew-config-option-divider,
+html:not(.theme-dark) .brew-config-cafe-card .brew-config-option-divider,
+html:not(.theme-dark) .brew-forma-card .brew-config-option-divider {
+  background: #d5d5d5 !important;
+}
+/* Modo noche: solo cuando html.theme-dark está presente (no usar :not(.theme-light) para no pisar modo día) */
+html.theme-dark .brew-config-cafe-card .brew-config-option-divider,
+html.theme-dark .brew-forma-card .brew-config-option-divider,
+html.theme-dark .brew-config-option-divider {
+  background: #212121 !important;
+}
+.brew-config-option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0px 0 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.brew-config-option-label {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-main);
+}
+.brew-config-option-row .ui-switch {
+  flex-shrink: 0;
 }
 
 /* Modal Consejos del barista (estilo tipo editar actividad) */
@@ -10785,7 +14170,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
   box-shadow: var(--surface-card-shadow);
   padding: 19px;
   display: grid;
-  gap: 16px;
+  gap: 0;
 }
 
 .brew-tech-top {
@@ -10814,11 +14199,13 @@ html.theme-dark .brew-barista-sheet-close:hover {
   gap: 18px;
 }
 
+/* Siempre: número a la izquierda, slider a la derecha */
 .brew-tech-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 5fr);
   gap: 14px;
   align-items: start;
+  direction: ltr;
 }
 
 /* Slider de agua: alineado por abajo con el campo de la izquierda */
@@ -10829,6 +14216,11 @@ html.theme-dark .brew-barista-sheet-close:hover {
 /* Slider de tiempo (espresso): alineado por abajo */
 .brew-tech-row-time {
   align-items: end;
+}
+
+/* Fila Café en espresso: títulos "Café" y "RATIO..." a la misma altura */
+.brew-tech-row-coffee-espresso {
+  align-items: start;
 }
 
 .brew-tech-row .brew-tech-field {
@@ -10863,19 +14255,20 @@ html.theme-dark .brew-barista-sheet-close:hover {
 }
 
 @media (max-width: 480px) {
+  /* Mantener número izquierda, slider derecha; columnas más estrechas */
   .brew-tech-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 96px) minmax(0, 1fr);
     gap: 10px;
   }
 
   .brew-tech-row .brew-tech-field {
-    order: 1;
     grid-column: 1;
+    min-width: 0;
   }
 
   .brew-tech-row .brew-tech-slider {
-    order: 2;
-    grid-column: 1;
+    grid-column: 2;
+    min-width: 0;
     width: 100%;
   }
 }
@@ -11035,6 +14428,17 @@ html.theme-dark .brew-barista-sheet-close:hover {
 
 .app-range--caramel {
   --slider-color: var(--caramel-soft);
+}
+
+/* Modo noche: slider tiempo blanco (no marrón); debe ir después de .app-range para ganar especificidad */
+@media (prefers-color-scheme: dark) {
+  .app-range.app-range--time {
+    --slider-color: #ffffff;
+  }
+}
+
+html.theme-dark .app-range.app-range--time {
+  --slider-color: #ffffff;
 }
 
 .brew-tech-slider input {
@@ -11500,6 +14904,13 @@ html.theme-dark .brew-barista-sheet-close:hover {
 .brew-result-screen {
   display: grid;
   gap: 14px;
+}
+
+/* Consumo: títulos con más margen arriba y menos abajo (pegados a la card inferior) */
+.brew-result-screen .brew-config-cafe-title,
+.brew-result-screen .brew-result-section-title {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-1);
 }
 
 .brew-result-card {
@@ -12532,6 +15943,12 @@ html.theme-dark .brew-barista-sheet-close:hover {
 .notifications-reply {
   background: var(--surface);
   color: var(--text-main);
+}
+
+.notifications-list-invite-actions {
+  display: flex;
+  gap: var(--space-2, 8px);
+  flex-shrink: 0;
 }
 
 .notifications-empty {
@@ -13888,27 +17305,27 @@ html.theme-dark .brew-barista-sheet-close:hover {
 }
 
 @media (min-width: 900px) {
-.timeline-shell-desktop .timeline-desktop-columns.timeline-desktop-columns-has-side {
+.home-shell-desktop .home-desktop-columns.home-desktop-columns-has-side {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 12px;
   align-items: start;
   }
 
-  .timeline-shell-desktop .timeline-side-column {
+  .home-shell-desktop .home-side-column {
     align-self: start;
     padding-top: 0;
   }
 
-  .timeline-shell-desktop .timeline-side-column > .suggestion-strip:first-child {
+  .home-shell-desktop .home-side-column > .suggestion-strip:first-child {
     margin-top: 0;
   }
 
-  .timeline-shell-desktop .timeline-side-column .suggestion-strip+.suggestion-strip {
+  .home-shell-desktop .home-side-column .suggestion-strip+.suggestion-strip {
     margin-top: 24px;
   }
 
-  .timeline-shell-desktop .timeline-side-column .horizontal-cards {
+  .home-shell-desktop .home-side-column .horizontal-cards {
     display: grid;
     grid-auto-flow: row;
     grid-auto-columns: initial;
@@ -13918,14 +17335,14 @@ html.theme-dark .brew-barista-sheet-close:hover {
     gap: var(--space-2);
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-card {
+  .home-shell-desktop .home-side-column .mini-card {
     border-radius: 14px;
     padding: 8px 10px;
     gap: 2px 8px;
     min-height: 56px;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card {
+  .home-shell-desktop .home-side-column .mini-coffee-card {
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr);
     grid-template-areas:
@@ -13934,7 +17351,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
     align-items: center;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card .mini-cover {
+  .home-shell-desktop .home-side-column .mini-coffee-card .mini-cover {
     grid-area: image;
     width: 44px;
     height: 44px;
@@ -13943,11 +17360,11 @@ html.theme-dark .brew-barista-sheet-close:hover {
     object-fit: cover;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card .coffee-origin {
+  .home-shell-desktop .home-side-column .mini-coffee-card .coffee-origin {
     display: none;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card .feed-user {
+  .home-shell-desktop .home-side-column .mini-coffee-card .feed-user {
     grid-area: name;
     margin: 0;
     font-size: 0.9rem;
@@ -13957,7 +17374,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
     text-overflow: ellipsis;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-coffee-card .coffee-sub {
+  .home-shell-desktop .home-side-column .mini-coffee-card .coffee-sub {
     grid-area: brand;
     margin: 0;
     font-size: 0.74rem;
@@ -13966,7 +17383,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
     text-overflow: ellipsis;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card {
+  .home-shell-desktop .home-side-column .mini-user-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "content action";
@@ -13975,7 +17392,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
     justify-items: stretch;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-link {
+  .home-shell-desktop .home-side-column .mini-user-link {
     grid-area: content;
     min-width: 0;
     display: grid;
@@ -13989,18 +17406,18 @@ html.theme-dark .brew-barista-sheet-close:hover {
     gap: 2px 8px;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-copy {
+  .home-shell-desktop .home-side-column .mini-user-copy {
     display: contents;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .mini-avatar,
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .mini-avatar-fallback {
+  .home-shell-desktop .home-side-column .mini-user-card .mini-avatar,
+  .home-shell-desktop .home-side-column .mini-user-card .mini-avatar-fallback {
     grid-area: avatar;
     width: 44px;
     height: 44px;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-user {
+  .home-shell-desktop .home-side-column .mini-user-card .feed-user {
     grid-area: name;
     margin: 0;
     font-size: 0.9rem;
@@ -14013,7 +17430,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
     text-overflow: ellipsis;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .feed-meta {
+  .home-shell-desktop .home-side-column .mini-user-card .feed-meta {
     grid-area: username;
     margin: 0;
     font-size: 0.74rem;
@@ -14025,11 +17442,11 @@ html.theme-dark .brew-barista-sheet-close:hover {
     text-overflow: ellipsis;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .coffee-sub {
+  .home-shell-desktop .home-side-column .mini-user-card .coffee-sub {
     display: none;
   }
 
-  .timeline-shell-desktop .timeline-side-column .mini-user-card .action-button {
+  .home-shell-desktop .home-side-column .mini-user-card .action-button {
     grid-area: action;
     min-height: 28px;
     padding: 0 10px;
@@ -14362,11 +17779,6 @@ html.theme-dark .brew-barista-sheet-close:hover {
     background: var(--caramel-accent);
   }
 
-  .coffee-detail-rating-badge {
-    background: rgba(255, 255, 255, 0.98);
-    color: var(--espresso-deep);
-  }
-
   .coffee-detail-grid p {
     background: transparent;
     border-color: transparent;
@@ -14510,9 +17922,9 @@ html.theme-dark .brew-barista-sheet-close:hover {
   }
 
   .coffee-detail-review-submit:not(:disabled) {
-    background: var(--caramel-accent) !important;
+    background: var(--caramel-soft) !important;
     color: #ffffff !important;
-    border-color: var(--caramel-accent) !important;
+    border-color: var(--caramel-soft) !important;
   }
 
   .coffee-detail-review-submit:disabled {
@@ -15439,6 +18851,31 @@ html.theme-dark .brew-barista-sheet-close:hover {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
   }
 
+  /* Crear café: items de picker con mismo estilo de cards que filtros (modo día: blanco) */
+  .create-coffee-picker-option {
+    background: var(--pure-white);
+  }
+
+  .create-coffee-picker-option:hover {
+    background: var(--pure-white);
+    border-color: rgba(111, 78, 55, 0.3);
+  }
+
+  .create-coffee-picker-option.is-selected {
+    background: var(--pure-white);
+    border-color: var(--caramel-accent);
+  }
+
+  .create-coffee-picker-checkbox {
+    border-color: rgba(26, 18, 11, 0.35);
+  }
+
+  .create-coffee-picker-checkbox:checked {
+    border-color: var(--caramel-accent);
+    background-color: var(--caramel-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  }
+
   .search-rating-scale {
     color: var(--espresso-medium);
   }
@@ -15705,7 +19142,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
   }
 }
 
-@keyframes timeline-progress {
+@keyframes home-progress {
   0% {
     background-position: 200% 0;
   }
@@ -15828,7 +19265,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
 }
 
 /* Typography and component standardization pass (cross-section) */
-:where(.timeline-shell,
+:where(.home-shell,
   .search-coffee-view,
   .coffee-detail,
   .brew-config-native,
@@ -15988,7 +19425,7 @@ html.theme-dark .brew-barista-sheet-close:hover {
   }
 
   .sheet-header {
-    padding: 9px 12px 10px;
+    padding: 20px 12px 10px;
   }
 
   .profile-hero {
@@ -16201,9 +19638,18 @@ html.theme-dark .brew-barista-sheet-close:hover {
   height: env(safe-area-inset-top, 24px);
   background: var(--screen-dark-background);
 }
+/* PWA/iOS: mismo fondo con y sin scroll para que el topbar no cambie al hacer scroll */
+.pwa-standalone .topbar.topbar-scrolled {
+  background-color: var(--screen-dark-background);
+  background: var(--screen-dark-background);
+}
 @media (prefers-color-scheme: light) {
   html.theme-light .pwa-standalone .topbar,
   html.theme-light .pwa-standalone .topbar::before {
+    background: var(--screen-light-background);
+  }
+  html.theme-light .pwa-standalone .topbar.topbar-scrolled {
+    background-color: var(--screen-light-background);
     background: var(--screen-light-background);
   }
 }

@@ -30,6 +30,20 @@ val BREW_METHOD_NAMES: List<String> = listOf(
 const val BREW_METHOD_OTROS: String = "Rápido"
 const val BREW_METHOD_AGUA: String = "Agua"
 
+/** Límites libres en elaboración: el usuario puede poner la cantidad de agua y café que quiera. Ratio y forma se calculan en base a ello. */
+const val BREW_WATER_ABS_MIN_ML = 1
+const val BREW_WATER_ABS_MAX_ML = 5000
+const val BREW_COFFEE_ABS_MIN_G = 0.5f
+const val BREW_COFFEE_ABS_MAX_G = 2000f
+
+/** Rango solo del slider café (0–50 g); el input numérico permite desde ABS_MIN hasta ABS_MAX. */
+const val BREW_SLIDER_MIN_COFFEE_G = 0f
+const val BREW_SLIDER_MAX_COFFEE_G = 50f
+/** Rango solo del slider agua (0–500 ml); el input numérico permite hasta ABS_MAX. */
+const val BREW_SLIDER_MIN_WATER_ML = 0
+const val BREW_SLIDER_MAX_WATER_ML = 500
+const val BREW_SLIDER_MAX_TIME_S = 60
+
 /**
  * Extrae el nombre del método de elaboración de una entrada para ordenar.
  * Acepta "Otros" en datos antiguos y lo normaliza a BREW_METHOD_OTROS ("Rápido").

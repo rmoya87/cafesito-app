@@ -20,12 +20,17 @@ export function parseRoute(pathname: string) {
     };
   }
   if (first === "brewlab") return { tab: "brewlab" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined };
-  if (first === "diary") return { tab: "diary" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined };
+  if (first === "diary") {
+    const diarySubView = second === "cafes-probados" ? ("cafes-probados" as const) : undefined;
+    return { tab: "diary" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined, diarySubView };
+  }
   if (first === "profile") {
     const third = routeSegments[2] ?? "";
+    const fourth = routeSegments[3] ?? "";
     const isListSection = second === "list" && third.length > 0;
+    const listOptionsView = isListSection && fourth === "options";
     const profileSectionFromSecond = second === "historial" || second === "followers" || second === "following" || second === "favorites" ? second : isListSection ? "list" : null;
-    const profileSectionFromThird = third === "followers" || third === "following" ? third : null;
+    const profileSectionFromThird = third === "followers" || third === "following" || third === "favorites" || third === "historial" ? third : null;
     const profileSection = profileSectionFromThird ?? (isListSection ? "list" : profileSectionFromSecond);
     const profileUsername = profileSectionFromSecond && !isListSection
       ? null
@@ -39,7 +44,8 @@ export function parseRoute(pathname: string) {
       profileUsername,
       coffeeSlug: null,
       profileSection: profileSection as "historial" | "followers" | "following" | "favorites" | "list" | null,
-      profileListId: profileListId ?? undefined
+      profileListId: profileListId ?? undefined,
+      listOptionsView: listOptionsView || undefined
     };
   }
   if (first === "coffee") {
@@ -52,10 +58,30 @@ export function parseRoute(pathname: string) {
       profileListId: undefined
     };
   }
+  if (first === "crear-cafe") {
+    return {
+      tab: "crear-cafe" as TabId,
+      searchMode: "coffees" as const,
+      profileUsername: null,
+      coffeeSlug: null,
+      profileSection: null,
+      profileListId: undefined
+    };
+  }
+  if (first === "selecciona-cafe") {
+    return {
+      tab: "selecciona-cafe" as TabId,
+      searchMode: "coffees" as const,
+      profileUsername: null,
+      coffeeSlug: null,
+      profileSection: null,
+      profileListId: undefined
+    };
+  }
   return { tab: "home" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined };
 }
 
-const TAB_SEGMENTS = ["home", "search", "brewlab", "diary", "profile", "coffee"];
+const TAB_SEGMENTS = ["home", "search", "brewlab", "diary", "profile", "coffee", "crear-cafe", "selecciona-cafe"];
 
 /** Pathname de la raíz de la app (para mostrar login en URL raíz, no /home). */
 export function getAppRootPath(pathname: string): string {
@@ -77,14 +103,20 @@ export function isKnownRoute(pathname: string): boolean {
   const first = routeSegments[0] ?? "";
   const second = routeSegments[1] ?? "";
 
-  if (first === "home" || first === "brewlab" || first === "diary") return routeSegments.length === 1;
+  if (first === "home" || first === "brewlab" || first === "crear-cafe" || first === "selecciona-cafe") return routeSegments.length === 1;
+  if (first === "diary") return routeSegments.length === 1 || (routeSegments.length === 2 && second === "cafes-probados");
   if (first === "search") return routeSegments.length <= 2 && (second === "" || second === "users");
   if (first === "profile") {
     if (routeSegments.length === 1) return true;
     if (routeSegments.length === 2) return true;
     if (routeSegments.length === 3) {
       const third = routeSegments[2] ?? "";
-      return third === "followers" || third === "following" || (second === "list" && third.length > 0);
+      return third === "followers" || third === "following" || third === "favorites" || third === "historial" || (second === "list" && third.length > 0);
+    }
+    if (routeSegments.length === 4 && second === "list") {
+      const third = routeSegments[2] ?? "";
+      const fourth = routeSegments[3] ?? "";
+      return third.length > 0 && fourth === "options";
     }
     return false;
   }
@@ -114,25 +146,32 @@ export function toCoffeeSlug(name: string, brand?: string | null, forceBrand = f
 
 export type ProfileSection = "historial" | "followers" | "following" | "favorites" | "list" | null;
 
+export type DiarySubView = "cafes-probados" | undefined;
+
 export function buildRoute(
   tab: TabId,
   searchMode: "coffees" | "users",
   profileUsername: string | null,
   coffeeSlug?: string | null,
   profileSection?: ProfileSection,
-  profileListId?: string | null
+  profileListId?: string | null,
+  diarySubView?: DiarySubView,
+  listOptionsView?: boolean
 ): string {
   if (tab === "search") return searchMode === "users" ? "/search/users" : "/search";
   if (tab === "brewlab") return "/brewlab";
-  if (tab === "diary") return "/diary";
+  if (tab === "diary") return diarySubView === "cafes-probados" ? "/diary/cafes-probados" : "/diary";
   if (tab === "profile") {
-    if (profileSection === "historial") return "/profile/historial";
-    if (profileSection === "favorites") return "/profile/favorites";
-    if (profileSection === "list" && profileListId) return `/profile/list/${encodeURIComponent(profileListId)}`;
+    if (profileSection === "historial") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/historial` : "/profile/historial";
+    if (profileSection === "favorites") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/favorites` : "/profile/favorites";
+    if (profileSection === "list" && profileListId)
+      return listOptionsView ? `/profile/list/${encodeURIComponent(profileListId)}/options` : `/profile/list/${encodeURIComponent(profileListId)}`;
     if (profileSection === "followers") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/followers` : "/profile/followers";
     if (profileSection === "following") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/following` : "/profile/following";
     return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}` : "/profile";
   }
   if (tab === "coffee") return coffeeSlug ? `/coffee/${encodeURIComponent(coffeeSlug)}/` : "/home";
+  if (tab === "crear-cafe") return "/crear-cafe";
+  if (tab === "selecciona-cafe") return "/selecciona-cafe";
   return "/home";
 }

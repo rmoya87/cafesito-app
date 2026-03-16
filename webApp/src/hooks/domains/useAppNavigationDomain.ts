@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { buildRoute, getAppRootPath, parseRoute, toCoffeeSlug } from "../../core/routing";
 import type { ProfileSection } from "../../core/routing";
+import type { DiarySubView } from "../../core/routing";
 import { canNavigateToTab } from "../../core/guards";
 import { normalizeLookupText } from "../../core/text";
 import type { CoffeeRow, TabId, UserRow } from "../../types";
@@ -12,6 +13,7 @@ export function useAppNavigationDomain({
   setProfileUsername,
   setProfileSubPanel,
   setProfileListId,
+  setListOptionsView,
   profileListId,
   users,
   setActiveTab,
@@ -23,7 +25,8 @@ export function useAppNavigationDomain({
   setSearchSelectedCoffeeId,
   setSearchFocusCoffeeProfile,
   isAuthenticated,
-  onRequireAuth
+  onRequireAuth,
+  setDiarySubView
 }: {
   searchMode: "coffees" | "users";
   setSearchMode: (value: "coffees" | "users") => void;
@@ -31,6 +34,7 @@ export function useAppNavigationDomain({
   setProfileUsername: (value: string | null) => void;
   setProfileSubPanel: (value: ProfileSection) => void;
   setProfileListId: (value: string | null) => void;
+  setListOptionsView: (value: boolean) => void;
   profileListId: string | null;
   users: UserRow[];
   setActiveTab: (value: TabId) => void;
@@ -43,6 +47,7 @@ export function useAppNavigationDomain({
   setSearchFocusCoffeeProfile: (value: boolean) => void;
   isAuthenticated: boolean;
   onRequireAuth: () => void;
+  setDiarySubView: (value: "cafes-probados" | null) => void;
 }) {
   const navigateToTab = useCallback(
     (
@@ -53,7 +58,9 @@ export function useAppNavigationDomain({
         profileUsername?: string | null;
         profileSection?: ProfileSection;
         profileListId?: string | null;
+        listOptionsView?: boolean;
         coffeeSlug?: string | null;
+        diarySubView?: DiarySubView;
         replace?: boolean;
       }
     ) => {
@@ -67,22 +74,29 @@ export function useAppNavigationDomain({
       const nextProfileSection = options?.profileSection ?? (tab === "profile" ? null : undefined);
 
       setActiveTab(tab);
+      if (tab === "diary") setDiarySubView(options?.diarySubView ?? null);
+      else setDiarySubView(null);
       if (tab === "search") setSearchMode(nextSearchMode);
       const nextProfileListId = options?.profileListId ?? (tab === "profile" ? profileListId : null);
+      const nextListOptionsView = tab === "profile" ? (options?.listOptionsView === true) : false;
       if (tab === "profile") {
         setProfileUsername(nextProfileUsername ?? null);
         setProfileSubPanel(nextProfileSection ?? null);
         setProfileListId(nextProfileListId ?? null);
+        setListOptionsView(nextListOptionsView);
+      } else {
+        setListOptionsView(false);
       }
 
-      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null, nextProfileSection ?? null, nextProfileListId);
+      const diarySub = tab === "diary" ? (options?.diarySubView ?? undefined) : undefined;
+      const routePath = buildRoute(tab, nextSearchMode, nextProfileUsername ?? null, options?.coffeeSlug ?? null, nextProfileSection ?? null, nextProfileListId, diarySub, tab === "profile" ? nextListOptionsView : undefined);
       const base = (getAppRootPath(window.location.pathname) || "/").replace(/\/+$/, "") || "";
       const fullPath = base === "" || base === "/" ? routePath : `${base}${routePath}`;
       if (window.location.pathname === fullPath) return;
       const method = options?.replace ? "replaceState" : "pushState";
       window.history[method]({}, "", `${fullPath}${window.location.search}${window.location.hash}`);
     },
-    [isAuthenticated, onRequireAuth, profileListId, profileUsername, searchMode, setActiveTab, setProfileListId, setProfileUsername, setProfileSubPanel, setSearchMode, users]
+    [isAuthenticated, onRequireAuth, profileListId, profileUsername, searchMode, setActiveTab, setDiarySubView, setProfileListId, setProfileUsername, setProfileSubPanel, setListOptionsView, setSearchMode, users]
   );
 
   useEffect(() => {
@@ -90,10 +104,12 @@ export function useAppNavigationDomain({
       const route = parseRoute(window.location.pathname);
       const guardedTab = canNavigateToTab(route.tab, isAuthenticated, route.tab === "search" ? route.searchMode : undefined) ? route.tab : "home";
       setActiveTab(guardedTab);
+      setDiarySubView((route as { diarySubView?: "cafes-probados" }).diarySubView ?? null);
       setSearchMode(route.searchMode);
       setProfileUsername(route.profileUsername);
       setProfileSubPanel(route.profileSection ?? null);
       setProfileListId((route as { profileListId?: string }).profileListId ?? null);
+      setListOptionsView((route as { listOptionsView?: boolean }).listOptionsView === true);
       if (guardedTab === "coffee") {
         setDetailHostTab(null);
         if (!route.coffeeSlug) {
@@ -131,7 +147,7 @@ export function useAppNavigationDomain({
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [coffees, isAuthenticated, setActiveTab, setDetailCoffeeId, setDetailHostTab, setProfileListId, setProfileSubPanel, setProfileUsername, setSearchMode]);
+  }, [coffees, isAuthenticated, setActiveTab, setDetailCoffeeId, setDetailHostTab, setProfileListId, setProfileSubPanel, setProfileUsername, setListOptionsView, setSearchMode]);
 
   const handleNavClick = useCallback(
     (tabId: TabId) => {

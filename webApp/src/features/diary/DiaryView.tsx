@@ -48,6 +48,29 @@ const DIARY_STR = {
 
 const CHART_COL_WIDTH = 42;
 
+/** Mapa nombre de país (normalizado) a código ISO 3166-1 alpha-2 para bandera emoji. */
+const COUNTRY_NAME_TO_ISO: Record<string, string> = {
+  colombia: "CO", brasil: "BR", brazil: "BR", etiopía: "ET", ethiopia: "ET",
+  guatemala: "GT", honduras: "HN", "costa rica": "CR", perú: "PE", peru: "PE",
+  kenia: "KE", kenya: "KE", indonesia: "ID", méxico: "MX", mexico: "MX",
+  nicaragua: "NI", "el salvador": "SV", india: "IN", vietnam: "VN",
+  "papúa nueva guinea": "PG", "papua nueva guinea": "PG", uganda: "UG",
+  tanzania: "TZ", ruanda: "RW", rwanda: "RW", ecuador: "EC",
+  bolivia: "BO", venezuela: "VE", jamaica: "JM", "república dominicana": "DO",
+  "republica dominicana": "DO", haití: "HT", haiti: "HT", yemen: "YE",
+  china: "CN", panamá: "PA", panama: "PA", cuba: "CU", filipinas: "PH",
+  tailandia: "TH", "timor oriental": "TL", laos: "LA", myanmar: "MM",
+  burundi: "BI", camerún: "CM", camerun: "CM", madagascar: "MG",
+  españa: "ES", spain: "ES", italia: "IT", italy: "IT", francia: "FR",
+  alemania: "DE", germany: "DE", "estados unidos": "US", usa: "US",
+};
+
+/** Devuelve código ISO del país para mostrar bandera como imagen, o null si no hay mapa. */
+function getCountryIso(countryName: string): string | null {
+  if (countryName === "—" || !countryName.trim()) return null;
+  return COUNTRY_NAME_TO_ISO[countryName.trim().toLowerCase()] ?? null;
+}
+
 /** Formatea solo dígitos a hh:mm insertando ":" tras 2 dígitos (teclado numérico sin dos puntos). */
 function formatTimeInputToHhMm(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 4);
@@ -72,6 +95,7 @@ export function DiaryView({
   onRemovePantryItem,
   onMarkPantryCoffeeFinished,
   onOpenCoffee,
+  onOpenCafesProbados,
   orderedBrewMethods = []
 }: {
   mode: "mobile" | "desktop";
@@ -99,6 +123,8 @@ export function DiaryView({
   onRemovePantryItem: (pantryItemId: string) => Promise<void>;
   onMarkPantryCoffeeFinished?: (pantryItemId: string) => Promise<void>;
   onOpenCoffee: (coffeeId: string) => void;
+  /** Al pulsar "Cafés probados": abrir página completa (mapa + listado). Si no se pasa, se abre el sheet actual. */
+  onOpenCafesProbados?: () => void;
 }) {
   const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
   const [editEntryId, setEditEntryId] = useState<number | null>(null);
@@ -209,9 +235,47 @@ export function DiaryView({
   }, [visibleEntries]);
 
   const periodDays = period === "hoy" ? 1 : period === "week" || period === "7d" ? 7 : 30;
+  /** Días efectivos del periodo para hábitos (tazas): si es el periodo actual, no contar días futuros. */
+  const effectivePeriodDays = useMemo(() => {
+    if (period === "hoy") return 1;
+    const now = new Date();
+    const todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    if (period === "7d" || period === "week") {
+      const weekStart = selectedDiaryDate
+        ? (() => {
+            const [y, m, d] = selectedDiaryDate.split("-").map(Number);
+            return Date.UTC(y, (m ?? 1) - 1, d ?? 1);
+          })()
+        : (() => {
+            const d = new Date();
+            const day = d.getDay();
+            const diff = day === 0 ? -6 : 1 - day;
+            d.setDate(d.getDate() + diff);
+            return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+          })();
+      const weekEnd = weekStart + 7 * 86400000;
+      if (todayMs >= weekEnd) return 7;
+      if (todayMs < weekStart) return 1;
+      return Math.ceil((todayMs - weekStart) / 86400000) + 1;
+    }
+    if (period === "30d") {
+      const [selY, selM] = (selectedDiaryMonth || "").split("-").map(Number);
+      const isCurrentMonth =
+        selY === now.getFullYear() && (selM ?? 0) === now.getMonth() + 1;
+      if (!isCurrentMonth) return 30;
+      return now.getDate();
+    }
+    return periodDays;
+  }, [period, periodDays, selectedDiaryDate, selectedDiaryMonth]);
+
   const coffeeEntries = useMemo(
     () => visibleEntries.filter((e) => (e.type || "").toUpperCase() !== "WATER"),
     [visibleEntries]
+  );
+  /** Cafés de toda la cuenta (para barista: cafés probados, tostadores, origen favorito). */
+  const allCoffeeEntries = useMemo(
+    () => entries.filter((e) => (e.type || "").toUpperCase() !== "WATER"),
+    [entries]
   );
   const coffeeById = useMemo(() => {
     const map = new Map<string, CoffeeRow>();
@@ -221,16 +285,17 @@ export function DiaryView({
 
   const habitStats = useMemo(() => {
     const cups = coffeeEntries.length;
-    const avgCups = periodDays > 0 ? Math.round((cups / periodDays) * 10) / 10 : 0;
+    const avgCups = effectivePeriodDays > 0 ? Math.round((cups / effectivePeriodDays) * 10) / 10 : 0;
     const sizeCount = new Map<string, number>();
     const methodCount = new Map<string, number>();
     const dayCount = new Map<number, number>();
+    const stripLabPrefix = (s: string) => s.replace(/^(?:lab:\s*|elaboracion:\s*)/i, "").trim();
     coffeeEntries.forEach((entry) => {
       const size = (entry.size_label || "—").trim() || "—";
       sizeCount.set(size, (sizeCount.get(size) ?? 0) + 1);
       const prep = (entry.preparation_type || "").trim();
-      const method = prep.includes("|") ? prep.split("|")[0].trim() : prep;
-      const methodKey = method || DIARY_STR.SIN_METODO;
+      const rawMethod = prep.includes("|") ? prep.split("|")[0].trim() : prep;
+      const methodKey = stripLabPrefix(rawMethod) || DIARY_STR.SIN_METODO;
       methodCount.set(methodKey, (methodCount.get(methodKey) ?? 0) + 1);
       const d = new Date(entry.timestamp).getDay();
       dayCount.set(d, (dayCount.get(d) ?? 0) + 1);
@@ -261,7 +326,7 @@ export function DiaryView({
       }
     });
     return { avgCups, mostSize, mostMethod, busiestDay };
-  }, [coffeeEntries, periodDays]);
+  }, [coffeeEntries, effectivePeriodDays]);
 
   /** Café consumido en los últimos 30 días (para previsión despensa: no depende de la semana seleccionada). */
   const coffeeEntriesLast30 = useMemo(() => {
@@ -330,12 +395,10 @@ export function DiaryView({
 
   const baristaStats = useMemo(() => {
     const byCoffeeId = new Map<string, number>();
-    const countByCoffeeId = new Map<string, number>();
     const roasterSet = new Set<string>();
     const originCount = new Map<string, number>();
-    coffeeEntries.forEach((entry) => {
+    allCoffeeEntries.forEach((entry) => {
       if (entry.coffee_id) {
-        countByCoffeeId.set(entry.coffee_id, (countByCoffeeId.get(entry.coffee_id) ?? 0) + 1);
         const ts = Number(entry.timestamp);
         const prev = byCoffeeId.get(entry.coffee_id);
         if (prev == null || ts < prev) byCoffeeId.set(entry.coffee_id, ts);
@@ -355,18 +418,17 @@ export function DiaryView({
     });
     const coffeesWithFirstTried: Array<{ coffee: CoffeeRow; firstTriedTs: number }> = [];
     byCoffeeId.forEach((firstTriedTs, coffeeId) => {
-      if (countByCoffeeId.get(coffeeId) !== 1) return;
       const coffee = coffeeById.get(coffeeId);
       if (coffee) coffeesWithFirstTried.push({ coffee, firstTriedTs });
     });
     coffeesWithFirstTried.sort((a, b) => a.firstTriedTs - b.firstTriedTs);
     return {
-      distinctCoffees: byCoffeeId.size,
+      distinctCoffees: coffeesWithFirstTried.length,
       coffeesWithFirstTried,
       distinctRoasters: roasterSet.size,
       favoriteOrigin
     };
-  }, [coffeeEntries, coffeeById]);
+  }, [allCoffeeEntries, coffeeById]);
 
   const last30Avg = useMemo(() => {
     const now = Date.now();
@@ -471,10 +533,29 @@ export function DiaryView({
     const targetScroll = Math.max(0, Math.min(maxScroll, currentSlotIndex * colWidth - viewportWidth / 2 + colWidth / 2));
     node.scrollLeft = targetScroll;
   }, [period, chartData.length, currentSlotIndex]);
-  const sortedPantryRows = useMemo(
-    () => [...pantryRows].sort((a, b) => Number(b.item.last_updated || 0) - Number(a.item.last_updated || 0)),
-    [pantryRows]
-  );
+  /** Ordenar despensa por último uso (actividad del usuario): el café más recientemente usado en el diario a la izquierda. */
+  const sortedPantryRows = useMemo(() => {
+    const lastUsed = new Map<string, number>();
+    entries.forEach((entry) => {
+      const ts = Number(entry.timestamp ?? 0);
+      if (entry.pantry_item_id) {
+        const cur = lastUsed.get(entry.pantry_item_id) ?? 0;
+        if (ts > cur) lastUsed.set(entry.pantry_item_id, ts);
+      }
+      if (entry.coffee_id) {
+        const key = `coffee:${entry.coffee_id}`;
+        const cur = lastUsed.get(key) ?? 0;
+        if (ts > cur) lastUsed.set(key, ts);
+      }
+    });
+    const lastUsedFor = (item: PantryItemRow) =>
+      Math.max(
+        lastUsed.get(item.id) ?? 0,
+        lastUsed.get(`coffee:${item.coffee_id}`) ?? 0,
+        Number(item.last_updated ?? 0)
+      );
+    return [...pantryRows].sort((a, b) => lastUsedFor(b.item) - lastUsedFor(a.item));
+  }, [pantryRows, entries]);
   const entryImageByCoffeeId = useMemo(() => {
     const map = new Map<string, string>();
     coffeeCatalog.forEach((coffee) => {
@@ -797,13 +878,13 @@ export function DiaryView({
             }}
           />
         );
-      }) : <li className="diary-empty-card">{EMPTY.DIARY_NO_ENTRIES}</li>}
+      }) : <li className="card diary-empty-card">{EMPTY.DIARY_NO_ENTRIES}</li>}
     </ul>
   );
 
   return (
     <>
-      <article className="diary-analytics-card">
+      <article className="card diary-analytics-card">
         <div className="diary-analytics-top">
           <div className="diary-analytics-head-block">
             <p className="metric-label diary-analytics-label">
@@ -903,7 +984,7 @@ export function DiaryView({
 
       <section className="diary-stats-section" aria-label="Hábito">
         <h3 className="diary-section-title">Hábito</h3>
-        <article className="diary-stats-card diary-habit-card">
+        <article className="card diary-stats-card diary-habit-card">
         <ul className="diary-stats-card-list">
           <li className="diary-stats-card-row">
             <span className="diary-stats-card-label">Tazas</span>
@@ -927,11 +1008,11 @@ export function DiaryView({
 
       <section className="diary-stats-section" aria-label="Consumo">
         <h3 className="diary-section-title">Consumo</h3>
-        <article className="diary-stats-card diary-consumption-card">
+        <article className="card diary-stats-card diary-consumption-card">
         <ul className="diary-stats-card-list">
-          <li className="diary-stats-card-row">
+          <li className="diary-stats-card-row diary-stats-card-row-momento">
             <span className="diary-stats-card-label">Momento</span>
-            <span className="diary-stats-card-value">
+            <span className="diary-stats-card-value diary-stats-card-value-momento">
               Mañana {consumptionStats.momentPct.morning}% · Tarde {consumptionStats.momentPct.afternoon}% · Noche {consumptionStats.momentPct.evening}%
             </span>
           </li>
@@ -940,7 +1021,7 @@ export function DiaryView({
             <span className="diary-stats-card-value">{consumptionStats.avgCaffeine} mg</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Dosis</span>
+            <span className="diary-stats-card-label">Dosis por café</span>
             <span className="diary-stats-card-value">{consumptionStats.avgDose} g</span>
           </li>
           <li className="diary-stats-card-row">
@@ -959,7 +1040,7 @@ export function DiaryView({
 
       <section className="diary-stats-section" aria-label="Barista">
         <h3 className="diary-section-title">Barista</h3>
-        <article className="diary-stats-card diary-barista-card">
+        <article className="card diary-stats-card diary-barista-card">
         <ul className="diary-stats-card-list">
           <li className="diary-stats-card-row diary-stats-card-row-clickable">
             <span className="diary-stats-card-label">Cafés probados</span>
@@ -971,7 +1052,7 @@ export function DiaryView({
               type="button"
               className="diary-stats-card-row-tap"
               aria-label="Ver listado de cafés probados"
-              onClick={() => setShowBaristaCoffeeList(true)}
+              onClick={() => (onOpenCafesProbados ? onOpenCafesProbados() : setShowBaristaCoffeeList(true))}
             />
           </li>
           <li className="diary-stats-card-row">
@@ -980,7 +1061,27 @@ export function DiaryView({
           </li>
           <li className="diary-stats-card-row">
             <span className="diary-stats-card-label">Origen favorito</span>
-            <span className="diary-stats-card-value">{baristaStats.favoriteOrigin}</span>
+            <span className="diary-stats-card-value diary-stats-card-value-origin">
+              {(() => {
+                const iso = getCountryIso(baristaStats.favoriteOrigin);
+                if (iso) {
+                  return (
+                    <>
+                      <img
+                        src={`https://flagcdn.com/w40/${iso.toLowerCase()}.png`}
+                        alt=""
+                        className="diary-origin-flag-img"
+                        width={24}
+                        height={18}
+                        loading="lazy"
+                      />
+                      <span>{baristaStats.favoriteOrigin}</span>
+                    </>
+                  );
+                }
+                return baristaStats.favoriteOrigin;
+              })()}
+            </span>
           </li>
         </ul>
       </article>
@@ -1041,64 +1142,62 @@ export function DiaryView({
 
       {pantryOptionsPantryItemId ? (
         <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => setPantryOptionsPantryItemId(null)} onClick={() => setPantryOptionsPantryItemId(null)}>
-          <SheetCard className="diary-sheet diary-sheet-pantry-options" onClick={(event) => event.stopPropagation()}>
+          <SheetCard className="diary-sheet diary-sheet-pantry-options list-options-general-wrap" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
-            <div className="diary-sheet-list">
-              <Button variant="plain"
-                type="button"
-                className="diary-sheet-action diary-sheet-action-pantry"
-                onClick={() => {
-                  const row = sortedPantryRows.find((item) => item.item.id === pantryOptionsPantryItemId);
-                  if (!row) return;
-                  setStockEditPantryItemId(row.item.id);
-                  setStockEditTotal(String(Math.max(1, row.item.total_grams)));
-                  setStockEditRemaining(String(Math.max(0, row.item.grams_remaining)));
-                  setPantryOptionsPantryItemId(null);
-                }}
-              >
-                <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                  edit
-                </span>
-                <span>Editar stock</span>
-                <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                  chevron_right
-                </span>
-              </Button>
-              {onMarkPantryCoffeeFinished ? (
-                <Button variant="plain"
-                  type="button"
-                  className="diary-sheet-action diary-sheet-action-pantry"
-                  onClick={() => {
-                    setPantryFinishedConfirmPantryId(pantryOptionsPantryItemId);
-                    setPantryOptionsPantryItemId(null);
-                  }}
-                >
-                  <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                    check_circle
-                  </span>
-                  <span>Café terminado</span>
-                  <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                    chevron_right
-                  </span>
-                </Button>
-              ) : null}
-              <Button variant="plain"
-                type="button"
-                className="diary-sheet-action diary-sheet-action-pantry"
-                disabled={removingStock}
-                onClick={() => {
-                  setPantryDeleteConfirmPantryId(pantryOptionsPantryItemId);
-                  setPantryOptionsPantryItemId(null);
-                }}
-              >
-                <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                  delete
-                </span>
-                <span>Eliminar de la despensa</span>
-                <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
-                  chevron_right
-                </span>
-              </Button>
+            <div className="diary-sheet-list list-options-general-wrap">
+              <div className="list-options-page-section">
+                <h3 className="create-list-privacy-subtitle">Organiza</h3>
+                <div className="list-options-general-card">
+                  <Button variant="plain"
+                    type="button"
+                    className="list-options-page-action diary-sheet-action-pantry"
+                    onClick={() => {
+                      const row = sortedPantryRows.find((item) => item.item.id === pantryOptionsPantryItemId);
+                      if (!row) return;
+                      setStockEditPantryItemId(row.item.id);
+                      setStockEditTotal(String(Math.max(1, row.item.total_grams)));
+                      setStockEditRemaining(String(Math.max(0, row.item.grams_remaining)));
+                      setPantryOptionsPantryItemId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">edit</span>
+                    <span>Editar stock</span>
+                    <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                  </Button>
+                  {onMarkPantryCoffeeFinished ? (
+                    <Button variant="plain"
+                      type="button"
+                      className="list-options-page-action diary-sheet-action-pantry"
+                      onClick={() => {
+                        setPantryFinishedConfirmPantryId(pantryOptionsPantryItemId);
+                        setPantryOptionsPantryItemId(null);
+                      }}
+                    >
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">check_circle</span>
+                      <span>Café terminado</span>
+                      <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+              <div className="list-options-page-section list-options-section-spaced">
+                <h3 className="create-list-privacy-subtitle">General</h3>
+                <div className="list-options-general-card">
+                  <Button variant="plain"
+                    type="button"
+                    className="list-options-page-action diary-sheet-action-pantry"
+                    disabled={removingStock}
+                    onClick={() => {
+                      setPantryDeleteConfirmPantryId(pantryOptionsPantryItemId);
+                      setPantryOptionsPantryItemId(null);
+                    }}
+                  >
+                    <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">delete</span>
+                    <span>Eliminar de la despensa</span>
+                    <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
+                  </Button>
+                </div>
+              </div>
             </div>
           </SheetCard>
         </SheetOverlay>
@@ -1343,7 +1442,7 @@ export function DiaryView({
                       <h4 className="diary-edit-entry-block-title">{DIARY_STR.METODO_UPPER}</h4>
                       <div
                         ref={editMethodScrollRef}
-                        className={`diary-edit-entry-presets is-coffee ${editChipsDragging ? "is-dragging" : ""} ${methodLeftFade ? "has-left-fade" : ""} ${methodRightFade ? "has-right-fade" : ""}`.trim()}
+                        className={`diary-edit-entry-presets is-coffee ${editChipsDragging ? "is-dragging" : ""}`.trim()}
                         onPointerDown={(event) => handleEditScrollPointerDown(event, "method")}
                         onPointerMove={handleEditScrollPointerMove}
                         onPointerUp={handleEditScrollPointerEnd}
@@ -1356,9 +1455,9 @@ export function DiaryView({
                             onClick={() => setEditBrewMethod(method.name)}
                           >
                             {method.icon === "bolt" ? (
-                              <UiIcon name="bolt" className="ui-icon timeline-elaboration-method-icon-bolt" aria-hidden />
+                              <UiIcon name="bolt" className="ui-icon home-elaboration-method-icon-bolt" aria-hidden />
                             ) : method.icon === "water" ? (
-                              <UiIcon name="water" className="ui-icon timeline-elaboration-method-icon-water" aria-hidden />
+                              <UiIcon name="water" className="ui-icon home-elaboration-method-icon-water" aria-hidden />
                             ) : (
                               <img src={method.icon} alt="" aria-hidden="true" />
                             )}
@@ -1372,7 +1471,7 @@ export function DiaryView({
                     <h4 className="diary-edit-entry-block-title">{DIARY_STR.TIPO}</h4>
                     <div
                       ref={editPrepScrollRef}
-                      className={`diary-edit-entry-presets diary-edit-entry-tipo-presets is-coffee ${editChipsDragging ? "is-dragging" : ""} ${prepLeftFade ? "has-left-fade" : ""} ${prepRightFade ? "has-right-fade" : ""}`.trim()}
+                      className={`diary-edit-entry-presets diary-edit-entry-tipo-presets is-coffee ${editChipsDragging ? "is-dragging" : ""}`.trim()}
                       onPointerDown={(event) => handleEditScrollPointerDown(event, "prep")}
                       onPointerMove={handleEditScrollPointerMove}
                       onPointerUp={handleEditScrollPointerEnd}
@@ -1436,7 +1535,7 @@ export function DiaryView({
                     <h4 className="diary-edit-entry-block-title">{DIARY_STR.TAMANO}</h4>
                     <div
                       ref={editSizeScrollRef}
-                      className={`diary-coffee-size-presets diary-edit-entry-size-presets ${editChipsDragging ? "is-dragging" : ""} ${sizeLeftFade ? "has-left-fade" : ""} ${sizeRightFade ? "has-right-fade" : ""}`.trim()}
+                      className={`diary-coffee-size-presets diary-edit-entry-size-presets ${editChipsDragging ? "is-dragging" : ""}`.trim()}
                       onPointerDown={(event) => handleEditScrollPointerDown(event, "size")}
                       onPointerMove={handleEditScrollPointerMove}
                       onPointerUp={handleEditScrollPointerEnd}

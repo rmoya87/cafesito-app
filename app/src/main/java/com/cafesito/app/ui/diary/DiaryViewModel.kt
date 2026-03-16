@@ -1,8 +1,11 @@
 package com.cafesito.app.ui.diary
 
 import android.content.Context
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
+import java.io.ByteArrayOutputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.*
@@ -16,6 +19,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
 import javax.inject.Inject
+
+/** Convierte imagen desde Uri a WebP (calidad 85) para subir a Supabase. */
+private fun Context.uriToWebPBytes(uri: Uri): ByteArray? {
+    return runCatching {
+        contentResolver.openInputStream(uri)?.use { input ->
+            val bitmap = BitmapFactory.decodeStream(input) ?: return@runCatching null
+            val out = ByteArrayOutputStream()
+            if (bitmap.compress(Bitmap.CompressFormat.WEBP, 85, out)) out.toByteArray() else null
+        }
+    }.getOrNull()
+}
 
 /** Devuelve el lunes 00:00 de la semana que contiene la fecha dada (en ms). */
 fun getMondayOfWeek(dateMs: Long): Long {
@@ -114,7 +128,8 @@ data class DiaryBaristaStats(
 class DiaryViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
     private val coffeeRepository: CoffeeRepository,
-    @ApplicationContext private val context: Context
+    private val syncManager: SyncManager,
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
@@ -247,8 +262,13 @@ class DiaryViewModel @Inject constructor(
     val availableCoffees: StateFlow<List<CoffeeWithDetails>> = coffeeRepository.allCoffees
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** Catálogo + custom para número y listado de cafés probados (mismo criterio que CafesProbadosViewModel). */
+    private val coffeesForBarista: StateFlow<List<CoffeeWithDetails>> = coffeeRepository.allCoffeesIncludingCustom
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val analytics: StateFlow<DiaryAnalytics?> = combine(allEntriesFlow, _selectedPeriod, _selectedDiaryDateMs) { entries, period, selectedDateMs ->
+    val analytics: StateFlow<DiaryAnalytics> = combine(allEntriesFlow, _selectedPeriod, _selectedDiaryDateMs) { entries, period, selectedDateMs ->
+        try {
         val calendar = Calendar.getInstance()
         val now = System.currentTimeMillis()
         calendar.timeInMillis = now
@@ -379,31 +399,74 @@ class DiaryViewModel @Inject constructor(
             period = period,
             isCurrentWeek = isCurrentWeek
         )
+        } catch (e: Exception) {
+            defaultDiaryAnalytics()
+        }
     }
     .onEach { _isLoading.value = false }
     .flowOn(Dispatchers.Default)
-    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), defaultDiaryAnalytics())
+
+    private fun defaultDiaryAnalytics(): DiaryAnalytics {
+        val chartData = when (_selectedPeriod.value) {
+            DiaryPeriod.HOY -> (0..23).map { ChartEntry(String.format("%02d:00", it), 0, 0) }
+            DiaryPeriod.SEMANA -> listOf("L", "M", "X", "J", "V", "S", "D").map { ChartEntry(it, 0, 0) }
+            DiaryPeriod.MES -> (1..31).map { ChartEntry(it.toString(), 0, 0) }
+        }
+        return DiaryAnalytics(
+            chartData = chartData,
+            waterCount = 0,
+            totalWaterMl = 0,
+            cupsCount = 0,
+            totalCaffeine = 0,
+            averageCaffeine = 0,
+            avgCaffeineLast30 = 0,
+            avgCupsLast30 = 0f,
+            avgHydrationPctLast30 = 0,
+            caffeineTrendPct = 0,
+            hydrationTrendPct = 0,
+            hydrationProgressPct = 0,
+            period = _selectedPeriod.value,
+            isCurrentWeek = false
+        )
+    }
 
     private val dayNames = listOf("Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
     private val sinMetodo = "—"
 
+    private fun stripLabPrefix(prep: String): String {
+        val raw = if (prep.contains("|")) prep.substringBefore("|").trim() else prep
+        return raw.replace(Regex("^(?:lab:\\s*|elaboracion:\\s*)", RegexOption.IGNORE_CASE), "").trim().ifEmpty { sinMetodo }
+    }
+
     val habitStats: StateFlow<DiaryHabitStats> = combine(diaryEntries, _selectedPeriod, _selectedDiaryDateMs) { entries, period, selectedMs ->
         val coffeeEntries = entries.filter { isCupEntry(it) }
+        val now = System.currentTimeMillis()
         val periodDays = when (period) {
             DiaryPeriod.HOY -> 1
-            DiaryPeriod.SEMANA -> 7
+            DiaryPeriod.SEMANA -> {
+                val currentWeekMonday = getMondayOfWeek(now)
+                val selectedWeekMonday = getMondayOfWeek(selectedMs)
+                if (selectedWeekMonday == currentWeekMonday) {
+                    val cal = Calendar.getInstance().apply { timeInMillis = now }
+                    val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+                    val daysFromMonday = if (dayOfWeek == Calendar.SUNDAY) 6 else dayOfWeek - Calendar.MONDAY
+                    (daysFromMonday + 1).coerceIn(1, 7)
+                } else 7
+            }
             DiaryPeriod.MES -> {
-                val c = Calendar.getInstance().apply { timeInMillis = selectedMs }
-                c.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val calSelected = Calendar.getInstance().apply { timeInMillis = selectedMs }
+                val calNow = Calendar.getInstance()
+                val isCurrentMonth = calSelected.get(Calendar.YEAR) == calNow.get(Calendar.YEAR) &&
+                    calSelected.get(Calendar.MONTH) == calNow.get(Calendar.MONTH)
+                if (isCurrentMonth) calNow.get(Calendar.DAY_OF_MONTH)
+                else calSelected.getActualMaximum(Calendar.DAY_OF_MONTH)
             }
         }
         val avgCups = if (periodDays > 0) "%.1f".format(Locale.ROOT, coffeeEntries.size.toDouble() / periodDays) else "0"
         val sizeCount = coffeeEntries.groupingBy { (it.sizeLabel ?: "").trim().ifEmpty { "—" } }.eachCount()
         val mostSize = sizeCount.maxByOrNull { it.value }?.key ?: "—"
-        val methodCount = coffeeEntries.groupingBy { e ->
-            val prep = (e.preparationType ?: "").trim()
-            if (prep.contains("|")) prep.substringBefore("|").trim() else prep
-        }.eachCount().mapKeys { (k, _) -> k.ifEmpty { sinMetodo } }
+        val methodCount = coffeeEntries.groupingBy { e -> stripLabPrefix(e.preparationType) }.eachCount()
         val mostMethod = methodCount.maxByOrNull { it.value }?.key ?: sinMetodo
         val dayCount = coffeeEntries.groupingBy { e ->
             Calendar.getInstance().apply { timeInMillis = e.timestamp }.get(Calendar.DAY_OF_WEEK) - 1
@@ -474,13 +537,13 @@ class DiaryViewModel @Inject constructor(
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000),
         DiaryConsumptionStats(0, 0, 0, 0, 0, "—", null))
 
-    val baristaStats: StateFlow<DiaryBaristaStats> = combine(diaryEntries, availableCoffees) { entries, coffees ->
+    /** Datos barista (cafés probados, tostadores, origen favorito): totalidad de la cuenta, no del periodo. Misma lógica que CafesProbadosViewModel (catálogo+custom, número = tamaño del listado). */
+    val baristaStats: StateFlow<DiaryBaristaStats> = combine(allDiaryEntries, coffeesForBarista) { entries, coffees ->
         val coffeeEntries = entries.filter { isCupEntry(it) }
         val coffeeById = coffees.associate { it.coffee.id to it.coffee }
         val byCoffeeId = mutableMapOf<String, Long>()
         val roasterSet = mutableSetOf<String>()
         val originCount = mutableMapOf<String, Int>()
-        val countByCoffeeId = coffeeEntries.mapNotNull { it.coffeeId }.groupingBy { it }.eachCount()
         coffeeEntries.forEach { e ->
             e.coffeeId?.let { id ->
                 val ts = e.timestamp
@@ -494,13 +557,11 @@ class DiaryViewModel @Inject constructor(
             }
         }
         val favoriteOrigin = originCount.maxByOrNull { it.value }?.key ?: "—"
-        // Solo mostrar "Primera vez" si ese café tiene exactamente una entrada (no si lo ha tomado más veces).
         val coffeesWithFirstTried = byCoffeeId.mapNotNull { (id, firstMs) ->
-            if ((countByCoffeeId[id] ?: 0) != 1) return@mapNotNull null
             coffeeById[id]?.let { TriedCoffeeItem(it, firstMs) }
         }.sortedBy { it.firstTriedMs }
         DiaryBaristaStats(
-            distinctCoffees = byCoffeeId.size,
+            distinctCoffees = coffeesWithFirstTried.size,
             distinctRoasters = roasterSet.size,
             favoriteOrigin = favoriteOrigin,
             coffeesWithFirstTried = coffeesWithFirstTried
@@ -522,11 +583,11 @@ class DiaryViewModel @Inject constructor(
         }
     }
 
-    /** Refresca la lista de cafés (tabla coffees) para pantallas que la usan (p. ej. AddStockScreen). */
+    /** Refresca la lista de cafés (tabla coffees) desde Supabase para pantallas que la usan (p. ej. AddStockScreen). Centralizado en SyncManager con reintento. */
     fun refreshCoffeesForStock() {
         viewModelScope.launch {
             try {
-                coffeeRepository.syncCoffees()
+                syncManager.syncCoffeesIfNeeded(force = true)
             } catch (e: Exception) { /* best-effort */ }
         }
     }
@@ -564,9 +625,15 @@ class DiaryViewModel @Inject constructor(
         amountMl: Int, 
         coffeeGrams: Int,
         preparationType: String,
-        sizeLabel: String? = null
+        sizeLabel: String? = null,
+        pantryItemId: String? = null
     ) {
-        diaryRepository.addDiaryEntry(coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams, preparationType, sizeLabel)
+        diaryRepository.addDiaryEntry(
+            coffeeId, coffeeName, coffeeBrand, caffeineAmount, "CUP", amountMl, coffeeGrams,
+            preparationType, sizeLabel,
+            reduceFromPantry = true,
+            reduceFromPantryItemId = pantryItemId
+        )
         refreshDiaryWidget()
     }
     
@@ -578,8 +645,7 @@ class DiaryViewModel @Inject constructor(
     
     fun updateEntry(entry: DiaryEntryEntity) {
         viewModelScope.launch {
-            diaryRepository.updateDiaryEntry(entry)
-            refreshDiaryWidget()
+            runCatching { diaryRepository.updateDiaryEntry(entry) }.onSuccess { refreshDiaryWidget() }
         }
     }
 
@@ -637,17 +703,22 @@ class DiaryViewModel @Inject constructor(
     fun saveCustomCoffee(
         name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String, totalGrams: Int,
-        imageUri: Uri?, onSuccess: () -> Unit
+        imageUri: Uri?, onSuccess: () -> Unit,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ) {
         viewModelScope.launch {
             try {
                 val imageBytes = imageUri?.let { uri ->
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    }
+                    withContext(Dispatchers.IO) { context.uriToWebPBytes(uri) }
                 }
                 diaryRepository.createCustomCoffeeAndAddToPantry(
-                    name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams
+                    name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams,
+                    descripcion, proceso, codigoBarras, moliendaRecomendada, productUrl, aroma, sabor, cuerpo, acidez, dulzura
                 )
                 onSuccess()
             } catch (e: Exception) {
@@ -659,14 +730,18 @@ class DiaryViewModel @Inject constructor(
     fun saveCustomCoffeeForDiary(
         name: String, brand: String, specialty: String, roast: String?, variety: String?,
         country: String, hasCaffeine: Boolean, format: String,
-        imageUri: Uri?, totalGrams: Int = 250, onSuccess: (String) -> Unit
+        imageUri: Uri?, totalGrams: Int = 250, onSuccess: (String) -> Unit,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ) {
         viewModelScope.launch {
             try {
                 val imageBytes = imageUri?.let { uri ->
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    }
+                    withContext(Dispatchers.IO) { context.uriToWebPBytes(uri) }
                 }
                 val coffeeId = diaryRepository.createCustomCoffeeAndAddToPantry(
                     name = name,
@@ -678,7 +753,17 @@ class DiaryViewModel @Inject constructor(
                     hasCaffeine = hasCaffeine,
                     format = format,
                     imageBytes = imageBytes,
-                    totalGrams = totalGrams
+                    totalGrams = totalGrams,
+                    descripcion = descripcion,
+                    proceso = proceso,
+                    codigoBarras = codigoBarras,
+                    moliendaRecomendada = moliendaRecomendada,
+                    productUrl = productUrl,
+                    aroma = aroma,
+                    sabor = sabor,
+                    cuerpo = cuerpo,
+                    acidez = acidez,
+                    dulzura = dulzura
                 )
                 coffeeId?.let(onSuccess)
             } catch (e: Exception) {
@@ -690,17 +775,22 @@ class DiaryViewModel @Inject constructor(
     fun updateCustomCoffee(
         id: String, name: String, brand: String, specialty: String, roast: String?,
         variety: String?, country: String, hasCaffeine: Boolean, format: String,
-        imageUri: Uri?, totalGrams: Int, onSuccess: () -> Unit
+        imageUri: Uri?, totalGrams: Int, onSuccess: () -> Unit,
+        descripcion: String? = null,
+        proceso: String? = null,
+        codigoBarras: String? = null,
+        moliendaRecomendada: String? = null,
+        productUrl: String? = null,
+        aroma: Float = 0f, sabor: Float = 0f, cuerpo: Float = 0f, acidez: Float = 0f, dulzura: Float = 0f
     ) {
         viewModelScope.launch {
             try {
                 val imageBytes = imageUri?.let { uri ->
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    }
+                    withContext(Dispatchers.IO) { context.uriToWebPBytes(uri) }
                 }
                 diaryRepository.updateCustomCoffee(
-                    id, name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams
+                    id, name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams,
+                    descripcion, proceso, codigoBarras, moliendaRecomendada, productUrl, aroma, sabor, cuerpo, acidez, dulzura
                 )
                 refreshDiaryWidget()
                 onSuccess()

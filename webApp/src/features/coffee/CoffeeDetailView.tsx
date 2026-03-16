@@ -2,7 +2,7 @@ import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { EMPTY } from "../../core/emptyErrorStrings";
 import { toRelativeMinutes } from "../../core/time";
-import type { CoffeeReviewRow, CoffeeRow, PantryItemRow, UserListRow, UserRow } from "../../types";
+import type { CoffeeReviewRow, CoffeeRow, ListPrivacy, PantryItemRow, UserListRow, UserRow } from "../../types";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
 import { CreateListSheet } from "../lists/CreateListSheet";
@@ -75,9 +75,10 @@ export function CoffeeDetailView({
   fullPage: boolean;
   externalOpenStockSignal: number;
   userLists?: UserListRow[];
-  onCreateList?: (name: string, isPublic: boolean) => Promise<void>;
+  onCreateList?: (name: string, privacy: ListPrivacy) => Promise<void>;
   onAddCoffeeToList?: (listId: string) => Promise<void>;
 }) {
+  const ADD_TO_LIST_FAVORITES_ID = "__favorites";
   const [showSensorySheet, setShowSensorySheet] = useState(false);
   const [showStockSheet, setShowStockSheet] = useState(false);
   const [showReviewSheet, setShowReviewSheet] = useState(false);
@@ -92,6 +93,11 @@ export function CoffeeDetailView({
   const [failedReviewAvatarUrls, setFailedReviewAvatarUrls] = useState<Set<string>>(new Set());
   const [showAddToListModal, setShowAddToListModal] = useState(false);
   const [showCreateListInModal, setShowCreateListInModal] = useState(false);
+  const [addToListSelectedIds, setAddToListSelectedIds] = useState<Set<string>>(new Set());
+  const [addToListSaving, setAddToListSaving] = useState(false);
+  useEffect(() => {
+    if (showAddToListModal) setAddToListSelectedIds(new Set());
+  }, [showAddToListModal]);
 
   useEffect(() => {
     setCurrentUserAvatarFailed(false);
@@ -214,11 +220,11 @@ export function CoffeeDetailView({
           <p className="coffee-origin">{(coffee.marca ?? "Marca").toUpperCase()}</p>
           <h1 className="coffee-detail-title">{coffee.nombre}</h1>
         </div>
-        {avgRating > 0 ? (
-          <span className="coffee-detail-rating-badge">
-            <UiIcon name="star" className="ui-icon" />
-            <strong>{avgRating.toFixed(1)}</strong>
-          </span>
+        {avgRating > 0 && reviews.length > 0 ? (
+          <div className="coffee-detail-nota-block" aria-label="Nota del café">
+            <p className="coffee-detail-nota-title">NOTA</p>
+            <p className="coffee-detail-nota-value">{avgRating.toFixed(1)}</p>
+          </div>
         ) : null}
       </header>
 
@@ -300,39 +306,40 @@ export function CoffeeDetailView({
       <section className="coffee-detail-section coffee-detail-opinions-section">
         <div className="coffee-detail-section-head">
           <h3 className="section-title">Opiniones</h3>
-          <Button variant="plain"
-            className="coffee-detail-opinions-cta"
-            onClick={() => {
-              if (isGuest) {
-                onRequireAuth();
-                return;
-              }
-              setReviewSheetError(null);
-              setShowReviewSheet(true);
-            }}
-          >
-            {currentUserReview ? "EDITAR" : "+ AÑADIR"}
-          </Button>
+          {!currentUserReview ? (
+            <Button variant="plain"
+              className="coffee-detail-opinions-cta"
+              onClick={() => {
+                if (isGuest) {
+                  onRequireAuth();
+                  return;
+                }
+                setReviewSheetError(null);
+                setShowReviewSheet(true);
+              }}
+            >
+              + AÑADIR
+            </Button>
+          ) : null}
         </div>
         {!hasAnyOpinions ? (
           <p className="coffee-detail-opinions-empty">{EMPTY.OPINIONS}</p>
         ) : null}
         {currentUserReview ? (
-          <article className="coffee-card coffee-detail-opinion-preview">
-            <p className="coffee-detail-opinion-label">Tu opinión</p>
+          <article className="coffee-card coffee-detail-opinion-preview coffee-detail-opinion-card">
             <div className="coffee-detail-opinion-head">
-              {currentUser?.id ? (
-                <Button variant="plain"
-                  className="coffee-detail-opinion-user-link"
-                  onClick={() => {
-                    if (isGuest) {
-                      onRequireAuth();
-                      return;
-                    }
-                    onOpenUserProfile(currentUser.id);
-                  }}
-                >
-                  <span className="coffee-detail-opinion-user">
+              <div className="coffee-detail-opinion-avatar-wrap">
+                {currentUser?.id ? (
+                  <Button variant="plain"
+                    className="coffee-detail-opinion-user-link"
+                    onClick={() => {
+                      if (isGuest) {
+                        onRequireAuth();
+                        return;
+                      }
+                      onOpenUserProfile(currentUser.id);
+                    }}
+                  >
                     {currentUser.avatar_url && !currentUserAvatarFailed ? (
                       <img
                         className="coffee-detail-opinion-avatar"
@@ -349,43 +356,72 @@ export function CoffeeDetailView({
                         {(currentUser.username ?? "tu").slice(0, 2).toUpperCase()}
                       </span>
                     )}
-                    <span className="coffee-detail-opinion-copy">
-                      <span className="feed-user">@{currentUser.username}</span>
-                      <span className="feed-meta">{toRelativeMinutes(currentUserReview.timestamp ?? 0)}</span>
-                    </span>
-                  </span>
-                </Button>
-              ) : (
-                <div className="coffee-detail-opinion-user">
+                  </Button>
+                ) : (
                   <div className="coffee-detail-opinion-avatar" aria-hidden="true">TU</div>
-                  <div className="coffee-detail-opinion-copy">
-                    <p className="feed-user">@tu_usuario</p>
-                    <p className="feed-meta">{toRelativeMinutes(currentUserReview.timestamp ?? 0)}</p>
-                  </div>
-                </div>
-              )}
-              <p className="feed-meta coffee-detail-opinion-rating"><UiIcon name="star" className="ui-icon" />{currentUserReview.rating.toFixed(1)} / 5</p>
-            </div>
-            {currentUserReview.comment ? <p className="feed-text">{currentUserReview.comment}</p> : null}
-            {currentUserReview.image_url ? <img className="coffee-detail-review-image" src={currentUserReview.image_url} alt="Tu reseña" loading="lazy" decoding="async" /> : null}
-          </article>
-        ) : null}
-        <ul className="coffee-list">
-          {otherReviews.map((review) => (
-            <li key={`${review.user_id}-${review.id ?? review.timestamp ?? 0}`} className="coffee-card coffee-detail-opinion-item">
-              <div className="coffee-detail-opinion-head">
-                {review.user?.id ? (
+                )}
+              </div>
+              <div className="coffee-detail-opinion-body">
+                {currentUser?.id ? (
                   <Button variant="plain"
-                    className="coffee-detail-opinion-user-link"
+                    className="coffee-detail-opinion-user-link coffee-detail-opinion-copy-link"
                     onClick={() => {
                       if (isGuest) {
                         onRequireAuth();
                         return;
                       }
-                      onOpenUserProfile(review.user!.id);
+                      onOpenUserProfile(currentUser.id);
                     }}
                   >
-                    <span className="coffee-detail-opinion-user">
+                    <span className="coffee-detail-opinion-copy">
+                      <span className="feed-user">@{currentUser.username}</span>
+                      <span className="feed-meta">{toRelativeMinutes(currentUserReview.timestamp ?? 0)}</span>
+                    </span>
+                  </Button>
+                ) : (
+                  <div className="coffee-detail-opinion-copy">
+                    <p className="feed-user">@tu_usuario</p>
+                    <p className="feed-meta">{toRelativeMinutes(currentUserReview.timestamp ?? 0)}</p>
+                  </div>
+                )}
+                <span className="coffee-detail-opinion-rating-chip" aria-label="Nota">
+                  <UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(currentUserReview.rating)} / 5
+                </span>
+                {currentUserReview.comment ? <p className="feed-text coffee-detail-opinion-comment">{currentUserReview.comment}</p> : null}
+                {currentUserReview.image_url ? <img className="coffee-detail-review-image" src={currentUserReview.image_url} alt="Tu reseña" loading="lazy" decoding="async" /> : null}
+              </div>
+              <Button variant="plain"
+                className="coffee-detail-opinions-cta coffee-detail-opinion-editar"
+                onClick={() => {
+                  if (isGuest) {
+                    onRequireAuth();
+                    return;
+                  }
+                  setReviewSheetError(null);
+                  setShowReviewSheet(true);
+                }}
+              >
+                Editar
+              </Button>
+            </div>
+          </article>
+        ) : null}
+        <ul className="coffee-list">
+          {otherReviews.map((review) => (
+            <li key={`${review.user_id}-${review.id ?? review.timestamp ?? 0}`} className="coffee-card coffee-detail-opinion-item coffee-detail-opinion-card">
+              <div className="coffee-detail-opinion-head">
+                <div className="coffee-detail-opinion-avatar-wrap">
+                  {review.user?.id ? (
+                    <Button variant="plain"
+                      className="coffee-detail-opinion-user-link"
+                      onClick={() => {
+                        if (isGuest) {
+                          onRequireAuth();
+                          return;
+                        }
+                        onOpenUserProfile(review.user!.id);
+                      }}
+                    >
                       {review.user.avatar_url && !failedReviewAvatarUrls.has(review.user.avatar_url) ? (
                         <img
                           className="coffee-detail-opinion-avatar"
@@ -402,25 +438,41 @@ export function CoffeeDetailView({
                           {(review.user.username ?? "us").slice(0, 2).toUpperCase()}
                         </span>
                       )}
+                    </Button>
+                  ) : (
+                    <div className="coffee-detail-opinion-avatar" aria-hidden="true">US</div>
+                  )}
+                </div>
+                <div className="coffee-detail-opinion-body">
+                  {review.user?.id ? (
+                    <Button variant="plain"
+                      className="coffee-detail-opinion-user-link coffee-detail-opinion-copy-link"
+                      onClick={() => {
+                        if (isGuest) {
+                          onRequireAuth();
+                          return;
+                        }
+                        onOpenUserProfile(review.user!.id);
+                      }}
+                    >
                       <span className="coffee-detail-opinion-copy">
                         <span className="feed-user">@{review.user.username}</span>
                         <span className="feed-meta">{toRelativeMinutes(review.timestamp ?? 0)}</span>
                       </span>
-                    </span>
-                  </Button>
-                ) : (
-                  <div className="coffee-detail-opinion-user">
-                    <div className="coffee-detail-opinion-avatar" aria-hidden="true">US</div>
+                    </Button>
+                  ) : (
                     <div className="coffee-detail-opinion-copy">
                       <p className="feed-user">@usuario</p>
                       <p className="feed-meta">{toRelativeMinutes(review.timestamp ?? 0)}</p>
                     </div>
-                  </div>
-                )}
-                <p className="feed-meta coffee-detail-opinion-rating"><UiIcon name="star" className="ui-icon" />{review.rating.toFixed(1)} / 5</p>
+                  )}
+                  <span className="coffee-detail-opinion-rating-chip" aria-label="Nota">
+                    <UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(review.rating)} / 5
+                  </span>
+                  {review.comment ? <p className="feed-text coffee-detail-opinion-comment">{review.comment}</p> : null}
+                  {review.image_url ? <img className="coffee-detail-review-image" src={review.image_url} alt="Imagen reseña" loading="lazy" decoding="async" /> : null}
+                </div>
               </div>
-              {review.comment ? <p className="feed-text">{review.comment}</p> : null}
-              {review.image_url ? <img className="coffee-detail-review-image" src={review.image_url} alt="Imagen reseña" loading="lazy" decoding="async" /> : null}
             </li>
           ))}
         </ul>
@@ -654,7 +706,7 @@ export function CoffeeDetailView({
             <SheetOverlay
               role="dialog"
               aria-modal="true"
-              aria-label="Escribir reseña"
+              aria-label="Tu opinión"
               onDismiss={() => {
                 setReviewSheetError(null);
                 setShowReviewSheet(false);
@@ -667,7 +719,7 @@ export function CoffeeDetailView({
               <SheetCard className="coffee-detail-sheet coffee-detail-review-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <SheetHeader>
-              <strong className="sheet-title">TU RESEÑA</strong>
+              <strong className="sheet-title">TU OPINIÓN</strong>
             </SheetHeader>
             <div className="coffee-detail-sheet-body coffee-detail-review-editor">
               <label className="coffee-detail-rating-field coffee-detail-review-rating-field">
@@ -769,18 +821,39 @@ export function CoffeeDetailView({
               {reviewSheetError ? <p className="coffee-detail-sheet-error">{reviewSheetError}</p> : null}
             </div>
             <div className="coffee-detail-actions coffee-detail-sheet-actions coffee-detail-review-actions">
-              <Button
-                variant="ghost"
-                className="action-button action-button-ghost coffee-detail-review-cancel"
-                disabled={savingReview || deletingReview}
-                onClick={() => {
-                  if (savingReview || deletingReview) return;
-                  setReviewSheetError(null);
-                  setShowReviewSheet(false);
-                }}
-              >
-                Cancelar
-              </Button>
+              {canDeleteReview ? (
+                <Button
+                  variant="text"
+                  className="action-button text-button coffee-detail-review-delete coffee-detail-review-left"
+                  disabled={savingReview || deletingReview}
+                  onClick={async () => {
+                    if (savingReview || deletingReview) return;
+                    setDeletingReview(true);
+                    try {
+                      await onDeleteReview();
+                      setReviewSheetError(null);
+                      setShowReviewSheet(false);
+                    } finally {
+                      setDeletingReview(false);
+                    }
+                  }}
+                >
+                  {deletingReview ? "Borrando..." : "Eliminar"}
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="action-button action-button-ghost coffee-detail-review-cancel"
+                  disabled={savingReview || deletingReview}
+                  onClick={() => {
+                    if (savingReview || deletingReview) return;
+                    setReviewSheetError(null);
+                    setShowReviewSheet(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              )}
               <Button variant="primary"
                 className="action-button coffee-detail-review-submit"
                 disabled={!canSaveReview || savingReview || deletingReview}
@@ -807,25 +880,6 @@ export function CoffeeDetailView({
                 {savingReview ? "Publicando..." : "Publicar"}
               </Button>
             </div>
-            {canDeleteReview ? (
-              <div className="coffee-detail-review-delete-wrap">
-                <Button variant="text"
-                  className="text-button coffee-detail-review-delete"
-                  disabled={savingReview || deletingReview}
-                  onClick={async () => {
-                    setDeletingReview(true);
-                    try {
-                      await onDeleteReview();
-                      setReviewSheetError(null);
-                    } finally {
-                      setDeletingReview(false);
-                    }
-                  }}
-                >
-                  {deletingReview ? "Borrando..." : "Borrar reseña"}
-                </Button>
-              </div>
-            ) : null}
               </SheetCard>
             </SheetOverlay>,
             document.body
@@ -842,10 +896,36 @@ export function CoffeeDetailView({
               onClick={() => setShowAddToListModal(false)}
             >
               <SheetCard
-                className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet"
+                className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet add-to-list-sheet"
                 onClick={(e) => e.stopPropagation()}
               >
                 <SheetHandle aria-hidden="true" />
+                <header className="sheet-header sheet-header-with-action">
+                  <strong className="sheet-title">Añadir a lista</strong>
+                  <Button
+                    variant="plain"
+                    className="modal-action-btn"
+                    disabled={addToListSelectedIds.size === 0 || addToListSaving}
+                    onClick={async () => {
+                      if (addToListSelectedIds.size === 0) return;
+                      setAddToListSaving(true);
+                      try {
+                        for (const id of addToListSelectedIds) {
+                          if (id === ADD_TO_LIST_FAVORITES_ID) {
+                            if (!isFavorite) onToggleFavorite();
+                          } else {
+                            await (onAddCoffeeToList?.(id) ?? Promise.resolve());
+                          }
+                        }
+                        setShowAddToListModal(false);
+                      } finally {
+                        setAddToListSaving(false);
+                      }
+                    }}
+                  >
+                    {addToListSaving ? "Añadiendo…" : "Añadir"}
+                  </Button>
+                </header>
                 <div className="diary-sheet-list">
                   <Button
                     variant="plain"
@@ -856,35 +936,55 @@ export function CoffeeDetailView({
                     <span>Crear una lista</span>
                     <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                   </Button>
-                  {userLists.map((list) => (
-                    <Button
-                      key={list.id}
-                      variant="plain"
-                      className="diary-sheet-action diary-sheet-action-pantry"
-                      onClick={() => {
-                        void (onAddCoffeeToList?.(list.id) ?? Promise.resolve()).then(() => setShowAddToListModal(false));
-                      }}
-                    >
-                      <UiIcon name="list-alt" className="ui-icon" />
-                      <span>{list.name}</span>
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                    </Button>
-                  ))}
+                  {userLists.map((list) => {
+                    const checked = addToListSelectedIds.has(list.id);
+                    return (
+                      <Button
+                        key={list.id}
+                        variant="plain"
+                        className={`diary-sheet-action diary-sheet-action-pantry add-to-list-row ${checked ? "is-checked" : ""}`.trim()}
+                        onClick={() => {
+                          setAddToListSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(list.id)) next.delete(list.id);
+                            else next.add(list.id);
+                            return next;
+                          });
+                        }}
+                      >
+                        <span className="add-to-list-checkbox" aria-hidden="true">
+                          {checked ? (
+                            <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">check_box</span>
+                          ) : (
+                            <span className="ui-icon material-symbol-icon" aria-hidden="true">check_box_outline_blank</span>
+                          )}
+                        </span>
+                        <UiIcon name="list-alt" className="ui-icon" />
+                        <span>{list.name}</span>
+                      </Button>
+                    );
+                  })}
                   <Button
                     variant="plain"
-                    className={`diary-sheet-action diary-sheet-action-pantry ${isFavorite ? "is-active" : ""}`.trim()}
+                    className={`diary-sheet-action diary-sheet-action-pantry add-to-list-row ${isFavorite ? "is-active" : ""} ${addToListSelectedIds.has(ADD_TO_LIST_FAVORITES_ID) ? "is-checked" : ""}`.trim()}
                     onClick={() => {
-                      onToggleFavorite();
-                      setShowAddToListModal(false);
+                      setAddToListSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(ADD_TO_LIST_FAVORITES_ID)) next.delete(ADD_TO_LIST_FAVORITES_ID);
+                        else next.add(ADD_TO_LIST_FAVORITES_ID);
+                        return next;
+                      });
                     }}
                   >
+                    <span className="add-to-list-checkbox" aria-hidden="true">
+                      {addToListSelectedIds.has(ADD_TO_LIST_FAVORITES_ID) ? (
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">check_box</span>
+                      ) : (
+                        <span className="ui-icon material-symbol-icon" aria-hidden="true">check_box_outline_blank</span>
+                      )}
+                    </span>
                     <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">favorite</span>
                     <span>Favoritos</span>
-                    {isFavorite ? (
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">check</span>
-                    ) : (
-                      <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
-                    )}
                   </Button>
                 </div>
               </SheetCard>
@@ -897,8 +997,8 @@ export function CoffeeDetailView({
             <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => setShowCreateListInModal(false)} onClick={() => setShowCreateListInModal(false)}>
               <CreateListSheet
                 onDismiss={() => setShowCreateListInModal(false)}
-                onCreate={(name, isPublic) =>
-                  (onCreateList?.(name, isPublic) ?? Promise.resolve()).then(() => setShowCreateListInModal(false))
+                onCreate={(name, privacy) =>
+                  (onCreateList?.(name, privacy) ?? Promise.resolve()).then(() => setShowCreateListInModal(false))
                 }
               />
             </SheetOverlay>,

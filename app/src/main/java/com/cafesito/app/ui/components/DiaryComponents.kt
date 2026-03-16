@@ -122,14 +122,14 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
     if (showInfo) InfoBottomSheet { showInfo = false }
 
     PremiumCard(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier = Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space2)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Row(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(Spacing.space6)) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("CAFEÍNA ESTIMADA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
-                        IconButton(onClick = { showInfo = true }, modifier = Modifier.size(24.dp)) {
+                        IconButton(onClick = { showInfo = true }, modifier = Modifier.size(Spacing.space6)) {
                             Icon(Icons.Outlined.Info, contentDescription = "Información", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                         }
                     }
@@ -156,7 +156,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
 
             Spacer(Modifier.height(6.dp))
             ChartPremiumSection(analytics)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(Spacing.space4))
         }
     }
 }
@@ -167,11 +167,11 @@ fun ComparisonPill(percentage: Int, baseColor: Color? = null) {
     val color = baseColor ?: LocalCaramelAccent.current
     Surface(
         color = color.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(12.dp)
+        shape = Shapes.cardSmall
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+            modifier = Modifier.padding(horizontal = Spacing.space2, vertical = 2.dp)
         ) {
             Icon(
                 if (isPositive) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
@@ -179,7 +179,7 @@ fun ComparisonPill(percentage: Int, baseColor: Color? = null) {
                 tint = color,
                 modifier = Modifier.size(10.dp)
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(Spacing.space1))
             Text("${if (isPositive) "+" else ""}$percentage%", color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
     }
@@ -189,13 +189,13 @@ fun ComparisonPill(percentage: Int, baseColor: Color? = null) {
 fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(Shapes.shapeCardMedium)
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(12.dp),
+            .padding(Spacing.space3),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(Spacing.space1))
         Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(label.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
     }
@@ -203,8 +203,8 @@ fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: 
 
 @Composable
 fun DiaryHabitCard(stats: DiaryHabitStats) {
-    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+    PremiumCard(modifier = Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space1)) {
+        Column(Modifier.padding(horizontal = Spacing.space5, vertical = Spacing.space4)) {
             DiaryStatsRow("Tazas", stats.avgCups, showTopDivider = false)
             DiaryStatsRow("Tamaño tazas", stats.mostSize)
             DiaryStatsRow("Método", stats.mostMethod)
@@ -215,11 +215,11 @@ fun DiaryHabitCard(stats: DiaryHabitStats) {
 
 @Composable
 fun DiaryConsumptionCard(stats: DiaryConsumptionStats) {
-    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+    PremiumCard(modifier = Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space1)) {
+        Column(Modifier.padding(horizontal = Spacing.space5, vertical = Spacing.space4)) {
             DiaryStatsRow("Momento", "Mañana ${stats.momentPctMorning}% · Tarde ${stats.momentPctAfternoon}% · Noche ${stats.momentPctEvening}%", showTopDivider = false, valueBelowTitle = true)
             DiaryStatsRow("Cafeína", "${stats.avgCaffeine} mg")
-            DiaryStatsRow("Dosis", "${stats.avgDose} g")
+            DiaryStatsRow("Dosis por café", "${stats.avgDose} g")
             DiaryStatsRow("Formato", stats.mostFormat)
             DiaryStatsRow("Previsión despensa", stats.pantryDaysLeft?.let { "~$it días" } ?: "—")
         }
@@ -237,13 +237,13 @@ private fun DiaryStatsRow(label: String, value: String, showTopDivider: Boolean 
             )
         }
         if (valueBelowTitle) {
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.space3)) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(Spacing.space1))
                 Text(
                     text = value,
                     style = MaterialTheme.typography.bodyLarge,
@@ -255,7 +255,7 @@ private fun DiaryStatsRow(label: String, value: String, showTopDivider: Boolean 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = Spacing.space3),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -276,13 +276,86 @@ private fun DiaryStatsRow(label: String, value: String, showTopDivider: Boolean 
     }
 }
 
+/** Mapa nombre de país (normalizado) a código ISO 3166-1 alpha-2 para bandera emoji. */
+private val countryNameToIso = mapOf(
+    "colombia" to "CO", "brasil" to "BR", "brazil" to "BR", "etiopía" to "ET", "ethiopia" to "ET",
+    "guatemala" to "GT", "honduras" to "HN", "costa rica" to "CR", "perú" to "PE", "peru" to "PE",
+    "kenia" to "KE", "kenya" to "KE", "indonesia" to "ID", "méxico" to "MX", "mexico" to "MX",
+    "nicaragua" to "NI", "el salvador" to "SV", "india" to "IN", "vietnam" to "VN",
+    "papúa nueva guinea" to "PG", "papua nueva guinea" to "PG", "uganda" to "UG",
+    "tanzania" to "TZ", "ruanda" to "RW", "rwanda" to "RW", "ecuador" to "EC",
+    "bolivia" to "BO", "venezuela" to "VE", "jamaica" to "JM", "república dominicana" to "DO",
+    "republica dominicana" to "DO", "haití" to "HT", "haiti" to "HT", "yemen" to "YE",
+    "china" to "CN", "panamá" to "PA", "panama" to "PA", "cuba" to "CU", "filipinas" to "PH",
+    "tailandia" to "TH", "timor oriental" to "TL", "laos" to "LA", "myanmar" to "MM",
+    "burundi" to "BI", "camerún" to "CM", "camerun" to "CM", "madagascar" to "MG",
+    "españa" to "ES", "spain" to "ES", "italia" to "IT", "italy" to "IT", "francia" to "FR",
+    "alemania" to "DE", "germany" to "DE", "estados unidos" to "US", "usa" to "US"
+)
+
+/** Devuelve código ISO del país para mostrar bandera como imagen, o null si no hay mapa. */
+private fun favoriteOriginIso(countryName: String): String? {
+    if (countryName == "—" || countryName.isBlank()) return null
+    return countryNameToIso[countryName.trim().lowercase()]
+}
+
+private val FLAG_CDN_BASE = "https://flagcdn.com/w40/"
+
+@Composable
+private fun originFavoriteRow(countryName: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.background,
+            thickness = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = Spacing.space3),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Origen favorito",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            val iso = favoriteOriginIso(countryName)
+            if (iso != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.space2)) {
+                    AsyncImage(
+                        model = FLAG_CDN_BASE + iso.lowercase() + ".png",
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp, 18.dp),
+                        contentScale = ContentScale.FillBounds
+                    )
+                    Text(
+                        text = countryName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            } else {
+                Text(
+                    text = countryName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun DiaryBaristaCard(
     stats: DiaryBaristaStats,
     onCafesProbadosClick: () -> Unit
 ) {
-    PremiumCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+    PremiumCard(modifier = Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space1)) {
+        Column(Modifier.padding(horizontal = Spacing.space5, vertical = Spacing.space4)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -303,12 +376,12 @@ fun DiaryBaristaCard(
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.space1))
+                    Icon(Icons.Default.ChevronRight, contentDescription = "Ver más", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
             }
             DiaryStatsRow("Tostadores probados", "${stats.distinctRoasters}")
-            DiaryStatsRow("Origen favorito", stats.favoriteOrigin)
+            originFavoriteRow(stats.favoriteOrigin)
         }
     }
 }
@@ -323,24 +396,24 @@ fun BaristaCoffeesListSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+        shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
                 text = "Cafés probados",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space4)
             )
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
                 items(coffees) { item ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(Shapes.cardSmall)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(12.dp),
+                            .padding(Spacing.space3),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (item.coffee.imageUrl.isNotBlank()) {
@@ -348,20 +421,20 @@ fun BaristaCoffeesListSheet(
                                 model = item.coffee.imageUrl,
                                 contentDescription = item.coffee.nombre,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+                                modifier = Modifier.size(48.dp).clip(Shapes.cardSmall)
                             )
                         } else {
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(Shapes.cardSmall)
                                     .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Coffee, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Default.Coffee, contentDescription = "Café", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(Spacing.space3))
                         Column(Modifier.weight(1f)) {
                             Text(
                                 text = item.coffee.nombre.toCoffeeNameFormat(),
@@ -396,7 +469,7 @@ fun PantryPremiumCard(
 
     PremiumCard(
         modifier = Modifier.clickable { onClick(item.coffee.id) },
-        shape = RoundedCornerShape(24.dp)
+        shape = Shapes.pill
     ) {
         Column {
             Box {
@@ -410,13 +483,13 @@ fun PantryPremiumCard(
                 )
                 if (onOptionsClick != null) {
                     val isDark = isSystemInDarkTheme()
-                    val optionsIconTint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
-                    val optionsBgColor = if (isDark) Color.Black else Color.White.copy(alpha = 0.82f)
+                    val optionsIconTint = if (isDark) PureWhite else MaterialTheme.colorScheme.onSurface
+                    val optionsBgColor = if (isDark) PureBlack else PureWhite.copy(alpha = 0.82f)
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(10.dp)
-                            .size(28.dp)
+                            .size(24.dp)
                             .clip(CircleShape)
                             .background(optionsBgColor, CircleShape)
                             .clickable { onOptionsClick(item.pantryItem.id) },
@@ -427,7 +500,7 @@ fun PantryPremiumCard(
                 }
             }
 
-            Column(Modifier.padding(12.dp)) {
+            Column(Modifier.padding(Spacing.space3)) {
                 Text(
                     text = item.coffee.nombre.toCoffeeNameFormat(),
                     style = MaterialTheme.typography.bodySmall,
@@ -443,12 +516,12 @@ fun PantryPremiumCard(
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 8.sp
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(Spacing.space2))
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
+                        .height(Spacing.space1)
                         .clip(CircleShape),
                     color = LocalCaramelAccent.current,
                     trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
@@ -475,7 +548,7 @@ fun ErrorStateMessage(message: String, onRetry: () -> Unit) {
             .fillMaxWidth()
             .padding(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.space4)
     ) {
         Text(
             text = message,
@@ -494,12 +567,12 @@ fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(12.dp),
+        shape = Shapes.cardSmall,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.height(40.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier.padding(horizontal = Spacing.space3),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -512,7 +585,7 @@ fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
                 Icons.Default.ExpandMore,
                 null,
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(Spacing.space4)
             )
         }
     }
@@ -526,20 +599,19 @@ fun AddEntryBottomSheet(
     onAddCoffee: () -> Unit,
     onAddPantry: () -> Unit
 ) {
-    val quickActionIconColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+    val quickActionIconColor = if (isSystemInDarkTheme()) PureWhite else PureBlack
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+        shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
-                text = "NUEVO REGISTRO", 
-                style = MaterialTheme.typography.labelLarge, 
-                color = MaterialTheme.colorScheme.primary, 
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
+text = "NUEVO REGISTRO",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space4),
+                textAlign = TextAlign.Center
             )
             ModalMenuOption(title = "Agua", iconPainter = painterResource(id = R.drawable.agua), color = quickActionIconColor, onClick = onAddWater)
             ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = quickActionIconColor, onClick = onAddCoffee)
@@ -610,13 +682,13 @@ fun DiaryDatePickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+        shape = Shapes.sheetLarge
     ) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
+        Column(Modifier.fillMaxWidth().padding(top = 8.dp).navigationBarsPadding()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                    .padding(horizontal = Spacing.space6, vertical = Spacing.space4),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Spacer(Modifier.weight(1f))
@@ -639,8 +711,8 @@ fun DiaryDatePickerSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 400.dp)
-                    .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .padding(horizontal = Spacing.space6),
+                verticalArrangement = Arrangement.spacedBy(Spacing.space5)
             ) {
                 items(monthsToShow.size) { idx ->
                     val (year, month) = monthsToShow[idx]
@@ -661,7 +733,7 @@ fun DiaryDatePickerSheet(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.space2))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
@@ -674,13 +746,13 @@ fun DiaryDatePickerSheet(
                                 )
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(Spacing.space1))
                         val cells = remember(startOffset, daysInMonth) {
                             List(startOffset) { null } + (1..daysInMonth).map { it }
                         }
                         val rows = remember(cells) { cells.chunked(7) }
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(Spacing.space1)
                         ) {
                             rows.forEach { rowCells ->
                                 Row(
@@ -711,11 +783,11 @@ fun DiaryDatePickerSheet(
                                                     .size(36.dp)
                                                     .then(
                                                         if (isToday && !isSelected)
-                                                            Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                                                            Modifier.border(2.dp, MaterialTheme.colorScheme.primary, Shapes.cardSmall)
                                                         else Modifier
                                                     )
-                                                    .clip(RoundedCornerShape(12.dp)),
-                                                shape = RoundedCornerShape(12.dp),
+                                                    .clip(Shapes.cardSmall),
+                                                shape = Shapes.cardSmall,
                                                 color = when {
                                                     isSelected -> MaterialTheme.colorScheme.primary
                                                     else -> Color.Transparent
@@ -749,17 +821,17 @@ fun DiaryDatePickerSheet(
                                                             if (hasCoffee) {
                                                                 Box(
                                                                     modifier = Modifier
-                                                                        .size(8.dp)
+                                                                        .size(Spacing.space2)
                                                                         .clip(CircleShape)
                                                                         .border(1.dp, dotBorderColor, CircleShape)
                                                                         .background(coffeeDotColor, CircleShape)
                                                                 )
-                                                                if (hasWater) Spacer(Modifier.width(4.dp))
+                                                                if (hasWater) Spacer(Modifier.width(Spacing.space1))
                                                             }
                                                             if (hasWater) {
                                                                 Box(
                                                                     modifier = Modifier
-                                                                        .size(8.dp)
+                                                                        .size(Spacing.space2)
                                                                         .clip(CircleShape)
                                                                         .border(1.dp, dotBorderColor, CircleShape)
                                                                         .background(waterDotColor, CircleShape)
@@ -777,7 +849,7 @@ fun DiaryDatePickerSheet(
                     }
                 }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
         }
     }
 }
@@ -789,13 +861,13 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = Shapes.shapeCardMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = title, tint = color, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(16.dp))
+        Row(Modifier.padding(Spacing.space4), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = title, tint = color, modifier = Modifier.size(Spacing.space6))
+            Spacer(Modifier.width(Spacing.space4))
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.weight(1f))
             Icon(Icons.Default.ChevronRight, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -805,9 +877,9 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
 
 // Gráfico: ancho completo, curvas suaves (Catmull-Rom); alto ampliado y margen interno para no cortar líneas ni etiquetas
 private const val CHART_GRACE_PCT = 1.08f
-private val CHART_MIN_HEIGHT_DP = 320.dp   // altura total de la sección (gráfica + ejes)
+private val CHART_MIN_HEIGHT_DP = 35.dp   // altura total de la sección (gráfica + ejes)
 private val CHART_CANVAS_HEIGHT_DP = 280.dp // altura del área de dibujo (más alta, con márgenes arriba/abajo)
-private val CHART_PADDING_TOP_DP = 20.dp   // margen exterior superior
+private val CHART_PADDING_TOP_DP = Spacing.space5   // margen exterior superior
 private val CHART_PADDING_BOTTOM_DP = 18.dp // margen exterior inferior
 private val CHART_INTERNAL_TOP_DP = 28.dp  // espacio interno arriba para etiquetas (evita que se corten)
 private val CHART_INTERNAL_BOTTOM_DP = 28.dp // espacio interno abajo para que la curva Catmull-Rom no se corte en 0
@@ -941,7 +1013,7 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(CHART_MIN_HEIGHT_DP)
+                .heightIn(min = CHART_CANVAS_HEIGHT_DP + CHART_PADDING_TOP_DP + CHART_PADDING_BOTTOM_DP + 32.dp)
         ) {
             val chartVisible = remember(analytics.chartData) { mutableStateOf(false) }
             val isFirstAnimation = remember { mutableStateOf(true) }
@@ -1014,10 +1086,10 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
                     }
                 }
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(Spacing.space1))
             val isDarkMode = isSystemInDarkTheme()
-            val axisLabelGray = if (isDarkMode) Color(0xFF6F6760) else Color(0xFFB0A8A0)
-            val currentDayColor = if (isDarkMode) Color.White else Color.Black
+            val axisLabelGray = if (isDarkMode) DateMetaAxisDark else DateMetaAxisLight
+            val currentDayColor = if (isDarkMode) PureWhite else PureBlack
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1056,14 +1128,13 @@ fun PeriodBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
                 text = "SELECCIONAR PERIODO",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space4),
+                textAlign = TextAlign.Center
             )
             DiaryPeriod.values().forEach { period ->
                 val isSelected = period == selectedPeriod
@@ -1076,14 +1147,14 @@ fun PeriodBottomSheet(
                     onClick = { onPeriodSelected(period); onDismiss() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    shape = RoundedCornerShape(16.dp),
+                        .padding(vertical = Spacing.space1),
+                    shape = Shapes.card,
                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                     border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
                         label,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(Spacing.space4),
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
@@ -1094,7 +1165,7 @@ fun PeriodBottomSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp),
+                        .padding(top = Spacing.space4),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -1106,7 +1177,7 @@ fun PeriodBottomSheet(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        modifier = Modifier.padding(horizontal = Spacing.space4)
                     )
                     if (canGoNextMonth) {
                         IconButton(onClick = onNextMonth) {

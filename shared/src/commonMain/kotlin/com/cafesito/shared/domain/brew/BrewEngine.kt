@@ -448,13 +448,21 @@ object BrewEngine {
         return dynamicTips + compactBaseTips
     }
 
+    /** Texto dinámico según método (y ratio/agua): qué afinar con los consejos del barista. */
     @Suppress("UNUSED_PARAMETER")
     fun brewAdvice(method: String, ratio: Double, waterMl: Int): String {
         val key = normalize(method)
-        return if (key.contains("espresso")) {
-            "Configuracion aplicada. Manten flujo estable y ajusta con los consejos del barista."
-        } else {
-            "Configuracion aplicada. Usa los consejos del barista para afinar molienda, vertido y cuerpo."
+        return when {
+            key.contains("agua") -> "Configuracion aplicada para agua; ajusta la cantidad con los consejos del barista."
+            key.contains("espresso") -> "Configuracion aplicada para espresso; afina con los consejos del barista."
+            key.contains("italiana") || key.contains("moka") -> "Configuracion aplicada para italiana; afina molienda y fuego con los consejos del barista."
+            key.contains("aeropress") -> "Configuracion aplicada para Aeropress; afina molienda, tiempo y presion con los consejos del barista."
+            key.contains("prensa") || key.contains("french") -> "Configuracion aplicada para prensa; afina molienda e inmersion con los consejos del barista."
+            key.contains("v60") || key.contains("chemex") || key.contains("filtro") || key.contains("goteo") || key.contains("hario") || key.contains("manual") -> "Configuracion aplicada para filtro; afina molienda, vertido y cuerpo con los consejos del barista."
+            key.contains("sifon") -> "Configuracion aplicada para sifon; afina molienda y tiempos con los consejos del barista."
+            key.contains("turco") -> "Configuracion aplicada para turco; afina molienda y temperatura con los consejos del barista."
+            key.contains("otros") || key.contains("rapido") -> "Configuracion aplicada para elaboracion rapida; elige tipo de bebida y usa los consejos del barista."
+            else -> "Configuracion aplicada; afina molienda, vertido y cuerpo con los consejos del barista."
         }
     }
     fun brewingProcessAdvice(

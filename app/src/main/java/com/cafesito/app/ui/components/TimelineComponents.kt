@@ -126,12 +126,12 @@ fun PremiumTabRow(
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .padding(horizontal = Spacing.space4, vertical = 6.dp)
                 .fillMaxWidth()
                 .height(52.dp)
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(32.dp))
-                .premiumBorder(RoundedCornerShape(32.dp))
-                .padding(4.dp)
+                .background(MaterialTheme.colorScheme.surface, Shapes.shapePremium)
+                .premiumBorder(Shapes.shapePremium)
+                .padding(Spacing.space1)
         ) {
             AnimatedTabIndicator(selectedTabIndex, tabs.size)
             Row(modifier = Modifier.fillMaxSize()) {
@@ -142,11 +142,11 @@ fun PremiumTabRow(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(24.dp))
+                            .clip(Shapes.pill)
                             .clickable { onTabSelected(index) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = title, style = MaterialTheme.typography.labelLarge, color = contentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(text = title, style = MaterialTheme.typography.labelLarge, color = contentColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -171,13 +171,13 @@ fun NotificationsBottomSheet(
     ) {
         Column(Modifier
             .fillMaxWidth()
-            .padding(bottom = 32.dp)) {
+            .padding(top = 8.dp, bottom = Spacing.space8)) {
             Text(
                 text = "NOTIFICACIONES",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = Spacing.space3, bottom = Spacing.space2)
             )
 
             if (notifications.isEmpty()) {
@@ -192,8 +192,8 @@ fun NotificationsBottomSheet(
                 }
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(start = Spacing.space4, end = Spacing.space4, top = Spacing.space1, bottom = Spacing.space2),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.space3)
                 ) {
                     groupedNotifications.forEachIndexed { index, section ->
                         item(key = "notif-header-${section.key}") {
@@ -201,7 +201,7 @@ fun NotificationsBottomSheet(
                                 text = section.title,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black,
+                                color = PureBlack,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = if (index == 0) 2.dp else 10.dp, bottom = 2.dp)
@@ -224,25 +224,25 @@ fun NotificationsBottomSheet(
                                             } else {
                                                 ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                             }
-                                            val buttonModifier = Modifier.height(32.dp)
+                                            val buttonModifier = Modifier.height(Spacing.space8)
                                             if (isFollowing) {
                                                 OutlinedButton(
                                                     onClick = { onFollowToggle(notification.user.id) },
                                                     modifier = buttonModifier,
-                                                    shape = RoundedCornerShape(12.dp),
+                                                    shape = Shapes.cardSmall,
                                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                                                     colors = buttonColors
                                                 ) {
-                                                    Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                    Text("SIGUIENDO", fontWeight = FontWeight.Medium, fontSize = 11.sp)
                                                 }
                                             } else {
                                                 Button(
                                                     onClick = { onFollowToggle(notification.user.id) },
                                                     modifier = buttonModifier,
-                                                    shape = RoundedCornerShape(12.dp),
+                                                    shape = Shapes.cardSmall,
                                                     colors = buttonColors
                                                 ) {
-                                                    Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
+                                                    Text("SEGUIR", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
                                                 }
                                             }
                                         },
@@ -260,6 +260,16 @@ fun NotificationsBottomSheet(
                                     )
                                 }
                                 is TimelineNotification.Comment -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = notification.message,
+                                        isUnread = isUnread,
+                                        trailingContent = null,
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
+                                is TimelineNotification.ListInvite -> {
                                     NotificationRow(
                                         avatarUrl = notification.user.avatarUrl,
                                         title = "@${notification.user.username}",
@@ -290,13 +300,13 @@ private fun NotificationRow(
     val unreadColor = MaterialTheme.colorScheme.primary
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = Shapes.shapeCardMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(Spacing.space3),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box {
@@ -304,7 +314,7 @@ private fun NotificationRow(
                     model = avatarUrl,
                     contentDescription = "Avatar",
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
@@ -317,13 +327,13 @@ private fun NotificationRow(
                     )
                 }
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(Spacing.space3))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (trailingContent != null) {
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(Spacing.space3))
                 trailingContent()
             }
         }
@@ -403,7 +413,7 @@ fun MentionText(
                     val mentionUser = resolveMentionUser(username)
                     Surface(
                         onClick = { onMentionClick(username) },
-                        shape = RoundedCornerShape(16.dp),
+                        shape = Shapes.card,
                         color = LocalCaramelAccent.current.copy(alpha = 0.08f),
                         border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
                     ) {
@@ -431,8 +441,8 @@ fun MentionText(
                                 }
                             } else {
                                 SubcomposeAsyncImage(
-                                    model = mentionUser?.avatarUrl,
-                                    contentDescription = "Avatar de ${mentionUser?.username ?: "usuario"}",
+                                    model = mentionUser.avatarUrl,
+                                    contentDescription = "Avatar de ${mentionUser.username.ifBlank { "usuario" }}",
                                     modifier = Modifier
                                         .size(14.dp)
                                         .clip(CircleShape),
@@ -509,7 +519,7 @@ private data class ComposerMentionVisual(
 @Composable
 private fun ComposerMentionPill(user: UserEntity) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = LocalCaramelAccent.current.copy(alpha = 0.08f),
         border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
     ) {
@@ -614,7 +624,7 @@ fun MentionComposerField(
     modifier: Modifier = Modifier,
     minHeight: Dp = 120.dp
 ) {
-    val textColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+    val textColor = if (isSystemInDarkTheme()) PureWhite else PureBlack
     val visual = remember(value.text, validUsers) {
         buildComposerMentionVisual(text = value.text, validUsers = validUsers)
     }
@@ -627,7 +637,7 @@ fun MentionComposerField(
                 style = MaterialTheme.typography.bodyLarge.copy(color = textColor),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(horizontal = Spacing.space4, vertical = Spacing.space4)
             )
         }
         OutlinedTextField(
@@ -637,7 +647,7 @@ fun MentionComposerField(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = minHeight),
-            shape = RoundedCornerShape(16.dp),
+            shape = Shapes.card,
             textStyle = MaterialTheme.typography.bodyLarge.copy(
                 color = if (value.text.isEmpty()) textColor else Color.Transparent
             ),
@@ -658,16 +668,16 @@ fun MentionComposerField(
 fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
+        shape = Shapes.card,
         color = LocalCaramelAccent.current.copy(alpha = 0.08f),
         border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
     ) {
-        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.padding(horizontal = Spacing.space3, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = user.avatarUrl, contentDescription = "Avatar de ${user.fullName.ifBlank { user.username } }", modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape))
-            Spacer(Modifier.width(8.dp))
-            Text("@${user.username}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LocalCaramelAccent.current)
+            Spacer(Modifier.width(Spacing.space2))
+            Text("@${user.username}", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = LocalCaramelAccent.current)
         }
     }
 }
@@ -681,7 +691,7 @@ fun StockSliderSection(
 ) {
     var editableValue by remember(value) { mutableStateOf(value.roundToInt().toString()) }
     val coffeeColor = LocalCaramelAccent.current
-    val inactiveTrackColor = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFE0E0E0)
+    val inactiveTrackColor = if (isSystemInDarkTheme()) SliderTrackInactiveDark else SliderTrackInactiveLight
 
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -716,23 +726,23 @@ fun StockSliderSection(
                 inactiveTrackColor = inactiveTrackColor
             )
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(Spacing.space2))
     }
 }
 
 @Composable
 fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
     PremiumCard(modifier = modifier) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.padding(Spacing.space3), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier
-                .size(32.dp)
+                .size(Spacing.space8)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(Spacing.space6))
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(Spacing.space3))
             Column {
                 Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
-                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = value.uppercase(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -763,11 +773,11 @@ fun SwipeableDiaryItem(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(Shapes.shapeCardMedium)
                     .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.White, modifier = Modifier.padding(end = 16.dp))
+                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = PureWhite, modifier = Modifier.padding(end = Spacing.space4))
             }
         }
     ) {
@@ -822,7 +832,7 @@ fun DiaryEntryItem(
                 if (onClick != null) baseModifier.clickable(onClick = onClick) else baseModifier
             },
         color = cardColor,
-        shape = RoundedCornerShape(20.dp),
+        shape = Shapes.shapeCardMedium,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -833,7 +843,7 @@ fun DiaryEntryItem(
                         contentDescription = entry.coffeeName.ifBlank { "Imagen del café" },
                         modifier = Modifier
                             .size(46.dp)
-                            .clip(RoundedCornerShape(12.dp)),
+                            .clip(Shapes.cardSmall),
                         contentScale = ContentScale.Crop
                     )
                 } else {
@@ -842,7 +852,7 @@ fun DiaryEntryItem(
                             .size(46.dp)
                             .background(
                                 if (entry.type == "WATER") WaterBlueBackground.copy(alpha = if (isSystemInDarkTheme()) 0.22f else 1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                RoundedCornerShape(12.dp)
+                                Shapes.cardSmall
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -866,13 +876,13 @@ fun DiaryEntryItem(
                                     else -> "Entrada de café"
                                 },
                                 tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(Spacing.space6)
                             )
                         }
                     }
                 }
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(Spacing.space3))
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = when {
@@ -946,7 +956,7 @@ fun DiaryEntryItem(
                         if (hasScrollLeft || hasScrollRight) Modifier.drawWithContent {
                             drawContent()
                             val w = size.width
-                            val edge = 16.dp.toPx().coerceAtMost(w / 4f)
+                            val edge = Spacing.space4.toPx().coerceAtMost(w / 4f)
                             if (hasScrollLeft) {
                                 drawRect(
                                     brush = Brush.horizontalGradient(
@@ -971,7 +981,7 @@ fun DiaryEntryItem(
                 LazyRow(
                     state = metaRowState,
                     userScrollEnabled = metaCarouselEnabled,
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.space6),
                     modifier = metaRowModifier
                 ) {
                     item {
@@ -1063,8 +1073,8 @@ fun DiaryEntryEditBottomSheet(
 ) {
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
-    val fieldBackground = if (isDark) Color.Black else Color.White
-    val fieldTextColor = if (isDark) Color.White else Color.Black
+    val fieldBackground = if (isDark) PureBlack else PureWhite
+    val fieldTextColor = if (isDark) PureWhite else PureBlack
     val editFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = fieldBackground,
         unfocusedContainerColor = fieldBackground,
@@ -1175,20 +1185,21 @@ fun DiaryEntryEditBottomSheet(
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = onDismiss,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        shape = Shapes.sheetLarge,
+        scrimColor = ScrimDefault
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .padding(top = 8.dp, bottom = Spacing.space2)
                 .padding(bottom = 28.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6)) {
                 Text(
                     text = "Editar",
                     style = MaterialTheme.typography.titleLarge,
@@ -1207,7 +1218,7 @@ fun DiaryEntryEditBottomSheet(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
 
             val brewMethodNamesForWidth = remember { BREW_METHOD_NAMES + listOf(BREW_METHOD_OTROS, BREW_METHOD_AGUA) }
             val editModalChipLabels = remember(brewMethodNamesForWidth, preparationOptions, sizeOptions) {
@@ -1224,24 +1235,29 @@ fun DiaryEntryEditBottomSheet(
                     text = "Método",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(Spacing.space1))
                 val brewMethodNames = remember { BREW_METHOD_NAMES + listOf(BREW_METHOD_OTROS, BREW_METHOD_AGUA) }
-                val unselectedChipBg = if (isDark) Color.Black else Color.White
-                val unselectedChipContent = if (isDark) Color.White else Color.Black
-                val selectedChipContent = if (isDark) Color.Black else Color.White
+                val unselectedChipBg = if (isDark) PureBlack else PureWhite
+                val unselectedChipContent = if (isDark) PureWhite else PureBlack
+                val selectedChipContent = if (isDark) PureBlack else PureWhite
                 val chipIconSize = 30.dp
                 val chipMinWidth = editModalChipMinWidth
                 val chipMinHeight = 56.dp
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 8.dp) {
+                FadingLazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    itemSpacing = Spacing.space2,
+                    contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
+                ) {
                     items(brewMethodNames, key = { it }) { methodName ->
                         val isSelected = selectedBrewMethod == methodName
                         val methodDrawable = diaryElaborationDrawableName(methodName)
                         val iconTint = if (isSelected) selectedChipContent else unselectedChipContent
                         Surface(
                             onClick = { selectedBrewMethod = if (selectedBrewMethod == methodName) null else methodName },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = Shapes.card,
                             color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
@@ -1250,9 +1266,9 @@ fun DiaryEntryEditBottomSheet(
                             modifier = Modifier.width(chipMinWidth).heightIn(min = chipMinHeight)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = Spacing.space2, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.space2)
                             ) {
                                 when {
                                     methodName == BREW_METHOD_AGUA -> Image(
@@ -1290,21 +1306,26 @@ fun DiaryEntryEditBottomSheet(
                     }
                 }
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(Spacing.space6))
                 Text(
                     text = "Tipo",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
-                Spacer(Modifier.height(4.dp))
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 8.dp) {
+                Spacer(Modifier.height(Spacing.space1))
+                FadingLazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    itemSpacing = Spacing.space2,
+                    contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
+                ) {
                     items(preparationOptions, key = { it.label }) { option ->
                         val isSelected = selectedPreparation == option.label
                         val iconTint = if (isSelected) selectedChipContent else unselectedChipContent
                         Surface(
                             onClick = { selectedPreparation = option.label },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = Shapes.card,
                             color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
@@ -1313,9 +1334,9 @@ fun DiaryEntryEditBottomSheet(
                             modifier = Modifier.width(chipMinWidth).heightIn(min = chipMinHeight)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = Spacing.space2, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.space2)
                             ) {
                                 val resId = option.drawableName?.let { context.resources.getIdentifier(it, "drawable", context.packageName) } ?: 0
                                 if (resId != 0) {
@@ -1337,8 +1358,8 @@ fun DiaryEntryEditBottomSheet(
                     }
                 }
 
-                Spacer(Modifier.height(24.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Spacer(Modifier.height(Spacing.space6))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6)) {
                     OutlinedTextField(
                         value = caffeineText,
                         onValueChange = { caffeineText = it.filter(Char::isDigit) },
@@ -1383,22 +1404,27 @@ fun DiaryEntryEditBottomSheet(
                     )
                 }
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(Spacing.space6))
                 Text(
                     text = "Tamaño",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
-                Spacer(Modifier.height(4.dp))
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 10.dp) {
+                Spacer(Modifier.height(Spacing.space1))
+                FadingLazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    itemSpacing = 10.dp,
+                    contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
+                ) {
                     items(sizeOptions, key = { it.label }) { option ->
                         val isSelected = selectedSize == option.label
                         val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBg
                         val chipContent = if (isSelected) selectedChipContent else unselectedChipContent
                         Surface(
                             onClick = { selectedSize = option.label },
-                            shape = RoundedCornerShape(14.dp),
+                            shape = Shapes.cardSmall,
                             color = chipBg,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
@@ -1407,7 +1433,7 @@ fun DiaryEntryEditBottomSheet(
                             modifier = Modifier.width(editModalChipMinWidth)
                         ) {
                             Row(
-                                Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                Modifier.padding(horizontal = Spacing.space3, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
@@ -1416,7 +1442,7 @@ fun DiaryEntryEditBottomSheet(
                                     Image(
                                         painter = painterResource(id = sizeResId),
                                         contentDescription = option.label,
-                                        modifier = Modifier.size(24.dp),
+                                        modifier = Modifier.size(Spacing.space6),
                                         contentScale = ContentScale.Fit
                                     )
                                 } else {
@@ -1431,8 +1457,8 @@ fun DiaryEntryEditBottomSheet(
                     }
                 }
             } else {
-                Spacer(Modifier.height(24.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Spacer(Modifier.height(Spacing.space6))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6)) {
                     OutlinedTextField(
                         value = amountText,
                         onValueChange = { amountText = it.filter(Char::isDigit) },
@@ -1464,7 +1490,7 @@ fun DiaryEntryEditBottomSheet(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
             if (entry.type != "WATER") {
                 OutlinedTextField(
                     value = timeText,
@@ -1472,21 +1498,22 @@ fun DiaryEntryEditBottomSheet(
                     label = { Text("Tiempo (HH:mm)") },
                     leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6),
                     textStyle = editFieldTextStyle,
                     colors = editFieldColors
                 )
             }
 
             if (entry.type == "CUP" && selectedBrewMethod != null) {
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(Spacing.space6))
                 Text(
                     text = "Resultado",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(Spacing.space1))
                 val tasteOptionsWithIcons = listOf(
                     "Amargo" to Icons.Default.LocalFireDepartment,
                     "Ácido" to Icons.Default.Science,
@@ -1496,15 +1523,19 @@ fun DiaryEntryEditBottomSheet(
                     "Aspero" to Icons.Default.Grain,
                     "Dulce" to Icons.Default.Favorite
                 )
-                val unselectedChipBgResult = if (isDark) Color.Black else Color.White
-                val unselectedChipContentResult = if (isDark) Color.White else Color.Black
-                val selectedChipContentResult = if (isDark) Color.Black else Color.White
-                FadingLazyRow(modifier = Modifier.fillMaxWidth(), itemSpacing = 8.dp) {
+                val unselectedChipBgResult = if (isDark) PureBlack else PureWhite
+                val unselectedChipContentResult = if (isDark) PureWhite else PureBlack
+                val selectedChipContentResult = if (isDark) PureBlack else PureWhite
+                FadingLazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    itemSpacing = Spacing.space2,
+                    contentPadding = PaddingValues(start = Spacing.space6, end = 0.dp)
+                ) {
                     items(tasteOptionsWithIcons, key = { it.first }) { (taste, iconVector) ->
                         val isSelected = selectedBrewTaste == taste
                         Surface(
                             onClick = { selectedBrewTaste = taste },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = Shapes.card,
                             color = if (isSelected) LocalCaramelAccent.current else unselectedChipBgResult,
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
@@ -1513,7 +1544,7 @@ fun DiaryEntryEditBottomSheet(
                             modifier = Modifier.width(editModalChipMinWidth)
                         ) {
                             Column(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = Spacing.space3, vertical = 10.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
@@ -1522,7 +1553,7 @@ fun DiaryEntryEditBottomSheet(
                                     modifier = Modifier.size(20.dp),
                                     tint = if (isSelected) selectedChipContentResult else unselectedChipContentResult
                                 )
-                                Spacer(Modifier.height(4.dp))
+                                Spacer(Modifier.height(Spacing.space1))
                                 Text(
                                     text = taste,
                                     style = MaterialTheme.typography.labelMedium,
@@ -1539,7 +1570,8 @@ fun DiaryEntryEditBottomSheet(
                 Text(
                     text = errorText!!,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
             }
 
@@ -1716,11 +1748,11 @@ private fun MetricPill(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = Shapes.cardSmall,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = Spacing.space2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -1733,7 +1765,7 @@ private fun MetricPill(
                 Image(
                     painter = icon,
                     contentDescription = label,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(Spacing.space6),
                     contentScale = ContentScale.Fit
                 )
             }
@@ -1754,11 +1786,11 @@ private fun MetricPillContent(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = Shapes.cardSmall,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = Spacing.space2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -1768,7 +1800,7 @@ private fun MetricPillContent(
                     .width(26.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(icon, contentDescription = label, modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.primary)
             }
             Column {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1786,11 +1818,11 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 32.dp)) {
+            .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space8)) {
             Text(
                 text = "Recomendaciones OMS",
                 style = MaterialTheme.typography.titleLarge,
@@ -1799,11 +1831,11 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
             InfoRow("Máximo Diario", "400 mg", "Aprox. 4 espressos. Límite seguro para adultos sanos.")
-            HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline)
+            HorizontalDivider(Modifier.padding(vertical = Spacing.space4), color = MaterialTheme.colorScheme.outline)
             InfoRow("Embarazo", "200 mg", "Se recomienda reducir el consumo a la mitad.")
-            HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline)
+            HorizontalDivider(Modifier.padding(vertical = Spacing.space4), color = MaterialTheme.colorScheme.outline)
             InfoRow("Hidratación", "2.5 L", "El agua es vital. El café deshidrata ligeramente.")
         }
     }
@@ -1813,7 +1845,7 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
 fun InfoRow(label: String, value: String, desc: String) {
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             Text(value, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)
         }
         Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1830,13 +1862,13 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        scrimColor = ScrimDefault
     ) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
-                .padding(bottom = 32.dp)
+                .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space6)
+                .padding(bottom = Spacing.space8)
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
@@ -1847,14 +1879,14 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(Spacing.space8))
             StockSliderSection(
                 "Cantidad de café total (g)",
                 total,
                 1000f,
                 onValueChange = { total = it }
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
             StockSliderSection(
                 "Cantidad de café restante (g)",
                 rem,
@@ -1864,23 +1896,23 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
             Spacer(Modifier.height(40.dp))
 
             val saveBackground = LocalCaramelAccent.current
-            val saveTextColor = if (isSystemInDarkTheme()) Color.Black else Color.White
+            val saveTextColor = if (isSystemInDarkTheme()) PureBlack else PureWhite
             val cancelBorderAndText = MaterialTheme.colorScheme.onSurface
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = Shapes.card,
                     border = BorderStroke(1.dp, cancelBorderAndText),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text("CANCELAR", fontWeight = FontWeight.Medium)
                 }
 
                 Button(
@@ -1892,9 +1924,9 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                         containerColor = saveBackground,
                         contentColor = saveTextColor
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = Shapes.card
                 ) {
-                    Text("GUARDAR", fontWeight = FontWeight.Bold)
+                    Text("GUARDAR", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -1913,21 +1945,21 @@ fun ModalMenuOption(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = Shapes.shapeCardMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(Spacing.space4),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
                 tint = color,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(Spacing.space6)
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(Spacing.space4))
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
@@ -1956,21 +1988,21 @@ fun ModalMenuOption(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = Shapes.shapeCardMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(Spacing.space4),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 painter = iconPainter,
                 contentDescription = title,
                 tint = color,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(Spacing.space6)
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(Spacing.space4))
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
@@ -1987,6 +2019,27 @@ fun ModalMenuOption(
     }
 }
 
+/** Fila de opción dentro de una card (opciones despensa: Organiza / General). */
+@Composable
+fun PantryOptionRow(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Spacing.space4, 14.dp)
+            .clickable { onClick() },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.width(Spacing.space3))
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostOptionsBottomSheet(
@@ -1997,10 +2050,10 @@ fun PostOptionsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        shape = Shapes.sheetLarge,
+        scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             ModalMenuOption(
                 title = "Editar",
                 icon = Icons.Default.Edit,
@@ -2029,47 +2082,89 @@ fun SettingsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        scrimColor = Color.Black.copy(alpha = 0.5f)
+        shape = Shapes.sheetLarge,
+        scrimColor = ScrimDefault
     ) {
-        Column(Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp)) {
+        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 48.dp)) {
             Text(
-                "GENERAL",
-                style = MaterialTheme.typography.labelMedium,
+                "General",
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+                modifier = Modifier.padding(bottom = Spacing.space2, start = Spacing.space2)
             )
-            ModalMenuOption(
-                title = "Historial",
-                icon = Icons.Default.History,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = { onDismiss(); onHistorialClick() }
-            )
-            Spacer(Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.space4, 14.dp)
+                            .clickable { onDismiss(); onHistorialClick() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(Spacing.space3))
+                        Text("Cafés consumidos", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            Spacer(Modifier.height(Spacing.space4))
             Text(
-                "CUENTA",
-                style = MaterialTheme.typography.labelMedium,
+                "Cuenta",
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+                modifier = Modifier.padding(bottom = Spacing.space2, start = Spacing.space2, top = Spacing.space2)
             )
-            ModalMenuOption(
-                title = "Editar Perfil",
-                icon = Icons.Default.Edit,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = { onDismiss(); onEditClick() }
-            )
-            ModalMenuOption(
-                title = "Eliminar mi cuenta y mis datos",
-                icon = Icons.Default.PersonRemove,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = { onDismiss(); onDeleteAccountClick() }
-            )
-            ModalMenuOption(
-                title = "Cerrar Sesión",
-                icon = Icons.AutoMirrored.Filled.Logout,
-                color = MaterialTheme.colorScheme.onSurface,
-                onClick = { onDismiss(); onLogoutClick() }
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.space4, 14.dp)
+                            .clickable { onDismiss(); onEditClick() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(Spacing.space3))
+                        Text("Editar perfil", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.space4, 14.dp)
+                            .clickable { onDismiss(); onDeleteAccountClick() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.PersonRemove, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(Spacing.space3))
+                        Text("Eliminar mi cuenta y mis datos", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.space4, 14.dp)
+                            .clickable { onDismiss(); onLogoutClick() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(Spacing.space3))
+                        Text("Cerrar sesión", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
         }
     }
 }
@@ -2083,16 +2178,16 @@ fun DeleteConfirmationDialog(
     text: String
 ) {
     val isDark = isSystemInDarkTheme()
-    val cancelColor = if (isDark) Color.White else Color.Black
+    val cancelColor = if (isDark) PureWhite else PureBlack
     val deleteContainer = ElectricRed
-    val deleteContent = if (isDark) Color.Black else Color.White
+    val deleteContent = if (isDark) PureBlack else PureWhite
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+        shape = Shapes.sheetLarge
     ) {
         Column(
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 40.dp),
+            modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 8.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -2103,7 +2198,7 @@ fun DeleteConfirmationDialog(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.space2))
             Text(
                 text = text,
                 textAlign = TextAlign.Center,
@@ -2111,21 +2206,21 @@ fun DeleteConfirmationDialog(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(Spacing.space6))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
             ) {
                 OutlinedButton(
                     onClick = onDismissRequest,
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
-                    shape = RoundedCornerShape(999.dp),
+                    shape = Shapes.pillFull,
                     border = BorderStroke(1.dp, cancelColor),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    Text("CANCELAR", fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick = {
@@ -2139,56 +2234,26 @@ fun DeleteConfirmationDialog(
                         containerColor = deleteContainer,
                         contentColor = deleteContent
                     ),
-                    shape = RoundedCornerShape(999.dp)
+                    shape = Shapes.pillFull
                 ) {
-                    Text("ELIMINAR", fontWeight = FontWeight.Bold)
+                    Text("ELIMINAR", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
     }
 }
 
+/** LazyRow horizontal sin degradados laterales; alineado a la izquierda con el titular, sin padding a la derecha. */
 @Composable
 fun FadingLazyRow(
     modifier: Modifier = Modifier,
-    itemSpacing: Dp = 8.dp,
+    itemSpacing: Dp = Spacing.space2,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
 ) {
-    val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
-    val showLeftGradient by remember {
-        derivedStateOf { scrollState.firstVisibleItemIndex > 0 || scrollState.firstVisibleItemScrollOffset > 0 }
-    }
-    val showRightGradient by remember {
-        derivedStateOf {
-            val layoutInfo = scrollState.layoutInfo
-            val totalItemsCount = layoutInfo.totalItemsCount
-            if (totalItemsCount == 0) false
-            else {
-                val lastItem = layoutInfo.visibleItemsInfo.lastOrNull()
-                lastItem == null || lastItem.index < totalItemsCount - 1 || lastItem.offset + lastItem.size > layoutInfo.viewportEndOffset
-            }
-        }
-    }
-
     androidx.compose.foundation.lazy.LazyRow(
-        state = scrollState,
-        modifier = modifier
-            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-            .drawWithContent {
-                drawContent()
-                val leftColor = if (showLeftGradient) Color.Transparent else Color.Black
-                val rightColor = if (showRightGradient) Color.Transparent else Color.Black
-                
-                drawRect(
-                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                        0.0f to leftColor,
-                        0.05f to Color.Black,
-                        0.95f to Color.Black,
-                        1.0f to rightColor
-                    ),
-                    blendMode = BlendMode.DstIn
-                )
-            },
+        modifier = modifier,
+        contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(itemSpacing),
         content = content
     )

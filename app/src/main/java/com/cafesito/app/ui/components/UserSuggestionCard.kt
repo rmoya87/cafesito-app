@@ -56,7 +56,7 @@ fun UserSuggestionCarousel(
             Text(
                 text = "Personas que podrías seguir",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -108,7 +108,7 @@ fun UserSuggestionCard(
         modifier = Modifier
             .width(150.dp)
             .height(200.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = Shapes.cardSmall,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -130,7 +130,7 @@ fun UserSuggestionCard(
                 Text(
                     text = user.username,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
@@ -152,9 +152,9 @@ fun UserSuggestionCard(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = Shapes.cardSmall
                 ) {
-                    Text("Siguiendo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text("Siguiendo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
                 }
             } else {
                 OutlinedButton(
@@ -166,9 +166,9 @@ fun UserSuggestionCard(
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.primary
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = Shapes.cardSmall
                 ) {
-                    Text("Seguir", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text("Seguir", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
                 }
             }
         }

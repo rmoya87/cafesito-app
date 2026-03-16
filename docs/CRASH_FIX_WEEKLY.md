@@ -6,7 +6,22 @@
 
 No hay automatización con Git ni con OpenAI. Tú das la orden desde aquí (Cursor), la IA revisa los crashes y aplica los cambios en tu repo local, y **tú subes a Git cuando decidas**.
 
-## Flujo
+## Esquema del flujo
+
+```mermaid
+flowchart TD
+  A[Tienes crashes: Play Console / Crashlytics] --> B[Poner informe en .github/crash-reports/weekly.json]
+  B --> C{Opcional: generar resumen}
+  C -->|node crash-fix-analyze.mjs| D[docs/crash-fixes/pending-review.md]
+  C -->|No| E[Dar orden en Cursor: revisar y resolver]
+  D --> E
+  E --> F[IA aplica cambios en local]
+  F --> G[Tú revisas en IDE y pruebas]
+  G --> H[Tú haces commit y push]
+  H --> I[Opcional: lanzar Release & Deploy]
+```
+
+## Flujo (pasos detallados)
 
 1. **Tienes los crashes** (Play Console, Firebase Crashlytics, o un informe que te hayan pasado).
 

@@ -1,5 +1,5 @@
 import { type Dispatch, type SetStateAction, useCallback } from "react";
-import { createDiaryEntry, insertPantryItem } from "../../data/supabaseApi";
+import { createDiaryEntry, insertPantryItem, updatePantryItem } from "../../data/supabaseApi";
 import { estimateCaffeineMg, hasCaffeineFromLabel } from "../../core/brewEngine";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow, UserRow } from "../../types";
 
@@ -181,6 +181,12 @@ export function useDiarySheetActions({
         hasCaffeine: coffeeForCalc ? hasCaffeineFromLabel(coffeeForCalc.cafeina) : true
       });
       const sizeLabel = payload?.sizeLabel ?? null;
+      // Elegir ítem de despensa concreto por el que restar (varios ítems pueden ser del mismo café)
+      const toReduce =
+        coffeeId && coffeeGrams > 0 && pantryItems.length > 0
+          ? pantryItems.find((p) => p.coffee_id === coffeeId && p.grams_remaining >= coffeeGrams) ??
+            pantryItems.find((p) => p.coffee_id === coffeeId)
+          : null;
       const created = await createDiaryEntry({
         userId: activeUser.id,
         coffeeId,
@@ -191,9 +197,22 @@ export function useDiarySheetActions({
         coffeeGrams,
         preparationType,
         sizeLabel,
-        type: "CUP"
+        type: "CUP",
+        pantryItemId: toReduce?.id ?? null
       });
       setDiaryEntries((prev) => [created, ...prev]);
+
+      if (toReduce) {
+        const newRemaining = Math.max(0, toReduce.grams_remaining - coffeeGrams);
+        const updated = await updatePantryItem(toReduce.id, {
+          totalGrams: toReduce.total_grams,
+          gramsRemaining: newRemaining
+        });
+        setPantryItems((prev) =>
+          prev.map((p) => (p.id === toReduce.id ? updated : p))
+        );
+      }
+
       setLastCreatedCoffeeNameForSheet?.(null);
       setShowDiaryCoffeeSheet(false);
     },
@@ -203,8 +222,10 @@ export function useDiarySheetActions({
       diaryCoffeeGramsDraft,
       diaryCoffeeMlDraft,
       diaryCoffeePreparationDraft,
+      pantryItems,
       selectedDiaryCoffee,
       setDiaryEntries,
+      setPantryItems,
       setLastCreatedCoffeeNameForSheet,
       setShowDiaryCoffeeSheet
     ]

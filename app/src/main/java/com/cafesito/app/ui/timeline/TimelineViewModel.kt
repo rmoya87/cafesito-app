@@ -20,6 +20,8 @@ import com.cafesito.app.data.TimelinePage
 import com.cafesito.app.data.TimelineReasonCode
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.data.UserReviewInfo
+import com.cafesito.app.data.SupabaseDataSource
+import com.cafesito.app.data.SyncManager
 import com.cafesito.app.data.UserRepository
 import com.cafesito.shared.domain.Review
 import com.cafesito.shared.domain.SuggestedUserInfo
@@ -44,14 +46,16 @@ import kotlin.math.max
 import kotlin.random.Random
 
 @HiltViewModel
-class TimelineViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+class HomeViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val userRepository: UserRepository,
     private val coffeeRepository: CoffeeRepository,
     private val socialRepository: SocialRepository,
+    private val syncManager: SyncManager,
     private val reviewRepository: ReviewRepository,
     private val diaryRepository: DiaryRepository,
-    private val notificationStore: TimelineNotificationStore
+    private val notificationStore: TimelineNotificationStore,
+    private val supabaseDataSource: SupabaseDataSource
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -148,10 +152,10 @@ class TimelineViewModel @Inject constructor(
             try {
                 withContext(Dispatchers.IO) {
                     userRepository.restoreSessionFromSupabaseIfNeeded()
-                    userRepository.syncUsers()
+                    syncManager.syncUsersIfNeeded(force = true)
                     userRepository.syncFollows()
                     socialRepository.syncSocialData()
-                    coffeeRepository.syncCoffees()
+                    syncManager.syncCoffeesIfNeeded(force = true)
                 }
                 if (_isPublishingContent.value) {
                     stopPublishingContent()
@@ -236,17 +240,17 @@ class TimelineViewModel @Inject constructor(
     }
 
     init {
-        Log.d("TimelineVM", "Initializing TimelineViewModel")
+        Log.d("HomeVM", "Initializing HomeViewModel")
         refreshData()
         observeBaseData()
     }
 
-    private val _uiState = MutableStateFlow<TimelineUiState>(TimelineUiState.Loading)
-    val uiState: StateFlow<TimelineUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private suspend fun loadInitialPage(data: TimelineBaseData) {
         if (!hasLoadedOnce) {
-            _uiState.value = TimelineUiState.Loading
+            _uiState.value = HomeUiState.Loading
         }
         val forOrder = data.diaryEntries.map { e ->
             BrewDiaryEntryForOrder(
@@ -259,7 +263,7 @@ class TimelineViewModel @Inject constructor(
         val recommendations = buildCoffeeRecommendations(data)
         val suggestedUsers = buildSuggestedUsers(data)
 
-        _uiState.value = TimelineUiState.Success(
+        _uiState.value = HomeUiState.Success(
             items = emptyList(),
             suggestedUsers = suggestedUsers,
             myFollowingIds = data.following[data.activeUser.id] ?: emptySet(),
@@ -545,6 +549,19 @@ class TimelineViewModel @Inject constructor(
         viewModelScope.launch { markNotificationRead(notification) }
     }
 
+    fun acceptListInvitation(invitationId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { supabaseDataSource.acceptListInvitation(invitationId) }
+                .onSuccess { markAllAsRead() }
+        }
+    }
+
+    fun declineListInvitation(invitationId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { supabaseDataSource.declineListInvitation(invitationId) }
+        }
+    }
+
     fun markNotificationsNotified(notificationIds: Set<String>) {
         if (notificationIds.isEmpty()) return
         notifiedNotificationIds.update { it + notificationIds }
@@ -668,9 +685,9 @@ sealed class TimelineItem {
     }
 }
 
-sealed interface TimelineUiState {
-    data object Loading : TimelineUiState
-    data class Error(val message: String) : TimelineUiState
+sealed interface HomeUiState {
+    data object Loading : HomeUiState
+    data class Error(val message: String) : HomeUiState
     data class Success(
         val items: List<TimelineItem>,
         val suggestedUsers: List<SuggestedUserInfo>,
@@ -685,5 +702,5 @@ sealed interface TimelineUiState {
         val nextCursor: Long?,
         val canLoadMore: Boolean,
         val isLoadingMore: Boolean
-    ) : TimelineUiState
+    ) : HomeUiState
 }

@@ -4,9 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "copy-fonts": "node scripts/copy-material-symbols-font.mjs",
+    "postinstall": "node scripts/copy-material-symbols-font.mjs",
     "dev": "vite",
     "dev:network": "vite --host 0.0.0.0 --port 4173",
-    "build": "tsc -b && vite build",
+    "build": "npm run copy-fonts && tsc -b && vite build",
     "build:full": "npm run build && node scripts/prerender-coffee-pages.mjs",
     "generate-splash": "node scripts/generate-splash.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
@@ -15,6 +17,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "@ericblade/quagga2": "^1.12.1",
     "@fontsource-variable/material-symbols-outlined": "^5.2.36",
     "@supabase/supabase-js": "^2.49.1",
@@ -25,7 +28,13 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1"
   },
+  "overrides": {
+    "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
+    "source-map": "^0.7.4",
+    "serialize-javascript": "^7.0.3"
+  },
   "devDependencies": {
+    "@types/leaflet": "^1.9.8",
     "@playwright/test": "^1.53.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",

@@ -68,13 +68,14 @@ fun DiaryScreen(
     onAddStockClick: () -> Unit,
     onEditStockClick: (String, Boolean) -> Unit,
     onEditCoffeeClick: (String) -> Unit,
+    onCafesProbadosClick: () -> Unit = {},
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
     val allDiaryEntries by viewModel.allDiaryEntries.collectAsState(initial = emptyList())
     val pantryItems by viewModel.pantryItems.collectAsState(initial = emptyList())
-    val analytics by viewModel.analytics.collectAsState(initial = null)
+    val analytics by viewModel.analytics.collectAsState(initial = viewModel.analytics.value)
     val habitStats by viewModel.habitStats.collectAsState()
     val consumptionStats by viewModel.consumptionStats.collectAsState()
     val baristaStats by viewModel.baristaStats.collectAsState()
@@ -88,7 +89,6 @@ fun DiaryScreen(
     var showPeriodMenu by remember { mutableStateOf(false) }
     var showCalendar by remember { mutableStateOf(false) }
     var selectedEntry by remember { mutableStateOf<DiaryEntryEntity?>(null) }
-    var showBaristaCoffeesSheet by remember { mutableStateOf(false) }
     
     val todayStartMs = remember {
         val c = Calendar.getInstance()
@@ -184,58 +184,85 @@ fun DiaryScreen(
             ModalBottomSheet(
                 onDismissRequest = { showPantryOptionsId = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                scrimColor = Color.Black.copy(alpha = 0.5f)
+                shape = Shapes.sheetLarge,
+                scrimColor = ScrimDefault
             ) {
-                Column(Modifier.padding(bottom = 40.dp, start = 24.dp, end = 24.dp)) {
+                Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
                         text = "Opciones",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium
                     )
-                    ModalMenuOption(
-                        title = "Editar stock",
-                        icon = Icons.Default.Edit,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            itemToEdit = selectedItem
-                            showStockSheet = true
-                            showPantryOptionsId = null
+                    Text(
+                        text = "Organiza",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column {
+                            PantryOptionRow(
+                                icon = Icons.Default.Edit,
+                                label = "Editar stock",
+                                onClick = {
+                                    itemToEdit = selectedItem
+                                    showStockSheet = true
+                                    showPantryOptionsId = null
+                                }
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                            PantryOptionRow(
+                                icon = Icons.Default.Done,
+                                label = "Café terminado",
+                                onClick = {
+                                    showFinishedConfirmId = showPantryOptionsId
+                                    showPantryOptionsId = null
+                                }
+                            )
                         }
-                    )
-                    ModalMenuOption(
-                        title = "Café terminado",
-                        icon = Icons.Default.Done,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            showFinishedConfirmId = showPantryOptionsId
-                            showPantryOptionsId = null
-                        }
-                    )
-                    if (selectedItem.isCustom) {
-                        ModalMenuOption(
-                            title = "Editar café",
-                            icon = Icons.Default.LocalCafe,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            onClick = {
-                                val coffeeId = selectedItem.coffee.id
-                                showPantryOptionsId = null
-                                onEditCoffeeClick(coffeeId)
-                            }
-                        )
                     }
-                    ModalMenuOption(
-                        title = "Eliminar de la despensa",
-                        icon = Icons.Default.Delete,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        onClick = { 
-                            itemToDeleteId = showPantryOptionsId
-                            showPantryOptionsId = null 
-                        }
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = "General",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column {
+                            if (selectedItem.isCustom) {
+                                PantryOptionRow(
+                                    icon = Icons.Default.LocalCafe,
+                                    label = "Editar café",
+                                    onClick = {
+                                        val coffeeId = selectedItem.coffee.id
+                                        showPantryOptionsId = null
+                                        onEditCoffeeClick(coffeeId)
+                                    }
+                                )
+                                HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                            }
+                            PantryOptionRow(
+                                icon = Icons.Default.Delete,
+                                label = "Eliminar de la despensa",
+                                onClick = {
+                                    itemToDeleteId = showPantryOptionsId
+                                    showPantryOptionsId = null
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -283,16 +310,16 @@ fun DiaryScreen(
                         modifier = Modifier.padding(start = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        val chipBackground = if (isDarkMode) MaterialTheme.colorScheme.surface else Color.White
+                        val chipBackground = if (isDarkMode) MaterialTheme.colorScheme.surface else PureWhite
                         val chipBorderColor = MaterialTheme.colorScheme.outline
-                        val chipContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else Color.Black
+                        val chipContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else PureBlack
                         Row(
                             modifier = Modifier
                                 .wrapContentWidth()
                                 .height(40.dp)
-                                .clip(RoundedCornerShape(24.dp))
+                                .clip(Shapes.pill)
                                 .background(chipBackground)
-                                .border(1.dp, chipBorderColor, RoundedCornerShape(24.dp))
+                                .border(1.dp, chipBorderColor, Shapes.pill)
                                 .padding(horizontal = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -372,12 +399,7 @@ fun DiaryScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             item {
-                val currentAnalytics = analytics
-                if (isLoading) {
-                    CaffeinePremiumCardShimmer()
-                } else if (currentAnalytics != null) {
-                    CaffeinePremiumCard(currentAnalytics)
-                }
+                CaffeinePremiumCard(analytics)
                 Spacer(Modifier.height(24.dp))
             }
             item {
@@ -408,7 +430,7 @@ fun DiaryScreen(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
-                DiaryBaristaCard(baristaStats, onCafesProbadosClick = { showBaristaCoffeesSheet = true })
+                DiaryBaristaCard(baristaStats, onCafesProbadosClick = onCafesProbadosClick)
             }
 
             item {
@@ -527,11 +549,5 @@ fun DiaryScreen(
             )
         }
 
-        if (showBaristaCoffeesSheet) {
-            BaristaCoffeesListSheet(
-                coffees = baristaStats.coffeesWithFirstTried,
-                onDismiss = { showBaristaCoffeesSheet = false }
-            )
-        }
     }
 }

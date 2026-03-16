@@ -22,12 +22,15 @@ import androidx.compose.ui.graphics.Color
 import com.cafesito.app.ui.theme.CaramelAccent
 import com.cafesito.app.ui.theme.CaramelSoft
 import com.cafesito.app.ui.theme.ElectricRed
+import com.cafesito.app.ui.theme.PureBlack
+import com.cafesito.app.ui.theme.PureWhite
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.cafesito.app.ui.components.GlassyTopBar
 import com.cafesito.app.ui.theme.ElectricRed
+import com.cafesito.app.ui.theme.Shapes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +45,8 @@ fun NotificationsScreen(
     onSavePostFromNotification: (TimelineNotification) -> Unit,
     onDeleteNotification: (TimelineNotification) -> Unit,
     onNotificationClick: (TimelineNotification) -> Unit,
+    onAcceptListInvite: (String) -> Unit = {},
+    onDeclineListInvite: (String) -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
 ) {
@@ -85,7 +90,7 @@ fun NotificationsScreen(
                                 text = section.title,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black,
+                                color = PureBlack,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = if (index == 0) 2.dp else 10.dp, bottom = 2.dp)
@@ -117,14 +122,14 @@ fun NotificationsScreen(
                                     Box(
                                         Modifier
                                             .fillMaxSize()
-                                            .clip(RoundedCornerShape(20.dp))
+                                            .clip(Shapes.shapeCardMedium)
                                             .background(color),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
                                             contentDescription = "Eliminar",
-                                            tint = if (isSystemInDarkTheme()) Color.Black else Color.White,
+                                            tint = if (isSystemInDarkTheme()) PureBlack else PureWhite,
                                             modifier = Modifier.padding(end = 24.dp)
                                         )
                                     }
@@ -140,6 +145,8 @@ fun NotificationsScreen(
                                     onFollowToggle = onFollowToggle,
                                     onReplyToNotification = onReplyToNotification,
                                     onSavePostFromNotification = onSavePostFromNotification,
+                                    onAcceptListInvite = onAcceptListInvite,
+                                    onDeclineListInvite = onDeclineListInvite,
                                     onClick = { onNotificationClick(notification) }
                                 )
                             }
@@ -202,6 +209,8 @@ private fun NotificationItemRow(
     onFollowToggle: (Int) -> Unit,
     onReplyToNotification: (TimelineNotification) -> Unit,
     onSavePostFromNotification: (TimelineNotification) -> Unit,
+    onAcceptListInvite: (String) -> Unit,
+    onDeclineListInvite: (String) -> Unit,
     onClick: () -> Unit
 ) {
     val unreadColor = ElectricRed
@@ -221,11 +230,16 @@ private fun NotificationItemRow(
             "@${notification.user.username}",
             notification.message
         )
+        is TimelineNotification.ListInvite -> Triple(
+            notification.user.avatarUrl,
+            "@${notification.user.username}",
+            notification.message
+        )
     }
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = Shapes.shapeCardMedium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()
@@ -252,7 +266,7 @@ private fun NotificationItemRow(
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             
@@ -264,7 +278,7 @@ private fun NotificationItemRow(
                         OutlinedButton(
                             onClick = { onFollowToggle(notification.user.id) },
                             modifier = Modifier.height(32.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = Shapes.cardSmall,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = MaterialTheme.colorScheme.primary,
@@ -272,20 +286,20 @@ private fun NotificationItemRow(
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
-                            Text("SIGUIENDO", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                            Text("SIGUIENDO", fontWeight = FontWeight.Medium, fontSize = 10.sp)
                         }
                     } else {
                         Button(
                             onClick = { onFollowToggle(notification.user.id) },
                             modifier = Modifier.height(32.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = Shapes.cardSmall,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
-                            Text("SEGUIR", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                            Text("SEGUIR", fontWeight = FontWeight.Medium, fontSize = 10.sp)
                         }
                     }
                 }
@@ -294,18 +308,44 @@ private fun NotificationItemRow(
                 is TimelineNotification.Mention -> {
                     val isDark = isSystemInDarkTheme()
                     val replyBg = if (isDark) CaramelSoft else CaramelAccent
-                    val replyText = if (isDark) Color.Black else Color.White
+                    val replyText = if (isDark) PureBlack else PureWhite
                     Button(
                         onClick = { onReplyToNotification(notification) },
                         modifier = Modifier.height(32.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = Shapes.cardSmall,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = replyBg,
                             contentColor = replyText
                         ),
                         contentPadding = PaddingValues(horizontal = 12.dp)
                     ) {
-                        Text("RESPONDER", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        Text("RESPONDER", fontWeight = FontWeight.Medium, fontSize = 10.sp)
+                    }
+                }
+
+                is TimelineNotification.ListInvite -> {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { onDeclineListInvite(notification.invitationId) },
+                            modifier = Modifier.height(32.dp),
+                            shape = Shapes.cardSmall,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Text("Rechazar", fontWeight = FontWeight.Medium, fontSize = 10.sp)
+                        }
+                        Button(
+                            onClick = { onAcceptListInvite(notification.invitationId) },
+                            modifier = Modifier.height(32.dp),
+                            shape = Shapes.cardSmall,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Text("Añadir", fontWeight = FontWeight.Medium, fontSize = 10.sp)
+                        }
                     }
                 }
             }

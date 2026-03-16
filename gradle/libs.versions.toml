@@ -1,6 +1,7 @@
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -12,8 +13,8 @@ google-services = { id = "com.google.gms.google-services", version.ref = "google
 
 [versions]
 agp = "8.13.2"
-kotlin = "2.0.0"
-ksp = "2.0.0-1.0.21"
+kotlin = "2.3.0"
+ksp = "2.3.6"
 hilt = "2.57.1"
 sqldelight = "2.0.2"
 coreKtx = "1.13.1"
@@ -23,7 +24,7 @@ espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.12.2"
 composeBom = "2024.11.00"
-room = "2.6.1"
+room = "2.7.0"
 coil = "2.7.0"
 navCompose = "2.8.4"
 hiltNavCompose = "1.2.0"
@@ -47,6 +48,7 @@ playServicesCodeScanner = "16.1.0"
 playServicesMlkitBarcode = "18.3.1"
 mlkitBarcode = "17.3.0"
 media3 = "1.5.1"
+osmdroid = "6.1.18"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -140,3 +142,6 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx" }
+
+# OpenStreetMap (Cafés probados)
+osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }

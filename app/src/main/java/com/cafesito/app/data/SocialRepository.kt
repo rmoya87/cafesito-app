@@ -7,8 +7,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.async
-import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,63 +24,39 @@ class SocialRepository @Inject constructor(
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
-    init {
-        externalScope.launch {
-            supabaseDataSource.subscribeToLikes()
-                .catch { }
-                .collect {
-                    triggerRefresh()
-                }
-        }
-        externalScope.launch {
-            supabaseDataSource.subscribeToComments()
-                .catch { }
-                .collect {
-                    triggerRefresh()
-                }
-        }
-        externalScope.launch {
-            supabaseDataSource.subscribeToPosts()
-                .catch { }
-                .collect {
-                    triggerRefresh()
-                }
-        }
-    }
-
     fun triggerRefresh() {
         _refreshTrigger.tryEmit(Unit)
     }
 
+    /** Posts/likes/comments/postCoffeeTags ya no se cargan desde Supabase; se devuelve solo caché local (vacía). */
     fun getAllPostsWithDetails(): Flow<List<PostWithDetails>> = _refreshTrigger
         .flatMapLatest {
             networkBoundResource(
                 resourceKey = "all_posts",
                 query = { socialDao.getAllPostsWithDetails() },
                 fetch = {
-                    supervisorScope {
-                        val postsDeferred = async { supabaseDataSource.getAllPosts() }
-                        val likesDeferred = async { supabaseDataSource.getAllLikes() }
-                        val commentsDeferred = async { supabaseDataSource.getAllComments() }
-                        val usersDeferred = async { userRepository.getAllUsersList() }
-                        val coffeeTagsDeferred = async { supabaseDataSource.getAllPostCoffeeTags() }
-
-                        SocialSyncPayload(
-                            posts = postsDeferred.await(),
-                            likes = likesDeferred.await(),
-                            comments = commentsDeferred.await(),
-                            users = usersDeferred.await(),
-                            coffeeTags = coffeeTagsDeferred.await()
-                        )
-                    }
+                    SocialSyncPayload(
+                        posts = emptyList(),
+                        likes = emptyList(),
+                        comments = emptyList(),
+                        users = emptyList(),
+                        coffeeTags = emptyList()
+                    )
                 },
                 saveFetchResult = { payload ->
                     withContext(Dispatchers.IO) {
-                        socialDao.insertPosts(payload.posts)
-                        syncLikesWithRemote(payload.likes)
-                        syncCommentsWithRemote(payload.comments)
-                        socialDao.upsertPostCoffeeTags(payload.coffeeTags)
-                        userRepository.insertUsers(payload.users)
+                        if (payload.posts.isEmpty()) {
+                            socialDao.deleteAllComments()
+                            socialDao.deleteAllLikes()
+                            socialDao.deleteAllPostCoffeeTags()
+                            socialDao.deleteAllPosts()
+                        } else {
+                            socialDao.insertPosts(payload.posts)
+                            syncLikesWithRemote(payload.likes)
+                            syncCommentsWithRemote(payload.comments)
+                            socialDao.upsertPostCoffeeTags(payload.coffeeTags)
+                            userRepository.insertUsers(payload.users)
+                        }
                     }
                 },
                 shouldFetch = { true },
@@ -91,17 +65,9 @@ class SocialRepository @Inject constructor(
             )
         }.flowOn(Dispatchers.IO)
 
+    /** Posts ya no se cargan desde Supabase; solo se lee caché local (vacía). */
     fun getPostsByUserId(userId: Int): Flow<List<PostWithDetails>> = socialDao.getPostsByUserIdWithDetails(userId)
-        .onStart {
-            if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-                externalScope.launch {
-                    try {
-                        val posts = supabaseDataSource.getPostsByUserId(userId)
-                        socialDao.insertPosts(posts)
-                    } catch (e: Exception) { }
-                }
-            }
-        }.flowOn(Dispatchers.IO)
+        .flowOn(Dispatchers.IO)
 
     fun getAllReviewsWithAuthor(): Flow<List<ReviewWithAuthor>> = socialDao.getAllReviewsWithAuthor()
 
@@ -475,30 +441,16 @@ class SocialRepository @Inject constructor(
         )
     }
 
+    /** Sincroniza solo reseñas; posts/likes/comments/postCoffeeTags ya no se cargan (código residual eliminado). */
     suspend fun syncSocialData() {
         if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
             try {
-                val posts = supabaseDataSource.getAllPosts()
-                val likes = supabaseDataSource.getAllLikes()
-                val comments = supabaseDataSource.getAllComments()
-                val reviews = supabaseDataSource.getAllReviews()
+                socialDao.deleteAllComments()
+                socialDao.deleteAllLikes()
+                socialDao.deleteAllPostCoffeeTags()
+                socialDao.deleteAllPosts()
 
-                // Reflejar borrados en web: quitar de local lo que ya no viene del servidor
-                val keepPostIds = posts.map { it.id }
-                if (keepPostIds.isEmpty()) {
-                    socialDao.deleteAllComments()
-                    socialDao.deleteAllLikes()
-                    socialDao.deleteAllPostCoffeeTags()
-                    socialDao.deleteAllPosts()
-                } else {
-                    socialDao.deleteCommentsForPostsNotIn(keepPostIds)
-                    socialDao.deleteLikesForPostsNotIn(keepPostIds)
-                    socialDao.deletePostCoffeeTagsForPostsNotIn(keepPostIds)
-                    socialDao.deletePostsNotIn(keepPostIds)
-                }
-                socialDao.insertPosts(posts)
-                syncLikesWithRemote(likes)
-                syncCommentsWithRemote(comments)
+                val reviews = supabaseDataSource.getAllReviews()
                 socialDao.upsertReviews(reviews)
 
                 triggerRefresh()

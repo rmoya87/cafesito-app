@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.sqldelight)
 }
@@ -8,7 +8,12 @@ plugins {
 kotlin {
     jvmToolchain(17)
 
-    androidTarget()
+    androidLibrary {
+        namespace = "com.cafesito.shared"
+        compileSdk = 36
+        minSdk = 26
+        withHostTestBuilder {}.configure {}
+    }
 
     iosX64()
     iosArm64()
@@ -57,7 +62,7 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.test)
             }
         }
-        val androidUnitTest by getting {
+        val androidHostTest by getting {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.sqldelight.sqlite.driver)
@@ -70,20 +75,6 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         freeCompilerArgs.add("-Xexpect-actual-classes")
-    }
-}
-
-android {
-    namespace = "com.cafesito.shared"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 

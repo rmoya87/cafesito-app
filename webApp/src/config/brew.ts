@@ -36,14 +36,13 @@ export function isBrewMethodName(text: string): boolean {
 }
 
 /**
- * Orden para mostrar métodos: el último utilizado a la izquierda, luego el anterior, etc.; los no usados alfabético; Otros y Agua al final si no se usaron.
- * @param diaryEntries entradas de diario (se reordenan por timestamp descendente: más reciente primero)
+ * Orden para mostrar métodos: el último utilizado a la izquierda (referencia: actividad del usuario en el diario), luego el anterior, etc.; los no usados alfabético; Otros y Agua al final si no se usaron.
+ * @param diaryEntries entradas de diario (se usa el timestamp de cada entrada para calcular el último uso por método)
  */
 export function getOrderedBrewMethods(diaryEntries: Array<{ preparation_type?: string; timestamp?: number; type?: string }>): Array<BrewMethodItem> {
   const byName = new Map(ALL_METHODS_WITH_SPECIAL.map((m) => [m.name, m]));
-  const sorted = [...diaryEntries].sort((a, b) => Number(b.timestamp ?? 0) - Number(a.timestamp ?? 0));
-  const usedOrder: string[] = [];
-  for (const entry of sorted) {
+  const lastUsedTimestamp = new Map<string, number>();
+  for (const entry of diaryEntries) {
     let methodName = "";
     if ((entry.type ?? "").toUpperCase() === "WATER") {
       methodName = "Agua";
@@ -52,11 +51,17 @@ export function getOrderedBrewMethods(diaryEntries: Array<{ preparation_type?: s
       const match = prep.match(/^Lab:\s*([^(]+)/);
       const raw = match?.[1]?.trim() ?? "";
       if (raw && byName.has(raw)) methodName = raw;
+      else if (raw?.toLowerCase() === "otros") methodName = "Otros";
     }
-    if (methodName && !usedOrder.includes(methodName)) {
-      usedOrder.push(methodName);
+    if (methodName) {
+      const ts = Number(entry.timestamp ?? 0);
+      const cur = lastUsedTimestamp.get(methodName) ?? 0;
+      if (ts > cur) lastUsedTimestamp.set(methodName, ts);
     }
   }
+  const usedOrder = [...lastUsedTimestamp.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([name]) => name);
   const used = usedOrder.map((name) => byName.get(name)!).filter(Boolean);
   const unused = BREW_METHODS.filter((m) => !usedOrder.includes(m.name)).sort((a, b) => a.name.localeCompare(b.name, "es"));
   const result: BrewMethodItem[] = [...used, ...unused];

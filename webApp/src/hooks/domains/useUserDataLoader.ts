@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { getSupabaseClient } from "../../supabase";
 import { fetchUserData } from "../../data/supabaseApi";
 import type { UserListItemActivityRow } from "../../data/supabaseApi";
 import type {
@@ -27,6 +26,7 @@ type Params = {
   setGlobalStatus: (value: string) => void;
 };
 
+/** Carga datos del usuario una sola vez al montar; no hay Realtime ni refetch al volver a la pestaña. Para actualizar, recargar la página. */
 export function useUserDataLoader({
   activeUser,
   setDiaryEntries,
@@ -44,22 +44,36 @@ export function useUserDataLoader({
     if (!activeUser) return;
     let cancelled = false;
 
-    const loadInitialData = async () => {
+    const loadInitialData = async (retryCount = 0) => {
       try {
         const data = await fetchUserData(activeUser.id);
-        const { fetchNotifications, fetchUserLists, fetchCoffeeIdsInUserLists, fetchAllListItemsForActivity } = await import("../../data/supabaseApi");
-        const [notifications, userLists, coffeeIdsInLists, listItemsForActivity] = await Promise.all([
+        const {
+          fetchNotifications,
+          fetchUserLists,
+          fetchSharedWithMeLists,
+          fetchCoffeeIdsInLists,
+          fetchAllListItemsForActivity
+        } = await import("../../data/supabaseApi");
+        const [notifications, ownedLists, sharedLists, listItemsForActivity] = await Promise.all([
           fetchNotifications(activeUser.id),
           fetchUserLists(activeUser.id),
-          fetchCoffeeIdsInUserLists(activeUser.id),
+          fetchSharedWithMeLists(activeUser.id),
           fetchAllListItemsForActivity(activeUser.id)
         ]);
+        if (cancelled) return;
+
+        const mergedLists = (() => {
+          const byId = new Map<string, (typeof ownedLists)[0]>();
+          [...ownedLists, ...sharedLists].forEach((l) => byId.set(l.id, l));
+          return Array.from(byId.values());
+        })();
+        const coffeeIdsInLists = await fetchCoffeeIdsInLists(mergedLists.map((l) => l.id));
         if (cancelled) return;
 
         setDiaryEntries(data.diaryEntries);
         setPantryItems(data.pantryItems);
         setFavorites(data.favorites);
-        setUserLists(userLists);
+        setUserLists(mergedLists);
         setCoffeeIdsInUserLists(coffeeIdsInLists);
         setAllListItemsForActivity(listItemsForActivity);
         setCustomCoffees(data.customCoffees);
@@ -67,51 +81,19 @@ export function useUserDataLoader({
         setNotifications(notifications);
       } catch (error) {
         if (cancelled) return;
+        if (retryCount < 1) {
+          await new Promise((r) => setTimeout(r, 2000));
+          void loadInitialData(retryCount + 1);
+          return;
+        }
         setGlobalStatus(`Error: ${(error as Error).message}`);
-      }
-    };
-
-    const refreshNotifications = async () => {
-      try {
-        const { fetchNotifications } = await import("../../data/supabaseApi");
-        const notifications = await fetchNotifications(activeUser.id);
-        if (cancelled) return;
-        setNotifications(notifications);
-      } catch (error) {
-        if (cancelled) return;
-        console.warn("No se pudieron refrescar notificaciones:", error);
       }
     };
 
     void loadInitialData();
 
-    // Realtime: suscripción a cambios en notifications_db para este usuario (evita polling cada 5s)
-    const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel(`notifications:${activeUser.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications_db",
-          filter: `user_id=eq.${activeUser.id}`
-        },
-        () => {
-          if (!cancelled) void refreshNotifications();
-        }
-      )
-      .subscribe();
-
-    const handleFocus = () => {
-      void refreshNotifications();
-    };
-    window.addEventListener("focus", handleFocus);
-
     return () => {
       cancelled = true;
-      void channel.unsubscribe();
-      window.removeEventListener("focus", handleFocus);
     };
   }, [
     activeUser,

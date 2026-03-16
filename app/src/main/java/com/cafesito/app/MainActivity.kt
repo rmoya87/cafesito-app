@@ -2,6 +2,7 @@ package com.cafesito.app
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +51,7 @@ class MainActivity : ComponentActivity() {
 
     private val notificationNavigation = mutableStateOf<NotificationNavigation?>(null)
     private val shortcutNavigation = mutableStateOf<String?>(null)
+    private var deepLinkListId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +59,7 @@ class MainActivity : ComponentActivity() {
         AppUiInitializer.configure(this)
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
         shortcutNavigation.value = ShortcutActionResolver.resolve(intent)
+        deepLinkListId = parseListIdFromIntent(intent)
 
         setContent {
             val context = LocalContext.current
@@ -81,6 +85,8 @@ class MainActivity : ComponentActivity() {
                         onNotificationConsumed = { notificationNavigation.value = null },
                         shortcutAction = shortcutNavigation.value,
                         onShortcutConsumed = { shortcutNavigation.value = null },
+                        deepLinkListId = deepLinkListId,
+                        onDeepLinkListConsumed = { deepLinkListId = null },
                         analyticsHelper = analyticsHelper
                     )
                 }
@@ -93,6 +99,20 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
         shortcutNavigation.value = ShortcutActionResolver.resolve(intent)
+        deepLinkListId = parseListIdFromIntent(intent)
+    }
+
+    /** Extrae listId de un intent con data https://cafesitoapp.com/profile/list/{listId} (App Link / deep link en móvil). */
+    private fun parseListIdFromIntent(intent: Intent?): String? {
+        val uri: Uri? = intent?.data ?: return null
+        val host = uri?.host ?: return null
+        if (host != "cafesitoapp.com" && !host.endsWith(".cafesitoapp.com")) return null
+        val path = uri?.path ?: return null
+        // /profile/list/UUID o profile/list/UUID
+        val segments = path.trim('/').split("/")
+        val listIdx = segments.indexOf("list")
+        if (listIdx < 0 || listIdx >= segments.lastIndex) return null
+        return segments[listIdx + 1].takeIf { it.isNotBlank() }
     }
 
     override fun onStart() {

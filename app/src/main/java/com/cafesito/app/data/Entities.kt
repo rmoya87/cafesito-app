@@ -206,7 +206,13 @@ data class UserListRow(
     @SerialName("user_id") val userId: Long,
     val name: String,
     @SerialName("is_public") val isPublic: Boolean,
-    @SerialName("created_at") val createdAt: String? = null
+    @SerialName("created_at") val createdAt: String? = null,
+    /** public | invitation | private. Requiere columna en DB (user_lists_privacy_column.sql). */
+    val privacy: String? = null,
+    /** Si los miembros pueden editar ítems. Requiere columna en DB (user_lists_members_can_edit.sql). */
+    @SerialName("members_can_edit") val membersCanEdit: Boolean? = null,
+    /** Si los miembros pueden invitar (solo listas por invitación). Requiere user_lists_members_can_invite.sql. */
+    @SerialName("members_can_invite") val membersCanInvite: Boolean? = null
 )
 
 /** Ítem de lista (coffee_id en user_list_items). */
@@ -228,13 +234,43 @@ data class ListItemActivityRow(
 data class UserListInsert(
     @SerialName("user_id") val userId: Long,
     val name: String,
-    @SerialName("is_public") val isPublic: Boolean
+    @SerialName("is_public") val isPublic: Boolean,
+    val privacy: String = "private",
+    @SerialName("members_can_edit") val membersCanEdit: Boolean = false,
+    @SerialName("members_can_invite") val membersCanInvite: Boolean = false
 )
 
 @Serializable
 data class UserListItemInsert(
     @SerialName("list_id") val listId: String,
     @SerialName("coffee_id") val coffeeId: String
+)
+
+/** Fila de user_list_members (solo para leer list_id). */
+@Serializable
+data class UserListMemberRow(
+    @SerialName("list_id") val listId: String
+)
+
+/** Miembro de una lista (para opciones de lista: listado completo). */
+@Serializable
+data class ListMemberRow(
+    @SerialName("list_id") val listId: String,
+    @SerialName("user_id") val userId: Long,
+    val role: String = "viewer",
+    @SerialName("invited_by") val invitedBy: Long? = null,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+/** Invitación a lista (user_list_invitations). */
+@Serializable
+data class ListInvitationRow(
+    val id: String,
+    @SerialName("list_id") val listId: String,
+    @SerialName("inviter_id") val inviterId: Long,
+    @SerialName("invitee_id") val inviteeId: Long,
+    val status: String = "pending",
+    @SerialName("created_at") val createdAt: String? = null
 )
 
 @Serializable
@@ -258,7 +294,9 @@ data class DiaryEntryEntity(
     @SerialName("size_label") val sizeLabel: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
     val type: String = "CUP",
-    @SerialName("external_id") val externalId: String? = null
+    @SerialName("external_id") val externalId: String? = null,
+    /** ID del ítem de despensa del que se restó stock al crear esta actividad; para restaurar al eliminar. */
+    @SerialName("pantry_item_id") val pantryItemId: String? = null
 )
 
 @Entity(tableName = "pending_diary_sync")
@@ -336,7 +374,8 @@ data class DiaryEntryInsert(
     @SerialName("preparation_type") val preparationType: String,
     @SerialName("size_label") val sizeLabel: String? = null,
     @SerialName("timestamp") val timestamp: Long,
-    @SerialName("type") val type: String
+    @SerialName("type") val type: String,
+    @SerialName("pantry_item_id") val pantryItemId: String? = null
 )
 
 @Serializable
@@ -391,7 +430,9 @@ sealed class ProfileActivityItem {
         override val avatarUrl: String?,
         override val timestamp: Long,
         val coffeeId: String,
-        val coffeeName: String
+        val coffeeName: String,
+        val coffeeImageUrl: String = "",
+        val coffeeBrand: String = ""
     ) : ProfileActivityItem()
 
     data class AddedToList(
@@ -402,7 +443,9 @@ sealed class ProfileActivityItem {
         val coffeeId: String,
         val coffeeName: String,
         val listId: String,
-        val listName: String
+        val listName: String,
+        val coffeeImageUrl: String = "",
+        val coffeeBrand: String = ""
     ) : ProfileActivityItem()
 }
 

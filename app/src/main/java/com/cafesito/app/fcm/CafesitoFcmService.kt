@@ -85,6 +85,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
             "FOLLOW" -> "FOLLOW"
             "MENTION" -> "MENTION"
             "COMMENT" -> "COMMENT"
+            "LIST_INVITE" -> "NOTIFICATIONS"
             else -> "NOTIFICATIONS"
         }
 
@@ -101,6 +102,9 @@ class CafesitoFcmService : FirebaseMessagingService() {
             }
             if (notificationType.isNotBlank()) {
                 putExtra(TimelineNotificationSystem.EXTRA_TYPE, notificationType.lowercase())
+            }
+            if (notificationType == "LIST_INVITE") {
+                remoteMessage.data["invitation_id"]?.let { putExtra(NotificationActionReceiver.EXTRA_INVITATION_ID, it) }
             }
         }
 
@@ -170,6 +174,24 @@ class CafesitoFcmService : FirebaseMessagingService() {
             }
         }
 
+        val invitationId = remoteMessage.data["invitation_id"] ?: remoteMessage.data["related_id"]
+        if (notificationType == "LIST_INVITE" && !invitationId.isNullOrBlank()) {
+            val acceptPendingIntent = buildActionPendingIntent(
+                requestCode = notificationId + 10,
+                action = NotificationActionReceiver.ACTION_ACCEPT_LIST_INVITE,
+                notificationId = notificationId,
+                invitationId = invitationId
+            )
+            val declinePendingIntent = buildActionPendingIntent(
+                requestCode = notificationId + 11,
+                action = NotificationActionReceiver.ACTION_DECLINE_LIST_INVITE,
+                notificationId = notificationId,
+                invitationId = invitationId
+            )
+            notificationBuilder.addAction(0, "Añadir", acceptPendingIntent)
+            notificationBuilder.addAction(0, "Rechazar", declinePendingIntent)
+        }
+
         notificationManager.notify(notificationId, notificationBuilder.build())
     }
 
@@ -202,7 +224,8 @@ class CafesitoFcmService : FirebaseMessagingService() {
         notificationId: Int,
         targetUserId: Int? = null,
         postId: String? = null,
-        commentId: Int? = null
+        commentId: Int? = null,
+        invitationId: String? = null
     ): PendingIntent {
         val actionIntent = Intent(this, NotificationActionReceiver::class.java).apply {
             this.action = action
@@ -210,6 +233,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
             targetUserId?.let { putExtra(NotificationActionReceiver.EXTRA_TARGET_USER_ID, it) }
             postId?.let { putExtra(NotificationActionReceiver.EXTRA_POST_ID, it) }
             commentId?.let { putExtra(NotificationActionReceiver.EXTRA_COMMENT_ID, it) }
+            invitationId?.let { putExtra(NotificationActionReceiver.EXTRA_INVITATION_ID, it) }
         }
         return PendingIntent.getBroadcast(
             this,

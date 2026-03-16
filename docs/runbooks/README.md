@@ -5,6 +5,16 @@
 
 Runbooks documentan causas raíz, pasos de resolución y cambios permanentes aplicados para no repetir errores.
 
+### Cuándo crear o actualizar un runbook
+
+```mermaid
+flowchart TD
+  A[Resuelves un incidente] --> B[Documentar causa raíz y solución]
+  B --> C[Crear runbook nuevo o actualizar existente]
+  C --> D[Añadir entrada en este Índice]
+  D --> E[Incluir: resumen, causas, cambios, verificación]
+```
+
 ---
 
 ## Índice de runbooks
