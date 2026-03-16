@@ -178,6 +178,28 @@ export function CafesProbadosView({
 
   return (
     <div className="cafes-probados-page">
+      <div className="cafes-probados-topbar" aria-label="Navegación">
+        <Button
+          variant="plain"
+          type="button"
+          className="cafes-probados-back-fab"
+          onClick={onBack}
+          aria-label="Volver a Mi diario"
+        >
+          <UiIcon name="arrow-left" className="ui-icon" aria-hidden="true" />
+        </Button>
+        {selectedCountry ? (
+          <Button
+            variant="plain"
+            type="button"
+            className="cafes-probados-back-fab cafes-probados-clear-fab"
+            onClick={handleClear}
+            aria-label="Limpiar filtro de país"
+          >
+            <UiIcon name="close" className="ui-icon" aria-hidden="true" />
+          </Button>
+        ) : null}
+      </div>
       <div
         ref={mapWrapRef}
         className={`cafes-probados-map-wrap${listScrolled ? " cafes-probados-map-wrap--collapsed" : ""}`}
@@ -191,28 +213,6 @@ export function CafesProbadosView({
             <p className="cafes-probados-map-placeholder-hint">Añade cafés a tu diario para ver los países en el mapa.</p>
           </div>
         )}
-        <div className="cafes-probados-map-overlay">
-          <Button
-            variant="plain"
-            type="button"
-            className="cafes-probados-back-fab"
-            onClick={onBack}
-            aria-label="Volver a Mi diario"
-          >
-            <UiIcon name="arrow-left" className="ui-icon" aria-hidden="true" />
-          </Button>
-          {selectedCountry ? (
-            <Button
-              variant="plain"
-              type="button"
-              className="cafes-probados-back-fab cafes-probados-clear-fab"
-              onClick={handleClear}
-              aria-label="Limpiar filtro de país"
-            >
-              <UiIcon name="close" className="ui-icon" aria-hidden="true" />
-            </Button>
-          ) : null}
-        </div>
       </div>
 
       <section

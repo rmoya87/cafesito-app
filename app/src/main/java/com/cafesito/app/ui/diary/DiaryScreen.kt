@@ -288,6 +288,7 @@ fun DiaryScreen(
             onDismissRequest = { showFinishedConfirmId = null },
             title = "Café terminado",
             text = "¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.",
+            confirmButtonText = "CONFIRMAR",
             onConfirm = {
                 val id = showFinishedConfirmId!!
                 viewModel.markCoffeeAsFinished(id) {

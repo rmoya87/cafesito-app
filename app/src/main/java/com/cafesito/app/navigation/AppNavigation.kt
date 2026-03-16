@@ -388,6 +388,7 @@ fun AppNavigation(
                     val createdCoffeeId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_created_coffee_id", null).collectAsState()
                     val appliedSelectionId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_selected_coffee_id", null).collectAsState()
                     val appliedSelectionFromPantry by backStackEntry.savedStateHandle.getStateFlow("brewlab_selected_from_pantry", false).collectAsState()
+                    val appliedSelectionPantryItemId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_selected_pantry_item_id", null).collectAsState()
                     BrewLabScreen(
                         onNavigateToDiary = {
                             navController.navigate("diary") { popUpTo("brewlab") { inclusive = true } }
@@ -399,9 +400,11 @@ fun AppNavigation(
                         onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null },
                         appliedSelectionId = appliedSelectionId,
                         appliedSelectionFromPantry = appliedSelectionFromPantry,
+                        appliedSelectionPantryItemId = appliedSelectionPantryItemId,
                         onConsumeSelection = {
                             backStackEntry.savedStateHandle["brewlab_selected_coffee_id"] = null
                             backStackEntry.savedStateHandle["brewlab_selected_from_pantry"] = false
+                            backStackEntry.savedStateHandle["brewlab_selected_pantry_item_id"] = null
                         }
                     )
                 }
@@ -411,9 +414,10 @@ fun AppNavigation(
                     val viewModel: BrewLabViewModel = hiltViewModel(parentEntry)
                     BrewLabSelectCoffeeScreen(
                         onBack = { navController.popBackStack() },
-                        onCoffeeSelected = { coffeeId, fromPantry ->
+                        onCoffeeSelected = { coffeeId, fromPantry, pantryItemId ->
                             parentEntry.savedStateHandle["brewlab_selected_coffee_id"] = coffeeId
                             parentEntry.savedStateHandle["brewlab_selected_from_pantry"] = fromPantry
+                            parentEntry.savedStateHandle["brewlab_selected_pantry_item_id"] = pantryItemId
                             navController.popBackStack()
                         },
                         onAddToPantryClick = { navController.navigate("addStock?origin=brewlab") },
@@ -485,7 +489,7 @@ fun AppNavigation(
                             }
                         },
                         onSuccessWithCoffeeId = if (origin == "brewlab") { coffeeId ->
-                            navController.getBackStackEntry("brewlab").savedStateHandle["brewlab_created_coffee_id"] = coffeeId
+                            navController.getBackStackEntry("brewlab")?.savedStateHandle?.set("brewlab_created_coffee_id", coffeeId)
                             navController.popBackStack()
                         } else null
                     )
@@ -554,7 +558,7 @@ fun AppNavigation(
                         diaryEntryFlow = origin == "diary_entry",
                         brewLabFlow = origin == "brewlab",
                         onCoffeeCreatedForDiary = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("diary_created_coffee_id", id) },
-                        onCoffeeCreatedForBrewLab = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
+                        onCoffeeCreatedForBrewLab = { id -> navController.getBackStackEntry("brewlab")?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
                         onBackClick = { navigateTo ->
                             if (origin == "brewlab" && navigateTo != null) {
                                 navController.popBackStack("brewlab", inclusive = false)

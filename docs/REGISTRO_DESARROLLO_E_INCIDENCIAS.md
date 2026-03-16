@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-14
+**Última actualización:** 2026-03-16
 
 ---
 
@@ -102,6 +102,33 @@ This comparison appears to be unintentional because the types '"search" | "timel
 2. **Clase `is-coffee` en el main shell:** Donde se usaba `guardedActiveTab === "coffee"` para la clase `main-shell-scroll is-coffee`, se cambió a `activeTab === "coffee"` (sin restricción de tipo).
 
 **Archivos:** `webApp/src/app/AppContainer.tsx` (aprox. líneas 1760–1768).
+
+---
+
+### 2.3 Error: `The process '/usr/bin/git' failed with exit code 128` en deploy-web
+
+**Síntoma:** El job `deploy-web` fallaba con exit code 128 en un paso que usa git (p. ej. checkout).
+
+**Causa probable:** El checkout usaba `ref: refs/heads/${{ env.TARGET_BRANCH }}`. En eventos **push**, `TARGET_BRANCH` viene de `github.ref_name`, que puede tener distinta capitalización que la rama real (p. ej. "Beta" vs "beta"). En sistemas con sensibilidad a mayúsculas, `refs/heads/Beta` no existe si la rama es `beta`, y git devuelve 128.
+
+**Solución:** En el job `deploy-web`, en eventos **push** usar la ref que disparó el workflow (`github.ref`) para el checkout; en manual/schedule seguir usando `refs/heads/${{ env.TARGET_BRANCH }}`.
+
+**Archivo:** `.github/workflows/release-deploy.yml` (step checkout del job `deploy-web`).
+
+---
+
+### 2.4 release-android: git exit 128 y deprecación Node.js 20
+
+**Síntomas:**
+- El job `release-android` fallaba con `The process '/usr/bin/git' failed with exit code 128`.
+- Aviso: acciones (github-script, setup-java, setup-gradle, upload-google-play) en Node.js 20 están deprecadas; en junio 2026 se usará Node 24 por defecto.
+
+**Soluciones aplicadas:**
+1. **Checkout:** Igual que en deploy-web, en evento **push** usar `github.ref` en lugar de `refs/heads/${{ env.TARGET_BRANCH }}` para evitar ref no encontrada (p. ej. Beta vs beta).
+2. **Commit version bump / Save last deployed version:** Usar la rama actual de git (`CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)`) para `git fetch`, `git rebase` y `git push`, en lugar de `TARGET_BRANCH`, para que fetch/push usen la misma ref que el checkout.
+3. **Node 24:** Añadido `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` en `env` del workflow para optar por Node 24 en las acciones y eliminar el aviso de deprecación.
+
+**Archivo:** `.github/workflows/release-deploy.yml`.
 
 ---
 

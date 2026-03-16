@@ -272,6 +272,8 @@ export function AppContainer() {
   );
   const [brewMethod, setBrewMethod] = useState(initialBrewDraft?.brewMethod ?? "");
   const [brewCoffeeId, setBrewCoffeeId] = useState<string>("");
+  /** Ítem de despensa elegido (cuando el usuario selecciona desde Tu despensa). Si hay varios del mismo café, así se identifica cuál. */
+  const [brewPantryItemId, setBrewPantryItemId] = useState<string>("");
   const [brewDrinkType, setBrewDrinkType] = useState<string>(initialBrewDraft?.brewDrinkType ?? "Espresso");
   const [waterMl, setWaterMl] = useState(initialBrewDraft?.waterMl ?? 300);
   const [brewCoffeeGrams, setBrewCoffeeGrams] = useState<number>(() => {
@@ -327,6 +329,7 @@ export function AppContainer() {
   const [coffeeSheetOpenedFromBrew, setCoffeeSheetOpenedFromBrew] = useState(false);
   const [coffeeSheetStep, setCoffeeSheetStep] = useState<"select" | "dose" | "tipo" | "tamaño" | "createCoffee">("select");
   const [diaryCoffeeIdDraft, setDiaryCoffeeIdDraft] = useState("");
+  const [diarySelectedPantryItemIdDraft, setDiarySelectedPantryItemIdDraft] = useState("");
   const [diaryCoffeeGramsDraft, setDiaryCoffeeGramsDraft] = useState("15");
   const [diaryCoffeeMlDraft, setDiaryCoffeeMlDraft] = useState("250");
   const [diaryCoffeeCaffeineDraft, setDiaryCoffeeCaffeineDraft] = useState("0");
@@ -340,6 +343,7 @@ export function AppContainer() {
   const [lastCreatedCoffeeNameForSheet, setLastCreatedCoffeeNameForSheet] = useState<string | null>(null);
   const addPantryOpenedFromBrewRef = useRef(false);
   const addPantryOpenedFromHomeRef = useRef(false);
+  const lastSelectedPantryCoffeeRef = useRef<CoffeeRow | null>(null);
   const {
     profileTab,
     setProfileTab,
@@ -1205,6 +1209,7 @@ export function AppContainer() {
     brewMethod,
     waterMl,
     pantryItems,
+    brewPantryItemId,
     setDiaryEntries,
     setPantryItems,
     setBrewRunning,
@@ -1251,8 +1256,11 @@ export function AppContainer() {
   } = useDiarySheetActions({
     activeUser,
     diaryCoffeeOptions,
+    customCoffees,
+    getLastSelectedPantryCoffee: () => lastSelectedPantryCoffeeRef.current ?? null,
     selectedDiaryCoffee,
     selectedDiaryPantryCoffee,
+    diaryPantryCoffeeIdDraft,
     diaryWaterMlDraft,
     diaryCoffeeMlDraft,
     diaryCoffeeGramsDraft,
@@ -1278,11 +1286,16 @@ export function AppContainer() {
     setLastCreatedCoffeeNameForSheet
   });
 
+  const openAddPantrySheetWithClear = useCallback(() => {
+    lastSelectedPantryCoffeeRef.current = null;
+    openAddPantrySheet();
+  }, [openAddPantrySheet]);
+
   const openAddPantrySheetForBrew = useCallback(() => {
     addPantryOpenedFromBrewRef.current = true;
     setAddPantrySheetHideBolt(true);
-    openAddPantrySheet();
-  }, [openAddPantrySheet]);
+    openAddPantrySheetWithClear();
+  }, [openAddPantrySheetWithClear]);
 
   /** Abre la página «Selecciona café» (URL /selecciona-cafe) para elegir café para la elaboración. */
   const openCoffeeSheetForBrew = useCallback(() => {
@@ -1292,27 +1305,28 @@ export function AppContainer() {
   /** Abre añadir a despensa desde la página Selecciona café de elaboración; al guardar se asigna ese café a la elaboración y se cierra la página. */
   const openAddPantrySheetFromBrewSelect = useCallback(() => {
     addPantryOpenedFromBrewRef.current = true;
-    openAddPantrySheet();
-  }, [openAddPantrySheet]);
+    openAddPantrySheetWithClear();
+  }, [openAddPantrySheetWithClear]);
 
   const openAddPantrySheetFromHome = useCallback(() => {
     addPantryOpenedFromHomeRef.current = true;
-    openAddPantrySheet();
-  }, [openAddPantrySheet]);
+    openAddPantrySheetWithClear();
+  }, [openAddPantrySheetWithClear]);
 
   const handleSavePantry = useCallback(async () => {
-    const coffeeId = selectedDiaryPantryCoffee?.id ?? "";
-    await savePantry();
+    const newRow = await savePantry();
+    lastSelectedPantryCoffeeRef.current = null;
     if (addPantryOpenedFromHomeRef.current) {
       addPantryOpenedFromHomeRef.current = false;
       navigateToTab("home");
-    } else if (addPantryOpenedFromBrewRef.current && coffeeId) {
-      setBrewCoffeeId(coffeeId);
+    } else if (addPantryOpenedFromBrewRef.current && newRow) {
+      setBrewCoffeeId(newRow.coffee_id);
+      setBrewPantryItemId(newRow.id);
       setBrewStep("method");
       addPantryOpenedFromBrewRef.current = false;
       handleCloseSeleccionaCafe();
     }
-  }, [handleCloseSeleccionaCafe, navigateToTab, savePantry, selectedDiaryPantryCoffee?.id, setBrewCoffeeId, setBrewStep]);
+  }, [handleCloseSeleccionaCafe, navigateToTab, savePantry, setBrewCoffeeId, setBrewPantryItemId, setBrewStep]);
 
   useCoffeeDetailDraftSync({
     hasDetailCoffee: Boolean(detailCoffee),
@@ -1567,8 +1581,9 @@ export function AppContainer() {
       coffeeOptions={diaryCoffeeOptions}
       brewCoffeeGrams={brewCoffeeGrams}
       onBack={handleCloseSeleccionaCafe}
-      onSelectCoffee={(coffeeId) => {
+      onSelectCoffee={(coffeeId, pantryItemId) => {
         setBrewCoffeeId(coffeeId);
+        setBrewPantryItemId(pantryItemId ?? "");
         handleCloseSeleccionaCafe();
       }}
       onAddToPantry={openAddPantrySheetFromBrewSelect}
@@ -2012,6 +2027,8 @@ export function AppContainer() {
           setBrewMethod={setBrewMethod}
           brewCoffeeId={brewCoffeeId}
           setBrewCoffeeId={setBrewCoffeeId}
+          brewPantryItemId={brewPantryItemId}
+          setBrewPantryItemId={setBrewPantryItemId}
           brewDrinkType={brewDrinkType}
           setBrewDrinkType={setBrewDrinkType}
           coffees={brewCoffeeCatalog}
@@ -2038,6 +2055,7 @@ export function AppContainer() {
             setBrewStep("method");
             setBrewMethod("");
             setBrewCoffeeId("");
+            setBrewPantryItemId("");
           }}
           showBarcodeButton={isMobileOsDevice}
           onBarcodeClick={() => {
@@ -2443,6 +2461,7 @@ export function AppContainer() {
       onCloseAddPantrySheet={() => {
         addPantryOpenedFromBrewRef.current = false;
         addPantryOpenedFromHomeRef.current = false;
+        lastSelectedPantryCoffeeRef.current = null;
         setAddPantrySheetHideBolt(false);
         setPantrySheetStep("select");
         setShowDiaryAddPantrySheet(false);
@@ -2452,7 +2471,7 @@ export function AppContainer() {
         setCoffeeSheetStep("select");
         openCoffeeSheet();
       }}
-      onOpenAddPantrySheet={openAddPantrySheet}
+      onOpenAddPantrySheet={openAddPantrySheetWithClear}
       diaryPeriod={diaryPeriod}
       setDiaryPeriod={setDiaryPeriod}
       diaryWaterMlDraft={diaryWaterMlDraft}
@@ -2465,6 +2484,8 @@ export function AppContainer() {
       setCoffeeSheetStep={setCoffeeSheetStep}
       diaryCoffeeIdDraft={diaryCoffeeIdDraft}
       setDiaryCoffeeIdDraft={setDiaryCoffeeDraftWithCaffeine}
+      diarySelectedPantryItemIdDraft={diarySelectedPantryItemIdDraft}
+      setDiarySelectedPantryItemIdDraft={setDiarySelectedPantryItemIdDraft}
       diaryCoffeeGramsDraft={diaryCoffeeGramsDraft}
       setDiaryCoffeeGramsDraft={setDiaryCoffeeGramsDraft}
       createCoffeeFormContent={createCoffeeFormForSheet}
@@ -2488,6 +2509,10 @@ export function AppContainer() {
       setDiaryPantryGramsDraft={setDiaryPantryGramsDraft}
       onSavePantry={handleSavePantry}
       selectedDiaryPantryCoffee={selectedDiaryPantryCoffee}
+      customCoffees={customCoffees}
+      onSelectPantryCoffee={(coffee) => {
+        lastSelectedPantryCoffeeRef.current = coffee;
+      }}
       showBarcodeButton={isMobileOsDevice}
       onBarcodeClick={() => {
         setBarcodeOrigin("diary");

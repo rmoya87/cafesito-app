@@ -2175,7 +2175,8 @@ fun DeleteConfirmationDialog(
     onDismissRequest: () -> Unit,
     onConfirm: () -> Unit,
     title: String,
-    text: String
+    text: String,
+    confirmButtonText: String = "ELIMINAR"
 ) {
     val isDark = isSystemInDarkTheme()
     val cancelColor = if (isDark) PureWhite else PureBlack
@@ -2236,7 +2237,7 @@ fun DeleteConfirmationDialog(
                     ),
                     shape = Shapes.pillFull
                 ) {
-                    Text("ELIMINAR", fontWeight = FontWeight.SemiBold)
+                    Text(confirmButtonText, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

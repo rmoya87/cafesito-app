@@ -1129,6 +1129,7 @@ export async function insertPantryItem(payload: {
   const supabase = getSupabaseClient();
   const now = Date.now();
   const row = {
+    id: crypto.randomUUID(),
     coffee_id: payload.coffeeId,
     user_id: payload.userId,
     total_grams: payload.totalGrams,

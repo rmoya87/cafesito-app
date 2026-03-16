@@ -148,12 +148,17 @@ fun AddStockScreen(
                         val coffeeId = selectedCoffeeId!!
                         val g = grams.toIntOrNull() ?: 250
                         isSaving = true
-                        viewModel.addToPantry(coffeeId, g) {
-                            isSaving = false
-                            selectedCoffeeId = null
-                            onSuccessWithCoffeeId?.invoke(coffeeId)
-                            onSuccess()
-                        }
+                        viewModel.addToPantry(
+                            coffeeId = coffeeId,
+                            grams = g,
+                            onSuccess = {
+                                isSaving = false
+                                selectedCoffeeId = null
+                                onSuccessWithCoffeeId?.invoke(coffeeId)
+                                onSuccess()
+                            },
+                            onFailure = { isSaving = false }
+                        )
                     }, 
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     enabled = !isSaving && grams.isNotBlank(),
