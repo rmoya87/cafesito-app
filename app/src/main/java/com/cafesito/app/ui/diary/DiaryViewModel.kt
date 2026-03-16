@@ -649,15 +649,16 @@ class DiaryViewModel @Inject constructor(
         }
     }
 
-    fun deleteEntry(entryId: Long) { 
-        viewModelScope.launch { 
-            diaryRepository.deleteDiaryEntry(entryId) 
+    fun deleteEntry(entryId: Long) {
+        viewModelScope.launch {
+            diaryRepository.deleteDiaryEntry(entryId)
+            diaryRepository.triggerRefresh()
             refreshDiaryWidget()
-        } 
+        }
     }
     
-    fun addToPantry(coffeeId: String, grams: Int, onSuccess: () -> Unit = {}) { 
-        viewModelScope.launch { 
+    fun addToPantry(coffeeId: String, grams: Int, onSuccess: () -> Unit = {}, onFailure: (() -> Unit)? = null) {
+        viewModelScope.launch {
             try {
                 diaryRepository.addToPantry(coffeeId, grams)
                 diaryRepository.triggerRefresh()
@@ -665,13 +666,15 @@ class DiaryViewModel @Inject constructor(
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error adding to pantry", e)
+                onFailure?.invoke()
             }
-        } 
+        }
     }
     
     fun updateStock(pantryItemId: String, total: Int, remaining: Int) {
         viewModelScope.launch {
             diaryRepository.updatePantryStockById(pantryItemId, total, remaining)
+            diaryRepository.triggerRefresh()
             refreshDiaryWidget()
         }
     }

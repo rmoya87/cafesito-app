@@ -41,6 +41,8 @@ export function BrewLabView({
   setBrewMethod,
   brewCoffeeId,
   setBrewCoffeeId,
+  brewPantryItemId = "",
+  setBrewPantryItemId,
   brewDrinkType = "Espresso",
   setBrewDrinkType,
   coffees,
@@ -77,6 +79,9 @@ export function BrewLabView({
   setBrewMethod: (value: string) => void;
   brewCoffeeId: string;
   setBrewCoffeeId: (value: string) => void;
+  /** Ítem de despensa elegido (varios pueden ser del mismo café). Si está definido, se usa para mostrar stock y restar del ítem correcto. */
+  brewPantryItemId?: string;
+  setBrewPantryItemId?: (value: string) => void;
   /** Tipo de bebida (Espresso, Americano, etc.); mismo conjunto que en Mi diario. */
   brewDrinkType?: string;
   setBrewDrinkType?: (value: string) => void;
@@ -622,11 +627,13 @@ export function BrewLabView({
                   aria-label={
                     selectedCoffee
                       ? (() => {
-                          const pantryRow = brewCoffeeId ? pantryItems.find((r) => r.coffee.id === brewCoffeeId) : null;
+                          const pantryRow = brewPantryItemId
+                            ? pantryItems.find((r) => r.item.id === brewPantryItemId)
+                            : brewCoffeeId
+                              ? pantryItems.find((r) => r.coffee.id === brewCoffeeId)
+                              : null;
                           if (pantryRow) {
-                            const gramsForBrew = Number(coffeeGrams) || 0;
-                            const displayRemaining = Math.max(0, pantryRow.remaining - gramsForBrew);
-                            return `Selecciona café: ${selectedCoffee.nombre}, ${Math.round(displayRemaining)} de ${Math.round(pantryRow.total)} g en bolsa`;
+                            return `Selecciona café: ${selectedCoffee.nombre}, ${Math.round(pantryRow.remaining)} de ${Math.round(pantryRow.total)} g en bolsa`;
                           }
                           return `Selecciona café: ${selectedCoffee.nombre}`;
                         })()
@@ -641,13 +648,15 @@ export function BrewLabView({
                       <span className="brew-select-coffee-selected-copy">
                         <span className="brew-select-coffee-name">{selectedCoffee.nombre}</span>
                         {(() => {
-                          const pantryRow = brewCoffeeId ? pantryItems.find((r) => r.coffee.id === brewCoffeeId) : null;
+                          const pantryRow = brewPantryItemId
+                            ? pantryItems.find((r) => r.item.id === brewPantryItemId)
+                            : brewCoffeeId
+                              ? pantryItems.find((r) => r.coffee.id === brewCoffeeId)
+                              : null;
                           if (!pantryRow) return null;
-                          const gramsForBrew = Number(coffeeGrams) || 0;
-                          const displayRemaining = Math.max(0, pantryRow.remaining - gramsForBrew);
                           return (
                             <span className="brew-select-coffee-stock" aria-hidden="true">
-                              {Math.round(displayRemaining)}/{Math.round(pantryRow.total)}g
+                              {Math.round(pantryRow.remaining)}/{Math.round(pantryRow.total)}g
                             </span>
                           );
                         })()}
@@ -710,8 +719,14 @@ export function BrewLabView({
 
                   {!isAguaMethod ? (
                   <div className={`brew-tech-row ${isEspressoMethod ? "brew-tech-row-coffee-espresso" : ""}`.trim()}>
+                    {isEspressoMethod ? (
+                      <div className="brew-tech-coffee-espresso-titles" aria-hidden="true">
+                        <span>Café (g)</span>
+                        <span className="brew-tech-slider-label">{espressoCoffeeSliderLabel}</span>
+                      </div>
+                    ) : null}
                     <div className="brew-tech-field">
-                      <span>Café</span>
+                      {!isEspressoMethod ? <span>Café (g)</span> : null}
                       <div className="brew-tech-value-field">
                         <Input
                           className="search-wide brew-tech-value-input is-coffee"
@@ -741,7 +756,7 @@ export function BrewLabView({
                     </div>
                     {isCoffeeSliderShown ? (
                       <label className="brew-tech-slider">
-                        <span className="brew-tech-slider-label">{isEspressoMethod ? espressoCoffeeSliderLabel : ratioLabel}</span>
+                        {!isEspressoMethod ? <span className="brew-tech-slider-label">{ratioLabel}</span> : null}
                         <Input
                           className="app-range app-range--coffee"
                           style={{ "--range-progress": `${coffeeProgress}%` } as CSSProperties}

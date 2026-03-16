@@ -42,6 +42,7 @@ fun BrewLabScreen(
     onCreatedCoffeeConsumed: () -> Unit = {},
     appliedSelectionId: String? = null,
     appliedSelectionFromPantry: Boolean = false,
+    appliedSelectionPantryItemId: String? = null,
     onConsumeSelection: () -> Unit = {},
     viewModel: BrewLabViewModel = hiltViewModel()
 ) {
@@ -49,6 +50,7 @@ fun BrewLabScreen(
     val step by viewModel.currentStep.collectAsState()
     val selectedMethod by viewModel.selectedMethod.collectAsState()
     val selectedCoffee by viewModel.selectedCoffee.collectAsState()
+    val selectedPantryItem by viewModel.selectedPantryItem.collectAsState()
 
     val ratio by viewModel.ratio.collectAsState()
     val coffeeGrams by viewModel.coffeeGrams.collectAsState()
@@ -92,7 +94,8 @@ fun BrewLabScreen(
     LaunchedEffect(appliedSelectionId) {
         val id = appliedSelectionId ?: return@LaunchedEffect
         if (appliedSelectionFromPantry) {
-            val item = pantryItems.find { it.coffee.id == id }
+            val item = appliedSelectionPantryItemId?.let { pid -> pantryItems.find { it.pantryItem.id == pid } }
+                ?: pantryItems.find { it.coffee.id == id }
             if (item != null) viewModel.selectPantryItem(item)
         } else {
             val c = allCoffees.find { it.coffee.id == id }?.coffee
@@ -187,6 +190,7 @@ fun BrewLabScreen(
                         selectedMethod = selectedMethod,
                         onSelectMethod = viewModel::selectMethod,
                         selectedCoffee = selectedCoffee,
+                        selectedPantryItem = selectedPantryItem,
                         onSelectCoffeeClick = onSelectCoffeeClick,
                         pantryItems = pantryItems,
                         allCoffees = allCoffees,
@@ -232,7 +236,7 @@ fun BrewLabScreen(
 @Composable
 fun BrewLabSelectCoffeeScreen(
     onBack: () -> Unit,
-    onCoffeeSelected: (coffeeId: String, fromPantry: Boolean) -> Unit,
+    onCoffeeSelected: (coffeeId: String, fromPantry: Boolean, pantryItemId: String?) -> Unit,
     onAddToPantryClick: () -> Unit,
     onCreateCoffeeClick: () -> Unit,
     viewModel: BrewLabViewModel = hiltViewModel()
@@ -271,7 +275,7 @@ fun BrewLabSelectCoffeeScreen(
             onSearchQueryChange = viewModel::onSearchQueryChanged,
             onAddToPantryClick = onAddToPantryClick,
             onCreateCoffeeClick = onCreateCoffeeClick,
-            onCoffeeSelected = { coffee, fromPantry -> onCoffeeSelected(coffee.id, fromPantry) }
+            onCoffeeSelected = { coffee, fromPantry, pantryItemId -> onCoffeeSelected(coffee.id, fromPantry, pantryItemId) }
         )
         }
     }

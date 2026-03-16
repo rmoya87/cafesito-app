@@ -174,6 +174,8 @@ function DiarySheets({
   setDiaryPantryGramsDraft,
   onSavePantry,
   selectedDiaryPantryCoffee,
+  customCoffees = [],
+  onSelectPantryCoffee,
   createCoffeeFormContent,
   onCreateCoffeeNext,
   createCoffeeFormForPantrySheet,
@@ -224,6 +226,8 @@ function DiarySheets({
   setCoffeeSheetStep: (value: CoffeeSheetStep) => void;
   diaryCoffeeIdDraft: string;
   setDiaryCoffeeIdDraft: (value: string) => void;
+  diarySelectedPantryItemIdDraft: string;
+  setDiarySelectedPantryItemIdDraft: (value: string) => void;
   diaryCoffeeGramsDraft: string;
   setDiaryCoffeeGramsDraft: (value: string) => void;
   diaryCoffeePreparationDraft: string;
@@ -241,6 +245,7 @@ function DiarySheets({
     coffeeGrams?: number;
     preparationType: string;
     sizeLabel?: string | null;
+    pantryItemId?: string | null;
   }) => Promise<void>;
   lastCreatedCoffeeNameForSheet?: string | null;
   pantrySheetStep: "select" | "form" | "createCoffee";
@@ -251,6 +256,10 @@ function DiarySheets({
   setDiaryPantryGramsDraft: (value: string) => void;
   onSavePantry: () => Promise<void>;
   selectedDiaryPantryCoffee: CoffeeRow | null;
+  /** Cafés custom; permite habilitar Guardar cuando el café seleccionado es uno recién creado. */
+  customCoffees?: CoffeeRow[];
+  /** Se llama al pulsar un café en la lista; guarda el café elegido para usarlo al guardar (Home / Selecciona café). */
+  onSelectPantryCoffee?: (coffee: CoffeeRow) => void;
   createCoffeeFormContent?: ReactNode;
   onCreateCoffeeNext?: () => Promise<void>;
   createCoffeeFormForPantrySheet?: ReactNode;
@@ -519,7 +528,7 @@ function DiarySheets({
                         {userPantryRows.map((row) => (
                           <Button
                             variant="plain"
-                            key={row.item.coffee_id}
+                            key={row.item.id}
                             type="button"
                             className="diary-coffee-select-pantry-card"
                             onClick={() => {
@@ -528,6 +537,7 @@ function DiarySheets({
                                 onCloseCoffeeSheet();
                               } else {
                                 setDiaryCoffeeIdDraft(row.coffee.id);
+                                setDiarySelectedPantryItemIdDraft(row.item.id);
                                 setCoffeeSheetStep("dose");
                               }
                             }}
@@ -617,6 +627,7 @@ function DiarySheets({
                                 onCloseCoffeeSheet();
                               } else {
                                 setDiaryCoffeeIdDraft(coffee.id);
+                                setDiarySelectedPantryItemIdDraft("");
                                 setCoffeeSheetStep("dose");
                               }
                             }}
@@ -668,7 +679,16 @@ function DiarySheets({
                       <UiIcon name="close" className="ui-icon" />
                     </Button>
                   ) : (
-                    <Button variant="plain" type="button" className="diary-dose-back" onClick={() => setCoffeeSheetStep("select")} aria-label="Volver">
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="diary-dose-back"
+                      onClick={() => {
+                        setDiarySelectedPantryItemIdDraft("");
+                        setCoffeeSheetStep("select");
+                      }}
+                      aria-label="Volver"
+                    >
                       <UiIcon name="arrow-left" className="ui-icon" />
                     </Button>
                   )}
@@ -789,7 +809,8 @@ function DiarySheets({
                         caffeineMg: Math.max(0, Number(diaryCoffeeCaffeineDraft || 0)),
                         coffeeGrams: Math.max(0, Math.round(Number(diaryCoffeeGramsDraft || 0))),
                         preparationType: diaryCoffeePreparationDraft.trim() || "Espresso",
-                        sizeLabel
+                        sizeLabel,
+                        pantryItemId: diarySelectedPantryItemIdDraft || null
                       });
                     }}
                     aria-label="Registrar"
@@ -885,6 +906,7 @@ function DiarySheets({
                           role="option"
                           className="diary-pantry-select-card"
                           onClick={() => {
+                            onSelectPantryCoffee?.(coffee);
                             setDiaryPantryCoffeeIdDraft(coffee.id);
                             setPantrySheetStep("form");
                           }}
@@ -960,7 +982,13 @@ function DiarySheets({
                     />
                   </div>
                   <div className="diary-sheet-form-actions">
-                    <Button variant="plain" type="button" className="action-button diary-add-stock-save" disabled={!selectedDiaryPantryCoffee} onClick={() => void onSavePantry()}>
+                    <Button
+                      variant="plain"
+                      type="button"
+                      className="action-button diary-add-stock-save"
+                      disabled={!diaryPantryCoffeeIdDraft}
+                      onClick={() => void onSavePantry()}
+                    >
                       GUARDAR EN DESPENSA
                     </Button>
                   </div>

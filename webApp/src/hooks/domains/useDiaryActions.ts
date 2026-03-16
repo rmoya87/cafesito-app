@@ -11,6 +11,7 @@ export function useDiaryActions({
   brewMethod,
   waterMl,
   pantryItems,
+  brewPantryItemId = "",
   setDiaryEntries,
   setPantryItems,
   setBrewRunning,
@@ -24,6 +25,8 @@ export function useDiaryActions({
   brewMethod: string;
   waterMl: number;
   pantryItems: PantryItemRow[];
+  /** Si el usuario eligió un ítem concreto de despensa (varios pueden ser del mismo café), restar de ese ítem. */
+  brewPantryItemId?: string;
   setDiaryEntries: React.Dispatch<React.SetStateAction<DiaryEntryRow[]>>;
   setPantryItems: React.Dispatch<React.SetStateAction<PantryItemRow[]>>;
   setBrewRunning: (value: boolean) => void;
@@ -74,14 +77,17 @@ export function useDiaryActions({
         coffeeGrams: gramsToSave,
         preparationType,
         sizeLabel,
-        type: "CUP"
+        type: "CUP",
+        pantryItemId: brewPantryItemId || undefined
       });
       setDiaryEntries((prev) => [created, ...prev]);
 
-      // Restar de la despensa si el café está en despensa
+      // Restar del ítem de despensa concreto elegido, o del primero que coincida por café si no se eligió ítem
       if (coffeeId && gramsToSave > 0 && pantryItems.length > 0) {
-        const toReduce = pantryItems.find((p) => p.coffee_id === coffeeId && p.grams_remaining >= gramsToSave)
-          ?? pantryItems.find((p) => p.coffee_id === coffeeId);
+        const toReduce = brewPantryItemId
+          ? pantryItems.find((p) => p.id === brewPantryItemId)
+          : pantryItems.find((p) => p.coffee_id === coffeeId && p.grams_remaining >= gramsToSave)
+            ?? pantryItems.find((p) => p.coffee_id === coffeeId);
         if (toReduce) {
           const newRemaining = Math.max(0, toReduce.grams_remaining - gramsToSave);
           const updated = await updatePantryItem(toReduce.id, {
@@ -99,7 +105,7 @@ export function useDiaryActions({
       setBrewStep("method");
       navigateToDiary();
     },
-    [activeUser, brewMethod, coffeeGrams, navigateToDiary, pantryItems, selectedCoffee, setBrewRunning, setBrewStep, setDiaryEntries, setPantryItems, setTimerSeconds, waterMl]
+    [activeUser, brewMethod, brewPantryItemId, coffeeGrams, navigateToDiary, pantryItems, selectedCoffee, setBrewRunning, setBrewStep, setDiaryEntries, setPantryItems, setTimerSeconds, waterMl]
   );
 
   /** Elimina la entrada del diario. Si la actividad había restado de un ítem de despensa, restaura el stock en ese ítem. */

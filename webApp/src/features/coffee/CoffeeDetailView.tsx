@@ -160,8 +160,6 @@ export function CoffeeDetailView({
   return (
     <article className={`coffee-detail ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}>
       <header className="coffee-detail-hero">
-        {coffee.image_url ? <img className="coffee-detail-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
-        <div className="coffee-detail-overlay" />
         <div className="coffee-detail-hero-top-actions">
           <IconButton tone="topbar" className="coffee-detail-topbar-icon" aria-label={fullPage ? "Volver" : "Cerrar detalle"} onClick={onClose}>
             <UiIcon name={fullPage ? "arrow-left" : "close"} className="ui-icon" />
@@ -216,16 +214,20 @@ export function CoffeeDetailView({
           </div>
         </div>
 
-        <div className="coffee-detail-headline">
-          <p className="coffee-origin">{(coffee.marca ?? "Marca").toUpperCase()}</p>
-          <h1 className="coffee-detail-title">{coffee.nombre}</h1>
-        </div>
-        {avgRating > 0 && reviews.length > 0 ? (
-          <div className="coffee-detail-nota-block" aria-label="Nota del café">
-            <p className="coffee-detail-nota-title">NOTA</p>
-            <p className="coffee-detail-nota-value">{avgRating.toFixed(1)}</p>
+        <div className="coffee-detail-hero-image-block">
+          {coffee.image_url ? <img className="coffee-detail-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
+          <div className="coffee-detail-overlay" />
+          <div className="coffee-detail-headline">
+            <p className="coffee-origin">{(coffee.marca ?? "Marca").toUpperCase()}</p>
+            <h1 className="coffee-detail-title">{coffee.nombre}</h1>
           </div>
-        ) : null}
+          {avgRating > 0 && reviews.length > 0 ? (
+            <div className="coffee-detail-nota-block" aria-label="Nota del café">
+              <p className="coffee-detail-nota-title">NOTA</p>
+              <p className="coffee-detail-nota-value">{avgRating.toFixed(1)}</p>
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <section className="coffee-detail-section coffee-detail-section-first">

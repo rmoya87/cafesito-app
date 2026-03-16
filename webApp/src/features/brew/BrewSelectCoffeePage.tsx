@@ -34,8 +34,8 @@ export function BrewSelectCoffeePage({
   /** Gramos de café que el usuario va a usar en esta elaboración; si se pasa, en cada ítem de despensa se muestra restante/total (restante = stock actual − brewCoffeeGrams) en tiempo real. */
   brewCoffeeGrams?: number;
   onBack: () => void;
-  /** Al seleccionar un café, se usa para elaboración y se cierra la página. */
-  onSelectCoffee: (coffeeId: string) => void;
+  /** Al seleccionar un café, se usa para elaboración y se cierra la página. Si viene de despensa, pasar pantryItemId para identificar el ítem concreto (varios pueden ser del mismo café). */
+  onSelectCoffee: (coffeeId: string, pantryItemId?: string) => void;
   onAddToPantry?: () => void;
   /** Abre el flujo Crear mi café. */
   onCreateCoffee?: () => void;
@@ -157,19 +157,18 @@ export function BrewSelectCoffeePage({
                 {pantryItems.map((row) => {
                   const gramsForBrew = Number(brewCoffeeGrams) || 0;
                   const remainingAfterBrew = Math.max(0, row.remaining - gramsForBrew);
-                  const displayRemaining = gramsForBrew > 0 ? remainingAfterBrew : row.remaining;
-                  const displayProgress = row.total > 0 ? displayRemaining / row.total : 0;
+                  const displayProgress = row.total > 0 ? row.remaining / row.total : 0;
                   return (
                     <div
                       key={row.item.id}
                       className="brew-pantry-card"
                       role="button"
                       tabIndex={0}
-                      onClick={() => onSelectCoffee(row.coffee.id)}
+                      onClick={() => onSelectCoffee(row.coffee.id, row.item.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          onSelectCoffee(row.coffee.id);
+                          onSelectCoffee(row.coffee.id, row.item.id);
                         }
                       }}
                     >
@@ -199,10 +198,10 @@ export function BrewSelectCoffeePage({
                       <div className="brew-pantry-body">
                         <strong>{row.coffee.nombre}</strong>
                         <small
-                          title={gramsForBrew > 0 ? `Quedarían ${Math.round(displayRemaining)} g de ${Math.round(row.total)} g tras esta elaboración` : undefined}
-                          aria-label={gramsForBrew > 0 ? `Quedarían ${Math.round(displayRemaining)} de ${Math.round(row.total)} gramos tras esta elaboración` : undefined}
+                          title={gramsForBrew > 0 ? `Stock actual ${Math.round(row.remaining)}/${Math.round(row.total)} g. Quedarían ${Math.round(remainingAfterBrew)} g tras esta elaboración` : undefined}
+                          aria-label={`Stock ${Math.round(row.remaining)} de ${Math.round(row.total)} gramos${gramsForBrew > 0 ? `. Tras esta elaboración quedarían ${Math.round(remainingAfterBrew)} g` : ""}`}
                         >
-                          {Math.round(displayRemaining)}/{Math.round(row.total)}g
+                          {Math.round(row.remaining)}/{Math.round(row.total)}g
                         </small>
                         <div className="brew-pantry-progress" aria-hidden="true">
                           <span style={{ width: `${Math.max(0, Math.min(100, displayProgress * 100))}%` }} />

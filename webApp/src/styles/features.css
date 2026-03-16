@@ -3207,6 +3207,7 @@ html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-revi
   background: var(--pure-white);
 }
 
+/* Side-panel: botones en overlay sobre la imagen */
 .coffee-detail-hero-top-actions {
   position: absolute;
   top: calc(10px + env(safe-area-inset-top, 0px));
@@ -3217,6 +3218,40 @@ html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-revi
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+/* Bloque imagen + overlay + headline (contenedor para posicionamiento absoluto) */
+.coffee-detail-hero-image-block {
+  position: relative;
+}
+
+/* Full-page / PWA: top bar no pisa la imagen; imagen hasta el inicio del contenido */
+.coffee-detail.is-full-page .coffee-detail-hero {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 28px;
+  min-height: 0;
+}
+
+.coffee-detail.is-full-page .coffee-detail-hero-top-actions {
+  position: static;
+  flex-shrink: 0;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 10px 10px;
+  background: var(--pure-white);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.coffee-detail.is-full-page .coffee-detail-hero-image-block {
+  flex: 1;
+  min-height: 280px;
+}
+
+.coffee-detail.is-full-page .coffee-detail-image {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  object-fit: cover;
+  object-position: center;
 }
 
 .coffee-detail-image {
@@ -6279,7 +6314,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   color: var(--text-subtle);
 }
 
-/* Página completa Cafés probados (mapa + listado por país) */
+/* Página completa Cafés probados (top bar + mapa + listado por país) */
 .cafes-probados-page {
   display: flex;
   flex-direction: column;
@@ -6287,6 +6322,19 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   min-height: 0;
   background: var(--screen-dark-background);
 }
+
+/* Barra superior fija: volver y X no pisan el mapa; el mapa empieza debajo */
+.cafes-probados-topbar {
+  flex-shrink: 0;
+  min-height: 56px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--screen-dark-background);
+  border-bottom: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.08));
+}
+
 .cafes-probados-map-wrap {
   position: relative;
   flex: 0 0 33.33vh;
@@ -6300,20 +6348,6 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   flex: 0 0 25vh;
   min-height: 120px;
   max-height: 25vh;
-}
-.cafes-probados-map-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 12px 16px;
-  z-index: 1000;
-}
-.cafes-probados-map-overlay .cafes-probados-back-fab,
-.cafes-probados-map-overlay .cafes-probados-clear-fab {
-  pointer-events: auto;
 }
 .cafes-probados-back-fab,
 .cafes-probados-clear-fab {
@@ -14218,9 +14252,48 @@ html.theme-dark .brew-barista-sheet-close:hover {
   align-items: end;
 }
 
-/* Fila Café en espresso: títulos "Café" y "RATIO..." a la misma altura */
+/* Fila Café en espresso: títulos "Café (g)" y "RATIO..." en la misma línea */
 .brew-tech-row-coffee-espresso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 5fr);
+  grid-template-rows: auto auto;
+  gap: 14px;
   align-items: start;
+}
+
+.brew-tech-coffee-espresso-titles {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brew-tech-coffee-espresso-titles span {
+  font-size: 0.7rem;
+  letter-spacing: 0.11em;
+  font-weight: 700;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.brew-tech-coffee-espresso-titles .brew-tech-slider-label {
+  margin-bottom: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.brew-tech-row-coffee-espresso .brew-tech-field {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.brew-tech-row-coffee-espresso .brew-tech-slider {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 .brew-tech-row .brew-tech-field {
@@ -14257,6 +14330,11 @@ html.theme-dark .brew-barista-sheet-close:hover {
 @media (max-width: 480px) {
   /* Mantener número izquierda, slider derecha; columnas más estrechas */
   .brew-tech-row {
+    grid-template-columns: minmax(0, 96px) minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .brew-tech-row-coffee-espresso {
     grid-template-columns: minmax(0, 96px) minmax(0, 1fr);
     gap: 10px;
   }
@@ -19718,6 +19796,9 @@ html.theme-dark .app-range.app-range--time {
 .pwa-standalone .coffee-detail-hero-top-actions {
   top: calc(10px + env(safe-area-inset-top, 44px));
 }
+.pwa-standalone .coffee-detail.is-full-page .coffee-detail-hero-top-actions {
+  padding-top: calc(10px + env(safe-area-inset-top, 44px));
+}
 @media (max-width: 899px) {
   .pwa-standalone .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
     padding: calc(12px + env(safe-area-inset-top, 44px)) 12px 12px;
@@ -19767,6 +19848,9 @@ html.theme-dark .app-range.app-range--time {
 }
 .dev-safe-area-sim .coffee-detail-hero-top-actions {
   top: calc(10px + 47px);
+}
+.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-top-actions {
+  padding-top: calc(10px + 47px);
 }
 @media (max-width: 899px) {
   .dev-safe-area-sim .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {

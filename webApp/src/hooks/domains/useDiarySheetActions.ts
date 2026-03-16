@@ -6,8 +6,11 @@ import type { CoffeeRow, DiaryEntryRow, PantryItemRow, UserRow } from "../../typ
 export function useDiarySheetActions({
   activeUser,
   diaryCoffeeOptions,
+  customCoffees = [],
+  getLastSelectedPantryCoffee,
   selectedDiaryCoffee,
   selectedDiaryPantryCoffee,
+  diaryPantryCoffeeIdDraft,
   diaryWaterMlDraft,
   diaryCoffeeMlDraft,
   diaryCoffeeGramsDraft,
@@ -36,6 +39,11 @@ export function useDiarySheetActions({
   diaryCoffeeOptions: CoffeeRow[];
   selectedDiaryCoffee: CoffeeRow | null;
   selectedDiaryPantryCoffee: CoffeeRow | null;
+  /** Cafés custom del usuario; se usan para resolver el café al guardar si no está aún en diaryCoffeeOptions (p. ej. recién creado desde Crea tu café). */
+  customCoffees?: CoffeeRow[];
+  /** Café que el usuario acaba de seleccionar en la lista (al pulsar en un café); evita depender de diaryCoffeeOptions en el guardado. */
+  getLastSelectedPantryCoffee?: () => CoffeeRow | null;
+  diaryPantryCoffeeIdDraft: string;
   diaryWaterMlDraft: string;
   diaryCoffeeMlDraft: string;
   diaryCoffeeGramsDraft: string;
@@ -165,6 +173,8 @@ export function useDiarySheetActions({
       coffeeGrams?: number;
       preparationType: string;
       sizeLabel?: string | null;
+      /** Si el usuario eligió un ítem concreto de despensa (p. ej. desde "Tu despensa" en actividad), restar de ese ítem. */
+      pantryItemId?: string | null;
     }) => {
       if (!activeUser) return;
       const coffeeId = payload?.coffeeId ?? selectedDiaryCoffee?.id ?? null;
@@ -181,11 +191,13 @@ export function useDiarySheetActions({
         hasCaffeine: coffeeForCalc ? hasCaffeineFromLabel(coffeeForCalc.cafeina) : true
       });
       const sizeLabel = payload?.sizeLabel ?? null;
-      // Elegir ítem de despensa concreto por el que restar (varios ítems pueden ser del mismo café)
+      // Ítem de despensa: el elegido por el usuario (desde actividad) o el primero que coincida por café
       const toReduce =
         coffeeId && coffeeGrams > 0 && pantryItems.length > 0
-          ? pantryItems.find((p) => p.coffee_id === coffeeId && p.grams_remaining >= coffeeGrams) ??
-            pantryItems.find((p) => p.coffee_id === coffeeId)
+          ? (payload?.pantryItemId
+              ? pantryItems.find((p) => p.id === payload.pantryItemId)
+              : pantryItems.find((p) => p.coffee_id === coffeeId && p.grams_remaining >= coffeeGrams) ??
+                pantryItems.find((p) => p.coffee_id === coffeeId)) ?? null
           : null;
       const created = await createDiaryEntry({
         userId: activeUser.id,
@@ -231,11 +243,19 @@ export function useDiarySheetActions({
     ]
   );
 
-  const savePantry = useCallback(async () => {
-    if (!activeUser || !selectedDiaryPantryCoffee) return;
+  const savePantry = useCallback(async (): Promise<PantryItemRow | null> => {
+    const coffee =
+      getLastSelectedPantryCoffee?.() ??
+      selectedDiaryPantryCoffee ??
+      (diaryPantryCoffeeIdDraft
+        ? diaryCoffeeOptions.find((c) => c.id === diaryPantryCoffeeIdDraft) ??
+          customCoffees.find((c) => c.id === diaryPantryCoffeeIdDraft) ??
+          null
+        : null);
+    if (!activeUser || !coffee) return null;
     const gramsToAdd = Math.max(1, Math.round(Number(diaryPantryGramsDraft || 0)));
     const newRow = await insertPantryItem({
-      coffeeId: selectedDiaryPantryCoffee.id,
+      coffeeId: coffee.id,
       userId: activeUser.id,
       totalGrams: gramsToAdd,
       gramsRemaining: gramsToAdd
@@ -243,9 +263,14 @@ export function useDiarySheetActions({
     setPantryItems((prev) => [newRow, ...prev]);
     setDiaryTab("despensa");
     setShowDiaryAddPantrySheet(false);
+    return newRow;
   }, [
     activeUser,
+    customCoffees,
+    diaryCoffeeOptions,
+    diaryPantryCoffeeIdDraft,
     diaryPantryGramsDraft,
+    getLastSelectedPantryCoffee,
     selectedDiaryPantryCoffee,
     setDiaryTab,
     setPantryItems,

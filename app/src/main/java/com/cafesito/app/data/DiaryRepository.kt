@@ -445,7 +445,7 @@ class DiaryRepository @Inject constructor(
         }
     }
 
-    /** Actualiza un registro de despensa por id (editar total/restante). */
+    /** Actualiza un registro de despensa por id (editar total/restante). Origen: Room + sync Supabase. */
     suspend fun updatePantryStockById(id: String, totalGrams: Int, gramsRemaining: Int) {
         val item = diaryDao.getPantryItemById(id) ?: return
         val updated = item.copy(totalGrams = totalGrams, gramsRemaining = gramsRemaining.coerceIn(0, totalGrams), lastUpdated = System.currentTimeMillis())

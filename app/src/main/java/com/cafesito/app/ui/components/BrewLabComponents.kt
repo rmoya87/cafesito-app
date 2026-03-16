@@ -290,6 +290,7 @@ fun BrewLabMainStepContent(
     selectedMethod: BrewMethod?,
     onSelectMethod: (BrewMethod) -> Unit,
     selectedCoffee: Coffee?,
+    selectedPantryItem: PantryItemWithDetails?,
     onSelectCoffeeClick: () -> Unit,
     pantryItems: List<PantryItemWithDetails>,
     allCoffees: List<CoffeeWithDetails>,
@@ -373,7 +374,7 @@ fun BrewLabMainStepContent(
                         modifier = Modifier.padding(vertical = Spacing.space3),
                         color = cardDividerColor
                     )
-                    val selectedPantryItem = remember(selectedCoffee, pantryItems) {
+                    val rowDisplayItem = selectedPantryItem ?: remember(selectedCoffee, pantryItems) {
                         selectedCoffee?.let { c -> pantryItems.find { it.coffee.id == c.id } }
                     }
                     Surface(
@@ -395,9 +396,10 @@ fun BrewLabMainStepContent(
                                 horizontalArrangement = Arrangement.Start
                             ) {
                                 if (selectedCoffee != null) {
-                                    if (selectedCoffee.imageUrl.isNotBlank()) {
+                                    val displayCoffee = rowDisplayItem?.coffee ?: selectedCoffee
+                                    if (displayCoffee.imageUrl.isNotBlank()) {
                                         AsyncImage(
-                                            model = selectedCoffee.imageUrl,
+                                            model = displayCoffee.imageUrl,
                                             contentDescription = null,
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier
@@ -408,16 +410,16 @@ fun BrewLabMainStepContent(
                                     }
                                     Column(modifier = Modifier.weight(1f, fill = false)) {
                                         Text(
-                                            text = selectedCoffee.nombre.take(40),
+                                            text = displayCoffee.nombre.take(40),
                                             style = MaterialTheme.typography.bodyLarge,
                                             fontWeight = FontWeight.Medium,
                                             color = if (isDarkBrew) PureWhite else MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
-                                        if (selectedPantryItem != null) {
-                                            val rem = selectedPantryItem.pantryItem.gramsRemaining.coerceIn(0, selectedPantryItem.pantryItem.totalGrams)
-                                            val tot = selectedPantryItem.pantryItem.totalGrams
+                                        if (rowDisplayItem != null) {
+                                            val rem = rowDisplayItem.pantryItem.gramsRemaining.coerceIn(0, rowDisplayItem.pantryItem.totalGrams)
+                                            val tot = rowDisplayItem.pantryItem.totalGrams
                                             Text(
                                                 text = "$rem/$tot g",
                                                 style = MaterialTheme.typography.bodySmall,
@@ -478,7 +480,7 @@ fun ChooseCoffeeStep(
     onSearchQueryChange: (String) -> Unit,
     onAddToPantryClick: () -> Unit,
     onCreateCoffeeClick: () -> Unit,
-    onCoffeeSelected: (Coffee, Boolean) -> Unit
+    onCoffeeSelected: (Coffee, Boolean, pantryItemId: String?) -> Unit
 ) {
     val filteredPantry = if (searchQuery.isBlank()) pantryItems else pantryItems.filter {
         it.coffee.nombre.contains(searchQuery, true) || it.coffee.marca.contains(searchQuery, true)
@@ -520,7 +522,7 @@ fun ChooseCoffeeStep(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
                 ) {
                     items(filteredPantry, key = { it.pantryItem.id }) { item ->
-                        PantryPremiumMiniCard(item = item, onClick = { onCoffeeSelected(item.coffee, true) })
+                        PantryPremiumMiniCard(item = item, onClick = { onCoffeeSelected(item.coffee, true, item.pantryItem.id) })
                     }
                     item(key = "brewlab-add-pantry-card") {
                         PantryAddActionCard(onClick = onAddToPantryClick)
@@ -573,7 +575,7 @@ fun ChooseCoffeeStep(
         } else {
             items(filteredSuggestions, key = { it.coffee.id }) { item ->
                 Box(modifier = Modifier.padding(horizontal = Spacing.space6)) {
-                    SimpleCoffeeSelectionCard(item.coffee) { onCoffeeSelected(item.coffee, false) }
+                    SimpleCoffeeSelectionCard(item.coffee) { onCoffeeSelected(item.coffee, false, null) }
                 }
             }
         }
