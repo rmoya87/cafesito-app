@@ -152,6 +152,16 @@ Cannot find name 'setDiarySelectedPantryItemIdDraft'.
 
 ---
 
+### 2.6 Notas de la versión Android (What's new): solo Android, desde producción, tono divertido
+
+**Requisitos:** Las notas de la versión que sube el workflow a Google Play deben (1) incluir **solo cambios que tocan Android** (app/, shared/, gradle/, etc.), no commits solo de webApp; (2) tomar **siempre como referencia producción** (tag `deploy/android/production/*`) cuando exista, de modo que lo desplegado a beta/alpha recoga el gap con producción y cuando llegue a producción el usuario final sepa todas las mejoras; (3) estar **todas en español**, con tono divertido y no técnico, entendible por todo el mundo.
+
+**Solución:** En el job `release-android`, paso "Generate release notes": se usa `git log refSince..HEAD -- <paths>` con las rutas Android para filtrar commits; la referencia `refSince` es el último tag de **producción** (si existe y es ancestro de HEAD), y si no hay producción se usa el de la pista actual (beta/alpha). Los mensajes de commit se transforman con una función `toFriendly()` que elimina prefijos técnicos y convierte a frases tipo "Mejoras en tu despensa de café", "Retoques en tu diario", "Corregimos detalles para que todo vaya mejor", etc. Título de la sección: "¿Qué hay de nuevo?".
+
+**Archivos:** `.github/workflows/release-deploy.yml`; `docs/RELEASE_DEPLOY_WORKFLOW.md` (descripción de las notas).
+
+---
+
 ## 3. Ramas y entornos
 
 ### 3.1 Ramas que se mantienen

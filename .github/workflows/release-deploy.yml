@@ -314,14 +314,20 @@ jobs:
           script: |
             const fs = require('fs');
             const { execSync } = require('child_process');
-            const track = process.env.TRACK || 'beta';
-            const tagPrefix = `deploy/android/${track}/`;
+
+            // Solo commits que tocan Android (excluye webApp y docs solo-web)
+            const androidPaths = "app/ shared/ gradle/ build.gradle.kts settings.gradle.kts gradle.properties gradle-wrapper.properties libs.versions.toml";
+            const gitPathArgs = ` -- ${androidPaths.split(/\s+/).map(p => `'${p}'`).join(' ')}`;
+
+            // Referencia SIEMPRE producción cuando exista: lo desplegado a beta/alpha debe recoger el "gap" con producción,
+            // así cuando llegue a producción el usuario final ve todas las mejoras. Todo el texto de las notas, en español.
+            const productionPrefix = 'deploy/android/production/';
             let refSince = null;
             try {
-              const tagsOut = execSync(`git tag -l "${tagPrefix}*"`, { encoding: 'utf8' });
+              const tagsOut = execSync(`git tag -l "${productionPrefix}*"`, { encoding: 'utf8' });
               const tags = tagsOut.trim().split(/\n/).filter(Boolean);
               const sorted = tags.map(t => {
-                const num = parseInt(t.replace(tagPrefix, ''), 10);
+                const num = parseInt(t.replace(productionPrefix, ''), 10);
                 return { tag: t, num: isNaN(num) ? 0 : num };
               }).sort((a, b) => b.num - a.num);
               for (const { tag } of sorted) {
@@ -331,21 +337,53 @@ jobs:
                   break;
                 } catch (_) { /* not ancestor, skip */ }
               }
+              // Solo si no hay producción (p. ej. primera vez): usar tag de la pista actual
+              if (!refSince && process.env.TRACK !== 'production') {
+                const trackPrefix = `deploy/android/${process.env.TRACK || 'beta'}/`;
+                const trackTagsOut = execSync(`git tag -l "${trackPrefix}*"`, { encoding: 'utf8' });
+                const trackTags = trackTagsOut.trim().split(/\n/).filter(Boolean);
+                const trackSorted = trackTags.map(t => {
+                  const num = parseInt(t.replace(trackPrefix, ''), 10);
+                  return { tag: t, num: isNaN(num) ? 0 : num };
+                }).sort((a, b) => b.num - a.num);
+                for (const { tag } of trackSorted) {
+                  try {
+                    execSync(`git merge-base --is-ancestor ${tag} HEAD`, { stdio: 'pipe' });
+                    refSince = tag;
+                    break;
+                  } catch (_) {}
+                }
+              }
             } catch (_) {}
+
+            // Siempre salida en español; nunca exponer mensaje de commit crudo (puede ser técnico o en inglés)
+            function toFriendly(msg) {
+              let s = (msg || '').replace(/\s*\[skip ci\]\s*/gi, '').replace(/\s*\(#\d+\)\s*$/i, '').trim();
+              if (!s || /^chore\(release\):/i.test(s)) return '';
+              s = s.replace(/^(fix|feat|chore|docs|refactor|style|test)(\([^)]*\))?!?:\s*/i, '').trim();
+              const lower = s.toLowerCase();
+              if (lower.includes('despensa') || lower.includes('pantry')) return 'Mejoras en tu despensa de café';
+              if (lower.includes('diario') || lower.includes('diary')) return 'Retoques en tu diario';
+              if (lower.includes('elaboración') || lower.includes('brew')) return 'Pequeñas mejoras al preparar tu café';
+              if (lower.includes('modal') || lower.includes('terminado')) return 'Ajustes en los avisos de la app';
+              if (lower.includes('perfil') || lower.includes('profile')) return 'Novedades en tu perfil';
+              if (lower.includes('crash') || lower.includes('error') || lower.includes('fix')) return 'Corregimos detalles para que todo vaya mejor';
+              if (lower.includes('ui') || lower.includes('pantalla') || lower.includes('screen')) return 'Pulimos cómo se ve la app';
+              return 'Pequeñas mejoras y retoques';
+            }
+
             const maxLen = 500;
             let promo;
             if (refSince) {
               let log;
               try {
-                log = execSync(`git log ${refSince}..HEAD --no-merges --pretty=format:%s`, { encoding: 'utf8' });
+                log = execSync(`git log ${refSince}..HEAD --no-merges --pretty=format:%s${gitPathArgs}`, { encoding: 'utf8' });
               } catch (_) { log = ''; }
               const raw = log.trim().split(/\n/).filter(Boolean);
-              const cleaned = raw
-                .map(s => s.replace(/\s*\[skip ci\]\s*/gi, '').trim())
-                .filter(s => s && !/^chore\(release\):/i.test(s));
-              const unique = [...new Set(cleaned)];
-              const bullets = unique.slice(0, 25).map(s => '• ' + s);
-              const intro = 'Cambios desde la última versión:';
+              const friendly = raw.map(toFriendly).filter(Boolean);
+              const unique = [...new Set(friendly)];
+              const bullets = unique.slice(0, 12).map(s => '• ' + s);
+              const intro = '¿Qué hay de nuevo?';
               promo = [intro, '', ...bullets, '', '¡Gracias por usar Cafesito!'].join('\n');
             } else {
               promo = 'Mejoras y correcciones. ¡Gracias por usar Cafesito!';
