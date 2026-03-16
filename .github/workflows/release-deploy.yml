@@ -64,6 +64,8 @@ concurrency:
 
 env:
   TARGET_BRANCH: ${{ github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta' }}
+  # Opt-in a Node 24 para acciones (evita aviso de deprecación de Node 20; ver https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # En "Run workflow" manual: actualiza la rama elegida con main para que el despliegue incluya todos los cambios de main
@@ -187,12 +189,13 @@ jobs:
       (contains(fromJSON('["Interna","Interno","Alpha","alpha","Beta","beta","Producción","Produccion"]'), github.event.inputs.branch || github.ref_name || vars.NIGHTLY_DEPLOY_BRANCH || 'beta'))
     runs-on: ubuntu-latest
     steps:
+      # En push usar la ref que disparó el workflow para evitar git exit 128 (ref no encontrada p. ej. Beta vs beta)
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
           fetch-tags: true
-          ref: refs/heads/${{ env.TARGET_BRANCH }}
+          ref: ${{ github.event_name == 'push' && github.ref || format('refs/heads/{0}', env.TARGET_BRANCH) }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -257,6 +260,7 @@ jobs:
             echo "No version changes detected"
             exit 0
           fi
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # En algunos entornos (p.ej. mirrors/Gerrit) puede existir push.pushOption=changesNotSentForReview
@@ -267,9 +271,9 @@ jobs:
           git commit -m "chore(release): bump version [skip ci]"
           # Stash cualquier otro cambio (p. ej. app/google-services.json) para poder rebasar con árbol limpio
           git stash push -u -m "ci-before-rebase" || true
-          git fetch origin "${TARGET_BRANCH}"
-          git rebase "origin/${TARGET_BRANCH}"
-          git push origin "HEAD:${TARGET_BRANCH}"
+          git fetch origin "${CURRENT_BRANCH}"
+          git rebase "origin/${CURRENT_BRANCH}"
+          git push origin "HEAD:${CURRENT_BRANCH}"
           git stash pop || true
 
       - name: Build release bundle
@@ -379,15 +383,16 @@ jobs:
             echo "last_deployed_version.txt sin cambios (ya ${VERSION_CODE})"
             exit 0
           fi
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local --unset-all push.pushOption || true
           git add scripts/last_deployed_version.txt
           git commit -m "chore(release): last deployed versionCode ${VERSION_CODE} [skip ci]"
           git stash push -u -m "ci-before-rebase" || true
-          git fetch origin "${TARGET_BRANCH}"
-          git rebase "origin/${TARGET_BRANCH}"
-          git push origin "HEAD:${TARGET_BRANCH}"
+          git fetch origin "${CURRENT_BRANCH}"
+          git rebase "origin/${CURRENT_BRANCH}"
+          git push origin "HEAD:${CURRENT_BRANCH}"
           git stash pop || true
 
   # Deploy web a Ionos: en alpha, beta y Producción solo si web está en los cambios (no cuando android_only)
@@ -403,9 +408,10 @@ jobs:
       run:
         working-directory: webApp
     steps:
+      # En push usar la ref que disparó el workflow para evitar exit 128 (ref no encontrada p. ej. Beta vs beta)
       - uses: actions/checkout@v5
         with:
-          ref: refs/heads/${{ env.TARGET_BRANCH }}
+          ref: ${{ github.event_name == 'push' && github.ref || format('refs/heads/{0}', env.TARGET_BRANCH) }}
 
       - name: Setup Node
         uses: actions/setup-node@v5
