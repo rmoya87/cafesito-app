@@ -1,7 +1,7 @@
 # Workflow Release & Deploy
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-09  
+**Última actualización:** 2026-03-17  
 **Fuente de verdad:** comportamiento por rama y despliegue (Android + Web).
 
 Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que gestiona el release de Android en Google Play y el despliegue de la web en Ionos según la rama.
@@ -124,8 +124,7 @@ Por tanto, no hace falta mergear main en beta a mano antes de pulsar "Run workfl
    - Condición: rama en `Interna` / `alpha` / `beta` / `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
    - Configura keystore y `google-services.json`, hace bump de versión, build del AAB y subida a la pista de Play correspondiente.
    - Sube también los **símbolos nativos** (`debugSymbols`) generados por el build para que Play Console pueda mostrar ANR y crashes de forma legible.
-   - **Notas de la versión (What’s new):** Se generan desde **todos los commits en git desde la última publicación desplegada** en esa pista. Tras cada subida exitosa a Play se crea el tag `deploy/android/<pista>/<versionCode>` (ej. `deploy/android/beta/218`). En la siguiente release se toma el último tag de esa pista que sea ancestro de HEAD y se lista el mensaje de cada commit desde ese tag hasta HEAD (excluyendo merges y commits `chore(release)`). Así el usuario ve en “Qué hay de nuevo” los cambios reales desde la versión que tenía instalada. Si no existe tag previo (primera vez), se muestra un texto genérico.
-   - **Tag de deploy:** Tras “Upload to Google Play” se hace push del tag `deploy/android/<track>/<versionCode>` para que la próxima ejecución pueda calcular las release notes.
+   - **Notas de la versión (What’s new):** Se generan **solo con commits que tocan Android** (app/, shared/, gradle/, etc.), no con cambios solo de webApp. La referencia es **siempre la última versión desplegada a producción** (`deploy/android/production/*`) cuando exista: así, lo desplegado a beta/alpha recoge el "gap" con producción y cuando llegue a producción el usuario final ve **todas** las mejoras. Todo el texto de las notas está **en español**, con tono divertido y no técnico (ej. "Mejoras en tu despensa", "Retoques en tu diario"). Si no hay tag de producción (p. ej. primera vez), se usa el de la pista actual. Límite 500 caracteres (Play). Tras cada subida exitosa se crea el tag `deploy/android/<pista>/<versionCode>`. Así el usuario ve en “Qué hay de nuevo”    - **Tag de deploy:** Tras “Upload to Google Play” se hace push del tag `deploy/android/<track>/<versionCode>` para que la próxima ejecución pueda calcular las release notes.
 
 4. **deploy-web**  
    - Condición: rama `alpha`, `beta` o `Producción` (según `NIGHTLY_DEPLOY_BRANCH`).
@@ -189,3 +188,4 @@ Se documentan aquí los despliegues relevantes (push a main + Alpha/Beta/Producc
 | Fecha       | Ramas        | Descripción |
 |------------|--------------|-------------|
 | 2026-02-28 | main, Alpha  | **Webapp**: redirect OAuth con path completo (fix 500 PWA iOS), topbar hide on scroll down / show on scroll up, .htaccess excluye `registerSW.js`. Ver `docs/commit-notes/commit-20260228-webapp-main-alpha.md`. |
+| 2026-03-16 | main, beta   | **Despensa/diario:** guardar y añadir desde elaboración y Home, stock restante en UI, método espresso títulos, fix 400 insert pantry (id UUID), modal "Café terminado" Android. **CI:** fix deploy-web (DiarySheets props, git 128 en job changes). Ver `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` §17 y `docs/commit-notes/commit-20260316-despensa-diario-deploy.md`. |

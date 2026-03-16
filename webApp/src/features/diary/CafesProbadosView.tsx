@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { UiIcon } from "../../ui/iconography";
-import { Button } from "../../ui/components";
+import { Button, IconButton } from "../../ui/components";
 import { getCountryCoords } from "../../core/countryCoords";
 import { getCountryFlagImageUrl } from "../../core/countryFlags";
 import type { CoffeeRow } from "../../types";
@@ -178,42 +178,42 @@ export function CafesProbadosView({
 
   return (
     <div className="cafes-probados-page">
-      <div className="cafes-probados-topbar" aria-label="Navegación">
-        <Button
-          variant="plain"
-          type="button"
-          className="cafes-probados-back-fab"
-          onClick={onBack}
-          aria-label="Volver a Mi diario"
-        >
-          <UiIcon name="arrow-left" className="ui-icon" aria-hidden="true" />
-        </Button>
-        {selectedCountry ? (
-          <Button
-            variant="plain"
-            type="button"
-            className="cafes-probados-back-fab cafes-probados-clear-fab"
-            onClick={handleClear}
-            aria-label="Limpiar filtro de país"
+      <header className="cafes-probados-hero" aria-label="Mapa de países de origen">
+        <div className="cafes-probados-hero-top-actions" aria-label="Navegación">
+          <IconButton
+            tone="topbar"
+            className="cafes-probados-topbar-icon"
+            aria-label="Volver a Mi diario"
+            onClick={onBack}
           >
-            <UiIcon name="close" className="ui-icon" aria-hidden="true" />
-          </Button>
-        ) : null}
-      </div>
-      <div
-        ref={mapWrapRef}
-        className={`cafes-probados-map-wrap${listScrolled ? " cafes-probados-map-wrap--collapsed" : ""}`}
-        aria-label="Mapa de países de origen"
-      >
-        {hasMap ? (
-          <div ref={mapRef} className="cafes-probados-map" />
-        ) : (
-          <div className="cafes-probados-map-placeholder">
-            <p>Mapa de países</p>
-            <p className="cafes-probados-map-placeholder-hint">Añade cafés a tu diario para ver los países en el mapa.</p>
-          </div>
-        )}
-      </div>
+            <UiIcon name="arrow-left" className="ui-icon" />
+          </IconButton>
+          {selectedCountry ? (
+            <IconButton
+              tone="topbar"
+              className="cafes-probados-topbar-icon"
+              aria-label="Limpiar filtro de país"
+              onClick={handleClear}
+            >
+              <UiIcon name="close" className="ui-icon" />
+            </IconButton>
+          ) : null}
+        </div>
+        <div
+          ref={mapWrapRef}
+          className={`cafes-probados-hero-map-block${listScrolled ? " cafes-probados-hero-map-block--collapsed" : ""}`}
+        >
+          {hasMap ? (
+            <div ref={mapRef} className="cafes-probados-map" />
+          ) : (
+            <div className="cafes-probados-map-placeholder">
+              <p>Mapa de países</p>
+              <p className="cafes-probados-map-placeholder-hint">Añade cafés a tu diario para ver los países en el mapa.</p>
+            </div>
+          )}
+          <div className="cafes-probados-map-overlay" aria-hidden="true" />
+        </div>
+      </header>
 
       <section
         ref={listWrapRef}

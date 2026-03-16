@@ -3225,35 +3225,6 @@ html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-revi
   position: relative;
 }
 
-/* Full-page / PWA: top bar no pisa la imagen; imagen hasta el inicio del contenido */
-.coffee-detail.is-full-page .coffee-detail-hero {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 28px;
-  min-height: 0;
-}
-
-.coffee-detail.is-full-page .coffee-detail-hero-top-actions {
-  position: static;
-  flex-shrink: 0;
-  padding: calc(10px + env(safe-area-inset-top, 0px)) 10px 10px;
-  background: var(--pure-white);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.coffee-detail.is-full-page .coffee-detail-hero-image-block {
-  flex: 1;
-  min-height: 280px;
-}
-
-.coffee-detail.is-full-page .coffee-detail-image {
-  width: 100%;
-  height: 100%;
-  min-height: 280px;
-  object-fit: cover;
-  object-position: center;
-}
-
 .coffee-detail-image {
   width: 100%;
   height: 308px;
@@ -3532,7 +3503,7 @@ html.theme-dark .coffee-detail-nota-block {
 
 .coffee-detail-section-first {
   border-top: none;
-  margin-top: -24px;
+  margin-top: -56px;
   padding-top: 24px;
   padding-bottom: 4px;
   border-top-left-radius: 30px;
@@ -6314,7 +6285,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   color: var(--text-subtle);
 }
 
-/* Página completa Cafés probados (top bar + mapa + listado por país) */
+/* Página completa Cafés probados (hero con mapa + topbar overlay + listado solapando, igual que detalle café) */
 .cafes-probados-page {
   display: flex;
   flex-direction: column;
@@ -6323,51 +6294,69 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   background: var(--screen-dark-background);
 }
 
-/* Barra superior fija: volver y X no pisan el mapa; el mapa empieza debajo */
-.cafes-probados-topbar {
+.cafes-probados-hero {
+  position: relative;
+  min-height: 300px;
   flex-shrink: 0;
-  min-height: 56px;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+}
+
+/* Topbar sobre el mapa (por encima de Leaflet: zoom 700, marcadores 600) */
+.cafes-probados-hero-top-actions {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: 10px;
+  right: 10px;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--screen-dark-background);
-  border-bottom: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.08));
+  gap: 10px;
 }
 
-.cafes-probados-map-wrap {
-  position: relative;
-  flex: 0 0 33.33vh;
-  min-height: 160px;
-  max-height: 33.33vh;
-  background: var(--surface-muted);
-  transition: flex-basis 0.25s ease-out;
-  flex-shrink: 0;
-}
-.cafes-probados-map-wrap--collapsed {
-  flex: 0 0 25vh;
-  min-height: 120px;
-  max-height: 25vh;
-}
-.cafes-probados-back-fab,
-.cafes-probados-clear-fab {
-  width: 44px;
-  height: 44px;
+.cafes-probados-topbar-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   padding: 0;
+  box-sizing: border-box;
   border-radius: 50%;
-  background: var(--surface);
-  border: 1px solid var(--surface-card-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-main);
+  background: var(--pure-white) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: var(--pure-black);
 }
-.cafes-probados-back-fab .ui-icon,
-.cafes-probados-clear-fab .ui-icon {
-  width: 24px;
-  height: 24px;
+.cafes-probados-topbar-icon .ui-icon {
+  width: 22px;
+  height: 22px;
 }
+
+html.theme-dark .cafes-probados-topbar-icon,
+html.theme-light .cafes-probados-topbar-icon {
+  background: var(--pure-white) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: var(--pure-black);
+}
+
+/* Bloque mapa: en PWA el espacio superior (safe-area) se cubre con el mapa */
+.cafes-probados-hero-map-block {
+  position: relative;
+  height: calc(365px + env(safe-area-inset-top, 0px));
+  min-height: calc(308px + env(safe-area-inset-top, 0px));
+  background: var(--surface-muted);
+  transition: height 0.25s ease-out, min-height 0.25s ease-out;
+}
+.cafes-probados-hero-map-block--collapsed {
+  height: calc(200px + env(safe-area-inset-top, 0px));
+  min-height: calc(200px + env(safe-area-inset-top, 0px));
+}
+
+.cafes-probados-map-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.4) 100%);
+}
+
 .cafes-probados-map {
   width: 100%;
   height: 100%;
@@ -6487,6 +6476,8 @@ html.theme-dark .cafes-probados-map .leaflet-bar a {
 .cafes-probados-country-chip:hover {
   background: var(--surface-muted);
 }
+
+/* Listado debajo del mapa (sin solapamiento) */
 .cafes-probados-list-wrap {
   flex: 1;
   min-height: 0;
@@ -6494,6 +6485,7 @@ html.theme-dark .cafes-probados-map .leaflet-bar a {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding: 16px;
+  background: var(--screen-dark-background);
 }
 .cafes-probados-list-filter {
   margin: 0 0 12px;
@@ -19781,9 +19773,12 @@ html.theme-dark .app-range.app-range--time {
   padding-right: var(--app-shell-gutter);
 }
 .pwa-standalone .main-shell-scroll {
+  overflow-x: hidden;
+}
+/* En PWA el resto de vistas sí necesitan margen bajo el topbar; Cafés probados no (mapa a tope) */
+.pwa-standalone .main-shell-scroll:not(.is-cafes-probados) {
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding-top: 10px;
-  overflow-x: hidden;
 }
 .pwa-standalone .main-shell-scroll.is-coffee {
   margin-top: env(safe-area-inset-top, 44px);
@@ -19795,9 +19790,6 @@ html.theme-dark .app-range.app-range--time {
 }
 .pwa-standalone .coffee-detail-hero-top-actions {
   top: calc(10px + env(safe-area-inset-top, 44px));
-}
-.pwa-standalone .coffee-detail.is-full-page .coffee-detail-hero-top-actions {
-  padding-top: calc(10px + env(safe-area-inset-top, 44px));
 }
 @media (max-width: 899px) {
   .pwa-standalone .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
@@ -19848,9 +19840,6 @@ html.theme-dark .app-range.app-range--time {
 }
 .dev-safe-area-sim .coffee-detail-hero-top-actions {
   top: calc(10px + 47px);
-}
-.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-top-actions {
-  padding-top: calc(10px + 47px);
 }
 @media (max-width: 899px) {
   .dev-safe-area-sim .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
