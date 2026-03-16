@@ -24,6 +24,8 @@ val CaramelSoft = Color(0xFFD4A373)
 val CaramelLight = Color(0xFFE8C9A8)
 val DarkBorder = Color(0xFF3E322B)
 val DarkOutline = Color(0xFF1A1A1A) // Negro algo más claro para bordes
+/** Gris oscuro para líneas de separación y divisores en modo noche. */
+val SeparatorDark = Color(0xFF212121)
 val MutedCream = Color(0xFFBDB7B2)
 
 /** Gris oscuro para fechas/timestamps en modo día. */

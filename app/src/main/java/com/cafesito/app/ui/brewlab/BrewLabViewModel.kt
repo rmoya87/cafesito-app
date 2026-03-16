@@ -267,7 +267,7 @@ class BrewLabViewModel @Inject constructor(
 
     fun setWaterAmount(value: Float) {
         val profile = selectedMethodProfile.value
-        val clamped = value.coerceIn(BREW_WATER_ABS_MIN_ML.toFloat(), BREW_WATER_ABS_MAX_ML.toFloat())
+        val clamped = value.coerceIn(0f, BREW_WATER_ABS_MAX_ML.toFloat())
         _waterAmount.value = snapToStep(clamped, profile.waterStepMl.toFloat(), profile.waterMinMl.toFloat())
     }
 

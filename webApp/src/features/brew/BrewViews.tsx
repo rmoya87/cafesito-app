@@ -3,7 +3,7 @@ import { getOrderedBrewMethods } from "../../config/brew";
 import type { BrewMethodItem } from "../../config/brew";
 import { COFFEE_SIZE_OPTIONS, COFFEE_TIPO_OPTIONS } from "../../data/diaryBrewOptions";
 import { EMPTY } from "../../core/emptyErrorStrings";
-import { BREW_COFFEE_ABS_MAX_G, BREW_COFFEE_ABS_MIN_G, BREW_SLIDER_MAX_COFFEE_G, BREW_SLIDER_MAX_TIME_S, BREW_SLIDER_MAX_WATER_ML, BREW_WATER_ABS_MAX_ML, BREW_WATER_ABS_MIN_ML, formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
+import { BREW_COFFEE_ABS_MAX_G, BREW_COFFEE_ABS_MIN_G, BREW_SLIDER_MAX_COFFEE_G, BREW_SLIDER_MIN_COFFEE_G, BREW_SLIDER_MAX_TIME_S, BREW_SLIDER_MAX_WATER_ML, BREW_SLIDER_MIN_WATER_ML, BREW_WATER_ABS_MAX_ML, BREW_WATER_ABS_MIN_ML, formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
 import { Button, Input, Select, SheetCard, SheetHandle, SheetOverlay, Switch } from "../../ui/components";
@@ -257,7 +257,10 @@ export function BrewLabView({
     return !key.includes("espresso") && !key.includes("italiana") && !key.includes("turco");
   }, [brewMethod]);
   const isWaterEditable = useMemo(() => !isEspressoMethod, [isEspressoMethod]);
-  const isCoffeeSliderShown = useMemo(() => isWaterEditable && !isRatioEditable, [isWaterEditable, isRatioEditable]);
+  const isCoffeeSliderShown = useMemo(
+    () => (isWaterEditable && !isRatioEditable) || isEspressoMethod,
+    [isWaterEditable, isRatioEditable, isEspressoMethod]
+  );
   const coffeeGramsPrecise = useMemo(
     () => (isEspressoMethod ? Number((waterMl / 2).toFixed(1)) : Number(coffeeGramsProp.toFixed(1))),
     [isEspressoMethod, waterMl, coffeeGramsProp]
@@ -266,7 +269,7 @@ export function BrewLabView({
   const [waterDraft, setWaterDraft] = useState(String(waterMl));
   const [coffeeDraft, setCoffeeDraft] = useState(coffeeGramsPrecise.toFixed(1));
   const waterProgress = useMemo(() => {
-    const min = BREW_WATER_ABS_MIN_ML;
+    const min = BREW_SLIDER_MIN_WATER_ML;
     const max = BREW_SLIDER_MAX_WATER_ML;
     return Math.max(0, Math.min(100, ((waterMl - min) / Math.max(1, max - min)) * 100));
   }, [waterMl]);
@@ -275,7 +278,7 @@ export function BrewLabView({
     const max = methodProfile.ratioMax;
     return Math.max(0, Math.min(100, ((ratio - min) / Math.max(0.1, max - min)) * 100));
   }, [methodProfile.ratioMax, methodProfile.ratioMin, ratio]);
-  const coffeeSliderRange = useMemo(() => ({ min: BREW_COFFEE_ABS_MIN_G, max: BREW_SLIDER_MAX_COFFEE_G }), []);
+  const coffeeSliderRange = useMemo(() => ({ min: BREW_SLIDER_MIN_COFFEE_G, max: BREW_SLIDER_MAX_COFFEE_G }), []);
   const coffeeProgress = useMemo(() => {
     const { min, max } = coffeeSliderRange;
     return Math.max(0, Math.min(100, ((coffeeGramsPrecise - min) / Math.max(0.1, max - min)) * 100));
@@ -564,15 +567,15 @@ export function BrewLabView({
                             className="search-wide brew-tech-value-input is-water"
                             type="number"
                             inputMode="numeric"
-                            min={BREW_WATER_ABS_MIN_ML}
+                            min={BREW_SLIDER_MIN_WATER_ML}
                             max={BREW_WATER_ABS_MAX_ML}
                             step={methodProfile.waterStepMl}
                             value={waterDraft}
                             onChange={(event) => setWaterDraft(event.target.value)}
                             onBlur={() => {
                               const parsed = Number(waterDraft);
-                              if (Number.isFinite(parsed) && parsed > 0) {
-                                setWaterMl(Math.max(BREW_WATER_ABS_MIN_ML, Math.min(BREW_WATER_ABS_MAX_ML, Math.round(parsed))));
+                              if (Number.isFinite(parsed) && parsed >= 0) {
+                                setWaterMl(Math.max(BREW_SLIDER_MIN_WATER_ML, Math.min(BREW_WATER_ABS_MAX_ML, Math.round(parsed))));
                               } else {
                                 setWaterDraft(String(waterMl));
                               }
@@ -586,10 +589,10 @@ export function BrewLabView({
                           className="app-range app-range--water"
                           style={{ "--range-progress": `${waterProgress}%` } as CSSProperties}
                           type="range"
-                          min={BREW_WATER_ABS_MIN_ML}
+                          min={BREW_SLIDER_MIN_WATER_ML}
                           max={BREW_SLIDER_MAX_WATER_ML}
                           step={methodProfile.waterStepMl}
-                          value={Math.min(waterMl, BREW_SLIDER_MAX_WATER_ML)}
+                          value={Math.max(BREW_SLIDER_MIN_WATER_ML, Math.min(waterMl, BREW_SLIDER_MAX_WATER_ML))}
                           onChange={(event) => setWaterMl(Number(event.target.value))}
                         />
                       </label>
@@ -629,7 +632,7 @@ export function BrewLabView({
                     </div>
                     {isCoffeeSliderShown ? (
                       <label className="brew-tech-slider">
-                        <span className="brew-tech-slider-label">{ratioLabel}</span>
+                        <span className="brew-tech-slider-label">{isEspressoMethod ? "Café (g)" : ratioLabel}</span>
                         <Input
                           className="app-range app-range--coffee"
                           style={{ "--range-progress": `${coffeeProgress}%` } as CSSProperties}
@@ -637,7 +640,7 @@ export function BrewLabView({
                           min={coffeeSliderRange.min}
                           max={coffeeSliderRange.max}
                           step={0.5}
-                          value={Math.min(coffeeGramsPrecise, BREW_SLIDER_MAX_COFFEE_G)}
+                          value={Math.max(BREW_SLIDER_MIN_COFFEE_G, Math.min(coffeeGramsPrecise, BREW_SLIDER_MAX_COFFEE_G))}
                           onChange={(event) => {
                             const v = Number(event.target.value);
                             if (!Number.isFinite(v)) return;
@@ -660,7 +663,7 @@ export function BrewLabView({
                           min={coffeeSliderRange.min}
                           max={coffeeSliderRange.max}
                           step={0.5}
-                          value={Math.min(coffeeGramsPrecise, BREW_SLIDER_MAX_COFFEE_G)}
+                          value={Math.max(BREW_SLIDER_MIN_COFFEE_G, Math.min(coffeeGramsPrecise, BREW_SLIDER_MAX_COFFEE_G))}
                           onChange={(event) => {
                             const v = Number(event.target.value);
                             if (setCoffeeGrams && Number.isFinite(v)) setCoffeeGrams(Math.max(BREW_COFFEE_ABS_MIN_G, Math.min(BREW_COFFEE_ABS_MAX_G, v)));

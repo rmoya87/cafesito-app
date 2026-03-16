@@ -115,9 +115,12 @@ export const BREW_WATER_ABS_MAX_ML = 5000;
 export const BREW_COFFEE_ABS_MIN_G = 0.5;
 export const BREW_COFFEE_ABS_MAX_G = 2000;
 
-/** Máximos solo del slider; el input numérico sigue permitiendo hasta ABS_MAX. */
-export const BREW_SLIDER_MAX_WATER_ML = 1000;
-export const BREW_SLIDER_MAX_COFFEE_G = 250;
+/** Rango solo del slider café (0–50 g); el input numérico permite desde ABS_MIN hasta ABS_MAX. */
+export const BREW_SLIDER_MIN_COFFEE_G = 0;
+export const BREW_SLIDER_MAX_COFFEE_G = 50;
+/** Rango solo del slider agua (0–500 ml); el input numérico permite hasta ABS_MAX. */
+export const BREW_SLIDER_MIN_WATER_ML = 0;
+export const BREW_SLIDER_MAX_WATER_ML = 500;
 export const BREW_SLIDER_MAX_TIME_S = 60;
 
 export function getBrewMethodProfile(method: string): BrewMethodProfile {

@@ -416,23 +416,39 @@ class DiaryViewModel @Inject constructor(
     private val dayNames = listOf("Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
     private val sinMetodo = "—"
 
+    private fun stripLabPrefix(prep: String): String {
+        val raw = if (prep.contains("|")) prep.substringBefore("|").trim() else prep
+        return raw.replace(Regex("^(?:lab:\\s*|elaboracion:\\s*)", RegexOption.IGNORE_CASE), "").trim().ifEmpty { sinMetodo }
+    }
+
     val habitStats: StateFlow<DiaryHabitStats> = combine(diaryEntries, _selectedPeriod, _selectedDiaryDateMs) { entries, period, selectedMs ->
         val coffeeEntries = entries.filter { isCupEntry(it) }
+        val now = System.currentTimeMillis()
         val periodDays = when (period) {
             DiaryPeriod.HOY -> 1
-            DiaryPeriod.SEMANA -> 7
+            DiaryPeriod.SEMANA -> {
+                val currentWeekMonday = getMondayOfWeek(now)
+                val selectedWeekMonday = getMondayOfWeek(selectedMs)
+                if (selectedWeekMonday == currentWeekMonday) {
+                    val cal = Calendar.getInstance().apply { timeInMillis = now }
+                    val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+                    val daysFromMonday = if (dayOfWeek == Calendar.SUNDAY) 6 else dayOfWeek - Calendar.MONDAY
+                    (daysFromMonday + 1).coerceIn(1, 7)
+                } else 7
+            }
             DiaryPeriod.MES -> {
-                val c = Calendar.getInstance().apply { timeInMillis = selectedMs }
-                c.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val calSelected = Calendar.getInstance().apply { timeInMillis = selectedMs }
+                val calNow = Calendar.getInstance()
+                val isCurrentMonth = calSelected.get(Calendar.YEAR) == calNow.get(Calendar.YEAR) &&
+                    calSelected.get(Calendar.MONTH) == calNow.get(Calendar.MONTH)
+                if (isCurrentMonth) calNow.get(Calendar.DAY_OF_MONTH)
+                else calSelected.getActualMaximum(Calendar.DAY_OF_MONTH)
             }
         }
         val avgCups = if (periodDays > 0) "%.1f".format(Locale.ROOT, coffeeEntries.size.toDouble() / periodDays) else "0"
         val sizeCount = coffeeEntries.groupingBy { (it.sizeLabel ?: "").trim().ifEmpty { "—" } }.eachCount()
         val mostSize = sizeCount.maxByOrNull { it.value }?.key ?: "—"
-        val methodCount = coffeeEntries.groupingBy { e ->
-            val prep = e.preparationType.trim()
-            if (prep.contains("|")) prep.substringBefore("|").trim() else prep
-        }.eachCount().mapKeys { (k, _) -> k.ifEmpty { sinMetodo } }
+        val methodCount = coffeeEntries.groupingBy { e -> stripLabPrefix(e.preparationType) }.eachCount()
         val mostMethod = methodCount.maxByOrNull { it.value }?.key ?: sinMetodo
         val dayCount = coffeeEntries.groupingBy { e ->
             Calendar.getInstance().apply { timeInMillis = e.timestamp }.get(Calendar.DAY_OF_WEEK) - 1
@@ -503,7 +519,8 @@ class DiaryViewModel @Inject constructor(
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000),
         DiaryConsumptionStats(0, 0, 0, 0, 0, "—", null))
 
-    val baristaStats: StateFlow<DiaryBaristaStats> = combine(diaryEntries, availableCoffees) { entries, coffees ->
+    /** Datos barista (cafés probados, tostadores, origen favorito): totalidad de la cuenta, no del periodo. */
+    val baristaStats: StateFlow<DiaryBaristaStats> = combine(allDiaryEntries, availableCoffees) { entries, coffees ->
         val coffeeEntries = entries.filter { isCupEntry(it) }
         val coffeeById = coffees.associate { it.coffee.id to it.coffee }
         val byCoffeeId = mutableMapOf<String, Long>()

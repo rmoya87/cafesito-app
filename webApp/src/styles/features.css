@@ -6130,6 +6130,21 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   max-width: 70%;
 }
 
+/* Origen favorito: bandera a la izquierda del nombre del país */
+.diary-stats-card-value-origin {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.diary-origin-flag-img {
+  flex-shrink: 0;
+  width: 24px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
 /* Consumo > Momento: label en primera línea, valor (Mañana/Tarde/Noche) en segunda línea para que no se parta */
 .diary-stats-card-row-momento {
   flex-wrap: wrap;
@@ -13006,8 +13021,16 @@ html:not(.theme-dark) .brew-config-cafe-card .brew-tamaño-card:not(.is-active) 
   min-height: 100%;
   background: var(--screen-light-background);
 }
+@media (prefers-color-scheme: dark) {
+  .brew-select-coffee-page {
+    background: var(--screen-dark-background);
+  }
+}
 html.theme-dark .brew-select-coffee-page {
   background: var(--screen-dark-background);
+}
+html.theme-light .brew-select-coffee-page {
+  background: var(--screen-light-background);
 }
 .brew-select-coffee-page-header {
   display: flex;

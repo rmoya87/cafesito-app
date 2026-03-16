@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -93,8 +94,10 @@ import com.cafesito.shared.domain.brew.BREW_COFFEE_ABS_MAX_G
 import com.cafesito.shared.domain.brew.BREW_COFFEE_ABS_MIN_G
 import com.cafesito.shared.domain.brew.BREW_METHOD_OTROS
 import com.cafesito.shared.domain.brew.BREW_SLIDER_MAX_COFFEE_G
+import com.cafesito.shared.domain.brew.BREW_SLIDER_MIN_COFFEE_G
 import com.cafesito.shared.domain.brew.BREW_SLIDER_MAX_TIME_S
 import com.cafesito.shared.domain.brew.BREW_SLIDER_MAX_WATER_ML
+import com.cafesito.shared.domain.brew.BREW_SLIDER_MIN_WATER_ML
 import com.cafesito.shared.domain.brew.BREW_WATER_ABS_MAX_ML
 import com.cafesito.shared.domain.brew.BREW_WATER_ABS_MIN_ML
 import com.cafesito.shared.domain.brew.BrewMethodProfile
@@ -323,6 +326,7 @@ fun BrewLabMainStepContent(
     val water by viewModel.waterAmount.collectAsState(initial = 250f)
     val isDarkBrew = isSystemInDarkTheme()
     val cardColor = if (isDarkBrew) PureBlack else PureWhite
+    val cardDividerColor = if (isDarkBrew) SliderTrackInactiveDark else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -343,12 +347,14 @@ fun BrewLabMainStepContent(
             shape = Shapes.shapeCardMedium,
             containerColor = cardColor
         ) {
-            Column(modifier = Modifier.padding(Spacing.space4)) {
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space4)) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth().clip(RectangleShape)) {
                     LazyRow(
                         state = methodsListState,
-                        modifier = Modifier.width(maxWidth + 16.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 0.dp, top = 2.dp, bottom = 2.dp),
+                        modifier = Modifier
+                            .offset(x = -Spacing.space4)
+                            .width(maxWidth + Spacing.space4 * 2),
+                        contentPadding = PaddingValues(start = Spacing.space4, end = 0.dp, top = 2.dp, bottom = 2.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(brewMethods, key = { it.name }) { method ->
@@ -364,7 +370,7 @@ fun BrewLabMainStepContent(
                 if (selectedMethod != null && !selectedMethod.isOtros) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = Spacing.space3),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        color = cardDividerColor
                     )
                     ConfigStep(
                         methodName = selectedMethod.name,
@@ -405,8 +411,8 @@ fun BrewLabMainStepContent(
                 shape = Shapes.shapeCardMedium,
                 containerColor = cardColor
             ) {
-                Column(modifier = Modifier.padding(horizontal = Spacing.space4)) {
-                    Surface(
+                Column(modifier = Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space4)) {
+                Surface(
                         onClick = onSelectCoffeeClick,
                         shape = RoundedCornerShape(0.dp),
                         color = Color.Transparent,
@@ -455,7 +461,7 @@ fun BrewLabMainStepContent(
                     }
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = Spacing.space3),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        color = cardDividerColor
                     )
                     Spacer(Modifier.height(Spacing.space2))
                     val context = LocalContext.current
@@ -465,10 +471,12 @@ fun BrewLabMainStepContent(
                     val selectedTextColorTipo = if (isDarkTipo) PureBlack else PureWhite
                     val tipoChipWidth = 140.dp
                     val tipoChipHeight = 56.dp
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth().clip(RectangleShape)) {
                     LazyRow(
-                        modifier = Modifier.width(maxWidth + 16.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 0.dp),
+                        modifier = Modifier
+                            .offset(x = -Spacing.space4)
+                            .width(maxWidth + Spacing.space4 * 2),
+                        contentPadding = PaddingValues(start = Spacing.space4, end = 0.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(BREWLAB_TIPO_OPTIONS, key = { it.label }) { option ->
@@ -514,17 +522,19 @@ fun BrewLabMainStepContent(
                     }
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = Spacing.space3),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        color = cardDividerColor
                     )
                     val contextSize = LocalContext.current
                     val isDarkSize = isSystemInDarkTheme()
                     val unselectedChipBgSize = if (isDarkSize) MaterialTheme.colorScheme.background else AdviceCardBgLight
                     val unselectedChipContentSize = MaterialTheme.colorScheme.onSurface
                     val selectedTextColorSize = if (isDarkSize) PureBlack else PureWhite
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth().clip(RectangleShape)) {
                     LazyRow(
-                        modifier = Modifier.width(maxWidth + 16.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 0.dp),
+                        modifier = Modifier
+                            .offset(x = -Spacing.space4)
+                            .width(maxWidth + Spacing.space4 * 2),
+                        contentPadding = PaddingValues(start = Spacing.space4, end = 0.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(BREWLAB_SIZE_OPTIONS, key = { it.label }) { option ->
@@ -804,9 +814,9 @@ fun ConfigStep(
                             )
                             Slider(
                                 modifier = Modifier.weight(2f),
-                                value = water.coerceIn(BREW_WATER_ABS_MIN_ML.toFloat(), BREW_SLIDER_MAX_WATER_ML.toFloat()),
+                                value = water.coerceIn(BREW_SLIDER_MIN_WATER_ML.toFloat(), BREW_SLIDER_MAX_WATER_ML.toFloat()),
                                 onValueChange = { viewModel.setWaterAmount(it) },
-                                valueRange = BREW_WATER_ABS_MIN_ML.toFloat()..BREW_SLIDER_MAX_WATER_ML.toFloat(),
+                                valueRange = BREW_SLIDER_MIN_WATER_ML.toFloat()..BREW_SLIDER_MAX_WATER_ML.toFloat(),
                                 steps = 0,
                                 colors = SliderDefaults.colors(
                                     thumbColor = waterBlue,
@@ -838,9 +848,9 @@ fun ConfigStep(
                             )
                             Slider(
                                 modifier = Modifier.weight(2f),
-                                value = water.coerceIn(BREW_WATER_ABS_MIN_ML.toFloat(), BREW_SLIDER_MAX_WATER_ML.toFloat()),
+                                value = water.coerceIn(BREW_SLIDER_MIN_WATER_ML.toFloat(), BREW_SLIDER_MAX_WATER_ML.toFloat()),
                                 onValueChange = { viewModel.setWaterAmount(it) },
-                                valueRange = BREW_WATER_ABS_MIN_ML.toFloat()..BREW_SLIDER_MAX_WATER_ML.toFloat(),
+                                valueRange = BREW_SLIDER_MIN_WATER_ML.toFloat()..BREW_SLIDER_MAX_WATER_ML.toFloat(),
                                 steps = 0,
                                 colors = SliderDefaults.colors(
                                     thumbColor = waterBlue,
@@ -855,7 +865,7 @@ fun ConfigStep(
                     }
 
                     run {
-                        val coffeeMin = BREW_COFFEE_ABS_MIN_G
+                        val coffeeMin = BREW_SLIDER_MIN_COFFEE_G
                         val coffeeSliderMax = BREW_SLIDER_MAX_COFFEE_G
                         val ratioLabelValue = if (methodProfile.ratioStep < 1.0) String.format(Locale.US, "%.1f", ratio) else ratio.roundToInt().toString()
                         val ratioTitle = "RATIO 1:$ratioLabelValue - $ratioProfile"
@@ -953,7 +963,11 @@ fun ConfigStep(
                         }
                     }
                     if (!isAguaMethod) {
-                        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                        val configDividerColor = if (isSystemInDarkTheme()) SliderTrackInactiveDark else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = configDividerColor
+                        )
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -984,7 +998,7 @@ fun ConfigStep(
         if (wrapInCard) {
             PremiumCard(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6)) {
                 Box {
-                    Column(Modifier.padding(Spacing.space6)) {
+                    Column(Modifier.padding(horizontal = Spacing.space5, vertical = Spacing.space4)) {
                         configContent()
                     }
                 }
@@ -1359,7 +1373,11 @@ private fun PreparationTasteCard(
         "Aspero" to Icons.Default.Grain,
         "Dulce" to Icons.Default.Favorite
     )
-    PremiumCard(modifier = Modifier.fillMaxWidth(), containerColor = PureBlack) {
+    val isDark = isSystemInDarkTheme()
+    PremiumCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = if (isDark) PureBlack else PureWhite
+    ) {
         Column(Modifier.padding(Spacing.space6)) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -1394,7 +1412,7 @@ private fun PreparationTasteCard(
                 Column {
                     Spacer(Modifier.height(Spacing.space8))
                     Surface(
-                        color = PureBlack,
+                        color = if (isDark) PureBlack else MaterialTheme.colorScheme.surfaceVariant,
                         shape = Shapes.pill,
                         border = BorderStroke(0.dp, Color.Transparent)
                     ) {
@@ -1414,7 +1432,7 @@ private fun PreparationTasteCard(
                             Text(
                                 text = recommendation ?: "",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = PureWhite,
+                                color = if (isDark) PureWhite else MaterialTheme.colorScheme.onSurface,
                                 lineHeight = 24.sp,
                                 fontWeight = FontWeight.Medium
                             )

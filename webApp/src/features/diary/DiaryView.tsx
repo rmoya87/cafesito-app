@@ -48,6 +48,29 @@ const DIARY_STR = {
 
 const CHART_COL_WIDTH = 42;
 
+/** Mapa nombre de país (normalizado) a código ISO 3166-1 alpha-2 para bandera emoji. */
+const COUNTRY_NAME_TO_ISO: Record<string, string> = {
+  colombia: "CO", brasil: "BR", brazil: "BR", etiopía: "ET", ethiopia: "ET",
+  guatemala: "GT", honduras: "HN", "costa rica": "CR", perú: "PE", peru: "PE",
+  kenia: "KE", kenya: "KE", indonesia: "ID", méxico: "MX", mexico: "MX",
+  nicaragua: "NI", "el salvador": "SV", india: "IN", vietnam: "VN",
+  "papúa nueva guinea": "PG", "papua nueva guinea": "PG", uganda: "UG",
+  tanzania: "TZ", ruanda: "RW", rwanda: "RW", ecuador: "EC",
+  bolivia: "BO", venezuela: "VE", jamaica: "JM", "república dominicana": "DO",
+  "republica dominicana": "DO", haití: "HT", haiti: "HT", yemen: "YE",
+  china: "CN", panamá: "PA", panama: "PA", cuba: "CU", filipinas: "PH",
+  tailandia: "TH", "timor oriental": "TL", laos: "LA", myanmar: "MM",
+  burundi: "BI", camerún: "CM", camerun: "CM", madagascar: "MG",
+  españa: "ES", spain: "ES", italia: "IT", italy: "IT", francia: "FR",
+  alemania: "DE", germany: "DE", "estados unidos": "US", usa: "US",
+};
+
+/** Devuelve código ISO del país para mostrar bandera como imagen, o null si no hay mapa. */
+function getCountryIso(countryName: string): string | null {
+  if (countryName === "—" || !countryName.trim()) return null;
+  return COUNTRY_NAME_TO_ISO[countryName.trim().toLowerCase()] ?? null;
+}
+
 /** Formatea solo dígitos a hh:mm insertando ":" tras 2 dígitos (teclado numérico sin dos puntos). */
 function formatTimeInputToHhMm(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 4);
@@ -212,9 +235,47 @@ export function DiaryView({
   }, [visibleEntries]);
 
   const periodDays = period === "hoy" ? 1 : period === "week" || period === "7d" ? 7 : 30;
+  /** Días efectivos del periodo para hábitos (tazas): si es el periodo actual, no contar días futuros. */
+  const effectivePeriodDays = useMemo(() => {
+    if (period === "hoy") return 1;
+    const now = new Date();
+    const todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    if (period === "7d" || period === "week") {
+      const weekStart = selectedDiaryDate
+        ? (() => {
+            const [y, m, d] = selectedDiaryDate.split("-").map(Number);
+            return Date.UTC(y, (m ?? 1) - 1, d ?? 1);
+          })()
+        : (() => {
+            const d = new Date();
+            const day = d.getDay();
+            const diff = day === 0 ? -6 : 1 - day;
+            d.setDate(d.getDate() + diff);
+            return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+          })();
+      const weekEnd = weekStart + 7 * 86400000;
+      if (todayMs >= weekEnd) return 7;
+      if (todayMs < weekStart) return 1;
+      return Math.ceil((todayMs - weekStart) / 86400000) + 1;
+    }
+    if (period === "30d") {
+      const [selY, selM] = (selectedDiaryMonth || "").split("-").map(Number);
+      const isCurrentMonth =
+        selY === now.getFullYear() && (selM ?? 0) === now.getMonth() + 1;
+      if (!isCurrentMonth) return 30;
+      return now.getDate();
+    }
+    return periodDays;
+  }, [period, periodDays, selectedDiaryDate, selectedDiaryMonth]);
+
   const coffeeEntries = useMemo(
     () => visibleEntries.filter((e) => (e.type || "").toUpperCase() !== "WATER"),
     [visibleEntries]
+  );
+  /** Cafés de toda la cuenta (para barista: cafés probados, tostadores, origen favorito). */
+  const allCoffeeEntries = useMemo(
+    () => entries.filter((e) => (e.type || "").toUpperCase() !== "WATER"),
+    [entries]
   );
   const coffeeById = useMemo(() => {
     const map = new Map<string, CoffeeRow>();
@@ -224,16 +285,17 @@ export function DiaryView({
 
   const habitStats = useMemo(() => {
     const cups = coffeeEntries.length;
-    const avgCups = periodDays > 0 ? Math.round((cups / periodDays) * 10) / 10 : 0;
+    const avgCups = effectivePeriodDays > 0 ? Math.round((cups / effectivePeriodDays) * 10) / 10 : 0;
     const sizeCount = new Map<string, number>();
     const methodCount = new Map<string, number>();
     const dayCount = new Map<number, number>();
+    const stripLabPrefix = (s: string) => s.replace(/^(?:lab:\s*|elaboracion:\s*)/i, "").trim();
     coffeeEntries.forEach((entry) => {
       const size = (entry.size_label || "—").trim() || "—";
       sizeCount.set(size, (sizeCount.get(size) ?? 0) + 1);
       const prep = (entry.preparation_type || "").trim();
-      const method = prep.includes("|") ? prep.split("|")[0].trim() : prep;
-      const methodKey = method || DIARY_STR.SIN_METODO;
+      const rawMethod = prep.includes("|") ? prep.split("|")[0].trim() : prep;
+      const methodKey = stripLabPrefix(rawMethod) || DIARY_STR.SIN_METODO;
       methodCount.set(methodKey, (methodCount.get(methodKey) ?? 0) + 1);
       const d = new Date(entry.timestamp).getDay();
       dayCount.set(d, (dayCount.get(d) ?? 0) + 1);
@@ -264,7 +326,7 @@ export function DiaryView({
       }
     });
     return { avgCups, mostSize, mostMethod, busiestDay };
-  }, [coffeeEntries, periodDays]);
+  }, [coffeeEntries, effectivePeriodDays]);
 
   /** Café consumido en los últimos 30 días (para previsión despensa: no depende de la semana seleccionada). */
   const coffeeEntriesLast30 = useMemo(() => {
@@ -335,7 +397,7 @@ export function DiaryView({
     const byCoffeeId = new Map<string, number>();
     const roasterSet = new Set<string>();
     const originCount = new Map<string, number>();
-    coffeeEntries.forEach((entry) => {
+    allCoffeeEntries.forEach((entry) => {
       if (entry.coffee_id) {
         const ts = Number(entry.timestamp);
         const prev = byCoffeeId.get(entry.coffee_id);
@@ -366,7 +428,7 @@ export function DiaryView({
       distinctRoasters: roasterSet.size,
       favoriteOrigin
     };
-  }, [coffeeEntries, coffeeById]);
+  }, [allCoffeeEntries, coffeeById]);
 
   const last30Avg = useMemo(() => {
     const now = Date.now();
@@ -959,7 +1021,7 @@ export function DiaryView({
             <span className="diary-stats-card-value">{consumptionStats.avgCaffeine} mg</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Dosis</span>
+            <span className="diary-stats-card-label">Dosis por café</span>
             <span className="diary-stats-card-value">{consumptionStats.avgDose} g</span>
           </li>
           <li className="diary-stats-card-row">
@@ -999,7 +1061,27 @@ export function DiaryView({
           </li>
           <li className="diary-stats-card-row">
             <span className="diary-stats-card-label">Origen favorito</span>
-            <span className="diary-stats-card-value">{baristaStats.favoriteOrigin}</span>
+            <span className="diary-stats-card-value diary-stats-card-value-origin">
+              {(() => {
+                const iso = getCountryIso(baristaStats.favoriteOrigin);
+                if (iso) {
+                  return (
+                    <>
+                      <img
+                        src={`https://flagcdn.com/w40/${iso.toLowerCase()}.png`}
+                        alt=""
+                        className="diary-origin-flag-img"
+                        width={24}
+                        height={18}
+                        loading="lazy"
+                      />
+                      <span>{baristaStats.favoriteOrigin}</span>
+                    </>
+                  );
+                }
+                return baristaStats.favoriteOrigin;
+              })()}
+            </span>
           </li>
         </ul>
       </article>

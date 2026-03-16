@@ -219,7 +219,7 @@ fun DiaryConsumptionCard(stats: DiaryConsumptionStats) {
         Column(Modifier.padding(horizontal = Spacing.space5, vertical = Spacing.space4)) {
             DiaryStatsRow("Momento", "Mañana ${stats.momentPctMorning}% · Tarde ${stats.momentPctAfternoon}% · Noche ${stats.momentPctEvening}%", showTopDivider = false, valueBelowTitle = true)
             DiaryStatsRow("Cafeína", "${stats.avgCaffeine} mg")
-            DiaryStatsRow("Dosis", "${stats.avgDose} g")
+            DiaryStatsRow("Dosis por café", "${stats.avgDose} g")
             DiaryStatsRow("Formato", stats.mostFormat)
             DiaryStatsRow("Previsión despensa", stats.pantryDaysLeft?.let { "~$it días" } ?: "—")
         }
@@ -276,6 +276,79 @@ private fun DiaryStatsRow(label: String, value: String, showTopDivider: Boolean 
     }
 }
 
+/** Mapa nombre de país (normalizado) a código ISO 3166-1 alpha-2 para bandera emoji. */
+private val countryNameToIso = mapOf(
+    "colombia" to "CO", "brasil" to "BR", "brazil" to "BR", "etiopía" to "ET", "ethiopia" to "ET",
+    "guatemala" to "GT", "honduras" to "HN", "costa rica" to "CR", "perú" to "PE", "peru" to "PE",
+    "kenia" to "KE", "kenya" to "KE", "indonesia" to "ID", "méxico" to "MX", "mexico" to "MX",
+    "nicaragua" to "NI", "el salvador" to "SV", "india" to "IN", "vietnam" to "VN",
+    "papúa nueva guinea" to "PG", "papua nueva guinea" to "PG", "uganda" to "UG",
+    "tanzania" to "TZ", "ruanda" to "RW", "rwanda" to "RW", "ecuador" to "EC",
+    "bolivia" to "BO", "venezuela" to "VE", "jamaica" to "JM", "república dominicana" to "DO",
+    "republica dominicana" to "DO", "haití" to "HT", "haiti" to "HT", "yemen" to "YE",
+    "china" to "CN", "panamá" to "PA", "panama" to "PA", "cuba" to "CU", "filipinas" to "PH",
+    "tailandia" to "TH", "timor oriental" to "TL", "laos" to "LA", "myanmar" to "MM",
+    "burundi" to "BI", "camerún" to "CM", "camerun" to "CM", "madagascar" to "MG",
+    "españa" to "ES", "spain" to "ES", "italia" to "IT", "italy" to "IT", "francia" to "FR",
+    "alemania" to "DE", "germany" to "DE", "estados unidos" to "US", "usa" to "US"
+)
+
+/** Devuelve código ISO del país para mostrar bandera como imagen, o null si no hay mapa. */
+private fun favoriteOriginIso(countryName: String): String? {
+    if (countryName == "—" || countryName.isBlank()) return null
+    return countryNameToIso[countryName.trim().lowercase()]
+}
+
+private val FLAG_CDN_BASE = "https://flagcdn.com/w40/"
+
+@Composable
+private fun originFavoriteRow(countryName: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.background,
+            thickness = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = Spacing.space3),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Origen favorito",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            val iso = favoriteOriginIso(countryName)
+            if (iso != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.space2)) {
+                    AsyncImage(
+                        model = FLAG_CDN_BASE + iso.lowercase() + ".png",
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp, 18.dp),
+                        contentScale = ContentScale.FillBounds
+                    )
+                    Text(
+                        text = countryName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            } else {
+                Text(
+                    text = countryName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun DiaryBaristaCard(
     stats: DiaryBaristaStats,
@@ -308,7 +381,7 @@ fun DiaryBaristaCard(
                 }
             }
             DiaryStatsRow("Tostadores probados", "${stats.distinctRoasters}")
-            DiaryStatsRow("Origen favorito", stats.favoriteOrigin)
+            originFavoriteRow(stats.favoriteOrigin)
         }
     }
 }
