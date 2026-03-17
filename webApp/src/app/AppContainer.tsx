@@ -28,7 +28,7 @@ import {
 } from "../data/supabaseApi";
 import { BREW_METHODS } from "../config/brew";
 import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/routing";
-import { sendPageView } from "../core/ga4";
+import { sendPageView, setGa4UserId } from "../core/ga4";
 import { shouldUseRightRailDetail, sidePanelForTab } from "../core/layouts";
 import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
 import { getBrewMethodProfile, getBrewStepTitle, getBrewTimeProfile } from "../core/brew";
@@ -1721,6 +1721,15 @@ export function AppContainer() {
     const pageTitle = titles[guardedActiveTab] ?? "Cafesito";
     sendPageView(gaPagePath, `Cafesito - ${pageTitle}`);
   }, [gaPagePath, guardedActiveTab]);
+
+  // GA4: mismo usuario en todas las sesiones cuando está logueado (unifica analíticas por user_id)
+  useEffect(() => {
+    if (sessionEmail && activeUser?.id != null) {
+      setGa4UserId(String(activeUser.id));
+    } else {
+      setGa4UserId(null);
+    }
+  }, [sessionEmail, activeUser?.id]);
 
   // Al cambiar de vista: reiniciar scroll y mostrar topbar para que en timeline, perfil y resto se comporte igual
   useEffect(() => {

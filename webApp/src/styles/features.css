@@ -17161,8 +17161,6 @@ html.theme-dark .app-range.app-range--time {
   }
 
   .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
-    top: 6px;
-    border-radius: 16px;
     padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 12px;
   }
 

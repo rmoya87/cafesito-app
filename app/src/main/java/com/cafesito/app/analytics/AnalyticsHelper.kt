@@ -12,6 +12,9 @@ import javax.inject.Singleton
 class AnalyticsHelper @Inject constructor(
     private val firebaseAnalytics: FirebaseAnalytics
 ) {
+    init {
+        firebaseAnalytics.setUserProperty("platform", "android")
+    }
 
     /**
      * Registra un evento de vista de pantalla.

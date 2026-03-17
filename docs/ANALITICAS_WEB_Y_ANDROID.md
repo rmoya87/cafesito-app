@@ -54,8 +54,11 @@ flowchart TD
 | **Producto** | Google Analytics 4 (GA4) | Firebase Analytics |
 | **Vistas/pantallas** | `page_view` con `page_path` y `page_title` | `screen_view` con `screen_name` = ruta actual |
 | **Eventos custom** | No (solo page_view) | Sí: login_success, profile_completed, notification_action_* |
-| **Usuario** | No se envía userId a GA desde web (opcional vía GA4 config) | `setUserId` al autenticar / null al cerrar sesión |
+| **Usuario** | `setGa4UserId(id)` con id interno (mismo que Android). Mismo usuario en web y app. | `setUserId(id.toString())` con id interno (mismo que web). |
+| **Plataforma** | User property `platform` = `"web"` (en `initGa4`) para segmentar en GA4. | User property `platform` = `"android"` (en `AnalyticsHelper` init). |
 | **PWA** | `?pwa=1` en page_path y page_location para segmentar | N/A |
+
+**Usuario unificado:** Web y Android envían el mismo `user_id` (id interno del backend como string). Con Firebase vinculado a la propiedad GA4, una misma persona cuenta como un solo usuario aunque use web y app. Para distinguir el acceso por web o por Android, se usa la user property `platform`; en GA4 hay que crear una dimensión personalizada de ámbito usuario para la user property `platform` (Configurar → Definiciones personalizadas) y usarla en informes o segmentos.
 
 ---
 
@@ -65,7 +68,7 @@ flowchart TD
 
 | Archivo | Uso |
 |---------|-----|
-| `webApp/src/core/ga4.ts` | Inicialización (`initGa4`), envío de `page_view` (`sendPageView`), detección PWA y parámetro `pwa=1`. |
+| `webApp/src/core/ga4.ts` | Inicialización (`initGa4`), user property `platform: "web"`, envío de `page_view` (`sendPageView`), `setGa4UserId(userId)` para usuario logueado, detección PWA y parámetro `pwa=1`. |
 | `webApp/src/main.tsx` | Llama a `initGa4()` al arranque (solo si hay red). |
 | `webApp/src/app/AppContainer.tsx` | Calcula `gaPagePath` con `buildRoute(...)` y llama a `sendPageView(gaPagePath, pageTitle)` en un `useEffect` cuando cambia la ruta. |
 
@@ -100,7 +103,7 @@ Definidas por `buildRoute()` en `webApp/src/core/routing.ts`:
 ### 2.4 Lo que NO se recoge en WebApp
 
 - No se envían eventos custom (login, completar perfil, clics en notificaciones, compartir, añadir a diario, etc.). Solo vistas de página.
-- No se usa `setUserId` desde el código actual (GA4 puede tener usuario por cookie/sesión).
+- **Usuario logueado:** Se llama a `setGa4UserId(String(activeUser.id))` desde `AppContainer.tsx` cuando hay sesión; al cerrar sesión se llama `setGa4UserId(null)`. Mismo id que en Android, para un solo usuario en GA4 (web + app). **Plataforma:** En `initGa4` se envía la user property `platform: "web"` para poder segmentar por web vs Android en GA4 (crear dimensión personalizada de ámbito usuario para `platform`).
 
 ### 2.5 Páginas estáticas públicas (landing y legal)
 
@@ -124,17 +127,18 @@ Las siguientes URLs son **públicas** (acceso sin autenticación) y se sirven co
 
 | Archivo | Uso |
 |---------|-----|
-| `app/src/main/java/com/cafesito/app/analytics/AnalyticsHelper.kt` | `trackScreenView(screenName)`, `trackEvent(name, params)`, `setUserId`, `setUserProperty`. Sanitiza nombres de eventos (solo a-z0-9_, máx. 40 caracteres). |
+| `app/src/main/java/com/cafesito/app/analytics/AnalyticsHelper.kt` | En `init` establece user property `platform` = `"android"`. `trackScreenView`, `trackEvent`, `setUserId`, `setUserProperty`. Sanitiza nombres de eventos (solo a-z0-9_, máx. 40 caracteres). |
 | `app/src/main/java/com/cafesito/app/di/AnalyticsModule.kt` | Proporciona `FirebaseAnalytics` (singleton). |
 | `app/src/main/java/com/cafesito/app/navigation/AppNavigation.kt` | En cada cambio de ruta: `analyticsHelper.trackScreenView(currentRoute)`. Eventos: `login_success`, `profile_completed`. |
-| `app/src/main/java/com/cafesito/app/startup/AppSessionCoordinator.kt` | `analyticsHelper.setUserId(userId)` al autenticar, `setUserId(null)` al cerrar sesión. |
+| `app/src/main/java/com/cafesito/app/startup/AppSessionCoordinator.kt` | `analyticsHelper.setUserId(userId.toString())` al autenticar (mismo id que web), `setUserId(null)` al cerrar sesión. |
 | `app/src/main/java/com/cafesito/app/notifications/NotificationActionReceiver.kt` | Eventos: `notification_action_reply`, `notification_action_follow_back`, `notification_action_save_post`, **`notification_action_accept_list_invite`**, **`notification_action_decline_list_invite`**. |
 
 ### 3.2 Qué se envía
 
 - **Screen views:** Cada vez que cambia la ruta del `NavController`, se envía `screen_view` con `screen_name` y `screen_class` = valor de `currentRoute` (ej. `"timeline"`, `"profile/123"`, `"detail/abc"`, `"addStock?origin=brewlab"`).
 - **Eventos custom:** Ver tabla siguiente.
-- **Usuario:** `setUserId(id)` al iniciar sesión; `setUserId(null)` al cerrar.
+- **Usuario:** `setUserId(userId.toString())` al iniciar sesión (mismo id interno que en web, para un solo usuario en GA4). `setUserId(null)` al cerrar.
+- **Plataforma:** En el `init` de `AnalyticsHelper` se llama `setUserProperty("platform", "android")` para segmentar por web vs Android en GA4.
 
 ### 3.3 Inventario de eventos custom (Android)
 

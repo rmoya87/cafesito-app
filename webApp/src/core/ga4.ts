@@ -70,7 +70,21 @@ export function initGa4(): void {
     }
   }
   window.__GA4_MEASUREMENT_ID__ = id;
-  window.gtag("config", id, { send_page_view: false });
+  window.gtag("config", id, {
+    send_page_view: false,
+    user_properties: { platform: "web" }
+  });
+}
+
+/**
+ * Asocia todas las sesiones y eventos de GA4 al mismo usuario cuando está logueado.
+ * Llamar con el id interno del usuario al autenticar y con null al cerrar sesión.
+ * Así un mismo usuario se cuenta una sola vez sin importar el día o dispositivo (mismo id).
+ */
+export function setGa4UserId(userId: string | null): void {
+  if (typeof window === "undefined" || !GA4_MEASUREMENT_ID) return;
+  if (typeof window.gtag !== "function") return;
+  window.gtag("config", GA4_MEASUREMENT_ID, { user_id: userId ?? undefined });
 }
 
 /**
