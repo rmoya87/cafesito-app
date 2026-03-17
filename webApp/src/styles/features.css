@@ -151,9 +151,109 @@ input {
   overscroll-behavior-y: contain;
 }
 
+/* Detalle café: imagen desde el borde superior; el notch lo respetan solo los botones del topbar (.coffee-detail-hero-top-actions) */
 .main-shell-scroll.is-coffee {
-  margin-top: env(safe-area-inset-top, 0px);
+  margin-top: 0;
   padding-top: 0;
+}
+
+/* Vista detalle café: quitar franja superior desde la raíz (html/body insets en iOS/PWA) */
+html.is-coffee-view,
+html.is-coffee-view body,
+body.is-coffee-view #root,
+body.is-coffee-view .layout.is-coffee {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+/* Layout en vista detalle café (web y PWA): eliminar cualquier espacio superior */
+.layout.is-coffee .main-shell {
+  padding-top: 0;
+  margin-top: 0;
+}
+/* Quitar espacio superior; sin padding lateral en detalle café (imagen y hero a ancho completo) */
+.layout.is-coffee .main-shell-scroll.is-coffee {
+  margin-top: 0 !important;
+  padding: 0 0 120px !important;
+}
+/* En vista detalle café: el spacer del banner "Instalar app" no debe empujar el contenido (evita franja arriba) */
+.layout.is-coffee .android-install-banner-spacer {
+  height: 0 !important;
+  min-height: 0 !important;
+}
+/* Sin espacio arriba: section e article a 0 (igual que en Cafés probados el .content no añade hueco) */
+.layout.is-coffee .main-shell-scroll.is-coffee .content.content-coffee {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0;
+}
+/* Contenedor a ancho completo y fondo sólido para que no queden zonas sin cubrir sobre la imagen */
+.layout.is-coffee .coffee-detail.is-full-page {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  border-radius: 0;
+  background: var(--screen-dark-background);
+}
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero,
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section,
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section-first {
+  background: var(--screen-dark-background);
+}
+/* Hero e imagen en el flujo del documento: la imagen sube con el scroll como el resto del contenido */
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero {
+  margin-top: 0;
+  padding-top: 0;
+  position: relative;
+}
+/* Bloque de imagen: parte del body, altura incluye safe-area para cubrir notch/barra de estado */
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero-image-block {
+  position: relative;
+  width: 100%;
+  height: calc(308px + env(safe-area-inset-top, 28px));
+  min-height: calc(308px + env(safe-area-inset-top, 28px));
+  margin: 0;
+}
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero-image-block .coffee-detail-image {
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Contenido con fondo sólido */
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section,
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero {
+  position: relative;
+}
+/* Topbar fijo: siempre visible por encima de cualquier objeto (imagen, contenido, etc.) */
+.layout.is-coffee .coffee-detail-hero-top-actions {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 28px));
+  left: 10px;
+  right: 10px;
+  z-index: 9999;
+}
+
+/* Modo claro: mismo fondo sólido para no dejar zonas sin cubrir */
+html.theme-light .layout.is-coffee .coffee-detail.is-full-page,
+html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero,
+html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section,
+html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section-first {
+  background: var(--screen-light-background);
+}
+
+/* Desktop: botones del topbar con el mismo ancho que el contenido (columna central max 860px); la imagen va en el flujo y ya respeta el ancho del main */
+@media (min-width: 900px) {
+  .layout.is-coffee .coffee-detail-hero-top-actions {
+    left: 50%;
+    right: auto;
+    width: min(calc(100vw - 112px), 860px);
+    max-width: 860px;
+    transform: translateX(-50%);
+    padding-left: 10px;
+    padding-right: 10px;
+    box-sizing: border-box;
+  }
 }
 
 /* Cafés probados: sin topbar, mapa desde arriba; altura fija y scroll solo en el listado */
@@ -376,6 +476,77 @@ input {
 .android-install-banner-dismiss .ui-icon {
   width: var(--icon-size-md);
   height: var(--icon-size-md);
+}
+
+/* Banner de consentimiento de cookies: fijo abajo, diseño mejorado */
+.cookie-consent-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 95;
+  padding: 20px var(--app-shell-gutter) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  padding-top: 20px;
+  background: var(--sheet-overlay-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--surface-elevated);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.cookie-consent-banner-inner {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cookie-consent-banner-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-main);
+}
+
+.cookie-consent-banner-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-main);
+}
+
+.cookie-consent-banner-legal {
+  margin: 0;
+  font-size: var(--font-size-xs);
+}
+
+.cookie-consent-banner-link {
+  color: var(--caramel-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cookie-consent-banner-link:hover {
+  color: var(--text-main);
+}
+
+.cookie-consent-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 20px;
+}
+
+.cookie-consent-btn-secondary {
+  order: 2;
+}
+
+.cookie-consent-banner-actions .action-button:not(.cookie-consent-btn-secondary) {
+  order: 1;
 }
 
 @media (max-width: 899px) {
@@ -3225,35 +3396,6 @@ html.theme-dark .profile-activity-coffee-card .profile-activity-coffee-card-revi
   position: relative;
 }
 
-/* Full-page / PWA: top bar no pisa la imagen; imagen hasta el inicio del contenido */
-.coffee-detail.is-full-page .coffee-detail-hero {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 28px;
-  min-height: 0;
-}
-
-.coffee-detail.is-full-page .coffee-detail-hero-top-actions {
-  position: static;
-  flex-shrink: 0;
-  padding: calc(10px + env(safe-area-inset-top, 0px)) 10px 10px;
-  background: var(--pure-white);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.coffee-detail.is-full-page .coffee-detail-hero-image-block {
-  flex: 1;
-  min-height: 280px;
-}
-
-.coffee-detail.is-full-page .coffee-detail-image {
-  width: 100%;
-  height: 100%;
-  min-height: 280px;
-  object-fit: cover;
-  object-position: center;
-}
-
 .coffee-detail-image {
   width: 100%;
   height: 308px;
@@ -3532,7 +3674,7 @@ html.theme-dark .coffee-detail-nota-block {
 
 .coffee-detail-section-first {
   border-top: none;
-  margin-top: -24px;
+  margin-top: -56px;
   padding-top: 24px;
   padding-bottom: 4px;
   border-top-left-radius: 30px;
@@ -6314,7 +6456,7 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   color: var(--text-subtle);
 }
 
-/* Página completa Cafés probados (top bar + mapa + listado por país) */
+/* Página completa Cafés probados (hero con mapa + topbar overlay + listado solapando, igual que detalle café) */
 .cafes-probados-page {
   display: flex;
   flex-direction: column;
@@ -6323,51 +6465,69 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   background: var(--screen-dark-background);
 }
 
-/* Barra superior fija: volver y X no pisan el mapa; el mapa empieza debajo */
-.cafes-probados-topbar {
+.cafes-probados-hero {
+  position: relative;
+  min-height: 300px;
   flex-shrink: 0;
-  min-height: 56px;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+}
+
+/* Topbar sobre el mapa (por encima de Leaflet: zoom 700, marcadores 600) */
+.cafes-probados-hero-top-actions {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: 10px;
+  right: 10px;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--screen-dark-background);
-  border-bottom: 1px solid var(--surface-card-border, rgba(255, 255, 255, 0.08));
+  gap: 10px;
 }
 
-.cafes-probados-map-wrap {
-  position: relative;
-  flex: 0 0 33.33vh;
-  min-height: 160px;
-  max-height: 33.33vh;
-  background: var(--surface-muted);
-  transition: flex-basis 0.25s ease-out;
-  flex-shrink: 0;
-}
-.cafes-probados-map-wrap--collapsed {
-  flex: 0 0 25vh;
-  min-height: 120px;
-  max-height: 25vh;
-}
-.cafes-probados-back-fab,
-.cafes-probados-clear-fab {
-  width: 44px;
-  height: 44px;
+.cafes-probados-topbar-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   padding: 0;
+  box-sizing: border-box;
   border-radius: 50%;
-  background: var(--surface);
-  border: 1px solid var(--surface-card-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-main);
+  background: var(--pure-white) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: var(--pure-black);
 }
-.cafes-probados-back-fab .ui-icon,
-.cafes-probados-clear-fab .ui-icon {
-  width: 24px;
-  height: 24px;
+.cafes-probados-topbar-icon .ui-icon {
+  width: 22px;
+  height: 22px;
 }
+
+html.theme-dark .cafes-probados-topbar-icon,
+html.theme-light .cafes-probados-topbar-icon {
+  background: var(--pure-white) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: var(--pure-black);
+}
+
+/* Bloque mapa: en PWA el espacio superior (safe-area) se cubre con el mapa */
+.cafes-probados-hero-map-block {
+  position: relative;
+  height: calc(365px + env(safe-area-inset-top, 0px));
+  min-height: calc(308px + env(safe-area-inset-top, 0px));
+  background: var(--surface-muted);
+  transition: height 0.25s ease-out, min-height 0.25s ease-out;
+}
+.cafes-probados-hero-map-block--collapsed {
+  height: calc(200px + env(safe-area-inset-top, 0px));
+  min-height: calc(200px + env(safe-area-inset-top, 0px));
+}
+
+.cafes-probados-map-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.4) 100%);
+}
+
 .cafes-probados-map {
   width: 100%;
   height: 100%;
@@ -6487,6 +6647,8 @@ html.theme-dark .cafes-probados-map .leaflet-bar a {
 .cafes-probados-country-chip:hover {
   background: var(--surface-muted);
 }
+
+/* Listado debajo del mapa (sin solapamiento) */
 .cafes-probados-list-wrap {
   flex: 1;
   min-height: 0;
@@ -6494,6 +6656,7 @@ html.theme-dark .cafes-probados-map .leaflet-bar a {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding: 16px;
+  background: var(--screen-dark-background);
 }
 .cafes-probados-list-filter {
   margin: 0 0 12px;
@@ -17169,8 +17332,6 @@ html.theme-dark .app-range.app-range--time {
   }
 
   .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
-    top: 6px;
-    border-radius: 16px;
     padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 12px;
   }
 
@@ -18753,7 +18914,6 @@ html.theme-dark .app-range.app-range--time {
   .metric-pill,
   .icon-button,
   .chip-button,
-  .action-button,
   .text-button,
   .step.is-active {
     color: var(--caramel-accent);
@@ -19781,23 +19941,21 @@ html.theme-dark .app-range.app-range--time {
   padding-right: var(--app-shell-gutter);
 }
 .pwa-standalone .main-shell-scroll {
-  margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
-  padding-top: 10px;
   overflow-x: hidden;
 }
+/* En PWA el resto de vistas sí necesitan margen bajo el topbar; Cafés probados y detalle café no (contenido a tope) */
+.pwa-standalone .main-shell-scroll:not(.is-cafes-probados):not(.is-coffee) {
+  margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
+  padding-top: 10px;
+}
+/* Detalle café PWA: imagen desde el borde superior (bajo el notch); el safe-area lo respetan solo los botones del topbar (.coffee-detail-hero-top-actions) */
 .pwa-standalone .main-shell-scroll.is-coffee {
-  margin-top: env(safe-area-inset-top, 44px);
+  margin-top: 0;
   padding-top: 0;
 }
 .pwa-standalone .main-shell-scroll.is-search-coffees {
   margin-top: calc(106px + env(safe-area-inset-top, 44px));
   padding-top: 10px;
-}
-.pwa-standalone .coffee-detail-hero-top-actions {
-  top: calc(10px + env(safe-area-inset-top, 44px));
-}
-.pwa-standalone .coffee-detail.is-full-page .coffee-detail-hero-top-actions {
-  padding-top: calc(10px + env(safe-area-inset-top, 44px));
 }
 @media (max-width: 899px) {
   .pwa-standalone .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
@@ -19846,11 +20004,24 @@ html.theme-dark .app-range.app-range--time {
   min-height: calc(var(--topbar-height) + 47px);
   padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
 }
-.dev-safe-area-sim .coffee-detail-hero-top-actions {
-  top: calc(10px + 47px);
+/* Con hero con margin-top negativo, botones 10px por debajo del notch simulado (47px) */
+/* Mismo principio que en producción: bloque imagen incluye safe-area simulado (47px) */
+.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-image-block {
+  height: calc(308px + 47px);
+  min-height: calc(308px + 47px);
 }
-.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-top-actions {
-  padding-top: calc(10px + 47px);
+.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-image-block .coffee-detail-image {
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.dev-safe-area-sim .coffee-detail-hero-top-actions {
+  position: fixed;
+  top: calc(10px + 47px);
+  left: 10px;
+  right: 10px;
+  z-index: 9999;
 }
 @media (max-width: 899px) {
   .dev-safe-area-sim .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {

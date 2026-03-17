@@ -20,8 +20,9 @@ class CafesitoApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        // Eliminada la lógica de seeding local. 
-        // La sincronización de datos ahora depende exclusivamente de Supabase mediante SyncManager.
+        // GTM: si GTM_CONTAINER_ID está definido, AnalyticsHelper envía también al dataLayer.
+        // Para que el contenedor procese los eventos, hay que cargarlo (p. ej. descargar desde GTM
+        // y usar TagManager.getInstance(this).loadContainerPreferNonDefault(id, resId)); ver docs/ANALITICAS.md.
         scheduleTimelineNotificationWorker()
     }
 

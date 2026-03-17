@@ -85,6 +85,23 @@ fun NotificationEntity.toTimelineNotification(users: List<UserEntity>): Timeline
                 message = message
             )
         }
+        "FIRST_COFFEE", "FOLLOWED_FIRST_COFFEE" -> {
+            val targetUserId = relatedId?.toIntOrNull()
+            val user = targetUserId?.let { id -> users.find { it.id == id } }
+                ?: users.find { it.username.equals(fromUsername, ignoreCase = true) }
+                ?: buildFallbackUser(
+                    notificationId = notificationId,
+                    fromUsername = fromUsername,
+                    preferredId = targetUserId
+                )
+            TimelineNotification.FirstCoffee(
+                notificationId = notificationId,
+                id = notificationKey,
+                timestamp = timestamp,
+                isRead = isRead,
+                user = user
+            )
+        }
         else -> null
     }
 }

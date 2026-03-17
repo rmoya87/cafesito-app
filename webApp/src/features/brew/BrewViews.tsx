@@ -4,6 +4,7 @@ import { getOrderedBrewMethods } from "../../config/brew";
 import type { BrewMethodItem } from "../../config/brew";
 import { COFFEE_SIZE_OPTIONS, COFFEE_TIPO_OPTIONS } from "../../data/diaryBrewOptions";
 import { EMPTY } from "../../core/emptyErrorStrings";
+import { sendEvent } from "../../core/ga4";
 import { BREW_COFFEE_ABS_MAX_G, BREW_COFFEE_ABS_MIN_G, BREW_SLIDER_MAX_COFFEE_G, BREW_SLIDER_MIN_COFFEE_G, BREW_SLIDER_MAX_TIME_S, BREW_SLIDER_MAX_WATER_ML, BREW_SLIDER_MIN_WATER_ML, BREW_WATER_ABS_MAX_ML, BREW_WATER_ABS_MIN_ML, formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { CreateCoffeeDraft } from "../../hooks/domains/useCreateCoffeeDomain";
@@ -71,7 +72,9 @@ export function BrewLabView({
   barcodeDetectedValue,
   onClearBarcodeDetectedValue,
   brewTimerEnabled = false,
-  setBrewTimerEnabled
+  setBrewTimerEnabled,
+  onTimerEndedGoToConsumption,
+  onTimerEndedChange
 }: {
   brewStep: BrewStep;
   setBrewStep: (step: BrewStep) => void;
@@ -114,6 +117,10 @@ export function BrewLabView({
   onClearBarcodeDetectedValue?: () => void;
   brewTimerEnabled?: boolean;
   setBrewTimerEnabled?: (value: boolean) => void;
+  /** Si está definido, al terminar el temporizador se llama y no se muestra el resultado debajo del timer (ir a consumo en diario). */
+  onTimerEndedGoToConsumption?: () => void;
+  /** Notifica cuando el temporizador termina (para mostrar botón Siguiente en topbar que va a consumo). */
+  onTimerEndedChange?: (ended: boolean) => void;
 }) {
   const [brewCoffeeQuery, setBrewCoffeeQuery] = useState("");
   const [brewSearchFocus, setBrewSearchFocus] = useState(false);
@@ -373,10 +380,16 @@ export function BrewLabView({
   const brewTotalSeconds = useMemo(() => brewTimeline.reduce((acc, phase) => acc + phase.durationSeconds, 0), [brewTimeline]);
   const elapsedSeconds = useMemo(() => Math.max(0, Math.min(timerSeconds, brewTotalSeconds || timerSeconds)), [brewTotalSeconds, timerSeconds]);
   const timerEnded = brewStep === "brewing" && brewTotalSeconds > 0 && elapsedSeconds >= brewTotalSeconds;
+  const timerEndedGoToConsumption = timerEnded && Boolean(brewTimerEnabled && onTimerEndedGoToConsumption);
   const isResultStep = brewStep === "result" || timerEnded;
   useEffect(() => {
+    onTimerEndedChange?.(timerEnded);
+    return () => onTimerEndedChange?.(false);
+  }, [timerEnded, onTimerEndedChange]);
+  // No auto-redirect: el usuario pulsa "Siguiente" en la topbar para ir a consumo.
+  useEffect(() => {
     if (!onBrewResultSaveState) return;
-    if (!isResultStep) {
+    if (!isResultStep || timerEndedGoToConsumption) {
       onBrewResultSaveState({ save: async () => {}, canSave: false, saving: false, showGuardar: false });
       return;
     }
@@ -402,6 +415,7 @@ export function BrewLabView({
       save: async () => {
         const cur = refs.current;
         if (cur.savingResult) return;
+        sendEvent("button_click", { button_id: "brew_save_to_diary" });
         setSavingResult(true);
         try {
           // El sabor es opcional en Consumo; si no hay texto, se envía cadena vacía.
@@ -941,7 +955,7 @@ export function BrewLabView({
             ) : null}
             </div>
             <div className="brew-prep-tips-strip">
-              {timerEnded ? (
+              {timerEnded && !timerEndedGoToConsumption ? (
                 <article className="brew-result-card brew-result-card-inline">
                   <p className="brew-result-title">¿QUÉ SABOR HAS OBTENIDO?</p>
                   <div className="brew-result-grid">
@@ -967,7 +981,7 @@ export function BrewLabView({
                     </div>
                   ) : null}
                 </article>
-              ) : (
+              ) : !timerEnded ? (
                 <>
                   <div className="brew-prep-advice-list-desktop">
                     {processAdviceCards.map((card, index) => (
@@ -995,7 +1009,7 @@ export function BrewLabView({
                     })()}
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
         </section>

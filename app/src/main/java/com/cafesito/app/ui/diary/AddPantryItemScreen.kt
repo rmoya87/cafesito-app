@@ -43,6 +43,8 @@ import java.io.File
 import java.util.Locale
 import java.util.UUID
 import com.cafesito.app.ui.components.toCoffeeBrandFormat
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import com.cafesito.app.ui.components.toCoffeeNameFormat
 
 private val SPECIALTY_OPTIONS = listOf("Arabica", "Mezcla")
@@ -72,7 +74,8 @@ fun AddPantryItemScreen(
     onCoffeeCreatedForDiary: ((String) -> Unit)? = null,
     onCoffeeCreatedForBrewLab: ((String) -> Unit)? = null,
     coffeeId: String? = null,
-    viewModel: DiaryViewModel = hiltViewModel()
+    viewModel: DiaryViewModel = hiltViewModel(),
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     var name by remember { mutableStateOf("") }
     var brand by remember { mutableStateOf("") }
@@ -321,7 +324,7 @@ fun AddPantryItemScreen(
                                 .size(120.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(fieldBackground)
-                                .clickable { showImagePickerSheet = true },
+                                .clickable { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_image_picker")); showImagePickerSheet = true },
                             contentAlignment = Alignment.Center
                         ) {
                             if (imageUri != null || existingImageUrl.isNotBlank()) {
@@ -418,19 +421,19 @@ fun AddPantryItemScreen(
             item {
                 FormSectionCard(title = null) {
                     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                        PickerTriggerRow(value = specialty, placeholder = "Seleccionar especialidad", onClick = { pickerOpen = "specialty" })
+                        PickerTriggerRow(value = specialty, placeholder = "Seleccionar especialidad", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "specialty" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = roast, placeholder = "Seleccionar tueste", onClick = { pickerOpen = "roast" })
+                        PickerTriggerRow(value = roast, placeholder = "Seleccionar tueste", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "roast" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(country)), placeholder = "Seleccionar país(es)", onClick = { pickerOpen = "country" })
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(country)), placeholder = "Seleccionar país(es)", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "country" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(variety)), placeholder = "Seleccionar variedad(es)", onClick = { pickerOpen = "variety" })
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(variety)), placeholder = "Seleccionar variedad(es)", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "variety" })
                     }
                 }
             }
@@ -460,7 +463,7 @@ fun AddPantryItemScreen(
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = format, placeholder = "Seleccionar formato", onClick = { pickerOpen = "format" })
+                        PickerTriggerRow(value = format, placeholder = "Seleccionar formato", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "format" })
                         if (!diaryEntryFlow) {
                             Spacer(Modifier.height(12.dp))
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -522,11 +525,11 @@ fun AddPantryItemScreen(
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(proceso)), placeholder = "Seleccionar proceso(s)", onClick = { pickerOpen = "process" })
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(proceso)), placeholder = "Seleccionar proceso(s)", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "process" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = moliendaRecomendada, placeholder = "Seleccionar molienda", onClick = { pickerOpen = "grind" })
+                        PickerTriggerRow(value = moliendaRecomendada, placeholder = "Seleccionar molienda", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "grind" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
@@ -610,7 +613,7 @@ fun AddPantryItemScreen(
         
         if (showImagePickerSheet) {
             ModalBottomSheet(
-                onDismissRequest = { showImagePickerSheet = false },
+                onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "add_pantry_image_picker")); showImagePickerSheet = false },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 scrimColor = ScrimDefault
             ) {
@@ -631,6 +634,7 @@ fun AddPantryItemScreen(
                                 val uri = createTempImageUri(context)
                                 pendingCameraUri = uri
                                 cameraLauncher.launch(uri)
+                                onTrackEvent("modal_close", bundleOf("modal_id" to "add_pantry_image_picker"))
                                 showImagePickerSheet = false
                             } else {
                                 permissionState.launchMultiplePermissionRequest()
@@ -643,6 +647,7 @@ fun AddPantryItemScreen(
                         color = MaterialTheme.colorScheme.primary,
                         onClick = {
                             galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            onTrackEvent("modal_close", bundleOf("modal_id" to "add_pantry_image_picker"))
                             showImagePickerSheet = false
                         }
                     )
@@ -665,7 +670,7 @@ fun AddPantryItemScreen(
             }
             val optionBg = if (isDark) PureBlack else PureWhite
             ModalBottomSheet(
-                onDismissRequest = { pickerOpen = null },
+                onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 scrimColor = ScrimDefault
             ) {
@@ -687,6 +692,7 @@ fun AddPantryItemScreen(
                                         "process" -> proceso = formatMultiValue(tempMultiSelection)
                                         else -> { }
                                     }
+                                    onTrackEvent("modal_close", bundleOf("modal_id" to "add_pantry_option_picker"))
                                     pickerOpen = null
                                 },
                                 modifier = Modifier.align(Alignment.CenterEnd)
@@ -741,6 +747,7 @@ fun AddPantryItemScreen(
                                             "grind" -> moliendaRecomendada = opt
                                             else -> { }
                                         }
+                                        onTrackEvent("modal_close", bundleOf("modal_id" to "add_pantry_option_picker"))
                                         pickerOpen = null
                                     },
                                 shape = Shapes.cardSmall,

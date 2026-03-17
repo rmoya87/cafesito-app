@@ -56,6 +56,12 @@ object TimelineNotificationSystem {
                     putExtra(EXTRA_TYPE, "list_invite")
                     putExtra("invitation_id", notification.invitationId)
                 }
+                is TimelineNotification.FirstCoffee -> {
+                    putExtra(NAV_TYPE_KEY, "FOLLOW")
+                    putExtra("nav_id", notification.user.id.toString())
+                    putExtra(EXTRA_TYPE, "first_coffee")
+                    putExtra(EXTRA_USER_ID, notification.user.id)
+                }
             }
         }
         return PendingIntent.getActivity(
@@ -76,6 +82,7 @@ object TimelineNotificationSystem {
             is TimelineNotification.Mention -> notification.user.username to "te ha mencionado en un comentario"
             is TimelineNotification.Comment -> notification.user.username to notification.message
             is TimelineNotification.ListInvite -> "Invitación a lista" to notification.message
+            is TimelineNotification.FirstCoffee -> "@${notification.user.username}" to "${notification.user.fullName.ifBlank { notification.user.username }} ha probado un café nuevo."
         }
         val channelId = NotificationChannels.resolveChannel(notification.type)
         val notificationId = notification.id.hashCode()
@@ -139,6 +146,7 @@ object TimelineNotificationSystem {
                 )
             }
 
+            is TimelineNotification.FirstCoffee -> { }
             is TimelineNotification.Mention,
             is TimelineNotification.Comment -> {
                 val postId = when (notification) {

@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { EMPTY } from "../../core/emptyErrorStrings";
+import { sendEvent } from "../../core/ga4";
 import { toRelativeMinutes } from "../../core/time";
 import type { CoffeeReviewRow, CoffeeRow, ListPrivacy, PantryItemRow, UserListRow, UserRow } from "../../types";
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
@@ -154,6 +155,7 @@ export function CoffeeDetailView({
   useEffect(() => {
     if (!fullPage || externalOpenStockSignal <= 0) return;
     setStockSheetError(null);
+    sendEvent("modal_open", { modal_id: "stock_edit" });
     setShowStockSheet(true);
   }, [externalOpenStockSignal, fullPage]);
 
@@ -174,6 +176,7 @@ export function CoffeeDetailView({
                   onRequireAuth();
                   return;
                 }
+                sendEvent("modal_open", { modal_id: "add_to_list" });
                 setShowAddToListModal(true);
               }}
             >
@@ -189,6 +192,7 @@ export function CoffeeDetailView({
                   return;
                 }
                 setStockSheetError(null);
+                sendEvent("modal_open", { modal_id: "stock_edit" });
                 setShowStockSheet(true);
               }}
             >
@@ -264,6 +268,7 @@ export function CoffeeDetailView({
                 return;
               }
               setSensorySheetError(null);
+              sendEvent("modal_open", { modal_id: "sensory_profile" });
               setShowSensorySheet(true);
             }}
           >
@@ -317,6 +322,7 @@ export function CoffeeDetailView({
                   return;
                 }
                 setReviewSheetError(null);
+                sendEvent("modal_open", { modal_id: "review" });
                 setShowReviewSheet(true);
               }}
             >
@@ -400,6 +406,7 @@ export function CoffeeDetailView({
                     return;
                   }
                   setReviewSheetError(null);
+                  sendEvent("modal_open", { modal_id: "review" });
                   setShowReviewSheet(true);
                 }}
               >
@@ -488,11 +495,13 @@ export function CoffeeDetailView({
               aria-label="Editar perfil sensorial"
               onDismiss={() => {
                 if (savingSensory) return;
+                sendEvent("modal_close", { modal_id: "sensory_profile" });
                 setSensorySheetError(null);
                 setShowSensorySheet(false);
               }}
               onClick={() => {
                 if (savingSensory) return;
+                sendEvent("modal_close", { modal_id: "sensory_profile" });
                 setSensorySheetError(null);
                 setShowSensorySheet(false);
               }}
@@ -510,6 +519,7 @@ export function CoffeeDetailView({
                         setSavingSensory(true);
                         try {
                           await onSaveSensory();
+                          sendEvent("modal_close", { modal_id: "sensory_profile" });
                           setSensorySheetError(null);
                           setShowSensorySheet(false);
                         } catch {
@@ -563,11 +573,13 @@ export function CoffeeDetailView({
               aria-label="Editar stock"
               onDismiss={() => {
                 if (savingStock) return;
+                sendEvent("modal_close", { modal_id: "stock_edit" });
                 setStockSheetError(null);
                 setShowStockSheet(false);
               }}
               onClick={() => {
                 if (savingStock) return;
+                sendEvent("modal_close", { modal_id: "stock_edit" });
                 setStockSheetError(null);
                 setShowStockSheet(false);
               }}
@@ -666,6 +678,7 @@ export function CoffeeDetailView({
                 disabled={savingStock}
                 onClick={() => {
                   if (savingStock) return;
+                  sendEvent("modal_close", { modal_id: "stock_edit" });
                   setStockSheetError(null);
                   setShowStockSheet(false);
                 }}
@@ -685,6 +698,7 @@ export function CoffeeDetailView({
                   setSavingStock(true);
                   try {
                     await onSaveStock();
+                    sendEvent("modal_close", { modal_id: "stock_edit" });
                     setStockSheetError(null);
                     setShowStockSheet(false);
                   } catch {
@@ -710,10 +724,12 @@ export function CoffeeDetailView({
               aria-modal="true"
               aria-label="Tu opinión"
               onDismiss={() => {
+                sendEvent("modal_close", { modal_id: "review" });
                 setReviewSheetError(null);
                 setShowReviewSheet(false);
               }}
               onClick={() => {
+                sendEvent("modal_close", { modal_id: "review" });
                 setReviewSheetError(null);
                 setShowReviewSheet(false);
               }}
@@ -833,6 +849,7 @@ export function CoffeeDetailView({
                     setDeletingReview(true);
                     try {
                       await onDeleteReview();
+                      sendEvent("modal_close", { modal_id: "review" });
                       setReviewSheetError(null);
                       setShowReviewSheet(false);
                     } finally {
@@ -849,6 +866,7 @@ export function CoffeeDetailView({
                   disabled={savingReview || deletingReview}
                   onClick={() => {
                     if (savingReview || deletingReview) return;
+                    sendEvent("modal_close", { modal_id: "review" });
                     setReviewSheetError(null);
                     setShowReviewSheet(false);
                   }}
@@ -873,6 +891,7 @@ export function CoffeeDetailView({
                   setSavingReview(true);
                   try {
                     await onSaveReview();
+                    sendEvent("modal_close", { modal_id: "review" });
                     setShowReviewSheet(false);
                   } finally {
                     setSavingReview(false);
@@ -894,8 +913,14 @@ export function CoffeeDetailView({
               role="dialog"
               aria-modal="true"
               aria-label="Añadir a lista"
-              onDismiss={() => setShowAddToListModal(false)}
-              onClick={() => setShowAddToListModal(false)}
+              onDismiss={() => {
+                sendEvent("modal_close", { modal_id: "add_to_list" });
+                setShowAddToListModal(false);
+              }}
+              onClick={() => {
+                sendEvent("modal_close", { modal_id: "add_to_list" });
+                setShowAddToListModal(false);
+              }}
             >
               <SheetCard
                 className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet add-to-list-sheet"
@@ -932,7 +957,10 @@ export function CoffeeDetailView({
                   <Button
                     variant="plain"
                     className="diary-sheet-action diary-sheet-action-pantry"
-                    onClick={() => setShowCreateListInModal(true)}
+                    onClick={() => {
+                    sendEvent("modal_open", { modal_id: "create_list" });
+                    setShowCreateListInModal(true);
+                  }}
                   >
                     <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">add</span>
                     <span>Crear una lista</span>
@@ -996,11 +1024,14 @@ export function CoffeeDetailView({
         : null}
       {showCreateListInModal && showAddToListModal && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => setShowCreateListInModal(false)} onClick={() => setShowCreateListInModal(false)}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "create_list" }); setShowCreateListInModal(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "create_list" }); setShowCreateListInModal(false); }}>
               <CreateListSheet
-                onDismiss={() => setShowCreateListInModal(false)}
+                onDismiss={() => { sendEvent("modal_close", { modal_id: "create_list" }); setShowCreateListInModal(false); }}
                 onCreate={(name, privacy) =>
-                  (onCreateList?.(name, privacy) ?? Promise.resolve()).then(() => setShowCreateListInModal(false))
+                  (onCreateList?.(name, privacy) ?? Promise.resolve()).then(() => {
+                    sendEvent("modal_close", { modal_id: "create_list" });
+                    setShowCreateListInModal(false);
+                  })
                 }
               />
             </SheetOverlay>,

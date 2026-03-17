@@ -1274,7 +1274,7 @@ html.theme-light .step.is-active {
 /* ========== Botones: modo claro (forzar colores) ========== */
 html.theme-light .action-button {
   background: rgba(var(--caramel-soft-rgb), 0.2) !important;
-  color: var(--caramel-accent) !important;
+  color: #ffffff !important;
   border-color: transparent !important;
 }
 

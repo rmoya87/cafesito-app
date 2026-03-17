@@ -1,13 +1,16 @@
 # Instrucciones para el agente IA (Cursor)
 
 - **Idioma:** Responde siempre en **español**.
-- **Antes de actuar:** Lee la documentación que impacte tu tarea. Entra por `docs/README.md` y ve a la parte que afecte a tus decisiones. Regla: `.cursor/rules/docs-before-code.mdc`.
+- **Antes de actuar:** Lee la documentación que impacte tu tarea. **Índice único:** `docs/README.md` (§4 por uso: arquitectura, release, runbooks, iOS, servicios, Supabase, históricos). Regla: `.cursor/rules/docs-before-code.mdc`.
 - **Documentos clave:**  
-  `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` (cambios e incidencias recientes, ramas),  
-  `docs/RELEASE_DEPLOY_WORKFLOW.md` (workflow y despliegue),  
-  `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` (arquitectura y principios).  
-  `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` (accesibilidad WebApp y Android; checklist al eliminar/modificar/añadir UI; regla `.cursor/rules/accesibilidad-ui.mdc`).
-- **Ramas de entorno:** Solo se usan **main**, **beta**, **alpha**, **Interna**. Flujo habitual: push a `main`, luego `git push origin main:beta` si quieres actualizar beta.
-- **Stack:** Android (Kotlin, Jetpack Compose, Hilt, Room), WebApp (React, TypeScript), lógica compartida en `shared/` (KMP). Paridad Android/WebApp en flujos y UI cuando aplique.
-- **Contexto del proyecto:** Usa como “Snapshot del Proyecto” la combinación de `docs/MASTER_ARCHITECTURE_GOVERNANCE.md`, `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` y la documentación específica del área que toques (p. ej. Brew Lab en `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md`).
+  `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` (cambios e incidencias, ramas),  
+  `docs/RELEASE_DEPLOY_WORKFLOW.md` (workflow, deploy Android + Web),  
+  `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` (arquitectura, principios),  
+  `docs/ANALITICAS.md` (analíticas GA4/GTM, eventos, checklists; guías en `docs/gtm/`),  
+  `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` (a11y, checklist UI; regla `accesibilidad-ui.mdc`),  
+  `docs/ANDROID_Y_WEBAPP_SERVICIOS_CONECTADOS_LLAMADAS_Y_OPTIMIZACION.md` (servicios, cachés, sync, optimización actual).  
+  Referencia histórica: `docs/OPTIMIZACIONES_RENDIMIENTO_HISTORICO.md`, `docs/KMP_AUDIT_STEP0.md`. Deploy web Ionos: `webApp/DEPLOY-IONOS.md`.
+- **Ramas de entorno:** Solo **main**, **beta**, **alpha**, **Interna**. Flujo: push a `main`, luego `git push origin main:beta` si actualizas beta.
+- **Stack:** Android (Kotlin, Compose, Hilt, Room), WebApp (React, TypeScript), `shared/` (KMP). Paridad Android/WebApp en flujos y UI.
+- **Contexto del proyecto:** “Snapshot” = MASTER + REGISTRO + doc del área (Brew: commit-notes elaboración; rendimiento: ANDROID_Y_WEBAPP_SERVICIOS; shared: SHARED_BUSINESS_LOGIC, KMP_AUDIT_STEP0).
 - **Cambios en docs:** No modifiques documentación sin indicar antes qué archivo y sección afectan y esperar confirmación.

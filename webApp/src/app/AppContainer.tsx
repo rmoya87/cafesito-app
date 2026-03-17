@@ -28,7 +28,7 @@ import {
 } from "../data/supabaseApi";
 import { BREW_METHODS } from "../config/brew";
 import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/routing";
-import { sendPageView } from "../core/ga4";
+import { sendEvent, sendPageView, setGa4UserId } from "../core/ga4";
 import { shouldUseRightRailDetail, sidePanelForTab } from "../core/layouts";
 import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
 import { getBrewMethodProfile, getBrewStepTitle, getBrewTimeProfile } from "../core/brew";
@@ -93,6 +93,7 @@ import { DiarySheets } from "../features/diary/DiarySheets";
 import { BottomNav, DesktopNavRail } from "../features/navigation/NavControls";
 import { AppContentRouter } from "./AppContentRouter";
 import { AppOverlayLayers } from "./AppOverlayLayers";
+import { CookieConsentBanner } from "../features/consent/CookieConsentBanner";
 import { OfflineBanner } from "./OfflineBanner";
 import { EditListSheet } from "../features/lists/EditListSheet";
 import { ListOptionsPage } from "../features/lists/ListOptionsPage";
@@ -261,6 +262,7 @@ export function AppContainer() {
   }, []);
   const [brewStep, setBrewStep] = useState<BrewStep>("method");
   const [brewTimerEnabled, setBrewTimerEnabled] = useState(Boolean(initialBrewDraft?.brewTimerEnabled));
+  const [brewTimerEnded, setBrewTimerEnded] = useState(false);
   const brewResultSaveRef = useRef<() => Promise<void>>(async () => {});
   const [brewResultSaveMeta, setBrewResultSaveMeta] = useState({ canSave: false, saving: false, showGuardar: false });
   const onBrewResultSaveState = useCallback(
@@ -303,6 +305,9 @@ export function AppContainer() {
       /* ignore */
     }
   }, [brewMethod, brewDrinkType, waterMl, brewCoffeeGrams, brewStep, brewTimerEnabled]);
+  useEffect(() => {
+    if (activeTab !== "brewlab" || brewStep !== "brewing") setBrewTimerEnded(false);
+  }, [activeTab, brewStep]);
   const [diaryTab, setDiaryTab] = useState<"actividad" | "despensa">("actividad");
   const [diaryPeriod, setDiaryPeriod] = useState<DiaryPeriod>("week");
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -626,6 +631,7 @@ export function AppContainer() {
             : m
         );
       }
+      sendEvent("modal_close", { modal_id: "list_edit" });
       setShowEditListSheet(false);
     },
     [profileListMeta?.id]
@@ -1302,6 +1308,20 @@ export function AppContainer() {
     handleOpenSeleccionaCafe();
   }, [handleOpenSeleccionaCafe]);
 
+  /** Al terminar el temporizador de elaboración: ir a Diario y abrir consumo con datos del brew para completar tipo/tamaño. */
+  const onBrewTimerEndedGoToConsumption = useCallback(() => {
+    setDiaryTab("actividad");
+    navigateToTab("diary");
+    setDiaryCoffeeIdDraft(brewCoffeeId || "");
+    setDiarySelectedPantryItemIdDraft(brewPantryItemId || "");
+    setDiaryCoffeePreparationDraft(brewMethod || "Espresso");
+    setDiaryCoffeeGramsDraft(String(brewCoffeeGrams ?? 15));
+    setCoffeeSheetStep("tipo");
+    setCoffeeSheetOpenedFromBrew(true);
+    setShowDiaryCoffeeSheet(true);
+    setBrewStep("method");
+  }, [navigateToTab, brewCoffeeId, brewPantryItemId, brewMethod, brewCoffeeGrams, setBrewStep]);
+
   /** Abre añadir a despensa desde la página Selecciona café de elaboración; al guardar se asigna ese café a la elaboración y se cierra la página. */
   const openAddPantrySheetFromBrewSelect = useCallback(() => {
     addPantryOpenedFromBrewRef.current = true;
@@ -1722,6 +1742,15 @@ export function AppContainer() {
     sendPageView(gaPagePath, `Cafesito - ${pageTitle}`);
   }, [gaPagePath, guardedActiveTab]);
 
+  // GA4: mismo usuario en todas las sesiones cuando está logueado (unifica analíticas por user_id)
+  useEffect(() => {
+    if (sessionEmail && activeUser?.id != null) {
+      setGa4UserId(String(activeUser.id));
+    } else {
+      setGa4UserId(null);
+    }
+  }, [sessionEmail, activeUser?.id]);
+
   // Al cambiar de vista: reiniciar scroll y mostrar topbar para que en timeline, perfil y resto se comporte igual
   useEffect(() => {
     const el = mainScrollRef.current;
@@ -1731,6 +1760,17 @@ export function AppContainer() {
     setTopbarScrolled(false);
     const mainShell = el.parentElement;
     if (mainShell) mainShell.style.setProperty("--topbar-translate-y", "0px");
+  }, [guardedActiveTab]);
+
+  // Vista detalle café a pantalla completa: clase en html y body para quitar franja superior (notch/status bar)
+  useEffect(() => {
+    const onCoffee = guardedActiveTab === "coffee";
+    document.documentElement.classList.toggle("is-coffee-view", onCoffee);
+    document.body.classList.toggle("is-coffee-view", onCoffee);
+    return () => {
+      document.documentElement.classList.remove("is-coffee-view");
+      document.body.classList.remove("is-coffee-view");
+    };
   }, [guardedActiveTab]);
 
   const guestCanAccessCurrentTab = canAccessTabAsGuest(
@@ -2066,6 +2106,8 @@ export function AppContainer() {
           onClearBarcodeDetectedValue={() => setBarcodeDetectedValueForBrew(null)}
           brewTimerEnabled={brewTimerEnabled}
           setBrewTimerEnabled={setBrewTimerEnabled}
+          onTimerEndedGoToConsumption={onBrewTimerEndedGoToConsumption}
+          onTimerEndedChange={setBrewTimerEnded}
         />
       )
     ) : null;
@@ -2243,9 +2285,9 @@ export function AppContainer() {
               }}
               showCopyChip={showCopyChip}
               copyChipExiting={copyChipExiting}
-              onEditList={() => setShowEditListSheet(true)}
-              onDeleteList={() => setShowDeleteListConfirmSheet(true)}
-              onLeaveList={() => setShowLeaveListConfirmSheet(true)}
+              onEditList={() => { sendEvent("modal_open", { modal_id: "list_edit" }); setShowEditListSheet(true); }}
+              onDeleteList={() => { sendEvent("modal_open", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(true); }}
+              onLeaveList={() => { sendEvent("modal_open", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(true); }}
             />
           );
         })()
@@ -2526,7 +2568,7 @@ export function AppContainer() {
 
   return (
     <div
-      className={`layout ${mode} ${mode === "desktop" && isSearchUsersPage ? "is-search-users-page" : ""} ${guardedActiveTab === "home" ? "is-home" : ""}`.trim()}
+      className={`layout ${mode} ${mode === "desktop" && isSearchUsersPage ? "is-search-users-page" : ""} ${guardedActiveTab === "home" ? "is-home" : ""} ${guardedActiveTab === "coffee" ? "is-coffee" : ""}`.trim()}
     >
       {showAndroidBanner ? (
         <div className="android-install-banner-wrap">
@@ -2556,6 +2598,7 @@ export function AppContainer() {
         </div>
       ) : null}
       <OfflineBanner />
+      <CookieConsentBanner isAuthenticated={Boolean(sessionEmail)} />
       {mode === "desktop" && !isSearchUsersPage ? navRail : null}
       <main className={`main-shell${guardedActiveTab === "home" ? " is-home" : ""}`}>
         {guardedActiveTab !== "coffee" ? (
@@ -2577,7 +2620,7 @@ export function AppContainer() {
           searchRoastCount={searchSelectedRoasts.size}
           searchFormatCount={searchSelectedFormats.size}
           searchHasRatingFilter={searchMinRating > 0}
-          onOpenSearchFilter={(filter) => setSearchActiveFilterType(filter)}
+          onOpenSearchFilter={(filter) => { sendEvent("modal_open", { modal_id: "search_filter" }); setSearchActiveFilterType(filter); }}
           onSearchBack={topbarActions.onSearchBack}
           showNotificationsBadge={showNotificationsBadge}
           onHomeSearchUsers={topbarActions.onHomeSearchUsers}
@@ -2633,6 +2676,7 @@ export function AppContainer() {
           onBrewForward={topbarActions.onBrewForward}
           brewCanGoToConfig={guardedActiveTab === "brewlab" && brewStep === "method" && (brewMethod === "Agua" ? waterMl > 0 : Boolean(brewMethod))}
           brewTimerEnabled={brewTimerEnabled}
+          brewTimerEnded={brewTimerEnded}
           onBrewGoToConfig={() => {
             if (brewMethod === "Agua") {
               void saveWaterWithAmount(waterMl).then(() => {
@@ -2643,6 +2687,7 @@ export function AppContainer() {
               });
               return;
             }
+            sendEvent("button_click", { button_id: "brew_next_step" });
             if (brewTimerEnabled) {
               setTimerSeconds(0);
               setBrewRunning(false);
@@ -2650,6 +2695,10 @@ export function AppContainer() {
             } else {
               setBrewStep("result");
             }
+          }}
+          onBrewGoToConsumptionWhenTimerEnded={() => {
+            setBrewTimerEnded(false);
+            onBrewTimerEndedGoToConsumption();
           }}
           onBrewResultSave={() => void brewResultSaveRef.current()}
           brewResultCanSave={brewResultSaveMeta.canSave}
@@ -2809,13 +2858,13 @@ export function AppContainer() {
         const initialPrivacy: ListPrivacy = list.privacy ?? (list.is_public ? "public" : "private");
         return typeof document !== "undefined"
           ? createPortal(
-              <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar lista" onDismiss={() => setShowEditListSheet(false)} onClick={() => setShowEditListSheet(false)}>
+              <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }}>
                 <EditListSheet
                   listId={list.id}
                   initialName={list.name}
                   initialPrivacy={initialPrivacy}
                   initialMembersCanEdit={list.members_can_edit ?? false}
-                  onDismiss={() => setShowEditListSheet(false)}
+                  onDismiss={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }}
                   onSave={handleEditListSave}
                 />
               </SheetOverlay>,
@@ -2825,7 +2874,7 @@ export function AppContainer() {
       })()}
       {showDeleteListConfirmSheet && profileListId && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar lista" onDismiss={() => setShowDeleteListConfirmSheet(false)} onClick={() => setShowDeleteListConfirmSheet(false)}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }}>
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
@@ -2834,14 +2883,14 @@ export function AppContainer() {
                     ¿Estás seguro de que quieres eliminar esta lista? Se quitarán todos los cafés que contiene.
                   </p>
                   <div className="diary-delete-confirm-actions">
-                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setShowDeleteListConfirmSheet(false)}>
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }}>
                       Cancelar
                     </Button>
                     <Button
                       variant="plain"
                       type="button"
                       className="diary-delete-confirm-submit"
-                      onClick={() => void handleDeleteListConfirm()}
+                      onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); void handleDeleteListConfirm(); }}
                     >
                       Eliminar
                     </Button>
@@ -2854,7 +2903,7 @@ export function AppContainer() {
         : null}
       {showLeaveListConfirmSheet && profileListId && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Abandonar lista" onDismiss={() => setShowLeaveListConfirmSheet(false)} onClick={() => setShowLeaveListConfirmSheet(false)}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Abandonar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }}>
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
@@ -2863,14 +2912,14 @@ export function AppContainer() {
                     ¿Estás seguro de que quieres abandonar esta lista? Dejarás de tener acceso a ella y ya no aparecerá en tu sección de listas.
                   </p>
                   <div className="diary-delete-confirm-actions">
-                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setShowLeaveListConfirmSheet(false)}>
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }}>
                       Cancelar
                     </Button>
                     <Button
                       variant="plain"
                       type="button"
                       className="diary-delete-confirm-submit"
-                      onClick={() => void handleLeaveListConfirm()}
+                      onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); void handleLeaveListConfirm(); }}
                     >
                       Abandonar
                     </Button>

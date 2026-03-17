@@ -1,8 +1,10 @@
 package com.cafesito.app.ui.brewlab
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cafesito.app.brewlab.BrewLabTimerService
 import com.cafesito.app.data.*
 import com.cafesito.shared.domain.brew.BrewCaffeineInput
 import com.cafesito.shared.domain.brew.BREW_METHOD_AGUA
@@ -17,11 +19,14 @@ import com.cafesito.shared.domain.brew.BrewEngine
 import com.cafesito.shared.domain.brew.BrewMethodProfile
 import com.cafesito.shared.domain.brew.BrewSource
 import com.cafesito.shared.domain.brew.BrewTimeProfile
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 enum class BrewStep(val title: String) {
@@ -56,6 +61,7 @@ data class BrewPhaseInfo(
 
 @HiltViewModel
 class BrewLabViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val diaryRepository: DiaryRepository,
     private val coffeeRepository: CoffeeRepository
 ) : ViewModel() {
@@ -151,6 +157,14 @@ class BrewLabViewModel @Inject constructor(
     // --- 2. CHOOSE COFFEE ---
     val pantryItems = diaryRepository.getPantryItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                diaryRepository.syncPantryItems()
+            }
+        }
+    }
 
     val availableCoffees = coffeeRepository.allCoffees
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -393,8 +407,43 @@ class BrewLabViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     private var timerJob: Job? = null
+    private var timerDrivenByService = false
+
+    /** True cuando el timer está controlado por BrewLabTimerService (primer plano). */
+    fun isTimerDrivenByService(): Boolean = timerDrivenByService
+
+    /** Llamar cuando se inicia el timer desde el servicio en primer plano; no arranca el Job interno. */
+    fun startTimerViaService(totalSeconds: Int, methodName: String) {
+        timerDrivenByService = true
+        _hasTimerStarted.value = true
+        _isTimerRunning.value = true
+        _timerSeconds.value = 0
+    }
+
+    /** Sincroniza estado desde BrewLabTimerService (prefs). */
+    fun setTimerFromService(elapsedSeconds: Int, totalSeconds: Int, isRunning: Boolean, isPaused: Boolean) {
+        _timerSeconds.value = elapsedSeconds.coerceIn(0, totalSeconds.coerceAtLeast(0))
+        _isTimerRunning.value = isRunning && !isPaused
+        if (!isRunning && elapsedSeconds >= totalSeconds && totalSeconds > 0) {
+            _timerSeconds.value = totalSeconds
+            timerDrivenByService = false
+        }
+    }
 
     fun toggleTimer() {
+        val totalSeconds = phasesTimeline.value.sumOf { it.durationSeconds }
+        val methodName = _selectedMethod.value?.name ?: ""
+        if (!_hasTimerStarted.value && totalSeconds > 0 && methodName.isNotBlank()) {
+            _hasTimerStarted.value = true
+            BrewLabTimerService.start(appContext, methodName, totalSeconds, 0)
+            startTimerViaService(totalSeconds, methodName)
+            return
+        }
+        if (timerDrivenByService) {
+            if (_isTimerRunning.value) BrewLabTimerService.sendPause(appContext)
+            else BrewLabTimerService.sendResume(appContext)
+            return
+        }
         if (!_hasTimerStarted.value) _hasTimerStarted.value = true
         if (_isTimerRunning.value) {
             timerJob?.cancel()
@@ -427,6 +476,8 @@ class BrewLabViewModel @Inject constructor(
     }
 
     fun resetTimer() {
+        if (timerDrivenByService) BrewLabTimerService.sendCancel(appContext)
+        timerDrivenByService = false
         timerJob?.cancel()
         _isTimerRunning.value = false
         _timerSeconds.value = 0
@@ -588,6 +639,11 @@ class BrewLabViewModel @Inject constructor(
         val total = timeline.sumOf { it.durationSeconds }
         total > 0 && seconds >= total
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /** Abrir pantalla Consumo al tocar la notificación «¿Registrar elaboración?» (timer recién terminado). */
+    fun openConsumoFromNotification() {
+        _currentStep.value = BrewStep.RESULT
+    }
 
     /** Guardar en pantalla Consumo habilitado solo con tipo y tamaño; el sabor es opcional. */
     val canSaveForResult: StateFlow<Boolean> = combine(

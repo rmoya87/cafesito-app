@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-16
+**Última actualización:** 2026-03-17 (registro §18 notificaciones elaboración, consumo, actividades, WebApp)
 
 ---
 
@@ -38,6 +38,8 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 14. [Segunda pasada GUIA — Colores Android y documentación (13 mar 2026)](#14-segunda-pasada-guia--colores-android-y-documentación-13-mar-2026)
 15. [Tercera pasada GUIA — Dimensiones, Spacing, Dimens, WebApp chart (13 mar 2026)](#15-tercera-pasada-guia--dimensiones-spacing-dimens-webapp-chart-13-mar-2026)
 16. [Elaboración Android y WebApp — chips, carruseles, márgenes, Selecciona café como página (13–14 mar 2026)](#16-elaboración-android-y-webapp--chips-carruseles-márgenes-selecciona-café-como-página-1314-mar-2026)
+17. [Resumen de cambios — despensa, diario, deploy, CI (15–16 mar 2026)](#17-resumen-de-cambios--despensa-diario-deploy-ci-1516-mar-2026)
+18. [Resumen de cambios — notificaciones elaboración, consumo, actividades, WebApp (17 mar 2026)](#18-resumen-de-cambios--notificaciones-elaboración-consumo-actividades-webapp-17-mar-2026)
 
 ---
 
@@ -115,6 +117,8 @@ This comparison appears to be unintentional because the types '"search" | "timel
 
 **Archivo:** `.github/workflows/release-deploy.yml` (step checkout del job `deploy-web`).
 
+**Si git 128 sigue apareciendo en `changes` o `deploy-web`:** (1) En **push**: comprobar que la rama a la que se hace push existe y el nombre coincide exactamente (mayúsculas/minúsculas, p. ej. `beta` no `Beta`). (2) En **workflow_dispatch**: comprobar que la rama elegida existe en el repo (p. ej. crear/actualizar con `git push origin main:beta`) y que en Settings → Actions → General → Workflow permissions está "Read and write". (3) En el job `changes` se añadió `ref: ${{ github.ref }}` explícito en el checkout (push) para alinearlo con deploy-web y release-android.
+
 ---
 
 ### 2.4 release-android: git exit 128 y deprecación Node.js 20
@@ -129,6 +133,33 @@ This comparison appears to be unintentional because the types '"search" | "timel
 3. **Node 24:** Añadido `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` en `env` del workflow para optar por Node 24 en las acciones y eliminar el aviso de deprecación.
 
 **Archivo:** `.github/workflows/release-deploy.yml`.
+
+---
+
+### 2.5 Error: `Cannot find name 'diarySelectedPantryItemIdDraft'` en deploy-web
+
+**Síntoma:** El job `deploy-web` fallaba con errores TypeScript:
+
+```text
+Cannot find name 'diarySelectedPantryItemIdDraft'.
+Cannot find name 'setDiarySelectedPantryItemIdDraft'.
+```
+
+**Causa:** En `DiarySheets.tsx`, las props `diarySelectedPantryItemIdDraft` y `setDiarySelectedPantryItemIdDraft` estaban declaradas en el **tipo** del componente pero **no** en la destructuración del parámetro. El cuerpo del componente las usaba, por lo que TypeScript las consideraba no definidas.
+
+**Solución:** Añadir ambas a la destructuración de props de `DiarySheets`, junto a `diaryCoffeeIdDraft` / `setDiaryCoffeeIdDraft`.
+
+**Archivo:** `webApp/src/features/diary/DiarySheets.tsx`.
+
+---
+
+### 2.6 Notas de la versión Android (What's new): solo Android, desde producción, tono divertido
+
+**Requisitos:** Las notas de la versión que sube el workflow a Google Play deben (1) incluir **solo cambios que tocan Android** (app/, shared/, gradle/, etc.), no commits solo de webApp; (2) tomar **siempre como referencia producción** (tag `deploy/android/production/*`) cuando exista, de modo que lo desplegado a beta/alpha recoga el gap con producción y cuando llegue a producción el usuario final sepa todas las mejoras; (3) estar **todas en español**, con tono divertido y no técnico, entendible por todo el mundo.
+
+**Solución:** En el job `release-android`, paso "Generate release notes": se usa `git log refSince..HEAD -- <paths>` con las rutas Android para filtrar commits; la referencia `refSince` es el último tag de **producción** (si existe y es ancestro de HEAD), y si no hay producción se usa el de la pista actual (beta/alpha). Los mensajes de commit se transforman con una función `toFriendly()` que elimina prefijos técnicos y convierte a frases tipo "Mejoras en tu despensa de café", "Retoques en tu diario", "Corregimos detalles para que todo vaya mejor", etc. Título de la sección: "¿Qué hay de nuevo?".
+
+**Archivos:** `.github/workflows/release-deploy.yml`; `docs/RELEASE_DEPLOY_WORKFLOW.md` (descripción de las notas).
 
 ---
 
@@ -204,6 +235,7 @@ Además: `docs-before-code.mdc` (siempre) — consultar docs antes de actuar.
 | Lógica de negocio compartida (diario, brew, recomendaciones) | `docs/SHARED_BUSINESS_LOGIC.md` |
 | Tests de humo (flujo crítico) | `docs/SMOKE_TESTS.md` |
 | Accesibilidad (aria, 44px/48dp, WCAG) | `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` |
+| Analíticas (GA4, GTM, eventos, pantallas; guías en `docs/gtm/`) | `docs/ANALITICAS.md` |
 | Workflow release y deploy (triggers, ramas, jobs) | `docs/RELEASE_DEPLOY_WORKFLOW.md` |
 | Changelog detallado Brew/UI/colores/Italiana (04–05 mar) | `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md` |
 | Compliance Play Console, orientación, edge-to-edge | `docs/ANDROID_PLAY_CONSOLE_COMPLIANCE.md` |
@@ -544,6 +576,115 @@ Ajustes de UI en elaboración (BrewLab) en Android y conversión de "Selecciona 
 ### WebApp
 
 - **Selecciona café:** Modal sustituido por página completa (`BrewSelectCoffeePage`); TopBar "Selecciona café" y flecha atrás; misma lógica y UI que "Tu despensa" de Home; sugerencias sin cafés ya en despensa; despensa por último uso.
+
+---
+
+## 17. Resumen de cambios — despensa, diario, deploy, CI (15–16 mar 2026)
+
+Cambios en flujos de despensa (guardar/añadir desde elaboración y Home), stock restante en UI, método espresso, error 400 al insertar en despensa, modal "Café terminado" en Android, y correcciones de CI/deploy-web (TypeScript y git exit 128).
+
+### 17.1 Guardar en despensa desde "Selecciona café"
+
+| Plataforma | Archivo(s) | Cambio |
+|------------|------------|--------|
+| **WebApp** | `useDiarySheetActions.ts`, `AppContainer` (o equivalente donde se maneja brew) | `savePantry` devuelve el ítem creado; en `handleSavePantry` se llama a `setBrewPantryItemId(newRow.id)` además de `setBrewCoffeeId` cuando se abre desde elaboración. |
+| **Android** | `AppNavigation.kt` | Callback `onCoffeeCreatedForBrewLab` guarda el id del ítem en `getBackStackEntry("brewlab")?.savedStateHandle` (no en `previousBackStackEntry`). |
+
+### 17.2 Stock restante en "Tu despensa" (1000/1000 vs real)
+
+En WebApp se mostraba "restante tras esta elaboración" en lugar del stock real. Se pasó a mostrar siempre el stock real (`row.remaining` / `row.total`) en **BrewSelectCoffeePage** y **BrewViews**. Android ya mostraba el stock real.
+
+### 17.3 Método espresso: títulos en la misma línea y "Café (g)"
+
+**WebApp:** En `BrewViews.tsx` se añadió la fila `brew-tech-coffee-espresso-titles` con "Café (g)" y "RATIO 1:2.0 - CONCENTRADO" en la misma línea; estilos en `features.css`. La etiqueta "Café (g)" se reutiliza en otros métodos donde aplique.
+
+### 17.4 Añadir a despensa no funcionaba (Home y Selecciona café)
+
+| Plataforma | Cambio |
+|------------|--------|
+| **WebApp** | En `useDiarySheetActions.ts` se usa `customCoffees` y `getLastSelectedPantryCoffee` para resolver el café en `savePantry`. En `AppContainer.tsx`: `lastSelectedPantryCoffeeRef` y `onSelectPantryCoffee`; en `DiarySheets.tsx` se llama a `onSelectPantryCoffee(coffee)` al elegir un café y el botón Guardar pasa a `disabled={!diaryPantryCoffeeIdDraft}`. |
+| **Android** | En `DiaryViewModel.kt`, `addToPantry` tiene `onFailure`; en `AddStockScreen.kt` se usa para poner `isSaving = false`; en `AppNavigation.kt` se usa `getBackStackEntry("brewlab")?.savedStateHandle?.set(...)` para devolver el ítem creado a elaboración. |
+
+### 17.5 Error 400 al guardar en despensa (null en columna "id")
+
+**Causa:** La tabla `pantry_items` exige valor en la columna `id`; el insert no lo enviaba.
+
+**Solución:** En `webApp/src/data/supabaseApi.ts`, en `insertPantryItem`, añadir `id: crypto.randomUUID()` al objeto que se inserta en `pantry_items`.
+
+### 17.6 Android: modal "Café terminado"
+
+En **TimelineComponents.kt**, `DeleteConfirmationDialog` tiene el parámetro opcional `confirmButtonText` (por defecto `"ELIMINAR"`). En **DiaryScreen.kt** y **TimelineScreen.kt**, para la modal de café terminado se pasa `confirmButtonText = "CONFIRMAR"`.
+
+### 17.7 Deploy y CI
+
+| Incidencia | Solución |
+|------------|----------|
+| deploy-web: `Cannot find name 'diarySelectedPantryItemIdDraft'` / `setDiarySelectedPantryItemIdDraft` | Añadir ambas props a la destructuración del componente en `DiarySheets.tsx` (§2.5). |
+| Git exit 128 en jobs `changes` y `deploy-web` | En el job `changes`, checkout con `ref: ${{ github.ref }}` explícito en push; en §2.3 se amplió qué comprobar si el error persiste (rama exacta, permisos workflow, etc.). |
+
+### 17.8 Flujo main → beta
+
+Se subieron los cambios a `origin/main` y se llevó la rama `beta` al mismo estado (`git push origin main:beta` o merge de main en beta y push). Ver §3.3.
+
+---
+
+## 18. Resumen de cambios — notificaciones elaboración, consumo, actividades, WebApp (17 mar 2026)
+
+Cambios en la notificación «¿Registrar elaboración?», enlace a pantalla Consumo, textos de elaboración/temporizador en Android, botón Siguiente en WebApp al terminar el temporizador, notificación social «primera vez café» (actividades) y ficheros relacionados.
+
+### 18.1 Android: notificación al terminar temporizador de elaboración
+
+| Archivo | Cambio |
+|---------|--------|
+| **app/src/main/res/values/strings.xml** | `brew_timer_register_text`: «Abre Cafesito y guarda en tu diario. Continuar.» (antes: «Toca para abrir Brew Lab y guardar en el diario. Continuar.»). `brew_timer_notification_title`: «Estás elaborando: %1$s» (antes: «Elaborando: %1$s»). |
+| **app/.../brewlab/BrewLabTimerService.kt** (nuevo si no estaba trackeado) | Servicio en primer plano del temporizador; al terminar muestra notificación con `EXTRA_OPEN_BREWLAB_CONSUMO` para abrir pantalla Consumo (no solo Brew Lab ni diario genérico). |
+| **app/.../navigation/AppNavigation.kt** | Tipo `OPEN_BREWLAB_CONSUMO` en `NotificationNavigation.fromIntent`; navegación a `brewlab?openConsumo=true`; ruta `brewlab?openConsumo={openConsumo}`; todas las referencias a brewlab usan esa ruta (navigate, getBackStackEntry, popUpTo). |
+| **app/.../ui/brewlab/BrewLabScreen.kt** | Parámetro `openConsumoFromNotification`; `LaunchedEffect` que llama a `viewModel.openConsumoFromNotification()`; título en paso BREWING: «Estás elaborando: [método]». |
+| **app/.../ui/brewlab/BrewLabViewModel.kt** | Función `openConsumoFromNotification()` que pone `_currentStep = BrewStep.RESULT`. |
+| **app/.../ui/components/BrewLabComponents.kt** | En `PreparationStep`, texto del paso: «El paso: [nombre del paso]» (el paso va cambiando; el tiempo sigue siendo el total/restante). |
+
+### 18.2 Android: actividades (pantalla notificaciones) y FCM
+
+| Archivo | Cambio |
+|---------|--------|
+| **app/.../ui/timeline/TimelineNotification.kt** | Nuevo tipo `FirstCoffee` (usuario que sigues ha probado un café nuevo). |
+| **app/.../ui/timeline/TimelineNotificationMapper.kt** | Mapeo de entidad a `TimelineNotification.FirstCoffee`. |
+| **app/.../ui/timeline/TimelineNotificationSystem.kt** | Título/cuerpo e intent para `FirstCoffee`. |
+| **app/.../fcm/CafesitoFcmService.kt** | Manejo de tipo `FOLLOWED_FIRST_COFFEE` (título @user, cuerpo descriptivo). |
+| **app/.../ui/timeline/NotificationsScreen.kt**, **TimelineViewModel.kt** | Soporte para mostrar y navegar desde notificación FirstCoffee. |
+| **app/.../startup/LastAppOpenTracker.kt** (nuevo) | Persistencia de última apertura para condición «>2 días sin abrir» en notificación social. |
+| **app/.../startup/AppSessionCoordinator.kt** | Uso de LastAppOpenTracker. |
+| **app/.../notifications/NotificationChannels.kt** | Canal/canales necesarios si se añadieron. |
+| **app/.../MainActivity.kt**, **AndroidManifest.xml**, **app/build.gradle.kts**, **gradle/libs.versions.toml** | Permisos, dependencias o entradas relacionadas con FCM/notificaciones/servicios. |
+
+### 18.3 Android: otros
+
+| Archivo | Cambio |
+|---------|--------|
+| **app/.../analytics/AnalyticsHelper.kt** | Ajustes o nuevos eventos si se añadieron. |
+| **app/.../ui/diary/DiaryViewModel.kt** | Cambios puntuales (por ejemplo limpieza o flujo diario). |
+| **app/.../ui/components/TimelineComponents.kt** | UI para notificación FirstCoffee u otros ítems de actividad. |
+| **app/.../startup/PredictiveShortcutsHelper.kt** (nuevo) | Atajos predictivos (si se añadieron). |
+
+### 18.4 WebApp: botón Siguiente al terminar temporizador (ir a consumo)
+
+| Archivo | Cambio |
+|---------|--------|
+| **webApp/src/features/brew/BrewViews.tsx** | Callback `onTimerEndedChange(ended)`; eliminado auto-redirect al terminar el temporizador; el usuario pulsa «Siguiente» en la topbar para ir a consumo. |
+| **webApp/src/features/topbar/TopBar.tsx** | Props `brewTimerEnded` y `onBrewGoToConsumptionWhenTimerEnded`; cuando `brewStep === "brewing"` y `brewTimerEnded`, se muestra botón (flecha) «Siguiente: ir a consumo» que llama a la callback. |
+| **webApp/src/app/AppContainer.tsx** | Estado `brewTimerEnded`; `onTimerEndedChange={setBrewTimerEnded}` en BrewLabView; `onBrewGoToConsumptionWhenTimerEnded` que resetea el flag y llama a `onBrewTimerEndedGoToConsumption`; `useEffect` que resetea `brewTimerEnded` si `activeTab !== "brewlab"` o `brewStep !== "brewing"`. |
+
+### 18.5 WebApp: otros
+
+| Archivo | Cambio |
+|---------|--------|
+| **webApp/src/features/consent/CookieConsentBanner.tsx** | Ajustes menores si los hubo. |
+| **webApp/src/styles/features.css**, **theme-forced.css** | Estilos asociados a los cambios anteriores. |
+
+### 18.6 Documentación
+
+- **docs/FUTUROS_DESARROLLOS_ANDROID.md** (nuevo o modificado): ideas o plan de futuros desarrollos Android.
+- **docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md**: esta sección 18 e índice rápido.
 
 ---
 

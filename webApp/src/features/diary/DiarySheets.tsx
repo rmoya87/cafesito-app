@@ -156,6 +156,8 @@ function DiarySheets({
   setCoffeeSheetStep,
   diaryCoffeeIdDraft,
   setDiaryCoffeeIdDraft,
+  diarySelectedPantryItemIdDraft,
+  setDiarySelectedPantryItemIdDraft,
   diaryCoffeeGramsDraft,
   setDiaryCoffeeGramsDraft,
   diaryCoffeePreparationDraft,

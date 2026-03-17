@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- GTM se carga solo si el usuario ha aceptado todas las cookies (ver script al final). -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Política de Privacidad - Cafesito</title>
@@ -8,7 +9,7 @@
   <link rel="icon" type="image/png" href="../logo.png" />
   <style>
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; background: #fff; margin: 0; padding: 20px 16px 40px; max-width: 720px; margin-left: auto; margin-right: auto; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; background: #fff; margin: 0; padding: 20px 16px 100px; max-width: 720px; margin-left: auto; margin-right: auto; }
     .skip-link { position: absolute; left: -9999px; z-index: 999; padding: 8px 12px; background: #1a1a1a; color: #fff; text-decoration: none; }
     .skip-link:focus { left: 0; top: 0; }
     h1 { font-size: 1.5rem; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 12px; }
@@ -19,6 +20,21 @@
     a { color: #1f6f4a; }
     .updated { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
     a.back { display: inline-block; margin-bottom: 20px; font-size: 0.9rem; min-height: 44px; line-height: 44px; }
+    /* Cookie bar: mismo aspecto que la WebApp (.cookie-consent-banner) */
+    #cookie-consent-bar.cookie-consent-banner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0)); background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid rgba(255,255,255,0.18); box-shadow: 0 -8px 32px rgba(0,0,0,0.25); display: none; }
+    #cookie-consent-bar.cookie-consent-banner.show { display: block; }
+    #cookie-consent-bar .cookie-consent-banner-inner { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    #cookie-consent-bar .cookie-consent-banner-title { margin: 0; font-size: 1.125rem; font-weight: 600; letter-spacing: 0.01em; color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-text { margin: 0; font-size: 0.875rem; line-height: 1.55; color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-legal { margin: 0; font-size: 0.75rem; }
+    #cookie-consent-bar .cookie-consent-banner-link { color: #6f4e37; text-decoration: underline; text-underline-offset: 2px; }
+    #cookie-consent-bar .cookie-consent-banner-link:hover { color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; padding-bottom: 20px; }
+    #cookie-consent-bar .cookie-consent-banner-actions button { padding: 10px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; font-family: inherit; }
+    #cookie-consent-bar .cookie-consent-btn-primary { background: #6f4e37; color: #fff; order: 1; }
+    #cookie-consent-bar .cookie-consent-btn-primary:hover { background: #5a3e2c; }
+    #cookie-consent-bar .cookie-consent-btn-secondary { background: transparent; color: rgba(255,255,255,0.9); order: 2; }
+    #cookie-consent-bar .cookie-consent-btn-secondary:hover { background: rgba(255,255,255,0.1); }
   </style>
 </head>
 <body>
@@ -26,14 +42,14 @@
   <a class="back" href="/" aria-label="Volver al inicio" onclick="if (window.history.length > 1) { history.back(); return false; }">← Volver</a>
   <main id="main-content">
   <h1>Política de Privacidad de Cafesito</h1>
-  <p class="updated"><strong>Última actualización:</strong> 29 de enero de 2026</p>
+  <p class="updated"><strong>Última actualización:</strong> 13 de marzo de 2026</p>
   <p>En Cafesito valoramos y respetamos la privacidad de nuestros usuarios. Esta Política de Privacidad explica cómo recopilamos, usamos, almacenamos y protegemos tu información cuando utilizas nuestra aplicación.</p>
   <p>Al usar la app Cafesito, aceptas las prácticas descritas en esta política.</p>
   <h2>1. Responsable del tratamiento</h2>
   <ul>
     <li><strong>Aplicación:</strong> Cafesito</li>
     <li><strong>Correo de contacto:</strong> <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a></li>
-    <li><strong>Plataforma:</strong> Android y Web</li>
+    <li><strong>Plataforma:</strong> Android, Web (PWA) e iOS (en desarrollo)</li>
     <li><strong>Ámbito:</strong> Usuarios de la aplicación Cafesito</li>
   </ul>
   <h2>2. Información que recopilamos</h2>
@@ -41,7 +57,7 @@
   <h3>2.1 Información proporcionada por el usuario</h3>
   <p>Cuando inicias sesión mediante Google, recopilamos: identificador de usuario (ID de Google), dirección de correo electrónico, nombre de perfil e imagen de perfil (si está disponible).</p>
   <h3>2.2 Información generada por el uso de la app</h3>
-  <p>Cafés añadidos o marcados como favoritos, registros de actividad (diario de café, consumo, despensa) y preferencias de uso dentro de la app.</p>
+  <p>Cafés añadidos o marcados como favoritos, listas personales, registros de actividad (diario de café, consumo, despensa), elaboraciones (Brew Lab) y preferencias de uso dentro de la app.</p>
   <h3>2.3 Información técnica</h3>
   <p>Identificadores técnicos necesarios para el funcionamiento de la app e información básica de errores o fallos (logs técnicos, no identificativos).</p>
   <h2>3. Cómo usamos la información</h2>
@@ -52,21 +68,92 @@
   <h2>5. Almacenamiento y seguridad</h2>
   <p>Los datos se almacenan en servidores gestionados por <strong>Supabase</strong>, una plataforma segura y conforme al RGPD. Aplicamos medidas técnicas y organizativas razonables para proteger la información.</p>
   <h2>6. Compartición de datos</h2>
-  <p>Cafesito no vende, alquila ni cede tus datos personales a terceros. Solo acceden a los datos los servicios técnicos necesarios (autenticación con Google y base de datos Supabase).</p>
+  <p>Cafesito no vende, alquila ni cede tus datos personales a terceros. Solo acceden a los datos los servicios técnicos necesarios (autenticación con Google y base de datos Supabase). Los análisis de uso (si los aceptas) se envían a Google Analytics 4 a través de Google Tag Manager, bajo tu consentimiento de cookies.</p>
   <h2>7. Conservación de los datos</h2>
   <p>Tus datos se conservarán mientras mantengas una cuenta activa y hasta que solicites la eliminación de tu cuenta y de los datos asociados.</p>
   <h2>8. Eliminación de cuenta y datos</h2>
-  <p>Puedes solicitar en cualquier momento la eliminación completa de tu cuenta desde la aplicación (si está habilitado) o enviando un correo a <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a>. La eliminación será efectiva en un plazo no superior a 30 días.</p>
+  <p>Puedes solicitar en cualquier momento la eliminación completa de tu cuenta desde la aplicación (Perfil → Opciones → Eliminar mi cuenta y mis datos) o enviando un correo a <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a>. La eliminación será efectiva en un plazo no superior a 30 días. Más detalles en <a href="eliminacion-cuenta.html">Eliminación de datos</a>.</p>
   <h2>9. Derechos del usuario</h2>
   <p>Tienes derecho a acceder, rectificar, solicitar la eliminación y limitar u oponerte al tratamiento de tus datos. Contacto: <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a></p>
   <h2>10. Privacidad de menores</h2>
   <p>Cafesito no está dirigida a menores de 14 años y no recopilamos conscientemente información de menores.</p>
   <h2>11. Cambios en esta política</h2>
   <p>Cualquier cambio relevante será comunicado a través de la app o de la web.</p>
-  <h2>12. Contacto</h2>
+  <h2>12. Cookies y tecnologías similares</h2>
+  <p>En la web y en las páginas legales mostramos un aviso de cookies la primera vez que nos visitas.</p>
+  <ul>
+    <li><strong>Cookies esenciales:</strong> necesarias para el funcionamiento (sesión, preferencias básicas). No requieren consentimiento.</li>
+    <li><strong>Cookies de analíticas:</strong> usamos Google Tag Manager y Google Analytics 4 para entender el uso del servicio (páginas visitadas, eventos). Solo se activan si aceptas «Aceptar todas» en el aviso. Si eliges «Solo esenciales», no cargamos analíticas.</li>
+  </ul>
+  <p>Tu elección se guarda en el navegador (almacenamiento local). Puedes cambiar de opinión borrando la clave <code>cafesito_cookie_consent</code> en el almacenamiento local de tu navegador y recargando la página; volverás a ver el aviso y podrás elegir de nuevo.</p>
+  <h2>13. Contacto</h2>
   <p>📧 <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a></p>
   </main>
-  <script>window.__GA4_PAGE__ = { path: '/legal/privacidad.html', title: 'Política de Privacidad - Cafesito' };</script>
-  <script src="/ga4-static.js"></script>
+
+  <aside id="cookie-consent-bar" class="cookie-consent-banner" role="dialog" aria-label="Aviso de cookies" aria-describedby="cookie-consent-description">
+    <div class="cookie-consent-banner-inner">
+      <h2 class="cookie-consent-banner-title">Cookies</h2>
+      <p id="cookie-consent-description" class="cookie-consent-banner-text">Utilizamos las cookies necesarias para garantizar el correcto funcionamiento de la aplicación y las cookies de análisis para mejorar tu experiencia. Puedes aceptar solo las necesarias o permitir todas.</p>
+      <p class="cookie-consent-banner-legal"><a href="privacidad.html#main-content" class="cookie-consent-banner-link">Más información en la Política de Privacidad</a></p>
+      <div class="cookie-consent-banner-actions">
+        <button type="button" class="cookie-consent-btn-primary" id="cookie-consent-accept">Aceptar todas</button>
+        <button type="button" class="cookie-consent-btn-secondary" id="cookie-consent-essential">Solo esenciales</button>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+(function() {
+  var KEY = 'cafesito_cookie_consent';
+  var GTM_ID = 'GTM-WLXN93VK';
+  var host = window.location && window.location.hostname;
+  if (!host || host === 'localhost' || host === '127.0.0.1') return;
+
+  function getConsent() {
+    try { var r = localStorage.getItem(KEY); return (r === 'essential' || r === 'all') ? r : null; } catch (e) { return null; }
+  }
+  function setConsent(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  function loadGtm() {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtm.js?id=' + GTM_ID;
+    document.head.appendChild(s);
+  }
+  function pushPageView() {
+    if (!window.dataLayer) return;
+    window.dataLayer.push({
+      event: 'page_view',
+      page_path: '/legal/privacidad.html',
+      page_title: 'Política de Privacidad - Cafesito',
+      page_location: window.location.origin + window.location.pathname,
+      screen_name: 'legal/privacidad'
+    });
+  }
+
+  var consent = getConsent();
+  var bar = document.getElementById('cookie-consent-bar');
+  var btnAccept = document.getElementById('cookie-consent-accept');
+  var btnEssential = document.getElementById('cookie-consent-essential');
+
+  if (consent === null && bar) {
+    bar.classList.add('show');
+    btnAccept && btnAccept.addEventListener('click', function() {
+      setConsent('all');
+      bar.classList.remove('show');
+      loadGtm();
+      setTimeout(pushPageView, 500);
+    });
+    btnEssential && btnEssential.addEventListener('click', function() {
+      setConsent('essential');
+      bar.classList.remove('show');
+    });
+  } else if (consent === 'all') {
+    loadGtm();
+    setTimeout(pushPageView, 500);
+  }
+})();
+  </script>
 </body>
 </html>

@@ -1010,7 +1010,7 @@ fun PreparationStep(
 
                     Column(modifier = Modifier.padding(Spacing.space6)) {
                             Text(
-                                text = currentPhase.label,
+                                text = "El paso: ${currentPhase.label}",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = PureWhite
                             )

@@ -146,7 +146,7 @@ export function renderGoogleButton(
         }
       },
       context: "signin",
-      use_fedcm_for_button: true,
+      use_fedcm_for_button: false,
       button_auto_select: false
     });
 
@@ -160,7 +160,7 @@ export function renderGoogleButton(
       size: "large",
       text: "signin_with",
       width: Math.min(container.offsetWidth || 320, 400),
-      use_fedcm_for_button: true
+      use_fedcm_for_button: false
     });
   });
 
@@ -170,38 +170,33 @@ export function renderGoogleButton(
 }
 
 /**
- * Muestra el One Tap de Google: sugiere "Continuar como [email]" si el usuario
- * tiene sesión en el navegador. Al aceptar, llama a onCredential con el ID token.
- * No pinta ningún botón; solo el popup flotante de Google. Úsalo junto al botón custom.
+ * One Tap desactivado: prompt() usa FedCM en Chrome y provoca errores de red/CORS
+ * ("id assertion endpoint", "Server did not send the correct CORS headers").
+ * El login con Google sigue disponible solo mediante el botón (flujo OAuth clásico).
+ * Para reactivar One Tap en el futuro, descomentar el bloque inferior y eliminar el return.
  */
 export function showGoogleOneTap(
-  clientId: string,
-  onCredential: (credential: string) => void
+  _clientId: string,
+  _onCredential: (credential: string) => void
 ): () => void {
+  return () => {};
+  /* One Tap deshabilitado por FedCM/CORS
   if (!clientId) return () => {};
-
   let cancelled = false;
-
   void loadGoogleGsiScript().then((ok) => {
     if (cancelled || !ok || !window.google?.accounts?.id) return;
-
     window.google.accounts.id.initialize({
       client_id: clientId,
       callback: (response: CredentialResponse) => {
-        if (!cancelled && response.credential) {
-          onCredential(response.credential);
-        }
+        if (!cancelled && response.credential) onCredential(response.credential);
       },
       context: "signin",
       use_fedcm_for_button: false,
       button_auto_select: false
     });
-
     if (cancelled) return;
     window.google.accounts.id.prompt();
   });
-
-  return () => {
-    cancelled = true;
-  };
+  return () => { cancelled = true; };
+  */
 }

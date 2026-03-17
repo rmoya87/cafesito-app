@@ -61,7 +61,7 @@
 | Servicio | Uso | Configuración | Dónde |
 |----------|-----|----------------|-------|
 | **Supabase** | Backend: PostgREST, Auth (Google OAuth / PKCE), Realtime (notificaciones), Storage | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (o `__SUPABASE_URL__`/`__SUPABASE_ANON_KEY__` en build) | `webApp/src/supabase.ts` |
-| **Google Analytics 4 (GA4)** | Eventos de página y uso (page_view por ruta SPA) | `VITE_GA4_MEASUREMENT_ID` (por defecto `G-BMZEQNRKR4`) | `webApp/src/core/ga4.ts` |
+| **Google Analytics 4 (GA4)** | Eventos de página y uso vía GTM (page_view por ruta SPA y estáticas) | `VITE_GTM_CONTAINER_ID` (GTM-WLXN93VK); GA4 en el contenedor | `webApp/src/core/ga4.ts`, `webApp/src/core/gtm.ts` |
 
 La WebApp **no** usa Firebase Cloud Messaging (es web; las notificaciones push nativas son solo Android/iOS). El envío de notificaciones a otros usuarios se hace vía RPC `create_notification` o insert en `notifications_db`; la Edge Function envía el push a FCM para clientes móviles.
 
@@ -178,7 +178,7 @@ Resumen por tabla/RPC y si hay caché local (Room).
 
 - **Inicialización:** `initGa4()` en `main.tsx` (no se carga en localhost ni sin red).
 - **Page views:** `sendPageView()` en cada cambio de ruta (SPA) desde `AppContainer`.
-- **Eventos:** Ver `docs/ANALITICAS_WEB_Y_ANDROID.md`.
+- **Eventos:** Ver `docs/ANALITICAS.md`.
 
 ### 4.6 WebApp — Límites, post-login, caché listas y TTL
 
@@ -203,7 +203,7 @@ Resumen por tabla/RPC y si hay caché local (Room).
 ### 5.1 Analytics
 
 - **Inyección:** `AnalyticsModule` → `FirebaseAnalytics`.
-- **Uso:** `AnalyticsHelper` (eventos de pantalla, login, listas, notificaciones, etc.). Ver `docs/ANALITICAS_WEB_Y_ANDROID.md`.
+- **Uso:** `AnalyticsHelper` (eventos de pantalla, login, listas, notificaciones, etc.). Ver `docs/ANALITICAS.md`.
 
 ### 5.2 Cloud Messaging
 
@@ -297,6 +297,6 @@ Resumen por tabla/RPC y si hay caché local (Room).
 
 - Conexión y problemas típicos: `docs/supabase/CONEXION_SUPABASE_ANDROID.md`
 - Listas 500 / RLS: `docs/supabase/user_lists_500_troubleshooting.md`
-- Analíticas: `docs/ANALITICAS_WEB_Y_ANDROID.md`
+- Analíticas: `docs/ANALITICAS.md`
 - **Android:** Cliente Supabase `app/di/SupabaseModule.kt`; llamadas `app/data/SupabaseDataSource.kt`; sincronización `app/data/SyncManager.kt`.
 - **WebApp:** Cliente `webApp/src/supabase.ts`; API `webApp/src/data/supabaseApi.ts`; GA4 `webApp/src/core/ga4.ts`; carga usuario `webApp/src/hooks/domains/useUserDataLoader.ts`.

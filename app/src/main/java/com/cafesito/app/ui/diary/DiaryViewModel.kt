@@ -613,7 +613,6 @@ class DiaryViewModel @Inject constructor(
                 diaryRepository.triggerRefresh()
             } catch (e: Exception) { /* best-effort */ }
             finally { if (showLoader) _isLoading.value = false }
-            refreshDiaryWidget()
         }
     }
 
@@ -634,18 +633,15 @@ class DiaryViewModel @Inject constructor(
             reduceFromPantry = true,
             reduceFromPantryItemId = pantryItemId
         )
-        refreshDiaryWidget()
     }
     
     suspend fun addWaterConsumption(amountMl: Int) {
             diaryRepository.addDiaryEntry(null, "Agua", "", 0, "WATER", amountMl, 0, "None", null)
-
-        refreshDiaryWidget()
     }
     
     fun updateEntry(entry: DiaryEntryEntity) {
         viewModelScope.launch {
-            runCatching { diaryRepository.updateDiaryEntry(entry) }.onSuccess { refreshDiaryWidget() }
+            runCatching { diaryRepository.updateDiaryEntry(entry) }.onSuccess { }
         }
     }
 
@@ -653,7 +649,6 @@ class DiaryViewModel @Inject constructor(
         viewModelScope.launch {
             diaryRepository.deleteDiaryEntry(entryId)
             diaryRepository.triggerRefresh()
-            refreshDiaryWidget()
         }
     }
     
@@ -662,7 +657,6 @@ class DiaryViewModel @Inject constructor(
             try {
                 diaryRepository.addToPantry(coffeeId, grams)
                 diaryRepository.triggerRefresh()
-                refreshDiaryWidget()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error adding to pantry", e)
@@ -675,7 +669,6 @@ class DiaryViewModel @Inject constructor(
         viewModelScope.launch {
             diaryRepository.updatePantryStockById(pantryItemId, total, remaining)
             diaryRepository.triggerRefresh()
-            refreshDiaryWidget()
         }
     }
 
@@ -683,7 +676,6 @@ class DiaryViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 diaryRepository.deletePantryItemById(pantryItemId)
-                refreshDiaryWidget()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error removing from pantry", e)
@@ -695,7 +687,6 @@ class DiaryViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 diaryRepository.markCoffeeAsFinished(pantryItemId)
-                refreshDiaryWidget()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error marking coffee as finished", e)
@@ -795,15 +786,10 @@ class DiaryViewModel @Inject constructor(
                     id, name, brand, specialty, roast, variety, country, hasCaffeine, format, imageBytes, totalGrams,
                     descripcion, proceso, codigoBarras, moliendaRecomendada, productUrl, aroma, sabor, cuerpo, acidez, dulzura
                 )
-                refreshDiaryWidget()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("DIARY_VIEWMODEL", "Error al actualizar café personalizado", e)
             }
         }
-    }
-
-    private fun refreshDiaryWidget() {
-        // Widgets desactivados en esta rama.
     }
 }

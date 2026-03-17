@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- GTM se carga solo si el usuario ha aceptado todas las cookies (ver script al final). -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Eliminación de Cuenta - Cafesito</title>
@@ -8,7 +9,7 @@
   <link rel="icon" type="image/png" href="../logo.png" />
   <style>
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; background: #fff; margin: 0; padding: 20px 16px 40px; max-width: 720px; margin-left: auto; margin-right: auto; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; background: #fff; margin: 0; padding: 20px 16px 100px; max-width: 720px; margin-left: auto; margin-right: auto; }
     .skip-link { position: absolute; left: -9999px; z-index: 999; padding: 8px 12px; background: #1a1a1a; color: #fff; text-decoration: none; }
     .skip-link:focus { left: 0; top: 0; }
     h1 { font-size: 1.5rem; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 12px; }
@@ -17,6 +18,21 @@
     ul { margin: 0 0 12px; padding-left: 24px; }
     a { color: #1f6f4a; }
     a.back { display: inline-block; margin-bottom: 20px; font-size: 0.9rem; min-height: 44px; line-height: 44px; }
+    /* Cookie bar: mismo aspecto que la WebApp (.cookie-consent-banner) */
+    #cookie-consent-bar.cookie-consent-banner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0)); background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid rgba(255,255,255,0.18); box-shadow: 0 -8px 32px rgba(0,0,0,0.25); display: none; }
+    #cookie-consent-bar.cookie-consent-banner.show { display: block; }
+    #cookie-consent-bar .cookie-consent-banner-inner { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    #cookie-consent-bar .cookie-consent-banner-title { margin: 0; font-size: 1.125rem; font-weight: 600; letter-spacing: 0.01em; color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-text { margin: 0; font-size: 0.875rem; line-height: 1.55; color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-legal { margin: 0; font-size: 0.75rem; }
+    #cookie-consent-bar .cookie-consent-banner-link { color: #6f4e37; text-decoration: underline; text-underline-offset: 2px; }
+    #cookie-consent-bar .cookie-consent-banner-link:hover { color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; padding-bottom: 20px; }
+    #cookie-consent-bar .cookie-consent-banner-actions button { padding: 10px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; font-family: inherit; }
+    #cookie-consent-bar .cookie-consent-btn-primary { background: #6f4e37; color: #fff; order: 1; }
+    #cookie-consent-bar .cookie-consent-btn-primary:hover { background: #5a3e2c; }
+    #cookie-consent-bar .cookie-consent-btn-secondary { background: transparent; color: rgba(255,255,255,0.9); order: 2; }
+    #cookie-consent-bar .cookie-consent-btn-secondary:hover { background: rgba(255,255,255,0.1); }
   </style>
 </head>
 <body>
@@ -27,7 +43,7 @@
   <p>En Cafesito respetamos tu privacidad y tu derecho a controlar tus datos personales. Por ello, ponemos a tu disposición un procedimiento sencillo para solicitar la eliminación de tu cuenta y de los datos asociados.</p>
 
   <h2>¿Qué implica eliminar tu cuenta?</h2>
-  <p>Desde la app ahora puedes iniciar este proceso directamente en <strong>Perfil &gt; Opciones &gt; Eliminar mi cuenta y mis datos</strong>.</p>
+  <p>Desde la app ahora puedes iniciar este proceso directamente en <strong>Perfil → Opciones → Eliminar mi cuenta y mis datos</strong>.</p>
   <p>Cuando confirmas la acción:</p>
   <ul>
     <li>Tu cuenta pasa a estado <strong>inactivo</strong> y se cierra tu sesión.</li>
@@ -61,9 +77,73 @@
   <p>Tras esos 30 días, la eliminación se considera definitiva y no podrá revertirse.</p>
 
   <h2>Contacto</h2>
-  <p>Si tienes cualquier duda sobre privacidad o protección de datos: 📧 <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a></p>
+  <p>Si tienes cualquier duda sobre privacidad o protección de datos: 📧 <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a>. Consulta también nuestra <a href="privacidad.html">Política de Privacidad</a>.</p>
   </main>
-  <script>window.__GA4_PAGE__ = { path: '/legal/eliminacion-cuenta.html', title: 'Eliminación de Cuenta - Cafesito' };</script>
-  <script src="/ga4-static.js"></script>
+
+  <aside id="cookie-consent-bar" class="cookie-consent-banner" role="dialog" aria-label="Aviso de cookies" aria-describedby="cookie-consent-description">
+    <div class="cookie-consent-banner-inner">
+      <h2 class="cookie-consent-banner-title">Cookies</h2>
+      <p id="cookie-consent-description" class="cookie-consent-banner-text">Utilizamos las cookies necesarias para garantizar el correcto funcionamiento de la aplicación y las cookies de análisis para mejorar tu experiencia. Puedes aceptar solo las necesarias o permitir todas.</p>
+      <p class="cookie-consent-banner-legal"><a href="privacidad.html" class="cookie-consent-banner-link">Más información en la Política de Privacidad</a></p>
+      <div class="cookie-consent-banner-actions">
+        <button type="button" class="cookie-consent-btn-primary" id="cookie-consent-accept">Aceptar todas</button>
+        <button type="button" class="cookie-consent-btn-secondary" id="cookie-consent-essential">Solo esenciales</button>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+(function() {
+  var KEY = 'cafesito_cookie_consent';
+  var GTM_ID = 'GTM-WLXN93VK';
+  var host = window.location && window.location.hostname;
+  if (!host || host === 'localhost' || host === '127.0.0.1') return;
+
+  function getConsent() {
+    try { var r = localStorage.getItem(KEY); return (r === 'essential' || r === 'all') ? r : null; } catch (e) { return null; }
+  }
+  function setConsent(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  function loadGtm() {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtm.js?id=' + GTM_ID;
+    document.head.appendChild(s);
+  }
+  function pushPageView() {
+    if (!window.dataLayer) return;
+    window.dataLayer.push({
+      event: 'page_view',
+      page_path: '/legal/eliminacion-cuenta.html',
+      page_title: 'Eliminación de Cuenta - Cafesito',
+      page_location: window.location.origin + window.location.pathname,
+      screen_name: 'legal/eliminacion-cuenta'
+    });
+  }
+
+  var consent = getConsent();
+  var bar = document.getElementById('cookie-consent-bar');
+  var btnAccept = document.getElementById('cookie-consent-accept');
+  var btnEssential = document.getElementById('cookie-consent-essential');
+
+  if (consent === null && bar) {
+    bar.classList.add('show');
+    btnAccept && btnAccept.addEventListener('click', function() {
+      setConsent('all');
+      bar.classList.remove('show');
+      loadGtm();
+      setTimeout(pushPageView, 500);
+    });
+    btnEssential && btnEssential.addEventListener('click', function() {
+      setConsent('essential');
+      bar.classList.remove('show');
+    });
+  } else if (consent === 'all') {
+    loadGtm();
+    setTimeout(pushPageView, 500);
+  }
+})();
+  </script>
 </body>
 </html>

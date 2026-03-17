@@ -64,6 +64,8 @@ import com.cafesito.app.ui.components.toCoffeeNameFormat
 import com.cafesito.app.ui.theme.*
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.utils.*
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.Normalizer
@@ -87,7 +89,8 @@ private fun toCoffeeSlug(nombre: String, marca: String): String {
 fun DetailScreen(
     onBackClick: () -> Unit,
     viewModel: DetailViewModel = hiltViewModel(),
-    commentsViewModel: CommentsViewModel = hiltViewModel()
+    commentsViewModel: CommentsViewModel = hiltViewModel(),
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val allUsers by commentsViewModel.allUsers.collectAsState()
@@ -121,6 +124,7 @@ fun DetailScreen(
                         currentStock = state.currentPantryItem,
                         activeUser = state.activeUser,
                         onBackClick = onBackClick,
+                        onTrackEvent = onTrackEvent,
                         onFavoriteToggle = { viewModel.toggleFavorite(it) },
                         onUpdateStock = { t, r, n, b -> viewModel.updateStock(t, r, n, b) },
                         onReviewSubmit = { r, c, i -> viewModel.submitReview(r, c, i) },
@@ -151,6 +155,7 @@ private fun DetailContent(
     currentStock: PantryItemEntity?,
     activeUser: UserEntity?,
     onBackClick: () -> Unit,
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> },
     onFavoriteToggle: (Boolean) -> Unit,
     onUpdateStock: (Int, Int, String?, String?) -> Unit,
     onReviewSubmit: (Float, String, Uri?) -> Unit,
@@ -178,13 +183,14 @@ private fun DetailContent(
     if (showAddReviewDialog) {
         ReviewBottomSheet(
             existingReview = userReview,
-            onDismissRequest = { showAddReviewDialog = false },
+            onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "review")); showAddReviewDialog = false },
             onSaveReview = { r, c, i ->
                 onReviewSubmit(r, c, i)
+                onTrackEvent("modal_close", bundleOf("modal_id" to "review"))
                 showAddReviewDialog = false
             },
             onDeleteRequest = if (userReview != null) {
-                { onReviewDelete(); showAddReviewDialog = false }
+                { onReviewDelete(); onTrackEvent("modal_close", bundleOf("modal_id" to "review")); showAddReviewDialog = false }
             } else null
         )
     }
@@ -194,8 +200,11 @@ private fun DetailContent(
             coffeeDetails = coffeeDetails,
             isCustom = isCustom,
             currentStock = currentStock,
-            onDismiss = { showStockDialog = false },
-            onSave = { t: Int, r: Int, n: String?, b: String? -> onUpdateStock(t, r, n, b) }
+            onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "stock_edit")); showStockDialog = false },
+            onSave = { t: Int, r: Int, n: String?, b: String? ->
+                onTrackEvent("modal_close", bundleOf("modal_id" to "stock_edit"))
+                onUpdateStock(t, r, n, b)
+            }
         )
     }
 
@@ -208,7 +217,7 @@ private fun DetailContent(
                 "Acidez" to (sensoryAverages["Acidez"] ?: coffee.acidez),
                 "Dulzura" to (sensoryAverages["Dulzura"] ?: coffee.dulzura)
             ),
-            onDismiss = { showSensoryEditor = false },
+            onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "sensory_profile")); showSensoryEditor = false },
             onConfirm = { updatedValues ->
                 val map = updatedValues.toMap()
                 onSensorySubmit(
@@ -218,6 +227,7 @@ private fun DetailContent(
                     map["Acidez"] ?: 0f,
                     map["Dulzura"] ?: 0f
                 )
+                onTrackEvent("modal_close", bundleOf("modal_id" to "sensory_profile"))
                 showSensoryEditor = false
             }
         )
@@ -225,9 +235,10 @@ private fun DetailContent(
 
     if (showCreateListSheet) {
         com.cafesito.app.ui.components.CreateListBottomSheet(
-            onDismiss = { showCreateListSheet = false },
+            onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "create_list")); showCreateListSheet = false },
             onCreate = { name, privacy, membersCanEdit ->
                 onCreateList(name, privacy, membersCanEdit)
+                onTrackEvent("modal_close", bundleOf("modal_id" to "create_list"))
                 showCreateListSheet = false
                 showAddToListModal = true
             }
@@ -236,15 +247,18 @@ private fun DetailContent(
 
     if (showAddToListModal) {
         com.cafesito.app.ui.components.AddToListBottomSheet(
-            onDismiss = { showAddToListModal = false },
+            onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list")); showAddToListModal = false },
             userLists = userLists,
             isFavorite = isFavorite,
             onCreateListRequest = {
+                onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list"))
+                onTrackEvent("modal_open", bundleOf("modal_id" to "create_list"))
                 showAddToListModal = false
                 showCreateListSheet = true
             },
             onAddToList = { listId ->
                 onAddCoffeeToList(listId)
+                onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list"))
             },
             onFavoriteToggle = {
                 onFavoriteToggle(true)
@@ -335,7 +349,7 @@ private fun DetailContent(
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text(text = "PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.weight(1f))
-                                TextButton(onClick = { showSensoryEditor = true }) { Text("Editar") }
+                                TextButton(onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "sensory_profile")); showSensoryEditor = true }) { Text("Editar") }
                             }
                             if (sensoryEditorsCount > 0) {
                                 Text(
@@ -370,7 +384,7 @@ private fun DetailContent(
                                 Text(text = "OPINIONES", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 if (userReview == null) {
                                     Button(
-                                        onClick = { showAddReviewDialog = true },
+                                        onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "review")); showAddReviewDialog = true },
                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                         shape = Shapes.shapeCardMedium
                                     ) {
@@ -435,7 +449,7 @@ private fun DetailContent(
                                                     info = info,
                                                     isOwnReview = true,
                                                     resolveMentionUser = { username -> usersByUsername[username.trim().lowercase()] },
-                                                    onEditClick = { showAddReviewDialog = true }
+                                                    onEditClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "review")); showAddReviewDialog = true }
                                                 )
                                             }
                                         }
@@ -484,7 +498,7 @@ private fun DetailContent(
                     iconPainter = painterResource(id = R.drawable.shelves_24),
                     iconColor = PureBlack,
                     contentDescription = "Añadir a despensa",
-                    onClick = { showStockDialog = true }
+                    onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "stock_edit")); showStockDialog = true }
                 )
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
@@ -492,7 +506,7 @@ private fun DetailContent(
                     iconColor = if (isListActive) ElectricGreen else PureBlack,
                     premiumAnimated = true,
                     contentDescription = if (isListActive) "Quitar de listas" else "Añadir a listas",
-                    onClick = { showAddToListModal = true }
+                    onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_to_list")); showAddToListModal = true }
                 )
             }
         }

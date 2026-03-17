@@ -1,5 +1,10 @@
 # Paso 0 — Auditoría del proyecto (mapa de lo reutilizable)
 
+**Estado:** referencia histórica para migración a `shared`.  
+**Estado actual de arquitectura:** `docs/MASTER_ARCHITECTURE_GOVERNANCE.md`, `docs/SHARED_BUSINESS_LOGIC.md`, `docs/MULTIPLATFORM_EXECUTION_PLAN.md`.
+
+---
+
 ## 1) Paquetes/clases que deben moverse a `shared` (y por qué)
 
 > **Criterio general:** cualquier modelo puro, reglas de negocio o lógica reusable sin dependencias de `android.*` debe vivir en `shared` para poder reutilizarse en iOS y testearse de forma aislada.

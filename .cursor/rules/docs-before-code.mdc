@@ -9,14 +9,17 @@ alwaysApply: true
 
 Antes de escribir o modificar código, o de tomar decisiones que afecten al proyecto:
 
-1. **Lee** la documentación relevante. Entra por `docs/README.md` (índice) e **ir a la parte que impacta** las decisiones que debes tomar o tener en cuenta para la tarea actual.
+1. **Lee** la documentación relevante. **Punto de entrada:** `docs/README.md` (índice por uso en §4). Ve a la sección que impacte tu tarea (arquitectura §4.1, release §4.2, runbooks §4.3, iOS §4.4, servicios/optimización §4.5, Supabase §4.6, deploy web §4.2 + `webApp/DEPLOY-IONOS.md`, históricos §4.8).
 2. **Documentos que suelen impactar decisiones:**
-   - `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` — cambios recientes, incidencias resueltas (p. ej. deploy-web, TypeScript), política de ramas (main, beta, alpha, Interna), flujo main → beta.
-   - `docs/RELEASE_DEPLOY_WORKFLOW.md` — cuándo se ejecuta el workflow, ramas, jobs, secretos.
-   - `docs/ANALITICAS_WEB_Y_ANDROID.md` — qué se recoge en WebApp (GA4) y Android (Firebase); checklist al eliminar, modificar o añadir pantallas, rutas o eventos.
-   - `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md` — elaboración (Brew), UI, colores, modo Italiana, sliders, tiempos (si tocas Brew Lab o temas Android/WebApp).
-   - `docs/` (raíz) y `webApp/docs/` — según el ámbito del cambio.
-3. **Usa** esa documentación como fuente de verdad para arquitectura, convenciones, APIs y flujos ya descritos; tenla en cuenta en las decisiones que tomes.
+   - `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` — cambios recientes, incidencias, ramas (main, beta, alpha, Interna).
+   - `docs/RELEASE_DEPLOY_WORKFLOW.md` — workflow, ramas, jobs, secretos (Android + Web Ionos).
+   - `docs/ANALITICAS.md` — analíticas GA4/GTM; checklist al añadir/modificar/eliminar pantallas, rutas o eventos; guías paso a paso en `docs/gtm/` (Web y Android).
+   - `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` — criterios a11y y checklist al tocar UI (botones, modales, listas).
+   - **Rendimiento / servicios / sync:** estrategia actual en `docs/ANDROID_Y_WEBAPP_SERVICIOS_CONECTADOS_LLAMADAS_Y_OPTIMIZACION.md`. Referencia histórica de optimizaciones: `docs/OPTIMIZACIONES_RENDIMIENTO_HISTORICO.md`.
+   - **Estructura shared / KMP:** `docs/MASTER_ARCHITECTURE_GOVERNANCE.md`, `docs/SHARED_BUSINESS_LOGIC.md`; referencia de auditoría: `docs/KMP_AUDIT_STEP0.md`.
+   - **Deploy web (Ionos, 500, .htaccess):** `webApp/DEPLOY-IONOS.md`.
+   - Brew Lab / UI: `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md`. Resto por ámbito en `docs/` y `webApp/docs/`.
+3. **Usa** esa documentación como fuente de verdad para arquitectura, convenciones, APIs y flujos; tenla en cuenta en las decisiones que tomes.
 
 ## Cambios en la documentación
 

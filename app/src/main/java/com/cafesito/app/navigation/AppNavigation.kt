@@ -43,6 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -68,6 +69,8 @@ import com.cafesito.app.ui.theme.Dimens
 import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.ui.timeline.*
 import com.cafesito.app.analytics.AnalyticsHelper
+import com.cafesito.app.brewlab.BrewLabTimerService
+import com.cafesito.app.startup.PredictiveShortcutsHelper
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
@@ -131,6 +134,25 @@ fun AppNavigation(
             "NOTIFICATIONS" -> navController.navigate("notifications")
             "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
             "MENTION", "COMMENT" -> navController.navigate("home")
+            "OPEN_BREWLAB" -> navController.navigate("brewlab?openConsumo=false") {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            "OPEN_BREWLAB_CONSUMO" -> navController.navigate("brewlab?openConsumo=true") {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            "OPEN_DIARY_FROM_BREW" -> {
+                navController.navigate("diary") {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                navController.navigate("addDiaryEntry?type=COFFEE&quick=false")
+            }
+            else -> {}
         }
         onNotificationConsumed()
     }
@@ -142,7 +164,7 @@ fun AppNavigation(
             is SessionState.Authenticated -> {
                 when (action) {
                     "SEARCH" -> navController.navigate("search")
-                    "BREWLAB" -> navController.navigate("brewlab")
+                    "BREWLAB" -> navController.navigate("brewlab?openConsumo=false")
                     "DIARY" -> navController.navigate("diary")
                     else -> {}
                 }
@@ -170,8 +192,19 @@ fun AppNavigation(
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
     val activeUser by userRepository.getActiveUserFlow().collectAsState(initial = null)
 
+    // Predictive app actions: notificar uso de atajo para que el sistema priorice en recientes
     LaunchedEffect(currentRoute) {
-        if (currentRoute.isNotEmpty()) analyticsHelper.trackScreenView(currentRoute)
+        PredictiveShortcutsHelper.shortcutIdForRoute(currentRoute)?.let { shortcutId ->
+            PredictiveShortcutsHelper.reportShortcutUsed(context, shortcutId)
+        }
+    }
+
+    // Para GA4: enviar nombre de pantalla normalizado (sin placeholders tipo {coffeeId})
+    // para que en informes aparezca "detail" en lugar de "detail/{coffeeId}"
+    val screenNameForAnalytics = remember(currentRoute) { normalizeRouteForAnalytics(currentRoute) }
+
+    LaunchedEffect(screenNameForAnalytics) {
+        if (screenNameForAnalytics.isNotEmpty()) analyticsHelper.trackScreenView(screenNameForAnalytics)
     }
     
     val navItems = remember {
@@ -210,7 +243,11 @@ fun AppNavigation(
                             selected = isSelected,
                             onClick = {
                                 if (isSelected) return@NavigationRailItem
-                                val destination = if (route == "profile") "profile/0" else route
+                                val destination = when (route) {
+                                    "profile" -> "profile/0"
+                                    "brewlab" -> "brewlab?openConsumo=false"
+                                    else -> route
+                                }
                                 navController.navigate(destination) {
                                     launchSingleTop = true
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -252,22 +289,35 @@ fun AppNavigation(
             NavHost(
                 navController = navController,
                 startDestination = finalStartRoute,
-                modifier = Modifier.fillMaxSize().weight(1f)
+                modifier = Modifier.fillMaxSize().weight(1f),
+                enterTransition = { fadeIn(tween(220)) },
+                exitTransition = { fadeOut(tween(220)) },
+                popEnterTransition = { fadeIn(tween(220)) },
+                popExitTransition = {
+                    scaleOut(
+                        targetScale = 0.92f,
+                        transformOrigin = TransformOrigin(0.5f, 0.5f),
+                        animationSpec = tween(220)
+                    ) + fadeOut(tween(220))
+                }
             ) {
                 composable("login") {
-                    LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
-                        analyticsHelper.trackEvent("login_success", bundleOf("is_new_user" to isNewUser))
-                        if (!isNewUser) {
-                            navController.navigate("home") { popUpTo("login") { inclusive = true } }
-                        } else {
-                            val encodedEmail = Uri.encode(email)
-                            val encodedName = Uri.encode(name)
-                            val encodedPhoto = Uri.encode(photo)
-                            navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
-                                popUpTo("login") { inclusive = true }
+                    LoginScreen(
+                        onLoginSuccess = { googleId, email, name, photo, isNewUser ->
+                            analyticsHelper.trackEvent("login_success", bundleOf("is_new_user" to isNewUser))
+                            if (!isNewUser) {
+                                navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                            } else {
+                                val encodedEmail = Uri.encode(email)
+                                val encodedName = Uri.encode(name)
+                                val encodedPhoto = Uri.encode(photo)
+                                navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
+                                    popUpTo("login") { inclusive = true }
+                                }
                             }
-                        }
-                    })
+                        },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
+                    )
                 }
 
                 composable(
@@ -304,7 +354,7 @@ fun AppNavigation(
                         },
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
                         onBrewLabClick = {
-                            navController.navigate("brewlab") {
+                            navController.navigate("brewlab?openConsumo=false") {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
@@ -312,7 +362,8 @@ fun AppNavigation(
                         },
                         onAddToPantryClick = { navController.navigate("addStock?origin=home") },
                         onNotificationsClick = { navController.navigate("notifications") },
-                        onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
+                        onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -345,6 +396,7 @@ fun AppNavigation(
                             viewModel.markNotificationRead(notification)
                             when (notification) {
                                 is TimelineNotification.Follow -> navController.navigate("profile/${notification.user.id}")
+                                is TimelineNotification.FirstCoffee -> navController.navigate("profile/${notification.user.id}")
                                 is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("home")
                                 is TimelineNotification.ListInvite -> { /* quedamos en notificaciones; botones Añadir/Rechazar en la fila */ }
                             }
@@ -370,9 +422,9 @@ fun AppNavigation(
                 }
 
                 composable("search") {
-                    SearchScreen(
+SearchScreen(
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                        onProfileClick = { id -> 
+                        onProfileClick = { id ->
                             if (id == 0) {
                                 navController.navigate("profile/0") {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -380,22 +432,33 @@ fun AppNavigation(
                                     restoreState = true
                                 }
                             } else navController.navigate("profile/$id")
-                        }
+                        },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
-                composable("brewlab") { backStackEntry ->
+                composable(
+                    route = "brewlab?openConsumo={openConsumo}",
+                    arguments = listOf(navArgument("openConsumo") { type = NavType.BoolType; defaultValue = false })
+                ) { backStackEntry ->
+                    val openConsumo = backStackEntry.arguments?.getBoolean("openConsumo") ?: false
                     val createdCoffeeId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_created_coffee_id", null).collectAsState()
                     val appliedSelectionId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_selected_coffee_id", null).collectAsState()
                     val appliedSelectionFromPantry by backStackEntry.savedStateHandle.getStateFlow("brewlab_selected_from_pantry", false).collectAsState()
                     val appliedSelectionPantryItemId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_selected_pantry_item_id", null).collectAsState()
                     BrewLabScreen(
+                        openConsumoFromNotification = openConsumo,
                         onNavigateToDiary = {
-                            navController.navigate("diary") { popUpTo("brewlab") { inclusive = true } }
+                            navController.navigate("diary") { popUpTo("brewlab?openConsumo={openConsumo}") { inclusive = true } }
+                        },
+                        onTimerEndedGoToConsumption = {
+                            navController.navigate("diary") { popUpTo("brewlab?openConsumo={openConsumo}") { inclusive = true } }
+                            navController.navigate("addDiaryEntry?type=COFFEE&quick=false")
                         },
                         onAddToPantryClick = { navController.navigate("addStock?origin=brewlab") },
                         onCreateCoffeeClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab") },
                         onSelectCoffeeClick = { navController.navigate("brewlab_select_coffee") },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) },
                         createdCoffeeId = createdCoffeeId,
                         onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null },
                         appliedSelectionId = appliedSelectionId,
@@ -410,7 +473,7 @@ fun AppNavigation(
                 }
 
                 composable("brewlab_select_coffee") {
-                    val parentEntry = remember { navController.getBackStackEntry("brewlab") }
+                    val parentEntry = remember { navController.getBackStackEntry("brewlab?openConsumo={openConsumo}") }
                     val viewModel: BrewLabViewModel = hiltViewModel(parentEntry)
                     BrewLabSelectCoffeeScreen(
                         onBack = { navController.popBackStack() },
@@ -451,7 +514,8 @@ fun AppNavigation(
                             else navController.navigate("editNormalStock/$id")
                         },
                         onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") },
-                        onCafesProbadosClick = { navController.navigate("cafesProbados") }
+                        onCafesProbadosClick = { navController.navigate("cafesProbados") },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -488,8 +552,9 @@ fun AppNavigation(
                                 else -> navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }
                             }
                         },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) },
                         onSuccessWithCoffeeId = if (origin == "brewlab") { coffeeId ->
-                            navController.getBackStackEntry("brewlab")?.savedStateHandle?.set("brewlab_created_coffee_id", coffeeId)
+                            navController.getBackStackEntry("brewlab?openConsumo={openConsumo}")?.savedStateHandle?.set("brewlab_created_coffee_id", coffeeId)
                             navController.popBackStack()
                         } else null
                     )
@@ -506,7 +571,8 @@ fun AppNavigation(
                             if (navigateTo != null) {
                                 navController.navigate("diary?navigateTo=$navigateTo") { popUpTo("diary") { inclusive = true } }
                             } else navController.popBackStack()
-                        }
+                        },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -558,10 +624,10 @@ fun AppNavigation(
                         diaryEntryFlow = origin == "diary_entry",
                         brewLabFlow = origin == "brewlab",
                         onCoffeeCreatedForDiary = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("diary_created_coffee_id", id) },
-                        onCoffeeCreatedForBrewLab = { id -> navController.getBackStackEntry("brewlab")?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
+                        onCoffeeCreatedForBrewLab = { id -> navController.getBackStackEntry("brewlab?openConsumo={openConsumo}")?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
                         onBackClick = { navigateTo ->
                             if (origin == "brewlab" && navigateTo != null) {
-                                navController.popBackStack("brewlab", inclusive = false)
+                                navController.popBackStack("brewlab?openConsumo={openConsumo}", inclusive = false)
                             } else if (origin == "diary_entry" && navigateTo == "pantry_loading") {
                                 val diaryEntry = navController.getBackStackEntry("diary")
                                 diaryEntry.savedStateHandle["diary_force_pantry"] = true
@@ -572,7 +638,8 @@ fun AppNavigation(
                             } else if (navigateTo != null) {
                                 navController.navigate("diary?navigateTo=$navigateTo") { popUpTo("diary") { inclusive = true } }
                             } else navController.popBackStack()
-                        }
+                        },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -609,7 +676,8 @@ fun AppNavigation(
                         },
                         onSearchUsersClick = { navController.navigate("searchUsers") },
                         onExploreCafes = { navController.navigate("search") },
-                        profileBackStackEntry = profileEntry
+                        profileBackStackEntry = profileEntry,
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -690,7 +758,8 @@ fun AppNavigation(
                             navController.popBackStack()
                             navController.popBackStack()
                         },
-                        viewModel = hiltViewModel(optionsBackStackEntry)
+                        viewModel = hiltViewModel(optionsBackStackEntry),
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -743,7 +812,8 @@ fun AppNavigation(
                     DetailScreen(
                         onBackClick = { navController.popBackStack() },
                         viewModel = hiltViewModel(backStackEntry),
-                        commentsViewModel = hiltViewModel(backStackEntry)
+                        commentsViewModel = hiltViewModel(backStackEntry),
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -811,7 +881,11 @@ fun AppNavigation(
                                 ),
                                 onClick = {
                                     if (isSelected) return@NavigationBarItem
-                                    val destination = if (route == "profile") "profile/0" else route
+                                    val destination = when (route) {
+                                        "profile" -> "profile/0"
+                                        "brewlab" -> "brewlab?openConsumo=false"
+                                        else -> route
+                                    }
                                     navController.navigate(destination) {
                                         launchSingleTop = true
                                         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -843,6 +917,9 @@ data class NotificationNavigation(
 
             val type = when {
                 !navType.isNullOrBlank() -> navType.uppercase()
+                intent?.getBooleanExtra(BrewLabTimerService.EXTRA_OPEN_BREWLAB_CONSUMO, false) == true -> "OPEN_BREWLAB_CONSUMO"
+                intent?.getBooleanExtra(BrewLabTimerService.EXTRA_OPEN_DIARY_FROM_BREW, false) == true -> "OPEN_DIARY_FROM_BREW"
+                intent?.getBooleanExtra(BrewLabTimerService.EXTRA_OPEN_BREWLAB, false) == true -> "OPEN_BREWLAB"
                 timelineType == "FOLLOW" -> "FOLLOW"
                 timelineType == "MENTION" -> "MENTION"
                 timelineType == "COMMENT" -> "COMMENT"
@@ -852,4 +929,15 @@ data class NotificationNavigation(
             return type?.let { NotificationNavigation(it, targetId, commentId) }
         }
     }
+}
+
+/**
+ * Convierte la ruta de Compose (con placeholders tipo `{coffeeId}`) en un nombre de pantalla
+ * para analíticas, de modo que en GA4 aparezca "detail" en lugar de "detail/{coffeeId}".
+ */
+private fun normalizeRouteForAnalytics(route: String): String {
+    if (route.isBlank()) return ""
+    val withoutQuery = route.substringBefore("?")
+    val withoutParams = Regex("/\\{[^}]+\\}").replace(withoutQuery, "")
+    return withoutParams.replace(Regex("/+"), "/").trim('/')
 }
