@@ -1,13 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-WLXN93VK');</script>
-  <!-- End Google Tag Manager -->
+  <!-- GTM se carga solo si el usuario ha aceptado todas las cookies (ver script al final). -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Condiciones del Servicio - Cafesito</title>
@@ -15,7 +9,7 @@
   <link rel="icon" type="image/png" href="../logo.png" />
   <style>
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; background: #fff; margin: 0; padding: 20px 16px 40px; max-width: 720px; margin-left: auto; margin-right: auto; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; background: #fff; margin: 0; padding: 20px 16px 100px; max-width: 720px; margin-left: auto; margin-right: auto; }
     .skip-link { position: absolute; left: -9999px; z-index: 999; padding: 8px 12px; background: #1a1a1a; color: #fff; text-decoration: none; }
     .skip-link:focus { left: 0; top: 0; }
     h1 { font-size: 1.5rem; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 12px; }
@@ -25,45 +19,123 @@
     a { color: #1f6f4a; }
     .updated { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
     a.back { display: inline-block; margin-bottom: 20px; font-size: 0.9rem; min-height: 44px; line-height: 44px; }
+    /* Cookie bar: mismo aspecto que la WebApp (.cookie-consent-banner) */
+    #cookie-consent-bar.cookie-consent-banner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0)); background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid rgba(255,255,255,0.18); box-shadow: 0 -8px 32px rgba(0,0,0,0.25); display: none; }
+    #cookie-consent-bar.cookie-consent-banner.show { display: block; }
+    #cookie-consent-bar .cookie-consent-banner-inner { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    #cookie-consent-bar .cookie-consent-banner-title { margin: 0; font-size: 1.125rem; font-weight: 600; letter-spacing: 0.01em; color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-text { margin: 0; font-size: 0.875rem; line-height: 1.55; color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-legal { margin: 0; font-size: 0.75rem; }
+    #cookie-consent-bar .cookie-consent-banner-link { color: #6f4e37; text-decoration: underline; text-underline-offset: 2px; }
+    #cookie-consent-bar .cookie-consent-banner-link:hover { color: #fff; }
+    #cookie-consent-bar .cookie-consent-banner-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; padding-bottom: 20px; }
+    #cookie-consent-bar .cookie-consent-banner-actions button { padding: 10px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; font-family: inherit; }
+    #cookie-consent-bar .cookie-consent-btn-primary { background: #6f4e37; color: #fff; order: 1; }
+    #cookie-consent-bar .cookie-consent-btn-primary:hover { background: #5a3e2c; }
+    #cookie-consent-bar .cookie-consent-btn-secondary { background: transparent; color: rgba(255,255,255,0.9); order: 2; }
+    #cookie-consent-bar .cookie-consent-btn-secondary:hover { background: rgba(255,255,255,0.1); }
   </style>
 </head>
 <body>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WLXN93VK"
-  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-  <!-- End Google Tag Manager (noscript) -->
   <a href="#main-content" class="skip-link">Ir al contenido</a>
   <a class="back" href="/" aria-label="Volver al inicio" onclick="if (window.history.length > 1) { history.back(); return false; }">← Volver</a>
   <main id="main-content">
   <h1>Condiciones del Servicio de Cafesito</h1>
-  <p class="updated"><strong>Última actualización:</strong> 29 de enero de 2026</p>
+  <p class="updated"><strong>Última actualización:</strong> 13 de marzo de 2026</p>
   <p>Bienvenido/a a Cafesito. Al utilizar esta aplicación aceptas las presentes Condiciones del Servicio. Si no estás de acuerdo, te recomendamos no utilizar la app.</p>
   <h2>1. Descripción del servicio</h2>
-  <p>Cafesito permite explorar cafés y marcas, registrar consumos y actividades, gestionar una despensa personal, crear cafés personalizados y guardar favoritos y valoraciones. Algunas funciones requieren iniciar sesión con Google.</p>
+  <p>Cafesito es una comunidad para amantes del café. Permite explorar cafés y marcas, registrar consumos y actividades, gestionar una despensa personal, elaborar recetas (Brew Lab), crear cafés personalizados, guardar favoritos y valoraciones, y seguir a otros usuarios. Algunas funciones requieren iniciar sesión con Google. El servicio se ofrece en web (PWA), Android e iOS (en desarrollo).</p>
   <h2>2. Requisitos de uso</h2>
   <p>Debes tener al menos 14 años (o la edad mínima legal en tu país), disponer de una cuenta de Google válida y usar la aplicación de forma lícita. El titular se reserva el derecho de suspender o cancelar cuentas que incumplan estas normas.</p>
   <h2>3. Cuenta de usuario</h2>
   <p>El usuario es responsable de mantener la confidencialidad de su cuenta, de toda actividad realizada desde ella y de la veracidad de los datos que introduce. Cafesito no se hace responsable de accesos no autorizados por uso indebido de la cuenta.</p>
   <h2>4. Contenido generado por el usuario</h2>
-  <p>El contenido que introduzcas debe ser de tu autoría o tener derecho a usarlo, no infringir derechos de terceros y no ser ilegal u ofensivo. Cafesito se reserva el derecho de eliminar contenido que incumpla estas condiciones.</p>
+  <p>El contenido que introduzcas (publicaciones, valoraciones, listas, fotos) debe ser de tu autoría o tener derecho a usarlo, no infringir derechos de terceros y no ser ilegal u ofensivo. Cafesito se reserva el derecho de eliminar contenido que incumpla estas condiciones.</p>
   <h2>5. Uso permitido y prohibido</h2>
-  <p><strong>Permitido:</strong> Uso personal y no comercial; registro y consulta de información sobre café.</p>
-  <p><strong>Prohibido:</strong> Uso fraudulento o automatizado, acceso no autorizado, ingeniería inversa o uso que afecte negativamente al servicio.</p>
-  <h2>6. Disponibilidad del servicio</h2>
-  <p>Cafesito se ofrece "tal cual". El titular podrá modificar funcionalidades o suspender la app sin obligación de aviso previo.</p>
-  <h2>7. Eliminación de cuenta y datos</h2>
-  <p>Puedes solicitar la eliminación de tu cuenta y datos conforme a la Política de Privacidad. Una vez eliminada, los datos se borrarán o anonimizarán y no será posible recuperarlos.</p>
-  <h2>8. Limitación de responsabilidad</h2>
+  <p><strong>Permitido:</strong> Uso personal y no comercial; registro y consulta de información sobre café; compartir contenido dentro de la comunidad.</p>
+  <p><strong>Prohibido:</strong> Uso fraudulento o automatizado (bots), acceso no autorizado, ingeniería inversa o uso que afecte negativamente al servicio o a otros usuarios.</p>
+  <h2>6. Privacidad y cookies</h2>
+  <p>El tratamiento de datos personales se describe en nuestra <a href="privacidad.html">Política de Privacidad</a>. En la web se utiliza un aviso de cookies; al continuar o iniciar sesión puedes aceptar solo cookies esenciales o todas (incluidas analíticas). El uso del servicio implica que has leído y aceptado la política de privacidad aplicable.</p>
+  <h2>7. Disponibilidad del servicio</h2>
+  <p>Cafesito se ofrece "tal cual". El titular podrá modificar funcionalidades o suspender la app sin obligación de aviso previo, dentro de lo permitido por la ley.</p>
+  <h2>8. Eliminación de cuenta y datos</h2>
+  <p>Puedes solicitar la eliminación de tu cuenta y datos conforme a la <a href="privacidad.html">Política de Privacidad</a> y al procedimiento descrito en <a href="eliminacion-cuenta.html">Eliminación de datos</a>. Una vez eliminada, los datos se borrarán o anonimizarán y no será posible recuperarlos.</p>
+  <h2>9. Limitación de responsabilidad</h2>
   <p>Cafesito no será responsable de pérdidas de datos por causas técnicas ni de decisiones tomadas por el usuario basadas en la información de la app. El uso es bajo tu responsabilidad exclusiva.</p>
-  <h2>9. Propiedad intelectual</h2>
+  <h2>10. Propiedad intelectual</h2>
   <p>Diseño, marca, logotipo, código y textos son propiedad del titular. Queda prohibida su reproducción o uso sin autorización expresa.</p>
-  <h2>10. Modificaciones</h2>
-  <p>Estas condiciones pueden actualizarse en cualquier momento. El uso continuado implicará la aceptación de las nuevas condiciones.</p>
-  <h2>11. Legislación aplicable</h2>
+  <h2>11. Modificaciones</h2>
+  <p>Estas condiciones pueden actualizarse en cualquier momento. El uso continuado implicará la aceptación de las nuevas condiciones. Cambios sustanciales se comunicarán cuando sea posible a través de la app o la web.</p>
+  <h2>12. Legislación aplicable</h2>
   <p>Legislación española. Cualquier controversia se someterá a los tribunales competentes.</p>
-  <h2>12. Contacto</h2>
+  <h2>13. Contacto</h2>
   <p>📧 <a href="mailto:u0197599922@gmail.com">u0197599922@gmail.com</a></p>
   </main>
-  <script>(function(){var h=window.location&&window.location.hostname;if(!h||h==='localhost'||h==='127.0.0.1')return;window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:'page_view',page_path:'/legal/condiciones.html',page_title:'Condiciones del Servicio - Cafesito',page_location:window.location.origin+window.location.pathname,screen_name:'legal/condiciones'});})();</script>
+
+  <aside id="cookie-consent-bar" class="cookie-consent-banner" role="dialog" aria-label="Aviso de cookies" aria-describedby="cookie-consent-description">
+    <div class="cookie-consent-banner-inner">
+      <h2 class="cookie-consent-banner-title">Cookies</h2>
+      <p id="cookie-consent-description" class="cookie-consent-banner-text">Utilizamos las cookies necesarias para garantizar el correcto funcionamiento de la aplicación y las cookies de análisis para mejorar tu experiencia. Puedes aceptar solo las necesarias o permitir todas.</p>
+      <p class="cookie-consent-banner-legal"><a href="privacidad.html" class="cookie-consent-banner-link">Más información en la Política de Privacidad</a></p>
+      <div class="cookie-consent-banner-actions">
+        <button type="button" class="cookie-consent-btn-primary" id="cookie-consent-accept">Aceptar todas</button>
+        <button type="button" class="cookie-consent-btn-secondary" id="cookie-consent-essential">Solo esenciales</button>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+(function() {
+  var KEY = 'cafesito_cookie_consent';
+  var GTM_ID = 'GTM-WLXN93VK';
+  var host = window.location && window.location.hostname;
+  if (!host || host === 'localhost' || host === '127.0.0.1') return;
+
+  function getConsent() {
+    try { var r = localStorage.getItem(KEY); return (r === 'essential' || r === 'all') ? r : null; } catch (e) { return null; }
+  }
+  function setConsent(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  function loadGtm() {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtm.js?id=' + GTM_ID;
+    document.head.appendChild(s);
+  }
+  function pushPageView() {
+    if (!window.dataLayer) return;
+    window.dataLayer.push({
+      event: 'page_view',
+      page_path: '/legal/condiciones.html',
+      page_title: 'Condiciones del Servicio - Cafesito',
+      page_location: window.location.origin + window.location.pathname,
+      screen_name: 'legal/condiciones'
+    });
+  }
+
+  var consent = getConsent();
+  var bar = document.getElementById('cookie-consent-bar');
+  var btnAccept = document.getElementById('cookie-consent-accept');
+  var btnEssential = document.getElementById('cookie-consent-essential');
+
+  if (consent === null && bar) {
+    bar.classList.add('show');
+    btnAccept && btnAccept.addEventListener('click', function() {
+      setConsent('all');
+      bar.classList.remove('show');
+      loadGtm();
+      setTimeout(pushPageView, 500);
+    });
+    btnEssential && btnEssential.addEventListener('click', function() {
+      setConsent('essential');
+      bar.classList.remove('show');
+    });
+  } else if (consent === 'all') {
+    loadGtm();
+    setTimeout(pushPageView, 500);
+  }
+})();
+  </script>
 </body>
 </html>

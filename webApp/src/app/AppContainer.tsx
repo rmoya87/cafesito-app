@@ -93,6 +93,7 @@ import { DiarySheets } from "../features/diary/DiarySheets";
 import { BottomNav, DesktopNavRail } from "../features/navigation/NavControls";
 import { AppContentRouter } from "./AppContentRouter";
 import { AppOverlayLayers } from "./AppOverlayLayers";
+import { CookieConsentBanner } from "../features/consent/CookieConsentBanner";
 import { OfflineBanner } from "./OfflineBanner";
 import { EditListSheet } from "../features/lists/EditListSheet";
 import { ListOptionsPage } from "../features/lists/ListOptionsPage";
@@ -2577,6 +2578,7 @@ export function AppContainer() {
         </div>
       ) : null}
       <OfflineBanner />
+      <CookieConsentBanner isAuthenticated={Boolean(sessionEmail)} />
       {mode === "desktop" && !isSearchUsersPage ? navRail : null}
       <main className={`main-shell${guardedActiveTab === "home" ? " is-home" : ""}`}>
         {guardedActiveTab !== "coffee" ? (

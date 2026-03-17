@@ -1,9 +1,10 @@
 /**
  * Analíticas vía Google Tag Manager (GTM).
  * La WebApp envía todos los eventos al dataLayer; GA4 se configura y recibe los datos desde el contenedor GTM.
- * No se usa gtag ni GA4 directo; el snippet de GTM está en index.html (head + noscript en body).
+ * GTM solo se carga si el usuario ha aceptado todas las cookies (cookie consent). Si no, no se cargan analíticas.
  */
 
+import { canLoadAnalytics } from "./consent";
 import {
   initGtm,
   isGtmEnabled,
@@ -12,9 +13,10 @@ import {
   pushUserId as gtmPushUserId
 } from "./gtm";
 
-/** Inicializa analíticas: solo GTM. Llamar al arranque de la app. */
+/** Inicializa analíticas: solo GTM. Llamar solo cuando el usuario ha aceptado todas las cookies. */
 export function initGa4(): void {
   if (typeof window === "undefined") return;
+  if (!canLoadAnalytics()) return;
   initGtm();
 }
 
@@ -24,7 +26,7 @@ export function initGa4(): void {
  */
 export function setGa4UserId(userId: string | null): void {
   if (typeof window === "undefined") return;
-  if (!isGtmEnabled()) return;
+  if (!canLoadAnalytics() || !isGtmEnabled()) return;
   gtmPushUserId(userId);
 }
 
@@ -33,7 +35,7 @@ export function setGa4UserId(userId: string | null): void {
  */
 export function sendPageView(pagePath: string, pageTitle?: string): void {
   if (typeof window === "undefined") return;
-  if (!isGtmEnabled()) return;
+  if (!canLoadAnalytics() || !isGtmEnabled()) return;
   gtmPushPageView(pagePath, pageTitle);
 }
 
@@ -45,6 +47,6 @@ export function sendPageView(pagePath: string, pageTitle?: string): void {
  */
 export function sendEvent(name: string, params?: Record<string, string | number | boolean>): void {
   if (typeof window === "undefined") return;
-  if (!isGtmEnabled()) return;
+  if (!canLoadAnalytics() || !isGtmEnabled()) return;
   gtmPushEvent(name, params);
 }

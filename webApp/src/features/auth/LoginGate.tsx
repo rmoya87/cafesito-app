@@ -4,6 +4,7 @@ import { sendEvent } from "../../core/ga4";
 import { getGoogleClientId, showGoogleOneTap } from "../../core/googleGsi";
 import { UiIcon } from "../../ui/iconography";
 import { Button, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
+import { CookieConsentBanner } from "../consent/CookieConsentBanner";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 
 export function LoginGate({
@@ -170,6 +171,7 @@ export function LoginGate({
           </SheetCard>
         </SheetOverlay>
       ) : null}
+      <CookieConsentBanner isAuthenticated={false} />
     </main>
   );
 }
