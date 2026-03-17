@@ -4,6 +4,23 @@ Configuración completa para replicar o validar el contenedor **web** de Cafesit
 
 ---
 
+## 0. Contrato dataLayer (WebApp → GTM)
+
+La WebApp hace `dataLayer.push(...)` con estas formas. Las **claves** deben coincidir con los nombres de las variables DLV en GTM:
+
+| Evento (`event`) | Claves en el push | Origen en código |
+|------------------|-------------------|------------------|
+| `page_view` | `page_path`, `page_location`, `screen_name`, `page_title` (opcional) | `gtm.ts` → `pushPageView()` |
+| `set_user_id` | `user_id` (string; vacío en logout) | `gtm.ts` → `pushUserId()` |
+| `gtm_platform_ready` | `platform`: `"web"` | `gtm.ts` → `initGtm()` |
+| `modal_open` / `modal_close` | `modal_id` | `ga4.ts` → `sendEvent("modal_open"|"modal_close", { modal_id })` |
+| `button_click` | `button_id` | `sendEvent("button_click", { button_id })` |
+| `carousel_nav` | `carousel_id`, `direction` | `sendEvent("carousel_nav", { carousel_id, direction })` |
+
+Tests que validan este contrato: **unit** `webApp/src/core/gtm.test.ts`; **e2e** `webApp/e2e/dataLayer.spec.ts` (comprueba en navegador que al cargar y al abrir/cerrar modal se hace push de `page_view` y `modal_open`/`modal_close`). Ejecutar e2e con `npm run test:e2e:dataLayer` (o con el dev server ya levantado: `npx playwright test dataLayer.spec.ts`).
+
+---
+
 ## 1. Variables (Definidas por el usuario)
 
 | Nombre            | Tipo                  | Configuración                          |
