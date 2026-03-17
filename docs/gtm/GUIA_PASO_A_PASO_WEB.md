@@ -24,55 +24,61 @@ En el contenedor **Web** las variables que leen el dataLayer son de tipo **Varia
 3. **Nombre** de la variable (arriba): `DLV - page_path`.
 4. **Guardar**.
 
-### Paso 1.3 — Variable «DLV - page_title»
+### Paso 1.3 — Variable «DLV - screen_name»
+
+1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
+2. **Variable de capa de datos** → **Nombre de la clave**: `screen_name` (la WebApp lo envía normalizado en cada `page_view` para paridad con Android; p. ej. "detail" en detalle café).
+3. **Nombre** de la variable: `DLV - screen_name`. **Guardar**.
+
+### Paso 1.4 — Variable «DLV - page_title»
 
 1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
 2. **Variable de capa de datos** → **Nombre de la clave**: `page_title`.
 3. **Nombre** de la variable: `DLV - page_title`. **Guardar**.
 
-### Paso 1.4 — Variable «DLV - page_location»
+### Paso 1.5 — Variable «DLV - page_location»
 
 1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
 2. **Variable de capa de datos** → **Nombre de la clave**: `page_location`.
 3. **Nombre** de la variable: `DLV - page_location`. **Guardar**.
 
-### Paso 1.5 — Variable «DLV - user_id»
+### Paso 1.6 — Variable «DLV - user_id»
 
 1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
 2. **Variable de capa de datos** → **Nombre de la clave**: `user_id`.
 3. **Nombre** de la variable: `DLV - user_id`. **Guardar**.
 
-### Paso 1.6 — Variable «DLV - platform»
+### Paso 1.7 — Variable «DLV - platform»
 
 1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
 2. **Variable de capa de datos** → **Nombre de la clave**: `platform`.
 3. **Nombre** de la variable: `DLV - platform`. **Guardar**.
 
-### Paso 1.7 — Variable «DLV - modal_id»
+### Paso 1.8 — Variable «DLV - modal_id»
 
 1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
 2. **Variable de capa de datos** → **Nombre de la clave**: `modal_id`.
 3. **Nombre** de la variable: `DLV - modal_id`. **Guardar**.
 
-### Paso 1.8 — Variable «DLV - button_id»
+### Paso 1.9 — Variable «DLV - button_id»
 
 1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
 2. **Variable de capa de datos** → **Nombre de la clave**: `button_id`.
 3. **Nombre** de la variable: `DLV - button_id`. **Guardar**.
 
-### Paso 1.9 (opcional) — Variable «DLV - carousel_id»
+### Paso 1.10 (opcional) — Variable «DLV - carousel_id»
 
 1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
 2. **Variable de capa de datos** → **Nombre de la clave**: `carousel_id`.
 3. **Nombre** de la variable: `DLV - carousel_id`. **Guardar**.
 
-### Paso 1.10 (opcional) — Variable «DLV - direction»
+### Paso 1.11 (opcional) — Variable «DLV - direction»
 
 1. **Variables** → **Variables definidas por el usuario** → **Nueva**.
 2. **Variable de capa de datos** → **Nombre de la clave**: `direction`.
 3. **Nombre** de la variable: `DLV - direction`. **Guardar**.
 
-Al terminar la Parte 1 tendrás 8 variables (o 10 si añades carrusel).
+Al terminar la Parte 1 tendrás 9 variables (o 11 si añades carrusel).
 
 ---
 
@@ -170,8 +176,8 @@ Para que en GA4 llegue el mismo evento y los mismos nombres de parámetros que d
 3. **Configuración de la etiqueta**: selecciona **GA4 - Configuración**.
 4. **Nombre del evento**: `screen_view` (igual que en Android).
 5. **Parámetros de evento** → Añadir:  
-   - `screen_name` = `{{DLV - page_path}}`  
-   - `screen_class` = `{{DLV - page_title}}` (si no hay título, en GA4 puede verse vacío; opcionalmente puedes usar `{{DLV - page_path}}` también).
+   - `screen_name` = `{{DLV - screen_name}}` (la WebApp envía este valor normalizado en cada page_view; p. ej. "detail" en detalle café, paridad con Android).  
+   - `screen_class` = `{{DLV - page_title}}` (si no hay título, en GA4 puede verse vacío).
 6. **Activación**: **CE - page_view** (la misma que page_view).
 7. **Guardar**.
 

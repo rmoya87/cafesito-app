@@ -166,6 +166,27 @@ El deploy web sube la app a **`/cafesito-web/app/`** y **`.well-known/assetlinks
 
 **Problemas de hosting (500, document root, .htaccess, SPA fallback):** ver **`webApp/DEPLOY-IONOS.md`**.
 
+### Error: `fatal: No url found for submodule path 'tmp/beta-check' in .gitmodules` (exit 128)
+
+Si el workflow falla en **Post job cleanup** o en **sync-main-into-branch** / **deploy-web** con ese mensaje, hay un **submodule mal configurado** (p. ej. `tmp/beta-check` referenciado sin URL o sobrante). Corregir en tu clone local y hacer push:
+
+```bash
+# 1. Quitar el submodule del índice (no borra la carpeta local si existe)
+git rm --cached tmp/beta-check 2>/dev/null || true
+
+# 2. Si existe .gitmodules, editar y eliminar la sección [submodule "tmp/beta-check"]
+# 3. Si la carpeta tmp/beta-check existe y no la necesitas, eliminarla
+rm -rf tmp/beta-check
+
+# 4. Confirmar y subir
+git add .gitmodules 2>/dev/null || true
+git status
+git commit -m "fix(ci): remove invalid submodule tmp/beta-check"
+git push origin <rama>
+```
+
+Tras el push, el siguiente run del workflow no debería encontrar el submodule roto.
+
 ### Cola de cambios Supabase (deploy nocturno)
 
 - `SUPABASE_DEPLOY_QUEUE_URL` – URL de la Edge Function `consume-deploy-changes`.

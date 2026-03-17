@@ -170,8 +170,12 @@ fun AppNavigation(
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
     val activeUser by userRepository.getActiveUserFlow().collectAsState(initial = null)
 
-    LaunchedEffect(currentRoute) {
-        if (currentRoute.isNotEmpty()) analyticsHelper.trackScreenView(currentRoute)
+    // Para GA4: enviar nombre de pantalla normalizado (sin placeholders tipo {coffeeId})
+    // para que en informes aparezca "detail" en lugar de "detail/{coffeeId}"
+    val screenNameForAnalytics = remember(currentRoute) { normalizeRouteForAnalytics(currentRoute) }
+
+    LaunchedEffect(screenNameForAnalytics) {
+        if (screenNameForAnalytics.isNotEmpty()) analyticsHelper.trackScreenView(screenNameForAnalytics)
     }
     
     val navItems = remember {
@@ -865,4 +869,15 @@ data class NotificationNavigation(
             return type?.let { NotificationNavigation(it, targetId, commentId) }
         }
     }
+}
+
+/**
+ * Convierte la ruta de Compose (con placeholders tipo `{coffeeId}`) en un nombre de pantalla
+ * para analíticas, de modo que en GA4 aparezca "detail" en lugar de "detail/{coffeeId}".
+ */
+private fun normalizeRouteForAnalytics(route: String): String {
+    if (route.isBlank()) return ""
+    val withoutQuery = route.substringBefore("?")
+    val withoutParams = Regex("/\\{[^}]+\\}").replace(withoutQuery, "")
+    return withoutParams.replace(Regex("/+"), "/").trim('/')
 }

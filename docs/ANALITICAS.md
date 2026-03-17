@@ -88,7 +88,7 @@ Con la etiqueta **GA4 - screen_view** en el contenedor Web (ver [GUIA_PASO_A_PAS
 
 | Concepto | Android | Web (vía GTM) |
 |----------|---------|----------------|
-| Navegación | `screen_view` + `screen_name`, `screen_class` | `screen_view` (etiqueta en `page_view`) + `screen_name` = page_path, `screen_class` = page_title |
+| Navegación | `screen_view` + `screen_name`, `screen_class` | `screen_view` (etiqueta en `page_view`) + `screen_name` normalizado (mismo valor que Android: p. ej. "detail", "profile/list"), `screen_class` = page_title |
 | Usuario | `set_user_id` + `user_id` | Igual |
 | Modales / botones / carrusel | `modal_open`, `modal_close`, `button_click`, `carousel_nav` + mismos parámetros | Igual |
 
@@ -104,15 +104,15 @@ Detalle en [CONTAINER_REFERENCE_WEB.md §4](gtm/CONTAINER_REFERENCE_WEB.md).
 | WebApp estáticas | — | `public/ga4-static.js` + `__GA4_PAGE__` en cada HTML | — | — |
 | Android | `AnalyticsModule.kt` (Firebase) | `AppNavigation.kt` → `trackScreenView(currentRoute)` | `AnalyticsHelper.trackEvent()` en pantallas | `AppSessionCoordinator` → `setUserId`; `AnalyticsHelper.setUserId()` |
 
-**Rutas (page_path) Web:** Definidas en `webApp/src/core/routing.ts` (`buildRoute`). Tabla de rutas en §8 de este doc (o en código).
+**Rutas (page_path) y screen_name Web:** Definidas en `webApp/src/core/routing.ts` (`buildRoute`, `normalizePathToScreenName`). El `page_view` enviado por `gtm.ts` incluye `screen_name` normalizado para la etiqueta GA4 - screen_view. Tabla de rutas en §8.
 
 ---
 
 ## 8. Rutas (page_path) Web y pantallas Android
 
-**Web — `page_path` típicos:** `/home`, `/search`, `/search/users`, `/brewlab`, `/diary`, `/diary/cafes-probados`, `/profile`, `/profile/{username}`, `/profile/historial`, `/profile/.../followers|following|favorites`, `/profile/list/{id}`, `/coffee/{slug}/`.
+**Web — `page_path` y `screen_name`:** La WebApp envía `page_path` completo (p. ej. `/coffee/achicoria-expres/`) y además **`screen_name` normalizado** en el mismo evento `page_view` del dataLayer, para paridad con Android. La normalización está en `webApp/src/core/routing.ts` (`normalizePathToScreenName`). En GTM Web la etiqueta **GA4 - screen_view** debe usar la variable **DLV - screen_name** (no `page_path`) como `screen_name`. Valores típicos de `screen_name`: `home`, `search`, `search/users`, `brewlab`, `diary`, `diary/cafes-probados`, `profile`, `detail`, `profile/favorites`, `profile/list`, `profile/list/options`, `historial`, etc.
 
-**Android — `screen_name`:** Valor de `currentRoute` (ej. `timeline`, `search`, `brewlab`, `diary`, `profile/{id}`, `detail/{id}`, `historial`, etc.). Cualquier cambio en `AppNavigation.kt` (rutas composable) afecta al valor enviado.
+**Android — `screen_name`:** Se envía la ruta **normalizada** (sin placeholders tipo `{coffeeId}`), para que en GA4 aparezca p. ej. `detail`, `profile/list`, y no `detail/{coffeeId}`. La normalización se hace en `AppNavigation.kt` (`normalizeRouteForAnalytics`). Mismos valores típicos que Web (paridad).
 
 Al **añadir o quitar** una pantalla o ruta, actualizar `buildRoute`/`parseRoute` (web) o el composable en `AppNavigation.kt` (Android) y, si aplica, este documento o las referencias en `docs/gtm/`.
 

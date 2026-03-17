@@ -175,3 +175,33 @@ export function buildRoute(
   if (tab === "selecciona-cafe") return "/selecciona-cafe";
   return "/home";
 }
+
+/**
+ * Convierte el page_path (buildRoute) en un nombre de pantalla para analíticas,
+ * alineado con Android (normalizeRouteForAnalytics) para paridad en GA4 (screen_view).
+ * Así en GA4 aparece "detail" en lugar de "/coffee/achicoria-expres/", etc.
+ */
+export function normalizePathToScreenName(path: string): string {
+  const withoutQuery = path.includes("?") ? path.split("?")[0] ?? path : path;
+  const p = withoutQuery.replace(/\/+$/, "").replace(/^\//, "") || "";
+  const segments = p.split("/").filter(Boolean);
+  if (segments[0] === "coffee" && segments.length >= 2) return "detail";
+  if (segments[0] === "home") return "home";
+  if (segments[0] === "search") return segments[1] === "users" ? "search/users" : "search";
+  if (segments[0] === "brewlab") return "brewlab";
+  if (segments[0] === "diary") return segments[1] === "cafes-probados" ? "diary/cafes-probados" : "diary";
+  if (segments[0] === "profile") {
+    if (segments[1] === "list") {
+      return segments[3] === "options" ? "profile/list/options" : "profile/list";
+    }
+    const section = segments[2] ?? segments[1];
+    if (section === "historial") return "historial";
+    if (section === "followers") return "profile/followers";
+    if (section === "following") return "profile/following";
+    if (section === "favorites") return "profile/favorites";
+    return "profile";
+  }
+  if (segments[0] === "crear-cafe") return "crear-cafe";
+  if (segments[0] === "selecciona-cafe") return "selecciona-cafe";
+  return p || "home";
+}

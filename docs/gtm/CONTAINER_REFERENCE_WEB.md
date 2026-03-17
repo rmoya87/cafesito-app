@@ -9,6 +9,7 @@ Configuración completa para replicar o validar el contenedor **web** de Cafesit
 | Nombre            | Tipo                  | Configuración                          |
 |-------------------|-----------------------|----------------------------------------|
 | DLV - page_path   | Variable de capa de datos | Nombre de la clave: `page_path`   |
+| DLV - screen_name | Variable de capa de datos | Nombre de la clave: `screen_name` (normalizado, paridad con Android) |
 | DLV - page_title  | Variable de capa de datos | Nombre de la clave: `page_title`  |
 | DLV - page_location | Variable de capa de datos | Nombre de la clave: `page_location` |
 | DLV - user_id     | Variable de capa de datos | Nombre de la clave: `user_id`     |
@@ -58,13 +59,13 @@ Configuración completa para replicar o validar el contenedor **web** de Cafesit
 
 ### 3.2b GA4 – Evento screen_view (paridad con Android)
 
-Para que GA4 reciba el mismo evento y los mismos nombres de parámetros que desde Android en navegación:
+Para que GA4 reciba el mismo evento y los mismos nombres de parámetros que desde Android en navegación (p. ej. `screen_name` = "detail" en detalle café, no la URL completa):
 
 - **Tipo:** Google Analytics: evento de GA4  
 - **Configuración:** Referencia a "GA4 – Configuración"  
 - **Nombre del evento:** `screen_view`  
 - **Parámetros de evento:**  
-  - `screen_name` = `{{DLV - page_path}}`  
+  - `screen_name` = `{{DLV - screen_name}}` (la WebApp envía este valor normalizado en cada `page_view`)  
   - `screen_class` = `{{DLV - page_title}}`  
 - **Activación:** Disparador **CE - page_view**
 

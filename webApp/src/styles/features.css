@@ -186,27 +186,32 @@ body.is-coffee-view .layout.is-coffee {
   padding: 0 !important;
   min-height: 0;
 }
+/* Contenedor a ancho completo y fondo sólido para que no queden zonas sin cubrir sobre la imagen */
 .layout.is-coffee .coffee-detail.is-full-page {
   margin: 0;
   padding: 0;
+  width: 100%;
+  border-radius: 0;
+  background: var(--screen-dark-background);
 }
-/* Hero: reservar espacio para la imagen (fixed) para que el scroll no recorte y no se vea franja del contenedor */
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero,
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section,
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section-first {
+  background: var(--screen-dark-background);
+}
+/* Hero e imagen en el flujo del documento: la imagen sube con el scroll como el resto del contenido */
 .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero {
   margin-top: 0;
+  padding-top: 0;
   position: relative;
-  padding-top: calc(308px + env(safe-area-inset-top, 28px));
 }
-/* Imagen fija en la parte superior del viewport: no va en el flujo del scroll, así no se recorta y cubre notch/barra */
+/* Bloque de imagen: parte del body, altura incluye safe-area para cubrir notch/barra de estado */
 .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero-image-block {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
   width: 100%;
   height: calc(308px + env(safe-area-inset-top, 28px));
   min-height: calc(308px + env(safe-area-inset-top, 28px));
   margin: 0;
-  z-index: 0;
 }
 .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero-image-block .coffee-detail-image {
   height: 100%;
@@ -215,13 +220,40 @@ body.is-coffee-view .layout.is-coffee {
   object-fit: cover;
   display: block;
 }
-/* Botones por encima de la imagen fija; 10px por debajo del notch */
+/* Contenido con fondo sólido */
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section,
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero {
+  position: relative;
+}
+/* Topbar fijo: siempre visible por encima de cualquier objeto (imagen, contenido, etc.) */
 .layout.is-coffee .coffee-detail-hero-top-actions {
   position: fixed;
   top: calc(10px + env(safe-area-inset-top, 28px));
   left: 10px;
   right: 10px;
-  z-index: 1;
+  z-index: 9999;
+}
+
+/* Modo claro: mismo fondo sólido para no dejar zonas sin cubrir */
+html.theme-light .layout.is-coffee .coffee-detail.is-full-page,
+html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero,
+html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section,
+html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-section-first {
+  background: var(--screen-light-background);
+}
+
+/* Desktop: botones del topbar con el mismo ancho que el contenido (columna central max 860px); la imagen va en el flujo y ya respeta el ancho del main */
+@media (min-width: 900px) {
+  .layout.is-coffee .coffee-detail-hero-top-actions {
+    left: 50%;
+    right: auto;
+    width: min(calc(100vw - 112px), 860px);
+    max-width: 860px;
+    transform: translateX(-50%);
+    padding-left: 10px;
+    padding-right: 10px;
+    box-sizing: border-box;
+  }
 }
 
 /* Cafés probados: sin topbar, mapa desde arriba; altura fija y scroll solo en el listado */
@@ -19904,18 +19936,9 @@ html.theme-dark .app-range.app-range--time {
 }
 /* Con hero con margin-top negativo, botones 10px por debajo del notch simulado (47px) */
 /* Mismo principio que en producción: bloque imagen incluye safe-area simulado (47px) */
-.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero {
-  padding-top: calc(308px + 47px);
-}
 .dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-image-block {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   height: calc(308px + 47px);
   min-height: calc(308px + 47px);
-  margin: 0;
-  z-index: 0;
 }
 .dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-image-block .coffee-detail-image {
   height: 100%;
@@ -19928,7 +19951,7 @@ html.theme-dark .app-range.app-range--time {
   top: calc(10px + 47px);
   left: 10px;
   right: 10px;
-  z-index: 1;
+  z-index: 9999;
 }
 @media (max-width: 899px) {
   .dev-safe-area-sim .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {

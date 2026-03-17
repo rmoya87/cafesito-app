@@ -5,6 +5,8 @@
  * Estructura alineada con Android para que el mismo contenedor (o lógica) sirva en web y app.
  */
 
+import { normalizePathToScreenName } from "./routing";
+
 function isPwaStandalone(): boolean {
   if (typeof window === "undefined" || typeof document === "undefined") return false;
   if (document.documentElement.classList.contains("pwa-standalone")) return true;
@@ -64,6 +66,7 @@ export function initGtm(): void {
 
 /**
  * Envía page_view al dataLayer. GTM debe tener un disparador para este evento y una etiqueta GA4.
+ * Incluye screen_name normalizado (paridad con Android) para la etiqueta GA4 - screen_view.
  */
 export function pushPageView(pagePath: string, pageTitle?: string): void {
   if (typeof window === "undefined" || !window.dataLayer) return;
@@ -76,7 +79,8 @@ export function pushPageView(pagePath: string, pageTitle?: string): void {
   const payload: Record<string, unknown> = {
     event: "page_view",
     page_path: path,
-    page_location: pageLocation
+    page_location: pageLocation,
+    screen_name: normalizePathToScreenName(path)
   };
   if (pageTitle) payload.page_title = pageTitle;
   window.dataLayer.push(payload);
