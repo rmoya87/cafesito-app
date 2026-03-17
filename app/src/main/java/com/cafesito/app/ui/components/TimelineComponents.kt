@@ -279,6 +279,16 @@ fun NotificationsBottomSheet(
                                         onClick = { onNotificationClick(notification) }
                                     )
                                 }
+                                is TimelineNotification.FirstCoffee -> {
+                                    NotificationRow(
+                                        avatarUrl = notification.user.avatarUrl,
+                                        title = "@${notification.user.username}",
+                                        subtitle = "${notification.user.fullName.ifBlank { notification.user.username }} ha probado un café nuevo.",
+                                        isUnread = isUnread,
+                                        trailingContent = null,
+                                        onClick = { onNotificationClick(notification) }
+                                    )
+                                }
                             }
                         }
                     }

@@ -262,6 +262,7 @@ export function AppContainer() {
   }, []);
   const [brewStep, setBrewStep] = useState<BrewStep>("method");
   const [brewTimerEnabled, setBrewTimerEnabled] = useState(Boolean(initialBrewDraft?.brewTimerEnabled));
+  const [brewTimerEnded, setBrewTimerEnded] = useState(false);
   const brewResultSaveRef = useRef<() => Promise<void>>(async () => {});
   const [brewResultSaveMeta, setBrewResultSaveMeta] = useState({ canSave: false, saving: false, showGuardar: false });
   const onBrewResultSaveState = useCallback(
@@ -304,6 +305,9 @@ export function AppContainer() {
       /* ignore */
     }
   }, [brewMethod, brewDrinkType, waterMl, brewCoffeeGrams, brewStep, brewTimerEnabled]);
+  useEffect(() => {
+    if (activeTab !== "brewlab" || brewStep !== "brewing") setBrewTimerEnded(false);
+  }, [activeTab, brewStep]);
   const [diaryTab, setDiaryTab] = useState<"actividad" | "despensa">("actividad");
   const [diaryPeriod, setDiaryPeriod] = useState<DiaryPeriod>("week");
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -1304,6 +1308,20 @@ export function AppContainer() {
     handleOpenSeleccionaCafe();
   }, [handleOpenSeleccionaCafe]);
 
+  /** Al terminar el temporizador de elaboración: ir a Diario y abrir consumo con datos del brew para completar tipo/tamaño. */
+  const onBrewTimerEndedGoToConsumption = useCallback(() => {
+    setDiaryTab("actividad");
+    navigateToTab("diary");
+    setDiaryCoffeeIdDraft(brewCoffeeId || "");
+    setDiarySelectedPantryItemIdDraft(brewPantryItemId || "");
+    setDiaryCoffeePreparationDraft(brewMethod || "Espresso");
+    setDiaryCoffeeGramsDraft(String(brewCoffeeGrams ?? 15));
+    setCoffeeSheetStep("tipo");
+    setCoffeeSheetOpenedFromBrew(true);
+    setShowDiaryCoffeeSheet(true);
+    setBrewStep("method");
+  }, [navigateToTab, brewCoffeeId, brewPantryItemId, brewMethod, brewCoffeeGrams, setBrewStep]);
+
   /** Abre añadir a despensa desde la página Selecciona café de elaboración; al guardar se asigna ese café a la elaboración y se cierra la página. */
   const openAddPantrySheetFromBrewSelect = useCallback(() => {
     addPantryOpenedFromBrewRef.current = true;
@@ -2088,6 +2106,8 @@ export function AppContainer() {
           onClearBarcodeDetectedValue={() => setBarcodeDetectedValueForBrew(null)}
           brewTimerEnabled={brewTimerEnabled}
           setBrewTimerEnabled={setBrewTimerEnabled}
+          onTimerEndedGoToConsumption={onBrewTimerEndedGoToConsumption}
+          onTimerEndedChange={setBrewTimerEnded}
         />
       )
     ) : null;
@@ -2656,6 +2676,7 @@ export function AppContainer() {
           onBrewForward={topbarActions.onBrewForward}
           brewCanGoToConfig={guardedActiveTab === "brewlab" && brewStep === "method" && (brewMethod === "Agua" ? waterMl > 0 : Boolean(brewMethod))}
           brewTimerEnabled={brewTimerEnabled}
+          brewTimerEnded={brewTimerEnded}
           onBrewGoToConfig={() => {
             if (brewMethod === "Agua") {
               void saveWaterWithAmount(waterMl).then(() => {
@@ -2674,6 +2695,10 @@ export function AppContainer() {
             } else {
               setBrewStep("result");
             }
+          }}
+          onBrewGoToConsumptionWhenTimerEnded={() => {
+            setBrewTimerEnded(false);
+            onBrewTimerEndedGoToConsumption();
           }}
           onBrewResultSave={() => void brewResultSaveRef.current()}
           brewResultCanSave={brewResultSaveMeta.canSave}

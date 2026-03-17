@@ -22,10 +22,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cafesito.app.brewlab.BrewLabTimerService
+import kotlinx.coroutines.delay
 import com.cafesito.app.ui.components.*
 import android.os.Bundle
 import androidx.core.os.bundleOf
@@ -36,6 +39,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 @Composable
 fun BrewLabScreen(
     onNavigateToDiary: () -> Unit = {},
+    /** Al terminar el temporizador, ir a Diario y abrir pantalla de consumo (no mostrar resultado aquí). */
+    onTimerEndedGoToConsumption: () -> Unit = {},
+    /** Si true, abrir directamente la pantalla Consumo (p. ej. desde notificación «¿Registrar elaboración?»). */
+    openConsumoFromNotification: Boolean = false,
     onNavigateToProfile: () -> Unit = {},
     onAddToPantryClick: () -> Unit = {},
     onCreateCoffeeClick: () -> Unit = {},
@@ -93,6 +100,9 @@ fun BrewLabScreen(
         viewModel.clearSelectedCoffeeOnEnter()
         viewModel.refreshPantry()
     }
+    LaunchedEffect(openConsumoFromNotification) {
+        if (openConsumoFromNotification) viewModel.openConsumoFromNotification()
+    }
 
     LaunchedEffect(appliedSelectionId) {
         val id = appliedSelectionId ?: return@LaunchedEffect
@@ -107,6 +117,7 @@ fun BrewLabScreen(
         onConsumeSelection()
     }
 
+    val context = LocalContext.current
     val toneGenerator = remember {
         try {
             ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
@@ -115,9 +126,42 @@ fun BrewLabScreen(
         }
     }
 
+    LaunchedEffect(step) {
+        if (step != BrewStep.BREWING) return@LaunchedEffect
+        while (true) {
+            if (BrewLabTimerService.isRunning(context)) {
+                val prefs = context.getSharedPreferences(BrewLabTimerService.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                val elapsed = prefs.getInt(BrewLabTimerService.KEY_ELAPSED, 0)
+                val total = prefs.getInt(BrewLabTimerService.KEY_TOTAL, 0)
+                val paused = prefs.getBoolean(BrewLabTimerService.KEY_PAUSED, false)
+                viewModel.setTimerFromService(elapsed, total, true, paused)
+            } else {
+                val prefs = context.getSharedPreferences(BrewLabTimerService.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                if (prefs.getBoolean(BrewLabTimerService.KEY_JUST_ENDED, false)) {
+                    prefs.edit().remove(BrewLabTimerService.KEY_JUST_ENDED).apply()
+                    val total = prefs.getInt(BrewLabTimerService.KEY_TOTAL, 0)
+                    viewModel.setTimerFromService(total, total, false, false)
+                }
+            }
+            delay(1000)
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.phaseEvent.collect {
             toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+        }
+    }
+
+    val hasNavigatedForEndedTimer = remember { mutableStateOf(false) }
+    LaunchedEffect(step, timerEnded, brewTimerEnabled) {
+        if (step != BrewStep.BREWING) {
+            hasNavigatedForEndedTimer.value = false
+            return@LaunchedEffect
+        }
+        if (timerEnded && brewTimerEnabled && !hasNavigatedForEndedTimer.value) {
+            hasNavigatedForEndedTimer.value = true
+            onTimerEndedGoToConsumption()
         }
     }
 
@@ -143,7 +187,10 @@ fun BrewLabScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { 
             GlassyTopBar(
-                title = step.title,
+                title = run {
+                    val method = selectedMethod
+                    if (step == BrewStep.BREWING && method != null) "Estás elaborando: ${method.name}" else step.title
+                },
                 onBackClick = if (step != BrewStep.CHOOSE_METHOD) { { viewModel.backStep() } } else null,
                 scrollBehavior = scrollBehavior,
                 actions = {
@@ -162,7 +209,8 @@ fun BrewLabScreen(
                             )
                         }
                     }
-                    if (step == BrewStep.BREWING && timerEnded) {
+                    // Con temporizador activo, al terminar se navega a consumo (onTimerEndedGoToConsumption); no se muestra Guardar aquí
+                    if (step == BrewStep.BREWING && timerEnded && !brewTimerEnabled) {
                         TextButton(onClick = {
                             onTrackEvent("button_click", bundleOf("button_id" to "brew_save_to_diary"))
                             viewModel.saveToDiary { onNavigateToDiary() }

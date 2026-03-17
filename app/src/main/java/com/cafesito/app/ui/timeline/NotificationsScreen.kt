@@ -235,6 +235,11 @@ private fun NotificationItemRow(
             "@${notification.user.username}",
             notification.message
         )
+        is TimelineNotification.FirstCoffee -> Triple(
+            notification.user.avatarUrl,
+            "@${notification.user.username}",
+            "${notification.user.fullName.ifBlank { notification.user.username }} ha probado un café nuevo."
+        )
     }
 
     Surface(
@@ -323,6 +328,7 @@ private fun NotificationItemRow(
                     }
                 }
 
+                is TimelineNotification.FirstCoffee -> { }
                 is TimelineNotification.ListInvite -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(

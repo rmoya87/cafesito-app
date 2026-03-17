@@ -3,6 +3,7 @@ package com.cafesito.app
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,6 +27,7 @@ import com.cafesito.app.navigation.AppNavigation
 import com.cafesito.app.navigation.NotificationNavigation
 import com.cafesito.app.startup.AppSessionCoordinator
 import com.cafesito.app.startup.AppUiInitializer
+import com.cafesito.app.startup.PredictiveShortcutsHelper
 import com.cafesito.app.startup.ShortcutActionResolver
 import com.cafesito.app.ui.access.SessionState
 import com.cafesito.app.ui.access.SessionViewModel
@@ -71,7 +73,12 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(sessionState) {
                     when (val state = sessionState) {
-                        is SessionState.Authenticated -> sessionCoordinator.onAuthenticated(state.userId, lifecycleScope)
+                        is SessionState.Authenticated -> {
+                            sessionCoordinator.onAuthenticated(state.userId, lifecycleScope)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+                                PredictiveShortcutsHelper.updatePredictiveShortcuts(context)
+                            }
+                        }
                         is SessionState.NotAuthenticated -> sessionCoordinator.onNotAuthenticated()
                         else -> Unit
                     }

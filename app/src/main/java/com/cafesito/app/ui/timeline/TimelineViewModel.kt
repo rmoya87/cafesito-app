@@ -156,6 +156,7 @@ class HomeViewModel @Inject constructor(
                     userRepository.syncFollows()
                     socialRepository.syncSocialData()
                     syncManager.syncCoffeesIfNeeded(force = true)
+                    syncManager.syncDeferred()
                 }
                 if (_isPublishingContent.value) {
                     stopPublishingContent()
@@ -470,10 +471,11 @@ class HomeViewModel @Inject constructor(
         val usersByUsername = knownUsers.associateBy { it.username.lowercase() }.toMutableMap()
 
         entities.forEach { notification ->
-            if (notification.type.equals("FOLLOW", ignoreCase = true)) {
-                val followerId = notification.relatedId?.toIntOrNull()
-                if (followerId != null && !usersById.containsKey(followerId)) {
-                    userRepository.getUserById(followerId)?.let { user ->
+            val typeUpper = notification.type.uppercase()
+            if (typeUpper == "FOLLOW" || typeUpper == "FIRST_COFFEE" || typeUpper == "FOLLOWED_FIRST_COFFEE") {
+                val targetId = notification.relatedId?.toIntOrNull()
+                if (targetId != null && !usersById.containsKey(targetId)) {
+                    userRepository.getUserById(targetId)?.let { user ->
                         usersById[user.id] = user
                         usersByUsername[user.username.lowercase()] = user
                     }

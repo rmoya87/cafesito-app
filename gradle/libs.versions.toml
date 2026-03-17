@@ -78,6 +78,7 @@ google-material = { group = "com.google.android.material", name = "material", ve
 google-play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "playServicesCodeScanner" }
 google-play-services-mlkit-barcode-scanning = { group = "com.google.android.gms", name = "play-services-mlkit-barcode-scanning", version.ref = "playServicesMlkitBarcode" }
 google-play-services-tagmanager = { group = "com.google.android.gms", name = "play-services-tagmanager", version.ref = "playServicesTagmanager" }
+google-play-services-tagmanager-api = { group = "com.google.android.gms", name = "play-services-tagmanager-api", version.ref = "playServicesTagmanager" }
 google-mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
 androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }

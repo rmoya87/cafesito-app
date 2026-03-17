@@ -18914,7 +18914,6 @@ html.theme-dark .app-range.app-range--time {
   .metric-pill,
   .icon-button,
   .chip-button,
-  .action-button,
   .text-button,
   .step.is-active {
     color: var(--caramel-accent);

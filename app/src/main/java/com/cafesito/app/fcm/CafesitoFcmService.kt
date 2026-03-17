@@ -12,6 +12,7 @@ import com.cafesito.app.MainActivity
 import com.cafesito.app.data.UserRepository
 import com.cafesito.app.notifications.NotificationActionReceiver
 import com.cafesito.app.notifications.NotificationChannels
+import com.cafesito.app.startup.LastAppOpenTracker
 import com.cafesito.app.ui.timeline.TimelineNotificationSystem
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -34,6 +35,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
     @InstallIn(SingletonComponent::class)
     interface FcmServiceEntryPoint {
         fun userRepository(): UserRepository
+        fun lastAppOpenTracker(): LastAppOpenTracker
     }
 
     override fun onNewToken(token: String) {
@@ -55,6 +57,12 @@ class CafesitoFcmService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
+        val notificationType = (message.data["type"] ?: message.data["notification_type"] ?: "").uppercase()
+        if (notificationType == "FOLLOWED_FIRST_COFFEE") {
+            handleFollowedFirstCoffee(message)
+            return
+        }
+
         // Manejar tanto notificaciones automáticas de Firebase como 'data payload'
         val rawTitle = message.notification?.title ?: message.data["title"] ?: "Cafesito"
         val rawBody = message.notification?.body ?: message.data["body"] ?: ""
@@ -63,6 +71,57 @@ class CafesitoFcmService : FirebaseMessagingService() {
         val body = rawBody.capitalizedFirst()
 
         showNotification(title, body, message)
+    }
+
+    /**
+     * Notificación "alguien que sigues ha probado un café nuevo".
+     * Solo se muestra si se cumplen las dos condiciones:
+     * 1) Llevas más de 2 días sin abrir la app.
+     * 2) A partir de ese momento, alguien a quien sigues ha probado un café por primera vez
+     *    (el backend envía este FCM solo cuando ocurre ese evento; si nadie ha probado nada, no se envía y no salta notificación).
+     */
+    private fun handleFollowedFirstCoffee(message: RemoteMessage) {
+        val tracker = try {
+            EntryPointAccessors.fromApplication(applicationContext, FcmServiceEntryPoint::class.java).lastAppOpenTracker()
+        } catch (e: Exception) {
+            Log.e("FCM", "LastAppOpenTracker no disponible", e)
+            return
+        }
+        if (!tracker.hasBeenInactiveMoreThanDays(2)) return
+
+        val username = message.data["username"]?.trim()?.takeIf { it.isNotBlank() } ?: "usuario"
+        val name = message.data["name"]?.trim()?.takeIf { it.isNotBlank() } ?: username
+        val targetUserId = message.data["target_user_id"]?.toIntOrNull()
+            ?: message.data["user_id"]?.toIntOrNull()
+            ?: return
+
+        val title = "@$username"
+        val body = "$name ha probado un café nuevo."
+
+        val contentIntent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra("nav_type", "FOLLOW")
+            putExtra("nav_id", targetUserId.toString())
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            "FOLLOWED_FIRST_COFFEE".hashCode() + targetUserId,
+            contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        NotificationChannels.ensureCreated(this)
+        val notification = NotificationCompat.Builder(this, NotificationChannels.CHANNEL_SOCIAL)
+            .setSmallIcon(com.cafesito.app.R.drawable.ic_notification_small)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setColor(android.graphics.Color.parseColor("#6F4E37"))
+            .setCategory(NotificationCompat.CATEGORY_SOCIAL)
+            .build()
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            .notify(System.currentTimeMillis().toInt() and 0x7FFFFFFF, notification)
     }
 
     private fun showNotification(title: String, message: String, remoteMessage: RemoteMessage) {

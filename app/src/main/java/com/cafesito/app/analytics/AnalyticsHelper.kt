@@ -5,8 +5,6 @@ import android.os.Bundle
 import android.util.Log
 import androidx.core.os.bundleOf
 import com.cafesito.app.BuildConfig
-import com.google.android.gms.tagmanager.DataLayer
-import com.google.android.gms.tagmanager.TagManager
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.logEvent
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -18,14 +16,48 @@ class AnalyticsHelper @Inject constructor(
     @ApplicationContext private val context: Context,
     private val firebaseAnalytics: FirebaseAnalytics
 ) {
-    private val gtmDataLayer: DataLayer? =
-        if (BuildConfig.GTM_CONTAINER_ID.isNotEmpty()) {
-            TagManager.getInstance(context).getDataLayer()
-        } else null
+    private val gtmDataLayer: Any? = initGtmDataLayer()
+
+    private fun initGtmDataLayer(): Any? {
+        if (BuildConfig.GTM_CONTAINER_ID.isEmpty()) return null
+        return try {
+            val tagManagerClass = Class.forName("com.google.android.gms.tagmanager.TagManager")
+            val getInstance = tagManagerClass.getMethod("getInstance", Context::class.java)
+            val tagManager = getInstance.invoke(null, context)
+            val getDataLayer = tagManagerClass.getMethod("getDataLayer")
+            getDataLayer.invoke(tagManager)
+        } catch (e: Exception) {
+            Log.w("Analytics", "GTM DataLayer no disponible", e)
+            null
+        }
+    }
 
     init {
         firebaseAnalytics.setUserProperty("platform", "android")
-        gtmDataLayer?.push(DataLayer.mapOf("platform", "android", "event", "gtm_platform_ready"))
+        gtmPush("platform", "android", "event", "gtm_platform_ready")
+    }
+
+    private fun gtmPush(vararg pairs: Any) {
+        if (gtmDataLayer == null || pairs.size % 2 != 0) return
+        try {
+            val dataLayerClass = Class.forName("com.google.android.gms.tagmanager.DataLayer")
+            val mapOf = dataLayerClass.getMethod("mapOf", Array<Any>::class.java)
+            val map = mapOf.invoke(null, arrayOf(*pairs))
+            val push = gtmDataLayer.javaClass.getMethod("push", Map::class.java)
+            push.invoke(gtmDataLayer, map)
+        } catch (e: Exception) {
+            Log.w("Analytics", "GTM push falló", e)
+        }
+    }
+
+    private fun gtmPushMap(map: Map<String, Any>) {
+        if (gtmDataLayer == null || map.isEmpty()) return
+        try {
+            val push = gtmDataLayer.javaClass.getMethod("push", Map::class.java)
+            push.invoke(gtmDataLayer, map)
+        } catch (e: Exception) {
+            Log.w("Analytics", "GTM push falló", e)
+        }
     }
 
     /**
@@ -37,13 +69,7 @@ class AnalyticsHelper @Inject constructor(
             param(FirebaseAnalytics.Param.SCREEN_NAME, safeScreen)
             param(FirebaseAnalytics.Param.SCREEN_CLASS, safeScreen)
         }
-        gtmDataLayer?.push(
-            DataLayer.mapOf(
-                "event", "screen_view",
-                "screen_name", safeScreen,
-                "screen_class", safeScreen
-            )
-        )
+        gtmPush("event", "screen_view", "screen_name", safeScreen, "screen_class", safeScreen)
     }
 
     /**
@@ -62,7 +88,7 @@ class AnalyticsHelper @Inject constructor(
             (params.get(key) as? String)?.let { gtmParams[key] = it }
             (params.get(key) as? Boolean)?.let { gtmParams[key] = it }
         }
-        gtmDataLayer?.push(gtmParams)
+        gtmPushMap(gtmParams)
     }
 
     /**
@@ -70,12 +96,7 @@ class AnalyticsHelper @Inject constructor(
      */
     fun setUserId(userId: String?) {
         firebaseAnalytics.setUserId(userId)
-        gtmDataLayer?.push(
-            DataLayer.mapOf(
-                "event", "set_user_id",
-                "user_id", (userId ?: "")
-            )
-        )
+        gtmPush("event", "set_user_id", "user_id", (userId ?: ""))
     }
 
     /**

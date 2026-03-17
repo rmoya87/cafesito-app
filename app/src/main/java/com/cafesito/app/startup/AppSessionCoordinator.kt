@@ -17,7 +17,8 @@ import javax.inject.Singleton
 class AppSessionCoordinator @Inject constructor(
     private val syncManager: SyncManager,
     private val userRepository: UserRepository,
-    private val analyticsHelper: AnalyticsHelper
+    private val analyticsHelper: AnalyticsHelper,
+    private val lastAppOpenTracker: LastAppOpenTracker
 ) {
     @Volatile
     private var lastForegroundTokenRefreshAt: Long = 0L
@@ -50,9 +51,11 @@ class AppSessionCoordinator @Inject constructor(
         analyticsHelper.setUserId(userId.toString())
         updateFcmToken(scope, reason = "authenticated")
         scope.launch { userRepository.touchUserInteraction() }
+        lastAppOpenTracker.save()
     }
 
     fun onAppForeground(scope: CoroutineScope) {
+        lastAppOpenTracker.save()
         val now = System.currentTimeMillis()
         if (now - lastForegroundTokenRefreshAt < 60_000L) return
         lastForegroundTokenRefreshAt = now

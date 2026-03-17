@@ -43,6 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -68,6 +69,8 @@ import com.cafesito.app.ui.theme.Dimens
 import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.ui.timeline.*
 import com.cafesito.app.analytics.AnalyticsHelper
+import com.cafesito.app.brewlab.BrewLabTimerService
+import com.cafesito.app.startup.PredictiveShortcutsHelper
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
@@ -131,6 +134,25 @@ fun AppNavigation(
             "NOTIFICATIONS" -> navController.navigate("notifications")
             "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
             "MENTION", "COMMENT" -> navController.navigate("home")
+            "OPEN_BREWLAB" -> navController.navigate("brewlab?openConsumo=false") {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            "OPEN_BREWLAB_CONSUMO" -> navController.navigate("brewlab?openConsumo=true") {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            "OPEN_DIARY_FROM_BREW" -> {
+                navController.navigate("diary") {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                navController.navigate("addDiaryEntry?type=COFFEE&quick=false")
+            }
+            else -> {}
         }
         onNotificationConsumed()
     }
@@ -142,7 +164,7 @@ fun AppNavigation(
             is SessionState.Authenticated -> {
                 when (action) {
                     "SEARCH" -> navController.navigate("search")
-                    "BREWLAB" -> navController.navigate("brewlab")
+                    "BREWLAB" -> navController.navigate("brewlab?openConsumo=false")
                     "DIARY" -> navController.navigate("diary")
                     else -> {}
                 }
@@ -169,6 +191,13 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
     val activeUser by userRepository.getActiveUserFlow().collectAsState(initial = null)
+
+    // Predictive app actions: notificar uso de atajo para que el sistema priorice en recientes
+    LaunchedEffect(currentRoute) {
+        PredictiveShortcutsHelper.shortcutIdForRoute(currentRoute)?.let { shortcutId ->
+            PredictiveShortcutsHelper.reportShortcutUsed(context, shortcutId)
+        }
+    }
 
     // Para GA4: enviar nombre de pantalla normalizado (sin placeholders tipo {coffeeId})
     // para que en informes aparezca "detail" en lugar de "detail/{coffeeId}"
@@ -214,7 +243,11 @@ fun AppNavigation(
                             selected = isSelected,
                             onClick = {
                                 if (isSelected) return@NavigationRailItem
-                                val destination = if (route == "profile") "profile/0" else route
+                                val destination = when (route) {
+                                    "profile" -> "profile/0"
+                                    "brewlab" -> "brewlab?openConsumo=false"
+                                    else -> route
+                                }
                                 navController.navigate(destination) {
                                     launchSingleTop = true
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -256,7 +289,17 @@ fun AppNavigation(
             NavHost(
                 navController = navController,
                 startDestination = finalStartRoute,
-                modifier = Modifier.fillMaxSize().weight(1f)
+                modifier = Modifier.fillMaxSize().weight(1f),
+                enterTransition = { fadeIn(tween(220)) },
+                exitTransition = { fadeOut(tween(220)) },
+                popEnterTransition = { fadeIn(tween(220)) },
+                popExitTransition = {
+                    scaleOut(
+                        targetScale = 0.92f,
+                        transformOrigin = TransformOrigin(0.5f, 0.5f),
+                        animationSpec = tween(220)
+                    ) + fadeOut(tween(220))
+                }
             ) {
                 composable("login") {
                     LoginScreen(
@@ -311,7 +354,7 @@ fun AppNavigation(
                         },
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
                         onBrewLabClick = {
-                            navController.navigate("brewlab") {
+                            navController.navigate("brewlab?openConsumo=false") {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
@@ -353,6 +396,7 @@ fun AppNavigation(
                             viewModel.markNotificationRead(notification)
                             when (notification) {
                                 is TimelineNotification.Follow -> navController.navigate("profile/${notification.user.id}")
+                                is TimelineNotification.FirstCoffee -> navController.navigate("profile/${notification.user.id}")
                                 is TimelineNotification.Mention, is TimelineNotification.Comment -> navController.navigate("home")
                                 is TimelineNotification.ListInvite -> { /* quedamos en notificaciones; botones Añadir/Rechazar en la fila */ }
                             }
@@ -393,14 +437,23 @@ SearchScreen(
                     )
                 }
 
-                composable("brewlab") { backStackEntry ->
+                composable(
+                    route = "brewlab?openConsumo={openConsumo}",
+                    arguments = listOf(navArgument("openConsumo") { type = NavType.BoolType; defaultValue = false })
+                ) { backStackEntry ->
+                    val openConsumo = backStackEntry.arguments?.getBoolean("openConsumo") ?: false
                     val createdCoffeeId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_created_coffee_id", null).collectAsState()
                     val appliedSelectionId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_selected_coffee_id", null).collectAsState()
                     val appliedSelectionFromPantry by backStackEntry.savedStateHandle.getStateFlow("brewlab_selected_from_pantry", false).collectAsState()
                     val appliedSelectionPantryItemId by backStackEntry.savedStateHandle.getStateFlow<String?>("brewlab_selected_pantry_item_id", null).collectAsState()
                     BrewLabScreen(
+                        openConsumoFromNotification = openConsumo,
                         onNavigateToDiary = {
-                            navController.navigate("diary") { popUpTo("brewlab") { inclusive = true } }
+                            navController.navigate("diary") { popUpTo("brewlab?openConsumo={openConsumo}") { inclusive = true } }
+                        },
+                        onTimerEndedGoToConsumption = {
+                            navController.navigate("diary") { popUpTo("brewlab?openConsumo={openConsumo}") { inclusive = true } }
+                            navController.navigate("addDiaryEntry?type=COFFEE&quick=false")
                         },
                         onAddToPantryClick = { navController.navigate("addStock?origin=brewlab") },
                         onCreateCoffeeClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab") },
@@ -420,7 +473,7 @@ SearchScreen(
                 }
 
                 composable("brewlab_select_coffee") {
-                    val parentEntry = remember { navController.getBackStackEntry("brewlab") }
+                    val parentEntry = remember { navController.getBackStackEntry("brewlab?openConsumo={openConsumo}") }
                     val viewModel: BrewLabViewModel = hiltViewModel(parentEntry)
                     BrewLabSelectCoffeeScreen(
                         onBack = { navController.popBackStack() },
@@ -501,7 +554,7 @@ SearchScreen(
                         },
                         onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) },
                         onSuccessWithCoffeeId = if (origin == "brewlab") { coffeeId ->
-                            navController.getBackStackEntry("brewlab")?.savedStateHandle?.set("brewlab_created_coffee_id", coffeeId)
+                            navController.getBackStackEntry("brewlab?openConsumo={openConsumo}")?.savedStateHandle?.set("brewlab_created_coffee_id", coffeeId)
                             navController.popBackStack()
                         } else null
                     )
@@ -571,10 +624,10 @@ SearchScreen(
                         diaryEntryFlow = origin == "diary_entry",
                         brewLabFlow = origin == "brewlab",
                         onCoffeeCreatedForDiary = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("diary_created_coffee_id", id) },
-                        onCoffeeCreatedForBrewLab = { id -> navController.getBackStackEntry("brewlab")?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
+                        onCoffeeCreatedForBrewLab = { id -> navController.getBackStackEntry("brewlab?openConsumo={openConsumo}")?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
                         onBackClick = { navigateTo ->
                             if (origin == "brewlab" && navigateTo != null) {
-                                navController.popBackStack("brewlab", inclusive = false)
+                                navController.popBackStack("brewlab?openConsumo={openConsumo}", inclusive = false)
                             } else if (origin == "diary_entry" && navigateTo == "pantry_loading") {
                                 val diaryEntry = navController.getBackStackEntry("diary")
                                 diaryEntry.savedStateHandle["diary_force_pantry"] = true
@@ -828,7 +881,11 @@ SearchScreen(
                                 ),
                                 onClick = {
                                     if (isSelected) return@NavigationBarItem
-                                    val destination = if (route == "profile") "profile/0" else route
+                                    val destination = when (route) {
+                                        "profile" -> "profile/0"
+                                        "brewlab" -> "brewlab?openConsumo=false"
+                                        else -> route
+                                    }
                                     navController.navigate(destination) {
                                         launchSingleTop = true
                                         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -860,6 +917,9 @@ data class NotificationNavigation(
 
             val type = when {
                 !navType.isNullOrBlank() -> navType.uppercase()
+                intent?.getBooleanExtra(BrewLabTimerService.EXTRA_OPEN_BREWLAB_CONSUMO, false) == true -> "OPEN_BREWLAB_CONSUMO"
+                intent?.getBooleanExtra(BrewLabTimerService.EXTRA_OPEN_DIARY_FROM_BREW, false) == true -> "OPEN_DIARY_FROM_BREW"
+                intent?.getBooleanExtra(BrewLabTimerService.EXTRA_OPEN_BREWLAB, false) == true -> "OPEN_BREWLAB"
                 timelineType == "FOLLOW" -> "FOLLOW"
                 timelineType == "MENTION" -> "MENTION"
                 timelineType == "COMMENT" -> "COMMENT"

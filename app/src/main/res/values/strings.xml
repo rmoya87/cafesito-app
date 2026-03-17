@@ -8,6 +8,16 @@
     <string name="shortcut_diary_short">Mi diario</string>
     <string name="shortcut_diary_long">Mi diario</string>
 
+    <!-- Timer de elaboración (Foreground Service) -->
+    <string name="brew_timer_notification_title">Estás elaborando: %1$s</string>
+    <string name="brew_timer_notification_remaining">%1$s restantes</string>
+    <string name="brew_timer_notification_paused">Pausado — %1$s restantes</string>
+    <string name="brew_timer_pause">Pausar</string>
+    <string name="brew_timer_resume">Reanudar</string>
+    <string name="brew_timer_cancel">Cancelar</string>
+    <string name="brew_timer_register_title">¿Registrar elaboración?</string>
+    <string name="brew_timer_register_text">Abre Cafesito y guarda en tu diario. Continuar.</string>
+
     <string name="login_welcome_to">BIENVENIDO A</string>
     <string name="login_brand">CAFESITO</string>
     <string name="login_subtitle">La comunidad para los amantes del café.</string>

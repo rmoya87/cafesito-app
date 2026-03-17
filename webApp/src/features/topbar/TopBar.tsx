@@ -44,7 +44,9 @@ export function TopBar({
   onBrewForward,
   brewCanGoToConfig,
   brewTimerEnabled = false,
+  brewTimerEnded = false,
   onBrewGoToConfig,
+  onBrewGoToConsumptionWhenTimerEnded,
   onBrewResultSave,
   brewResultCanSave,
   brewResultSaving,
@@ -116,7 +118,11 @@ export function TopBar({
   onBrewForward: () => void;
   brewCanGoToConfig?: boolean;
   brewTimerEnabled?: boolean;
+  /** True cuando el temporizador de elaboración acaba de terminar (mostrar Siguiente → consumo). */
+  brewTimerEnded?: boolean;
   onBrewGoToConfig?: () => void;
+  /** Al pulsar Siguiente cuando el temporizador ha terminado: ir a página de consumo (diario + sheet). */
+  onBrewGoToConsumptionWhenTimerEnded?: () => void;
   onBrewResultSave: () => void;
   brewResultCanSave: boolean;
   brewResultSaving: boolean;
@@ -355,6 +361,14 @@ export function TopBar({
               aria-label={brewTimerEnabled ? "Ir a proceso en curso" : "Ir a resultado"}
               disabled={!brewCanGoToConfig}
               className={!brewCanGoToConfig ? "topbar-brew-next-inactive" : undefined}
+            >
+              <UiIcon name="arrow-right" className="ui-icon" />
+            </IconButton>
+          ) : brewStep === "brewing" && brewTimerEnded && onBrewGoToConsumptionWhenTimerEnded ? (
+            <IconButton
+              tone="topbar"
+              onClick={onBrewGoToConsumptionWhenTimerEnded}
+              aria-label="Siguiente: ir a consumo"
             >
               <UiIcon name="arrow-right" className="ui-icon" />
             </IconButton>

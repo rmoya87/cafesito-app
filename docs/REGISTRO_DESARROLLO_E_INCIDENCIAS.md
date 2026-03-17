@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-17
+**Última actualización:** 2026-03-17 (registro §18 notificaciones elaboración, consumo, actividades, WebApp)
 
 ---
 
@@ -39,6 +39,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 15. [Tercera pasada GUIA — Dimensiones, Spacing, Dimens, WebApp chart (13 mar 2026)](#15-tercera-pasada-guia--dimensiones-spacing-dimens-webapp-chart-13-mar-2026)
 16. [Elaboración Android y WebApp — chips, carruseles, márgenes, Selecciona café como página (13–14 mar 2026)](#16-elaboración-android-y-webapp--chips-carruseles-márgenes-selecciona-café-como-página-1314-mar-2026)
 17. [Resumen de cambios — despensa, diario, deploy, CI (15–16 mar 2026)](#17-resumen-de-cambios--despensa-diario-deploy-ci-1516-mar-2026)
+18. [Resumen de cambios — notificaciones elaboración, consumo, actividades, WebApp (17 mar 2026)](#18-resumen-de-cambios--notificaciones-elaboración-consumo-actividades-webapp-17-mar-2026)
 
 ---
 
@@ -624,6 +625,66 @@ En **TimelineComponents.kt**, `DeleteConfirmationDialog` tiene el parámetro opc
 ### 17.8 Flujo main → beta
 
 Se subieron los cambios a `origin/main` y se llevó la rama `beta` al mismo estado (`git push origin main:beta` o merge de main en beta y push). Ver §3.3.
+
+---
+
+## 18. Resumen de cambios — notificaciones elaboración, consumo, actividades, WebApp (17 mar 2026)
+
+Cambios en la notificación «¿Registrar elaboración?», enlace a pantalla Consumo, textos de elaboración/temporizador en Android, botón Siguiente en WebApp al terminar el temporizador, notificación social «primera vez café» (actividades) y ficheros relacionados.
+
+### 18.1 Android: notificación al terminar temporizador de elaboración
+
+| Archivo | Cambio |
+|---------|--------|
+| **app/src/main/res/values/strings.xml** | `brew_timer_register_text`: «Abre Cafesito y guarda en tu diario. Continuar.» (antes: «Toca para abrir Brew Lab y guardar en el diario. Continuar.»). `brew_timer_notification_title`: «Estás elaborando: %1$s» (antes: «Elaborando: %1$s»). |
+| **app/.../brewlab/BrewLabTimerService.kt** (nuevo si no estaba trackeado) | Servicio en primer plano del temporizador; al terminar muestra notificación con `EXTRA_OPEN_BREWLAB_CONSUMO` para abrir pantalla Consumo (no solo Brew Lab ni diario genérico). |
+| **app/.../navigation/AppNavigation.kt** | Tipo `OPEN_BREWLAB_CONSUMO` en `NotificationNavigation.fromIntent`; navegación a `brewlab?openConsumo=true`; ruta `brewlab?openConsumo={openConsumo}`; todas las referencias a brewlab usan esa ruta (navigate, getBackStackEntry, popUpTo). |
+| **app/.../ui/brewlab/BrewLabScreen.kt** | Parámetro `openConsumoFromNotification`; `LaunchedEffect` que llama a `viewModel.openConsumoFromNotification()`; título en paso BREWING: «Estás elaborando: [método]». |
+| **app/.../ui/brewlab/BrewLabViewModel.kt** | Función `openConsumoFromNotification()` que pone `_currentStep = BrewStep.RESULT`. |
+| **app/.../ui/components/BrewLabComponents.kt** | En `PreparationStep`, texto del paso: «El paso: [nombre del paso]» (el paso va cambiando; el tiempo sigue siendo el total/restante). |
+
+### 18.2 Android: actividades (pantalla notificaciones) y FCM
+
+| Archivo | Cambio |
+|---------|--------|
+| **app/.../ui/timeline/TimelineNotification.kt** | Nuevo tipo `FirstCoffee` (usuario que sigues ha probado un café nuevo). |
+| **app/.../ui/timeline/TimelineNotificationMapper.kt** | Mapeo de entidad a `TimelineNotification.FirstCoffee`. |
+| **app/.../ui/timeline/TimelineNotificationSystem.kt** | Título/cuerpo e intent para `FirstCoffee`. |
+| **app/.../fcm/CafesitoFcmService.kt** | Manejo de tipo `FOLLOWED_FIRST_COFFEE` (título @user, cuerpo descriptivo). |
+| **app/.../ui/timeline/NotificationsScreen.kt**, **TimelineViewModel.kt** | Soporte para mostrar y navegar desde notificación FirstCoffee. |
+| **app/.../startup/LastAppOpenTracker.kt** (nuevo) | Persistencia de última apertura para condición «>2 días sin abrir» en notificación social. |
+| **app/.../startup/AppSessionCoordinator.kt** | Uso de LastAppOpenTracker. |
+| **app/.../notifications/NotificationChannels.kt** | Canal/canales necesarios si se añadieron. |
+| **app/.../MainActivity.kt**, **AndroidManifest.xml**, **app/build.gradle.kts**, **gradle/libs.versions.toml** | Permisos, dependencias o entradas relacionadas con FCM/notificaciones/servicios. |
+
+### 18.3 Android: otros
+
+| Archivo | Cambio |
+|---------|--------|
+| **app/.../analytics/AnalyticsHelper.kt** | Ajustes o nuevos eventos si se añadieron. |
+| **app/.../ui/diary/DiaryViewModel.kt** | Cambios puntuales (por ejemplo limpieza o flujo diario). |
+| **app/.../ui/components/TimelineComponents.kt** | UI para notificación FirstCoffee u otros ítems de actividad. |
+| **app/.../startup/PredictiveShortcutsHelper.kt** (nuevo) | Atajos predictivos (si se añadieron). |
+
+### 18.4 WebApp: botón Siguiente al terminar temporizador (ir a consumo)
+
+| Archivo | Cambio |
+|---------|--------|
+| **webApp/src/features/brew/BrewViews.tsx** | Callback `onTimerEndedChange(ended)`; eliminado auto-redirect al terminar el temporizador; el usuario pulsa «Siguiente» en la topbar para ir a consumo. |
+| **webApp/src/features/topbar/TopBar.tsx** | Props `brewTimerEnded` y `onBrewGoToConsumptionWhenTimerEnded`; cuando `brewStep === "brewing"` y `brewTimerEnded`, se muestra botón (flecha) «Siguiente: ir a consumo» que llama a la callback. |
+| **webApp/src/app/AppContainer.tsx** | Estado `brewTimerEnded`; `onTimerEndedChange={setBrewTimerEnded}` en BrewLabView; `onBrewGoToConsumptionWhenTimerEnded` que resetea el flag y llama a `onBrewTimerEndedGoToConsumption`; `useEffect` que resetea `brewTimerEnded` si `activeTab !== "brewlab"` o `brewStep !== "brewing"`. |
+
+### 18.5 WebApp: otros
+
+| Archivo | Cambio |
+|---------|--------|
+| **webApp/src/features/consent/CookieConsentBanner.tsx** | Ajustes menores si los hubo. |
+| **webApp/src/styles/features.css**, **theme-forced.css** | Estilos asociados a los cambios anteriores. |
+
+### 18.6 Documentación
+
+- **docs/FUTUROS_DESARROLLOS_ANDROID.md** (nuevo o modificado): ideas o plan de futuros desarrollos Android.
+- **docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md**: esta sección 18 e índice rápido.
 
 ---
 

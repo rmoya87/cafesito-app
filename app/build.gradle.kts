@@ -172,6 +172,7 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.analytics)
     implementation(libs.google.play.services.tagmanager)
+    implementation(libs.google.play.services.tagmanager.api)
     // Crashlytics deshabilitado temporalmente: requiere plugin y puede fallar al abrir si no está configurado
     // implementation(libs.firebase.crashlytics)
 

@@ -58,4 +58,15 @@ sealed class TimelineNotification(
     ) : TimelineNotification(notificationId, id, timestamp, isRead) {
         override val type: String = "list_invite"
     }
+
+    /** Alguien que sigues ha probado un café por primera vez. */
+    data class FirstCoffee(
+        override val notificationId: Int,
+        override val id: String,
+        override val timestamp: Long,
+        override val isRead: Boolean,
+        val user: UserEntity
+    ) : TimelineNotification(notificationId, id, timestamp, isRead) {
+        override val type: String = "first_coffee"
+    }
 }
