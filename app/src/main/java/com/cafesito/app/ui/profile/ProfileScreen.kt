@@ -33,6 +33,8 @@ import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.security.runWithBiometricReauth
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.theme.*
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -51,7 +53,8 @@ fun ProfileScreen(
     onSearchUsersClick: (() -> Unit)? = null,
     onExploreCafes: (() -> Unit)? = null,
     profileBackStackEntry: NavBackStackEntry? = null,
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel(),
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
@@ -100,7 +103,7 @@ fun ProfileScreen(
                 actions = {
                     val state = uiState as? ProfileUiState.Success
                     if (state?.isCurrentUser == true) {
-                        IconButton(onClick = { showSettingsSheet = true }) {
+                        IconButton(onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "settings")); showSettingsSheet = true }) {
                             Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
@@ -272,7 +275,7 @@ fun ProfileScreen(
                         1 -> {
                             item {
                                 Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp)) {
-                                    Box(Modifier.clickable { showSensoryDetail = true }) {
+                                    Box(Modifier.clickable { onTrackEvent("modal_open", bundleOf("modal_id" to "sensory_detail")); showSensoryDetail = true }) {
                                         PremiumCard(
                                             containerColor = if (isSystemInDarkTheme()) PureBlack else MaterialTheme.colorScheme.surface
                                         ) {
@@ -290,7 +293,7 @@ fun ProfileScreen(
                             item {
                                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                                     if (state.isCurrentUser) {
-                                        ListRowCreateList(onClick = { showCreateListSheet = true })
+                                        ListRowCreateList(onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "profile_create_list")); showCreateListSheet = true })
                                         Spacer(Modifier.height(8.dp))
                                     }
                                     ListRowFavoritos(onClick = { onFavoritosListClick?.invoke() ?: Unit })
@@ -311,14 +314,15 @@ fun ProfileScreen(
 
                 // Modals
                 if (showSensoryDetail) {
-                    SensoryDetailBottomSheet(profile = state.sensoryProfile, onDismiss = { showSensoryDetail = false })
+                    SensoryDetailBottomSheet(profile = state.sensoryProfile, onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "sensory_detail")); showSensoryDetail = false })
                 }
 
                 if (showCreateListSheet) {
                     CreateListBottomSheet(
-                        onDismiss = { showCreateListSheet = false },
+                        onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "profile_create_list")); showCreateListSheet = false },
                         onCreate = { name, privacy, membersCanEdit ->
                             viewModel.createList(name, privacy, membersCanEdit)
+                            onTrackEvent("modal_close", bundleOf("modal_id" to "profile_create_list"))
                             showCreateListSheet = false
                         }
                     )
@@ -326,10 +330,10 @@ fun ProfileScreen(
 
                 if (showSettingsSheet) {
                     SettingsBottomSheet(
-                        onDismiss = { showSettingsSheet = false },
+                        onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "settings")); showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
                         onHistorialClick = onHistorialClick,
-                        onDeleteAccountClick = { showDeleteAccountConfirm = true },
+                        onDeleteAccountClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "delete_confirm_account")); showDeleteAccountConfirm = true },
                         onLogoutClick = {
                             runWithBiometricReauth(
                                 context = context,
@@ -345,13 +349,14 @@ fun ProfileScreen(
                 if (showDeleteAccountConfirm) {
                     DeleteConfirmationDialog(
                         onDismissRequest = {
-                            if (!deletingAccount) showDeleteAccountConfirm = false
+                            if (!deletingAccount) { onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_account")); showDeleteAccountConfirm = false }
                         },
                         title = "Eliminar mi cuenta y mis datos",
                         text = "Tu cuenta quedará inactiva durante 30 días y luego se eliminará con todos tus datos. Si vuelves a iniciar sesión antes, se cancelará el proceso.",
                         onConfirm = {
                             if (deletingAccount) return@DeleteConfirmationDialog
                             deletingAccount = true
+                            onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_account"))
                             viewModel.requestAccountDeletion()
                             showDeleteAccountConfirm = false
                             deletingAccount = false
@@ -362,7 +367,7 @@ fun ProfileScreen(
                 itemToDelete?.let { item ->
                     if (item is UserReviewInfo) {
                         DeleteConfirmationDialog(
-                            onDismissRequest = { itemToDelete = null },
+                            onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_review")); itemToDelete = null },
                             title = "Eliminar reseña",
                             text = "¿Estás seguro de eliminar esta reseña?",
                             onConfirm = {
@@ -372,10 +377,12 @@ fun ProfileScreen(
                                     subtitle = "Confirma para eliminar",
                                     onAuthenticated = {
                                         viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                                        onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_review"))
                                         itemToDelete = null
                                     },
                                     onFallback = {
                                         viewModel.deleteReview(item.coffeeDetails.coffee.id)
+                                        onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_review"))
                                         itemToDelete = null
                                     }
                                 )

@@ -255,19 +255,22 @@ fun AppNavigation(
                 modifier = Modifier.fillMaxSize().weight(1f)
             ) {
                 composable("login") {
-                    LoginScreen(onLoginSuccess = { googleId, email, name, photo, isNewUser ->
-                        analyticsHelper.trackEvent("login_success", bundleOf("is_new_user" to isNewUser))
-                        if (!isNewUser) {
-                            navController.navigate("home") { popUpTo("login") { inclusive = true } }
-                        } else {
-                            val encodedEmail = Uri.encode(email)
-                            val encodedName = Uri.encode(name)
-                            val encodedPhoto = Uri.encode(photo)
-                            navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
-                                popUpTo("login") { inclusive = true }
+                    LoginScreen(
+                        onLoginSuccess = { googleId, email, name, photo, isNewUser ->
+                            analyticsHelper.trackEvent("login_success", bundleOf("is_new_user" to isNewUser))
+                            if (!isNewUser) {
+                                navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                            } else {
+                                val encodedEmail = Uri.encode(email)
+                                val encodedName = Uri.encode(name)
+                                val encodedPhoto = Uri.encode(photo)
+                                navController.navigate("completeProfile?googleId=$googleId&email=$encodedEmail&name=$encodedName&photoUrl=$encodedPhoto") {
+                                    popUpTo("login") { inclusive = true }
+                                }
                             }
-                        }
-                    })
+                        },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
+                    )
                 }
 
                 composable(
@@ -312,7 +315,8 @@ fun AppNavigation(
                         },
                         onAddToPantryClick = { navController.navigate("addStock?origin=home") },
                         onNotificationsClick = { navController.navigate("notifications") },
-                        onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") }
+                        onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -370,9 +374,9 @@ fun AppNavigation(
                 }
 
                 composable("search") {
-                    SearchScreen(
+SearchScreen(
                         onCoffeeClick = { id -> navController.navigate("detail/$id") },
-                        onProfileClick = { id -> 
+                        onProfileClick = { id ->
                             if (id == 0) {
                                 navController.navigate("profile/0") {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -380,7 +384,8 @@ fun AppNavigation(
                                     restoreState = true
                                 }
                             } else navController.navigate("profile/$id")
-                        }
+                        },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -396,6 +401,7 @@ fun AppNavigation(
                         onAddToPantryClick = { navController.navigate("addStock?origin=brewlab") },
                         onCreateCoffeeClick = { navController.navigate("addPantryItem?onlyActivity=true&origin=brewlab") },
                         onSelectCoffeeClick = { navController.navigate("brewlab_select_coffee") },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) },
                         createdCoffeeId = createdCoffeeId,
                         onCreatedCoffeeConsumed = { backStackEntry.savedStateHandle["brewlab_created_coffee_id"] = null },
                         appliedSelectionId = appliedSelectionId,
@@ -451,7 +457,8 @@ fun AppNavigation(
                             else navController.navigate("editNormalStock/$id")
                         },
                         onEditCoffeeClick = { id -> navController.navigate("editCustomCoffee/$id") },
-                        onCafesProbadosClick = { navController.navigate("cafesProbados") }
+                        onCafesProbadosClick = { navController.navigate("cafesProbados") },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -488,6 +495,7 @@ fun AppNavigation(
                                 else -> navController.navigate("diary?navigateTo=pantry") { popUpTo("diary") { inclusive = true } }
                             }
                         },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) },
                         onSuccessWithCoffeeId = if (origin == "brewlab") { coffeeId ->
                             navController.getBackStackEntry("brewlab")?.savedStateHandle?.set("brewlab_created_coffee_id", coffeeId)
                             navController.popBackStack()
@@ -506,7 +514,8 @@ fun AppNavigation(
                             if (navigateTo != null) {
                                 navController.navigate("diary?navigateTo=$navigateTo") { popUpTo("diary") { inclusive = true } }
                             } else navController.popBackStack()
-                        }
+                        },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -572,7 +581,8 @@ fun AppNavigation(
                             } else if (navigateTo != null) {
                                 navController.navigate("diary?navigateTo=$navigateTo") { popUpTo("diary") { inclusive = true } }
                             } else navController.popBackStack()
-                        }
+                        },
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -609,7 +619,8 @@ fun AppNavigation(
                         },
                         onSearchUsersClick = { navController.navigate("searchUsers") },
                         onExploreCafes = { navController.navigate("search") },
-                        profileBackStackEntry = profileEntry
+                        profileBackStackEntry = profileEntry,
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -690,7 +701,8 @@ fun AppNavigation(
                             navController.popBackStack()
                             navController.popBackStack()
                         },
-                        viewModel = hiltViewModel(optionsBackStackEntry)
+                        viewModel = hiltViewModel(optionsBackStackEntry),
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 
@@ -743,7 +755,8 @@ fun AppNavigation(
                     DetailScreen(
                         onBackClick = { navController.popBackStack() },
                         viewModel = hiltViewModel(backStackEntry),
-                        commentsViewModel = hiltViewModel(backStackEntry)
+                        commentsViewModel = hiltViewModel(backStackEntry),
+                        onTrackEvent = { name, params -> analyticsHelper.trackEvent(name, params) }
                     )
                 }
 

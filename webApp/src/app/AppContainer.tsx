@@ -28,7 +28,7 @@ import {
 } from "../data/supabaseApi";
 import { BREW_METHODS } from "../config/brew";
 import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/routing";
-import { sendPageView, setGa4UserId } from "../core/ga4";
+import { sendEvent, sendPageView, setGa4UserId } from "../core/ga4";
 import { shouldUseRightRailDetail, sidePanelForTab } from "../core/layouts";
 import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
 import { getBrewMethodProfile, getBrewStepTitle, getBrewTimeProfile } from "../core/brew";
@@ -626,6 +626,7 @@ export function AppContainer() {
             : m
         );
       }
+      sendEvent("modal_close", { modal_id: "list_edit" });
       setShowEditListSheet(false);
     },
     [profileListMeta?.id]
@@ -1742,6 +1743,17 @@ export function AppContainer() {
     if (mainShell) mainShell.style.setProperty("--topbar-translate-y", "0px");
   }, [guardedActiveTab]);
 
+  // Vista detalle café a pantalla completa: clase en html y body para quitar franja superior (notch/status bar)
+  useEffect(() => {
+    const onCoffee = guardedActiveTab === "coffee";
+    document.documentElement.classList.toggle("is-coffee-view", onCoffee);
+    document.body.classList.toggle("is-coffee-view", onCoffee);
+    return () => {
+      document.documentElement.classList.remove("is-coffee-view");
+      document.body.classList.remove("is-coffee-view");
+    };
+  }, [guardedActiveTab]);
+
   const guestCanAccessCurrentTab = canAccessTabAsGuest(
     guardedActiveTab,
     guardedActiveTab === "search" ? searchMode : undefined
@@ -2252,9 +2264,9 @@ export function AppContainer() {
               }}
               showCopyChip={showCopyChip}
               copyChipExiting={copyChipExiting}
-              onEditList={() => setShowEditListSheet(true)}
-              onDeleteList={() => setShowDeleteListConfirmSheet(true)}
-              onLeaveList={() => setShowLeaveListConfirmSheet(true)}
+              onEditList={() => { sendEvent("modal_open", { modal_id: "list_edit" }); setShowEditListSheet(true); }}
+              onDeleteList={() => { sendEvent("modal_open", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(true); }}
+              onLeaveList={() => { sendEvent("modal_open", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(true); }}
             />
           );
         })()
@@ -2535,7 +2547,7 @@ export function AppContainer() {
 
   return (
     <div
-      className={`layout ${mode} ${mode === "desktop" && isSearchUsersPage ? "is-search-users-page" : ""} ${guardedActiveTab === "home" ? "is-home" : ""}`.trim()}
+      className={`layout ${mode} ${mode === "desktop" && isSearchUsersPage ? "is-search-users-page" : ""} ${guardedActiveTab === "home" ? "is-home" : ""} ${guardedActiveTab === "coffee" ? "is-coffee" : ""}`.trim()}
     >
       {showAndroidBanner ? (
         <div className="android-install-banner-wrap">
@@ -2586,7 +2598,7 @@ export function AppContainer() {
           searchRoastCount={searchSelectedRoasts.size}
           searchFormatCount={searchSelectedFormats.size}
           searchHasRatingFilter={searchMinRating > 0}
-          onOpenSearchFilter={(filter) => setSearchActiveFilterType(filter)}
+          onOpenSearchFilter={(filter) => { sendEvent("modal_open", { modal_id: "search_filter" }); setSearchActiveFilterType(filter); }}
           onSearchBack={topbarActions.onSearchBack}
           showNotificationsBadge={showNotificationsBadge}
           onHomeSearchUsers={topbarActions.onHomeSearchUsers}
@@ -2652,6 +2664,7 @@ export function AppContainer() {
               });
               return;
             }
+            sendEvent("button_click", { button_id: "brew_next_step" });
             if (brewTimerEnabled) {
               setTimerSeconds(0);
               setBrewRunning(false);
@@ -2818,13 +2831,13 @@ export function AppContainer() {
         const initialPrivacy: ListPrivacy = list.privacy ?? (list.is_public ? "public" : "private");
         return typeof document !== "undefined"
           ? createPortal(
-              <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar lista" onDismiss={() => setShowEditListSheet(false)} onClick={() => setShowEditListSheet(false)}>
+              <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }}>
                 <EditListSheet
                   listId={list.id}
                   initialName={list.name}
                   initialPrivacy={initialPrivacy}
                   initialMembersCanEdit={list.members_can_edit ?? false}
-                  onDismiss={() => setShowEditListSheet(false)}
+                  onDismiss={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }}
                   onSave={handleEditListSave}
                 />
               </SheetOverlay>,
@@ -2834,7 +2847,7 @@ export function AppContainer() {
       })()}
       {showDeleteListConfirmSheet && profileListId && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar lista" onDismiss={() => setShowDeleteListConfirmSheet(false)} onClick={() => setShowDeleteListConfirmSheet(false)}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }}>
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
@@ -2843,14 +2856,14 @@ export function AppContainer() {
                     ¿Estás seguro de que quieres eliminar esta lista? Se quitarán todos los cafés que contiene.
                   </p>
                   <div className="diary-delete-confirm-actions">
-                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setShowDeleteListConfirmSheet(false)}>
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }}>
                       Cancelar
                     </Button>
                     <Button
                       variant="plain"
                       type="button"
                       className="diary-delete-confirm-submit"
-                      onClick={() => void handleDeleteListConfirm()}
+                      onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); void handleDeleteListConfirm(); }}
                     >
                       Eliminar
                     </Button>
@@ -2863,7 +2876,7 @@ export function AppContainer() {
         : null}
       {showLeaveListConfirmSheet && profileListId && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Abandonar lista" onDismiss={() => setShowLeaveListConfirmSheet(false)} onClick={() => setShowLeaveListConfirmSheet(false)}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Abandonar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }}>
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
@@ -2872,14 +2885,14 @@ export function AppContainer() {
                     ¿Estás seguro de que quieres abandonar esta lista? Dejarás de tener acceso a ella y ya no aparecerá en tu sección de listas.
                   </p>
                   <div className="diary-delete-confirm-actions">
-                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setShowLeaveListConfirmSheet(false)}>
+                    <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }}>
                       Cancelar
                     </Button>
                     <Button
                       variant="plain"
                       type="button"
                       className="diary-delete-confirm-submit"
-                      onClick={() => void handleLeaveListConfirm()}
+                      onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); void handleLeaveListConfirm(); }}
                     >
                       Abandonar
                     </Button>

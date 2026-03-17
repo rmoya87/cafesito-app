@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { type DiaryPeriod } from "../../core/diaryAnalytics";
 import { resolveAvatarUrl } from "../../core/avatarUrl";
+import { sendEvent } from "../../core/ga4";
 import type { BrewStep, TabId } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Chip, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -498,7 +499,7 @@ export function TopBar({
           <h1 className="title title-upper topbar-title-center">PERFIL</h1>
           <div className="topbar-slot topbar-slot-end">
             {profileMenuEnabled ? (
-              <IconButton tone="menu" aria-label="Opciones de perfil" onClick={() => setShowProfileOptions(true)}>
+              <IconButton tone="menu" aria-label="Opciones de perfil" onClick={() => { sendEvent("modal_open", { modal_id: "profile_options" }); setShowProfileOptions(true); }}>
                 <UiIcon name="more" className="ui-icon" />
               </IconButton>
             ) : null}
@@ -506,7 +507,7 @@ export function TopBar({
         </header>
         {showProfileOptions && profileMenuEnabled && typeof document !== "undefined"
           ? createPortal(
-              <SheetOverlay className="profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onDismiss={() => setShowProfileOptions(false)} onClick={() => setShowProfileOptions(false)}>
+              <SheetOverlay className="profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onDismiss={() => { sendEvent("modal_close", { modal_id: "profile_options" }); setShowProfileOptions(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "profile_options" }); setShowProfileOptions(false); }}>
                 <SheetCard className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet" onClick={(event) => event.stopPropagation()}>
                   <SheetHandle aria-hidden="true" />
                   <div className="diary-sheet-list list-options-general-wrap">
@@ -517,6 +518,7 @@ export function TopBar({
                           variant="plain"
                           className="list-options-page-action"
                           onClick={() => {
+                            sendEvent("modal_close", { modal_id: "profile_options" });
                             setShowProfileOptions(false);
                             onHistorialClick();
                           }}
@@ -534,6 +536,7 @@ export function TopBar({
                         variant="plain"
                         className="list-options-page-action"
                         onClick={() => {
+                          sendEvent("modal_close", { modal_id: "profile_options" });
                           setShowProfileOptions(false);
                           onProfileOpenEdit();
                         }}
@@ -546,7 +549,9 @@ export function TopBar({
                         variant="plain"
                         className="list-options-page-action"
                         onClick={() => {
+                          sendEvent("modal_close", { modal_id: "profile_options" });
                           setShowProfileOptions(false);
+                          sendEvent("modal_open", { modal_id: "delete_confirm_account" });
                           setShowDeleteAccountConfirm(true);
                         }}
                       >
@@ -558,6 +563,7 @@ export function TopBar({
                         variant="plain"
                         className="list-options-page-action"
                         onClick={() => {
+                          sendEvent("modal_close", { modal_id: "profile_options" });
                           setShowProfileOptions(false);
                           onProfileSignOut();
                         }}
@@ -576,7 +582,7 @@ export function TopBar({
           : null}
         {showDeleteAccountConfirm && typeof document !== "undefined"
           ? createPortal(
-              <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar cuenta" onDismiss={() => setShowDeleteAccountConfirm(false)} onClick={() => setShowDeleteAccountConfirm(false)}>
+              <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar cuenta" onDismiss={() => { sendEvent("modal_close", { modal_id: "delete_confirm_account" }); setShowDeleteAccountConfirm(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_account" }); setShowDeleteAccountConfirm(false); }}>
                 <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
                   <SheetHandle aria-hidden="true" />
                   <div className="diary-delete-confirm-body">
@@ -590,7 +596,7 @@ export function TopBar({
                         type="button"
                         className="diary-delete-confirm-cancel"
                         disabled={deletingAccount}
-                        onClick={() => setShowDeleteAccountConfirm(false)}
+                        onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_account" }); setShowDeleteAccountConfirm(false); }}
                       >
                         Cancelar
                       </Button>
@@ -604,6 +610,7 @@ export function TopBar({
                           setDeletingAccount(true);
                           try {
                             await onProfileDeleteAccount();
+                            sendEvent("modal_close", { modal_id: "delete_confirm_account" });
                             setShowDeleteAccountConfirm(false);
                           } finally {
                             setDeletingAccount(false);

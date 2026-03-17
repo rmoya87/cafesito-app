@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getAppAssetBase } from "../../core/appAssets";
+import { sendEvent } from "../../core/ga4";
 import { getGoogleClientId, showGoogleOneTap } from "../../core/googleGsi";
 import { UiIcon } from "../../ui/iconography";
 import { Button, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -149,7 +150,7 @@ export function LoginGate({
               </article>
             </section>
 
-            <Button variant="primary" className="login-start-button action-button--primary" onClick={() => setShowMobileSheet(true)}>
+            <Button variant="primary" className="login-start-button action-button--primary" onClick={() => { sendEvent("modal_open", { modal_id: "login_sheet" }); setShowMobileSheet(true); }}>
               EMPEZAR AHORA
             </Button>
           </div>
@@ -162,7 +163,7 @@ export function LoginGate({
       </section>
 
       {showMobileSheet ? (
-        <SheetOverlay className="login-sheet-overlay" onDismiss={() => setShowMobileSheet(false)} onClick={() => setShowMobileSheet(false)}>
+        <SheetOverlay className="login-sheet-overlay" onDismiss={() => { sendEvent("modal_close", { modal_id: "login_sheet" }); setShowMobileSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "login_sheet" }); setShowMobileSheet(false); }}>
           <SheetCard className="login-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle />
             {renderAuthContent()}

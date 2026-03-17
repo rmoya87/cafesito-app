@@ -27,7 +27,8 @@ alwaysApply: false
 ## Paridad con Android y WebApp
 
 - Flujos principales (búsqueda, Brew Lab, diario, perfil, detalle café) deben mantener paridad de comportamiento con Android y WebApp. Si se añade un flujo nuevo en `shared/`, iOS debe consumirlo vía wrapper y pantallas SwiftUI equivalentes.
-- Consultar `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` (principios, `/shared` como SSOT) y `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` para cambios recientes que afecten a flujos compartidos.
+- Consultar `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` (principios, `/shared` como SSOT), `docs/SHARED_BUSINESS_LOGIC.md` y `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md`. Referencia de estructura shared: `docs/KMP_AUDIT_STEP0.md`.
+- **Analíticas:** Mismos eventos y `screen_name` que Android; al implementar iOS, actualizar `docs/ANALITICAS.md` con la sección correspondiente.
 
 ## Verificación
 

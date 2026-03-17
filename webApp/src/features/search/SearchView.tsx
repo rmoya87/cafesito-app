@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { sendEvent } from "../../core/ga4";
 import type { CoffeeRow, UserRow } from "../../types";
 import { Button, Chip, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
@@ -320,7 +321,7 @@ export function SearchView({
 
           {activeFilterType && typeof document !== "undefined"
             ? createPortal(
-                <SheetOverlay role="dialog" aria-modal="true" aria-label="Filtros" onDismiss={() => onSetActiveFilterType(null)} onClick={() => onSetActiveFilterType(null)}>
+                <SheetOverlay role="dialog" aria-modal="true" aria-label="Filtros" onDismiss={() => { sendEvent("modal_close", { modal_id: "search_filter" }); onSetActiveFilterType(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "search_filter" }); onSetActiveFilterType(null); }}>
                   <SheetCard className="search-filter-sheet" onClick={(event) => event.stopPropagation()}>
                     <SheetHandle aria-hidden="true" />
                     <div className="search-filter-actions">

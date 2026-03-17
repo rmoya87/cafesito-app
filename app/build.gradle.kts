@@ -28,6 +28,7 @@ val passkeyRequestJson = providers.gradleProperty("PASSKEY_REQUEST_JSON")
     .get()
 
 val mapTilerApiKey = providers.gradleProperty("MAPTILER_API_KEY").orElse("").get()
+val gtmContainerId = providers.gradleProperty("GTM_CONTAINER_ID").orElse("").get()
 
 // Cargar propiedades de firma
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -59,6 +60,7 @@ android {
         buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
         buildConfigField("String", "PASSKEY_REQUEST_JSON", "\"$passkeyRequestJson\"")
         buildConfigField("String", "MAPTILER_API_KEY", "\"$mapTilerApiKey\"")
+        buildConfigField("String", "GTM_CONTAINER_ID", "\"$gtmContainerId\"")
 
         manifestPlaceholders["usesCleartextTraffic"] = "true"
     }
@@ -169,6 +171,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.analytics)
+    implementation(libs.google.play.services.tagmanager)
     // Crashlytics deshabilitado temporalmente: requiere plugin y puede fallar al abrir si no está configurado
     // implementation(libs.firebase.crashlytics)
 

@@ -4,6 +4,7 @@ import { getOrderedBrewMethods } from "../../config/brew";
 import type { BrewMethodItem } from "../../config/brew";
 import { COFFEE_SIZE_OPTIONS, COFFEE_TIPO_OPTIONS } from "../../data/diaryBrewOptions";
 import { EMPTY } from "../../core/emptyErrorStrings";
+import { sendEvent } from "../../core/ga4";
 import { BREW_COFFEE_ABS_MAX_G, BREW_COFFEE_ABS_MIN_G, BREW_SLIDER_MAX_COFFEE_G, BREW_SLIDER_MIN_COFFEE_G, BREW_SLIDER_MAX_TIME_S, BREW_SLIDER_MAX_WATER_ML, BREW_SLIDER_MIN_WATER_ML, BREW_WATER_ABS_MAX_ML, BREW_WATER_ABS_MIN_ML, formatClock, getBrewingProcessAdvice, getBrewBaristaTipsForMethod, getBrewDialRecommendation, getBrewMethodProfile, getBrewTimeProfile, getBrewTimelineForMethod } from "../../core/brew";
 import { normalizeLookupText } from "../../core/text";
 import type { CreateCoffeeDraft } from "../../hooks/domains/useCreateCoffeeDomain";
@@ -402,6 +403,7 @@ export function BrewLabView({
       save: async () => {
         const cur = refs.current;
         if (cur.savingResult) return;
+        sendEvent("button_click", { button_id: "brew_save_to_diary" });
         setSavingResult(true);
         try {
           // El sabor es opcional en Consumo; si no hay texto, se envía cadena vacía.

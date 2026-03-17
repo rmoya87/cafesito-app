@@ -11,6 +11,7 @@ import {
   type DiaryPeriod
 } from "../../core/diaryAnalytics";
 import { EMPTY } from "../../core/emptyErrorStrings";
+import { sendEvent } from "../../core/ga4";
 import { normalizeLookupText } from "../../core/text";
 import { UiIcon, type IconName } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -1052,7 +1053,7 @@ export function DiaryView({
               type="button"
               className="diary-stats-card-row-tap"
               aria-label="Ver listado de cafés probados"
-              onClick={() => (onOpenCafesProbados ? onOpenCafesProbados() : setShowBaristaCoffeeList(true))}
+              onClick={() => { if (onOpenCafesProbados) onOpenCafesProbados(); else { sendEvent("modal_open", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(true); } }}
             />
           </li>
           <li className="diary-stats-card-row">
@@ -1092,15 +1093,15 @@ export function DiaryView({
           role="dialog"
           aria-modal="true"
           aria-label="Cafés probados"
-          onDismiss={() => setShowBaristaCoffeeList(false)}
-          onClick={() => setShowBaristaCoffeeList(false)}
+          onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(false); }}
+          onClick={() => { sendEvent("modal_close", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(false); }}
         >
           <SheetCard className="diary-sheet diary-sheet-barista-list" onClick={(e) => e.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <span className="sheet-header-spacer" aria-hidden="true" />
               <h2 className="sheet-title">Cafés probados</h2>
-              <Button variant="plain" type="button" className="sheet-header-close" onClick={() => setShowBaristaCoffeeList(false)} aria-label="Cerrar">
+              <Button variant="plain" type="button" className="sheet-header-close" onClick={() => { sendEvent("modal_close", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(false); }} aria-label="Cerrar">
                 <UiIcon name="close" className="ui-icon" />
               </Button>
             </header>
@@ -1111,6 +1112,7 @@ export function DiaryView({
                     variant="plain"
                     className="diary-barista-coffee-item"
                     onClick={() => {
+                      sendEvent("modal_close", { modal_id: "diary_barista_list" });
                       setShowBaristaCoffeeList(false);
                       onOpenCoffee(coffee.id);
                     }}
@@ -1141,7 +1143,7 @@ export function DiaryView({
       </section>
 
       {pantryOptionsPantryItemId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => setPantryOptionsPantryItemId(null)} onClick={() => setPantryOptionsPantryItemId(null)}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_pantry_options" }); setPantryOptionsPantryItemId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_pantry_options" }); setPantryOptionsPantryItemId(null); }}>
           <SheetCard className="diary-sheet diary-sheet-pantry-options list-options-general-wrap" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <div className="diary-sheet-list list-options-general-wrap">
@@ -1154,6 +1156,8 @@ export function DiaryView({
                     onClick={() => {
                       const row = sortedPantryRows.find((item) => item.item.id === pantryOptionsPantryItemId);
                       if (!row) return;
+                      sendEvent("modal_close", { modal_id: "diary_pantry_options" });
+                      sendEvent("modal_open", { modal_id: "diary_stock_edit" });
                       setStockEditPantryItemId(row.item.id);
                       setStockEditTotal(String(Math.max(1, row.item.total_grams)));
                       setStockEditRemaining(String(Math.max(0, row.item.grams_remaining)));
@@ -1169,6 +1173,8 @@ export function DiaryView({
                       type="button"
                       className="list-options-page-action diary-sheet-action-pantry"
                       onClick={() => {
+                        sendEvent("modal_close", { modal_id: "diary_pantry_options" });
+                        sendEvent("modal_open", { modal_id: "diary_finished_confirm" });
                         setPantryFinishedConfirmPantryId(pantryOptionsPantryItemId);
                         setPantryOptionsPantryItemId(null);
                       }}
@@ -1188,6 +1194,8 @@ export function DiaryView({
                     className="list-options-page-action diary-sheet-action-pantry"
                     disabled={removingStock}
                     onClick={() => {
+                      sendEvent("modal_close", { modal_id: "diary_pantry_options" });
+                      sendEvent("modal_open", { modal_id: "diary_delete_confirm_pantry" });
                       setPantryDeleteConfirmPantryId(pantryOptionsPantryItemId);
                       setPantryOptionsPantryItemId(null);
                     }}
@@ -1204,7 +1212,7 @@ export function DiaryView({
       ) : null}
 
       {pantryFinishedConfirmPantryId && onMarkPantryCoffeeFinished ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Café terminado" onDismiss={() => setPantryFinishedConfirmPantryId(null)} onClick={() => setPantryFinishedConfirmPantryId(null)}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Café terminado" onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_finished_confirm" }); setPantryFinishedConfirmPantryId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_finished_confirm" }); setPantryFinishedConfirmPantryId(null); }}>
           <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <div className="diary-delete-confirm-body">
@@ -1213,7 +1221,7 @@ export function DiaryView({
                 ¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.
               </p>
               <div className="diary-delete-confirm-actions">
-                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setPantryFinishedConfirmPantryId(null)} disabled={markingFinished}>
+                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "diary_finished_confirm" }); setPantryFinishedConfirmPantryId(null); }} disabled={markingFinished}>
                   Cancelar
                 </Button>
                 <Button variant="plain"
@@ -1225,6 +1233,7 @@ export function DiaryView({
                     setMarkingFinished(true);
                     try {
                       await onMarkPantryCoffeeFinished(pantryFinishedConfirmPantryId);
+                      sendEvent("modal_close", { modal_id: "diary_finished_confirm" });
                       setPantryFinishedConfirmPantryId(null);
                     } finally {
                       setMarkingFinished(false);
@@ -1240,7 +1249,7 @@ export function DiaryView({
       ) : null}
 
       {pantryDeleteConfirmPantryId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar de la despensa" onDismiss={() => setPantryDeleteConfirmPantryId(null)} onClick={() => setPantryDeleteConfirmPantryId(null)}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar de la despensa" onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" }); setPantryDeleteConfirmPantryId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" }); setPantryDeleteConfirmPantryId(null); }}>
           <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <div className="diary-delete-confirm-body">
@@ -1249,7 +1258,7 @@ export function DiaryView({
                 ¿Estás seguro de eliminar este café? Se borrará tu stock actual.
               </p>
               <div className="diary-delete-confirm-actions">
-                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => setPantryDeleteConfirmPantryId(null)} disabled={removingStock}>
+                <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" }); setPantryDeleteConfirmPantryId(null); }} disabled={removingStock}>
                   Cancelar
                 </Button>
                 <Button variant="plain"
@@ -1261,6 +1270,7 @@ export function DiaryView({
                     setRemovingStock(true);
                     try {
                       await onRemovePantryItem(pantryDeleteConfirmPantryId);
+                      sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" });
                       setPantryDeleteConfirmPantryId(null);
                     } finally {
                       setRemovingStock(false);
@@ -1276,7 +1286,7 @@ export function DiaryView({
       ) : null}
 
       {stockEditTarget ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar stock" onDismiss={() => setStockEditPantryItemId(null)} onClick={() => setStockEditPantryItemId(null)}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar stock" onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_stock_edit" }); setStockEditPantryItemId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_stock_edit" }); setStockEditPantryItemId(null); }}>
           <SheetCard className="diary-sheet diary-stock-edit-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-stock-edit-header">
@@ -1355,7 +1365,7 @@ export function DiaryView({
               </label>
               {!canSaveStock && stockValidationMessage ? <p className="diary-inline-error">{stockValidationMessage}</p> : null}
               <div className="diary-sheet-form-actions diary-stock-edit-actions">
-                <Button variant="plain" type="button" className="action-button diary-stock-edit-cancel" onClick={() => setStockEditPantryItemId(null)} disabled={savingStock}>
+                <Button variant="plain" type="button" className="action-button diary-stock-edit-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "diary_stock_edit" }); setStockEditPantryItemId(null); }} disabled={savingStock}>
                   CANCELAR
                 </Button>
                 <Button variant="plain"
@@ -1371,6 +1381,7 @@ export function DiaryView({
                         parsedStockTotal,
                         parsedStockRemaining
                       );
+                      sendEvent("modal_close", { modal_id: "diary_stock_edit" });
                       setStockEditPantryItemId(null);
                     } finally {
                       setSavingStock(false);

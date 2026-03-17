@@ -60,6 +60,8 @@ import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.ui.theme.PureBlack
 import com.cafesito.app.ui.theme.PureWhite
 import com.cafesito.app.ui.theme.ScrimDefault
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.platform.HapticSignal
 import com.cafesito.app.platform.rememberNativeHaptics
@@ -70,7 +72,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun LoginScreen(
     onLoginSuccess: (googleId: String, email: String, name: String, photoUrl: String, isNewUser: Boolean) -> Unit,
-    viewModel: LoginViewModel = hiltViewModel()
+    viewModel: LoginViewModel = hiltViewModel(),
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val credentialManager = remember { CredentialManager.create(context) }
@@ -172,7 +175,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(40.dp))
 
             Button(
-                onClick = { showLoginModal = true },
+                onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "login_sheet")); showLoginModal = true },
                 modifier = Modifier.fillMaxWidth().height(64.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                 shape = Shapes.shapeCardMedium,
@@ -187,7 +190,7 @@ fun LoginScreen(
 
     if (showLoginModal) {
         ModalBottomSheet(
-            onDismissRequest = { showLoginModal = false },
+            onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "login_sheet")); showLoginModal = false },
             scrimColor = ScrimDefault
         ) {
             Column(

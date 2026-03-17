@@ -11,7 +11,7 @@ alwaysApply: false
 - **Framework:** React 18, TypeScript, Vite. Build: `npm run build`. Tests: Vitest (`npm run test`), E2E: Playwright.
 - **Estado:** hooks (useState, useReducer, useMemo, useCallback, useRef). Evitar dependencias inestables en useEffect que provoquen bucles (usar useRef para callbacks si hace falta).
 - **Estilos:** CSS en `webApp/src/styles/` (tokens en `tokens.css`, features en `features.css`). Variables de tema: `--caramel-soft`, `--caramel-accent`, `--pure-white`, `--pure-black`, `--text-main`, `--slider-track-inactive`. Modo día/noche con `prefers-color-scheme` o clases. No inventes colores sin usar las variables del sistema.
-- **Rutas y navegación:** `webApp/src/core/routing.ts`, `parseRoute`, `buildRoute`. Tabs: `TabId` = timeline | search | brewlab | diary | profile | coffee. Consultar `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` para flujos (Brew, topbar, ramas).
+- **Rutas y navegación:** `webApp/src/core/routing.ts`, `parseRoute`, `buildRoute`. Tabs: `TabId` = timeline | search | brewlab | diary | profile | coffee. Flujos: `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md`. Si añades o cambias rutas/pantallas/eventos: seguir checklists en `docs/ANALITICAS.md` (§9) y actualizar `docs/gtm/` si aplica. Deploy Ionos (500, .htaccess): `webApp/DEPLOY-IONOS.md`.
 
 ## Regla crítica: dominio y shared
 

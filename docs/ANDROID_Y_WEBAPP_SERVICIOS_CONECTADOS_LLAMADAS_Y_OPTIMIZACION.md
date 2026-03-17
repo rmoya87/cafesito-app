@@ -178,7 +178,7 @@ Resumen por tabla/RPC y si hay caché local (Room).
 
 - **Inicialización:** `initGa4()` en `main.tsx` (no se carga en localhost ni sin red).
 - **Page views:** `sendPageView()` en cada cambio de ruta (SPA) desde `AppContainer`.
-- **Eventos:** Ver `docs/ANALITICAS_WEB_Y_ANDROID.md`.
+- **Eventos:** Ver `docs/ANALITICAS.md`.
 
 ### 4.6 WebApp — Límites, post-login, caché listas y TTL
 
@@ -203,7 +203,7 @@ Resumen por tabla/RPC y si hay caché local (Room).
 ### 5.1 Analytics
 
 - **Inyección:** `AnalyticsModule` → `FirebaseAnalytics`.
-- **Uso:** `AnalyticsHelper` (eventos de pantalla, login, listas, notificaciones, etc.). Ver `docs/ANALITICAS_WEB_Y_ANDROID.md`.
+- **Uso:** `AnalyticsHelper` (eventos de pantalla, login, listas, notificaciones, etc.). Ver `docs/ANALITICAS.md`.
 
 ### 5.2 Cloud Messaging
 
@@ -297,6 +297,6 @@ Resumen por tabla/RPC y si hay caché local (Room).
 
 - Conexión y problemas típicos: `docs/supabase/CONEXION_SUPABASE_ANDROID.md`
 - Listas 500 / RLS: `docs/supabase/user_lists_500_troubleshooting.md`
-- Analíticas: `docs/ANALITICAS_WEB_Y_ANDROID.md`
+- Analíticas: `docs/ANALITICAS.md`
 - **Android:** Cliente Supabase `app/di/SupabaseModule.kt`; llamadas `app/data/SupabaseDataSource.kt`; sincronización `app/data/SyncManager.kt`.
 - **WebApp:** Cliente `webApp/src/supabase.ts`; API `webApp/src/data/supabaseApi.ts`; GA4 `webApp/src/core/ga4.ts`; carga usuario `webApp/src/hooks/domains/useUserDataLoader.ts`.

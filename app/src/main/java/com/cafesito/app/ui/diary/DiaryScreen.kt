@@ -45,6 +45,8 @@ import com.cafesito.app.ui.diary.formatMonthOnly
 import com.cafesito.app.ui.diary.formatMonthYear
 import com.cafesito.app.ui.diary.formatWeekRange
 import com.cafesito.app.ui.diary.getMondayOfWeek
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import com.cafesito.app.ui.utils.formatRelativeTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -69,7 +71,8 @@ fun DiaryScreen(
     onEditStockClick: (String, Boolean) -> Unit,
     onEditCoffeeClick: (String) -> Unit,
     onCafesProbadosClick: () -> Unit = {},
-    viewModel: DiaryViewModel = hiltViewModel()
+    viewModel: DiaryViewModel = hiltViewModel(),
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val entries by viewModel.diaryEntries.collectAsState(initial = emptyList())
@@ -170,9 +173,10 @@ fun DiaryScreen(
     if (showStockSheet && itemToEdit != null) {
         StockEditBottomSheet(
             item = itemToEdit!!,
-            onDismiss = { showStockSheet = false },
+            onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_stock_edit")); showStockSheet = false },
             onSave = { total, remaining ->
                 viewModel.updateStock(itemToEdit!!.pantryItem.id, total, remaining)
+                onTrackEvent("modal_close", bundleOf("modal_id" to "diary_stock_edit"))
                 showStockSheet = false
             }
         )
@@ -182,7 +186,7 @@ fun DiaryScreen(
         val selectedItem = pantryItems.find { it.pantryItem.id == showPantryOptionsId }
         if (selectedItem != null) {
             ModalBottomSheet(
-                onDismissRequest = { showPantryOptionsId = null },
+                onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options")); showPantryOptionsId = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 shape = Shapes.sheetLarge,
                 scrimColor = ScrimDefault
@@ -212,6 +216,8 @@ fun DiaryScreen(
                                 icon = Icons.Default.Edit,
                                 label = "Editar stock",
                                 onClick = {
+                                    onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options"))
+                                    onTrackEvent("modal_open", bundleOf("modal_id" to "diary_stock_edit"))
                                     itemToEdit = selectedItem
                                     showStockSheet = true
                                     showPantryOptionsId = null
@@ -222,6 +228,8 @@ fun DiaryScreen(
                                 icon = Icons.Default.Done,
                                 label = "Café terminado",
                                 onClick = {
+                                    onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options"))
+                                    onTrackEvent("modal_open", bundleOf("modal_id" to "diary_finished_confirm"))
                                     showFinishedConfirmId = showPantryOptionsId
                                     showPantryOptionsId = null
                                 }
@@ -247,6 +255,7 @@ fun DiaryScreen(
                                     label = "Editar café",
                                     onClick = {
                                         val coffeeId = selectedItem.coffee.id
+                                        onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options"))
                                         showPantryOptionsId = null
                                         onEditCoffeeClick(coffeeId)
                                     }
@@ -257,6 +266,8 @@ fun DiaryScreen(
                                 icon = Icons.Default.Delete,
                                 label = "Eliminar de la despensa",
                                 onClick = {
+                                    onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options"))
+                                    onTrackEvent("modal_open", bundleOf("modal_id" to "diary_delete_confirm_pantry"))
                                     itemToDeleteId = showPantryOptionsId
                                     showPantryOptionsId = null
                                 }
@@ -270,7 +281,7 @@ fun DiaryScreen(
 
     if (itemToDeleteId != null) {
         DeleteConfirmationDialog(
-            onDismissRequest = { itemToDeleteId = null },
+            onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_delete_confirm_pantry")); itemToDeleteId = null },
             title = "Eliminar de la despensa",
             text = "¿Estás seguro de eliminar este café? Se borrará tu stock actual.",
             onConfirm = {
@@ -278,6 +289,7 @@ fun DiaryScreen(
                 viewModel.removeFromPantry(id) {
                     viewModel.refreshData()
                 }
+                onTrackEvent("modal_close", bundleOf("modal_id" to "diary_delete_confirm_pantry"))
                 itemToDeleteId = null
             }
         )
@@ -285,7 +297,7 @@ fun DiaryScreen(
 
     if (showFinishedConfirmId != null) {
         DeleteConfirmationDialog(
-            onDismissRequest = { showFinishedConfirmId = null },
+            onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_finished_confirm")); showFinishedConfirmId = null },
             title = "Café terminado",
             text = "¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.",
             confirmButtonText = "CONFIRMAR",
@@ -294,6 +306,7 @@ fun DiaryScreen(
                 viewModel.markCoffeeAsFinished(id) {
                     viewModel.refreshData()
                 }
+                onTrackEvent("modal_close", bundleOf("modal_id" to "diary_finished_confirm"))
                 showFinishedConfirmId = null
             }
         )
@@ -345,7 +358,7 @@ fun DiaryScreen(
                                     .weight(1f, fill = false)
                                     .fillMaxHeight()
                                     .minimumInteractiveComponentSize()
-                                    .clickable(onClick = { showPeriodMenu = true })
+                                    .clickable(onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "diary_period")); showPeriodMenu = true })
                                     .padding(horizontal = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
@@ -493,7 +506,7 @@ fun DiaryScreen(
                                 selectedPeriod = selectedPeriod,
                                 enableDeleteSwipe = true,
                                 onDelete = { viewModel.deleteEntry(entry.id) },
-                                onClick = { selectedEntry = entry }
+                                onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "diary_entry_edit")); selectedEntry = entry }
                             )
                         }
                     }
@@ -508,9 +521,10 @@ fun DiaryScreen(
         selectedEntry?.let { entry ->
             DiaryEntryEditBottomSheet(
                 entry = entry,
-                onDismiss = { selectedEntry = null },
+                onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_entry_edit")); selectedEntry = null },
                 onSave = { updatedEntry ->
                     viewModel.updateEntry(updatedEntry)
+                    onTrackEvent("modal_close", bundleOf("modal_id" to "diary_entry_edit"))
                     selectedEntry = null
                 }
             )
@@ -521,7 +535,7 @@ fun DiaryScreen(
                 selectedPeriod = selectedPeriod,
                 selectedDateMs = selectedDiaryDateMs,
                 canGoNextMonth = canGoNext,
-                onDismiss = { showPeriodMenu = false },
+                onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_period")); showPeriodMenu = false },
                 onPeriodSelected = { viewModel.setPeriod(it) },
                 onPrevMonth = { viewModel.prevMonth() },
                 onNextMonth = { viewModel.nextMonth() }
@@ -530,7 +544,7 @@ fun DiaryScreen(
 
         if (showCalendar) {
             DiaryDatePickerSheet(
-                onDismiss = { showCalendar = false },
+                onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_date_picker")); showCalendar = false },
                 onGoToToday = {
                     viewModel.setSelectedDiaryDateMs(getMondayOfWeek(System.currentTimeMillis()))
                 },

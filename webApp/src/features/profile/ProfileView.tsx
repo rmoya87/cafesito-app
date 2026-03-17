@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { EMPTY } from "../../core/emptyErrorStrings";
+import { sendEvent } from "../../core/ga4";
 import { UiIcon } from "../../ui/iconography";
 import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabButton, Tabs, Textarea } from "../../ui/components";
 import { CreateListSheet } from "../lists/CreateListSheet";
@@ -874,7 +875,7 @@ export function ProfileView({
             <Button variant="plain"
               type="button"
               className="config-card profile-adn-card profile-adn-radar-card profile-adn-open"
-              onClick={() => setShowAdnAnalysisSheet(true)}
+              onClick={() => { sendEvent("modal_open", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(true); }}
               aria-label="Abrir análisis de preferencia"
             >
               <div className="profile-adn-radar-wrap">
@@ -932,7 +933,10 @@ export function ProfileView({
                     <button
                       type="button"
                       className="profile-list-row profile-list-row-create"
-                      onClick={() => setShowCreateListModal(true)}
+                      onClick={() => {
+                      sendEvent("modal_open", { modal_id: "profile_create_list" });
+                      setShowCreateListModal(true);
+                    }}
                       aria-label="Crear una lista nueva"
                     >
                       <UiIcon name="add" className="ui-icon profile-list-icon" />
@@ -977,10 +981,10 @@ export function ProfileView({
                 )}
               </div>
               {showCreateListModal && typeof document !== "undefined" && createPortal(
-                <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => setShowCreateListModal(false)} onClick={() => setShowCreateListModal(false)}>
+                <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); }}>
                   <CreateListSheet
-                    onDismiss={() => setShowCreateListModal(false)}
-                    onCreate={(name, privacy) => onCreateList?.(name, privacy) ?? Promise.resolve()}
+                    onDismiss={() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); }}
+                    onCreate={(name, privacy) => (onCreateList?.(name, privacy) ?? Promise.resolve()).then(() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); })}
                   />
                 </SheetOverlay>,
                 document.body
@@ -992,7 +996,7 @@ export function ProfileView({
 
       {showAdnAnalysisSheet && mode !== "desktop" && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => setShowAdnAnalysisSheet(false)} onClick={() => setShowAdnAnalysisSheet(false)}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => { sendEvent("modal_close", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(false); }}>
               <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header">
@@ -1011,7 +1015,7 @@ export function ProfileView({
                   </article>
                   <Button variant="primary"
                     className="action-button profile-adn-continue-button"
-                    onClick={() => setShowAdnAnalysisSheet(false)}
+                    onClick={() => { sendEvent("modal_close", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(false); }}
                   >
                     CONTINUAR EXPLORANDO
                   </Button>

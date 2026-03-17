@@ -234,6 +234,7 @@ Además: `docs-before-code.mdc` (siempre) — consultar docs antes de actuar.
 | Lógica de negocio compartida (diario, brew, recomendaciones) | `docs/SHARED_BUSINESS_LOGIC.md` |
 | Tests de humo (flujo crítico) | `docs/SMOKE_TESTS.md` |
 | Accesibilidad (aria, 44px/48dp, WCAG) | `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` |
+| Analíticas (GA4, GTM, eventos, pantallas; guías en `docs/gtm/`) | `docs/ANALITICAS.md` |
 | Workflow release y deploy (triggers, ramas, jobs) | `docs/RELEASE_DEPLOY_WORKFLOW.md` |
 | Changelog detallado Brew/UI/colores/Italiana (04–05 mar) | `docs/commit-notes/commit-20260304-05-elaboracion-brew-ui-colores-italiana.md` |
 | Compliance Play Console, orientación, edge-to-edge | `docs/ANDROID_PLAY_CONSOLE_COMPLIANCE.md` |

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { sendEvent } from "../../core/ga4";
 import type { CoffeeRow, PantryItemRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -105,6 +106,7 @@ export function BrewSelectCoffeePage({
   const scrollCarousel = useCallback((direction: "prev" | "next") => {
     const el = despensaScrollRef.current;
     if (!el) return;
+    sendEvent("carousel_nav", { carousel_id: "brew_despensa", direction });
     const delta = direction === "prev" ? -CAROUSEL_SCROLL_PX : CAROUSEL_SCROLL_PX;
     el.scrollBy({ left: delta, behavior: "smooth" });
   }, []);
@@ -164,7 +166,7 @@ export function BrewSelectCoffeePage({
                       className="brew-pantry-card"
                       role="button"
                       tabIndex={0}
-                      onClick={() => onSelectCoffee(row.coffee.id, row.item.id)}
+                      onClick={() => { sendEvent("button_click", { button_id: "brew_select_coffee" }); onSelectCoffee(row.coffee.id, row.item.id); }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
@@ -216,7 +218,7 @@ export function BrewSelectCoffeePage({
                     type="button"
                     className="brew-pantry-add-card"
                     aria-label="Añadir café a despensa"
-                    onClick={onAddToPantry}
+                    onClick={() => { sendEvent("button_click", { button_id: "brew_add_to_pantry" }); onAddToPantry(); }}
                   >
                     <span className="brew-pantry-add-main" aria-hidden="true">
                       <span className="brew-pantry-add-icon-wrap">
@@ -304,7 +306,7 @@ export function BrewSelectCoffeePage({
                 variant="plain"
                 type="button"
                 className="diary-coffee-select-create-btn"
-                onClick={onCreateCoffee}
+                onClick={() => { sendEvent("button_click", { button_id: "brew_create_coffee" }); onCreateCoffee(); }}
               >
                 <UiIcon name="add" className="ui-icon" />
                 <span>Crear mi café</span>
@@ -319,7 +321,7 @@ export function BrewSelectCoffeePage({
                   type="button"
                   role="option"
                   className="diary-coffee-select-item"
-                  onClick={() => onSelectCoffee(coffee.id)}
+                  onClick={() => { sendEvent("button_click", { button_id: "brew_select_coffee" }); onSelectCoffee(coffee.id); }}
                 >
                   {coffee.image_url ? (
                     <img src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" />
