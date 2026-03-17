@@ -1,10 +1,18 @@
 /**
- * Google Analytics 4 (GA4).
- * - ID por defecto: G-BMZEQNRKR4. Se puede sobreescribir con VITE_GA4_MEASUREMENT_ID.
- * - Envío manual de page_view para SPA (send_page_view: false en config).
- * - page_location usa la URL real del navegador para que GA4 registre correctamente.
- * - En PWA (app añadida al escritorio): se añade ?pwa=1 a page_path y page_location para segmentar en GA.
+ * Google Analytics 4 (GA4) y Google Tag Manager (GTM).
+ * - Si VITE_GTM_CONTAINER_ID está definido: se usa GTM (dataLayer); init/config/eventos se gestionan en el contenedor.
+ * - Si no: se usa gtag directamente con VITE_GA4_MEASUREMENT_ID (por defecto G-BMZEQNRKR4).
+ * - En PWA se añade ?pwa=1 a page_path y page_location para segmentar.
  */
+
+import {
+  getGtmContainerId,
+  initGtm,
+  isGtmEnabled,
+  pushEvent as gtmPushEvent,
+  pushPageView as gtmPushPageView,
+  pushUserId as gtmPushUserId
+} from "./gtm";
 
 /** True si la app se está ejecutando como PWA (añadida a la pantalla de inicio). */
 function isPwaStandalone(): boolean {
@@ -47,17 +55,21 @@ function isLocalhost(): boolean {
   return h === "localhost" || h === "127.0.0.1" || h === "";
 }
 
-/** Inicializa gtag.js con el measurement ID (por defecto G-BMZEQNRKR4). Llamar al arranque de la app. No carga el script en localhost ni sin red para evitar ERR_NAME_NOT_RESOLVED. */
+/** Inicializa analíticas: GTM si hay VITE_GTM_CONTAINER_ID, si no gtag/GA4. Llamar al arranque de la app. */
 export function initGa4(): void {
   if (typeof window === "undefined") return;
   if (isLocalhost()) return;
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
+  if (getGtmContainerId()) {
+    initGtm();
+    return;
+  }
   const id = GA4_MEASUREMENT_ID;
   if (!id) return;
   if (!window.gtag) {
     window.dataLayer = window.dataLayer || [];
-    window.gtag = function gtag() {
-      window.dataLayer.push(arguments);
+    window.gtag = function gtag(...args: unknown[]) {
+      window.dataLayer.push(args);
     };
     window.gtag("js", new Date());
     const script = document.createElement("script");
@@ -70,18 +82,36 @@ export function initGa4(): void {
     }
   }
   window.__GA4_MEASUREMENT_ID__ = id;
-  window.gtag("config", id, { send_page_view: false });
+  window.gtag("config", id, {
+    send_page_view: false,
+    user_properties: { platform: "web" }
+  });
 }
 
 /**
- * Envía un page_view a GA4.
- * Usa la URL real del navegador (origin + pathname) para page_location para que GA4 registre bien
- * aunque la app esté en un subdirectorio (ej. /cafesito-web/app/).
- * En PWA se añade ?pwa=1 a page_path y page_location para poder segmentar tráfico PWA en GA.
+ * Asocia todas las sesiones y eventos al mismo usuario cuando está logueado.
+ * Con GTM: push a dataLayer (evento set_user_id). Sin GTM: gtag config user_id.
+ */
+export function setGa4UserId(userId: string | null): void {
+  if (typeof window === "undefined") return;
+  if (isGtmEnabled()) {
+    gtmPushUserId(userId);
+    return;
+  }
+  if (!GA4_MEASUREMENT_ID || typeof window.gtag !== "function") return;
+  window.gtag("config", GA4_MEASUREMENT_ID, { user_id: userId ?? undefined });
+}
+
+/**
+ * Envía un page_view. Con GTM: push a dataLayer. Sin GTM: gtag event page_view.
  */
 export function sendPageView(pagePath: string, pageTitle?: string): void {
-  if (typeof window === "undefined" || !GA4_MEASUREMENT_ID) return;
-  if (typeof window.gtag !== "function") return;
+  if (typeof window === "undefined") return;
+  if (isGtmEnabled()) {
+    gtmPushPageView(pagePath, pageTitle);
+    return;
+  }
+  if (!GA4_MEASUREMENT_ID || typeof window.gtag !== "function") return;
   let pageLocation = `${window.location.origin}${window.location.pathname}`;
   let path = pagePath.startsWith("/") ? pagePath : `/${pagePath}`;
   if (isPwaStandalone()) {
@@ -94,4 +124,24 @@ export function sendPageView(pagePath: string, pageTitle?: string): void {
   };
   if (pageTitle) params.page_title = pageTitle;
   window.gtag("event", "page_view", params);
+}
+
+/**
+ * Envía un evento personalizado (botones, carruseles, modales, etc.). Con GTM: push al dataLayer; sin GTM: gtag event.
+ * @param name Nombre del evento (snake_case, ej. carousel_nav, modal_open, button_click).
+ * @param params Parámetros opcionales (string, number o boolean).
+ */
+export function sendEvent(name: string, params?: Record<string, string | number | boolean>): void {
+  if (typeof window === "undefined") return;
+  if (isGtmEnabled()) {
+    gtmPushEvent(name, params);
+    return;
+  }
+  if (!GA4_MEASUREMENT_ID || typeof window.gtag !== "function") return;
+  const safeParams = params ?? {};
+  const gtagParams: Record<string, string | number | boolean> = {};
+  for (const [k, v] of Object.entries(safeParams)) {
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") gtagParams[k] = v;
+  }
+  window.gtag("event", name, gtagParams);
 }

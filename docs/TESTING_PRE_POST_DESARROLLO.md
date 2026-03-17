@@ -39,6 +39,8 @@ flowchart LR
   - Flujo o pantalla afectada → `docs/DOCUMENTO_FUNCIONAL_CAFESITO.md` (flujos y criterios de aceptación).
   - Arquitectura / capas → `docs/MASTER_ARCHITECTURE_GOVERNANCE.md`, `docs/SHARED_BUSINESS_LOGIC.md`.
   - UI / diseño → `docs/DESIGN_TOKENS.md`, `docs/GUIA_UNIFICACION_COMPONENTES_UI.md`.
+  - Rutas, pantallas o eventos de analíticas → `docs/ANALITICAS.md` (checklists §9; guías GTM en `docs/gtm/`).
+  - UI interactiva o componentes (botones, modales, listas) → `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md` (checklist a11y).
   - Deploy / CI → `docs/RELEASE_DEPLOY_WORKFLOW.md`, `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` (incidencias recientes).
 - **Objetivo:** Evitar duplicar lógica, romper contratos o repetir errores ya documentados.
 
@@ -106,5 +108,7 @@ Anotar cualquier incidencia para corregir o documentar.
 
 - **Flujo crítico y ubicación de tests:** `docs/SMOKE_TESTS.md`
 - **Criterios de aceptación por flujo:** `docs/DOCUMENTO_FUNCIONAL_CAFESITO.md`
+- **Analíticas (rutas, eventos, GTM):** `docs/ANALITICAS.md`; guías paso a paso en `docs/gtm/`
+- **Accesibilidad (checklist al cambiar UI):** `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md`
 - **Desarrollo con IA (consultar docs antes de código):** `docs/DEVELOPMENT_WORKFLOW_AI_CURSOR.md`
 - **Incidencias recientes (evitar repetir):** `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md`

@@ -17,7 +17,7 @@ alwaysApply: true
 
 ## Contexto del proyecto (memoria persistente)
 
-- Mantén y reutiliza un "Snapshot del Proyecto" entre respuestas. **Fuente del snapshot:** `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` + `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` + documentación del área que toques (p. ej. `docs/commit-notes/` para Brew/UI). Ver también `AGENTS.md` en la raíz.
+- Mantén y reutiliza un "Snapshot del Proyecto" entre respuestas. **Fuente del snapshot:** `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` + `docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md` + documentación del área (Brew/UI: `docs/commit-notes/`; rendimiento, cachés, sync: `docs/ANDROID_Y_WEBAPP_SERVICIOS_CONECTADOS_LLAMADAS_Y_OPTIMIZACION.md`; histórico de optimizaciones: `docs/OPTIMIZACIONES_RENDIMIENTO_HISTORICO.md`). Ver también `AGENTS.md`.
 - Si falta detalle concreto, solicítalo una sola vez y úsalo como fuente de verdad.
 - El Snapshot del Proyecto DEBE incluir:
   1. Propósito de la app y pantallas principales

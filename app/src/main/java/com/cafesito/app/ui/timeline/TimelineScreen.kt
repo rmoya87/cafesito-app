@@ -42,6 +42,8 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.components.*
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import com.cafesito.app.ui.theme.*
 import com.cafesito.shared.domain.brew.BREW_METHOD_AGUA
 import com.cafesito.shared.domain.brew.BREW_METHOD_OTROS
@@ -55,7 +57,8 @@ fun HomeScreen(
     onAddToPantryClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onEditCoffeeClick: (String) -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
@@ -102,9 +105,10 @@ fun HomeScreen(
     if (showStockSheet && itemToEdit != null) {
         StockEditBottomSheet(
             item = itemToEdit!!,
-            onDismiss = { showStockSheet = false },
+            onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_stock_edit")); showStockSheet = false },
             onSave = { total, remaining ->
                 viewModel.updateStock(itemToEdit!!.pantryItem.id, total, remaining)
+                onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_stock_edit"))
                 showStockSheet = false
                 itemToEdit = null
             }
@@ -115,7 +119,7 @@ fun HomeScreen(
         val selectedItem = pantryItems.find { it.pantryItem.id == showPantryOptionsId }
         if (selectedItem != null) {
             ModalBottomSheet(
-                onDismissRequest = { showPantryOptionsId = null },
+                onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options")); showPantryOptionsId = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 shape = Shapes.sheetLarge,
                 scrimColor = ScrimDefault
@@ -145,6 +149,8 @@ fun HomeScreen(
                                 icon = Icons.Default.Edit,
                                 label = "Editar stock",
                                 onClick = {
+                                    onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options"))
+                                    onTrackEvent("modal_open", bundleOf("modal_id" to "timeline_stock_edit"))
                                     itemToEdit = selectedItem
                                     showStockSheet = true
                                     showPantryOptionsId = null
@@ -155,6 +161,8 @@ fun HomeScreen(
                                 icon = Icons.Default.Done,
                                 label = "Café terminado",
                                 onClick = {
+                                    onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options"))
+                                    onTrackEvent("modal_open", bundleOf("modal_id" to "timeline_finished_confirm"))
                                     showFinishedConfirmId = showPantryOptionsId
                                     showPantryOptionsId = null
                                 }
@@ -179,6 +187,7 @@ fun HomeScreen(
                                     icon = Icons.Default.LocalCafe,
                                     label = "Editar café",
                                     onClick = {
+                                        onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options"))
                                         onEditCoffeeClick(selectedItem.coffee.id)
                                         showPantryOptionsId = null
                                     }
@@ -189,6 +198,8 @@ fun HomeScreen(
                                 icon = Icons.Default.Delete,
                                 label = "Eliminar de la despensa",
                                 onClick = {
+                                    onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options"))
+                                    onTrackEvent("modal_open", bundleOf("modal_id" to "timeline_delete_confirm_pantry"))
                                     itemToDeleteId = showPantryOptionsId
                                     showPantryOptionsId = null
                                 }
@@ -202,12 +213,13 @@ fun HomeScreen(
 
     if (itemToDeleteId != null) {
         DeleteConfirmationDialog(
-            onDismissRequest = { itemToDeleteId = null },
+            onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_delete_confirm_pantry")); itemToDeleteId = null },
             title = "Eliminar de la despensa",
             text = "¿Estás seguro de eliminar este café? Se borrará tu stock actual.",
             onConfirm = {
                 val id = itemToDeleteId!!
                 viewModel.removeFromPantry(id) { }
+                onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_delete_confirm_pantry"))
                 itemToDeleteId = null
             }
         )
@@ -215,13 +227,14 @@ fun HomeScreen(
 
     if (showFinishedConfirmId != null) {
         DeleteConfirmationDialog(
-            onDismissRequest = { showFinishedConfirmId = null },
+            onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_finished_confirm")); showFinishedConfirmId = null },
             title = "Café terminado",
             text = "¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.",
             confirmButtonText = "CONFIRMAR",
             onConfirm = {
                 val id = showFinishedConfirmId!!
                 viewModel.markCoffeeAsFinished(id) { }
+                onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_finished_confirm"))
                 showFinishedConfirmId = null
             }
         )
@@ -289,7 +302,7 @@ fun HomeScreen(
                                 pantryItems = state.pantryItems,
                                 onCoffeeClick = onCoffeeClick,
                                 onAddToPantryClick = onAddToPantryClick,
-                                onOptionsClick = { showPantryOptionsId = it }
+                                onOptionsClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "timeline_pantry_options")); showPantryOptionsId = it }
                             )
                         }
                         item {

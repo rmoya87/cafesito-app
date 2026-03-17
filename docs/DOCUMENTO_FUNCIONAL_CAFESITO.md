@@ -129,3 +129,4 @@ Consultar `docs/MASTER_ARCHITECTURE_GOVERNANCE.md`, `docs/SHARED_BUSINESS_LOGIC.
 - **Tests de humo:** `docs/SMOKE_TESTS.md`
 - **Testing pre/post desarrollo:** `docs/TESTING_PRE_POST_DESARROLLO.md`
 - **Arquitectura:** `docs/MASTER_ARCHITECTURE_GOVERNANCE.md`
+- **Analíticas:** `docs/ANALITICAS.md` — consultar al añadir, modificar o eliminar pantallas, rutas o eventos (checklists en §9; guías GTM en `docs/gtm/`).

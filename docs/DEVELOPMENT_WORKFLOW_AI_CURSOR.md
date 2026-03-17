@@ -60,6 +60,7 @@ flowchart LR
 | Arquitectura / capas / dominio | `docs/MASTER_ARCHITECTURE_GOVERNANCE.md` |
 | Comportamiento funcional / criterios de aceptación | `docs/DOCUMENTO_FUNCIONAL_CAFESITO.md` |
 | Testing pre y post desarrollo | `docs/TESTING_PRE_POST_DESARROLLO.md`, `docs/SMOKE_TESTS.md` |
+| Analíticas (GA4, GTM, eventos, pantallas) | `docs/ANALITICAS.md`; guías paso a paso en `docs/gtm/` |
 | Android / Kotlin / Compose    | `docs/` + regla `.cursor/rules/android-kotlin-compose.mdc` |
 | WebApp                        | `docs/`, `webApp/docs/` |
 | Supabase / backend            | `docs/supabase/`, secciones correspondientes en MASTER |
@@ -138,4 +139,4 @@ Estas prácticas y documentos mejoran la calidad de las respuestas y reducen err
 ### 6.4 Resumen para el usuario
 
 - **Para mejores resultados al trabajar con el agente:** (1) Indicar el flujo o pantalla afectada. (2) Mencionar si hay criterio de aceptación concreto. (3) Si el cambio es grande, dividir en pasos (el agente puede proponer un plan). (4) Después de implementar, usar el checklist de `TESTING_PRE_POST_DESARROLLO.md` para validar.
-- **Documentos que el agente debe consultar con prioridad:** `docs/README.md`, `REGISTRO_DESARROLLO_E_INCIDENCIAS.md`, `DOCUMENTO_FUNCIONAL_CAFESITO.md`, y el doc específico del ámbito (MASTER, RELEASE_DEPLOY_WORKFLOW, DESIGN_TOKENS, etc.).
+- **Documentos que el agente debe consultar con prioridad:** `docs/README.md`, `REGISTRO_DESARROLLO_E_INCIDENCIAS.md`, `DOCUMENTO_FUNCIONAL_CAFESITO.md`, y el doc específico del ámbito (MASTER, RELEASE_DEPLOY_WORKFLOW, DESIGN_TOKENS, **ANALITICAS.md** si se tocan rutas/pantallas/eventos, **ACCESIBILIDAD_WEBAPP_ANDROID.md** si se toca UI, etc.).

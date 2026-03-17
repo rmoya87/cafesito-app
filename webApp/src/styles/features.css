@@ -151,9 +151,77 @@ input {
   overscroll-behavior-y: contain;
 }
 
+/* Detalle café: imagen desde el borde superior; el notch lo respetan solo los botones del topbar (.coffee-detail-hero-top-actions) */
 .main-shell-scroll.is-coffee {
-  margin-top: env(safe-area-inset-top, 0px);
+  margin-top: 0;
   padding-top: 0;
+}
+
+/* Vista detalle café: quitar franja superior desde la raíz (html/body insets en iOS/PWA) */
+html.is-coffee-view,
+html.is-coffee-view body,
+body.is-coffee-view #root,
+body.is-coffee-view .layout.is-coffee {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+/* Layout en vista detalle café (web y PWA): eliminar cualquier espacio superior */
+.layout.is-coffee .main-shell {
+  padding-top: 0;
+  margin-top: 0;
+}
+/* Quitar espacio superior; sin padding lateral en detalle café (imagen y hero a ancho completo) */
+.layout.is-coffee .main-shell-scroll.is-coffee {
+  margin-top: 0 !important;
+  padding: 0 0 120px !important;
+}
+/* En vista detalle café: el spacer del banner "Instalar app" no debe empujar el contenido (evita franja arriba) */
+.layout.is-coffee .android-install-banner-spacer {
+  height: 0 !important;
+  min-height: 0 !important;
+}
+/* Sin espacio arriba: section e article a 0 (igual que en Cafés probados el .content no añade hueco) */
+.layout.is-coffee .main-shell-scroll.is-coffee .content.content-coffee {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0;
+}
+.layout.is-coffee .coffee-detail.is-full-page {
+  margin: 0;
+  padding: 0;
+}
+/* Hero: reservar espacio para la imagen (fixed) para que el scroll no recorte y no se vea franja del contenedor */
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero {
+  margin-top: 0;
+  position: relative;
+  padding-top: calc(308px + env(safe-area-inset-top, 28px));
+}
+/* Imagen fija en la parte superior del viewport: no va en el flujo del scroll, así no se recorta y cubre notch/barra */
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero-image-block {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: calc(308px + env(safe-area-inset-top, 28px));
+  min-height: calc(308px + env(safe-area-inset-top, 28px));
+  margin: 0;
+  z-index: 0;
+}
+.layout.is-coffee .coffee-detail.is-full-page .coffee-detail-hero-image-block .coffee-detail-image {
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Botones por encima de la imagen fija; 10px por debajo del notch */
+.layout.is-coffee .coffee-detail-hero-top-actions {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 28px));
+  left: 10px;
+  right: 10px;
+  z-index: 1;
 }
 
 /* Cafés probados: sin topbar, mapa desde arriba; altura fija y scroll solo en el listado */
@@ -17161,8 +17229,6 @@ html.theme-dark .app-range.app-range--time {
   }
 
   .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
-    top: 6px;
-    border-radius: 16px;
     padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 12px;
   }
 
@@ -19775,21 +19841,19 @@ html.theme-dark .app-range.app-range--time {
 .pwa-standalone .main-shell-scroll {
   overflow-x: hidden;
 }
-/* En PWA el resto de vistas sí necesitan margen bajo el topbar; Cafés probados no (mapa a tope) */
-.pwa-standalone .main-shell-scroll:not(.is-cafes-probados) {
+/* En PWA el resto de vistas sí necesitan margen bajo el topbar; Cafés probados y detalle café no (contenido a tope) */
+.pwa-standalone .main-shell-scroll:not(.is-cafes-probados):not(.is-coffee) {
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding-top: 10px;
 }
+/* Detalle café PWA: imagen desde el borde superior (bajo el notch); el safe-area lo respetan solo los botones del topbar (.coffee-detail-hero-top-actions) */
 .pwa-standalone .main-shell-scroll.is-coffee {
-  margin-top: env(safe-area-inset-top, 44px);
+  margin-top: 0;
   padding-top: 0;
 }
 .pwa-standalone .main-shell-scroll.is-search-coffees {
   margin-top: calc(106px + env(safe-area-inset-top, 44px));
   padding-top: 10px;
-}
-.pwa-standalone .coffee-detail-hero-top-actions {
-  top: calc(10px + env(safe-area-inset-top, 44px));
 }
 @media (max-width: 899px) {
   .pwa-standalone .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {
@@ -19838,8 +19902,33 @@ html.theme-dark .app-range.app-range--time {
   min-height: calc(var(--topbar-height) + 47px);
   padding: calc(var(--space-2) + 47px) var(--app-shell-gutter) var(--space-2);
 }
+/* Con hero con margin-top negativo, botones 10px por debajo del notch simulado (47px) */
+/* Mismo principio que en producción: bloque imagen incluye safe-area simulado (47px) */
+.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero {
+  padding-top: calc(308px + 47px);
+}
+.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-image-block {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(308px + 47px);
+  min-height: calc(308px + 47px);
+  margin: 0;
+  z-index: 0;
+}
+.dev-safe-area-sim .coffee-detail.is-full-page .coffee-detail-hero-image-block .coffee-detail-image {
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
 .dev-safe-area-sim .coffee-detail-hero-top-actions {
+  position: fixed;
   top: calc(10px + 47px);
+  left: 10px;
+  right: 10px;
+  z-index: 1;
 }
 @media (max-width: 899px) {
   .dev-safe-area-sim .topbar:not(.topbar-timeline):not(.topbar-search):not(.topbar-search-users) {

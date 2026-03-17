@@ -59,6 +59,8 @@ import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.components.CreateListBottomSheet
 import com.cafesito.app.ui.components.GlassyTopBar
 import com.cafesito.app.ui.components.ListDeleteConfirmBottomSheet
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import com.cafesito.app.ui.theme.Spacing
 
 private val PRIVACY_OPTIONS = listOf(
@@ -73,7 +75,8 @@ fun ListOptionsScreen(
     onBackClick: () -> Unit,
     onListDeleted: () -> Unit,
     onLeftList: () -> Unit,
-    viewModel: ListOptionsViewModel
+    viewModel: ListOptionsViewModel,
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     val list by viewModel.list.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -96,7 +99,7 @@ fun ListOptionsScreen(
 
     if (showEditSheet) {
         CreateListBottomSheet(
-            onDismiss = { showEditSheet = false },
+            onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "list_edit")); showEditSheet = false },
             onCreate = { _, _, _ -> },
             listIdForEdit = viewModel.listId,
             initialName = list?.name ?: "",
@@ -105,6 +108,7 @@ fun ListOptionsScreen(
             initialMembersCanEdit = listMembersCanEdit,
             onUpdate = { name, privacy, membersCanEdit ->
                 viewModel.updateList(name, privacy, membersCanEdit, listMembersCanInvite)
+                onTrackEvent("modal_close", bundleOf("modal_id" to "list_edit"))
                 showEditSheet = false
             }
         )
@@ -112,9 +116,10 @@ fun ListOptionsScreen(
     if (showDeleteConfirm) {
         ListDeleteConfirmBottomSheet(
             listName = list?.name ?: "Lista",
-            onDismiss = { showDeleteConfirm = false },
+            onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_list")); showDeleteConfirm = false },
             onConfirm = {
                 viewModel.deleteList()
+                onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_list"))
                 showDeleteConfirm = false
                 onListDeleted()
             }
@@ -122,17 +127,18 @@ fun ListOptionsScreen(
     }
     if (showLeaveConfirm) {
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showLeaveConfirm = false },
+            onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "leave_list_confirm")); showLeaveConfirm = false },
             title = { Text("Abandonar lista") },
             text = { Text("¿Salir de esta lista? Dejarás de verla en tus listas.") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.leaveList()
+                    onTrackEvent("modal_close", bundleOf("modal_id" to "leave_list_confirm"))
                     showLeaveConfirm = false
                     onLeftList()
                 }) { Text("Abandonar", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { showLeaveConfirm = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { onTrackEvent("modal_close", bundleOf("modal_id" to "leave_list_confirm")); showLeaveConfirm = false }) { Text("Cancelar") } }
         )
     }
 
@@ -746,15 +752,15 @@ fun ListOptionsScreen(
                     ) {
                         Column {
                             if (isOwner) {
-                                OptionRowInCard(icon = Icons.Default.Edit, label = "Editar lista", onClick = { showEditSheet = true })
+                                OptionRowInCard(icon = Icons.Default.Edit, label = "Editar lista", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "list_edit")); showEditSheet = true })
                                 HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-                                OptionRowInCard(icon = Icons.Default.Delete, label = "Eliminar lista", onClick = { showDeleteConfirm = true })
+                                OptionRowInCard(icon = Icons.Default.Delete, label = "Eliminar lista", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "delete_confirm_list")); showDeleteConfirm = true })
                             } else {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(Spacing.space4, 14.dp)
-                                        .clickable { showLeaveConfirm = true },
+                                        .clickable { onTrackEvent("modal_open", bundleOf("modal_id" to "leave_list_confirm")); showLeaveConfirm = true },
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)

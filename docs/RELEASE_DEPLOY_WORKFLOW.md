@@ -164,6 +164,8 @@ El deploy usa **SFTP** (no FTP); Ionos suele ofrecer acceso por SSH/SFTP.
 
 El deploy web sube la app a **`/cafesito-web/app/`** y **`.well-known/assetlinks.json`** a **`/cafesito-web/.well-known/`** (App Links para Android). Para que `https://cafesitoapp.com/.well-known/assetlinks.json` responda, el servidor debe estar configurado para servir esa ruta (p. ej. alias o document root que incluya `/cafesito-web/.well-known/`).
 
+**Problemas de hosting (500, document root, .htaccess, SPA fallback):** ver **`webApp/DEPLOY-IONOS.md`**.
+
 ### Cola de cambios Supabase (deploy nocturno)
 
 - `SUPABASE_DEPLOY_QUEUE_URL` – URL de la Edge Function `consume-deploy-changes`.

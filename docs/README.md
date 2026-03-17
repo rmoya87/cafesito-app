@@ -29,6 +29,7 @@
 | Ruta | Contenido |
 |------|------------|
 | **Raíz** | Documento Maestro, flujos de release/deploy, planes y guías de desarrollo. |
+| `docs/gtm/` | **GTM:** guías paso a paso (Web/Android), referencia de contenedores, export/import. Fuente de verdad de analíticas: `docs/ANALITICAS.md`. |
 | `docs/commit-notes/` | Notas de commit por despliegue (trazabilidad). |
 | `docs/supabase/` | SQL (RLS, triggers, migrations), Edge Functions, runbooks de Supabase, webhooks. |
 | `docs/runbooks/` | Índice de runbooks; los runbooks concretos pueden estar aquí o en `supabase/` (p. ej. notificaciones). |
@@ -52,8 +53,13 @@ flowchart TB
     SMOKE[SMOKE_TESTS.md]
     A11Y[ACCESIBILIDAD_WEBAPP_ANDROID.md]
     DEV_AI[DEVELOPMENT_WORKFLOW_AI_CURSOR.md]
-    ANALITICAS[ANALITICAS_WEB_Y_ANDROID.md]
+    ANALITICAS[ANALITICAS.md]
   end
+  subgraph GTM["docs/gtm/"]
+    GTM_GUIAS[Guías paso a paso Web/Android]
+    GTM_REF[CONTAINER_REFERENCE_*.md]
+  end
+  ANALITICAS --> GTM
   subgraph Supabase["docs/supabase/"]
     SQL[*.sql - RLS, migrations]
     EDGE[edge-functions/]
@@ -96,9 +102,11 @@ flowchart TB
 | `TESTING_PRE_POST_DESARROLLO.md` | **Testing pre y post:** qué validar antes de codear (docs, criterios, flujos) y después (build, tests, smoke, checklist manual). |
 | `ACCESIBILIDAD_WEBAPP_ANDROID.md` | **Accesibilidad (fuente única):** criterios mínimos (aria-label/contentDescription, 44px/48dp, contraste WCAG), revisión WebApp y Android, huecos, checklist al eliminar/modificar/añadir UI. |
 | `DEVELOPMENT_WORKFLOW_AI_CURSOR.md` | Flujo para desarrollo con IA: consultar docs antes de código; avisar antes de modificar docs. |
-| `ANALITICAS_WEB_Y_ANDROID.md` | **Analíticas:** qué se recoge en WebApp (GA4) y Android (Firebase), archivos implicados y checklist al eliminar/modificar/añadir funcionalidades. Consultar siempre antes de tocar rutas o pantallas. |
+| `ANALITICAS.md` | **Analíticas (fuente de verdad):** qué se recoge en WebApp y Android, GTM, GA4, archivos implicados, checklists y guías paso a paso (enlazadas en `docs/gtm/`). Consultar siempre antes de tocar rutas o pantallas. |
 | `MULTIPLATFORM_EXECUTION_PLAN.md` | Plan de ejecución multiplataforma (Android, iOS, Web); decisión web y auditoría. |
 | `PLAN_OFFLINE_FIRST_Y_FOTOS_CAMARA.md` | Plan offline-first por pantalla, galería/cámara y permisos (Android). |
+| `PLAN_LISTAS_COMPARTIDAS_Y_INVITACIONES.md` | Plan de listas compartidas e invitaciones; actualizar ANALITICAS y ACCESIBILIDAD si se añaden pantallas o eventos. |
+| `BREW_ENGINE_IMPLEMENTATION_2026-03-06.md`, `BREW_ENGINE_PARITY_CONTRACT.md` | Implementación y contrato de paridad del motor de elaboración (Brew). |
 
 ### 4.2 Release, deploy y CI/CD
 
@@ -108,6 +116,9 @@ flowchart TB
 | `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` | **Registro reciente:** cambios de desarrollo, incidencias resueltas (p. ej. deploy-web/TypeScript), política de ramas (main, beta, alpha, Interna) y flujo main → beta. Consultar en próximos desarrollos o incidencias. |
 | `REGISTRO_CAMBIOS_PARIDAD_Y_MEJORAS_2026-03.md` | **Paridad Web/Android (mar 2026):** inventario de cambios y eliminaciones (actividad perfil, ADN, despensa, listas, diario, elaboración, auth, Supabase) para futuras modificaciones y mejoras. |
 | `supabase/webhook-coffees-trigger-build.md` | Deploy web: prerender de cafés, SEO, requisitos servidor (SPA fallback), webhook Supabase → build (actualizar web sin Git). |
+| `webApp/DEPLOY-IONOS.md` | **Deploy web en Ionos:** ruta de la app, document root, .htaccess, troubleshooting 500 (SPA fallback, favicon, assets). Consultar ante problemas de hosting. |
+| `ANDROID_PLAY_CONSOLE_COMPLIANCE.md` | Compliance Play Console (orientación, edge-to-edge, permisos); estado y archivos tocados. |
+| `ASO_PLAY_STORE.md` | ASO y App Links (assetlinks.json, vinculación web–app). |
 
 ### 4.3 Runbooks y operación
 
@@ -124,6 +135,7 @@ flowchart TB
 | `STEP6_SWIFTUI.md` | Paso 6 — SwiftUI bridge de ejemplo (Search). |
 | `STEP7_IOS_SETUP.md` | Paso 7 — Proyecto iOS + Shared vía SPM. |
 | `STEP8_QUALITY.md` | Paso 8 — Batería de calidad (tests, criterios, riesgos). |
+| `PROMPT_IA_APP_IOS_CAFESITO.md` | Prompt e instrucciones para desarrollo de la app iOS (shared, diseño, analíticas, documentación a consultar). |
 
 ### 4.5 Android y WebApp: servicios, llamadas y optimización
 
@@ -147,7 +159,15 @@ flowchart TB
 |-----------|-------------|
 | `commit-notes/commit-*.md` | Notas por despliegue; enlazadas desde la tabla en `RELEASE_DEPLOY_WORKFLOW.md`. |
 
-### 4.8 WebApp y port Android
+### 4.8 Documentos históricos o en raíz
+
+| Documento | Tipo | Uso |
+|-----------|------|-----|
+| `docs/OPTIMIZACIONES_RENDIMIENTO_HISTORICO.md` | Histórico | Resumen unificado de optimizaciones de rendimiento y limpieza aplicadas (red, build, dead code, UI). **Estrategia actual:** `ANDROID_Y_WEBAPP_SERVICIOS_CONECTADOS_LLAMADAS_Y_OPTIMIZACION.md`. |
+| `docs/KMP_AUDIT_STEP0.md` | Referencia | Auditoría: qué mover a `shared` (modelos, repos, estructura). **Estado actual:** `MASTER_ARCHITECTURE_GOVERNANCE.md`, `SHARED_BUSINESS_LOGIC.md`, `MULTIPLATFORM_EXECUTION_PLAN.md`. |
+| `infra/README.md` | Raíz | Descripción del directorio de CI/CD y scripts operativos. |
+
+### 4.9 WebApp y port Android
 
 | Documento | Descripción |
 |-----------|-------------|
@@ -216,7 +236,7 @@ flowchart TB
   subgraph Calidad["Calidad y operación"]
     A11Y[ACCESIBILIDAD_WEBAPP_ANDROID.md]
     SMOKE[SMOKE_TESTS.md]
-    ANALITICAS[ANALITICAS_WEB_Y_ANDROID.md]
+    ANALITICAS[ANALITICAS.md]
   end
   subgraph Desarrollo["Proceso de desarrollo"]
     DEV_AI[DEVELOPMENT_WORKFLOW_AI_CURSOR.md]
@@ -240,7 +260,7 @@ flowchart TB
 | Incidencias, ramas main/beta | `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` |
 | Accesibilidad (a11y) | `ACCESIBILIDAD_WEBAPP_ANDROID.md` |
 | Tests de humo | `SMOKE_TESTS.md` |
-| Analíticas (GA4, Firebase) | `ANALITICAS_WEB_Y_ANDROID.md` |
+| Analíticas (GA4, Firebase, GTM) | `ANALITICAS.md` |
 | Flujo con IA / Cursor | `DEVELOPMENT_WORKFLOW_AI_CURSOR.md` |
 
 ---
@@ -260,6 +280,8 @@ flowchart TD
 
 - **Decisión arquitectónica relevante:** ADR en `docs/adr/` (crear carpeta si no existe) o sección en MASTER si es principio transversal.
 - **Comportamiento funcional nuevo o cambio de flujo:** actualizar `DOCUMENTO_FUNCIONAL_CAFESITO.md` (flujos y criterios de aceptación).
+- **Nuevas pantallas, rutas o eventos de analíticas:** actualizar `ANALITICAS.md` (checklists §9) y, si aplica, referencias en `docs/gtm/` (CONTAINER_REFERENCE, guías paso a paso).
+- **Cambios de UI o componentes interactivos:** revisar checklist de `ACCESIBILIDAD_WEBAPP_ANDROID.md` y actualizar si se añaden o modifican pantallas.
 - **Runbook de incidente:** `docs/runbooks/` o `docs/supabase/` si es solo backend/Supabase; añadir entrada en `runbooks/README.md`.
 - **Cambio de flujo de release/deploy:** actualizar `RELEASE_DEPLOY_WORKFLOW.md` y, si aplica, la tabla de registro de despliegues y commit-notes.
 - **Documentación solo WebApp:** `webApp/docs/`.
@@ -272,4 +294,5 @@ flowchart TD
 - **Release y ramas:** `RELEASE_DEPLOY_WORKFLOW.md`
 - **Desarrollo con IA:** `DEVELOPMENT_WORKFLOW_AI_CURSOR.md`
 - **Accesibilidad:** `ACCESIBILIDAD_WEBAPP_ANDROID.md` (antes `ACCESSIBILITY_MINIMA.md` unificado aquí).
+- **Analíticas:** `ANALITICAS.md`; guías GTM en `docs/gtm/`.
 - **Este índice:** `docs/README.md`

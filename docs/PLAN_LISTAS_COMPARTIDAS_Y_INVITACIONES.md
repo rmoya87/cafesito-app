@@ -189,7 +189,7 @@ Cuando alguien abre la URL de una lista compartida (p. ej. `https://cafesitoapp.
 3. **Android:** Datasource/RPC, FCM LIST_INVITE + acciones, NotificationActionReceiver, UI notificaciones y "Compartir" / "Mis listas".
 4. **WebApp:** API, NotificationsSheet LIST_INVITE, listas compartidas y públicas, "Compartir" y "Añadirme".
 5. **iOS:** Replicar flujo cuando el cliente esté listo.
-6. **Documentación:** Actualizar `ANALITICAS_WEB_Y_ANDROID.md` y `ACCESIBILIDAD_WEBAPP_ANDROID.md` si se añaden pantallas o eventos (ej. evento `list_invite_accepted` en Android).
+6. **Documentación:** Actualizar `ANALITICAS.md` y `ACCESIBILIDAD_WEBAPP_ANDROID.md` si se añaden pantallas o eventos (ej. evento `list_invite_accepted` en Android).
 
 ---
 

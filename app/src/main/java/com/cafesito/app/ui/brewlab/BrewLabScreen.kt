@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.ui.components.*
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 
@@ -38,6 +40,7 @@ fun BrewLabScreen(
     onAddToPantryClick: () -> Unit = {},
     onCreateCoffeeClick: () -> Unit = {},
     onSelectCoffeeClick: () -> Unit = {},
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> },
     createdCoffeeId: String? = null,
     onCreatedCoffeeConsumed: () -> Unit = {},
     appliedSelectionId: String? = null,
@@ -146,7 +149,10 @@ fun BrewLabScreen(
                 actions = {
                     if (step == BrewStep.CHOOSE_METHOD) {
                         IconButton(
-                            onClick = { viewModel.goNextFromMainStep(onNavigateToDiary) },
+                            onClick = {
+                                onTrackEvent("button_click", bundleOf("button_id" to "brew_next_step"))
+                                viewModel.goNextFromMainStep(onNavigateToDiary)
+                            },
                             enabled = canGoNext
                         ) {
                             Icon(
@@ -157,13 +163,19 @@ fun BrewLabScreen(
                         }
                     }
                     if (step == BrewStep.BREWING && timerEnded) {
-                        TextButton(onClick = { viewModel.saveToDiary { onNavigateToDiary() } }) {
+                        TextButton(onClick = {
+                            onTrackEvent("button_click", bundleOf("button_id" to "brew_save_to_diary"))
+                            viewModel.saveToDiary { onNavigateToDiary() }
+                        }) {
                             Text("Guardar", fontWeight = FontWeight.Bold)
                         }
                     }
                     if (step == BrewStep.RESULT) {
                         TextButton(
-                            onClick = { viewModel.saveToDiary { onNavigateToDiary() } },
+                            onClick = {
+                                onTrackEvent("button_click", bundleOf("button_id" to "brew_save_to_diary"))
+                                viewModel.saveToDiary { onNavigateToDiary() }
+                            },
                             enabled = canSaveForResult
                         ) {
                             Text("Guardar", fontWeight = FontWeight.Bold)
@@ -191,13 +203,22 @@ fun BrewLabScreen(
                         onSelectMethod = viewModel::selectMethod,
                         selectedCoffee = selectedCoffee,
                         selectedPantryItem = selectedPantryItem,
-                        onSelectCoffeeClick = onSelectCoffeeClick,
+                        onSelectCoffeeClick = {
+                            onTrackEvent("button_click", bundleOf("button_id" to "brew_select_coffee"))
+                            onSelectCoffeeClick()
+                        },
                         pantryItems = pantryItems,
                         allCoffees = allCoffees,
                         searchQuery = searchQuery,
                         onSearchQueryChange = viewModel::onSearchQueryChanged,
-                        onAddToPantryClick = onAddToPantryClick,
-                        onCreateCoffeeClick = onCreateCoffeeClick,
+                        onAddToPantryClick = {
+                            onTrackEvent("button_click", bundleOf("button_id" to "brew_add_to_pantry"))
+                            onAddToPantryClick()
+                        },
+                        onCreateCoffeeClick = {
+                            onTrackEvent("button_click", bundleOf("button_id" to "brew_create_coffee"))
+                            onCreateCoffeeClick()
+                        },
                         onCoffeeSelected = { _, _ -> },
                         drinkType = drinkType,
                         onDrinkTypeChange = viewModel::setDrinkType,

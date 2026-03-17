@@ -5,7 +5,9 @@ package com.cafesito.app.ui.search
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Bundle
 import android.content.Intent
+import androidx.core.os.bundleOf
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -356,7 +358,8 @@ fun SearchScreen(
     onCoffeeClick: (String) -> Unit,
     onProfileClick: (Int) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior? = null,
-    viewModel: SearchViewModel = hiltViewModel()
+    viewModel: SearchViewModel = hiltViewModel(),
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -434,6 +437,7 @@ fun SearchScreen(
                 filterCounts = currentFilterCounts,
                 availableFilters = availableFilters,
                 onFilterClick = { type ->
+                    onTrackEvent("modal_open", bundleOf("modal_id" to "search_filter"))
                     activeFilterType = type
                     showFilterSheet = true
                 },
@@ -529,7 +533,7 @@ fun SearchScreen(
             val screenHeight = configuration.screenHeightDp.dp
             
             ModalBottomSheet(
-                onDismissRequest = { showFilterSheet = false },
+                onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "search_filter")); showFilterSheet = false },
                 sheetState = sheetState,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 scrimColor = ScrimDefault

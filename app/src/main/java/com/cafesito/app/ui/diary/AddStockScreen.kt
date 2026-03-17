@@ -31,6 +31,8 @@ import com.cafesito.app.R
 import com.cafesito.app.camera.NativeBarcodeScannerActivity
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.search.BarcodeActionIcon
+import android.os.Bundle
+import androidx.core.os.bundleOf
 import com.cafesito.app.ui.theme.*
 import kotlin.math.roundToInt
 
@@ -41,7 +43,8 @@ fun AddStockScreen(
     onAddCustomClick: () -> Unit,
     onSuccess: () -> Unit,
     onSuccessWithCoffeeId: ((String) -> Unit)? = null,
-    viewModel: DiaryViewModel = hiltViewModel()
+    viewModel: DiaryViewModel = hiltViewModel(),
+    onTrackEvent: (String, Bundle) -> Unit = { _, _ -> }
 ) {
     val coffees by viewModel.availableCoffees.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -72,7 +75,7 @@ fun AddStockScreen(
         if (!value.isNullOrBlank()) {
             searchQuery = value
             val found = coffees.find { it.coffee.codigoBarras == value }
-            if (found != null) selectedCoffeeId = found.coffee.id
+            if (found != null) { onTrackEvent("modal_open", bundleOf("modal_id" to "add_stock_confirm")); selectedCoffeeId = found.coffee.id }
         }
     }
 
@@ -80,7 +83,7 @@ fun AddStockScreen(
     if (selectedCoffeeId != null) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
-            onDismissRequest = { if (!isSaving) selectedCoffeeId = null },
+            onDismissRequest = { if (!isSaving) { onTrackEvent("modal_close", bundleOf("modal_id" to "add_stock_confirm")); selectedCoffeeId = null } },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             shape = Shapes.sheetLarge
@@ -153,6 +156,7 @@ fun AddStockScreen(
                             grams = g,
                             onSuccess = {
                                 isSaving = false
+                                onTrackEvent("modal_close", bundleOf("modal_id" to "add_stock_confirm"))
                                 selectedCoffeeId = null
                                 onSuccessWithCoffeeId?.invoke(coffeeId)
                                 onSuccess()
@@ -231,6 +235,7 @@ fun AddStockScreen(
 
             items(filteredSuggestions, key = { it.coffee.id }) { coffeeDetails ->
                 CoffeePremiumRowItem(coffeeDetails) { 
+                    onTrackEvent("modal_open", bundleOf("modal_id" to "add_stock_confirm"))
                     selectedCoffeeId = coffeeDetails.coffee.id 
                 }
             }

@@ -2098,7 +2098,8 @@ Para garantizar que la WebApp y Android se comportan igual ante cambios en `/sha
 **Índice y gobernanza:** `/docs/README.md` — índice de toda la documentación, principio de documento vivo, reglas para evitar incompatibilidades y reducir tasa de errores.
 
 **Estructura actual:**
-*   `/docs/` (raíz): Documento Maestro (este archivo), flujos de release/deploy, planes, guías (DEVELOPMENT_WORKFLOW_AI_CURSOR, CRASH_FIX_WEEKLY, STEPs, etc.).
+*   `/docs/` (raíz): Documento Maestro (este archivo), flujos de release/deploy, planes, guías (DEVELOPMENT_WORKFLOW_AI_CURSOR, CRASH_FIX_WEEKLY, STEPs, ANALITICAS, ACCESIBILIDAD_WEBAPP_ANDROID, etc.).
+*   `/docs/gtm/`: Configuración GTM (Web/Android): guías paso a paso, referencia de contenedores; fuente de verdad de analíticas: `docs/ANALITICAS.md`.
 *   `/docs/commit-notes/`: Notas de commit por despliegue (trazabilidad).
 *   `/docs/supabase/`: SQL (RLS, triggers, migrations), Edge Functions, runbooks de Supabase, webhooks.
 *   `/docs/runbooks/`: Índice de runbooks; ver `runbooks/README.md`. Runbooks concretos en raíz (ej. CRASH_FIX_WEEKLY) o en `supabase/` según ámbito.
