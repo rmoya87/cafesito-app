@@ -78,6 +78,7 @@ object BrewEngine {
         val useRapidoApprox = (normMethod == "rapido" || normMethod == "otros") &&
             input.amountMl != null && input.amountMl > 0 && !input.drinkType.isNullOrBlank()
         if (useRapidoApprox) {
+            // amountMl y drinkType ya se han validado arriba (no nulos / no vacíos).
             return approximateCaffeineForRapido(input.amountMl!!, input.drinkType!!, input.hasCaffeine)
         }
         val grams = max(0.0, input.coffeeGrams)

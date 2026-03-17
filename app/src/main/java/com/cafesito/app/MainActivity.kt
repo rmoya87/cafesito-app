@@ -111,10 +111,10 @@ class MainActivity : ComponentActivity() {
 
     /** Extrae listId de un intent con data https://cafesitoapp.com/profile/list/{listId} (App Link / deep link en móvil). */
     private fun parseListIdFromIntent(intent: Intent?): String? {
-        val uri: Uri? = intent?.data ?: return null
-        val host = uri?.host ?: return null
+        val uri: Uri = intent?.data ?: return null
+        val host = uri.host ?: return null
         if (host != "cafesitoapp.com" && !host.endsWith(".cafesitoapp.com")) return null
-        val path = uri?.path ?: return null
+        val path = uri.path ?: return null
         // /profile/list/UUID o profile/list/UUID
         val segments = path.trim('/').split("/")
         val listIdx = segments.indexOf("list")

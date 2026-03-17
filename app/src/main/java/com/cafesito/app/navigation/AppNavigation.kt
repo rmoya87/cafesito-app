@@ -624,7 +624,10 @@ SearchScreen(
                         diaryEntryFlow = origin == "diary_entry",
                         brewLabFlow = origin == "brewlab",
                         onCoffeeCreatedForDiary = { id -> navController.previousBackStackEntry?.savedStateHandle?.set("diary_created_coffee_id", id) },
-                        onCoffeeCreatedForBrewLab = { id -> navController.getBackStackEntry("brewlab?openConsumo={openConsumo}")?.savedStateHandle?.set("brewlab_created_coffee_id", id) },
+                        onCoffeeCreatedForBrewLab = { id ->
+                            navController.getBackStackEntry("brewlab?openConsumo={openConsumo}")
+                                .savedStateHandle["brewlab_created_coffee_id"] = id
+                        },
                         onBackClick = { navigateTo ->
                             if (origin == "brewlab" && navigateTo != null) {
                                 navController.popBackStack("brewlab?openConsumo={openConsumo}", inclusive = false)
