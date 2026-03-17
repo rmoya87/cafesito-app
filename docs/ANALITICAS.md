@@ -80,6 +80,8 @@ Listas completas de `modal_id` y `button_id`: [CONTAINER_REFERENCE_WEB.md](gtm/C
 
 **Android — cargar el contenedor en la app:** Para que el contenedor móvil procese el dataLayer, hay que cargar el contenedor publicado (p. ej. descargar desde GTM, colocar en `app/src/main/res/raw/` y llamar a `TagManager.getInstance(context).loadContainerPreferNonDefault(BuildConfig.GTM_CONTAINER_ID, R.raw.gtm_container)` en el arranque de la app). Si no se carga, los eventos siguen yendo a Firebase pero GTM no los procesa.
 
+**Cookie consent (WebApp):** El envío a GA4/GTM en la WebApp depende del consentimiento del usuario. La primera vez que accede se muestra un banner con "Solo esenciales" y "Aceptar todas". Si elige **Solo esenciales**, no se carga el snippet de GTM ni se envían analíticas. Si elige **Aceptar todas**, se carga GTM y se envían todos los eventos. La decisión se guarda en `localStorage` (`cafesito_cookie_consent`) y no se vuelve a mostrar el banner. Código: `webApp/src/core/consent.ts` (getConsent/setConsent/canLoadAnalytics), `webApp/src/features/consent/CookieConsentBanner.tsx`; `main.tsx` solo llama a `initGa4()` cuando `getConsent() === 'all'`; `ga4.ts` comprueba `canLoadAnalytics()` antes de enviar cualquier evento.
+
 ---
 
 ## 6. Paridad Web / Android en GA4
@@ -100,7 +102,7 @@ Detalle en [CONTAINER_REFERENCE_WEB.md §4](gtm/CONTAINER_REFERENCE_WEB.md).
 
 | Plataforma | Inicialización | Vistas | Eventos | Usuario |
 |------------|----------------|--------|---------|--------|
-| WebApp | `main.tsx` → `initGa4()`; `ga4.ts`, `gtm.ts` | `AppContainer.tsx` → `sendPageView()` | `sendEvent()` en componentes; `gtm.ts` `pushEvent()` | `setGa4UserId()` en `AppContainer` |
+| WebApp | `main.tsx` → `initGa4()` solo si consent = "all"; `ga4.ts`, `gtm.ts`, `consent.ts` | `AppContainer.tsx` → `sendPageView()` | `sendEvent()` en componentes; `gtm.ts` `pushEvent()` | `setGa4UserId()` en `AppContainer` |
 | WebApp estáticas | — | GTM snippet en HTML + `dataLayer.push({ event: 'page_view', ... })` en cada página (landing, legal) | — | — |
 | Android | `AnalyticsModule.kt` (Firebase) | `AppNavigation.kt` → `trackScreenView(currentRoute)` | `AnalyticsHelper.trackEvent()` en pantallas | `AppSessionCoordinator` → `setUserId`; `AnalyticsHelper.setUserId()` |
 
