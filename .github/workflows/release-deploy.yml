@@ -279,7 +279,8 @@ jobs:
           git stash pop || true
 
       - name: Build release bundle
-        run: ./gradlew --no-daemon clean bundleRelease
+        # --warning-mode none: evita el resumen "Deprecated Gradle features..." al final; las deprecaciones vienen de AGP/KMP (multi-string, archives) y se corregirán al actualizar plugins.
+        run: ./gradlew --no-daemon --warning-mode none clean bundleRelease
 
       - name: Determine Play track
         id: track

@@ -30,7 +30,7 @@ class ListOptionsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val supabaseDataSource: SupabaseDataSource,
     private val userRepository: UserRepository,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val routeUserId: Int = savedStateHandle["userId"] ?: 0

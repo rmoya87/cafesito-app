@@ -61,7 +61,7 @@ data class BrewPhaseInfo(
 
 @HiltViewModel
 class BrewLabViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
     private val diaryRepository: DiaryRepository,
     private val coffeeRepository: CoffeeRepository
 ) : ViewModel() {

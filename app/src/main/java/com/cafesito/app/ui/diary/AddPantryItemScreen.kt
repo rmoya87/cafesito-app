@@ -157,8 +157,12 @@ fun AddPantryItemScreen(
         unfocusedContainerColor = fieldBackground,
         focusedContainerColor = fieldBackground
     )
-    val countries = remember { 
-        Locale.getISOCountries().map { Locale.Builder().setRegion(it).build().getDisplayCountry(Locale.forLanguageTag("es")) }.sorted() 
+    val countries = remember {
+        Locale.getISOCountries()
+            .map { code ->
+                Locale.Builder().setRegion(code).build().getDisplayCountry(Locale.forLanguageTag("es"))
+            }
+            .sorted()
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current

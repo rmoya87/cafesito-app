@@ -40,6 +40,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 16. [Elaboración Android y WebApp — chips, carruseles, márgenes, Selecciona café como página (13–14 mar 2026)](#16-elaboración-android-y-webapp--chips-carruseles-márgenes-selecciona-café-como-página-1314-mar-2026)
 17. [Resumen de cambios — despensa, diario, deploy, CI (15–16 mar 2026)](#17-resumen-de-cambios--despensa-diario-deploy-ci-1516-mar-2026)
 18. [Resumen de cambios — notificaciones elaboración, consumo, actividades, WebApp (17 mar 2026)](#18-resumen-de-cambios--notificaciones-elaboración-consumo-actividades-webapp-17-mar-2026)
+19. [Error Play: Foreground Service permissions (subida AAB)](#27-error-al-subir-a-play-you-must-let-us-know-whether-your-app-uses-any-foreground-service-permissions)
 
 ---
 
@@ -160,6 +161,29 @@ Cannot find name 'setDiarySelectedPantryItemIdDraft'.
 **Solución:** En el job `release-android`, paso "Generate release notes": se usa `git log refSince..HEAD -- <paths>` con las rutas Android para filtrar commits; la referencia `refSince` es el último tag de **producción** (si existe y es ancestro de HEAD), y si no hay producción se usa el de la pista actual (beta/alpha). Los mensajes de commit se transforman con una función `toFriendly()` que elimina prefijos técnicos y convierte a frases tipo "Mejoras en tu despensa de café", "Retoques en tu diario", "Corregimos detalles para que todo vaya mejor", etc. Título de la sección: "¿Qué hay de nuevo?".
 
 **Archivos:** `.github/workflows/release-deploy.yml`; `docs/RELEASE_DEPLOY_WORKFLOW.md` (descripción de las notas).
+
+---
+
+### 2.7 Error al subir a Play: "You must let us know whether your app uses any Foreground Service permissions"
+
+**Síntoma:** El step "Upload to Google Play" (r0adkll/upload-google-play@v1) falla con:
+
+```text
+Error: You must let us know whether your app uses any Foreground Service permissions.
+```
+
+**Causa:** La app declara y usa un **Foreground Service** (Brew Lab: timer de elaboración en primer plano con `FOREGROUND_SERVICE_SPECIAL_USE`). Para apps que targetean Android 14+, Google Play exige que el desarrollador **declare en la consola** los tipos de foreground service utilizados y el impacto para el usuario. No es un fallo del workflow ni de la acción; es un requisito de política de Play.
+
+**Solución (una vez por app):**
+
+1. **Play Console** → Tu app → **Contenido de la app** (en el menú: Monitor and improve → App content).
+2. Buscar la sección **"Foreground service"** o **"Permissions for Foreground Services"** / declaración de tipos de FGS.
+3. **Declarar el tipo** que usa la app: **Special use** (`TYPE_SPECIAL_USE`), con la descripción que ya está en el manifest:
+   - *"Timer de elaboración de café en curso: muestra tiempo restante y permite pausar/cancelar desde la notificación."*
+4. Donde pida **impacto para el usuario** si la tarea es interrumpida o diferida por el sistema, indicar por ejemplo: si se interrumpe, el temporizador se detiene y el usuario puede reanudarlo desde la notificación o desde la app; si se difiere, el temporizador no arranca hasta que el sistema lo permita.
+5. **Si el formulario no aparece:** Hacer una **subida manual** del AAB desde Play Console (Crear nueva versión → Subir AAB). Tras esa primera subida, la declaración de foreground service suele quedar disponible; completarla y guardar. A partir de entonces, las subidas vía GitHub Actions (r0adkll/upload-google-play) deberían funcionar sin ese error.
+
+**Referencias:** [Issue #232 r0adkll/upload-google-play](https://github.com/r0adkll/upload-google-play/issues/232); [Play Console Help - Foreground service and full-screen intent](https://support.google.com/googleplay/android-developer/answer/13392821).
 
 ---
 

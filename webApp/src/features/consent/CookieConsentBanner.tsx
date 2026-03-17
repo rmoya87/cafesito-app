@@ -18,10 +18,10 @@ export function CookieConsentBanner({ isAuthenticated }: { isAuthenticated: bool
   const assetBase = getAppAssetBase();
   const privacyHref = assetBase + PRIVACY_URL;
 
-  // Si el usuario está autenticado y no ha elegido aún (consent === null), asumir "all". No sobrescribir "essential".
+  // Si el usuario está autenticado y aún no hay consentimiento completo, asumir "all" automáticamente.
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (consent !== null) return;
+    if (consent === "all") return;
     setConsent("all");
     setConsentState("all");
     initGa4();
