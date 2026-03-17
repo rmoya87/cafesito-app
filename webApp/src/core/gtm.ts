@@ -97,7 +97,7 @@ export function pushUserId(userId: string | null): void {
   if (typeof window === "undefined" || !window.dataLayer) return;
   window.dataLayer.push({
     event: "set_user_id",
-    user_id: userId ?? undefined
+    user_id: userId ?? ""
   });
 }
 
