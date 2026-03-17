@@ -61,7 +61,7 @@
 | Servicio | Uso | Configuración | Dónde |
 |----------|-----|----------------|-------|
 | **Supabase** | Backend: PostgREST, Auth (Google OAuth / PKCE), Realtime (notificaciones), Storage | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (o `__SUPABASE_URL__`/`__SUPABASE_ANON_KEY__` en build) | `webApp/src/supabase.ts` |
-| **Google Analytics 4 (GA4)** | Eventos de página y uso (page_view por ruta SPA) | `VITE_GA4_MEASUREMENT_ID` (por defecto `G-BMZEQNRKR4`) | `webApp/src/core/ga4.ts` |
+| **Google Analytics 4 (GA4)** | Eventos de página y uso vía GTM (page_view por ruta SPA y estáticas) | `VITE_GTM_CONTAINER_ID` (GTM-WLXN93VK); GA4 en el contenedor | `webApp/src/core/ga4.ts`, `webApp/src/core/gtm.ts` |
 
 La WebApp **no** usa Firebase Cloud Messaging (es web; las notificaciones push nativas son solo Android/iOS). El envío de notificaciones a otros usuarios se hace vía RPC `create_notification` o insert en `notifications_db`; la Edge Function envía el push a FCM para clientes móviles.
 

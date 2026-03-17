@@ -49,10 +49,10 @@ Con GTM activo, ambos envían al **mismo GA4** (User-ID unificado, user property
 
 | Qué | WebApp | Android |
 |-----|--------|---------|
-| **Producto** | GA4 (vía GTM si `VITE_GTM_CONTAINER_ID`) o gtag directo | Firebase Analytics + dataLayer GTM si `GTM_CONTAINER_ID` |
+| **Producto** | GA4 vía GTM (contenedor `VITE_GTM_CONTAINER_ID`); no se usa gtag directo | Firebase Analytics + dataLayer GTM si `GTM_CONTAINER_ID` |
 | **Vistas** | `page_view` (`page_path`, `page_title`, `page_location`); GTM puede enviar además `screen_view` para paridad | `screen_view` (`screen_name`, `screen_class`) |
 | **Eventos custom** | `set_user_id`, `modal_open`, `modal_close`, `button_click`, `carousel_nav` (vía dataLayer) | Los mismos + `login_success`, `profile_completed`, `notification_action_*` |
-| **Usuario** | `setGa4UserId(id)` → evento `set_user_id` en dataLayer / gtag | `setUserId(id)` + push `set_user_id` al dataLayer |
+| **Usuario** | `setGa4UserId(id)` → evento `set_user_id` en dataLayer (GTM envía a GA4) | `setUserId(id)` + push `set_user_id` al dataLayer |
 | **Plataforma** | User property `platform` = `"web"` | User property `platform` = `"android"` |
 | **PWA** | `?pwa=1` en `page_path` y `page_location` | N/A |
 
@@ -65,7 +65,7 @@ Listas completas de `modal_id` y `button_id`: [CONTAINER_REFERENCE_WEB.md](gtm/C
 - **User-ID:** Admin → Recogida de datos → Recogida de User-ID activada para que el mismo usuario se reconozca desde web y Android.
 - **Plataforma:** Crear en GA4 una **dimensión personalizada de ámbito usuario** para la user property `platform` (segmentar informes y audiencias).
 - **Vinculación Firebase ↔ GA4:** Los eventos de la app Android llegan a la misma propiedad GA4 que la web.
-- **Eventos:** No es necesario crear los eventos en GA4 de antemano. Cualquier evento que GTM (o gtag) envíe a la propiedad se registra automáticamente. En GA4 solo se configura opcionalmente: marcar algunos como conversión, dimensiones personalizadas para parámetros, o eventos personalizados derivados (para audiencias e informes).
+- **Eventos:** No es necesario crear los eventos en GA4 de antemano. Cualquier evento que GTM envíe a la propiedad se registra automáticamente. En GA4 solo se configura opcionalmente: marcar algunos como conversión, dimensiones personalizadas para parámetros, o eventos personalizados derivados (para audiencias e informes).
 
 ---
 
@@ -101,7 +101,7 @@ Detalle en [CONTAINER_REFERENCE_WEB.md §4](gtm/CONTAINER_REFERENCE_WEB.md).
 | Plataforma | Inicialización | Vistas | Eventos | Usuario |
 |------------|----------------|--------|---------|--------|
 | WebApp | `main.tsx` → `initGa4()`; `ga4.ts`, `gtm.ts` | `AppContainer.tsx` → `sendPageView()` | `sendEvent()` en componentes; `gtm.ts` `pushEvent()` | `setGa4UserId()` en `AppContainer` |
-| WebApp estáticas | — | `public/ga4-static.js` + `__GA4_PAGE__` en cada HTML | — | — |
+| WebApp estáticas | — | GTM snippet en HTML + `dataLayer.push({ event: 'page_view', ... })` en cada página (landing, legal) | — | — |
 | Android | `AnalyticsModule.kt` (Firebase) | `AppNavigation.kt` → `trackScreenView(currentRoute)` | `AnalyticsHelper.trackEvent()` en pantallas | `AppSessionCoordinator` → `setUserId`; `AnalyticsHelper.setUserId()` |
 
 **Rutas (page_path) y screen_name Web:** Definidas en `webApp/src/core/routing.ts` (`buildRoute`, `normalizePathToScreenName`). El `page_view` enviado por `gtm.ts` incluye `screen_name` normalizado para la etiqueta GA4 - screen_view. Tabla de rutas en §8.
@@ -223,7 +223,7 @@ En **Exploración** (Informes o Exploración), usar como **segmento**:
 | Plataforma | Archivo | Uso |
 |------------|---------|-----|
 | WebApp | `webApp/src/core/gtm.ts` | `initGtm()`, `pushPageView()`, `pushUserId()`, `pushEvent()`. |
-| WebApp | `webApp/src/core/ga4.ts` | `initGa4()`, `sendPageView()`, `setGa4UserId()`, `sendEvent()` (gtag o dataLayer). |
+| WebApp | `webApp/src/core/ga4.ts` | `initGa4()` (inicializa GTM), `sendPageView()`, `setGa4UserId()`, `sendEvent()` (todos vía dataLayer; GA4 se configura en GTM). |
 | WebApp | `webApp/src/app/AppContainer.tsx` | `sendPageView(gaPagePath, pageTitle)`, `setGa4UserId()`. |
 | Android | `app/.../analytics/AnalyticsHelper.kt` | `trackScreenView()`, `trackEvent()`, `setUserId()`, push al dataLayer GTM. |
 | Android | `app/.../navigation/AppNavigation.kt` | `trackScreenView(currentRoute)`, `onTrackEvent` en pantallas. |

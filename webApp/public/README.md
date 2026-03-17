@@ -14,4 +14,4 @@ Cualquier usuario puede acceder a estas URLs. No requieren inicio de sesión.
 Al añadir nuevas páginas HTML públicas:
 
 1. Mantener **accesibilidad** (ver `docs/ACCESIBILIDAD_WEBAPP_ANDROID.md`, sección 2.1).
-2. Añadir **analíticas** GA4 con `ga4-static.js` (ver `docs/ANALITICAS.md`).
+2. Añadir **analíticas** vía GTM: snippet en head + noscript en body + script que haga `dataLayer.push({ event: 'page_view', page_path, page_title, page_location, screen_name })` (ver `docs/ANALITICAS.md`).
