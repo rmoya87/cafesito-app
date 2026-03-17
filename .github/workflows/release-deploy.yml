@@ -501,7 +501,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
-          VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID || secrets.VITE_GA4_MEASUREMENT_ID || '' }}
+          VITE_GTM_CONTAINER_ID: ${{ vars.VITE_GTM_CONTAINER_ID || secrets.VITE_GTM_CONTAINER_ID || 'GTM-WLXN93VK' }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID || '' }}
 
       - name: Save nightly queue payload

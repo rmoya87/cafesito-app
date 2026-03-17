@@ -100,22 +100,21 @@ Aunque tu `webApp/.env` tenga los mismos datos que producción, **Supabase debe 
 
 **Clave anon**: La anon key de Supabase suele ser un JWT largo que empieza por `eyJ...`. Si en tu `.env` usas otro formato y el login falla, copia la clave desde **Supabase → Settings → API → Project API keys → anon public**.
 
-### Google Analytics 4 (GA4): que registre datos
+### Google Analytics 4 (GA4) vía GTM: que registre datos
+
+Las analíticas van solo por **Google Tag Manager** (GTM). El snippet de GTM está en `index.html` y en las páginas estáticas (landing, legal). La app envía eventos al `dataLayer`; GA4 se configura en el contenedor GTM.
 
 Si en GA4 no aparece ningún evento o página:
 
-1. **ID de medición**  
-   La app usa la variable de entorno `VITE_GA4_MEASUREMENT_ID`. Si no está definida, no se carga el script ni se envía nada a GA4.
+1. **Contenedor GTM**  
+   La app usa `VITE_GTM_CONTAINER_ID` (por defecto `GTM-WLXN93VK`). Si no está definida, las llamadas a `sendPageView` / `sendEvent` no envían nada al dataLayer (el snippet del HTML sigue cargando GTM).
 
-2. **Dónde está el ID en GA4**  
-   En **Google Analytics** → **Admin** → **Flujo de datos** (o **Data streams**) → tu flujo web → **ID de medición**. Tiene el formato `G-XXXXXXXXX`.
+2. **Configuración**  
+   - **En local:** en `webApp/.env` puedes añadir `VITE_GTM_CONTAINER_ID=GTM-WLXN93VK` para que la app envíe eventos al dataLayer.  
+   - **En producción (GitHub Actions):** el workflow usa la variable `VITE_GTM_CONTAINER_ID` (o el valor por defecto). Asegúrate de que el contenedor GTM esté publicado y que las etiquetas GA4 estén configuradas según `docs/gtm/GUIA_PASO_A_PASO_WEB.md`.
 
-3. **Configuración**  
-   - **En local:** en `webApp/.env` añade por ejemplo `VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXX` (sustituye por tu ID). Reinicia `npm run dev`.  
-   - **En producción (GitHub Actions):** en el repo **Settings → Secrets and variables → Actions** añade una **Variable** (o Secret) `VITE_GA4_MEASUREMENT_ID` con el valor `G-XXXXXXXXX`. En el siguiente deploy el build incluirá ese ID y GA4 empezará a recibir eventos.
-
-4. **Comprobar**  
-   Con el ID configurado, abre la web, cambia de sección (timeline, explorar, etc.) y en GA4 → **Informes** → **Tiempo real** deberían aparecer usuarios y páginas vistas al cabo de unos segundos.
+3. **Comprobar**  
+   Abre la web, cambia de sección (timeline, explorar, etc.) y en GA4 → **Informes** → **Tiempo real** deberían aparecer usuarios y páginas vistas al cabo de unos segundos (los datos llegan vía GTM).
 
 ### CSP y fuente externa
 

@@ -40,7 +40,9 @@ function ensureDataLayer(): void {
 }
 
 /**
- * Inyecta el script de GTM y deja dataLayer listo. Llamar al arranque si hay container ID.
+ * Inicializa GTM: asegura dataLayer y envía gtm_platform_ready.
+ * Si el snippet de GTM ya está en index.html (head/body), no inyecta el script de nuevo.
+ * Si no (p. ej. desarrollo sin snippet), inyecta gtm.js cuando hay container ID.
  * No carga en localhost ni sin red.
  */
 export function initGtm(): void {
@@ -54,6 +56,8 @@ export function initGtm(): void {
     event: "gtm_platform_ready"
   });
   const id = GTM_CONTAINER_ID;
+  const alreadyInPage = typeof document !== "undefined" && document.querySelector(`script[src*="googletagmanager.com/gtm.js"]`);
+  if (alreadyInPage) return;
   const script = document.createElement("script");
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(id)}`;
