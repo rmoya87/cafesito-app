@@ -88,7 +88,8 @@ class ProfileViewModel @Inject constructor(
     private val reviewRepository: ReviewRepository,
     private val supabaseDataSource: SupabaseDataSource,
     private val syncManager: SyncManager,
-    private val connectivityObserver: ConnectivityObserver
+    private val connectivityObserver: ConnectivityObserver,
+    private val listActivityRemovalBus: ListActivityRemovalBus
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
 
@@ -268,6 +269,16 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             uiState.collect { state ->
                 if (state is ProfileUiState.Success) refreshProfileActivity(state)
+            }
+        }
+        viewModelScope.launch {
+            listActivityRemovalBus.removals.collect { (listId, coffeeId) ->
+                _profileActivityItems.update { items ->
+                    items.filterNot {
+                        it is ProfileActivityItem.AddedToList &&
+                            it.listId == listId && it.coffeeId == coffeeId
+                    }
+                }
             }
         }
     }

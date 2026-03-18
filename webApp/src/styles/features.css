@@ -1209,6 +1209,58 @@ html.theme-light .topbar-share-list-btn .topbar-share-list-icon {
   color: var(--text-subtle);
 }
 
+/* Pantalla Unirse a la lista (enlace compartido) */
+.join-list-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 24px var(--app-shell-gutter);
+}
+.join-list-view-card {
+  max-width: 360px;
+  width: 100%;
+  padding: 24px;
+  border-radius: var(--surface-card-radius);
+  background: var(--surface);
+  border: var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
+  text-align: center;
+}
+.join-list-view-icon {
+  margin-bottom: 16px;
+  color: var(--text-subtle);
+  font-size: 2rem;
+}
+.join-list-view-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: var(--text-main);
+}
+.join-list-view-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--text-main);
+}
+.join-list-view-owner {
+  font-size: 0.9375rem;
+  color: var(--text-subtle);
+  margin: 0 0 24px;
+}
+.join-list-view-join-btn {
+  width: 100%;
+  margin-bottom: 12px;
+}
+.join-list-view-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-subtle);
+}
+
 /* Sección Miembros: cuadrado negro, buscador, copiar enlace, lista con swipe */
 .list-options-members {
   margin-bottom: 16px;
@@ -10381,6 +10433,20 @@ html.theme-dark .diary-day-header.is-today {
 .add-to-list-sheet .sheet-title {
   font-size: 1.1rem;
   font-weight: 600;
+}
+.add-to-list-sheet .sheet-title.add-to-list-sheet-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-inline: 4.5rem;
+}
+.add-to-list-sheet .add-to-list-row.is-readonly {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+.add-to-list-readonly-hint {
+  font-weight: 400;
+  color: var(--text-subtle);
 }
 .add-to-list-sheet .modal-action-btn {
   flex-shrink: 0;

@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { EMPTY } from "../../core/emptyErrorStrings";
 import { sendEvent } from "../../core/ga4";
@@ -40,8 +40,10 @@ export function CoffeeDetailView({
   fullPage,
   externalOpenStockSignal,
   userLists = [],
+  listIdsContainingCoffee = [],
   onCreateList,
-  onAddCoffeeToList
+  onApplyListMembership,
+  onRefreshAddToListModal
 }: {
   coffee: CoffeeRow;
   reviews: Array<CoffeeReviewRow & { user: UserRow | null }>;
@@ -76,8 +78,16 @@ export function CoffeeDetailView({
   fullPage: boolean;
   externalOpenStockSignal: number;
   userLists?: UserListRow[];
+  /** IDs de listas en las que ya está este café (para marcar check en listas editables). */
+  listIdsContainingCoffee?: string[];
   onCreateList?: (name: string, privacy: ListPrivacy) => Promise<void>;
-  onAddCoffeeToList?: (listId: string) => Promise<void>;
+  onApplyListMembership?: (opts: {
+    addListIds: string[];
+    removeListIds: string[];
+    favoriteTarget: boolean;
+  }) => Promise<void>;
+  /** Al abrir el modal: refrescar listas y qué listas contienen este café (dueño/listas por invitación). */
+  onRefreshAddToListModal?: () => Promise<void>;
 }) {
   const ADD_TO_LIST_FAVORITES_ID = "__favorites";
   const [showSensorySheet, setShowSensorySheet] = useState(false);
@@ -96,9 +106,47 @@ export function CoffeeDetailView({
   const [showCreateListInModal, setShowCreateListInModal] = useState(false);
   const [addToListSelectedIds, setAddToListSelectedIds] = useState<Set<string>>(new Set());
   const [addToListSaving, setAddToListSaving] = useState(false);
+  const addToListInitialRef = useRef<Set<string>>(new Set());
+  const addToListUserEditedRef = useRef(false);
+
+  const normListId = (id: string) => String(id ?? "").trim().toLowerCase();
+  const listRowContainsCoffee = (listId: string) =>
+    listIdsContainingCoffee.some((lid) => normListId(lid) === normListId(listId));
+
+  /** userLists en detalle = solo listas editables (AppContainer filtra). */
+  const syncAddToListSelectionFromServer = () => {
+    if (!currentUser?.id) return;
+    const next = new Set<string>();
+    for (const list of userLists) {
+      if (listRowContainsCoffee(list.id)) next.add(list.id);
+    }
+    if (isFavorite) next.add(ADD_TO_LIST_FAVORITES_ID);
+    addToListInitialRef.current = new Set(next);
+    setAddToListSelectedIds(new Set(next));
+  };
+
+  const openAddToListModal = () => {
+    if (!currentUser?.id) return;
+    addToListUserEditedRef.current = false;
+    syncAddToListSelectionFromServer();
+    setShowAddToListModal(true);
+  };
+
   useEffect(() => {
-    if (showAddToListModal) setAddToListSelectedIds(new Set());
-  }, [showAddToListModal]);
+    if (!showAddToListModal || !currentUser?.id || addToListUserEditedRef.current) return;
+    syncAddToListSelectionFromServer();
+  }, [listIdsContainingCoffee, isFavorite, currentUser?.id, showAddToListModal]);
+
+  const addToListHasChanges = useMemo(() => {
+    const init = addToListInitialRef.current;
+    const listPart = (s: Set<string>) => [...s].filter((id) => id !== ADD_TO_LIST_FAVORITES_ID);
+    const a = new Set(listPart(init));
+    const b = new Set(listPart(addToListSelectedIds));
+    if (a.size !== b.size || [...a].some((id) => !b.has(id))) return true;
+    const initFav = init.has(ADD_TO_LIST_FAVORITES_ID);
+    const curFav = addToListSelectedIds.has(ADD_TO_LIST_FAVORITES_ID);
+    return initFav !== curFav;
+  }, [addToListSelectedIds, showAddToListModal]);
 
   useEffect(() => {
     setCurrentUserAvatarFailed(false);
@@ -177,7 +225,7 @@ export function CoffeeDetailView({
                   return;
                 }
                 sendEvent("modal_open", { modal_id: "add_to_list" });
-                setShowAddToListModal(true);
+                openAddToListModal();
               }}
             >
               <UiIcon name={(isListActive ?? isFavorite) ? "list-alt-check" : "list-alt-add"} className="ui-icon" />
@@ -928,29 +976,34 @@ export function CoffeeDetailView({
               >
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header sheet-header-with-action">
-                  <strong className="sheet-title">Añadir a lista</strong>
+                  <strong className="sheet-title add-to-list-sheet-title">Añadir a lista</strong>
                   <Button
                     variant="plain"
                     className="modal-action-btn"
-                    disabled={addToListSelectedIds.size === 0 || addToListSaving}
+                    disabled={!addToListHasChanges || addToListSaving || !onApplyListMembership}
                     onClick={async () => {
-                      if (addToListSelectedIds.size === 0) return;
+                      if (!onApplyListMembership || !addToListHasChanges || !currentUser?.id) return;
+                      const init = addToListInitialRef.current;
+                      const addListIds: string[] = [];
+                      const removeListIds: string[] = [];
+                      for (const list of userLists) {
+                        const was = init.has(list.id);
+                        const now = addToListSelectedIds.has(list.id);
+                        if (!was && now) addListIds.push(list.id);
+                        if (was && !now) removeListIds.push(list.id);
+                      }
+                      const favoriteTarget = addToListSelectedIds.has(ADD_TO_LIST_FAVORITES_ID);
                       setAddToListSaving(true);
                       try {
-                        for (const id of addToListSelectedIds) {
-                          if (id === ADD_TO_LIST_FAVORITES_ID) {
-                            if (!isFavorite) onToggleFavorite();
-                          } else {
-                            await (onAddCoffeeToList?.(id) ?? Promise.resolve());
-                          }
-                        }
+                        await onApplyListMembership({ addListIds, removeListIds, favoriteTarget });
+                        sendEvent("modal_close", { modal_id: "add_to_list" });
                         setShowAddToListModal(false);
                       } finally {
                         setAddToListSaving(false);
                       }
                     }}
                   >
-                    {addToListSaving ? "Añadiendo…" : "Añadir"}
+                    {addToListSaving ? "Aplicando…" : "Aplicar"}
                   </Button>
                 </header>
                 <div className="diary-sheet-list">
@@ -973,7 +1026,9 @@ export function CoffeeDetailView({
                         key={list.id}
                         variant="plain"
                         className={`diary-sheet-action diary-sheet-action-pantry add-to-list-row ${checked ? "is-checked" : ""}`.trim()}
+                        aria-label={`${checked ? "Quitar de" : "Añadir a"} ${list.name}`}
                         onClick={() => {
+                          addToListUserEditedRef.current = true;
                           setAddToListSelectedIds((prev) => {
                             const next = new Set(prev);
                             if (next.has(list.id)) next.delete(list.id);
@@ -990,7 +1045,7 @@ export function CoffeeDetailView({
                           )}
                         </span>
                         <UiIcon name="list-alt" className="ui-icon" />
-                        <span>{list.name}</span>
+                        <span className="add-to-list-row-label">{list.name}</span>
                       </Button>
                     );
                   })}
@@ -998,6 +1053,7 @@ export function CoffeeDetailView({
                     variant="plain"
                     className={`diary-sheet-action diary-sheet-action-pantry add-to-list-row ${isFavorite ? "is-active" : ""} ${addToListSelectedIds.has(ADD_TO_LIST_FAVORITES_ID) ? "is-checked" : ""}`.trim()}
                     onClick={() => {
+                      addToListUserEditedRef.current = true;
                       setAddToListSelectedIds((prev) => {
                         const next = new Set(prev);
                         if (next.has(ADD_TO_LIST_FAVORITES_ID)) next.delete(ADD_TO_LIST_FAVORITES_ID);

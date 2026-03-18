@@ -134,10 +134,13 @@ fun DetailScreen(
                         sensoryEditorsCount = state.sensoryEditorsCount,
                         allUsers = allUsers,
                         userLists = state.userLists,
+                        listIdsContainingCoffee = state.listIdsContainingCoffee,
                         isListActive = state.isListActive,
                         isFavorite = state.isFavorite,
+                        currentUserId = state.activeUser?.id ?: 0,
                         onCreateList = { name, privacy, membersCanEdit -> viewModel.createList(name, privacy, membersCanEdit) },
-                        onAddCoffeeToList = { viewModel.addCoffeeToList(it) }
+                        onApplyAddToList = { add, remove, fav -> viewModel.applyAddToListModal(add, remove, fav) },
+                        onRefreshAddToListModal = { viewModel.refreshForAddToListModal() }
                     )
                 }
             }
@@ -165,10 +168,13 @@ private fun DetailContent(
     sensoryEditorsCount: Int,
     allUsers: List<UserEntity>,
     userLists: List<com.cafesito.app.data.UserListRow> = emptyList(),
+    listIdsContainingCoffee: Set<String> = emptySet(),
     isListActive: Boolean = false,
     isFavorite: Boolean = false,
+    currentUserId: Int = 0,
     onCreateList: (name: String, privacy: String, membersCanEdit: Boolean) -> Unit = { _, _, _ -> },
-    onAddCoffeeToList: (listId: String) -> Unit = {}
+    onApplyAddToList: (add: Set<String>, remove: Set<String>, favoriteShouldBe: Boolean) -> Unit = { _, _, _ -> },
+    onRefreshAddToListModal: () -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
     val coffee = coffeeDetails.coffee
@@ -178,7 +184,15 @@ private fun DetailContent(
     var showStockDialog by remember { mutableStateOf(false) }
     var showSensoryEditor by remember { mutableStateOf(false) }
     var showAddToListModal by remember { mutableStateOf(false) }
+    LaunchedEffect(showAddToListModal) {
+        if (showAddToListModal) onRefreshAddToListModal()
+    }
     var showCreateListSheet by remember { mutableStateOf(false) }
+    val userListsForAddModal = remember(userLists, currentUserId) {
+        userLists.filter { list ->
+            list.userId == currentUserId.toLong() || list.membersCanEdit == true
+        }
+    }
 
     if (showAddReviewDialog) {
         ReviewBottomSheet(
@@ -248,7 +262,9 @@ private fun DetailContent(
     if (showAddToListModal) {
         com.cafesito.app.ui.components.AddToListBottomSheet(
             onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list")); showAddToListModal = false },
-            userLists = userLists,
+            currentUserId = currentUserId,
+            userLists = userListsForAddModal,
+            listIdsContainingCoffee = listIdsContainingCoffee,
             isFavorite = isFavorite,
             onCreateListRequest = {
                 onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list"))
@@ -256,12 +272,10 @@ private fun DetailContent(
                 showAddToListModal = false
                 showCreateListSheet = true
             },
-            onAddToList = { listId ->
-                onAddCoffeeToList(listId)
+            onApply = { toAdd, toRemove, favoriteShouldBe ->
+                onApplyAddToList(toAdd, toRemove, favoriteShouldBe)
                 onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list"))
-            },
-            onFavoriteToggle = {
-                onFavoriteToggle(true)
+                showAddToListModal = false
             }
         )
     }

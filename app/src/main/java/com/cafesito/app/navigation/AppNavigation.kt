@@ -174,17 +174,21 @@ fun AppNavigation(
         onShortcutConsumed()
     }
 
-    // Deep link lista compartida: tras login, abrir profile/ownerId/list/listId (mismo flujo que web)
+    // Deep link lista compartida: si ya es miembro/dueño → profile/ownerId/list/listId; si no → pantalla Unirse
     LaunchedEffect(deepLinkListId, sessionState) {
         val listId = deepLinkListId ?: return@LaunchedEffect
         if (sessionState !is SessionState.Authenticated) return@LaunchedEffect
         delay(400) // Dejar que LoginScreen navegue a home antes de ir a la lista
-        val ownerId = deepLinkViewModel.getListOwnerId(listId) ?: run {
-            onDeepLinkListConsumed()
-            return@LaunchedEffect
+        val ownerId = deepLinkViewModel.getListOwnerId(listId)
+        if (ownerId != null) {
+            navController.navigate("profile/$ownerId") { launchSingleTop = true }
+            navController.navigate("profile/$ownerId/list/$listId")
+        } else {
+            val joinInfo = deepLinkViewModel.getListInfoForJoin(listId)
+            if (joinInfo != null) {
+                navController.navigate("listJoin/$listId") { launchSingleTop = true }
+            }
         }
-        navController.navigate("profile/$ownerId") { launchSingleTop = true }
-        navController.navigate("profile/$ownerId/list/$listId")
         onDeepLinkListConsumed()
     }
 
@@ -731,6 +735,22 @@ SearchScreen(
                         },
                         onOpenListOptions = { navController.navigate("profile/$userId/list/$listId/options") },
                         viewModel = hiltViewModel(listBackStackEntry)
+                    )
+                }
+
+                composable(
+                    route = "listJoin/{listId}",
+                    arguments = listOf(navArgument("listId") { type = NavType.StringType })
+                ) { joinBackStackEntry ->
+                    ListJoinScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onJoinSuccess = { ownerId ->
+                            val listId = joinBackStackEntry.arguments?.getString("listId") ?: return@ListJoinScreen
+                            navController.popBackStack()
+                            navController.navigate("profile/$ownerId") { launchSingleTop = true }
+                            navController.navigate("profile/$ownerId/list/$listId")
+                        },
+                        viewModel = hiltViewModel(joinBackStackEntry)
                     )
                 }
 

@@ -103,7 +103,7 @@ Resumen por tabla/RPC y si hay caché local (Room).
 | **Historial** | `pantry_historical` | `getFinishedCoffees`, `insertFinishedCoffee` | Sí |
 | **Notificaciones** | `notifications_db` + RPCs | `insertNotification` (RPC `create_notification` o insert), `getNotificationsForUser` (RPC `get_notifications_for_user` o select), `markNotificationRead`, `markAllNotificationsRead`, `deleteNotification` | Sí (UserRepository/notifications) |
 | **Listas** | `user_lists`, `user_list_items`, `user_list_members`, `user_list_invitations` | `getUserLists`, `getUserListById`, `getSharedWithMeLists`, `createUserList`/`createUserListWithPrivacy`, `getUserListItems`, `getListItemsWithMetaForUser`, `addUserListItem`, `removeUserListItem`, `updateUserList`/`updateUserListWithPrivacy`, `leaveList`, `fetchListMembersByListId`, `fetchListInvitationsByListId`, `deleteUserList`, `getCoffeeIdsInUserLists` | No (solo remoto o en memoria) |
-| **Invitaciones listas** | RPCs | `createListInvitation`, `acceptListInvitation`, `declineListInvitation`, `joinPublicList` | No |
+| **Invitaciones listas** | RPCs | `createListInvitation`, `acceptListInvitation`, `declineListInvitation`, `joinPublicList`, `getListInfoForJoin`, `joinListByLink` | No |
 
 ### 3.2.1 Realtime (Android) — solución unificada
 
@@ -156,7 +156,7 @@ Resumen por tabla/RPC y si hay caché local (Room).
 | **Seguimientos** | follows | `toggleFollow` (select + insert/delete) | No |
 | **Favoritos** | local_favorites | `toggleFavoriteCoffee` | No |
 | **Listas** | user_lists, user_list_items, user_list_members, user_list_invitations | `fetchUserListById`, `fetchUserLists`, `fetchSharedWithMeLists`, `createUserList`, `updateUserList`/`updateUserListWithPrivacy`, `fetchUserListItems`, `addUserListItem`, `removeUserListItem`, `fetchListMembersByListId`, `fetchListInvitationsByListId`, `deleteUserList`, `fetchCoffeeIdsInUserLists`, `fetchCoffeeIdsInLists` | No |
-| **Invitaciones** | RPCs | `createListInvitation`, `acceptListInvitation`, `declineListInvitation`, `joinPublicList`, `leaveList` | No |
+| **Invitaciones / unirse por enlace** | RPCs | `createListInvitation`, `acceptListInvitation`, `declineListInvitation`, `joinPublicList`, `fetchListInfoForJoin`, `joinListByLink`, `leaveList` | No |
 | **Reseñas y sensorial** | reviews_db, coffee_sensory_profiles | `upsertCoffeeReview`, `deleteCoffeeReview`, `upsertCoffeeSensoryProfile` | No |
 | **Despensa** | pantry_items, pantry_historical | `insertPantryItem`, `updatePantryItem`, `deletePantryItemById`, `insertFinishedCoffee` | No |
 | **Cafés** | coffees | `upsertCustomCoffee` (insert/upsert) | No |

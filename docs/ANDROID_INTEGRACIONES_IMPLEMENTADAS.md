@@ -1,7 +1,7 @@
 # Integraciones Android implementadas (Cafesito)
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-18  
+**Última actualización:** 2026-03-19  
 **Ámbito:** Android (Kotlin, Jetpack Compose). Registro de integraciones nativas ya implementadas en la app.
 
 ---
@@ -53,12 +53,17 @@ Este documento es la **fuente de verdad** de las integraciones Android que ya es
 
 ---
 
-## 5. App Links / Deep links
+## 5. App Links / Deep links (listas y unirse por enlace)
 
 **Estado:** ✅ Implementado.
 
 - **Manifest:** `MainActivity` con `intent-filter` `android:autoVerify="true"` para `https://cafesitoapp.com` (pathPrefix `/`).
-- **Código:** `MainActivity.parseListIdFromIntent()` extrae `listId` de la URI; `DeepLinkViewModel.getListOwnerId(listId)`; `AppNavigation` navega a `profile/{ownerId}/list/{listId}` cuando hay sesión.
+- **Rutas URL:** `https://cafesitoapp.com/profile/list/{listId}` y `https://cafesitoapp.com/lists/join/{listId}` (`MainActivity.parseListIdFromIntent()`).
+- **Usuario ya miembro o dueño:** `DeepLinkViewModel.getListOwnerId(listId)` vía `getUserListById` → `AppNavigation` navega a `profile/{ownerId}/list/{listId}`.
+- **Usuario sin acceso (lista pública o por invitación):** `getListInfoForJoin(listId)` (RPC) → si hay datos, navegación a **`listJoin/{listId}`** (`ListJoinScreen`, `ListJoinViewModel`): pantalla "Unirse a la lista"; al confirmar, RPC `join_list_by_link` y navegación a `profile/{ownerId}/list/{listId}`.
+- **Supabase:** `docs/supabase/user_lists_join_by_link.sql` (aplicar en el proyecto si no está desplegado).
+
+**Paridad WebApp:** misma URL `/profile/list/{listId}`; si no es miembro, `JoinListView` en `AppContainer` y `joinListByLink`. Ver `OPCIONES_DE_LISTA_WEB_Y_ANDROID.md`.
 
 ---
 
@@ -104,6 +109,6 @@ Este documento es la **fuente de verdad** de las integraciones Android que ya es
 
 ## 10. Referencias
 
-- **Registro de desarrollo:** `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` (§18, §19)
+- **Registro de desarrollo:** `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` (§18, §19, §20)
 - **Futuros desarrollos Android:** `FUTUROS_DESARROLLOS_ANDROID.md`
 - **Documento Maestro:** `MASTER_ARCHITECTURE_GOVERNANCE.md`

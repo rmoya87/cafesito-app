@@ -18,4 +18,11 @@ class DeepLinkViewModel @Inject constructor(
      */
     suspend fun getListOwnerId(listId: String): Int? =
         supabaseDataSource.getUserListById(listId)?.userId?.toInt()
+
+    /**
+     * Info mínima de lista para pantalla "Unirse por enlace" (solo listas públicas o por invitación).
+     * Devuelve null si la lista no existe o no permite unirse por enlace.
+     */
+    suspend fun getListInfoForJoin(listId: String): SupabaseDataSource.ListInfoForJoin? =
+        supabaseDataSource.getListInfoForJoin(listId)
 }

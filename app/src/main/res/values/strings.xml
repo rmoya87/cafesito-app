@@ -25,6 +25,15 @@
     <string name="tile_content_description_default">Abrir Cafesito</string>
     <string name="tile_content_description_brewing">Ver elaboración en curso</string>
 
+    <!-- Unirse a lista por enlace -->
+    <string name="join_list_title">Te han invitado a una lista</string>
+    <string name="join_list_owner">de @%1$s</string>
+    <string name="join_list_button">Unirse a la lista</string>
+    <string name="join_list_joining">Uniendo…</string>
+    <string name="join_list_back">Volver</string>
+    <string name="join_list_not_found">Lista no encontrada</string>
+    <string name="join_list_not_found_hint">El enlace no es válido o la lista ya no permite unirse.</string>
+
     <string name="login_welcome_to">BIENVENIDO A</string>
     <string name="login_brand">CAFESITO</string>
     <string name="login_subtitle">La comunidad para los amantes del café.</string>

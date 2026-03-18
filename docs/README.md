@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-18 (índice: ANDROID_INTEGRACIONES_IMPLEMENTADAS, FUTUROS_DESARROLLOS_ANDROID)  
+**Última actualización:** 2026-03-19 (listas unirse por enlace; registro §20)  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -141,7 +141,7 @@ flowchart TB
 
 | Documento | Descripción |
 |-----------|-------------|
-| `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md` | **Integraciones Android ya implementadas (fuente de verdad):** timer en primer plano, Quick Settings Tile, notificación "Registrar elaboración", App Links, predictive actions, canales, edge-to-edge, predictive back. Consultar antes de modificar estos flujos. |
+| `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md` | **Integraciones Android ya implementadas (fuente de verdad):** timer en primer plano, Quick Settings Tile, notificación "Registrar elaboración", App Links (incl. **unirse a lista por enlace**), predictive actions, canales, edge-to-edge, predictive back. Consultar antes de modificar estos flujos. |
 | `FUTUROS_DESARROLLOS_ANDROID.md` | **Futuros desarrollos Android:** propuestas pendientes (Direct Share, Bubbles, Health Connect) y nuevas propuestas (widget, Share Target, recordatorio agua, etc.). Lo implementado está en `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md`. |
 | `ANDROID_Y_WEBAPP_SERVICIOS_CONECTADOS_LLAMADAS_Y_OPTIMIZACION.md` | **Servicios Android y WebApp:** a qué está conectada cada app (Supabase, Firebase/GA4, FCM solo Android), detalle de llamadas por tabla/RPC, SyncManager (Android) y carga inicial/usuario (WebApp), Realtime, y propuestas de optimización para ambas plataformas. |
 
@@ -149,7 +149,7 @@ flowchart TB
 
 | Documento / carpeta | Descripción |
 |---------------------|-------------|
-| `supabase/*.sql` | Scripts RLS, triggers, migrations (notifications, push, coffees, diary, users, etc.). |
+| `supabase/*.sql` | Scripts RLS, triggers, migrations (notifications, push, coffees, diary, users, etc.). **Listas por enlace:** `user_lists_join_by_link.sql` (RPCs `get_list_info_for_join`, `join_list_by_link`). |
 | `supabase/CONEXION_SUPABASE_ANDROID.md` | **Conexión Android:** posibles problemas (red, 500, auth, timeouts) y qué comprobar; enlace al fix de `get_my_internal_id` y a user_lists_500_troubleshooting. |
 | `supabase/user_lists_500_troubleshooting.md` | 500 en user_lists / user_list_members: pasos para aplicar el fix y comprobar columna en users_db. |
 | `supabase/edge-functions/` | Edge Functions (trigger-coffees-build, process-pending-account-deletions, send-notification). |

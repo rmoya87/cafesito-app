@@ -14,6 +14,7 @@ import com.cafesito.shared.domain.validation.ValidateReviewInputUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,6 +27,7 @@ class DetailViewModel @Inject constructor(
     private val diaryRepository: DiaryRepository,
     private val reviewRepository: ReviewRepository,
     private val supabaseDataSource: SupabaseDataSource,
+    private val listActivityRemovalBus: ListActivityRemovalBus,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
     private val validateReviewInput = ValidateReviewInputUseCase()
@@ -34,13 +36,43 @@ class DetailViewModel @Inject constructor(
 
     private val _userLists = kotlinx.coroutines.flow.MutableStateFlow<List<UserListRow>>(emptyList())
     private val _coffeeIdsInUserLists = kotlinx.coroutines.flow.MutableStateFlow<List<String>>(emptyList())
+    private val _listIdsContainingCoffee = kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
 
     init {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             userRepository.getActiveUser()?.let { user ->
                 _userLists.value = supabaseDataSource.getCachedUserListsMerged(user.id)
-                _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInUserLists(user.id)
+                _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInEditableUserLists(user.id)
+                refreshListIdsContainingCoffee()
             }
+        }
+    }
+
+    private fun editableListsForUser(userId: Int): List<UserListRow> =
+        _userLists.value.filter { it.userId == userId.toLong() || it.membersCanEdit == true }
+
+    private suspend fun refreshListIdsContainingCoffee() {
+        val user = userRepository.getActiveUser() ?: run {
+            _listIdsContainingCoffee.value = emptySet()
+            return
+        }
+        val lists = editableListsForUser(user.id)
+        val cid = coffeeId.trim()
+        if (cid.isBlank() || lists.isEmpty()) {
+            _listIdsContainingCoffee.value = emptySet()
+            return
+        }
+        _listIdsContainingCoffee.value = supabaseDataSource.getListIdsContainingCoffee(cid, lists.map { it.id })
+    }
+
+    /** Al abrir el modal: listas y membresía actualizadas (evita checks vacíos en listas por invitación u otras tras caché vieja). */
+    fun refreshForAddToListModal() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val user = userRepository.getActiveUser() ?: return@launch
+            supabaseDataSource.invalidateUserListsCache(user.id)
+            _userLists.value = supabaseDataSource.getCachedUserListsMerged(user.id)
+            _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInEditableUserLists(user.id)
+            refreshListIdsContainingCoffee()
         }
     }
 
@@ -60,8 +92,9 @@ class DetailViewModel @Inject constructor(
             },
             coffeeRepository.favorites,
             _userLists,
-            _coffeeIdsInUserLists
-        ) { penta, favorites, userLists, coffeeIdsInUserLists ->
+            _coffeeIdsInUserLists,
+            _listIdsContainingCoffee
+        ) { penta, favorites, userLists, coffeeIdsInUserLists, listIdsContainingCoffee ->
         val activeUser = penta.activeUser
         val coffee = penta.coffee
         val allReviews = penta.allReviews
@@ -112,6 +145,7 @@ class DetailViewModel @Inject constructor(
             sensoryEditorsCount = sensoryEditorsCount,
             activeUser = activeUser,
             userLists = userLists,
+            listIdsContainingCoffee = listIdsContainingCoffee,
             isListActive = isListActive,
             isFavorite = isFavoriteLocally
         )
@@ -141,6 +175,25 @@ class DetailViewModel @Inject constructor(
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             supabaseDataSource.addUserListItem(listId, coffeeId)
             _coffeeIdsInUserLists.update { if (coffeeId in it) it else it + coffeeId }
+            _listIdsContainingCoffee.update { it + listId }
+        }
+    }
+
+    /** Aplica cambios del modal Añadir a lista: añadir/quitar en listas editables y favoritos. */
+    fun applyAddToListModal(toAdd: Set<String>, toRemove: Set<String>, favoriteShouldBe: Boolean) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val user = userRepository.getActiveUser() ?: return@launch
+            toRemove.forEach { lid ->
+                supabaseDataSource.removeUserListItem(lid, coffeeId)
+                listActivityRemovalBus.notifyListItemRemoved(lid, coffeeId)
+            }
+            toAdd.forEach { supabaseDataSource.addUserListItem(it, coffeeId) }
+            val currentlyFav = coffeeRepository.favorites.first().any { it.coffeeId == coffeeId && it.userId == user.id }
+            if (favoriteShouldBe != currentlyFav) {
+                coffeeRepository.toggleFavorite(coffeeId, favoriteShouldBe)
+            }
+            refreshListIdsContainingCoffee()
+            _coffeeIdsInUserLists.value = supabaseDataSource.getCoffeeIdsInEditableUserLists(user.id)
         }
     }
 
@@ -149,6 +202,7 @@ class DetailViewModel @Inject constructor(
             userRepository.getActiveUser()?.let { user ->
                 val newList = supabaseDataSource.createUserListWithPrivacy(user.id, name, privacy, membersCanEdit)
                 _userLists.update { it + newList }
+                refreshListIdsContainingCoffee()
             }
         }
     }
@@ -273,6 +327,7 @@ sealed interface DetailUiState {
         val sensoryEditorsCount: Int,
         val activeUser: UserEntity? = null,
         val userLists: List<UserListRow> = emptyList(),
+        val listIdsContainingCoffee: Set<String> = emptySet(),
         val isListActive: Boolean = false,
         val isFavorite: Boolean = false
     ) : DetailUiState

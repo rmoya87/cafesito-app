@@ -787,6 +787,31 @@ class SupabaseDataSource @Inject constructor(
         )
     }
 
+    /** Info mínima de lista para pantalla "Unirse por enlace" (solo listas públicas o por invitación). */
+    suspend fun getListInfoForJoin(listId: String): ListInfoForJoin? = try {
+        client.postgrest.rpc(
+            "get_list_info_for_join",
+            buildJsonObject { put("p_list_id", listId) }
+        ).decodeSingle<ListInfoForJoin>()
+    } catch (e: Exception) {
+        Log.w("SupabaseDataSource", "getListInfoForJoin: ${e.message}")
+        null
+    }
+
+    @kotlinx.serialization.Serializable
+    data class ListInfoForJoin(
+        val name: String,
+        @kotlinx.serialization.SerialName("user_id") val userId: Long
+    )
+
+    /** Une al usuario actual a la lista por enlace (lista pública o por invitación). */
+    suspend fun joinListByLink(listId: String) {
+        client.postgrest.rpc(
+            "join_list_by_link",
+            buildJsonObject { put("p_list_id", listId) }
+        )
+    }
+
     suspend fun createUserList(userId: Int, name: String, isPublic: Boolean): UserListRow =
         createUserListWithPrivacy(userId, name, if (isPublic) "public" else "private", null)
 
@@ -814,6 +839,21 @@ class SupabaseDataSource @Inject constructor(
     suspend fun getUserListItems(listId: String): List<UserListItemRow> = client.postgrest["user_list_items"].select {
         filter { eq("list_id", listId) }
     }.decodeList<UserListItemRow>()
+
+    /** IDs de listas (entre las dadas) que ya contienen este café. Para modal "Añadir a lista". */
+    suspend fun getListIdsContainingCoffee(coffeeId: String, listIds: List<String>): Set<String> {
+        if (listIds.isEmpty()) return emptySet()
+        return try {
+            @kotlinx.serialization.Serializable
+            data class ListIdRow(@kotlinx.serialization.SerialName("list_id") val listId: String)
+            client.postgrest["user_list_items"].select {
+                filter { eq("coffee_id", coffeeId); isIn("list_id", listIds) }
+            }.decodeList<ListIdRow>().map { it.listId.trim().lowercase() }.toSet()
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "getListIdsContainingCoffee: ${e.message}")
+            emptySet()
+        }
+    }
 
     @kotlinx.serialization.Serializable
     private data class UserListItemRaw(
@@ -927,7 +967,7 @@ class SupabaseDataSource @Inject constructor(
         client.postgrest["user_lists"].delete { filter { eq("id", listId) } }
     }
 
-    /** IDs de cafés que están en alguna lista del usuario (propias o donde es miembro, para icono activo en detalle). */
+    /** IDs de cafés en alguna lista (propias + compartidas; p. ej. ADN perfil). */
     suspend fun getCoffeeIdsInUserLists(userId: Int): List<String> {
         val lists = getCachedUserListsMerged(userId)
         if (lists.isEmpty()) return emptyList()
@@ -935,5 +975,22 @@ class SupabaseDataSource @Inject constructor(
         return client.postgrest["user_list_items"].select {
             filter { isIn("list_id", listIds) }
         }.decodeList<UserListItemRow>().map { it.coffeeId }.distinct()
+    }
+
+    /** Cafés en listas donde el usuario puede añadir/quitar ítems (dueño o members_can_edit). Icono lista en detalle. */
+    suspend fun getCoffeeIdsInEditableUserLists(userId: Int): List<String> {
+        val lists = getCachedUserListsMerged(userId).filter { list ->
+            list.userId == userId.toLong() || list.membersCanEdit == true
+        }
+        if (lists.isEmpty()) return emptyList()
+        val listIds = lists.map { it.id }
+        return try {
+            client.postgrest["user_list_items"].select {
+                filter { isIn("list_id", listIds) }
+            }.decodeList<UserListItemRow>().map { it.coffeeId }.distinct()
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "getCoffeeIdsInEditableUserLists: ${e.message}")
+            emptyList()
+        }
     }
 }
