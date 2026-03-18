@@ -33,6 +33,7 @@
     <string name="join_list_back">Volver</string>
     <string name="join_list_not_found">Lista no encontrada</string>
     <string name="join_list_not_found_hint">El enlace no es válido o la lista ya no permite unirse.</string>
+    <string name="join_list_error">No se pudo unir a la lista. Comprueba la conexión.</string>
 
     <string name="login_welcome_to">BIENVENIDO A</string>
     <string name="login_brand">CAFESITO</string>

@@ -1175,16 +1175,13 @@ export function AppContainer() {
     return list;
   }, [diaryEntries, coffeeCatalogIncludingCustom]);
 
-  const isListActive = useMemo(
-    () =>
-      Boolean(
-        detailIsFavorite ||
-          (detailCoffeeId != null &&
-            detailCoffeeId !== "" &&
-            coffeeIdsInEditableUserLists.includes(detailCoffeeId))
-      ),
-    [detailIsFavorite, detailCoffeeId, coffeeIdsInEditableUserLists]
-  );
+  const isListActive = useMemo(() => {
+    if (detailIsFavorite) return true;
+    if (detailCoffeeId == null || detailCoffeeId === "") return false;
+    const norm = (id: string) => String(id).trim().toLowerCase();
+    const needle = norm(detailCoffeeId);
+    return coffeeIdsInEditableUserLists.some((id) => norm(id) === needle);
+  }, [detailIsFavorite, detailCoffeeId, coffeeIdsInEditableUserLists]);
 
   const detailEditableListIdsKey = useMemo(() => {
     if (!activeUser) return "";

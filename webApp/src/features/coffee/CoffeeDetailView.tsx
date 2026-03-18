@@ -125,9 +125,10 @@ export function CoffeeDetailView({
     setAddToListSelectedIds(new Set(next));
   };
 
-  const openAddToListModal = () => {
+  const openAddToListModal = async () => {
     if (!currentUser?.id) return;
     addToListUserEditedRef.current = false;
+    await onRefreshAddToListModal?.();
     syncAddToListSelectionFromServer();
     setShowAddToListModal(true);
   };
@@ -135,7 +136,7 @@ export function CoffeeDetailView({
   useEffect(() => {
     if (!showAddToListModal || !currentUser?.id || addToListUserEditedRef.current) return;
     syncAddToListSelectionFromServer();
-  }, [listIdsContainingCoffee, isFavorite, currentUser?.id, showAddToListModal]);
+  }, [listIdsContainingCoffee, isFavorite, currentUser?.id, showAddToListModal, userLists]);
 
   const addToListHasChanges = useMemo(() => {
     const init = addToListInitialRef.current;
