@@ -45,7 +45,7 @@ class ListJoinViewModel @Inject constructor(
         }
     }
 
-    /** Une al usuario actual a la lista; invalida caché de listas. */
+    /** Une al usuario actual a la lista; invalida caché de listas. Lanza si la operación falla. */
     suspend fun join() {
         if (_isJoining.value) return
         _isJoining.value = true

@@ -27,10 +27,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cafesito.app.R
+import android.widget.Toast
 import com.cafesito.app.ui.components.GlassyTopBar
 import kotlinx.coroutines.launch
 
@@ -46,6 +48,7 @@ fun ListJoinScreen(
     val isJoining by viewModel.isJoining.collectAsState()
     val ownerUsername by viewModel.ownerUsername.collectAsState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -141,8 +144,12 @@ fun ListJoinScreen(
                                 Button(
                                     onClick = {
                                         scope.launch {
-                                            viewModel.join()
-                                            onJoinSuccess(info.userId.toInt())
+                                            try {
+                                                viewModel.join()
+                                                onJoinSuccess(info.userId.toInt())
+                                            } catch (_: Exception) {
+                                                Toast.makeText(context, context.getString(R.string.join_list_error), Toast.LENGTH_LONG).show()
+                                            }
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth(),
