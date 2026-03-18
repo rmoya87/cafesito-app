@@ -27,14 +27,21 @@ Este documento recoge integraciones Android (notificaciones con acciones, Quick 
 - **Recordatorio agua:** notificación con “Ya bebí” (marca y cierra) y “Recordar en 15 min”.
 - **Social:** ya existen acciones (marcar leída, seguir, guardar, añadir/rechazar); ampliar con “Responder” que abre el hilo o compose.
 
-### 2.2 ❌ Quick Settings Tile
+### 2.2 ✅ Quick Settings Tile
 
 **Qué hace:** Una “tile” es un botón que aparece en el panel de ajustes rápidos (al bajar la barra de estado dos veces). La app implementa un `TileService` que define el icono, la etiqueta y la acción al pulsar (por ejemplo alternar estado o abrir una pantalla). Da acceso en un solo toque sin abrir la app.
 
-**Ejemplos vistos en el proyecto:** Ninguno. No hay `TileService` ni declaración en el manifest.
+**Ejemplos vistos en el proyecto:** Tile "Cafesito" implementada: `TileService` declarado en el manifest; si no hay elaboración en curso muestra etiqueta "Cafesito" y al pulsar abre Brew Lab; si hay elaboración en curso (FGS activo) muestra "Ver elaboración" y al pulsar abre Brew Lab con el timer sincronizado. El servicio lee SharedPreferences (flag de `BrewLabTimerService`) para el estado; el `PendingIntent` lleva extra para que la navegación abra `brewlab?openConsumo=false`.
 
-**En Cafesito (propuesta):**
-- Una tile “Cafesito” que alterna entre “Iniciar elaboración” y “Ver diario” según estado (por ejemplo si hay elaboración en curso → “Ver elaboración”), con un tap.
+**En Cafesito (implementado):**
+- Tile "Cafesito" con icono de la app: si no hay elaboración en curso, etiqueta "Cafesito" y al pulsar se abre Brew Lab (elegir método); si hay elaboración en curso (FGS activo), etiqueta "Ver elaboración" y al pulsar se abre Brew Lab con el timer ya sincronizado. El `TileService` lee SharedPreferences de `BrewLabTimerService` (flag `KEY_RUNNING`) para elegir etiqueta y estado; el `PendingIntent` lleva un extra (p. ej. `open_brewlab=true`) para que `MainActivity`/`AppNavigation` navegue a `brewlab?openConsumo=false`.
+
+**Ejemplos funcionales (flujos más complejos):**
+- **Tile con estado dinámico:** El usuario añade la tile desde "Editar" en el panel de ajustes rápidos. La tile muestra el icono de Cafesito y la etiqueta "Cafesito". Al pulsar una vez: si no hay elaboración en curso, se abre la app en Brew Lab (pantalla de elegir método); si hay elaboración en curso (FGS activo), se abre la app en Brew Lab mostrando el timer y tiempo restante. Para saber si hay elaboración en curso, el `TileService` puede leer las mismas SharedPreferences que usa `BrewLabTimerService` (o comprobar si el servicio está en ejecución) y llamar a `tile.state = Tile.STATE_ACTIVE` y actualizar `tile.label` a "Ver elaboración" cuando corresponda; al pulsar, el `PendingIntent` lleva un extra (p. ej. `open_brewlab=true`) para que `MainActivity`/`AppNavigation` abra la ruta `brewlab?openConsumo=false` y `BrewLabScreen` restaure el estado desde prefs (igual que al reabrir la app).
+- **Actualización de la tile (título/etiqueta):** Si se implementa estado activo durante el timer, la tile debería reflejar "Ver elaboración" y, opcionalmente, el tiempo restante en la subtítulo (si la API lo permite). Al terminar el timer, el servicio hace `stopSelf()` y ya no hay FGS; la próxima vez que el sistema llame a `onStartListening()` en el `TileService`, la tile puede volver a mostrar "Iniciar elaboración" o "Ver diario". Así el usuario ve en todo momento qué acción ejecutará el próximo tap.
+- **Long-press y "Información":** En muchas ROMs, mantener pulsada la tile abre un menú (p. ej. "Quitar", "Información"). "Información" suele abrir la pantalla de ajustes de la app o de la tile. Se puede declarar `android:icon` y `android:label` en el `<service>` del manifest para que ese menú muestre un nombre y icono coherentes; no es necesario implementar lógica extra para el long-press, el sistema lo gestiona.
+- **Varias tiles (avanzado):** Una variante más compleja sería exponer dos tiles: "Cafesito — Elaborar" (siempre abre Brew Lab) y "Cafesito — Diario" (abre Diario). Cada una sería un `TileService` distinto con su propio `<service>` en el manifest. Así el usuario elige qué atajo quiere en el panel sin depender del estado; la implementación es más simple (sin lectura de SharedPreferences en el TileService) pero ocupa dos huecos en el panel.
+- **Tile + FGS:** Si hay timer en curso y el usuario pulsa la tile "Ver elaboración", la app se abre en primer plano en Brew Lab con el estado ya sincronizado desde SharedPreferences; no hace falta que el TileService se comunique con el FGS, basta con que la navegación abra `brewlab` y `BrewLabScreen` lea el estado como hace al reabrir la app. La tile solo necesita un indicador binario (¿está el FGS corriendo?) para mostrar "Ver elaboración" u otra etiqueta; puede obtenerse con `getRunningServices` (deprecado) o, de forma fiable, guardando un flag en SharedPreferences que `BrewLabTimerService` ponga a `true` al iniciar y a `false` al parar.
 
 ### 2.3 ✅ Timer de elaboración en primer plano
 
@@ -44,6 +51,13 @@ Este documento recoge integraciones Android (notificaciones con acciones, Quick 
 
 **En Cafesito (propuesta):**
 - Durante el timer de Brew Lab: **Foreground Service** con notificación ongoing (no descartable), título “Elaborando: [nombre receta]”, tiempo restante, y acciones “Pausar” / “Cancelar”. Al terminar, reemplazar por la notificación “¿Registrar elaboración?” con acciones.
+
+**Ejemplos funcionales (flujos más complejos):**
+- **Elaboración en segundo plano:** El usuario elige método V60, configura café y agua, pulsa Iniciar. El timer arranca y la notificación muestra “Estás elaborando: V60” y “04:00 restantes”. Minimiza la app (o cambia a otra); el servicio sigue en primer plano y la notificación se actualiza cada segundo. Al tocar **Pausar** en la notificación, el timer se pausa (texto “Pausado — XX:XX restantes”); al tocar **Reanudar** continúa. Al tocar **Cancelar** el servicio se detiene y se elimina la notificación.
+- **Varias fases (p. ej. Bloom → Vertido):** La receta tiene fases con duración. En pantalla se muestra “El paso: Bloom” y el tiempo grande (restante del paso); la notificación muestra el tiempo total restante de la elaboración. Al cambiar de fase, la notificación sigue mostrando el total; el usuario puede abrir la app y ver el paso actual y el siguiente.
+- **Timer termina con la app cerrada o en segundo plano:** El servicio detecta que el tiempo llegó a 00:00, hace `stopForeground`, muestra la notificación “¿Registrar elaboración?” con texto “Abre Cafesito y guarda en tu diario. Continuar.” y se detiene. El usuario toca la notificación → la app se abre **directamente en la pantalla Consumo** (tipo/tamaño/sabor, Guardar), no en la pantalla de elegir método, para que pueda registrar el resultado sin pasos extra.
+- **App cerrada por el usuario con timer activo:** Si el usuario fuerza el cierre desde recientes, el proceso puede morir pero el **servicio en primer plano sigue vivo** en un proceso separado; la notificación sigue visible y el timer sigue contando (estado en SharedPreferences). Si el usuario reabre la app, `BrewLabScreen` lee SharedPreferences y muestra de nuevo la pantalla de elaboración con el tiempo restante y el paso actual sincronizados.
+- **Reinicio del dispositivo (no cubierto):** Si el dispositivo se reinicia o el proceso del servicio se mata por condiciones extremas, el timer no se reanuda automáticamente; el usuario tendría que volver a Brew Lab y reiniciar. Un posible desarrollo futuro sería usar `WorkManager` o alarma para reanudar/recordar tras reinicio (con limitaciones de exactitud).
 
 ### 2.4 ✅ App Links / Deep links
 
@@ -90,6 +104,14 @@ Este documento recoge integraciones Android (notificaciones con acciones, Quick 
 **En Cafesito (propuesta):**
 - Registrar “cafeína” o “café” como evento o dato si el usuario conecta su cuenta; opcional y con consentimiento explícito.
 
+**Ejemplos funcionales (flujos más complejos):**
+- **Activación y permisos:** En Ajustes de Cafesito (o en la pantalla de perfil), una opción "Conectar con Health Connect" abre la pantalla de permisos de Health Connect (`HealthConnectClient.createPermissionControllerContract()` o `PermissionController.createRequestPermissionResultContract()`). El usuario ve qué datos quiere leer/escribir Cafesito (p. ej. "Nutrición: cafeína" para escribir, "Actividad: sueño" para leer si se quisiera contextualizar). Al conceder, la app guarda en preferencias que Health Connect está vinculado y habilita la escritura automática al registrar elaboraciones.
+- **Escribir cafeína al guardar en el diario:** Cuando el usuario guarda una entrada de café en el diario (pantalla Consumo, "Guardar"), además de persistir en la base local y/o backend, si Health Connect está conectado se llama a `HealthConnectClient.insertRecords()` con un registro de tipo adecuado (p. ej. `NutritionRecord` con `NutritionRecord.NUTRIENTS_CAFFEINE` en miligramos, o el tipo que exponga la API para "cafeína"). Se usa la cantidad de cafeína estimada que ya calcula Cafesito (p. ej. `BrewEngine` o lógica de elaboración) y la fecha/hora del consumo. Todo en segundo plano (coroutine o WorkManager) para no bloquear la UI.
+- **Datos que se escriben:** Por cada entrada guardada: `timestamp` (cuando se consumió), `caffeine_mg` (estimado según método, gramos, tamaño de taza), opcionalmente `source` como "Cafesito". Health Connect permite registrar dosis de cafeína; si la API expone un tipo "Caffeine" o se usa nutrición, se inserta un registro por elaboración guardada. Si el usuario registra varias tazas en un mismo día, se escriben varios registros (uno por entrada), de modo que en Health Connect o en otras apps (p. ej. sueño) se pueda ver la evolución diaria.
+- **Lectura (opcional) y coherencia:** Cafesito podría leer datos de cafeína desde Health Connect para mostrar un resumen "hoy has tomado X mg según Health Connect" y evitar duplicados si el usuario también registra en otra app. Implica permiso de lectura; el flujo sería: en pantalla de estadísticas o diario, si hay conexión, `HealthConnectClient.readRecords()` filtrando por fecha y tipo, y mostrar total o gráfica. Si no se implementa lectura, Cafesito solo escribe; el usuario ve los datos en la app de Salud/Health Connect.
+- **Desconectar y privacidad:** En "Conectar con Health Connect" (o Ajustes > Salud), opción "Desvincular". No hace falta revocar permisos desde la app (el usuario puede revocarlos en Ajustes de Android); Cafesito deja de escribir y borra el flag de "vinculado". A partir de ahí no se insertan más registros; los ya escritos permanecen en Health Connect hasta que el usuario los borre desde la app de Salud.
+- **Requisitos técnicos:** Health Connect está disponible desde Android 14 (API 34) como parte del sistema; en versiones anteriores puede estar como app instalable. Comprobar `HealthConnectClient.getSdkStatus()` antes de mostrar la opción; si no está disponible, ocultar "Conectar con Health Connect" o mostrar un mensaje. Dependencia `androidx.health.connect:connect-client`; declarar en el manifest los permisos de salud que se usen (p. ej. `android.permission.health.WRITE_NUTRITION`, `READ_NUTRITION` si se lee). Documentar en la política de privacidad que los datos de cafeína se comparten con Health Connect solo si el usuario lo activa.
+
 ### 2.9 ✅ Canales de notificaciones
 
 **Qué hace:** Desde Android 8, cada notificación pertenece a un **canal**. El usuario puede silenciar, cambiar importancia o desactivar un canal completo desde ajustes (por ejemplo “Actividad social” en alto, “Marketing” en silencio). La app crea los canales al inicio y asigna cada notificación a uno; así se evita que todo sea “todo o nada” y se mejora el control del usuario.
@@ -121,10 +143,10 @@ Este documento recoge integraciones Android (notificaciones con acciones, Quick 
 
 ## 3. Orden sugerido de implementación
 
-1. ❌ **Timer en primer plano** (Foreground Service + notificación ongoing) — impacto directo en Brew Lab.
-2. 🔶 **Notificaciones con acciones** para elaboración (“¿Registrar?”) y agua — ya hay base social.
+1. ✅ **Timer en primer plano** (Foreground Service + notificación ongoing) — impacto directo en Brew Lab.
+2. ✅ **Notificaciones con acciones** para elaboración (“¿Registrar?”) y agua — ya hay base social.
 3. ✅ **App Links** — ya declarados; verificar `assetlinks.json` y rutas.
-4. ❌ **Quick Settings Tile** — un solo tap desde la barra de estado.
+4. ✅ **Quick Settings Tile** — un solo tap desde la barra de estado (implementado).
 5. ✅ **Predictive app actions** — sugerencias en recientes (ya implementado).
 6. ❌ **Burbuja** (opcional) — para timer en segundo plano.
 7. ❌ **Health Connect** — según prioridad de producto.
@@ -140,8 +162,8 @@ Revisión sobre el código y la configuración del proyecto Android (manifest, `
 | Integración | Estado | Notas |
 |-------------|--------|--------|
 | **Notificaciones con acciones** | ✅ | FCM + `CafesitoFcmService`: acciones “Marcar leída”, “Seguir”, “Guardar”, “Añadir”/“Rechazar”. `NotificationActionReceiver` para tramitar acciones. `TimelineNotificationSystem` con acciones locales. |
-| **Quick Settings Tile** | ❌ | No hay `TileService` ni declaración en manifest. |
-| **Timer en primer plano** | ✅ | `BrewLabTimerService`: notificación ongoing con tiempo restante, Pausar/Reanudar/Cancelar; al terminar "¿Registrar elaboración?". |
+| **Quick Settings Tile** | ✅ | Tile "Cafesito": `TileService` en manifest; etiqueta "Cafesito" o "Ver elaboración" según estado (SharedPreferences/`BrewLabTimerService`); al pulsar abre Brew Lab (`brewlab?openConsumo=false`). Ver §2.2 ejemplos funcionales. |
+| **Timer en primer plano** | ✅ | `BrewLabTimerService`: notificación ongoing “Estás elaborando: [método]”, tiempo restante, Pausar/Reanudar/Cancelar; al terminar “¿Registrar elaboración?” → abre pantalla Consumo. Persistencia en SharedPreferences; flujos: app en segundo plano, varias fases, tocar notificación a Consumo, reabrir app con timer activo (ver §2.3 ejemplos funcionales). |
 | **App Links / Deep links** | ✅ | `intent-filter` con `android:autoVerify="true"` para `https://cafesitoapp.com`. `DeepLinkViewModel` para listas compartidas (listId → ownerId). `parseListIdFromIntent` en MainActivity. |
 | **Predictive app actions** | ✅ | `PredictiveShortcutsHelper`: atajos dinámicos (brewlab, diary, search) y `reportShortcutUsed` al navegar; sugerencias en recientes. |
 | **Direct Share** | ❌ | No implementado. |

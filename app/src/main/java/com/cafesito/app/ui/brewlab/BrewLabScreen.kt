@@ -102,6 +102,7 @@ fun BrewLabScreen(
     }
     LaunchedEffect(openConsumoFromNotification) {
         if (openConsumoFromNotification) viewModel.openConsumoFromNotification()
+        else viewModel.restoreBrewingFromServiceIfNeeded()
     }
 
     LaunchedEffect(appliedSelectionId) {

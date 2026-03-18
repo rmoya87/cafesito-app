@@ -645,6 +645,25 @@ class BrewLabViewModel @Inject constructor(
         _currentStep.value = BrewStep.RESULT
     }
 
+    /**
+     * Si el timer en primer plano está activo (p. ej. usuario reabrió la app tras forzar cierre),
+     * restaura el paso a BREWING, el método seleccionado y el estado del timer desde SharedPreferences,
+     * para que la pantalla muestre de nuevo la elaboración con tiempo restante y paso actual sincronizados.
+     */
+    fun restoreBrewingFromServiceIfNeeded() {
+        if (!BrewLabTimerService.isRunning(appContext)) return
+        val prefs = appContext.getSharedPreferences(BrewLabTimerService.PREFS_NAME, Context.MODE_PRIVATE)
+        val methodName = prefs.getString(BrewLabTimerService.KEY_METHOD, "") ?: ""
+        val elapsed = prefs.getInt(BrewLabTimerService.KEY_ELAPSED, 0)
+        val total = prefs.getInt(BrewLabTimerService.KEY_TOTAL, 0).coerceAtLeast(1)
+        val paused = prefs.getBoolean(BrewLabTimerService.KEY_PAUSED, false)
+        nameToBrewMethod[methodName]?.let { _selectedMethod.value = it }
+        _currentStep.value = BrewStep.BREWING
+        timerDrivenByService = true
+        _hasTimerStarted.value = true
+        setTimerFromService(elapsed, total, isRunning = true, isPaused = paused)
+    }
+
     /** Guardar en pantalla Consumo habilitado solo con tipo y tamaño; el sabor es opcional. */
     val canSaveForResult: StateFlow<Boolean> = combine(
         _drinkType,

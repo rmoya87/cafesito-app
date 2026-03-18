@@ -78,6 +78,17 @@
                 android:value="Timer de elaboración de café en curso: muestra tiempo restante y permite pausar/cancelar desde la notificación." />
         </service>
 
+        <!-- Quick Settings Tile: abre Brew Lab; si hay elaboración en curso muestra "Ver elaboración". -->
+        <service
+            android:name="com.cafesito.app.quicksettings.CafesitoTileService"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <!-- Firebase Cloud Messaging Service -->
         <service
             android:name="com.cafesito.app.fcm.CafesitoFcmService"

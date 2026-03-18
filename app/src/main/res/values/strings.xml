@@ -18,6 +18,11 @@
     <string name="brew_timer_register_title">¿Registrar elaboración?</string>
     <string name="brew_timer_register_text">Abre Cafesito y guarda en tu diario. Continuar.</string>
 
+    <!-- Quick Settings Tile -->
+    <string name="tile_label_brewing">Ver elaboración</string>
+    <string name="tile_content_description_default">Abrir Cafesito</string>
+    <string name="tile_content_description_brewing">Ver elaboración en curso</string>
+
     <string name="login_welcome_to">BIENVENIDO A</string>
     <string name="login_brand">CAFESITO</string>
     <string name="login_subtitle">La comunidad para los amantes del café.</string>

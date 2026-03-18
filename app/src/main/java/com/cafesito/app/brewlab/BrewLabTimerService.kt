@@ -21,8 +21,10 @@ import kotlinx.coroutines.withContext
 
 /**
  * Foreground Service para el timer de Brew Lab. Muestra una notificación ongoing
- * con tiempo restante y acciones Pausar / Cancelar. Al terminar, muestra
- * "¿Registrar elaboración?" con acción para abrir la app.
+ * con tiempo restante total de la elaboración (suma de todas las fases) y acciones
+ * Pausar / Reanudar / Cancelar. Al llegar a 00:00 hace stopForeground, muestra la
+ * notificación "¿Registrar elaboración?" ("Abre Cafesito y guarda en tu diario. Continuar.")
+ * y se detiene; al tocarla la app abre directamente la pantalla Consumo.
  */
 class BrewLabTimerService : Service() {
 
@@ -134,6 +136,7 @@ class BrewLabTimerService : Service() {
     }
 
     private fun buildOngoingNotification(): Notification {
+        // Tiempo total restante de la elaboración (todas las fases); en pantalla se muestra además el paso actual.
         val remaining = (totalSeconds - elapsedSeconds).coerceAtLeast(0)
         val mm = remaining / 60
         val ss = remaining % 60
