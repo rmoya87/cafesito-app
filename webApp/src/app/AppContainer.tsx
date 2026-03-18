@@ -924,6 +924,13 @@ export function AppContainer() {
     followedUsersActivityData
   });
 
+  // Al entrar en elaboración sin método elegido, marcar por defecto el primero de la lista = último usado (actividad del diario).
+  useEffect(() => {
+    if (activeTab === "brewlab" && brewStep === "method" && !brewMethod?.trim() && orderedBrewMethods.length > 0) {
+      setBrewMethod(orderedBrewMethods[0].name);
+    }
+  }, [activeTab, brewStep, brewMethod, orderedBrewMethods]);
+
   const createCoffeeBrandSuggestions = useMemo(() => {
     const byKey = new Map<string, string>();
     coffees.forEach((c) => {

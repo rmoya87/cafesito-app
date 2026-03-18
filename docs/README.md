@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-17 (registro §17 despensa, diario, deploy, CI)  
+**Última actualización:** 2026-03-18 (índice: ANDROID_INTEGRACIONES_IMPLEMENTADAS, FUTUROS_DESARROLLOS_ANDROID)  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -141,6 +141,8 @@ flowchart TB
 
 | Documento | Descripción |
 |-----------|-------------|
+| `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md` | **Integraciones Android ya implementadas (fuente de verdad):** timer en primer plano, Quick Settings Tile, notificación "Registrar elaboración", App Links, predictive actions, canales, edge-to-edge, predictive back. Consultar antes de modificar estos flujos. |
+| `FUTUROS_DESARROLLOS_ANDROID.md` | **Futuros desarrollos Android:** propuestas pendientes (Direct Share, Bubbles, Health Connect) y nuevas propuestas (widget, Share Target, recordatorio agua, etc.). Lo implementado está en `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md`. |
 | `ANDROID_Y_WEBAPP_SERVICIOS_CONECTADOS_LLAMADAS_Y_OPTIMIZACION.md` | **Servicios Android y WebApp:** a qué está conectada cada app (Supabase, Firebase/GA4, FCM solo Android), detalle de llamadas por tabla/RPC, SyncManager (Android) y carga inicial/usuario (WebApp), Realtime, y propuestas de optimización para ambas plataformas. |
 
 ### 4.6 Supabase (SQL, Edge Functions, webhooks)

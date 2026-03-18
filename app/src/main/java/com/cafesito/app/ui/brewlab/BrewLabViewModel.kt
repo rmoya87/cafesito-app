@@ -112,6 +112,22 @@ class BrewLabViewModel @Inject constructor(
     private val _selectedMethod = MutableStateFlow<BrewMethod?>(null)
     val selectedMethod = _selectedMethod.asStateFlow()
 
+    init {
+        // Por defecto marcar el primer método de la lista = último usado (actividad del diario).
+        viewModelScope.launch {
+            combine(
+                brewMethods,
+                currentStep,
+                _selectedMethod
+            ) { methods, step, selected -> Triple(methods, step, selected) }
+                .collect { (methods, step, selected) ->
+                    if (step == BrewStep.CHOOSE_METHOD && methods.isNotEmpty() && selected == null) {
+                        selectMethod(methods.first())
+                    }
+                }
+        }
+    }
+
     val selectedMethodProfile: StateFlow<BrewMethodProfile> = _selectedMethod
         .map { method -> BrewEngine.methodProfileFor(method?.name.orEmpty()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BrewEngine.methodProfileFor(""))

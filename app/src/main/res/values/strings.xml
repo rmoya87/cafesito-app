@@ -17,6 +17,8 @@
     <string name="brew_timer_cancel">Cancelar</string>
     <string name="brew_timer_register_title">¿Registrar elaboración?</string>
     <string name="brew_timer_register_text">Abre Cafesito y guarda en tu diario. Continuar.</string>
+    <string name="brew_timer_register_yes">Sí, registrar</string>
+    <string name="brew_timer_register_later">Más tarde</string>
 
     <!-- Quick Settings Tile -->
     <string name="tile_label_brewing">Ver elaboración</string>

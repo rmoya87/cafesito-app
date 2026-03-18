@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-17 (registro §18 notificaciones elaboración, consumo, actividades, WebApp)
+**Última actualización:** 2026-03-18 (registro §19 integraciones Android documentadas, Futuros desarrollos refactor)
 
 ---
 
@@ -40,6 +40,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 16. [Elaboración Android y WebApp — chips, carruseles, márgenes, Selecciona café como página (13–14 mar 2026)](#16-elaboración-android-y-webapp--chips-carruseles-márgenes-selecciona-café-como-página-1314-mar-2026)
 17. [Resumen de cambios — despensa, diario, deploy, CI (15–16 mar 2026)](#17-resumen-de-cambios--despensa-diario-deploy-ci-1516-mar-2026)
 18. [Resumen de cambios — notificaciones elaboración, consumo, actividades, WebApp (17 mar 2026)](#18-resumen-de-cambios--notificaciones-elaboración-consumo-actividades-webapp-17-mar-2026)
+19. [Integraciones Android documentadas y Futuros desarrollos refactor (18 mar 2026)](#19-integraciones-android-documentadas-y-futuros-desarrollos-refactor-18-mar-2026)
 
 ---
 
@@ -685,6 +686,30 @@ Cambios en la notificación «¿Registrar elaboración?», enlace a pantalla Con
 
 - **docs/FUTUROS_DESARROLLOS_ANDROID.md** (nuevo o modificado): ideas o plan de futuros desarrollos Android.
 - **docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md**: esta sección 18 e índice rápido.
+
+---
+
+## 19. Integraciones Android documentadas y Futuros desarrollos refactor (18 mar 2026)
+
+**Objetivo:** Dejar constancia de lo ya implementado en un documento canónico y refactorizar "Futuros desarrollos" para que solo contenga propuestas pendientes y nuevas ideas.
+
+### 19.1 Documento nuevo: integraciones implementadas
+
+- **Creado:** `docs/ANDROID_INTEGRACIONES_IMPLEMENTADAS.md`
+- **Contenido:** Fuente de verdad de las integraciones Android ya realizadas:
+  - Timer de elaboración en primer plano (BrewLabTimerService, notificación ongoing, Pausar/Reanudar/Cancelar, notificación "¿Registrar elaboración?" → abre Consumo, restauración estado al reabrir app).
+  - Quick Settings Tile "Cafesito" (CafesitoTileService: etiqueta "Cafesito" / "Ver elaboración" según FGS, abre Brew Lab).
+  - App Links / Deep links, Predictive app actions, canales de notificaciones, edge-to-edge, predictive back.
+- **Uso:** Consultar este doc para saber qué está implementado; para propuestas futuras, `FUTUROS_DESARROLLOS_ANDROID.md`.
+
+### 19.2 Refactor de Futuros desarrollos Android
+
+- **Modificado:** `docs/FUTUROS_DESARROLLOS_ANDROID.md`
+- **Cambios:** Las secciones detalladas de lo ya implementado (Timer FGS, Quick Settings Tile, notificaciones con acciones, App Links, predictive actions, canales, edge-to-edge, predictive back) se han sustituido por referencias breves y enlace a `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md`. El documento queda centrado en: **pendientes** (Direct Share, Bubbles, Health Connect) y **nuevas propuestas** (funcionalidades nativas Android y mejoras para la app).
+
+### 19.3 Índice de documentación
+
+- En `docs/README.md` (sección 4.5 o 4.8) puede añadirse la referencia a `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md` para "Android: integraciones ya implementadas".
 
 ---
 

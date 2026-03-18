@@ -111,7 +111,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
         )
         NotificationChannels.ensureCreated(this)
         val notification = NotificationCompat.Builder(this, NotificationChannels.CHANNEL_SOCIAL)
-            .setSmallIcon(com.cafesito.app.R.drawable.ic_notification_small)
+            .setSmallIcon(com.cafesito.app.R.drawable.ic_cafesito_tile)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -184,7 +184,7 @@ class CafesitoFcmService : FirebaseMessagingService() {
         val largeIcon = resolveLargeIcon(remoteMessage.data["avatar_url"])
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(com.cafesito.app.R.drawable.ic_notification_small)
+            .setSmallIcon(com.cafesito.app.R.drawable.ic_cafesito_tile)
             .setLargeIcon(resolveLargeIcon(remoteMessage.data["avatar_url"]))
             .setContentTitle(title)
             .setContentText(message)
