@@ -1,5 +1,9 @@
 import { useEffect } from "react";
+import { parseRoute } from "../../core/routing";
 import type { CoffeeRow } from "../../types";
+
+const ROBOTS_INDEX_FOLLOW = "index, follow";
+const ROBOTS_NOINDEX = "noindex, nofollow";
 
 const DEFAULT_TITLE = "Cafesito";
 const DEFAULT_DESCRIPTION = "Comunidad de café para compartir timeline, explorar cafés y seguir perfiles.";
@@ -83,6 +87,7 @@ export function useCoffeeSeoMeta(
       setOrCreateMeta(doc, "meta", "name", "twitter:card", "summary");
       setOrCreateMeta(doc, "meta", "name", "twitter:title", title);
       setOrCreateMeta(doc, "meta", "name", "twitter:description", descTruncated);
+      setOrCreateMeta(doc, "meta", "name", "robots", ROBOTS_INDEX_FOLLOW);
       removeJsonLd(doc, "coffee-product-ld");
       removeJsonLd(doc, "search-page-ld");
       const webPage = {
@@ -103,6 +108,10 @@ export function useCoffeeSeoMeta(
     }
 
     if (!isCoffeeRoute) {
+      const route = parseRoute(pathname);
+      const robots =
+        route.tab === "home" ? ROBOTS_INDEX_FOLLOW : ROBOTS_NOINDEX;
+      setOrCreateMeta(doc, "meta", "name", "robots", robots);
       doc.title = DEFAULT_TITLE;
       descriptionMeta.content = DEFAULT_DESCRIPTION;
       setOrCreateMeta(doc, "meta", "property", "og:title", DEFAULT_TITLE);
@@ -131,6 +140,7 @@ export function useCoffeeSeoMeta(
 
     doc.title = title;
     descriptionMeta.content = description;
+    setOrCreateMeta(doc, "meta", "name", "robots", ROBOTS_INDEX_FOLLOW);
 
     setOrCreateMeta(doc, "meta", "property", "og:title", title);
     setOrCreateMeta(doc, "meta", "property", "og:description", description);

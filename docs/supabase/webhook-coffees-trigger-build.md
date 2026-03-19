@@ -1,7 +1,7 @@
 # Deploy web: prerender de cafés, SEO y webhook
 
 **Estado:** vigente  
-**Última actualización:** 2026-03-04  
+**Última actualización:** 2026-03-19  
 **Ámbito:** WebApp (Ionos), prerender, SEO, actualizar web sin Git.
 
 Documento único para: comportamiento del prerender, requisitos en el servidor, y cómo disparar el build/deploy cuando cambian los cafés en Supabase (sin push a Git).
@@ -25,7 +25,7 @@ La Edge Function `trigger-coffees-build` se mantiene por compatibilidad con webh
 
 - En deploy manual/push de ramas no se regeneran páginas de cafés.
 - En el deploy nocturno se procesa la cola y se regeneran solo los HTML de cafés afectados (altas/modificaciones) y se eliminan las rutas de bajas.
-- Las rutas `/coffee/slug/` tienen HTML estático con `<title>`, meta description, og:image y JSON-LD para SEO y previews en redes.
+- Las rutas `/coffee/slug/` tienen HTML estático con `<title>`, meta description, **`meta name="robots" content="index, follow"`**, tags Open Graph básicos y JSON-LD para SEO y previews en redes.
 - El servidor (Ionos) debe tener **SPA fallback** para rutas sin HTML estático (ej. `/profile/usuario`): devolver `index.html` cuando no exista archivo.
 
 **Requisitos en el servidor (Ionos):**
