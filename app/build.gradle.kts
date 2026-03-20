@@ -107,6 +107,47 @@ android {
         compose = true
         buildConfig = true
     }
+
+    sourceSets {
+        getByName("main") {
+            // Compile against a generated res tree that excludes .svg files.
+            res.setSrcDirs(listOf(layout.buildDirectory.dir("generated/filteredRes/main")))
+        }
+    }
+}
+
+val prepareFilteredRes by tasks.registering(Copy::class) {
+    from(layout.projectDirectory.dir("src/main/res")) {
+        exclude("**/*.svg")
+    }
+    into(layout.buildDirectory.dir("generated/filteredRes/main"))
+}
+
+val syncSvgIconsFromDrawable by tasks.registering(Copy::class) {
+    from(layout.projectDirectory.dir("src/main/res/drawable")) {
+        include("cafeina.svg", "formato.svg")
+    }
+    into(layout.projectDirectory.dir("src/main/assets/icons"))
+}
+
+val syncWebTechnicalIconsFromDrawable by tasks.registering(Copy::class) {
+    from(layout.projectDirectory.dir("src/main/res/drawable")) {
+        include(
+            "pais.png",
+            "especialidad.png",
+            "variedad.png",
+            "tueste.png",
+            "proceso.png",
+            "formato.png"
+        )
+    }
+    into(layout.projectDirectory.dir("../webApp/public/android-drawable"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(prepareFilteredRes)
+    dependsOn(syncSvgIconsFromDrawable)
+    dependsOn(syncWebTechnicalIconsFromDrawable)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

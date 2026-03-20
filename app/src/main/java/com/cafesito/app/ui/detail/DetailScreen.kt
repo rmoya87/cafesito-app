@@ -335,13 +335,62 @@ private fun DetailContent(
                             Spacer(Modifier.height(24.dp))
                         }
 
+                        data class DetailTechnicalItem(
+                            val label: String,
+                            val value: String,
+                            val icon: ImageVector? = null,
+                            val iconPainter: Painter? = null
+                        )
+
                         val detailsItems = listOfNotNull(
-                            coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let { Triple("PAÍS", it, Icons.Default.Public) },
-                            coffee.especialidad?.takeIf { it.isNotBlank() }?.let { Triple("ESPECIALIDAD", it, Icons.Default.Verified) },
-                            coffee.variedadTipo?.takeIf { it.isNotBlank() }?.let { Triple("VARIEDAD", it, Icons.Default.Category) },
-                            coffee.tueste.takeIf { it.isNotBlank() }?.let { Triple("TUESTE", it, Icons.Default.LocalFireDepartment) },
-                            coffee.proceso.takeIf { it.isNotBlank() }?.let { Triple("PROCESO", it, Icons.Default.Settings) },
-                            coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let { Triple("MOLIENDA", it, Icons.Default.Grain) }
+                            coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "PAÍS",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.pais)
+                                )
+                            },
+                            coffee.especialidad?.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "ESPECIALIDAD",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.especialidad)
+                                )
+                            },
+                            coffee.variedadTipo?.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "VARIEDAD",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.variedad)
+                                )
+                            },
+                            coffee.tueste.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "TUESTE",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.tueste)
+                                )
+                            },
+                            coffee.proceso.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "PROCESO",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.proceso)
+                                )
+                            },
+                            coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(label = "MOLIENDA", value = it, icon = Icons.Default.Grain)
+                            },
+                            DetailTechnicalItem(
+                                label = "FORMATO",
+                                value = coffee.formato.takeIf { it.isNotBlank() } ?: "No especificado",
+                                iconPainter = painterResource(id = R.drawable.formato)
+                            ),
+                            DetailTechnicalItem(
+                                label = "CAFEÍNA",
+                                value = coffee.cafeina.takeIf { it.isNotBlank() } ?: "No especificada",
+                                iconPainter = painterResource(id = R.drawable.grano_cafe)
+                            )
                         )
                         if (detailsItems.isNotEmpty()) {
                             Text(text = "DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
@@ -352,8 +401,21 @@ private fun DetailContent(
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 maxItemsInEachRow = 2
                             ) {
-                                detailsItems.forEach { (label, value, icon) ->
-                                    DetailPremiumBlock(label, value, icon, Modifier.fillMaxWidth(0.48f))
+                                detailsItems.forEach { item ->
+                                    when {
+                                        item.iconPainter != null -> DetailPremiumBlock(
+                                            label = item.label,
+                                            value = item.value,
+                                            icon = item.iconPainter,
+                                            modifier = Modifier.fillMaxWidth(0.48f)
+                                        )
+                                        item.icon != null -> DetailPremiumBlock(
+                                            label = item.label,
+                                            value = item.value,
+                                            icon = item.icon,
+                                            modifier = Modifier.fillMaxWidth(0.48f)
+                                        )
+                                    }
                                 }
                             }
                         }

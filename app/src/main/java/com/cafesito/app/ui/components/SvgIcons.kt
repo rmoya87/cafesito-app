@@ -34,3 +34,9 @@ fun rememberListAltAddSvgPainter(): Painter = rememberSvgFromAssetPainter("list_
 
 @Composable
 fun rememberListAltCheckSvgPainter(): Painter = rememberSvgFromAssetPainter("list_alt_check.svg")
+
+@Composable
+fun rememberCafeinaSvgPainter(): Painter = rememberSvgFromAssetPainter("cafeina.svg")
+
+@Composable
+fun rememberFormatoSvgPainter(): Painter = rememberSvgFromAssetPainter("formato.svg")

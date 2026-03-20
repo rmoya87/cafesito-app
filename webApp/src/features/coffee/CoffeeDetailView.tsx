@@ -167,7 +167,9 @@ export function CoffeeDetailView({
     { icon: "variety", label: "Variedad", value: coffee.variedad_tipo ?? "" },
     { icon: "roast", label: "Tueste", value: coffee.tueste ?? "" },
     { icon: "process", label: "Proceso", value: coffee.proceso ?? "" },
-    { icon: "grind", label: "Molienda", value: coffee.molienda_recomendada ?? "" }
+    { icon: "grind", label: "Molienda", value: coffee.molienda_recomendada ?? "" },
+    { icon: "format", label: "Formato", value: (coffee.formato ?? "").trim() || "No especificado" },
+    { icon: "caffeine", label: "Cafeina", value: (coffee.cafeina ?? "").trim() || "No especificada" }
   ];
   const techRows = techRowsBase.filter((row) => row.value.trim().length > 0);
   const otherReviews = reviews.filter((review) => !currentUser || review.user_id !== currentUser.id);
