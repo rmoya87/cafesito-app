@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.CoffeeRepository
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.SyncManager
+import com.cafesito.app.ui.utils.containsSearchQuery
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -111,7 +112,9 @@ class SearchViewModel @Inject constructor(
         ): List<CoffeeWithDetails> {
             return coffees.filter { item ->
                 val c = item.coffee
-                val matchQuery = qAdapt.isBlank() || c.nombre.contains(qAdapt, true) || c.marca.contains(qAdapt, true)
+                val matchQuery =
+                    c.nombre.containsSearchQuery(qAdapt) ||
+                    c.marca.containsSearchQuery(qAdapt)
                 val matchOrigin = exOrigin || origins.isEmpty() || c.paisOrigen.toAtomizedList().any { it in origins }
                 val matchRoast = exRoast || roasts.isEmpty() || c.tueste.toAtomizedList().any { it in roasts }
                 val matchSpecialty = exSpecialty || specialties.isEmpty() || c.especialidad.toAtomizedList().any { it in specialties }
@@ -152,10 +155,10 @@ class SearchViewModel @Inject constructor(
 
         val filtered = coffees.filter { item ->
             val c = item.coffee
-            val matchQuery = q.isBlank() ||
-                c.nombre.contains(q, true) ||
-                c.marca.contains(q, true) ||
-                (c.codigoBarras?.contains(q, true) == true)
+            val matchQuery =
+                c.nombre.containsSearchQuery(q) ||
+                c.marca.containsSearchQuery(q) ||
+                c.codigoBarras.containsSearchQuery(q)
             val matchOrigin = origins.isEmpty() || c.paisOrigen.toAtomizedList().any { it in origins }
             val matchRoast = roasts.isEmpty() || c.tueste.toAtomizedList().any { it in roasts }
             val matchSpecialty = specialties.isEmpty() || c.especialidad.toAtomizedList().any { it in specialties }

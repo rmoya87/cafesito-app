@@ -2,9 +2,11 @@ import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useR
 import { createPortal } from "react-dom";
 import {
   addUserListItem,
+  getListIdsContainingCoffee,
   createListInvitation,
   createUserList,
   deleteUserList,
+  fetchListInfoForJoin,
   fetchListInvitationsByListId,
   fetchListMembersByListId,
   fetchProfileUserActivityData,
@@ -12,9 +14,12 @@ import {
   fetchUsersByIds,
   fetchUserListById,
   fetchUserListItems,
+  fetchCoffeeIdsInEditableUserLists,
   fetchSharedWithMeLists,
   fetchUserLists,
   insertFinishedCoffee,
+  invalidateUserListsCache,
+  joinListByLink,
   leaveList,
   removeUserListItem,
   requestAccountDeletion,
@@ -22,6 +27,8 @@ import {
   toggleFavoriteCoffee,
   updateUserList,
   updateUserListWithPrivacy,
+  userListRowIsEditableByUser,
+  fetchCoffeeIdsInUserLists,
   type ListInvitationRow,
   type ListMemberRow,
   type UserListItemActivityRow
@@ -96,6 +103,7 @@ import { AppOverlayLayers } from "./AppOverlayLayers";
 import { CookieConsentBanner } from "../features/consent/CookieConsentBanner";
 import { OfflineBanner } from "./OfflineBanner";
 import { EditListSheet } from "../features/lists/EditListSheet";
+import { JoinListView } from "../features/lists/JoinListView";
 import { ListOptionsPage } from "../features/lists/ListOptionsPage";
 import { BrewSelectCoffeePage } from "../features/brew/BrewSelectCoffeePage";
 
@@ -152,6 +160,8 @@ export function AppContainer() {
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
   const [userLists, setUserLists] = useState<UserListRow[]>([]);
   const [coffeeIdsInUserLists, setCoffeeIdsInUserLists] = useState<string[]>([]);
+  const [coffeeIdsInEditableUserLists, setCoffeeIdsInEditableUserLists] = useState<string[]>([]);
+  const [detailListIdsContainingCoffee, setDetailListIdsContainingCoffee] = useState<string[]>([]);
   const [profileSubPanel, setProfileSubPanel] = useState<"historial" | "followers" | "following" | "favorites" | "list" | null>(
     () =>
       initialRoute.tab === "profile" && "profileSection" in initialRoute && initialRoute.profileSection
@@ -471,6 +481,7 @@ export function AppContainer() {
     setFavorites,
     setUserLists,
     setCoffeeIdsInUserLists,
+    setCoffeeIdsInEditableUserLists,
     setAllListItemsForActivity,
     setCustomCoffees,
     setFinishedCoffees,
@@ -484,6 +495,8 @@ export function AppContainer() {
 
   const [listDetailItemIds, setListDetailItemIds] = useState<string[]>([]);
   const [profileListMeta, setProfileListMeta] = useState<UserListRow | null>(null);
+  const [joinListInfo, setJoinListInfo] = useState<{ name: string; user_id: number; ownerUsername: string } | "not_found" | null>(null);
+  const [joinListJoining, setJoinListJoining] = useState(false);
 
   useEffect(() => {
     if (profileSubPanel !== "list" || !profileListId) {
@@ -924,6 +937,13 @@ export function AppContainer() {
     followedUsersActivityData
   });
 
+  // Al entrar en elaboración sin método elegido, marcar por defecto el primero de la lista = último usado (actividad del diario).
+  useEffect(() => {
+    if (activeTab === "brewlab" && brewStep === "method" && !brewMethod?.trim() && orderedBrewMethods.length > 0) {
+      setBrewMethod(orderedBrewMethods[0].name);
+    }
+  }, [activeTab, brewStep, brewMethod, orderedBrewMethods, setBrewMethod]);
+
   const createCoffeeBrandSuggestions = useMemo(() => {
     const byKey = new Map<string, string>();
     coffees.forEach((c) => {
@@ -940,11 +960,13 @@ export function AppContainer() {
   useEffect(() => {
     if (profileSubPanel !== "list" || !profileListId) {
       setProfileListMeta(null);
+      setJoinListInfo(null);
       return;
     }
     const inUserLists = userLists.some((l) => l.id === profileListId);
     if (profileUser && inUserLists) {
       setProfileListMeta(userLists.find((l) => l.id === profileListId) ?? null);
+      setJoinListInfo(null);
       return;
     }
     let cancelled = false;
@@ -953,6 +975,7 @@ export function AppContainer() {
         if (cancelled) return;
         if (list) {
           setProfileListMeta(list);
+          setJoinListInfo(null);
           if (!profileUsername && list.user_id) {
             fetchUserById(list.user_id).then((owner) => {
               if (!cancelled && owner) {
@@ -963,6 +986,27 @@ export function AppContainer() {
           }
         } else {
           setProfileListMeta(null);
+          fetchListInfoForJoin(profileListId)
+            .then((info) => {
+              if (cancelled) return;
+              if (info) {
+                fetchUserById(info.user_id).then((owner) => {
+                  if (!cancelled && owner) {
+                    setUsers((prev) => (prev.some((u) => u.id === owner.id) ? prev : [...prev, owner]));
+                    setJoinListInfo({ name: info.name, user_id: info.user_id, ownerUsername: owner.username });
+                  } else if (!cancelled) {
+                    setJoinListInfo({ name: info.name, user_id: info.user_id, ownerUsername: "" });
+                  }
+                }).catch(() => {
+                  if (!cancelled) setJoinListInfo({ name: info.name, user_id: info.user_id, ownerUsername: "" });
+                });
+              } else {
+                setJoinListInfo("not_found");
+              }
+            })
+            .catch(() => {
+              if (!cancelled) setJoinListInfo("not_found");
+            });
         }
       })
       .catch(() => {
@@ -1131,13 +1175,98 @@ export function AppContainer() {
     return list;
   }, [diaryEntries, coffeeCatalogIncludingCustom]);
 
-  const isListActive = useMemo(
-    () =>
-      Boolean(
-        detailIsFavorite ||
-          (detailCoffeeId != null && detailCoffeeId !== "" && coffeeIdsInUserLists.includes(detailCoffeeId))
-      ),
-    [detailIsFavorite, detailCoffeeId, coffeeIdsInUserLists]
+  const isListActive = useMemo(() => {
+    if (detailIsFavorite) return true;
+    if (detailCoffeeId == null || detailCoffeeId === "") return false;
+    const norm = (id: string) => String(id).trim().toLowerCase();
+    const needle = norm(detailCoffeeId);
+    return coffeeIdsInEditableUserLists.some((id) => norm(id) === needle);
+  }, [detailIsFavorite, detailCoffeeId, coffeeIdsInEditableUserLists]);
+
+  const detailEditableListIdsKey = useMemo(() => {
+    if (!activeUser) return "";
+    return userLists
+      .filter((l) => userListRowIsEditableByUser(l, activeUser.id))
+      .map((l) => l.id)
+      .sort()
+      .join(",");
+  }, [userLists, activeUser?.id]);
+
+  /** Solo listas donde el usuario puede añadir/quitar ítems (propias o compartidas con members_can_edit). */
+  const userListsEditableForAddModal = useMemo(() => {
+    if (!activeUser) return [];
+    return userLists.filter((l) => userListRowIsEditableByUser(l, activeUser.id));
+  }, [userLists, activeUser?.id]);
+
+  useEffect(() => {
+    if (!detailCoffeeId || !activeUser) {
+      setDetailListIdsContainingCoffee([]);
+      return;
+    }
+    const editable = userLists.filter((l) => userListRowIsEditableByUser(l, activeUser.id));
+    if (editable.length === 0) {
+      setDetailListIdsContainingCoffee([]);
+      return;
+    }
+    let cancelled = false;
+    void getListIdsContainingCoffee(detailCoffeeId, editable.map((l) => l.id)).then((ids) => {
+      if (!cancelled) setDetailListIdsContainingCoffee(ids);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailCoffeeId, activeUser?.id, detailEditableListIdsKey]);
+
+  const refreshAddToListModalData = useCallback(async () => {
+    if (!detailCoffeeId || !activeUser) return;
+    invalidateUserListsCache(activeUser.id);
+    const [owned, shared] = await Promise.all([
+      fetchUserLists(activeUser.id),
+      fetchSharedWithMeLists(activeUser.id)
+    ]);
+    const merged = Array.from(new Map([...owned, ...shared].map((l) => [l.id, l])).values());
+    setUserLists(merged);
+    const editable = merged.filter((l) => userListRowIsEditableByUser(l, activeUser.id));
+    const ids =
+      editable.length > 0
+        ? await getListIdsContainingCoffee(detailCoffeeId, editable.map((l) => l.id))
+        : [];
+    setDetailListIdsContainingCoffee(ids);
+    setCoffeeIdsInEditableUserLists(await fetchCoffeeIdsInEditableUserLists(activeUser.id));
+  }, [detailCoffeeId, activeUser]);
+
+  const applyDetailListMembership = useCallback(
+    async (opts: { addListIds: string[]; removeListIds: string[]; favoriteTarget: boolean }) => {
+      if (!detailCoffeeId || !activeUser) return;
+      const coffeeId = detailCoffeeId;
+      for (const listId of opts.removeListIds) {
+        await removeUserListItem(listId, coffeeId);
+        setAllListItemsForActivity((prev) =>
+          prev.filter((row) => !(row.list_id === listId && row.coffee_id === coffeeId))
+        );
+      }
+      for (const listId of opts.addListIds) {
+        await addUserListItem(listId, coffeeId);
+      }
+      if (opts.favoriteTarget !== detailIsFavorite) {
+        const result = await toggleFavoriteCoffee(activeUser.id, coffeeId, detailIsFavorite);
+        setFavorites((prev) => {
+          if (opts.favoriteTarget && result) {
+            return [result, ...prev.filter((item) => !(item.user_id === result.user_id && item.coffee_id === result.coffee_id))];
+          }
+          return prev.filter((item) => !(item.user_id === activeUser.id && item.coffee_id === coffeeId));
+        });
+      }
+      const editable = userLists.filter((l) => userListRowIsEditableByUser(l, activeUser.id));
+      const containing =
+        editable.length > 0
+          ? await getListIdsContainingCoffee(coffeeId, editable.map((l) => l.id))
+          : [];
+      setDetailListIdsContainingCoffee(containing);
+      setCoffeeIdsInEditableUserLists(await fetchCoffeeIdsInEditableUserLists(activeUser.id));
+      setCoffeeIdsInUserLists(await fetchCoffeeIdsInUserLists(activeUser.id));
+    },
+    [detailCoffeeId, activeUser, detailIsFavorite, userLists, setAllListItemsForActivity]
   );
 
   useEffect(() => {
@@ -1538,18 +1667,11 @@ export function AppContainer() {
       onRequireAuth={requestLogin}
       fullPage={false}
       externalOpenStockSignal={0}
-      userLists={userLists}
+      userLists={userListsEditableForAddModal}
+      listIdsContainingCoffee={detailListIdsContainingCoffee}
       onCreateList={handleCreateList}
-      onAddCoffeeToList={
-        detailCoffee?.id
-          ? async (listId) => {
-              await addUserListItem(listId, detailCoffee.id);
-              setCoffeeIdsInUserLists((prev) =>
-                prev.includes(detailCoffee.id) ? prev : [...prev, detailCoffee.id]
-              );
-            }
-          : undefined
-      }
+      onApplyListMembership={detailCoffee?.id && activeUser ? applyDetailListMembership : undefined}
+      onRefreshAddToListModal={detailCoffee?.id && activeUser ? refreshAddToListModalData : undefined}
     />
   ) : null;
 
@@ -2023,18 +2145,11 @@ export function AppContainer() {
           onRequireAuth={requestLogin}
           fullPage
           externalOpenStockSignal={detailOpenStockSignal}
-          userLists={userLists}
+          userLists={userListsEditableForAddModal}
+          listIdsContainingCoffee={detailListIdsContainingCoffee}
           onCreateList={handleCreateList}
-          onAddCoffeeToList={
-            detailCoffee?.id
-              ? async (listId) => {
-                  await addUserListItem(listId, detailCoffee.id);
-                  setCoffeeIdsInUserLists((prev) =>
-                    prev.includes(detailCoffee.id) ? prev : [...prev, detailCoffee.id]
-                  );
-                }
-              : undefined
-          }
+          onApplyListMembership={detailCoffee?.id && activeUser ? applyDetailListMembership : undefined}
+          onRefreshAddToListModal={detailCoffee?.id && activeUser ? refreshAddToListModalData : undefined}
         />
       ) : (
         <article className="coffee-detail-empty coffee-detail-empty-full">
@@ -2192,6 +2307,44 @@ export function AppContainer() {
             });
           }}
         />
+      ) : profileSubPanel === "list" && profileListId && joinListInfo && typeof joinListInfo === "object" ? (
+        <JoinListView
+          listName={joinListInfo.name}
+          ownerUsername={joinListInfo.ownerUsername}
+          onJoin={async () => {
+            if (!profileListId || !activeUser) return;
+            setJoinListJoining(true);
+            try {
+              await joinListByLink(profileListId);
+              invalidateUserListsCache(activeUser.id);
+              const [owned, shared] = await Promise.all([
+                fetchUserLists(activeUser.id),
+                fetchSharedWithMeLists(activeUser.id)
+              ]);
+              setUserLists([...owned, ...shared]);
+              setJoinListInfo(null);
+              navigateToTab("profile", { profileUserId: joinListInfo.user_id, profileSection: "list", profileListId });
+            } catch (err) {
+              console.error("Error al unirse a la lista:", err);
+            } finally {
+              setJoinListJoining(false);
+            }
+          }}
+          onBack={() => {
+            setJoinListInfo(null);
+            navigateToTab("home", { replace: true });
+          }}
+          isJoining={joinListJoining}
+        />
+      ) : profileSubPanel === "list" && profileListId && joinListInfo === "not_found" ? (
+        <section className="join-list-view profile-users-list-view" aria-label="Lista no encontrada">
+          <p className="join-list-view-title">Lista no encontrada</p>
+          <p className="join-list-view-owner">El enlace no es válido o la lista ya no permite unirse.</p>
+          <Button variant="plain" className="join-list-view-back" onClick={() => navigateToTab("home", { replace: true })}>
+            <UiIcon name="arrow-left" aria-hidden="true" />
+            Volver
+          </Button>
+        </section>
       ) : profileSubPanel === "list" && profileListId && listOptionsView ? (
         (() => {
           const list = userLists.find((l) => l.id === profileListId) ?? profileListMeta;
@@ -2304,6 +2457,9 @@ export function AppContainer() {
                 canEditList
                   ? async (coffeeId) => {
                       await removeUserListItem(profileListId, coffeeId);
+                      setAllListItemsForActivity((prev) =>
+                        prev.filter((row) => !(row.list_id === profileListId && row.coffee_id === coffeeId))
+                      );
                       setListDetailItemIds((prev) => prev.filter((id) => id !== coffeeId));
                     }
                   : undefined

@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-17 (registro §18 notificaciones elaboración, consumo, actividades, WebApp)
+**Última actualización:** 2026-03-17 (registro §21 listas compartidas: permiso de edición en detalle y modal)
 
 ---
 
@@ -40,7 +40,9 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 16. [Elaboración Android y WebApp — chips, carruseles, márgenes, Selecciona café como página (13–14 mar 2026)](#16-elaboración-android-y-webapp--chips-carruseles-márgenes-selecciona-café-como-página-1314-mar-2026)
 17. [Resumen de cambios — despensa, diario, deploy, CI (15–16 mar 2026)](#17-resumen-de-cambios--despensa-diario-deploy-ci-1516-mar-2026)
 18. [Resumen de cambios — notificaciones elaboración, consumo, actividades, WebApp (17 mar 2026)](#18-resumen-de-cambios--notificaciones-elaboración-consumo-actividades-webapp-17-mar-2026)
-19. [Error Play: Foreground Service permissions (subida AAB)](#27-error-al-subir-a-play-you-must-let-us-know-whether-your-app-uses-any-foreground-service-permissions)
+19. [Integraciones Android documentadas y Futuros desarrollos refactor (18 mar 2026)](#19-integraciones-android-documentadas-y-futuros-desarrollos-refactor-18-mar-2026)
+20. [Listas: unirse por enlace — Supabase, WebApp, Android (19 mar 2026)](#20-listas-unirse-por-enlace--supabase-webapp-android-19-mar-2026)
+21. [Listas compartidas: solo editables en modal e icono de lista (17 mar 2026)](#21-listas-compartidas-solo-editables-en-modal-e-icono-de-lista-17-mar-2026)
 
 ---
 
@@ -161,29 +163,6 @@ Cannot find name 'setDiarySelectedPantryItemIdDraft'.
 **Solución:** En el job `release-android`, paso "Generate release notes": se usa `git log refSince..HEAD -- <paths>` con las rutas Android para filtrar commits; la referencia `refSince` es el último tag de **producción** (si existe y es ancestro de HEAD), y si no hay producción se usa el de la pista actual (beta/alpha). Los mensajes de commit se transforman con una función `toFriendly()` que elimina prefijos técnicos y convierte a frases tipo "Mejoras en tu despensa de café", "Retoques en tu diario", "Corregimos detalles para que todo vaya mejor", etc. Título de la sección: "¿Qué hay de nuevo?".
 
 **Archivos:** `.github/workflows/release-deploy.yml`; `docs/RELEASE_DEPLOY_WORKFLOW.md` (descripción de las notas).
-
----
-
-### 2.7 Error al subir a Play: "You must let us know whether your app uses any Foreground Service permissions"
-
-**Síntoma:** El step "Upload to Google Play" (r0adkll/upload-google-play@v1) falla con:
-
-```text
-Error: You must let us know whether your app uses any Foreground Service permissions.
-```
-
-**Causa:** La app declara y usa un **Foreground Service** (Brew Lab: timer de elaboración en primer plano con `FOREGROUND_SERVICE_SPECIAL_USE`). Para apps que targetean Android 14+, Google Play exige que el desarrollador **declare en la consola** los tipos de foreground service utilizados y el impacto para el usuario. No es un fallo del workflow ni de la acción; es un requisito de política de Play.
-
-**Solución (una vez por app):**
-
-1. **Play Console** → Tu app → **Contenido de la app** (en el menú: Monitor and improve → App content).
-2. Buscar la sección **"Foreground service"** o **"Permissions for Foreground Services"** / declaración de tipos de FGS.
-3. **Declarar el tipo** que usa la app: **Special use** (`TYPE_SPECIAL_USE`), con la descripción que ya está en el manifest:
-   - *"Timer de elaboración de café en curso: muestra tiempo restante y permite pausar/cancelar desde la notificación."*
-4. Donde pida **impacto para el usuario** si la tarea es interrumpida o diferida por el sistema, indicar por ejemplo: si se interrumpe, el temporizador se detiene y el usuario puede reanudarlo desde la notificación o desde la app; si se difiere, el temporizador no arranca hasta que el sistema lo permita.
-5. **Si el formulario no aparece:** Hacer una **subida manual** del AAB desde Play Console (Crear nueva versión → Subir AAB). Tras esa primera subida, la declaración de foreground service suele quedar disponible; completarla y guardar. A partir de entonces, las subidas vía GitHub Actions (r0adkll/upload-google-play) deberían funcionar sin ese error.
-
-**Referencias:** [Issue #232 r0adkll/upload-google-play](https://github.com/r0adkll/upload-google-play/issues/232); [Play Console Help - Foreground service and full-screen intent](https://support.google.com/googleplay/android-developer/answer/13392821).
 
 ---
 
@@ -709,6 +688,94 @@ Cambios en la notificación «¿Registrar elaboración?», enlace a pantalla Con
 
 - **docs/FUTUROS_DESARROLLOS_ANDROID.md** (nuevo o modificado): ideas o plan de futuros desarrollos Android.
 - **docs/REGISTRO_DESARROLLO_E_INCIDENCIAS.md**: esta sección 18 e índice rápido.
+
+---
+
+## 19. Integraciones Android documentadas y Futuros desarrollos refactor (18 mar 2026)
+
+**Objetivo:** Dejar constancia de lo ya implementado en un documento canónico y refactorizar "Futuros desarrollos" para que solo contenga propuestas pendientes y nuevas ideas.
+
+### 19.1 Documento nuevo: integraciones implementadas
+
+- **Creado:** `docs/ANDROID_INTEGRACIONES_IMPLEMENTADAS.md`
+- **Contenido:** Fuente de verdad de las integraciones Android ya realizadas:
+  - Timer de elaboración en primer plano (BrewLabTimerService, notificación ongoing, Pausar/Reanudar/Cancelar, notificación "¿Registrar elaboración?" → abre Consumo, restauración estado al reabrir app).
+  - Quick Settings Tile "Cafesito" (CafesitoTileService: etiqueta "Cafesito" / "Ver elaboración" según FGS, abre Brew Lab).
+  - App Links / Deep links, Predictive app actions, canales de notificaciones, edge-to-edge, predictive back.
+- **Uso:** Consultar este doc para saber qué está implementado; para propuestas futuras, `FUTUROS_DESARROLLOS_ANDROID.md`.
+
+### 19.2 Refactor de Futuros desarrollos Android
+
+- **Modificado:** `docs/FUTUROS_DESARROLLOS_ANDROID.md`
+- **Cambios:** Las secciones detalladas de lo ya implementado (Timer FGS, Quick Settings Tile, notificaciones con acciones, App Links, predictive actions, canales, edge-to-edge, predictive back) se han sustituido por referencias breves y enlace a `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md`. El documento queda centrado en: **pendientes** (Direct Share, Bubbles, Health Connect) y **nuevas propuestas** (funcionalidades nativas Android y mejoras para la app).
+
+### 19.3 Índice de documentación
+
+- En `docs/README.md` (sección 4.5 o 4.8) puede añadirse la referencia a `ANDROID_INTEGRACIONES_IMPLEMENTADAS.md` para "Android: integraciones ya implementadas".
+
+---
+
+## 20. Listas: unirse por enlace — Supabase, WebApp, Android (19 mar 2026)
+
+**Objetivo:** Quien recibe un enlace a una lista (pública o por invitación) y no es miembro puede **unirse en un paso** desde WebApp o Android, sin depender solo de invitación individual (`create_list_invitation`).
+
+### 20.1 Backend (Supabase)
+
+| Artefacto | Descripción |
+|-----------|-------------|
+| **`docs/supabase/user_lists_join_by_link.sql`** | RPC `get_list_info_for_join(p_list_id)` → JSON `{ name, user_id }` solo si la lista es pública o `privacy = 'invitation'`. RPC `join_list_by_link(p_list_id)` → inserta al usuario actual en `user_list_members` (idempotente). **Debe ejecutarse en el SQL Editor de Supabase** en cada entorno donde se use la función. |
+
+### 20.2 WebApp
+
+| Archivo / pieza | Cambio |
+|-----------------|--------|
+| **`webApp/src/data/supabaseApi.ts`** | `fetchListInfoForJoin`, `joinListByLink`. |
+| **`webApp/src/features/lists/JoinListView.tsx`** | Pantalla "Te han invitado a una lista" + "Unirse a la lista". |
+| **`webApp/src/app/AppContainer.tsx`** | Tras `fetchUserListById` null, carga `fetchListInfoForJoin`; muestra `JoinListView` o "Lista no encontrada"; al unirse, invalida caché de listas, refetch propias + compartidas, navega al perfil del dueño con la lista. |
+| **`webApp/src/styles/features.css`** | Estilos `.join-list-view*`. |
+
+### 20.3 Android
+
+| Archivo / pieza | Cambio |
+|-----------------|--------|
+| **`SupabaseDataSource.kt`** | `getListInfoForJoin`, `joinListByLink`, tipo `ListInfoForJoin`. |
+| **`DeepLinkViewModel.kt`** | `getListInfoForJoin`. |
+| **`MainActivity.kt`** | `parseListIdFromIntent`: además de `/profile/list/{id}`, soporta `/lists/join/{id}`. |
+| **`AppNavigation.kt`** | Deep link: si no hay `getListOwnerId`, intenta unirse vía `listJoin/{listId}`; ruta composable `listJoin/{listId}`. |
+| **`ListJoinViewModel.kt`**, **`ListJoinScreen.kt`** | Carga info, muestra UI, ejecuta join e invalida caché de listas. |
+| **`strings.xml`** | Cadenas `join_list_*`. |
+
+### 20.4 Documentación
+
+- **`FUTUROS_DESARROLLOS_ANDROID.md`:** ítem "Listas y compartir como crecimiento" marcado como ✅; §3.4.4 actualizado con estado implementado y mejoras opcionales futuras.
+- **`ANDROID_INTEGRACIONES_IMPLEMENTADAS.md`:** §5 ampliado (unirse por enlace).
+- **`OPCIONES_DE_LISTA_WEB_Y_ANDROID.md`:** §2.4 y RPCs en §2.3.
+
+---
+
+## 21. Listas compartidas: solo editables en modal e icono de lista (17 mar 2026)
+
+**Regla de producto:** En un café compartido en una lista, el usuario solo puede **añadir/quitar** ese café de listas donde es **dueño** o **miembro con `members_can_edit`**. Si solo es miembro **sin** derecho de edición, esa lista **no** debe aparecer en el modal “Añadir a lista”, y el **icono de lista** en el detalle del café **no** debe mostrarse activo únicamente por pertenecer a listas solo lectura (sí debe activarse si está en **favoritos** o en **alguna** lista editable).
+
+### 21.1 Android
+
+| Pieza | Cambio |
+|-------|--------|
+| **`SupabaseDataSource.kt`** | `getCoffeeIdsInEditableUserLists(userId)` — IDs de cafés que están al menos en una lista editable (propia o `members_can_edit`). Se mantiene `getCoffeeIdsInUserLists` para usos que necesiten todas las listas (p. ej. ADN / perfil). |
+| **Detalle café** | Estado del icono lista y refresco del modal alineados con listas editables; listas mostradas en el bottom sheet filtradas (dueño o `members_can_edit`). |
+
+### 21.2 WebApp
+
+| Archivo / pieza | Cambio |
+|-----------------|--------|
+| **`webApp/src/data/supabaseApi.ts`** | `userListRowIsEditableByUser`, `fetchCoffeeIdsInEditableUserLists`. |
+| **`useUserDataLoader.ts`** | Tras cargar listas: `coffeeIdsInUserLists` (todas) y `coffeeIdsInEditableUserLists` (solo editables). |
+| **`AppContainer.tsx`** | `isListActive` y `detailListIdsContainingCoffee` / efectos / `refreshAddToListModalData` / `applyDetailListMembership` solo sobre listas editables; `userListsEditableForAddModal` pasado al detalle. |
+| **`CoffeeDetailView.tsx`** | Modal “Añadir a lista” solo recibe listas editables; sin filas “solo lectura” en ese modal. |
+
+### 21.3 Paridad
+
+Misma semántica Web y Android para quién ve listas en el modal y cuándo el icono de lista está activo en detalle.
 
 ---
 

@@ -134,10 +134,13 @@ fun DetailScreen(
                         sensoryEditorsCount = state.sensoryEditorsCount,
                         allUsers = allUsers,
                         userLists = state.userLists,
+                        listIdsContainingCoffee = state.listIdsContainingCoffee,
                         isListActive = state.isListActive,
                         isFavorite = state.isFavorite,
+                        currentUserId = state.activeUser?.id ?: 0,
                         onCreateList = { name, privacy, membersCanEdit -> viewModel.createList(name, privacy, membersCanEdit) },
-                        onAddCoffeeToList = { viewModel.addCoffeeToList(it) }
+                        onApplyAddToList = { add, remove, fav -> viewModel.applyAddToListModal(add, remove, fav) },
+                        onRefreshAddToListModal = { viewModel.refreshForAddToListModal() }
                     )
                 }
             }
@@ -165,10 +168,13 @@ private fun DetailContent(
     sensoryEditorsCount: Int,
     allUsers: List<UserEntity>,
     userLists: List<com.cafesito.app.data.UserListRow> = emptyList(),
+    listIdsContainingCoffee: Set<String> = emptySet(),
     isListActive: Boolean = false,
     isFavorite: Boolean = false,
+    currentUserId: Int = 0,
     onCreateList: (name: String, privacy: String, membersCanEdit: Boolean) -> Unit = { _, _, _ -> },
-    onAddCoffeeToList: (listId: String) -> Unit = {}
+    onApplyAddToList: (add: Set<String>, remove: Set<String>, favoriteShouldBe: Boolean) -> Unit = { _, _, _ -> },
+    onRefreshAddToListModal: () -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
     val coffee = coffeeDetails.coffee
@@ -178,7 +184,15 @@ private fun DetailContent(
     var showStockDialog by remember { mutableStateOf(false) }
     var showSensoryEditor by remember { mutableStateOf(false) }
     var showAddToListModal by remember { mutableStateOf(false) }
+    LaunchedEffect(showAddToListModal) {
+        if (showAddToListModal) onRefreshAddToListModal()
+    }
     var showCreateListSheet by remember { mutableStateOf(false) }
+    val userListsForAddModal = remember(userLists, currentUserId) {
+        userLists.filter { list ->
+            list.userId == currentUserId.toLong() || list.membersCanEdit == true
+        }
+    }
 
     if (showAddReviewDialog) {
         ReviewBottomSheet(
@@ -248,7 +262,9 @@ private fun DetailContent(
     if (showAddToListModal) {
         com.cafesito.app.ui.components.AddToListBottomSheet(
             onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list")); showAddToListModal = false },
-            userLists = userLists,
+            currentUserId = currentUserId,
+            userLists = userListsForAddModal,
+            listIdsContainingCoffee = listIdsContainingCoffee,
             isFavorite = isFavorite,
             onCreateListRequest = {
                 onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list"))
@@ -256,12 +272,10 @@ private fun DetailContent(
                 showAddToListModal = false
                 showCreateListSheet = true
             },
-            onAddToList = { listId ->
-                onAddCoffeeToList(listId)
+            onApply = { toAdd, toRemove, favoriteShouldBe ->
+                onApplyAddToList(toAdd, toRemove, favoriteShouldBe)
                 onTrackEvent("modal_close", bundleOf("modal_id" to "add_to_list"))
-            },
-            onFavoriteToggle = {
-                onFavoriteToggle(true)
+                showAddToListModal = false
             }
         )
     }
@@ -321,13 +335,62 @@ private fun DetailContent(
                             Spacer(Modifier.height(24.dp))
                         }
 
+                        data class DetailTechnicalItem(
+                            val label: String,
+                            val value: String,
+                            val icon: ImageVector? = null,
+                            val iconPainter: Painter? = null
+                        )
+
                         val detailsItems = listOfNotNull(
-                            coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let { Triple("PAÍS", it, Icons.Default.Public) },
-                            coffee.especialidad?.takeIf { it.isNotBlank() }?.let { Triple("ESPECIALIDAD", it, Icons.Default.Verified) },
-                            coffee.variedadTipo?.takeIf { it.isNotBlank() }?.let { Triple("VARIEDAD", it, Icons.Default.Category) },
-                            coffee.tueste.takeIf { it.isNotBlank() }?.let { Triple("TUESTE", it, Icons.Default.LocalFireDepartment) },
-                            coffee.proceso.takeIf { it.isNotBlank() }?.let { Triple("PROCESO", it, Icons.Default.Settings) },
-                            coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let { Triple("MOLIENDA", it, Icons.Default.Grain) }
+                            coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "PAÍS",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.pais)
+                                )
+                            },
+                            coffee.especialidad?.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "ESPECIALIDAD",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.especialidad)
+                                )
+                            },
+                            coffee.variedadTipo?.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "VARIEDAD",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.variedad)
+                                )
+                            },
+                            coffee.tueste.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "TUESTE",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.tueste)
+                                )
+                            },
+                            coffee.proceso.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(
+                                    label = "PROCESO",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.proceso)
+                                )
+                            },
+                            coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let {
+                                DetailTechnicalItem(label = "MOLIENDA", value = it, icon = Icons.Default.Grain)
+                            },
+                            DetailTechnicalItem(
+                                label = "FORMATO",
+                                value = coffee.formato.takeIf { it.isNotBlank() } ?: "No especificado",
+                                iconPainter = painterResource(id = R.drawable.formato)
+                            ),
+                            DetailTechnicalItem(
+                                label = "CAFEÍNA",
+                                value = coffee.cafeina.takeIf { it.isNotBlank() } ?: "No especificada",
+                                iconPainter = painterResource(id = R.drawable.grano_cafe)
+                            )
                         )
                         if (detailsItems.isNotEmpty()) {
                             Text(text = "DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
@@ -338,8 +401,21 @@ private fun DetailContent(
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 maxItemsInEachRow = 2
                             ) {
-                                detailsItems.forEach { (label, value, icon) ->
-                                    DetailPremiumBlock(label, value, icon, Modifier.fillMaxWidth(0.48f))
+                                detailsItems.forEach { item ->
+                                    when {
+                                        item.iconPainter != null -> DetailPremiumBlock(
+                                            label = item.label,
+                                            value = item.value,
+                                            icon = item.iconPainter,
+                                            modifier = Modifier.fillMaxWidth(0.48f)
+                                        )
+                                        item.icon != null -> DetailPremiumBlock(
+                                            label = item.label,
+                                            value = item.value,
+                                            icon = item.icon,
+                                            modifier = Modifier.fillMaxWidth(0.48f)
+                                        )
+                                    }
                                 }
                             }
                         }

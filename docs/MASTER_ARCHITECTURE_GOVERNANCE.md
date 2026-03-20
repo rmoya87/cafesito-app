@@ -2,7 +2,7 @@
 
 Estado: `vivo`  
 Versión: `0.1.0`  
-Última actualización: `2026-03-04`  
+Última actualización: `2026-03-19`  
 Propietario técnico: `Arquitectura de Plataforma`  
 Ámbito: `Android + iOS + WebApp + /shared + Supabase + CI/CD + Operación`
 
@@ -1253,9 +1253,10 @@ Superficie pública indexable:
 - Meta title/description dinámicos.
 - Canonical y OpenGraph.
 - Prerender de páginas públicas clave.
+- **`meta name="robots" content="index, follow"`** explícita: `webApp/index.html`, HTML legal en `public/legal/`, HTML prerenderizado por café (`scripts/prerender-coffee-*.mjs`), y en cliente en rutas SPA públicas (`useCoffeeSeoMeta`: timeline/home, explorar cafés sin `/search/users`, detalle `/coffee/...`).
 
 Superficie cerrada:
-- No indexable (meta robots noindex, rutas protegidas sin contenido indexable).
+- No indexable: en la SPA, **`noindex, nofollow`** en pestañas no públicas (diario, perfil, brew lab, búsqueda de usuarios, etc.) para no dejar arrastrada la meta de una URL pública anterior; rutas protegidas sin contenido indexable para invitados.
 
 Reglas:
 - Público: contenido semántico SSR/prerender cuando aplique.

@@ -742,12 +742,53 @@ fun StockSliderSection(
 
 @Composable
 fun DetailPremiumBlock(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    DetailPremiumBlock(
+        label = label,
+        value = value,
+        iconPainter = null,
+        iconVector = icon,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun DetailPremiumBlock(label: String, value: String, icon: Painter, modifier: Modifier = Modifier) {
+    DetailPremiumBlock(
+        label = label,
+        value = value,
+        iconPainter = icon,
+        iconVector = null,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun DetailPremiumBlock(
+    label: String,
+    value: String,
+    iconPainter: Painter?,
+    iconVector: ImageVector?,
+    modifier: Modifier = Modifier
+) {
     PremiumCard(modifier = modifier) {
         Row(modifier = Modifier.padding(Spacing.space3), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier
                 .size(Spacing.space8)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(Spacing.space6))
+                when {
+                    iconPainter != null -> Icon(
+                        painter = iconPainter,
+                        contentDescription = label,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(Spacing.space6)
+                    )
+                    iconVector != null -> Icon(
+                        imageVector = iconVector,
+                        contentDescription = label,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Spacing.space6)
+                    )
+                }
             }
             Spacer(Modifier.width(Spacing.space3))
             Column {

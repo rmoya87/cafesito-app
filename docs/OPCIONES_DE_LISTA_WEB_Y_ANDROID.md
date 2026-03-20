@@ -1,7 +1,7 @@
 # Opciones de lista: backend, WebApp y Android
 
 **Estado:** vigente  
-**Última actualización:** 2026-03-13  
+**Última actualización:** 2026-03-19  
 **Ámbito:** Supabase, WebApp, Android.
 
 ---
@@ -47,6 +47,14 @@ La funcionalidad **Opciones de lista** permite al usuario (dueño o miembro) ges
 - **`accept_list_invitation(p_invitation_id)`**: invitee acepta; inserta en `user_list_members`, actualiza status.
 - **`decline_list_invitation(p_invitation_id)`**: invitee rechaza; actualiza status.
 - **`join_public_list(p_list_id)`**: usuario se une a lista pública; inserta en `user_list_members`.
+- **`get_list_info_for_join(p_list_id)`** y **`join_list_by_link(p_list_id)`**: ver `docs/supabase/user_lists_join_by_link.sql`. Permiten a un usuario autenticado **ver nombre y dueño** de una lista y **unirse por enlace** si la lista es **pública** o **`privacy = 'invitation'`** (sin invitación previa en `user_list_invitations`). La WebApp usa `/profile/list/{listId}`; si el visitante no es miembro, muestra "Unirse a la lista". Android abre la misma URL o `/lists/join/{listId}` y, si no hay acceso RLS, la pantalla `listJoin/{listId}`.
+
+### 2.4 Unirse por enlace (WebApp + Android)
+
+| Plataforma | Comportamiento |
+|------------|----------------|
+| **WebApp** | `fetchListInfoForJoin` / `joinListByLink` en `supabaseApi.ts`; UI `JoinListView`; flujo en `AppContainer` cuando la ruta es lista sin ser miembro. |
+| **Android** | `SupabaseDataSource.getListInfoForJoin`, `joinListByLink`; `ListJoinScreen` + ruta `listJoin/{listId}`; deep link en `MainActivity` + `AppNavigation`. |
 
 ---
 

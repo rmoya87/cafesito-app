@@ -88,7 +88,7 @@ object TimelineNotificationSystem {
         val notificationId = notification.id.hashCode()
 
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_notification_small)
+            .setSmallIcon(R.drawable.ic_cafesito_tile)
             .setContentTitle(title)
             .setContentText(message)
             .setAutoCancel(true)

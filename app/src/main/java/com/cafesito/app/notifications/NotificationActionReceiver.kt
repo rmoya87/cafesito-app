@@ -30,6 +30,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             manager.cancel(notificationId)
         }
 
+        if (action == ACTION_DISMISS_BREW_REGISTER) return
         if (action == ACTION_MARK_READ) {
             Toast.makeText(context, "Notificación marcada como leída", Toast.LENGTH_SHORT).show()
             return
@@ -139,6 +140,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_SAVE_POST = "com.cafesito.app.ACTION_SAVE_POST"
         const val ACTION_ACCEPT_LIST_INVITE = "com.cafesito.app.ACTION_ACCEPT_LIST_INVITE"
         const val ACTION_DECLINE_LIST_INVITE = "com.cafesito.app.ACTION_DECLINE_LIST_INVITE"
+        /** Cierra la notificación «¿Registrar elaboración?» sin abrir la app. */
+        const val ACTION_DISMISS_BREW_REGISTER = "com.cafesito.app.ACTION_DISMISS_BREW_REGISTER"
 
         const val EXTRA_NOTIFICATION_ID = "extra_notification_id"
         const val EXTRA_TARGET_USER_ID = "extra_target_user_id"

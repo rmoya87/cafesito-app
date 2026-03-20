@@ -19,6 +19,7 @@ type Params = {
   setFavorites: (value: FavoriteRow[]) => void;
   setUserLists: (value: UserListRow[]) => void;
   setCoffeeIdsInUserLists: (value: string[]) => void;
+  setCoffeeIdsInEditableUserLists: (value: string[]) => void;
   setAllListItemsForActivity: (value: UserListItemActivityRow[]) => void;
   setCustomCoffees: (value: CoffeeRow[]) => void;
   setFinishedCoffees: (value: FinishedCoffeeRow[]) => void;
@@ -34,6 +35,7 @@ export function useUserDataLoader({
   setFavorites,
   setUserLists,
   setCoffeeIdsInUserLists,
+  setCoffeeIdsInEditableUserLists,
   setAllListItemsForActivity,
   setCustomCoffees,
   setFinishedCoffees,
@@ -52,6 +54,7 @@ export function useUserDataLoader({
           fetchUserLists,
           fetchSharedWithMeLists,
           fetchCoffeeIdsInLists,
+          fetchCoffeeIdsInEditableUserLists,
           fetchAllListItemsForActivity
         } = await import("../../data/supabaseApi");
         const [notifications, ownedLists, sharedLists, listItemsForActivity] = await Promise.all([
@@ -68,6 +71,7 @@ export function useUserDataLoader({
           return Array.from(byId.values());
         })();
         const coffeeIdsInLists = await fetchCoffeeIdsInLists(mergedLists.map((l) => l.id));
+        const coffeeIdsInEditableLists = await fetchCoffeeIdsInEditableUserLists(activeUser.id);
         if (cancelled) return;
 
         setDiaryEntries(data.diaryEntries);
@@ -75,6 +79,7 @@ export function useUserDataLoader({
         setFavorites(data.favorites);
         setUserLists(mergedLists);
         setCoffeeIdsInUserLists(coffeeIdsInLists);
+        setCoffeeIdsInEditableUserLists(coffeeIdsInEditableLists);
         setAllListItemsForActivity(listItemsForActivity);
         setCustomCoffees(data.customCoffees);
         setFinishedCoffees(data.finishedCoffees);
@@ -105,6 +110,7 @@ export function useUserDataLoader({
     setNotifications,
     setPantryItems,
     setCoffeeIdsInUserLists,
+    setCoffeeIdsInEditableUserLists,
     setAllListItemsForActivity,
     setUserLists
   ]);

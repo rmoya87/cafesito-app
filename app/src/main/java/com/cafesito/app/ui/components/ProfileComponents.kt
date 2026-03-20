@@ -798,19 +798,31 @@ private fun AddToListOptionRow(
 
 private const val ADD_TO_LIST_FAVORITES_ID = "__favorites"
 
-/** Fila con checkbox a la izquierda + icono + texto (para modal Añadir a lista). */
+/** Dueño de la lista o miembro con permiso de edición (listas públicas / por invitación). */
+private fun UserListRow.canUserEditListItems(currentUserId: Int): Boolean {
+    val me = currentUserId.toLong()
+    val owner = userId == me
+    return owner || membersCanEdit == true
+}
+
+private fun String.normalizedListId(): String = trim().lowercase()
+
+private fun Set<String>.containsListId(listId: String): Boolean =
+    any { it.normalizedListId() == listId.normalizedListId() }
+
 @Composable
 private fun AddToListCheckboxRow(
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: () -> Unit,
     icon: @Composable () -> Unit,
     label: String
 ) {
     Surface(
-        onClick = onCheckedChange,
-        modifier = Modifier.fillMaxWidth(),
+        onClick = { if (enabled) onCheckedChange() },
+        modifier = Modifier.fillMaxWidth().then(if (!enabled) Modifier else Modifier),
         shape = Shapes.card,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (enabled) 0.6f else 0.35f)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = Spacing.space4, vertical = 14.dp),
@@ -819,7 +831,8 @@ private fun AddToListCheckboxRow(
             Icon(
                 imageVector = if (checked) Icons.Default.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
                 contentDescription = if (checked) "Seleccionado" else "No seleccionado",
-                tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (!enabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                else if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(Modifier.width(Spacing.space3))
@@ -835,20 +848,36 @@ private fun AddToListCheckboxRow(
     }
 }
 
-/** Modal bottom sheet "Añadir a lista": título a la izquierda, botón Añadir a la derecha; filas con checkbox para elegir una o varias listas. */
+/** Modal bottom sheet "Añadir a lista": listas editables con check si el café ya está; desmarcar quita. Listas solo lectura: check fijo si está el café. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddToListBottomSheet(
     onDismiss: () -> Unit,
+    currentUserId: Int,
     userLists: List<UserListRow>,
+    listIdsContainingCoffee: Set<String>,
     isFavorite: Boolean,
     onCreateListRequest: () -> Unit,
-    onAddToList: (listId: String) -> Unit,
-    onFavoriteToggle: () -> Unit
+    onApply: (toAdd: Set<String>, toRemove: Set<String>, favoriteShouldBe: Boolean) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var selectedIds by remember { mutableStateOf(setOf<String>()) }
+    val initialEditableWithCoffee = remember(userLists, listIdsContainingCoffee, currentUserId) {
+        userLists.filter { list ->
+            list.canUserEditListItems(currentUserId) && listIdsContainingCoffee.containsListId(list.id)
+        }.map { it.id }.toSet()
+    }
+    var selectedIds by remember(userLists, listIdsContainingCoffee, isFavorite, currentUserId) {
+        mutableStateOf(
+            userLists.filter { list ->
+                list.canUserEditListItems(currentUserId) && listIdsContainingCoffee.containsListId(list.id)
+            }.map { it.id }.toSet() +
+                if (isFavorite) setOf(ADD_TO_LIST_FAVORITES_ID) else emptySet()
+        )
+    }
     var saving by remember { mutableStateOf(false) }
+    val curLists = selectedIds.filter { it != ADD_TO_LIST_FAVORITES_ID }.toSet()
+    val curFav = ADD_TO_LIST_FAVORITES_ID in selectedIds
+    val hasChanges = curLists != initialEditableWithCoffee || curFav != isFavorite
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -862,41 +891,34 @@ fun AddToListBottomSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(Modifier.weight(1f))
                 Text(
                     "Añadir a lista",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally)
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp)
                 )
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.CenterEnd
+                TextButton(
+                    onClick = {
+                        if (!hasChanges || saving) return@TextButton
+                        saving = true
+                        val toRemove = initialEditableWithCoffee - curLists
+                        val toAdd = curLists - initialEditableWithCoffee
+                        onApply(toAdd, toRemove, curFav)
+                        onDismiss()
+                    },
+                    enabled = hasChanges && !saving,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 ) {
-                    TextButton(
-                        onClick = {
-                            if (selectedIds.isEmpty() || saving) return@TextButton
-                            saving = true
-                            selectedIds.forEach { id ->
-                                if (id == ADD_TO_LIST_FAVORITES_ID) {
-                                    if (!isFavorite) onFavoriteToggle()
-                                } else {
-                                    onAddToList(id)
-                                }
-                            }
-                            onDismiss()
-                        },
-                        enabled = selectedIds.isNotEmpty() && !saving,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    ) {
-                        Text(
-                            if (saving) "Añadiendo…" else "Añadir",
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Text(
+                        if (saving) "Guardando…" else "Aplicar",
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -913,9 +935,13 @@ fun AddToListBottomSheet(
                 onClick = onCreateListRequest
             )
             userLists.forEach { list ->
+                val canEdit = list.canUserEditListItems(currentUserId)
+                val inList = listIdsContainingCoffee.containsListId(list.id)
+                val checked = if (canEdit) list.id in selectedIds else inList
                 Spacer(Modifier.height(Spacing.space2))
                 AddToListCheckboxRow(
-                    checked = list.id in selectedIds,
+                    checked = checked,
+                    enabled = canEdit,
                     onCheckedChange = {
                         selectedIds = if (list.id in selectedIds) selectedIds - list.id else selectedIds + list.id
                     },
@@ -924,10 +950,10 @@ fun AddToListBottomSheet(
                             painter = rememberListAltSvgPainter(),
                             contentDescription = "Lista",
                             modifier = Modifier.size(Spacing.space6),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = if (canEdit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    label = list.name
+                    label = list.name + if (!canEdit && inList) " (solo lectura)" else ""
                 )
             }
             Spacer(Modifier.height(Spacing.space2))

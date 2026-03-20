@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.ui.theme.Shapes
+import com.cafesito.app.ui.utils.containsSearchQuery
 import com.cafesito.shared.domain.SuggestedUserInfo
 import com.cafesito.shared.domain.User
 
@@ -50,8 +51,8 @@ fun SearchUsersScreen(
         suggestedUsers
     } else {
         allUsersWithCounts.filter {
-            it.user.username.contains(searchQuery, ignoreCase = true) ||
-                it.user.fullName.contains(searchQuery, ignoreCase = true)
+            it.user.username.containsSearchQuery(searchQuery) ||
+                it.user.fullName.containsSearchQuery(searchQuery)
         }
     }.filter { it.user.id != activeUser?.id }
 

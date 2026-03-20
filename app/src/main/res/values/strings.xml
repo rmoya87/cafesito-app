@@ -17,6 +17,23 @@
     <string name="brew_timer_cancel">Cancelar</string>
     <string name="brew_timer_register_title">¿Registrar elaboración?</string>
     <string name="brew_timer_register_text">Abre Cafesito y guarda en tu diario. Continuar.</string>
+    <string name="brew_timer_register_yes">Sí, registrar</string>
+    <string name="brew_timer_register_later">Más tarde</string>
+
+    <!-- Quick Settings Tile -->
+    <string name="tile_label_brewing">Ver elaboración</string>
+    <string name="tile_content_description_default">Abrir Cafesito</string>
+    <string name="tile_content_description_brewing">Ver elaboración en curso</string>
+
+    <!-- Unirse a lista por enlace -->
+    <string name="join_list_title">Te han invitado a una lista</string>
+    <string name="join_list_owner">de @%1$s</string>
+    <string name="join_list_button">Unirse a la lista</string>
+    <string name="join_list_joining">Uniendo…</string>
+    <string name="join_list_back">Volver</string>
+    <string name="join_list_not_found">Lista no encontrada</string>
+    <string name="join_list_not_found_hint">El enlace no es válido o la lista ya no permite unirse.</string>
+    <string name="join_list_error">No se pudo unir a la lista. Comprueba la conexión.</string>
 
     <string name="login_welcome_to">BIENVENIDO A</string>
     <string name="login_brand">CAFESITO</string>

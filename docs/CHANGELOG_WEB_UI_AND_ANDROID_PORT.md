@@ -1,7 +1,7 @@
 # Changelog: cambios WebApp y guía de traslado a Android
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-05  
+**Última actualización:** 2026-03-19  
 **Ámbito:** WebApp (React) → Android (Kotlin/Compose) — paridad funcional y UX.
 
 ---
@@ -89,6 +89,7 @@ Este documento recoge **todos los cambios realizados en la WebApp** (timeline/ho
 | Sitemap | Sitemap de cafés fragmentado en varios archivos con índice. |
 | index.html | No indexar `index.html` en robots.txt. |
 | Canonical | Dominio canónico `https://cafesitoapp.com`. |
+| Meta robots | `index, follow` explícito en entrada SPA, legales, prerender de cafés y rutas públicas en `useCoffeeSeoMeta`; `noindex, nofollow` en el resto de pestañas SPA para evitar meta obsoleta. |
 
 ---
 

@@ -793,6 +793,23 @@ export async function joinPublicList(listId: string): Promise<void> {
   throwIfError(error);
 }
 
+/** Info mínima de una lista para mostrar "Unirse a la lista" (solo listas públicas o por invitación). Devuelve null si no existe o no permite unirse por enlace. */
+export async function fetchListInfoForJoin(listId: string): Promise<{ name: string; user_id: number } | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("get_list_info_for_join", { p_list_id: listId });
+  if (error || data == null) return null;
+  const obj = data as { name?: string; user_id?: number } | null;
+  if (!obj || typeof obj.name !== "string" || typeof obj.user_id !== "number") return null;
+  return { name: obj.name, user_id: obj.user_id };
+}
+
+/** Se une a una lista por enlace (lista pública o por invitación). RPC idempotente. */
+export async function joinListByLink(listId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc("join_list_by_link", { p_list_id: listId });
+  throwIfError(error);
+}
+
 /** Abandona una lista (el usuario actual deja de ser miembro). Requiere política RLS que permita DELETE donde user_id = get_my_internal_id(). */
 export async function leaveList(listId: string, userId: number): Promise<void> {
   const supabase = getSupabaseClient();
@@ -869,11 +886,24 @@ export async function createUserList(
 /** Ítems de una lista (cafés en user_list_items). */
 export type UserListItemRow = { coffee_id: string };
 
-/** Devuelve los coffee_id que están en al menos una lista del usuario (propias + compartidas; para icono activo). */
+/** Dueño de la lista o miembro con permiso de edición de ítems. */
+export function userListRowIsEditableByUser(list: UserListRow, userId: number): boolean {
+  return Number(list.user_id) === Number(userId) || Boolean(list.members_can_edit);
+}
+
+/** Devuelve los coffee_id que están en al menos una lista del usuario (propias + compartidas; p. ej. ADN perfil). */
 export async function fetchCoffeeIdsInUserLists(userId: number): Promise<string[]> {
   const [owned, shared] = await Promise.all([fetchUserLists(userId), fetchSharedWithMeLists(userId)]);
   const listIds = [...new Set([...owned, ...shared].map((l) => l.id))];
   return fetchCoffeeIdsInLists(listIds);
+}
+
+/** Cafés en listas donde el usuario puede añadir/quitar (dueño o members_can_edit). Icono lista en detalle. */
+export async function fetchCoffeeIdsInEditableUserLists(userId: number): Promise<string[]> {
+  const [owned, shared] = await Promise.all([fetchUserLists(userId), fetchSharedWithMeLists(userId)]);
+  const merged = Array.from(new Map([...owned, ...shared].map((l) => [l.id, l])).values());
+  const editableIds = merged.filter((l) => userListRowIsEditableByUser(l, userId)).map((l) => l.id);
+  return fetchCoffeeIdsInLists(editableIds);
 }
 
 /** Devuelve los coffee_id que están en las listas indicadas. */
@@ -913,6 +943,19 @@ export async function addUserListItem(listId: string, coffeeId: string): Promise
     );
   throwIfError(error);
   invalidateUserListsCache();
+}
+
+/** IDs de listas (entre las dadas) que ya contienen este café. */
+export async function getListIdsContainingCoffee(coffeeId: string, listIds: string[]): Promise<string[]> {
+  if (listIds.length === 0) return [];
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("user_list_items")
+    .select("list_id")
+    .eq("coffee_id", coffeeId)
+    .in("list_id", listIds);
+  throwIfError(error);
+  return [...new Set((data ?? []).map((r: { list_id: string }) => String(r.list_id).trim().toLowerCase()))];
 }
 
 /** Quita un café de una lista personalizada. */

@@ -324,27 +324,22 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     return <MaterialSymbolIcon symbol="shelves" filled={true} className={className} />;
   }
   if (name === "origin") {
-    return <MaterialSymbolIcon symbol="globe" filled={false} className={className} />;
+    return <img src="/android-drawable/pais.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "specialty") {
-    return <MaterialSymbolIcon symbol="verified" filled={false} className={className} />;
+    return <img src="/android-drawable/especialidad.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "roast") {
-    return <MaterialSymbolIcon symbol="local_fire_department" filled={false} className={className} />;
+    return <img src="/android-drawable/tueste.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "format") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-        <rect x="5" y="4" width="14" height="16" rx="2" />
-        <path d="M8 8h8M8 12h8M8 16h5" />
-      </svg>
-    );
+    return <img src="/android-drawable/formato.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "process") {
-    return <MaterialSymbolIcon symbol="settings" filled={false} className={className} />;
+    return <img src="/android-drawable/proceso.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "variety") {
-    return <MaterialSymbolIcon symbol="auto_awesome_mosaic" filled={false} className={className} />;
+    return <img src="/android-drawable/variedad.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "grind") {
     return <MaterialSymbolIcon symbol="lens_blur" filled={false} className={className} />;

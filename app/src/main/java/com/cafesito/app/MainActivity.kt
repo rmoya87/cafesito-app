@@ -109,17 +109,21 @@ class MainActivity : ComponentActivity() {
         deepLinkListId = parseListIdFromIntent(intent)
     }
 
-    /** Extrae listId de un intent con data https://cafesitoapp.com/profile/list/{listId} (App Link / deep link en móvil). */
+    /** Extrae listId de un intent con data https://cafesitoapp.com/profile/list/{listId} o /lists/join/{listId}. */
     private fun parseListIdFromIntent(intent: Intent?): String? {
-        val uri: Uri? = intent?.data ?: return null
-        val host = uri?.host ?: return null
+        val uri: Uri = intent?.data ?: return null
+        val host = uri.host ?: return null
         if (host != "cafesitoapp.com" && !host.endsWith(".cafesitoapp.com")) return null
-        val path = uri?.path ?: return null
-        // /profile/list/UUID o profile/list/UUID
+        val path = uri.path ?: return null
         val segments = path.trim('/').split("/")
+        // /lists/join/UUID
+        if (segments.getOrNull(0) == "lists" && segments.getOrNull(1) == "join" && segments.getOrNull(2)?.isNotBlank() == true) {
+            return segments[2]
+        }
+        // /profile/list/UUID
         val listIdx = segments.indexOf("list")
-        if (listIdx < 0 || listIdx >= segments.lastIndex) return null
-        return segments[listIdx + 1].takeIf { it.isNotBlank() }
+        if (listIdx >= 0 && listIdx < segments.lastIndex) return segments[listIdx + 1].takeIf { it.isNotBlank() }
+        return null
     }
 
     override fun onStart() {

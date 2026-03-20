@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 import com.cafesito.shared.domain.User
 import com.cafesito.app.ui.components.ModernAvatar
 import com.cafesito.app.ui.theme.*
+import com.cafesito.app.ui.utils.containsSearchQuery
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,8 +52,8 @@ fun FollowersScreen(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val filteredFollowers = uiState.filter {
-        it.user.username.contains(searchQuery, ignoreCase = true) || 
-        it.user.fullName.contains(searchQuery, ignoreCase = true)
+        it.user.username.containsSearchQuery(searchQuery) ||
+        it.user.fullName.containsSearchQuery(searchQuery)
     }
 
     var isRefreshing by remember { mutableStateOf(false) }

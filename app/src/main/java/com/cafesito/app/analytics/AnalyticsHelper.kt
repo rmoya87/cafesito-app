@@ -13,7 +13,7 @@ import javax.inject.Singleton
 
 @Singleton
 class AnalyticsHelper @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val firebaseAnalytics: FirebaseAnalytics
 ) {
     private val gtmDataLayer: Any? = initGtmDataLayer()

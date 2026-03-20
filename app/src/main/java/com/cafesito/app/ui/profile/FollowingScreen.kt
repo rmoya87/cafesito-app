@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.cafesito.app.ui.theme.*
+import com.cafesito.app.ui.utils.containsSearchQuery
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,8 +48,8 @@ fun FollowingScreen(
 
     val filteredFollowing = remember(uiState, currentQuery) {
         uiState.filter {
-            it.user.username.contains(currentQuery, ignoreCase = true) || 
-            it.user.fullName.contains(currentQuery, ignoreCase = true)
+            it.user.username.containsSearchQuery(currentQuery) ||
+            it.user.fullName.containsSearchQuery(currentQuery)
         }
     }
 

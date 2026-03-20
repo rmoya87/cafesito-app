@@ -62,6 +62,7 @@ import com.cafesito.app.ui.components.ListDeleteConfirmBottomSheet
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import com.cafesito.app.ui.theme.Spacing
+import com.cafesito.app.ui.utils.containsSearchQuery
 
 private val PRIVACY_OPTIONS = listOf(
     "public" to ("Pública" to "Cualquier persona puede suscribirse."),
@@ -264,8 +265,8 @@ fun ListOptionsScreen(
                                     .filter { it.id != (list?.userId?.toInt() ?: 0) }
                                     .filter { u ->
                                         searchQuery.isBlank() ||
-                                            u.username.contains(searchQuery, ignoreCase = true) ||
-                                            (u.fullName?.contains(searchQuery, ignoreCase = true) == true)
+                                            u.username.containsSearchQuery(searchQuery) ||
+                                            u.fullName.containsSearchQuery(searchQuery)
                                     }
                                 if (searchQuery.isNotBlank()) {
                                     Spacer(Modifier.height(8.dp))
@@ -442,8 +443,8 @@ fun ListOptionsScreen(
                                     .filter { it.id != ownerId.toInt() }
                                     .filter { u ->
                                         searchQuery.isBlank() ||
-                                            u.username.contains(searchQuery, ignoreCase = true) ||
-                                            (u.fullName?.contains(searchQuery, ignoreCase = true) == true)
+                                            u.username.containsSearchQuery(searchQuery) ||
+                                            u.fullName.containsSearchQuery(searchQuery)
                                     }
                                 if (searchQuery.isNotBlank()) {
                                     Spacer(Modifier.height(8.dp))
@@ -605,8 +606,8 @@ fun ListOptionsScreen(
                                     .filter { it.id != ownerIdInv.toInt() }
                                     .filter { u ->
                                         searchQuery.isBlank() ||
-                                            u.username.contains(searchQuery, ignoreCase = true) ||
-                                            (u.fullName?.contains(searchQuery, ignoreCase = true) == true)
+                                            u.username.containsSearchQuery(searchQuery) ||
+                                            u.fullName.containsSearchQuery(searchQuery)
                                     }
                                 if (searchQuery.isNotBlank()) {
                                     Spacer(Modifier.height(8.dp))

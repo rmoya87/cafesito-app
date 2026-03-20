@@ -11,6 +11,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.cafesito.app.MainActivity
 import com.cafesito.app.R
+import com.cafesito.app.notifications.NotificationActionReceiver
 import com.cafesito.app.notifications.NotificationChannels
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,8 +22,10 @@ import kotlinx.coroutines.withContext
 
 /**
  * Foreground Service para el timer de Brew Lab. Muestra una notificación ongoing
- * con tiempo restante y acciones Pausar / Cancelar. Al terminar, muestra
- * "¿Registrar elaboración?" con acción para abrir la app.
+ * con tiempo restante total de la elaboración (suma de todas las fases) y acciones
+ * Pausar / Reanudar / Cancelar. Al llegar a 00:00 hace stopForeground, muestra la
+ * notificación "¿Registrar elaboración?" ("Abre Cafesito y guarda en tu diario. Continuar.")
+ * y se detiene; al tocarla la app abre directamente la pantalla Consumo.
  */
 class BrewLabTimerService : Service() {
 
@@ -134,6 +137,7 @@ class BrewLabTimerService : Service() {
     }
 
     private fun buildOngoingNotification(): Notification {
+        // Tiempo total restante de la elaboración (todas las fases); en pantalla se muestra además el paso actual.
         val remaining = (totalSeconds - elapsedSeconds).coerceAtLeast(0)
         val mm = remaining / 60
         val ss = remaining % 60
@@ -177,7 +181,7 @@ class BrewLabTimerService : Service() {
         return NotificationCompat.Builder(this, NotificationChannels.CHANNEL_BREW_TIMER)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(R.drawable.ic_cafesito_tile)
             .setOngoing(true)
             .setContentIntent(openApp)
             .addAction(android.R.drawable.ic_media_pause, if (isPaused) getString(R.string.brew_timer_resume) else getString(R.string.brew_timer_pause), pauseResumeAction)
@@ -188,7 +192,7 @@ class BrewLabTimerService : Service() {
     }
 
     private fun showRegisterNotification() {
-        val openApp = PendingIntent.getActivity(
+        val openConsumo = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
@@ -196,12 +200,22 @@ class BrewLabTimerService : Service() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val dismissLater = PendingIntent.getBroadcast(
+            this, 0,
+            Intent(this, NotificationActionReceiver::class.java).apply {
+                action = NotificationActionReceiver.ACTION_DISMISS_BREW_REGISTER
+                putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, REGISTER_NOTIFICATION_ID)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         val notification = NotificationCompat.Builder(this, NotificationChannels.CHANNEL_GENERAL)
             .setContentTitle(getString(R.string.brew_timer_register_title))
             .setContentText(getString(R.string.brew_timer_register_text))
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentIntent(openApp)
+            .setSmallIcon(R.drawable.ic_cafesito_tile)
+            .setContentIntent(openConsumo)
             .setAutoCancel(true)
+            .addAction(android.R.drawable.ic_menu_edit, getString(R.string.brew_timer_register_yes), openConsumo)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, getString(R.string.brew_timer_register_later), dismissLater)
             .build()
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .notify(REGISTER_NOTIFICATION_ID, notification)
@@ -266,7 +280,8 @@ class BrewLabTimerService : Service() {
         const val EXTRA_OPEN_BREWLAB_CONSUMO = "open_brewlab_consumo"
 
         private const val NOTIFICATION_ID = 9001
-        private const val REGISTER_NOTIFICATION_ID = 9002
+        /** ID de la notificación «¿Registrar elaboración?»; usado para añadir acción «Más tarde» que la cierra. */
+        const val REGISTER_NOTIFICATION_ID = 9002
         const val PREFS_NAME = "brew_timer_service"
         const val KEY_ELAPSED = "elapsed_seconds"
         const val KEY_TOTAL = "total_seconds"

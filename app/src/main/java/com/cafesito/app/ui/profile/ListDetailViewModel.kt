@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cafesito.app.data.CoffeeRepository
+import com.cafesito.app.data.ListActivityRemovalBus
 import com.cafesito.app.data.ListMemberRow
 import com.cafesito.app.data.SupabaseDataSource
 import com.cafesito.app.data.UserEntity
@@ -26,7 +27,8 @@ class ListDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val supabaseDataSource: SupabaseDataSource,
     private val coffeeRepository: CoffeeRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val listActivityRemovalBus: ListActivityRemovalBus
 ) : ViewModel() {
 
     private val userId: Int = savedStateHandle["userId"] ?: 0
@@ -96,6 +98,7 @@ class ListDetailViewModel @Inject constructor(
     fun removeFromList(coffeeId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             supabaseDataSource.removeUserListItem(listId, coffeeId)
+            listActivityRemovalBus.notifyListItemRemoved(listId, coffeeId)
             _itemIds.update { it.filter { id -> id != coffeeId } }
         }
     }
