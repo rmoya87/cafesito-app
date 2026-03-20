@@ -113,8 +113,9 @@ class SearchViewModel @Inject constructor(
             return coffees.filter { item ->
                 val c = item.coffee
                 val matchQuery =
-                    c.nombre.containsSearchQuery(qAdapt) ||
-                    c.marca.containsSearchQuery(qAdapt)
+                    qAdapt.isBlank() ||
+                        c.nombre.containsSearchQuery(qAdapt) ||
+                        c.marca.containsSearchQuery(qAdapt)
                 val matchOrigin = exOrigin || origins.isEmpty() || c.paisOrigen.toAtomizedList().any { it in origins }
                 val matchRoast = exRoast || roasts.isEmpty() || c.tueste.toAtomizedList().any { it in roasts }
                 val matchSpecialty = exSpecialty || specialties.isEmpty() || c.especialidad.toAtomizedList().any { it in specialties }
@@ -156,9 +157,10 @@ class SearchViewModel @Inject constructor(
         val filtered = coffees.filter { item ->
             val c = item.coffee
             val matchQuery =
-                c.nombre.containsSearchQuery(q) ||
-                c.marca.containsSearchQuery(q) ||
-                c.codigoBarras.containsSearchQuery(q)
+                q.isBlank() ||
+                    c.nombre.containsSearchQuery(q) ||
+                    c.marca.containsSearchQuery(q) ||
+                    c.codigoBarras.containsSearchQuery(q)
             val matchOrigin = origins.isEmpty() || c.paisOrigen.toAtomizedList().any { it in origins }
             val matchRoast = roasts.isEmpty() || c.tueste.toAtomizedList().any { it in roasts }
             val matchSpecialty = specialties.isEmpty() || c.especialidad.toAtomizedList().any { it in specialties }

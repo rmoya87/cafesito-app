@@ -379,7 +379,11 @@ private fun DetailContent(
                                 )
                             },
                             coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let {
-                                DetailTechnicalItem(label = "MOLIENDA", value = it, icon = Icons.Default.Grain)
+                                DetailTechnicalItem(
+                                    label = "MOLIENDA",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.molienda)
+                                )
                             },
                             DetailTechnicalItem(
                                 label = "FORMATO",

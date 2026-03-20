@@ -342,7 +342,7 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
     return <img src="/android-drawable/variedad.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "grind") {
-    return <MaterialSymbolIcon symbol="lens_blur" filled={false} className={className} />;
+    return <img src="/android-drawable/molienda.png" className={className} alt="" aria-hidden="true" />;
   }
   if (name === "shop") {
     return <MaterialSymbolIcon symbol="storefront" filled={false} className={className} />;
