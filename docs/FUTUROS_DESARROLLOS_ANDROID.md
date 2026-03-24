@@ -26,7 +26,7 @@ Este documento recoge **propuestas pendientes y nuevas ideas** para Android, Web
 | 6 | Predictive app actions | Integraciones Android | ✅ | Doc implementadas §6 |
 | 7 | Canales de notificaciones | Integraciones Android | ✅ | Doc implementadas §7 |
 | 8 | Edge-to-edge y Predictive back | Integraciones Android | ✅ | Doc implementadas §8 |
-| 9 | Direct Share (ChooserTargetService) | Integraciones Android | ❌ | Listas/contactos como destinos al compartir |
+| 9 | Direct Share (Android + WebApp, sin ChooserTargetService) | Integraciones Android/Web | ❌ | Android: Sharing Shortcuts; WebApp: Web Share + destinos rápidos internos |
 | 10 | Health Connect (cafeína) | Integraciones Android | ❌ | Según prioridad producto |
 | 11 | Pantalla de bloqueo / Lock screen | Integraciones Android | ❌ | Widget/acción "Elaborar" (OEM) |
 | 12 | Soporte tablets y plegables | Integraciones Android | ❌ | WindowSizeClass, dos paneles |
@@ -53,7 +53,11 @@ Funcionalidades nativas del ecosistema Android. Detalle de implementados en `AND
 
 #### Pendientes
 
-- **Direct Share:** En el diálogo "Compartir", destinos directos (listas de Cafesito, contactos) sin abrir la app. Implementar `ChooserTargetService`. Estado: no hay ChooserTargetService en el proyecto.
+- **Direct Share (sin `ChooserTargetService`, Android + WebApp):**
+  - **Objetivo funcional:** en "Compartir", ofrecer destinos directos de Cafesito (listas y contactos frecuentes) para reducir pasos.
+  - **Android (implementación recomendada):** usar **Sharing Shortcuts** (`ShortcutManager` / `ShortcutInfoCompat`) en lugar de `ChooserTargetService` (legacy). Publicar shortcuts dinámicos por usuario (top listas/contactos), abrir destino con deep link interno y fallback al share normal si el destino ya no existe.
+  - **WebApp (equivalente funcional):** usar `navigator.share(...)` cuando esté disponible y, en paralelo, mostrar un panel propio de **destinos rápidos** (copiar enlace, compartir en lista interna, contactos frecuentes, WhatsApp/Telegram/X por URL). Si Web Share API no está disponible, fallback a copia de enlace + panel de destinos.
+  - **Estado actual:** no implementado en Android ni WebApp.
 
 - **Bubbles:** Notificación del timer expandible en burbuja flotante; tap abre Brew Lab. Requiere notificación con burbuja y `BubbleMetadata`. Estado: no implementado.
 
